@@ -2,7 +2,7 @@
 
 <!--- TODO(#2): split out into more documents. -->
 
-The connector uses the [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources) to read data from [Google BigQuery](https://cloud.google.com/bigquery/) using its [Storage API](https://cloud.google.com/bigquery/docs/reference/storage).
+The connector uses the [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources) to read data from [Google BigQuery](https://cloud.google.com/bigquery/).
 
 ## Beta Disclaimer
 
@@ -16,8 +16,7 @@ Changes may include, but are not limited to:
 Breaking changes will be restricted to major and minor versions.
 
 ## BigQuery Storage API
-
-The Storage API streams data in parallel directly from BigQuery via gRPC without using Google Cloud Storage as an intermediary.
+The [Storage API](https://cloud.google.com/bigquery/docs/reference/storage) streams data in parallel directly from BigQuery via gRPC without using Google Cloud Storage as an intermediary.
 
 It has a number of advantages over using the previous export-based read flow that should generally lead to better read performance:
 
