@@ -47,7 +47,7 @@ class BigQueryRelationProvider(
     val opts = SparkBigQueryOptions(
       parameters, sqlContext.sparkContext.hadoopConfiguration, schema, defaultParentProject)
     val tableName = BigQueryUtil.friendlyTableName(opts.tableId)
-    // TODO(pclay): Support creating non-existent tables with write support.
+    // TODO(#7): Support creating non-existent tables with write support.
     val table = Option(bigquery.getTable(opts.tableId))
         .getOrElse(sys.error(s"Table $tableName not found"))
     table.getDefinition[TableDefinition].getType match {

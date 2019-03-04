@@ -39,7 +39,7 @@ object SchemaConverters {
   def toSpark(schema: Schema): StructType = {
     def convert(field: Field): StructField = {
       var dataType = field.getType match {
-        // TODO(pclay): Support NUMERIC
+        // TODO(#1): Support NUMERIC
         case INTEGER => LongType
         case FLOAT => DoubleType
         case STRING => StringType
@@ -48,7 +48,7 @@ object SchemaConverters {
         case DATE => DateType
         case TIMESTAMP => TimestampType
         case TIME => LongType
-        // TODO(pclay): add a timezone to allow parsing to timestamp
+        // TODO(#5): add a timezone to allow parsing to timestamp
         // This can be safely cast to TimestampType, but doing so causes the date to be inferred
         // as the current date. It's safer to leave as a stable string and give the user the
         // option of casting themselves.
@@ -102,7 +102,7 @@ object SchemaConverters {
       }
       field.getType match {
         case INTEGER | FLOAT | BOOLEAN | DATE | TIME | TIMESTAMP => value
-        // TODO(pclay): use String for safety?
+        // TODO(pmkc): use String for safety?
         case STRING | DATETIME => UTF8String.fromBytes(value.asInstanceOf[Utf8].getBytes)
         case BYTES =>
           val buf = value.asInstanceOf[ByteBuffer]

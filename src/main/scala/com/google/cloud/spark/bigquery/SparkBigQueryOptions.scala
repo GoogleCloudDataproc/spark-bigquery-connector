@@ -46,7 +46,6 @@ object SparkBigQueryOptions {
     val tableId = BigQueryUtil.parseTableId(tableParam, datasetParam, projectParam)
     val parentProject = getRequiredOption(parameters, "parentProject", defaultBilledProject)
     val filter = getOption(parameters, "filter")
-    // TODO(pclay): Revisit this
     val parallelism = getOption(parameters, "parallelism").map(_.toInt)
     val skewLimit = getOption(parameters, SKEW_LIMIT_KEY).map(_.toDouble)
         .getOrElse(SKEW_LIMIT_DEFAULT)

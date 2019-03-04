@@ -18,7 +18,7 @@ package com.google.cloud.spark.bigquery.it
 import org.apache.spark.sql.types._
 
 object TestConstants {
-  // TODO(pclay): replace with dynamically created table (this one is private).
+  // TODO(#3): replace with dynamically created table (this one is private).
   val KNOWN_TABLE = "pc.all_types"
   val KNOWN_TABLE_SCHEMA = StructType(Seq(
     StructField("int_req", LongType, nullable = false),
