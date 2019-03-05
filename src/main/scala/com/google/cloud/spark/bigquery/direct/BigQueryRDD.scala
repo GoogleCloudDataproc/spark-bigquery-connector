@@ -55,7 +55,7 @@ class BigQueryRDD(sc: SparkContext,
     context.addTaskCompletionListener(_ => client.close)
 
     try {
-      // TODO(pclay): unwrap RuntimeExceptions from iterator
+      // TODO(pmkc): unwrap RuntimeExceptions from iterator
       val it = client.readRowsCallable().call(request).iterator.asScala
         .flatMap(toRows)
         .zipWithIndex

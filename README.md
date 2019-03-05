@@ -1,8 +1,8 @@
 # Apache Spark SQL connector for Google BigQuery (Beta)
 
-<!--- TODO(pclay): split out into more documents. -->
+<!--- TODO(#2): split out into more documents. -->
 
-The connector uses the [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources) to readdata from [Google BigQuery](https://cloud.google.com/bigquery/).
+The connector uses the [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources) to read data from [Google BigQuery](https://cloud.google.com/bigquery/).
 
 ## Beta Disclaimer
 
@@ -13,11 +13,10 @@ Changes may include, but are not limited to:
 * Partitioning
 * Parameters
 
-Breaking changes will be restricted to major and minor versions. 
+Breaking changes will be restricted to major and minor versions.
 
 ## BigQuery Storage API
-
-The Storage API streams data in parallel directly from BigQuery via gRPC without using Google Cloud Storage as an intermediary.
+The [Storage API](https://cloud.google.com/bigquery/docs/reference/storage) streams data in parallel directly from BigQuery via gRPC without using Google Cloud Storage as an intermediary.
 
 It has a number of advantages over using the previous export-based read flow that should generally lead to better read performance:
 
@@ -51,7 +50,8 @@ See [Configuring Partitioning](#configuring-partitioning) for more details.
 
 ### Enable the BigQuery Storage API
 
-TODO
+Follow [these instructions](
+https://cloud.google.com/bigquery/docs/reference/storage/#enabling_the_api).
 
 ### Create a Google Cloud Dataproc cluster (Optional)
 
@@ -66,13 +66,13 @@ gcloud dataproc clusters create "$MY_CLUSTER"
 
 ## Downloading the Connector
 
-TODO: Add location of pre-compiled binary
+TODO(pmkc): Add location of pre-compiled binary
 
 ## Hello World Example
 
 You can run a simple PySpark wordcount against the API without compilation by running
 
-<!--- TODO(pclay): Update jar reference -->
+<!--- TODO(pmkc): Update jar reference -->
 
 ```
 gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
@@ -84,7 +84,7 @@ gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
 
 Unless you wish to use the implicit Scala API `spark.read.bigquery("TABLE_ID")`, there is no need to compile against the connector.
 
-TODO: Add maven central reference
+TODO(pmkc): Add maven central reference after publishing
 
 ## API
 
@@ -113,7 +113,7 @@ See [Shakespeare.scala](/src/main/scala/com/google/cloud/spark/bigquery/examples
 
 The API Supports a number of options to configure the read
 
-<!--- TODO(pclay): Convert to markdown -->
+<!--- TODO(#2): Convert to markdown -->
 <table>
   <tr>
    <td><strong>Property</strong>
@@ -190,7 +190,7 @@ Must be at least 1.0.
 
 With the exception of `DATETIME` and `TIME` all BigQuery data types directed map into the corresponding Spark SQL data type. Here are all of the mappings:
 
-<!--- TODO(pclay): Convert to markdown -->
+<!--- TODO(#2): Convert to markdown -->
 <table>
   <tr>
    <td><strong>BigQuery Standard SQL Data Type </strong>
@@ -296,7 +296,7 @@ When casting to Timestamp TIME have the same TimeZone issues as DATETIME
   </tr>
 </table>
 
-TODO: support NUMERIC type
+TODO(#1): support NUMERIC type
 
 ### Filtering
 
@@ -347,11 +347,9 @@ sbt assembly
 
 ## FAQ
 
-### Is there billing for the Storage API?
+### What is the Pricing for the Storage API?
 
-Yes. 
-
-TODO: Link billing docs here (and move out of FAQ)
+See the [BigQuery pricing documentation](https://cloud.google.com/bigquery/pricing#storage-api).
 
 ### I have very few partitions
 
@@ -375,5 +373,4 @@ You can use the [existing MapReduce connector](https://github.com/GoogleCloudPla
 
 Use a service account JSON key and `GOOGLE_APPLICATION_CREDENTIALS` as described [here](https://cloud.google.com/docs/authentication/getting-started).
 
-TODO: Wire auth through Spark/Hadoop properties.
-
+TODO(#6): Wire auth through Spark/Hadoop properties.

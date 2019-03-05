@@ -145,7 +145,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   }
 
   test("user defined schema") {
-    // TODO(pclay): consider a schema that wouldn't cause cast errors if read.
+    // TODO(pmkc): consider a schema that wouldn't cause cast errors if read.
     import com.google.cloud.spark.bigquery._
     val expectedSchema = StructType(Seq(StructField("whatever", ByteType)))
     val table = spark.read.schema(expectedSchema).bigquery(KNOWN_TABLE)
@@ -169,7 +169,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   test("bounded partition skew") {
     import com.google.cloud.spark.bigquery._
     // Usually finishes in 10, but there is a long tail.
-    // TODO(pclay): lower limit and add retries?
+    // TODO(pmkc): lower limit and add retries?
     failAfter(30 seconds) {
       // Select first partition
       val df = spark.read

@@ -32,7 +32,7 @@ object TestUtils {
     // Visibility hacks
     val table = mock(classOf[Table])
     when(table.getTableId).thenReturn(info.getTableId)
-    // TODO(pclay): Handle other types
+    // TODO(pmkc): Handle other types
     when(table.getDefinition)
         .thenReturn(info.getDefinition[StandardTableDefinition])
     Preconditions.checkNotNull(table.getDefinition[TableDefinition])
