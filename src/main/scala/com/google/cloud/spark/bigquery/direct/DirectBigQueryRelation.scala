@@ -143,8 +143,8 @@ private[bigquery] class DirectBigQueryRelation(
 
 object DirectBigQueryRelation {
   def createReadClient(): BigQueryStorageClient = {
-    // TODO(pclay): create settings provider for parameterizable auth
-    // TODO(pclay): investigate thread pool sizing and log spam matching
+    // TODO(#6): create settings provider for parameterizable auth
+    // TODO(pmkc): investigate thread pool sizing and log spam matching
     // https://github.com/grpc/grpc-java/issues/4544 in integration tests
     BigQueryStorageClient.create
   }

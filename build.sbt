@@ -8,8 +8,8 @@ lazy val commonSettings = Seq(
   spName := "google/spark-bigquery",
   sparkComponents ++= Seq("core", "sql")
 )
-// TODO(pclay): Migrate off Spark Packages for simplicity
-// TODO(pclay): Suppport publishing to Maven Central
+// TODO(pmkc): Migrate off Spark Packages for simplicity
+// TODO(pmkc): Suppport publishing to Maven Central
 
 // Default IntegrationTest config uses separate test directory, build files
 lazy val ITest = config("it") extend Test
@@ -58,7 +58,7 @@ libraryDependencies ++= Seq(
   "org.apache.avro" % "avro" % "1.8.2",
 
   // Brings SLF4J 1.7.25. Spark 2.2 has 1.7.16
-  // TODO(pclay): consider shading
+  // TODO(pmkc): Shade
   "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
 
 
