@@ -373,4 +373,4 @@ You can use the [existing MapReduce connector](https://github.com/GoogleCloudPla
 
 Use a service account JSON key and `GOOGLE_APPLICATION_CREDENTIALS` as described [here](https://cloud.google.com/docs/authentication/getting-started).
 
-TODO(#4): Wire auth through Spark/Hadoop properties.
+TODO(#6): Wire auth through Spark/Hadoop properties.
