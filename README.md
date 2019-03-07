@@ -66,7 +66,7 @@ gcloud dataproc clusters create "$MY_CLUSTER"
 
 ## Downloading the Connector
 
-TODO(pmkc): Add location of pre-compiled binary
+The latest version connector of the connector is publicly available in [gs://spark-lib/bigquery/spark-bigquery-latest.jar](https://console.cloud.google.com/storage/browser/spark-lib/bigquery).
 
 ## Hello World Example
 
@@ -76,7 +76,7 @@ You can run a simple PySpark wordcount against the API without compilation by ru
 
 ```
 gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
-  --jars target/scala-2.11/spark-bigquery-assembly-*.jar \
+  --jars gs://spark-lib/bigquery/spark-bigquery-latest.jar \
   examples/python/shakespeare.py
 ```
 
@@ -90,7 +90,6 @@ TODO(pmkc): Add maven central reference after publishing
 
 The connector uses the cross language [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources):
 
-
 ```
 df = spark.read
   .format("bigquery")
@@ -98,16 +97,14 @@ df = spark.read
   .load()
 ```
 
-
 or the Scala only implicit API:
-
 
 ```
 import com.google.cloud.spark.bigquery._
 val df: DataFrame = spark.read.bigquery("publicdata.samples.shakespeare")
 ```
 
-See [Shakespeare.scala](/src/main/scala/com/google/cloud/spark/bigquery/examples/Shakespeare.scala) and [shakespeare.py](examples/python/shakespeare.py) for more information.
+See [Shakespeare.scala](src/main/scala/com/google/cloud/spark/bigquery/examples/Shakespeare.scala) and [shakespeare.py](examples/python/shakespeare.py) for more information.
 
 ### Properties
 
