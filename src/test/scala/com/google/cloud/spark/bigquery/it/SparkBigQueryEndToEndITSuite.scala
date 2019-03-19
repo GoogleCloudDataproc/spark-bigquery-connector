@@ -16,12 +16,11 @@
 package com.google.cloud.spark.bigquery.it
 
 import java.sql.Timestamp
-import java.util.TimeZone
 
 import com.google.cloud.spark.bigquery.TestUtils
 import com.google.cloud.spark.bigquery.it.TestConstants._
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.internal.SQLConf
+import com.google.common.primitives.Bytes
+import com.typesafe.scalalogging.Logger
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.scalatest.concurrent.TimeLimits
@@ -29,30 +28,41 @@ import org.scalatest.time.SpanSugar._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 class SparkBigQueryEndToEndITSuite extends FunSuite
-    with BeforeAndAfterAll with Matchers with TimeLimits {
-  private val SHAKESPEARE_TABLE = "bigquery-public-data:samples.shakespeare"
+  with BeforeAndAfterAll with Matchers with TimeLimits {
+  private val SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare"
   private val SHAKESPEARE_TABLE_NUM_ROWS = 164656L
   private val SHAKESPEARE_TABLE_SCHEMA = StructType(Seq(
     StructField("word", StringType, nullable = false),
     StructField("word_count", LongType, nullable = false),
     StructField("corpus", StringType, nullable = false),
     StructField("corpus_date", LongType, nullable = false)))
-  private val LARGE_TABLE = "bigquery-public-data:samples.natality"
+  private val LARGE_TABLE = "bigquery-public-data.samples.natality"
   private val LARGE_TABLE_FIELD = "is_male"
   private val LARGE_TABLE_NUM_ROWS = 137826763L
-  private val NON_EXISTENT_TABLE = "non-existent:non-existent.non-existent"
+  private val NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent"
+  private val ALL_TYPES_TABLE_NAME = "all_types"
+
+  private val log: Logger = Logger(getClass)
 
   private var spark: SparkSession = _
-  private var knownTable: DataFrame = _
+  private var testDataset: String = _
+  private var allTypesTable: DataFrame = _
 
   override def beforeAll: Unit = {
     spark = TestUtils.getOrCreateSparkSession()
-    knownTable = spark.read.format("bigquery")
-        .option("table", KNOWN_TABLE)
-        .load()
+    testDataset = s"spark_bigquery_it_${System.currentTimeMillis()}"
+    IntegrationTestUtils.createDataset(
+      testDataset)
+    IntegrationTestUtils.runQuery(
+      TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE.format(s"$testDataset.$ALL_TYPES_TABLE_NAME"))
+    allTypesTable = spark.read.format("bigquery")
+      .option("dataset", testDataset)
+      .option("table", ALL_TYPES_TABLE_NAME)
+      .load()
   }
 
   override def afterAll: Unit = {
+    IntegrationTestUtils.deleteDatasetAndTables(testDataset)
     spark.stop()
   }
 
@@ -64,9 +74,9 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       assert(SHAKESPEARE_TABLE_SCHEMA == df.schema)
       assert(SHAKESPEARE_TABLE_NUM_ROWS == df.count())
       val firstWords = df.select("word")
-          .where("word >= 'a' AND word not like '%\\'%'")
-          .distinct
-          .as[String].sort("word").take(3)
+        .where("word >= 'a' AND word not like '%\\'%'")
+        .distinct
+        .as[String].sort("word").take(3)
       firstWords should contain theSameElementsInOrderAs Seq("a", "abaissiez", "abandon")
     }
   }
@@ -78,8 +88,8 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
   testShakespeare("explicit format") {
     spark.read.format("com.google.cloud.spark.bigquery")
-        .option("table", SHAKESPEARE_TABLE)
-        .load()
+      .option("table", SHAKESPEARE_TABLE)
+      .load()
   }
 
   testShakespeare("short format") {
@@ -88,7 +98,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
   test("out of order columns") {
     val row = spark.read.format("bigquery").option("table", SHAKESPEARE_TABLE).load()
-        .select("word_count", "word").head
+      .select("word_count", "word").head
     assert(row(0).isInstanceOf[Long])
     assert(row(1).isInstanceOf[String])
   }
@@ -96,9 +106,9 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
   test("number of partitions") {
     val df = spark.read.format("com.google.cloud.spark.bigquery")
-        .option("table", LARGE_TABLE)
-        .option("parallelism", "5")
-        .load()
+      .option("table", LARGE_TABLE)
+      .option("parallelism", "5")
+      .load()
     assert(5 == df.rdd.getNumPartitions)
   }
 
@@ -106,49 +116,32 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     // This should be stable in our master local test environment.
     val expectedParallelism = spark.sparkContext.defaultParallelism
     val df = spark.read.format("com.google.cloud.spark.bigquery")
-        .option("table", LARGE_TABLE)
-        .load()
+      .option("table", LARGE_TABLE)
+      .load()
     assert(expectedParallelism == df.rdd.getNumPartitions)
   }
 
   test("read data types") {
-    import com.google.cloud.spark.bigquery._
-    val expectedRow = spark.range(1).select(
-      lit(42L),
-      lit(null),
-      lit(true),
-      lit("string"),
-      to_date(lit("2018-11-16")),
-      from_utc_timestamp(lit("2018-11-16 22:16:37.713"), TimeZone.getDefault.getID),
-      lit("2018-11-16T22:16:37.713004"),
-      lit(80197713004L),
-      lit(4.2),
-      lit("bytes").cast("BINARY"),
-      array(lit(1), lit(2), lit(3)),
-      struct(lit(1), lit(2), lit(3)),
-      array(struct(lit(1)))
-    ).head.toSeq
-    // Spark SQL has microsecond precision, but I can't figure out how to set it in a literal
-    expectedRow(5).asInstanceOf[Timestamp].setNanos(713004000)
-    val row = spark.read.bigquery(KNOWN_TABLE).head.toSeq
+    val expectedRow = spark.range(1).select(TestConstants.ALL_TYPES_TABLE_COLS: _*).head.toSeq
+    val row = allTypesTable.head.toSeq
     row should contain theSameElementsInOrderAs expectedRow
   }
 
 
   test("known size in bytes") {
-    val actualTableSize = knownTable.queryExecution.analyzed.stats.sizeInBytes
-    assert(actualTableSize == KNOWN_TABLE_SIZE)
+    val actualTableSize = allTypesTable.queryExecution.analyzed.stats.sizeInBytes
+    assert(actualTableSize == ALL_TYPES_TABLE_SIZE)
   }
 
   test("known schema") {
-    assert(knownTable.schema == KNOWN_TABLE_SCHEMA)
+    assert(allTypesTable.schema == ALL_TYPES_TABLE_SCHEMA)
   }
 
   test("user defined schema") {
     // TODO(pmkc): consider a schema that wouldn't cause cast errors if read.
     import com.google.cloud.spark.bigquery._
     val expectedSchema = StructType(Seq(StructField("whatever", ByteType)))
-    val table = spark.read.schema(expectedSchema).bigquery(KNOWN_TABLE)
+    val table = spark.read.schema(expectedSchema).bigquery(SHAKESPEARE_TABLE)
     assert(expectedSchema == table.schema)
   }
 
@@ -173,10 +166,10 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     failAfter(30 seconds) {
       // Select first partition
       val df = spark.read
-          .option("parallelism", 999)
-          .option("skewLimit", 1.0)
-          .bigquery(LARGE_TABLE)
-          .select(LARGE_TABLE_FIELD) // minimize payload
+        .option("parallelism", 999)
+        .option("skewLimit", 1.0)
+        .bigquery(LARGE_TABLE)
+        .select(LARGE_TABLE_FIELD) // minimize payload
       val sizeOfFirstPartition = df.rdd.mapPartitionsWithIndex {
         case (0, it) => it
         case _ => Iterator.empty

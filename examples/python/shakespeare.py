@@ -19,7 +19,7 @@ from pyspark.sql import SparkSession
 
 spark = SparkSession.builder.appName('Shakespeare WordCount').getOrCreate()
 
-table = 'publicdata:samples.shakespeare'
+table = 'publicdata.samples.shakespeare'
 df = spark.read.format('bigquery').option('table', table).load()
 # Only these columns will be read
 df = df.select('word', 'word_count')

@@ -27,8 +27,7 @@ object Shakespeare {
     val spark = SparkSession.builder().appName("test").getOrCreate()
     val sc = spark.sparkContext
 
-    // BigQuery Parallel read requires the table to be in an enabled project.
-    var df = spark.read.bigquery("samples.shakespeare")
+    var df = spark.read.bigquery("publicdata.samples.shakespeare").cache()
     df.show()
     df.printSchema()
     val path = Files.createTempDirectory("spark-bigquery").resolve("out")
