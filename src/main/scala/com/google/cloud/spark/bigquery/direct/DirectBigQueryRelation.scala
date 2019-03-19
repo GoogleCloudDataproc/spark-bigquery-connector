@@ -17,7 +17,8 @@ package com.google.cloud.spark.bigquery.direct
 
 import java.sql.{Date, Timestamp}
 
-import com.google.cloud.bigquery.storage.v1beta1.BigQueryStorageClient
+import com.google.api.gax.rpc.FixedHeaderProvider
+import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, BigQueryStorageSettings}
 import com.google.cloud.bigquery.storage.v1beta1.ReadOptions.TableReadOptions
 import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionRequest, DataFormat}
 import com.google.cloud.bigquery.storage.v1beta1.TableReferenceProto.TableReference
@@ -146,7 +147,10 @@ object DirectBigQueryRelation {
     // TODO(#6): create settings provider for parameterizable auth
     // TODO(pmkc): investigate thread pool sizing and log spam matching
     // https://github.com/grpc/grpc-java/issues/4544 in integration tests
-    BigQueryStorageClient.create
+    var clientSettings = BigQueryStorageSettings.newBuilder()
+      .setHeaderProvider(FixedHeaderProvider.create("user-agent", "spark-bigquery"))
+      .build()
+    BigQueryStorageClient.create(clientSettings)
   }
 
   def isComparable(dataType: DataType): Boolean = dataType match {
