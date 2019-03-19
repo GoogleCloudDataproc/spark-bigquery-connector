@@ -224,6 +224,15 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    </td>
   </tr>
   <tr>
+   <td><strong><code>NUMERIC</code></strong>
+   </td>
+   <td><strong><code>DecimalType</code></strong>
+   </td>
+   <td>
+     This preserves <code>NUMERIC</code>'s full 38 digits of precision and 9 digits of scope.
+   </td>
+  </tr>
+  <tr>
    <td><strong><code>STRING</code></strong>
    </td>
    <td><strong><code>StringType</code></strong>
@@ -292,8 +301,6 @@ When casting to Timestamp TIME have the same TimeZone issues as DATETIME
    </td>
   </tr>
 </table>
-
-TODO(#1): support NUMERIC type
 
 ### Filtering
 

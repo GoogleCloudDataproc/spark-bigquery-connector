@@ -35,6 +35,8 @@ object SchemaConverters {
 
   private val log = Logger(getClass)
 
+  // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
+  // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
   private val BQ_NUMERIC_PRECISION = 38
   private val BQ_NUMERIC_SCALE = 9
   private lazy val NUMERIC_SPARK_TYPE = DataTypes.createDecimalType(
@@ -79,13 +81,13 @@ object SchemaConverters {
 
 
   /**
-    * Create a function that converts an Avro row with the given BigQuery schema to a Spark SQL row
-    *
-    * The conversion is based on the BigQuery schema, not Avro Schema, because the Avro schema is
-    * very painful to use.
-    *
-    * Not guaranteed to be stable across all versions of Spark.
-    */
+   * Create a function that converts an Avro row with the given BigQuery schema to a Spark SQL row
+   *
+   * The conversion is based on the BigQuery schema, not Avro Schema, because the Avro schema is
+   * very painful to use.
+   *
+   * Not guaranteed to be stable across all versions of Spark.
+   */
   def createRowConverter(schema: Schema, namesInOrder: Seq[String])(record: GenericRecord)
   : InternalRow = {
     def convert(field: Field, value: Any): Any = {
@@ -98,13 +100,13 @@ object SchemaConverters {
         // See: https://github.com/googleapis/google-cloud-java/issues/3942
         val fType = LegacySQLTypeName.valueOfStrict(field.getType.name)
         val nestedField = Field.newBuilder(field.getName, fType, field.getSubFields)
-          // As long as this is not repeated it works, but technically arrays cannot contain
-          // nulls, so select required instead of nullable.
-          .setMode(Field.Mode.REQUIRED)
-          .build
+            // As long as this is not repeated it works, but technically arrays cannot contain
+            // nulls, so select required instead of nullable.
+            .setMode(Field.Mode.REQUIRED)
+            .build
         return new GenericArrayData(
           value.asInstanceOf[java.lang.Iterable[AnyRef]].asScala
-            .map(v => convert(nestedField, v)))
+              .map(v => convert(nestedField, v)))
       }
       field.getType match {
         case INTEGER | FLOAT | BOOLEAN | DATE | TIME | TIMESTAMP => value
@@ -132,8 +134,8 @@ object SchemaConverters {
                    record: GenericRecord,
                    namesInOrder: Seq[String]): GenericInternalRow = {
       val getValue = fields.zip(Range(0, record.getSchema.getFields.size()).map(record.get))
-        .map { case (field, value) => field.getName -> convert(field, value) }
-        .toMap
+          .map { case (field, value) => field.getName -> convert(field, value) }
+          .toMap
       new GenericInternalRow(namesInOrder.map(getValue).toArray)
     }
 

@@ -48,7 +48,7 @@ object TestConstants {
       nullable = true)
   ))
   val ALL_TYPES_TABLE_QUERY_TEMPLATE: String =
-    // Use DDL to support required fields
+  // Use DDL to support required fields
     """
       |create table %s (
       |int_req int64 not null,
@@ -85,7 +85,7 @@ object TestConstants {
       |) as nums,
       |[1, 2, 3] as int_arr,
       |[(select as struct 1)] as int_struct_arr
-   """.stripMargin
+    """.stripMargin
 
   val ALL_TYPES_TABLE_SIZE = 160
 

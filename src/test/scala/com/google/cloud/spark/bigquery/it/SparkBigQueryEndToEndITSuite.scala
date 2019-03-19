@@ -28,7 +28,7 @@ import org.scalatest.time.SpanSugar._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 class SparkBigQueryEndToEndITSuite extends FunSuite
-  with BeforeAndAfterAll with Matchers with TimeLimits {
+    with BeforeAndAfterAll with Matchers with TimeLimits {
   private val SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare"
   private val SHAKESPEARE_TABLE_NUM_ROWS = 164656L
   private val SHAKESPEARE_TABLE_SCHEMA = StructType(Seq(
@@ -56,9 +56,9 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     IntegrationTestUtils.runQuery(
       TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE.format(s"$testDataset.$ALL_TYPES_TABLE_NAME"))
     allTypesTable = spark.read.format("bigquery")
-      .option("dataset", testDataset)
-      .option("table", ALL_TYPES_TABLE_NAME)
-      .load()
+        .option("dataset", testDataset)
+        .option("table", ALL_TYPES_TABLE_NAME)
+        .load()
   }
 
   override def afterAll: Unit = {
@@ -74,9 +74,9 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       assert(SHAKESPEARE_TABLE_SCHEMA == df.schema)
       assert(SHAKESPEARE_TABLE_NUM_ROWS == df.count())
       val firstWords = df.select("word")
-        .where("word >= 'a' AND word not like '%\\'%'")
-        .distinct
-        .as[String].sort("word").take(3)
+          .where("word >= 'a' AND word not like '%\\'%'")
+          .distinct
+          .as[String].sort("word").take(3)
       firstWords should contain theSameElementsInOrderAs Seq("a", "abaissiez", "abandon")
     }
   }
@@ -88,8 +88,8 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
   testShakespeare("explicit format") {
     spark.read.format("com.google.cloud.spark.bigquery")
-      .option("table", SHAKESPEARE_TABLE)
-      .load()
+        .option("table", SHAKESPEARE_TABLE)
+        .load()
   }
 
   testShakespeare("short format") {
@@ -98,7 +98,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
   test("out of order columns") {
     val row = spark.read.format("bigquery").option("table", SHAKESPEARE_TABLE).load()
-      .select("word_count", "word").head
+        .select("word_count", "word").head
     assert(row(0).isInstanceOf[Long])
     assert(row(1).isInstanceOf[String])
   }
@@ -106,9 +106,9 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
   test("number of partitions") {
     val df = spark.read.format("com.google.cloud.spark.bigquery")
-      .option("table", LARGE_TABLE)
-      .option("parallelism", "5")
-      .load()
+        .option("table", LARGE_TABLE)
+        .option("parallelism", "5")
+        .load()
     assert(5 == df.rdd.getNumPartitions)
   }
 
@@ -116,8 +116,8 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     // This should be stable in our master local test environment.
     val expectedParallelism = spark.sparkContext.defaultParallelism
     val df = spark.read.format("com.google.cloud.spark.bigquery")
-      .option("table", LARGE_TABLE)
-      .load()
+        .option("table", LARGE_TABLE)
+        .load()
     assert(expectedParallelism == df.rdd.getNumPartitions)
   }
 
@@ -166,10 +166,10 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     failAfter(30 seconds) {
       // Select first partition
       val df = spark.read
-        .option("parallelism", 999)
-        .option("skewLimit", 1.0)
-        .bigquery(LARGE_TABLE)
-        .select(LARGE_TABLE_FIELD) // minimize payload
+          .option("parallelism", 999)
+          .option("skewLimit", 1.0)
+          .bigquery(LARGE_TABLE)
+          .select(LARGE_TABLE_FIELD) // minimize payload
       val sizeOfFirstPartition = df.rdd.mapPartitionsWithIndex {
         case (0, it) => it
         case _ => Iterator.empty
