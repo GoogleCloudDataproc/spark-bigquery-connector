@@ -8,18 +8,25 @@ lazy val commonSettings = Seq(
   spName := "google/spark-bigquery",
   sparkComponents ++= Seq("core", "sql")
 )
+
 // TODO(pmkc): Migrate off Spark Packages for simplicity
+
 // TODO(pmkc): Suppport publishing to Maven Central
 
 // Default IntegrationTest config uses separate test directory, build files
 lazy val ITest = config("it") extend Test
+
 lazy val shaded = (project in file("."))
+    .enablePlugins(BuildInfoPlugin)
     .configs(ITest)
     .settings(
       commonSettings,
       inConfig(ITest)(Defaults.testTasks),
       testOptions in Test := Seq(Tests.Filter(unitFilter)),
-      testOptions in ITest := Seq(Tests.Filter(itFilter)))
+      testOptions in ITest := Seq(Tests.Filter(itFilter)),
+      buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
+      buildInfoPackage := "com.google.cloud.spark.bigquery")
+
 // Exclude dependencies already on Spark's Classpath
 val excludedOrgs = Seq(
   // All use commons-cli:1.4

@@ -23,7 +23,7 @@ import com.google.cloud.bigquery.storage.v1beta1.ReadOptions.TableReadOptions
 import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionRequest, DataFormat}
 import com.google.cloud.bigquery.storage.v1beta1.TableReferenceProto.TableReference
 import com.google.cloud.bigquery.{Schema, StandardTableDefinition, TableDefinition, TableInfo}
-import com.google.cloud.spark.bigquery.{BigQueryRelation, SparkBigQueryOptions}
+import com.google.cloud.spark.bigquery.{BigQueryRelation, BuildInfo, SparkBigQueryOptions}
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
@@ -148,7 +148,8 @@ object DirectBigQueryRelation {
     // TODO(pmkc): investigate thread pool sizing and log spam matching
     // https://github.com/grpc/grpc-java/issues/4544 in integration tests
     var clientSettings = BigQueryStorageSettings.newBuilder()
-      .setHeaderProvider(FixedHeaderProvider.create("user-agent", "spark-bigquery"))
+      .setHeaderProvider(
+        FixedHeaderProvider.create("user-agent", BuildInfo.name + "/" + BuildInfo.version))
       .build()
     BigQueryStorageClient.create(clientSettings)
   }
