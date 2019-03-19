@@ -17,7 +17,7 @@ package com.google.cloud.spark.bigquery.direct
 
 import java.sql.{Date, Timestamp}
 
-import com.google.api.gax.rpc.FixedHeaderProvider
+import com.google.api.gax.rpc.{FixedHeaderProvider, HeaderProvider}
 import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, BigQueryStorageSettings}
 import com.google.cloud.bigquery.storage.v1beta1.ReadOptions.TableReadOptions
 import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionRequest, DataFormat}
@@ -143,13 +143,18 @@ private[bigquery] class DirectBigQueryRelation(
 }
 
 object DirectBigQueryRelation {
+  def createHeaderProvider(): HeaderProvider = {
+    FixedHeaderProvider.create("user-agent", BuildInfo.name + "/" + BuildInfo.version)
+  }
   def createReadClient(): BigQueryStorageClient = {
     // TODO(#6): create settings provider for parameterizable auth
     // TODO(pmkc): investigate thread pool sizing and log spam matching
     // https://github.com/grpc/grpc-java/issues/4544 in integration tests
     var clientSettings = BigQueryStorageSettings.newBuilder()
-      .setHeaderProvider(
-        FixedHeaderProvider.create("user-agent", BuildInfo.name + "/" + BuildInfo.version))
+      .setTransportChannelProvider(
+        BigQueryStorageSettings.defaultGrpcTransportProviderBuilder()
+          .setHeaderProvider(createHeaderProvider())
+          .build())
       .build()
     BigQueryStorageClient.create(clientSettings)
   }
