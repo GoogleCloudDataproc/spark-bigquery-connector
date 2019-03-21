@@ -143,9 +143,6 @@ private[bigquery] class DirectBigQueryRelation(
 }
 
 object DirectBigQueryRelation {
-  def createHeaderProvider(): HeaderProvider = {
-    FixedHeaderProvider.create("user-agent", BuildInfo.name + "/" + BuildInfo.version)
-  }
   def createReadClient(): BigQueryStorageClient = {
     // TODO(#6): create settings provider for parameterizable auth
     // TODO(pmkc): investigate thread pool sizing and log spam matching
@@ -153,7 +150,8 @@ object DirectBigQueryRelation {
     var clientSettings = BigQueryStorageSettings.newBuilder()
       .setTransportChannelProvider(
         BigQueryStorageSettings.defaultGrpcTransportProviderBuilder()
-          .setHeaderProvider(createHeaderProvider())
+          .setHeaderProvider(
+            FixedHeaderProvider.create("user-agent", BuildInfo.name + "/" + BuildInfo.version))
           .build())
       .build()
     BigQueryStorageClient.create(clientSettings)
