@@ -35,6 +35,13 @@ object SchemaConverters {
 
   private val log = Logger(getClass)
 
+  // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
+  // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
+  private val BQ_NUMERIC_PRECISION = 38
+  private val BQ_NUMERIC_SCALE = 9
+  private lazy val NUMERIC_SPARK_TYPE = DataTypes.createDecimalType(
+    BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE)
+
   /** Convert a BigQuery schema to a Spark schema */
   def toSpark(schema: Schema): StructType = {
     def convert(field: Field): StructField = {
@@ -42,6 +49,7 @@ object SchemaConverters {
         // TODO(#1): Support NUMERIC
         case INTEGER => LongType
         case FLOAT => DoubleType
+        case NUMERIC => NUMERIC_SPARK_TYPE
         case STRING => StringType
         case BOOLEAN => BooleanType
         case BYTES => BinaryType
@@ -104,11 +112,10 @@ object SchemaConverters {
         case INTEGER | FLOAT | BOOLEAN | DATE | TIME | TIMESTAMP => value
         // TODO(pmkc): use String for safety?
         case STRING | DATETIME => UTF8String.fromBytes(value.asInstanceOf[Utf8].getBytes)
-        case BYTES =>
-          val buf = value.asInstanceOf[ByteBuffer]
-          val bytes = new Array[Byte](buf.remaining)
-          buf.get(bytes)
-          bytes
+        case BYTES => getBytes(value.asInstanceOf[ByteBuffer])
+        case NUMERIC =>
+          val bytes = getBytes(value.asInstanceOf[ByteBuffer])
+          Decimal(BigDecimal(BigInt(bytes), BQ_NUMERIC_SCALE), BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE)
         case RECORD =>
           val fields = field.getSubFields.asScala
           convertAll(fields, value.asInstanceOf[GenericRecord], fields.map(_.getName))
@@ -116,10 +123,16 @@ object SchemaConverters {
       }
     }
 
+    def getBytes(buf: ByteBuffer) = {
+      val bytes = new Array[Byte](buf.remaining)
+      buf.get(bytes)
+      bytes
+    }
+
     // Schema is not recursive so add helper for sequence of fields
     def convertAll(fields: Seq[Field],
-        record: GenericRecord,
-        namesInOrder: Seq[String]): GenericInternalRow = {
+                   record: GenericRecord,
+                   namesInOrder: Seq[String]): GenericInternalRow = {
       val getValue = fields.zip(Range(0, record.getSchema.getFields.size()).map(record.get))
           .map { case (field, value) => field.getName -> convert(field, value) }
           .toMap
