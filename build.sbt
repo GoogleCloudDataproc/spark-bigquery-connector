@@ -11,8 +11,6 @@ lazy val commonSettings = Seq(
 
 // TODO(pmkc): Migrate off Spark Packages for simplicity
 
-// TODO(pmkc): Suppport publishing to Maven Central
-
 // Default IntegrationTest config uses separate test directory, build files
 lazy val ITest = config("it") extend Test
 
