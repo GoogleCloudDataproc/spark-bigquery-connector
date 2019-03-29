@@ -106,3 +106,16 @@ assemblyMergeStrategy in assembly := {
     relocationPrefix)
   case x => (assemblyMergeStrategy in assembly).value(x)
 }
+
+homepage := Some(url("https://github.com/GoogleCloudPlatform/spark-bigquery-connector"))
+scmInfo := Some(ScmInfo(url("https://github.com/GoogleCloudPlatform/spark-bigquery-connector"),
+  "git@github.com:GoogleCloudPlatform/spark-bigquery-connector.git"))
+licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))
+publishMavenStyle := true
+
+publishTo := Some(
+  if (version.value.trim.endsWith("SNAPSHOT"))
+    Opts.resolver.sonatypeSnapshots
+  else
+    Opts.resolver.sonatypeStaging
+)
