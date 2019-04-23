@@ -114,7 +114,7 @@ publishMavenStyle := true
 pomExtra :=
   <developers>
     <developer>
-      <organization>Google Inc.</organization>
+      <organization>Google LLC.</organization>
       <organizationUrl>http://www.google.com</organizationUrl>
     </developer>
   </developers>
