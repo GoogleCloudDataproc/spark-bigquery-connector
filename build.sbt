@@ -111,6 +111,14 @@ scmInfo := Some(ScmInfo(url("https://github.com/GoogleCloudPlatform/spark-bigque
 licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))
 publishMavenStyle := true
 
+pomExtra :=
+  <developers>
+    <developer>
+      <organization>Google LLC.</organization>
+      <organizationUrl>http://www.google.com</organizationUrl>
+    </developer>
+  </developers>
+
 publishTo := Some(
   if (version.value.trim.endsWith("SNAPSHOT"))
     Opts.resolver.sonatypeSnapshots
