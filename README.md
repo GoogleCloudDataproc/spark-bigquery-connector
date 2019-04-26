@@ -84,7 +84,23 @@ gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
 
 Unless you wish to use the implicit Scala API `spark.read.bigquery("TABLE_ID")`, there is no need to compile against the connector.
 
-TODO(pmkc): Add maven central reference after publishing
+To include the connector in your project:
+
+### Maven
+
+```xml
+<dependency>
+  <groupId>com.google.cloud.spark</groupId>
+  <artifactId>spark-bigquery_${scala.version}</artifactId>
+  <version>0.5.1-beta</version>
+</dependency>
+```
+
+### SBT
+
+```sbt
+libraryDependencies += "com.google.cloud.spark" % "spark-bigquery" % "0.5.1-beta"
+```
 
 ## API
 
