@@ -56,7 +56,7 @@ libraryDependencies ++= Seq(
   // Keep com.google.cloud dependencies in sync
   "com.google.cloud" % "google-cloud-bigquery" % "1.61.0",
   // Note BigQuery Storage Generated Library is Alpha but the API is Beta
-  "com.google.cloud" % "google-cloud-bigquerystorage" % "0.79.0-alpha",
+  "com.google.cloud" % "google-cloud-bigquerystorage" % "0.88.0-alpha",
   // Keep in sync with com.google.cloud
   "io.grpc" % "grpc-netty-shaded" % "1.17.1",
 
@@ -114,7 +114,7 @@ publishMavenStyle := true
 pomExtra :=
   <developers>
     <developer>
-      <organization>Google LLC.</organization>
+      <organization>Google LLC</organization>
       <organizationUrl>http://www.google.com</organizationUrl>
     </developer>
   </developers>
