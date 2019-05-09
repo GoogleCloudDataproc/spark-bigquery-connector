@@ -99,7 +99,7 @@ To include the connector in your project:
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" % "spark-bigquery" % "0.5.1-beta"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery" % "0.5.1-beta"
 ```
 
 ## API
