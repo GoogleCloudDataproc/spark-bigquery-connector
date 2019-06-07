@@ -62,6 +62,7 @@ class BigQueryRelationProviderSuite
 
     when(sqlCtx.sparkContext).thenReturn(sc)
     when(sc.hadoopConfiguration).thenReturn(conf)
+    when(sqlCtx.getAllConfs).thenReturn(Map.empty[String, String])
   }
 
   after {

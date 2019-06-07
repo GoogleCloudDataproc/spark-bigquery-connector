@@ -46,6 +46,7 @@ object SparkBigQueryOptions {
 
   def apply(
       parameters: Map[String, String],
+      allConf: Map[String, String],
       hadoopConf: Configuration,
       schema: Option[StructType],
       defaultBilledProject: Option[String])
@@ -53,9 +54,10 @@ object SparkBigQueryOptions {
     val tableParam = getRequiredOption(parameters, "table")
     val datasetParam = getOption(parameters, "dataset")
     val projectParam = getOption(parameters, "project")
-    val credentialsParam = getOption(parameters, "credentials")
+    val credentialsParam = getAnyOption(allConf, parameters, "credentials")
     val tableId = BigQueryUtil.parseTableId(tableParam, datasetParam, projectParam)
-    val parentProject = getRequiredOption(parameters, "parentProject", defaultBilledProject)
+    val parentProject = getRequiredOption(parameters, "parentProject",
+      defaultBilledProject)
     val filter = getOption(parameters, "filter")
     val parallelism = getOption(parameters, "parallelism").map(_.toInt)
     val skewLimit = getOption(parameters, SKEW_LIMIT_KEY).map(_.toDouble)
@@ -82,5 +84,10 @@ object SparkBigQueryOptions {
       fallback: Option[String] = None): Option[String] = {
     options.get(name.toLowerCase).orElse(fallback)
   }
+
+  private def getAnyOption(globalOptions: Map[String, String],
+                           options: Map[String, String],
+                           name: String): Option[String] =
+    options.get(name.toLowerCase).orElse(globalOptions.get(name.toLowerCase))
 }
 

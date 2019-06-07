@@ -82,12 +82,15 @@ gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
 
 ## Providing credentials explicitly
 
-Credentials can be provided explicitly by adding it to the Spark configuration
+Credentials can be provided explicitly either as a parameter or from runtime configuration
 
 Example:
 ```
-spark.set.conf("bigquery.credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
-spark.set.conf("bigquery.projectId", "<BIGQUERY_PROJECT_ID>")
+spark.format("bigquery").read.option("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
+```
+or
+```
+spark.conf.set("credentials","<SERVICE_ACCOUNT_JSON_IN_BASE64>")
 ```
 
 

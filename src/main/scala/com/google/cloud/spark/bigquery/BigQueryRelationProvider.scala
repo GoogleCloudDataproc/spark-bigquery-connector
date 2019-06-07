@@ -42,6 +42,7 @@ class BigQueryRelationProvider(
       parameters: Map[String, String],
       schema: Option[StructType] = None): BigQueryRelation = {
     val opts = SparkBigQueryOptions(parameters,
+                                    sqlContext.getAllConfs,
                                     sqlContext.sparkContext.hadoopConfiguration,
                                     schema,
                                     defaultParentProject)
