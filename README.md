@@ -80,6 +80,17 @@ gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
   examples/python/shakespeare.py
 ```
 
+## Providing credentials explicitly
+
+Credentials can be provided explicitly by adding it to the Spark configuration
+
+Example:
+```
+spark.set.conf("bigquery.credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
+spark.set.conf("bigquery.projectId", "<BIGQUERY_PROJECT_ID>")
+```
+
+
 ## Compiling against the connector
 
 Unless you wish to use the implicit Scala API `spark.read.bigquery("TABLE_ID")`, there is no need to compile against the connector.
