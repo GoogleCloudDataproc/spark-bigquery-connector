@@ -26,17 +26,20 @@ import org.mockito.{Matchers, Mock, MockitoAnnotations}
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfter, FunSuite}
 
-
-class BigQueryRelationProviderSuite extends FunSuite with BeforeAndAfter with MockitoSugar {
+class BigQueryRelationProviderSuite
+    extends FunSuite
+    with BeforeAndAfter
+    with MockitoSugar {
 
   private val ID = TableId.of("test_project", "test_dataset", "test_table")
   private val TABLE_NAME = "test_project:test_dataset.test_table"
   private val TABLE = TableInfo.of(
     ID,
-    StandardTableDefinition.newBuilder()
-        .setSchema(Schema.of(Field.of("foo", LegacySQLTypeName.STRING)))
-        .setNumBytes(42L)
-        .build())
+    StandardTableDefinition
+      .newBuilder()
+      .setSchema(Schema.of(Field.of("foo", LegacySQLTypeName.STRING)))
+      .setNumBytes(42L)
+      .build())
 
   @Mock
   private var sqlCtx: SQLContext = _
@@ -53,7 +56,8 @@ class BigQueryRelationProviderSuite extends FunSuite with BeforeAndAfter with Mo
   before {
     MockitoAnnotations.initMocks(this)
     conf = new Configuration(false)
-    provider = new BigQueryRelationProvider(() => bigQuery)
+    provider =
+      new BigQueryRelationProvider(() => Some(bigQuery), Some(ID.getProject))
     table = TestUtils.table(TABLE)
 
     when(sqlCtx.sparkContext).thenReturn(sc)
@@ -84,4 +88,3 @@ class BigQueryRelationProviderSuite extends FunSuite with BeforeAndAfter with Mo
     verify(bigQuery).getTable(Matchers.eq(ID))
   }
 }
-

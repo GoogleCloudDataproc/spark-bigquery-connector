@@ -15,6 +15,11 @@
  */
 package com.google.cloud.spark.bigquery
 
+import java.io.ByteArrayInputStream
+
+import com.google.api.client.util.Base64
+import com.google.auth.Credentials
+import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.bigquery.TableId
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.types.StructType
@@ -23,10 +28,15 @@ import org.apache.spark.sql.types.StructType
 case class SparkBigQueryOptions(
     tableId: TableId,
     parentProject: String,
+    credentials: Option[String] = None,
     filter: Option[String] = None,
     schema: Option[StructType] = None,
     skewLimit: Double = SparkBigQueryOptions.SKEW_LIMIT_DEFAULT,
     parallelism: Option[Int] = None) {
+
+  def createCredentials: Option[Credentials] = credentials.map(cred =>
+    GoogleCredentials
+      .fromStream(new ByteArrayInputStream(Base64.decodeBase64(cred))))
 }
 
 /** Resolvers for {@link SparkBigQueryOptions} */
@@ -43,6 +53,7 @@ object SparkBigQueryOptions {
     val tableParam = getRequiredOption(parameters, "table")
     val datasetParam = getOption(parameters, "dataset")
     val projectParam = getOption(parameters, "project")
+    val credentialsParam = getOption(parameters, "credentials")
     val tableId = BigQueryUtil.parseTableId(tableParam, datasetParam, projectParam)
     val parentProject = getRequiredOption(parameters, "parentProject", defaultBilledProject)
     val filter = getOption(parameters, "filter")
@@ -52,8 +63,10 @@ object SparkBigQueryOptions {
     // BigQuery will actually error if we close the last stream.
     assert(skewLimit >= 1.0,
       s"Paramater '$SKEW_LIMIT_KEY' must be at least 1.0 to read all data '$skewLimit'")
-    SparkBigQueryOptions(tableId, parentProject, filter, schema, skewLimit, parallelism)
+    SparkBigQueryOptions(tableId, parentProject, credentialsParam, filter, schema,
+      skewLimit, parallelism)
   }
+
 
   private def getRequiredOption(
       options: Map[String, String],

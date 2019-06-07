@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery
 
+import com.google.auth.Credentials
 import com.google.cloud.bigquery.TableDefinition.Type.TABLE
 import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, TableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
@@ -23,17 +24,13 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 
 class BigQueryRelationProvider(
-    getBigQuery: () => BigQuery,
+    getBigQuery: () => Option[BigQuery] = () => None,
     // This should never be nullable, but could be in very strange circumstances
     defaultParentProject: Option[String] = Option(
       BigQueryOptions.getDefaultInstance.getProjectId))
     extends RelationProvider
     with SchemaRelationProvider
     with DataSourceRegister {
-
-  @transient private lazy val bigquery: BigQuery = getBigQuery()
-
-  def this() = this(BigQueryRelationProvider.createBigQuery)
 
   override def createRelation(sqlContext: SQLContext,
                               parameters: Map[String, String]): BaseRelation = {
@@ -48,6 +45,8 @@ class BigQueryRelationProvider(
                                     sqlContext.sparkContext.hadoopConfiguration,
                                     schema,
                                     defaultParentProject)
+    val bigquery =
+      getBigQuery().getOrElse(BigQueryRelationProvider.createBigQuery(opts))
     val tableName = BigQueryUtil.friendlyTableName(opts.tableId)
     // TODO(#7): Support creating non-existent tables with write support.
     val table = Option(bigquery.getTable(opts.tableId))
@@ -69,18 +68,17 @@ class BigQueryRelationProvider(
 
 object BigQueryRelationProvider {
 
-  def createBigQuery(sqlContext: SQLContext): BigQuery =
-    AuthContext
-      .fromSQLContext(sqlContext)
-      .fold(
-        BigQueryOptions.getDefaultInstance.getService
-      )(fromAuthContext)
+  def createBigQuery(options: SparkBigQueryOptions): BigQuery =
+    options.createCredentials.fold(
+      BigQueryOptions.getDefaultInstance.getService
+    )(createWithCredentials(options.parentProject, _))
 
-  def fromAuthContext(authContext: AuthContext): BigQuery = {
+  private def createWithCredentials(parentProject: String,
+                                    credentials: Credentials): BigQuery = {
     BigQueryOptions
       .newBuilder()
-      .setProjectId(authContext.projectId)
-      .setCredentials(authContext.toBigQueryCredentials)
+      .setProjectId(parentProject)
+      .setCredentials(credentials)
       .build()
       .getService
   }
