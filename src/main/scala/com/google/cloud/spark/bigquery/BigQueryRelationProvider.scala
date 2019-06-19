@@ -24,7 +24,7 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 
 class BigQueryRelationProvider(
-    getBigQuery: () => Option[BigQuery] = () => None,
+    getBigQuery: () => Option[BigQuery],
     // This should never be nullable, but could be in very strange circumstances
     defaultParentProject: Option[String] = Option(
       BigQueryOptions.getDefaultInstance.getProjectId))
@@ -36,6 +36,8 @@ class BigQueryRelationProvider(
                               parameters: Map[String, String]): BaseRelation = {
     createRelationInternal(sqlContext, parameters)
   }
+
+  def this() = this(() => None)
 
   protected def createRelationInternal(
       sqlContext: SQLContext,
@@ -72,9 +74,9 @@ object BigQueryRelationProvider {
   def createBigQuery(options: SparkBigQueryOptions): BigQuery =
     options.createCredentials.fold(
       BigQueryOptions.getDefaultInstance.getService
-    )(createWithCredentials(options.parentProject, _))
+    )(bigQueryWithCredentials(options.parentProject, _))
 
-  private def createWithCredentials(parentProject: String,
+  private def bigQueryWithCredentials(parentProject: String,
                                     credentials: Credentials): BigQuery = {
     BigQueryOptions
       .newBuilder()
