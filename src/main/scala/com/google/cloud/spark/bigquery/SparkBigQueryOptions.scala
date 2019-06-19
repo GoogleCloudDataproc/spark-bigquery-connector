@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery
 
-import java.io.ByteArrayInputStream
+import java.io.{ByteArrayInputStream, FileInputStream}
 
 import com.google.api.client.util.Base64
 import com.google.auth.Credentials
@@ -28,15 +28,25 @@ import org.apache.spark.sql.types.StructType
 case class SparkBigQueryOptions(
     tableId: TableId,
     parentProject: String,
-    credentials: Option[String] = None,
+    serviceAccountKeyString: Option[String] = None,
+    serviceAccountKeyFile: Option[String] = None,
     filter: Option[String] = None,
     schema: Option[StructType] = None,
     skewLimit: Double = SparkBigQueryOptions.SKEW_LIMIT_DEFAULT,
     parallelism: Option[Int] = None) {
 
-  def createCredentials: Option[Credentials] = credentials.map(cred =>
-    GoogleCredentials
-      .fromStream(new ByteArrayInputStream(Base64.decodeBase64(cred))))
+  def createCredentials: Option[Credentials] =
+    (serviceAccountKeyString, serviceAccountKeyFile) match {
+      case (Some(key), None) =>
+        Some(GoogleCredentials.fromStream(new ByteArrayInputStream(Base64.decodeBase64(key))))
+      case (None, Some(file)) =>
+        Some(GoogleCredentials.fromStream(new FileInputStream(file)))
+      case (None, None) =>
+        None
+      case (Some(_), Some(_)) =>
+        throw new IllegalArgumentException("Service Account Key can be provided through file " +
+          "name or a Base64 string directly, but not both!")
+    }
 }
 
 /** Resolvers for {@link SparkBigQueryOptions} */
@@ -54,7 +64,8 @@ object SparkBigQueryOptions {
     val tableParam = getRequiredOption(parameters, "table")
     val datasetParam = getOption(parameters, "dataset")
     val projectParam = getOption(parameters, "project")
-    val credentialsParam = getAnyOption(allConf, parameters, "credentials")
+    val serviceAccountKeyStringParam = getAnyOption(allConf, parameters, "serviceAccountKeyString")
+    val serviceAccountKeyFileParam = getAnyOption(allConf, parameters, "serviceAccountKeyFile")
     val tableId = BigQueryUtil.parseTableId(tableParam, datasetParam, projectParam)
     val parentProject = getRequiredOption(parameters, "parentProject",
       defaultBilledProject)
@@ -65,8 +76,8 @@ object SparkBigQueryOptions {
     // BigQuery will actually error if we close the last stream.
     assert(skewLimit >= 1.0,
       s"Paramater '$SKEW_LIMIT_KEY' must be at least 1.0 to read all data '$skewLimit'")
-    SparkBigQueryOptions(tableId, parentProject, credentialsParam, filter, schema,
-      skewLimit, parallelism)
+    SparkBigQueryOptions(tableId, parentProject, serviceAccountKeyStringParam,
+      serviceAccountKeyFileParam, filter, schema, skewLimit, parallelism)
   }
 
 

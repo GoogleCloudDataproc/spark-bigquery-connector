@@ -27,7 +27,11 @@ object Shakespeare {
     val spark = SparkSession.builder().appName("test").getOrCreate()
     val sc = spark.sparkContext
 
-    var df = spark.read.bigquery("publicdata.samples.shakespeare").cache()
+    var df = spark.read
+      .format("bigquery")
+      .option("table", "publicdata.samples.shakespeare")
+    //  .option("serviceAccountKeyFile", "/home/chaoyuan/service-key.json")
+      .load()
     df.show()
     df.printSchema()
     val path = Files.createTempDirectory("spark-bigquery").resolve("out")

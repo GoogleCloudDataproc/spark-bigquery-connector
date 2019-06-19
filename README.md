@@ -394,15 +394,24 @@ You can use the [existing MapReduce connector](https://github.com/GoogleCloudPla
 
 Use a service account JSON key and `GOOGLE_APPLICATION_CREDENTIALS` as described [here](https://cloud.google.com/docs/authentication/getting-started).
 
-Credentials can be provided explicitly either as a parameter or from Spark runtime configuration
+Service account key can be provided explicitly either as a parameter or from Spark runtime configuration.
+Also, it can be passed in as a base64 string directly, or a file path that contains the service account key (but not both).
 
 Example:
 ```
-spark.read.format("bigquery").option("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
+spark.read.format("bigquery").option("serviceAccountKeyString", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
 ```
 or
 ```
-spark.conf.set("credentials","<SERVICE_ACCOUNT_JSON_IN_BASE64>")
+spark.conf.set("serviceAccountKeyString", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
 ```
 
+Alternatively, specify the service account key file name.
 
+```
+spar.read.format("bigquery").option("serviceAccountKeyFile", "</path/to/key/file>")
+```
+or
+```
+spark.conf.set("serviceAccountKeyFile", "</path/to/key/file>")
+```
