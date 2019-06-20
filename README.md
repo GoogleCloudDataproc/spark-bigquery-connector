@@ -399,19 +399,19 @@ Also, it can be passed in as a base64 string directly, or a file path that conta
 
 Example:
 ```
-spark.read.format("bigquery").option("serviceAccountKeyString", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
+spark.read.format("bigquery").option("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
 ```
 or
 ```
-spark.conf.set("serviceAccountKeyString", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
+spark.conf.set("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
 ```
 
 Alternatively, specify the service account key file name.
 
 ```
-spar.read.format("bigquery").option("serviceAccountKeyFile", "</path/to/key/file>")
+spark.read.format("bigquery").option("credentialsFile", "</path/to/key/file>")
 ```
 or
 ```
-spark.conf.set("serviceAccountKeyFile", "</path/to/key/file>")
+spark.conf.set("credentialsFile", "</path/to/key/file>")
 ```

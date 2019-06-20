@@ -17,7 +17,9 @@ package com.google.cloud.spark.bigquery.direct
 
 import java.sql.{Date, Timestamp}
 
-import com.google.api.gax.rpc.{FixedHeaderProvider, HeaderProvider}
+import com.google.api.gax.core.CredentialsProvider
+import com.google.api.gax.rpc.FixedHeaderProvider
+import com.google.auth.Credentials
 import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, BigQueryStorageSettings}
 import com.google.cloud.bigquery.storage.v1beta1.ReadOptions.TableReadOptions
 import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionRequest, DataFormat}
@@ -32,13 +34,11 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
 
 import scala.collection.JavaConverters._
-import scala.tools.nsc.interpreter.session
-import scala.util.Try
 
 private[bigquery] class DirectBigQueryRelation(
     options: SparkBigQueryOptions,
-    table: TableInfo,
-    getClient: () => BigQueryStorageClient = DirectBigQueryRelation.createReadClient)
+    table: TableInfo, getClient: SparkBigQueryOptions => BigQueryStorageClient =
+      DirectBigQueryRelation.createReadClient)
     (@transient override val sqlContext: SQLContext)
     extends BigQueryRelation(options, table)(sqlContext)
         with TableScan with PrunedScan with PrunedFilteredScan {
@@ -77,7 +77,7 @@ private[bigquery] class DirectBigQueryRelation(
       tableDefinition.getSchema.getFields.asScala
         .filter(f => requiredColumnSet.contains(f.getName)).asJava)
 
-    val client = getClient()
+    val client = getClient(options)
 
     try {
       val session = client.createReadSession(
@@ -102,6 +102,7 @@ private[bigquery] class DirectBigQueryRelation(
         session.getAvroSchema.getSchema,
         prunedSchema,
         requiredColumns,
+        options,
         getClient).asInstanceOf[RDD[Row]]
 
     } finally {
@@ -143,8 +144,7 @@ private[bigquery] class DirectBigQueryRelation(
 }
 
 object DirectBigQueryRelation {
-  def createReadClient(): BigQueryStorageClient = {
-    // TODO(#6): create settings provider for parameterizable auth
+  def createReadClient(options: SparkBigQueryOptions): BigQueryStorageClient = {
     // TODO(pmkc): investigate thread pool sizing and log spam matching
     // https://github.com/grpc/grpc-java/issues/4544 in integration tests
     var clientSettings = BigQueryStorageSettings.newBuilder()
@@ -153,8 +153,15 @@ object DirectBigQueryRelation {
           .setHeaderProvider(
             FixedHeaderProvider.create("user-agent", BuildInfo.name + "/" + BuildInfo.version))
           .build())
-      .build()
-    BigQueryStorageClient.create(clientSettings)
+    options.createCredentials match {
+      case Some(creds) => clientSettings.setCredentialsProvider(
+        new CredentialsProvider {
+          override def getCredentials: Credentials = creds
+        })
+      case None =>
+    }
+
+    BigQueryStorageClient.create(clientSettings.build)
   }
 
   def isComparable(dataType: DataType): Boolean = dataType match {

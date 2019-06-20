@@ -28,15 +28,15 @@ import org.apache.spark.sql.types.StructType
 case class SparkBigQueryOptions(
     tableId: TableId,
     parentProject: String,
-    serviceAccountKeyString: Option[String] = None,
-    serviceAccountKeyFile: Option[String] = None,
+    credentials: Option[String] = None,
+    credentialsFile: Option[String] = None,
     filter: Option[String] = None,
     schema: Option[StructType] = None,
     skewLimit: Double = SparkBigQueryOptions.SKEW_LIMIT_DEFAULT,
     parallelism: Option[Int] = None) {
 
   def createCredentials: Option[Credentials] =
-    (serviceAccountKeyString, serviceAccountKeyFile) match {
+    (credentials, credentialsFile) match {
       case (Some(key), None) =>
         Some(GoogleCredentials.fromStream(new ByteArrayInputStream(Base64.decodeBase64(key))))
       case (None, Some(file)) =>
@@ -44,7 +44,7 @@ case class SparkBigQueryOptions(
       case (None, None) =>
         None
       case (Some(_), Some(_)) =>
-        throw new IllegalArgumentException("Service Account Key can be provided through file " +
+        throw new IllegalArgumentException("Credentials can be provided through file " +
           "name or a Base64 string directly, but not both!")
     }
 }
@@ -64,8 +64,8 @@ object SparkBigQueryOptions {
     val tableParam = getRequiredOption(parameters, "table")
     val datasetParam = getOption(parameters, "dataset")
     val projectParam = getOption(parameters, "project")
-    val serviceAccountKeyStringParam = getAnyOption(allConf, parameters, "serviceAccountKeyString")
-    val serviceAccountKeyFileParam = getAnyOption(allConf, parameters, "serviceAccountKeyFile")
+    val credsParam = getAnyOption(allConf, parameters, "credentials")
+    val credsFileParam = getAnyOption(allConf, parameters, "credentialsFile")
     val tableId = BigQueryUtil.parseTableId(tableParam, datasetParam, projectParam)
     val parentProject = getRequiredOption(parameters, "parentProject",
       defaultBilledProject)
@@ -76,8 +76,8 @@ object SparkBigQueryOptions {
     // BigQuery will actually error if we close the last stream.
     assert(skewLimit >= 1.0,
       s"Paramater '$SKEW_LIMIT_KEY' must be at least 1.0 to read all data '$skewLimit'")
-    SparkBigQueryOptions(tableId, parentProject, serviceAccountKeyStringParam,
-      serviceAccountKeyFileParam, filter, schema, skewLimit, parallelism)
+    SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
+      filter, schema, skewLimit, parallelism)
   }
 
 

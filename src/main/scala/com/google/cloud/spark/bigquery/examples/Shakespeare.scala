@@ -15,10 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.examples
 
-import java.io.{File, FileInputStream}
 import java.nio.file.Files
-import java.util.Base64
 
+import com.google.cloud.spark.bigquery._
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.sql.SparkSession
 
@@ -27,18 +26,8 @@ object Shakespeare {
   def main(args: Array[String]) {
     val spark = SparkSession.builder().appName("test").getOrCreate()
     val sc = spark.sparkContext
-    val file = new File("/home/chaoyuan/service-account.json")
-    val in = new FileInputStream(file)
-    val bytes = new Array[Byte](file.length.toInt)
-    in.read(bytes)
-    in.close
-    val str = Base64.getEncoder.encodeToString(bytes)
-    spark.conf.set("serviceAccountKeyString", str)
-    var df = spark.read
-      .format("bigquery")
-      .option("table", "chaoyuan-playground.samples.shakespeare")
-      .load()
-      .cache()
+
+    var df = spark.read.bigquery("publicdata.samples.shakespeare").cache()
     df.show()
     df.printSchema()
     val path = Files.createTempDirectory("spark-bigquery").resolve("out")
