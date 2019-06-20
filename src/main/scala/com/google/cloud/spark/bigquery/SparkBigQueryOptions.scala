@@ -45,7 +45,7 @@ case class SparkBigQueryOptions(
         None
       case (Some(_), Some(_)) =>
         throw new IllegalArgumentException("Credentials can be provided through file " +
-          "name or a Base64 string directly, but not both!")
+          "name or a Base64-encoded string directly, but not both!")
     }
 }
 
