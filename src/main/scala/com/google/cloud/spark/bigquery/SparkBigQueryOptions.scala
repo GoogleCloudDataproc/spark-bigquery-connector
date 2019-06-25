@@ -15,6 +15,11 @@
  */
 package com.google.cloud.spark.bigquery
 
+import java.io.{ByteArrayInputStream, FileInputStream}
+
+import com.google.api.client.util.Base64
+import com.google.auth.Credentials
+import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.bigquery.TableId
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.types.StructType
@@ -23,10 +28,25 @@ import org.apache.spark.sql.types.StructType
 case class SparkBigQueryOptions(
     tableId: TableId,
     parentProject: String,
+    credentials: Option[String] = None,
+    credentialsFile: Option[String] = None,
     filter: Option[String] = None,
     schema: Option[StructType] = None,
     skewLimit: Double = SparkBigQueryOptions.SKEW_LIMIT_DEFAULT,
     parallelism: Option[Int] = None) {
+
+  def createCredentials: Option[Credentials] =
+    (credentials, credentialsFile) match {
+      case (Some(key), None) =>
+        Some(GoogleCredentials.fromStream(new ByteArrayInputStream(Base64.decodeBase64(key))))
+      case (None, Some(file)) =>
+        Some(GoogleCredentials.fromStream(new FileInputStream(file)))
+      case (None, None) =>
+        None
+      case (Some(_), Some(_)) =>
+        throw new IllegalArgumentException("Only one of credentials or credentialsFile can be" +
+          " specified in the options.")
+    }
 }
 
 /** Resolvers for {@link SparkBigQueryOptions} */
@@ -36,6 +56,7 @@ object SparkBigQueryOptions {
 
   def apply(
       parameters: Map[String, String],
+      allConf: Map[String, String],
       hadoopConf: Configuration,
       schema: Option[StructType],
       defaultBilledProject: Option[String])
@@ -43,8 +64,11 @@ object SparkBigQueryOptions {
     val tableParam = getRequiredOption(parameters, "table")
     val datasetParam = getOption(parameters, "dataset")
     val projectParam = getOption(parameters, "project")
+    val credsParam = getAnyOption(allConf, parameters, "credentials")
+    val credsFileParam = getAnyOption(allConf, parameters, "credentialsFile")
     val tableId = BigQueryUtil.parseTableId(tableParam, datasetParam, projectParam)
-    val parentProject = getRequiredOption(parameters, "parentProject", defaultBilledProject)
+    val parentProject = getRequiredOption(parameters, "parentProject",
+      defaultBilledProject)
     val filter = getOption(parameters, "filter")
     val parallelism = getOption(parameters, "parallelism").map(_.toInt)
     val skewLimit = getOption(parameters, SKEW_LIMIT_KEY).map(_.toDouble)
@@ -52,8 +76,10 @@ object SparkBigQueryOptions {
     // BigQuery will actually error if we close the last stream.
     assert(skewLimit >= 1.0,
       s"Paramater '$SKEW_LIMIT_KEY' must be at least 1.0 to read all data '$skewLimit'")
-    SparkBigQueryOptions(tableId, parentProject, filter, schema, skewLimit, parallelism)
+    SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
+      filter, schema, skewLimit, parallelism)
   }
+
 
   private def getRequiredOption(
       options: Map[String, String],
@@ -67,7 +93,12 @@ object SparkBigQueryOptions {
       options: Map[String, String],
       name: String,
       fallback: Option[String] = None): Option[String] = {
-    options.get(name.toLowerCase).orElse(fallback)
+    options.get(name).orElse(fallback)
   }
+
+  private def getAnyOption(globalOptions: Map[String, String],
+                           options: Map[String, String],
+                           name: String): Option[String] =
+    options.get(name).orElse(globalOptions.get(name))
 }
 

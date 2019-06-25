@@ -15,12 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.direct
 
-import java.lang.Exception
-
 import com.google.cloud.bigquery.Schema
 import com.google.cloud.bigquery.storage.v1beta1.Storage.{ReadRowsRequest, ReadRowsResponse, StreamPosition}
 import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, Storage}
-import com.google.cloud.spark.bigquery.SchemaConverters
+import com.google.cloud.spark.bigquery.{SchemaConverters, SparkBigQueryOptions}
 import com.google.protobuf.ByteString
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import org.apache.avro.io.{BinaryDecoder, DecoderFactory}
@@ -38,7 +36,8 @@ class BigQueryRDD(sc: SparkContext,
     columnsInOrder: Seq[String],
     rawAvroSchema: String,
     bqSchema: Schema,
-    getClient: () => BigQueryStorageClient)
+    options: SparkBigQueryOptions,
+    getClient: SparkBigQueryOptions => BigQueryStorageClient)
     extends RDD[InternalRow](sc, Nil) {
 
   @transient private lazy val avroSchema = new AvroSchema.Parser().parse(rawAvroSchema)
@@ -50,7 +49,7 @@ class BigQueryRDD(sc: SparkContext,
     val request = ReadRowsRequest.newBuilder()
       .setReadPosition(StreamPosition.newBuilder().setStream(bqStream)).build()
 
-    val client = getClient()
+    val client = getClient(options)
     // Taken from FileScanRDD
     context.addTaskCompletionListener(_ => client.close)
 
@@ -102,13 +101,15 @@ object BigQueryRDD {
       avroSchema: String,
       bqSchema: Schema,
       columnsInOrder: Seq[String],
-      getClient: () => BigQueryStorageClient): BigQueryRDD = {
+      options: SparkBigQueryOptions,
+      getClient: SparkBigQueryOptions => BigQueryStorageClient): BigQueryRDD = {
     new BigQueryRDD(sqlContext.sparkContext,
       parts,
       sessionId,
       columnsInOrder: Seq[String],
       avroSchema,
       bqSchema,
+      options,
       getClient)
   }
 }

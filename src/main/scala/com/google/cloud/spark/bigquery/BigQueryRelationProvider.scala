@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery
 
+import com.google.auth.Credentials
 import com.google.cloud.bigquery.TableDefinition.Type.TABLE
 import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, TableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
@@ -23,43 +24,45 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 
 class BigQueryRelationProvider(
-    getBigQuery: () => BigQuery,
+    getBigQuery: () => Option[BigQuery],
     // This should never be nullable, but could be in very strange circumstances
-    defaultParentProject: Option[String] = Option(BigQueryOptions.getDefaultInstance.getProjectId))
+    defaultParentProject: Option[String] = Option(
+      BigQueryOptions.getDefaultInstance.getProjectId))
     extends RelationProvider
-        with SchemaRelationProvider
-        with DataSourceRegister {
+    with SchemaRelationProvider
+    with DataSourceRegister {
 
-  @transient private lazy val bigquery: BigQuery = getBigQuery()
-
-  def this() = this(BigQueryRelationProvider.createBigQuery)
-
-  override def createRelation(
-      sqlContext: SQLContext,
-      parameters: Map[String, String]): BaseRelation = {
+  override def createRelation(sqlContext: SQLContext,
+                              parameters: Map[String, String]): BaseRelation = {
     createRelationInternal(sqlContext, parameters)
   }
+
+  def this() = this(() => None)
 
   protected def createRelationInternal(
       sqlContext: SQLContext,
       parameters: Map[String, String],
       schema: Option[StructType] = None): BigQueryRelation = {
-    val opts = SparkBigQueryOptions(
-      parameters, sqlContext.sparkContext.hadoopConfiguration, schema, defaultParentProject)
+    val opts = SparkBigQueryOptions(parameters,
+                                    sqlContext.getAllConfs,
+                                    sqlContext.sparkContext.hadoopConfiguration,
+                                    schema,
+                                    defaultParentProject)
+    val bigquery =
+      getBigQuery().getOrElse(BigQueryRelationProvider.createBigQuery(opts))
     val tableName = BigQueryUtil.friendlyTableName(opts.tableId)
     // TODO(#7): Support creating non-existent tables with write support.
     val table = Option(bigquery.getTable(opts.tableId))
-        .getOrElse(sys.error(s"Table $tableName not found"))
+      .getOrElse(sys.error(s"Table $tableName not found"))
     table.getDefinition[TableDefinition].getType match {
       case TABLE => new DirectBigQueryRelation(opts, table)(sqlContext)
       case other => sys.error(s"Table type $other is not supported.")
     }
   }
 
-  override def createRelation(
-      sqlContext: SQLContext,
-      parameters: Map[String, String],
-      schema: StructType): BaseRelation = {
+  override def createRelation(sqlContext: SQLContext,
+                              parameters: Map[String, String],
+                              schema: StructType): BaseRelation = {
     createRelationInternal(sqlContext, parameters, schema = Some(schema))
   }
 
@@ -67,9 +70,22 @@ class BigQueryRelationProvider(
 }
 
 object BigQueryRelationProvider {
-  def createBigQuery(): BigQuery = {
-    BigQueryOptions.getDefaultInstance.getService
+
+  def createBigQuery(options: SparkBigQueryOptions): BigQuery =
+    options.createCredentials.fold(
+      BigQueryOptions.getDefaultInstance.getService
+    )(bigQueryWithCredentials(options.parentProject, _))
+
+  private def bigQueryWithCredentials(parentProject: String,
+                                    credentials: Credentials): BigQuery = {
+    BigQueryOptions
+      .newBuilder()
+      .setProjectId(parentProject)
+      .setCredentials(credentials)
+      .build()
+      .getService
   }
+
 }
 
 // DefaultSource is required for spark.read.format("com.google.cloud.spark.bigquery")

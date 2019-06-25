@@ -80,6 +80,7 @@ gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
   examples/python/shakespeare.py
 ```
 
+
 ## Compiling against the connector
 
 Unless you wish to use the implicit Scala API `spark.read.bigquery("TABLE_ID")`, there is no need to compile against the connector.
@@ -393,4 +394,24 @@ You can use the [existing MapReduce connector](https://github.com/GoogleCloudPla
 
 Use a service account JSON key and `GOOGLE_APPLICATION_CREDENTIALS` as described [here](https://cloud.google.com/docs/authentication/getting-started).
 
-TODO(#6): Wire auth through Spark/Hadoop properties.
+Credentials can also be provided explicitly either as a parameter or from Spark runtime configuration.
+It can be passed in as a base64-encoded string directly, or a file path that contains the credentials (but not both).
+
+Example:
+```
+spark.read.format("bigquery").option("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
+```
+or
+```
+spark.conf.set("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
+```
+
+Alternatively, specify the credentials file name.
+
+```
+spark.read.format("bigquery").option("credentialsFile", "</path/to/key/file>")
+```
+or
+```
+spark.conf.set("credentialsFile", "</path/to/key/file>")
+```
