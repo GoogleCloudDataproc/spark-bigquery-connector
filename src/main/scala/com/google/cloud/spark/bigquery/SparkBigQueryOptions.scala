@@ -44,8 +44,8 @@ case class SparkBigQueryOptions(
       case (None, None) =>
         None
       case (Some(_), Some(_)) =>
-        throw new IllegalArgumentException("Credentials can be provided through file " +
-          "name or a Base64-encoded string directly, but not both!")
+        throw new IllegalArgumentException("Only one of credentials or credentialsFile can be" +
+          " specified in the options.")
     }
 }
 
@@ -93,12 +93,12 @@ object SparkBigQueryOptions {
       options: Map[String, String],
       name: String,
       fallback: Option[String] = None): Option[String] = {
-    options.get(name.toLowerCase).orElse(fallback)
+    options.get(name).orElse(fallback)
   }
 
   private def getAnyOption(globalOptions: Map[String, String],
                            options: Map[String, String],
                            name: String): Option[String] =
-    options.get(name.toLowerCase).orElse(globalOptions.get(name.toLowerCase))
+    options.get(name).orElse(globalOptions.get(name))
 }
 

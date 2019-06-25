@@ -38,7 +38,7 @@ import scala.collection.JavaConverters._
 private[bigquery] class DirectBigQueryRelation(
     options: SparkBigQueryOptions,
     table: TableInfo, getClient: SparkBigQueryOptions => BigQueryStorageClient =
-      DirectBigQueryRelation.createReadClient)
+        DirectBigQueryRelation.createReadClient)
     (@transient override val sqlContext: SQLContext)
     extends BigQueryRelation(options, table)(sqlContext)
         with TableScan with PrunedScan with PrunedFilteredScan {

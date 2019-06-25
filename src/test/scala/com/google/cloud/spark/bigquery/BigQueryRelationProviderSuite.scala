@@ -31,6 +31,8 @@ class BigQueryRelationProviderSuite
     with BeforeAndAfter
     with MockitoSugar {
 
+  // TODO(#23) Add test case covering 'credentials' and 'credentialsFile' options
+
   private val ID = TableId.of("test_project", "test_dataset", "test_table")
   private val TABLE_NAME = "test_project:test_dataset.test_table"
   private val TABLE = TableInfo.of(
