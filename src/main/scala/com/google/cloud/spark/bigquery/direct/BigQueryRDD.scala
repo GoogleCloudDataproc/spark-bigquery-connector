@@ -55,19 +55,8 @@ class BigQueryRDD(sc: SparkContext,
 
     try {
       // TODO(pmkc): unwrap RuntimeExceptions from iterator
-      val it = client.readRowsCallable().call(request).iterator.asScala
-        .flatMap(toRows)
-        .zipWithIndex
-        .map { case (row: InternalRow, i: Int) =>
-          if (i == bqPartition.limit) {
-            log.info("Reached partition of {} rows. Finalizing stream {}",
-              bqPartition.limit, bqPartition.stream)
-            client.finalizeStream(bqStream)
-          }
-          // We need to keep reading remaining rows after finalizing
-          row
-        }
-      new InterruptibleIterator(context, it)
+      val it = client.readRowsCallable().call(request).iterator.asScala.flatMap(toRows)
+      return new InterruptibleIterator(context, it)
     } catch {
       case e: Exception =>
         client.close()
@@ -92,7 +81,7 @@ class BigQueryRDD(sc: SparkContext,
   }
 }
 
-case class BigQueryPartition(stream: String, index: Int, limit: Long = -1) extends Partition
+case class BigQueryPartition(stream: String, index: Int) extends Partition
 
 object BigQueryRDD {
   def scanTable(sqlContext: SQLContext,
