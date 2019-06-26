@@ -38,9 +38,8 @@ bq = bigquery.Client()
 print('Querying BigQuery')
 query_job = bq.query(QUERY)
 
-# There is a small race condition here where the Storage API might not be able to
-# find the table right away
-time.sleep(1)
+# Wait for query execution
+query_job.result()
 
 df = spark.read.format('bigquery') \
     .option('dataset', query_job.destination.dataset_id) \
