@@ -20,7 +20,7 @@ import java.io.{ByteArrayInputStream, FileInputStream}
 import com.google.api.client.util.Base64
 import com.google.auth.Credentials
 import com.google.auth.oauth2.GoogleCredentials
-import com.google.cloud.bigquery.TableId
+import com.google.cloud.bigquery.{BigQueryOptions, TableId}
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.types.StructType
 
@@ -58,8 +58,7 @@ object SparkBigQueryOptions {
       parameters: Map[String, String],
       allConf: Map[String, String],
       hadoopConf: Configuration,
-      schema: Option[StructType],
-      defaultBilledProject: Option[String])
+      schema: Option[StructType])
   : SparkBigQueryOptions = {
     val tableParam = getRequiredOption(parameters, "table")
     val datasetParam = getOption(parameters, "dataset")
@@ -80,11 +79,13 @@ object SparkBigQueryOptions {
       filter, schema, skewLimit, parallelism)
   }
 
+  private def defaultBilledProject = () =>
+    Some(BigQueryOptions.getDefaultInstance.getProjectId)
 
   private def getRequiredOption(
       options: Map[String, String],
       name: String,
-      fallback: Option[String] = None): String = {
+      fallback: () => Option[String] = () => None): String = {
     getOption(options, name, fallback)
         .getOrElse(sys.error(s"Option $name required."))
   }
@@ -92,8 +93,8 @@ object SparkBigQueryOptions {
   private def getOption(
       options: Map[String, String],
       name: String,
-      fallback: Option[String] = None): Option[String] = {
-    options.get(name).orElse(fallback)
+      fallback: () => Option[String] = () => None): Option[String] = {
+    options.get(name).orElse(fallback())
   }
 
   private def getAnyOption(globalOptions: Map[String, String],
