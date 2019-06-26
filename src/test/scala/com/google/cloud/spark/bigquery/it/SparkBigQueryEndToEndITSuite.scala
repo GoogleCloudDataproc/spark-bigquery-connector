@@ -159,25 +159,26 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     }
   }
 
-  test("bounded partition skew") {
+  test("balanced partitions") {
     import com.google.cloud.spark.bigquery._
-    // Usually finishes in 10, but there is a long tail.
-    // TODO(pmkc): lower limit and add retries?
-    failAfter(30 seconds) {
+    failAfter(60 seconds) {
       // Select first partition
       val df = spark.read
-          .option("parallelism", 999)
-          .option("skewLimit", 1.0)
+          .option("parallelism", 5)
           .bigquery(LARGE_TABLE)
           .select(LARGE_TABLE_FIELD) // minimize payload
       val sizeOfFirstPartition = df.rdd.mapPartitionsWithIndex {
         case (0, it) => it
         case _ => Iterator.empty
       }.count
-      // skewLimit is a soft limit and BigQuery can send an arbitrary amount of additional rows.
-      // In this case it is usually 2X (booleans can be read very fast). In some rare cases
-      // this can grow by a lot thus we assert that we see less than 10X desired.
-      assert(sizeOfFirstPartition < (LARGE_TABLE_NUM_ROWS * 10.0 / df.rdd.getNumPartitions))
+
+      // Since we are only reading from a single stream, we can expect to get at least as many rows
+      // in that stream as a perfectly uniform distribution would command. Note that the assertion
+      // is on a range of rows because rows are assigned to streams on the server-side in
+      // indivisible units of many rows.
+      val numRowsLowerBound = LARGE_TABLE_NUM_ROWS / df.rdd.getNumPartitions
+      assert(numRowsLowerBound <= sizeOfFirstPartition &&
+          sizeOfFirstPartition < (numRowsLowerBound * 1.1).toInt)
     }
   }
 }

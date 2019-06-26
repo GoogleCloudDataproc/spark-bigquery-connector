@@ -26,6 +26,7 @@ import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionReque
 import com.google.cloud.bigquery.storage.v1beta1.TableReferenceProto.TableReference
 import com.google.cloud.bigquery.{Schema, StandardTableDefinition, TableDefinition, TableInfo}
 import com.google.cloud.spark.bigquery.{BigQueryRelation, BuildInfo, SparkBigQueryOptions}
+import com.google.protobuf.UnknownFieldSet
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
@@ -75,26 +76,30 @@ private[bigquery] class DirectBigQueryRelation(
     val requiredColumnSet = requiredColumns.toSet
     val prunedSchema = Schema.of(
       tableDefinition.getSchema.getFields.asScala
-        .filter(f => requiredColumnSet.contains(f.getName)).asJava)
+          .filter(f => requiredColumnSet.contains(f.getName)).asJava)
 
     val client = getClient(options)
 
     try {
       val session = client.createReadSession(
         CreateReadSessionRequest.newBuilder()
-          .setParent(s"projects/${options.parentProject}")
-          .setFormat(DataFormat.AVRO)
-          .setRequestedStreams(getNumPartitions)
-          .setReadOptions(readOptions)
-          .setTableReference(tableReference)
-          .build())
-      val limit = (options.skewLimit * tableDefinition.getNumRows / session.getStreamsCount)
-          .ceil.toLong
+            .setParent(s"projects/${options.parentProject}")
+            .setFormat(DataFormat.AVRO)
+            .setRequestedStreams(getNumPartitions)
+            .setReadOptions(readOptions)
+            .setTableReference(tableReference)
+            // TODO(aryann): Once we rebuild the generated client code, we should change
+            // setUnknownFields() to use setShardingStrategy(ShardingStrategy.BALANCED). The
+            // BALANCED strategy is public at the moment, so setting it using the unknown fields
+            // API is safe.
+            .setUnknownFields(UnknownFieldSet.newBuilder().addField(
+          7, UnknownFieldSet.Field.newBuilder().addVarint(2).build()).build())
+            .build())
       val partitions = session.getStreamsList.asScala.map(_.getName)
-        .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i, limit) }
-        .toArray
+          .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
+          .toArray
 
-      log.info(s"Reading table '$tableName'; with Session ID: ${session.getName}")
+      log.info(s"Created read session for table '$tableName': ${session.getName}")
       BigQueryRDD.scanTable(
         sqlContext,
         partitions.asInstanceOf[Array[Partition]],
@@ -126,6 +131,7 @@ private[bigquery] class DirectBigQueryRelation(
       DirectBigQueryRelation.compileFilters(handledFilters(filters))
     }
   }
+
   private def handledFilters(filters: Array[Filter]): Array[Filter] = {
     // We can currently only support one filter. So find first that is handled.
     filters.find(filter => DirectBigQueryRelation.isHandled(filter, schema)).toArray
@@ -148,11 +154,11 @@ object DirectBigQueryRelation {
     // TODO(pmkc): investigate thread pool sizing and log spam matching
     // https://github.com/grpc/grpc-java/issues/4544 in integration tests
     var clientSettings = BigQueryStorageSettings.newBuilder()
-      .setTransportChannelProvider(
-        BigQueryStorageSettings.defaultGrpcTransportProviderBuilder()
-          .setHeaderProvider(
-            FixedHeaderProvider.create("user-agent", BuildInfo.name + "/" + BuildInfo.version))
-          .build())
+        .setTransportChannelProvider(
+          BigQueryStorageSettings.defaultGrpcTransportProviderBuilder()
+              .setHeaderProvider(
+                FixedHeaderProvider.create("user-agent", BuildInfo.name + "/" + BuildInfo.version))
+              .build())
     options.createCredentials match {
       case Some(creds) => clientSettings.setCredentialsProvider(
         new CredentialsProvider {

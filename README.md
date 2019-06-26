@@ -174,30 +174,6 @@ The API Supports a number of options to configure the read
 <a href="#configuring-partitioning">Configuring Partitioning</a>.)
    </td>
   </tr>
-  <tr>
-   <td><code>skewLimit</code>
-   </td>
-   <td>A soft limit to how many extra rows each partition will read after reading the expected number of rows (total rows / # partitions) for that partition.
-<p>
-It is a float representing the ratio of the limit to the expected number of rows e.g 2.0 allows each partition to be twice as large as expected.
-<p>
-Must be at least 1.0.
-<p>
-
-<p>
-(Optional. Defaults to 1.5 (150%). See
-
-<a href="#configuring-partitioning">Configuring Partitioning</a>.)
-   </td>
-  </tr>
-  <tr>
-   <td><code>filter</code>
-   </td>
-   <td>A manual predicate filter expression to pass to pass to BigQuery.
-<p>
-(Optional see <a href="#filtering">filtering</a>)
-   </td>
-  </tr>
 </table>
 
 ### Data types
@@ -356,8 +332,6 @@ By default the connector creates one partition per current core available (Spark
 
 If not all partitions are currently being read some partitions may grow larger and some may be smaller or even empty. The fraction that partitions are allowed to grow beyond the expected total number of rows / number of partitions is bounded by the <code>
 
-[skewLimit](#properties)</code> parameter. The limit is soft and does not guarantee exact partitioning especially on small tables.
-
 ## Building the Connector
 
 The connector is built using [SBT](https://www.scala-sbt.org/):
@@ -377,14 +351,6 @@ See the [BigQuery pricing documentation](https://cloud.google.com/bigquery/prici
 You can manually set the number of partitions with the `parallelism` property. BigQuery may provide fewer partitions than you ask for. See [Configuring Partitioning](#configuring-partitioning).
 
 You can also always repartition after reading in Spark.
-
-### I have empty partitions
-
-Because the Storage API balances records between partitions as you read, if you don't schedule all of your map tasks concurrently, the last scheduled partitions may be empty.
-
-Decreasing the skewLimit parameter to 1.0 (or something near it) should make your parttions more uniform (at the expense of tail latency). Alternatively you can increase your cluster size to schedule all partitions concurrently. See [Configuring Partitioning](#configuring-partitioning)
-
-You can also always repartition after reading in Spark, which should remove the empty partitions.
 
 ### How do I write to BigQuery?
 
