@@ -24,10 +24,7 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 
 class BigQueryRelationProvider(
-    getBigQuery: () => Option[BigQuery],
-    // This should never be nullable, but could be in very strange circumstances
-    defaultParentProject: Option[String] = Option(
-      BigQueryOptions.getDefaultInstance.getProjectId))
+    getBigQuery: () => Option[BigQuery])
     extends RelationProvider
     with SchemaRelationProvider
     with DataSourceRegister {
@@ -46,8 +43,7 @@ class BigQueryRelationProvider(
     val opts = SparkBigQueryOptions(parameters,
                                     sqlContext.getAllConfs,
                                     sqlContext.sparkContext.hadoopConfiguration,
-                                    schema,
-                                    defaultParentProject)
+                                    schema)
     val bigquery =
       getBigQuery().getOrElse(BigQueryRelationProvider.createBigQuery(opts))
     val tableName = BigQueryUtil.friendlyTableName(opts.tableId)

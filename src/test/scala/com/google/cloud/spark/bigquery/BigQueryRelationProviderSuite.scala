@@ -59,7 +59,7 @@ class BigQueryRelationProviderSuite
     MockitoAnnotations.initMocks(this)
     conf = new Configuration(false)
     provider =
-      new BigQueryRelationProvider(() => Some(bigQuery), Some(ID.getProject))
+      new BigQueryRelationProvider(() => Some(bigQuery))
     table = TestUtils.table(TABLE)
 
     when(sqlCtx.sparkContext).thenReturn(sc)
@@ -75,7 +75,8 @@ class BigQueryRelationProviderSuite
   test("table exists") {
     when(bigQuery.getTable(any(classOf[TableId]))).thenReturn(table)
 
-    val relation = provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME))
+    val relation = provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
+      "parentProject" -> ID.getProject()))
     assert(relation.isInstanceOf[DirectBigQueryRelation])
 
     verify(bigQuery).getTable(Matchers.eq(ID))
@@ -85,7 +86,8 @@ class BigQueryRelationProviderSuite
     when(bigQuery.getTable(any(classOf[TableId]))).thenReturn(null)
 
     assertThrows[RuntimeException] {
-      provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME))
+      provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
+        "parentProject" -> ID.getProject()))
     }
 
     verify(bigQuery).getTable(Matchers.eq(ID))
