@@ -177,7 +177,8 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       // is on a range of rows because rows are assigned to streams on the server-side in
       // indivisible units of many rows.
       val numRowsLowerBound = LARGE_TABLE_NUM_ROWS / df.rdd.getNumPartitions
-      assert(numRowsLowerBound to (numRowsLowerBound * 1.1).toInt contains sizeOfFirstPartition)
+      assert(numRowsLowerBound <= sizeOfFirstPartition &&
+          sizeOfFirstPartition < (numRowsLowerBound * 1.1).toInt)
     }
   }
 }
