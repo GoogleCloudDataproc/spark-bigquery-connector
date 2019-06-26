@@ -45,10 +45,10 @@ private[bigquery] class DirectBigQueryRelation(
         with TableScan with PrunedScan with PrunedFilteredScan {
 
   val tableReference: TableReference = TableReference.newBuilder()
-    .setProjectId(tableId.getProject)
-    .setDatasetId(tableId.getDataset)
-    .setTableId(tableId.getTable)
-    .build()
+      .setProjectId(tableId.getProject)
+      .setDatasetId(tableId.getDataset)
+      .setTableId(tableId.getTable)
+      .build()
   val tableDefinition: StandardTableDefinition = {
     require(TableDefinition.Type.TABLE == table.getDefinition[TableDefinition].getType)
     table.getDefinition[StandardTableDefinition]
@@ -70,32 +70,34 @@ private[bigquery] class DirectBigQueryRelation(
     val filter = getCompiledFilter(filters)
     log.debug(s"buildScan: cols: [${requiredColumns.mkString(", ")}], filter: '$filter'")
     val readOptions = TableReadOptions.newBuilder()
-      .addAllSelectedFields(requiredColumns.toList.asJava)
-      .setRowRestriction(filter)
-      .build()
+        .addAllSelectedFields(requiredColumns.toList.asJava)
+        .setRowRestriction(filter)
+        .build()
     val requiredColumnSet = requiredColumns.toSet
     val prunedSchema = Schema.of(
       tableDefinition.getSchema.getFields.asScala
-        .filter(f => requiredColumnSet.contains(f.getName)).asJava)
+          .filter(f => requiredColumnSet.contains(f.getName)).asJava)
 
     val client = getClient(options)
 
     try {
       val session = client.createReadSession(
         CreateReadSessionRequest.newBuilder()
-          .setParent(s"projects/${options.parentProject}")
-          .setFormat(DataFormat.AVRO)
-          .setRequestedStreams(getNumPartitions)
-          .setReadOptions(readOptions)
-          .setTableReference(tableReference)
-          // TODO(aryann): Once we rebuild the generated client code, we should change this to
-          // use setShardingStrategy().
-          .setUnknownFields(UnknownFieldSet.newBuilder().addField(
+            .setParent(s"projects/${options.parentProject}")
+            .setFormat(DataFormat.AVRO)
+            .setRequestedStreams(getNumPartitions)
+            .setReadOptions(readOptions)
+            .setTableReference(tableReference)
+            // TODO(aryann): Once we rebuild the generated client code, we should change
+            // setUnknownFields() to use setShardingStrategy(ShardingStrategy.BALANCED). The
+            // BALANCED strategy is public at the moment, so setting it using the unknown fields
+            // API is safe.
+            .setUnknownFields(UnknownFieldSet.newBuilder().addField(
           7, UnknownFieldSet.Field.newBuilder().addVarint(2).build()).build())
-          .build())
+            .build())
       val partitions = session.getStreamsList.asScala.map(_.getName)
-        .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
-        .toArray
+          .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
+          .toArray
 
       log.info(s"Created read session for table '$tableName': ${session.getName}")
       BigQueryRDD.scanTable(
@@ -115,12 +117,12 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   /**
-    * The theoretical number of Partitions of the returned DataFrame.
-    * If the table is small the server will provide fewer readers and there will be fewer
-    * partitions. If all partitions are not read concurrently, some Partitions will be empty.
-    */
+   * The theoretical number of Partitions of the returned DataFrame.
+   * If the table is small the server will provide fewer readers and there will be fewer
+   * partitions. If all partitions are not read concurrently, some Partitions will be empty.
+   */
   protected def getNumPartitions: Int = options.parallelism
-    .getOrElse(sqlContext.sparkContext.defaultParallelism)
+      .getOrElse(sqlContext.sparkContext.defaultParallelism)
 
   private def getCompiledFilter(filters: Array[Filter]): String = {
     // If a manual filter has been specified do not push down anything.
@@ -152,11 +154,11 @@ object DirectBigQueryRelation {
     // TODO(pmkc): investigate thread pool sizing and log spam matching
     // https://github.com/grpc/grpc-java/issues/4544 in integration tests
     var clientSettings = BigQueryStorageSettings.newBuilder()
-      .setTransportChannelProvider(
-        BigQueryStorageSettings.defaultGrpcTransportProviderBuilder()
-          .setHeaderProvider(
-            FixedHeaderProvider.create("user-agent", BuildInfo.name + "/" + BuildInfo.version))
-          .build())
+        .setTransportChannelProvider(
+          BigQueryStorageSettings.defaultGrpcTransportProviderBuilder()
+              .setHeaderProvider(
+                FixedHeaderProvider.create("user-agent", BuildInfo.name + "/" + BuildInfo.version))
+              .build())
     options.createCredentials match {
       case Some(creds) => clientSettings.setCredentialsProvider(
         new CredentialsProvider {
@@ -203,8 +205,8 @@ object DirectBigQueryRelation {
   }
 
   /**
-    * Converts value to SQL expression.
-    */
+   * Converts value to SQL expression.
+   */
   private def compileValue(value: Any): Any = value match {
     case null => "null"
     case stringValue: String => s"'${stringValue.replace("'", "''")}'"
