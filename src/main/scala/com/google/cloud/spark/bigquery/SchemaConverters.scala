@@ -115,7 +115,8 @@ object SchemaConverters {
         case BYTES => getBytes(value.asInstanceOf[ByteBuffer])
         case NUMERIC =>
           val bytes = getBytes(value.asInstanceOf[ByteBuffer])
-          Decimal(BigDecimal(BigInt(bytes), BQ_NUMERIC_SCALE), BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE)
+          Decimal(BigDecimal(BigInt(bytes), BQ_NUMERIC_SCALE), BQ_NUMERIC_PRECISION,
+            BQ_NUMERIC_SCALE)
         case RECORD =>
           val fields = field.getSubFields.asScala
           convertAll(fields, value.asInstanceOf[GenericRecord], fields.map(_.getName))
