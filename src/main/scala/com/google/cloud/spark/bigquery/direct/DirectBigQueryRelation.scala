@@ -26,6 +26,7 @@ import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionReque
 import com.google.cloud.bigquery.storage.v1beta1.TableReferenceProto.TableReference
 import com.google.cloud.bigquery.{Schema, StandardTableDefinition, TableDefinition, TableInfo}
 import com.google.cloud.spark.bigquery.{BigQueryRelation, BuildInfo, SparkBigQueryOptions}
+import com.google.protobuf.UnknownFieldSet
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
@@ -44,10 +45,10 @@ private[bigquery] class DirectBigQueryRelation(
         with TableScan with PrunedScan with PrunedFilteredScan {
 
   val tableReference: TableReference = TableReference.newBuilder()
-      .setProjectId(tableId.getProject)
-      .setDatasetId(tableId.getDataset)
-      .setTableId(tableId.getTable)
-      .build()
+    .setProjectId(tableId.getProject)
+    .setDatasetId(tableId.getDataset)
+    .setTableId(tableId.getTable)
+    .build()
   val tableDefinition: StandardTableDefinition = {
     require(TableDefinition.Type.TABLE == table.getDefinition[TableDefinition].getType)
     table.getDefinition[StandardTableDefinition]
@@ -69,9 +70,9 @@ private[bigquery] class DirectBigQueryRelation(
     val filter = getCompiledFilter(filters)
     log.debug(s"buildScan: cols: [${requiredColumns.mkString(", ")}], filter: '$filter'")
     val readOptions = TableReadOptions.newBuilder()
-        .addAllSelectedFields(requiredColumns.toList.asJava)
-        .setRowRestriction(filter)
-        .build()
+      .addAllSelectedFields(requiredColumns.toList.asJava)
+      .setRowRestriction(filter)
+      .build()
     val requiredColumnSet = requiredColumns.toSet
     val prunedSchema = Schema.of(
       tableDefinition.getSchema.getFields.asScala
@@ -87,14 +88,16 @@ private[bigquery] class DirectBigQueryRelation(
           .setRequestedStreams(getNumPartitions)
           .setReadOptions(readOptions)
           .setTableReference(tableReference)
+          // TODO(aryann): Once we rebuild the generated client code, we should change this to
+          // use setShardingStrategy().
+          .setUnknownFields(UnknownFieldSet.newBuilder().addField(
+          7, UnknownFieldSet.Field.newBuilder().addVarint(2).build()).build())
           .build())
-      val limit = (options.skewLimit * tableDefinition.getNumRows / session.getStreamsCount)
-          .ceil.toLong
       val partitions = session.getStreamsList.asScala.map(_.getName)
-        .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i, limit) }
+        .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
         .toArray
 
-      log.info(s"Reading table '$tableName'; with Session ID: ${session.getName}")
+      log.info(s"Created read session for table '$tableName': ${session.getName}")
       BigQueryRDD.scanTable(
         sqlContext,
         partitions.asInstanceOf[Array[Partition]],
@@ -112,12 +115,12 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   /**
-   * The theoretical number of Partitions of the returned DataFrame.
-   * If the table is small the server will provide fewer readers and there will be fewer
-   * partitions. If all partitions are not read concurrently, some Partitions will be empty.
-   */
+    * The theoretical number of Partitions of the returned DataFrame.
+    * If the table is small the server will provide fewer readers and there will be fewer
+    * partitions. If all partitions are not read concurrently, some Partitions will be empty.
+    */
   protected def getNumPartitions: Int = options.parallelism
-      .getOrElse(sqlContext.sparkContext.defaultParallelism)
+    .getOrElse(sqlContext.sparkContext.defaultParallelism)
 
   private def getCompiledFilter(filters: Array[Filter]): String = {
     // If a manual filter has been specified do not push down anything.
@@ -126,6 +129,7 @@ private[bigquery] class DirectBigQueryRelation(
       DirectBigQueryRelation.compileFilters(handledFilters(filters))
     }
   }
+
   private def handledFilters(filters: Array[Filter]): Array[Filter] = {
     // We can currently only support one filter. So find first that is handled.
     filters.find(filter => DirectBigQueryRelation.isHandled(filter, schema)).toArray
@@ -199,8 +203,8 @@ object DirectBigQueryRelation {
   }
 
   /**
-   * Converts value to SQL expression.
-   */
+    * Converts value to SQL expression.
+    */
   private def compileValue(value: Any): Any = value match {
     case null => "null"
     case stringValue: String => s"'${stringValue.replace("'", "''")}'"

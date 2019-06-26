@@ -39,7 +39,7 @@ object IntegrationTestUtils {
 
   def deleteDatasetAndTables(dataset: String): Unit = {
     val bq = getBigquery
-    log.warn(s"Deleting test dataset '$dataset' and it's contents")
+    log.warn(s"Deleting test dataset '$dataset' and its contents")
     bq.delete(DatasetId.of(dataset), DatasetDeleteOption.deleteContents())
   }
 }
