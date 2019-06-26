@@ -26,8 +26,8 @@ import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionReque
 import com.google.cloud.bigquery.storage.v1beta1.TableReferenceProto.TableReference
 import com.google.cloud.bigquery.{Schema, StandardTableDefinition, TableDefinition, TableInfo}
 import com.google.cloud.spark.bigquery.{BigQueryRelation, BuildInfo, SparkBigQueryOptions}
-import com.typesafe.scalalogging.Logger
 import org.apache.spark.Partition
+import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.sources._
@@ -41,7 +41,7 @@ private[bigquery] class DirectBigQueryRelation(
         DirectBigQueryRelation.createReadClient)
     (@transient override val sqlContext: SQLContext)
     extends BigQueryRelation(options, table)(sqlContext)
-        with TableScan with PrunedScan with PrunedFilteredScan {
+        with TableScan with PrunedScan with PrunedFilteredScan with Logging {
 
   val tableReference: TableReference = TableReference.newBuilder()
       .setProjectId(tableId.getProject)
@@ -52,7 +52,6 @@ private[bigquery] class DirectBigQueryRelation(
     require(TableDefinition.Type.TABLE == table.getDefinition[TableDefinition].getType)
     table.getDefinition[StandardTableDefinition]
   }
-  private val log = Logger(getClass)
 
   override val needConversion: Boolean = false
   override val sizeInBytes: Long = tableDefinition.getNumBytes
@@ -67,7 +66,7 @@ private[bigquery] class DirectBigQueryRelation(
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
     val filter = getCompiledFilter(filters)
-    log.debug(s"buildScan: cols: [${requiredColumns.mkString(", ")}], filter: '$filter'")
+    logDebug(s"buildScan: cols: [${requiredColumns.mkString(", ")}], filter: '$filter'")
     val readOptions = TableReadOptions.newBuilder()
         .addAllSelectedFields(requiredColumns.toList.asJava)
         .setRowRestriction(filter)

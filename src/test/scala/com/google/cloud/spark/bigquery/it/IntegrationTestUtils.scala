@@ -17,11 +17,9 @@ package com.google.cloud.spark.bigquery.it
 
 import com.google.cloud.bigquery.BigQuery.DatasetDeleteOption
 import com.google.cloud.bigquery._
-import com.typesafe.scalalogging.Logger
+import org.apache.spark.internal.Logging
 
-object IntegrationTestUtils {
-
-  private val log: Logger = Logger(getClass)
+object IntegrationTestUtils extends Logging {
 
   def getBigquery: BigQuery = BigQueryOptions.getDefaultInstance.getService
 

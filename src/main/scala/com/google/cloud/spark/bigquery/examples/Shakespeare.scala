@@ -18,11 +18,10 @@ package com.google.cloud.spark.bigquery.examples
 import java.nio.file.Files
 
 import com.google.cloud.spark.bigquery._
-import com.typesafe.scalalogging.Logger
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 
-object Shakespeare {
-  private val log = Logger(getClass)
+object Shakespeare extends Logging {
   def main(args: Array[String]) {
     val spark = SparkSession.builder().appName("test").getOrCreate()
     val sc = spark.sparkContext

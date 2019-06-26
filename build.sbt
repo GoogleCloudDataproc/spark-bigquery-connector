@@ -62,11 +62,6 @@ libraryDependencies ++= Seq(
 
   "org.apache.avro" % "avro" % "1.8.2",
 
-  // Brings SLF4J 1.7.25. Spark 2.2 has 1.7.16
-  // TODO(pmkc): Shade
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
-
-
   "org.scalatest" %% "scalatest" % "3.0.4" % "test",
   "org.mockito" % "mockito-all" % "1.10.19" % "test")
     .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
