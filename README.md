@@ -326,11 +326,7 @@ You can also manually specify the `filter` option, which will override automatic
 
 ### Configuring Partitioning
 
-By default the connector creates one partition per current core available (Spark Default Parallelism) to get maximum concurrent bandwidth. This can be configured explicitly with the <code>
-
-[parallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
-
-If not all partitions are currently being read some partitions may grow larger and some may be smaller or even empty. The fraction that partitions are allowed to grow beyond the expected total number of rows / number of partitions is bounded by the <code>
+By default the connector creates one partition per current core available (Spark Default Parallelism) to get maximum concurrent bandwidth. This can be configured explicitly with the <code>[parallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
 
 ## Building the Connector
 
