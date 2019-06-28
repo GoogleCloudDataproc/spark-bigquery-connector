@@ -32,7 +32,6 @@ case class SparkBigQueryOptions(
     credentialsFile: Option[String] = None,
     filter: Option[String] = None,
     schema: Option[StructType] = None,
-    skewLimit: Double = SparkBigQueryOptions.SKEW_LIMIT_DEFAULT,
     parallelism: Option[Int] = None) {
 
   def createCredentials: Option[Credentials] =
@@ -51,8 +50,6 @@ case class SparkBigQueryOptions(
 
 /** Resolvers for {@link SparkBigQueryOptions} */
 object SparkBigQueryOptions {
-  private val SKEW_LIMIT_KEY = "skewLimit"
-  private val SKEW_LIMIT_DEFAULT = 1.5
 
   def apply(
       parameters: Map[String, String],
@@ -70,13 +67,9 @@ object SparkBigQueryOptions {
       defaultBilledProject)
     val filter = getOption(parameters, "filter")
     val parallelism = getOption(parameters, "parallelism").map(_.toInt)
-    val skewLimit = getOption(parameters, SKEW_LIMIT_KEY).map(_.toDouble)
-        .getOrElse(SKEW_LIMIT_DEFAULT)
-    // BigQuery will actually error if we close the last stream.
-    assert(skewLimit >= 1.0,
-      s"Paramater '$SKEW_LIMIT_KEY' must be at least 1.0 to read all data '$skewLimit'")
+
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
-      filter, schema, skewLimit, parallelism)
+      filter, schema, parallelism)
   }
 
   private def defaultBilledProject = () =>
