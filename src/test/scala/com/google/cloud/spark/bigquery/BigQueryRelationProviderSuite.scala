@@ -15,6 +15,9 @@
  */
 package com.google.cloud.spark.bigquery
 
+import java.io.IOException
+
+import com.google.api.client.util.Base64
 import com.google.cloud.bigquery._
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.hadoop.conf.Configuration
@@ -89,7 +92,23 @@ class BigQueryRelationProviderSuite
       provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
         "parentProject" -> ID.getProject()))
     }
-
     verify(bigQuery).getTable(Matchers.eq(ID))
   }
+
+  test("Credentials parameter is used to initialize BigQueryOptions") {
+
+    val defaultProvider = new BigQueryRelationProvider()
+    val invalidCredentials = Base64.encodeBase64String("{}".getBytes)
+
+    val caught = intercept[IOException] {
+      val relation = defaultProvider.createRelation(sqlCtx, Map("parentProject" -> ID.getProject,
+        "credentials" -> invalidCredentials, "table" -> TABLE_NAME))
+      relation.sizeInBytes
+    }
+
+    assert(caught.getMessage.startsWith("Error reading credentials"))
+
+  }
+
+
 }
