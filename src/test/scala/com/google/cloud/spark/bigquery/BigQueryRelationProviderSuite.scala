@@ -101,13 +101,19 @@ class BigQueryRelationProviderSuite
     val invalidCredentials = Base64.encodeBase64String("{}".getBytes)
 
     val caught = intercept[IOException] {
-      val relation = defaultProvider.createRelation(sqlCtx, Map("parentProject" -> ID.getProject,
+      defaultProvider.createRelation(sqlCtx, Map("parentProject" -> ID.getProject,
         "credentials" -> invalidCredentials, "table" -> TABLE_NAME))
-      relation.sizeInBytes
     }
 
     assert(caught.getMessage.startsWith("Error reading credentials"))
+  }
 
+  test("default BigQueryOptions instance is used when no credentials provided") {
+    val defaultProvider = new BigQueryRelationProvider()
+    val caught = intercept[IllegalArgumentException] {
+      defaultProvider.createRelation(sqlCtx, Map("project" -> ID.getProject, "table" -> TABLE_NAME))
+    }
+    assert(caught.getMessage.contains("project ID is required"))
   }
 
 
