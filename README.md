@@ -93,14 +93,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery_${scala.version}</artifactId>
-  <version>0.6.0-beta</version>
+  <version>0.7.0-beta</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery" % "0.6.0-beta"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery" % "0.7.0-beta"
 ```
 
 ## API
@@ -326,11 +326,7 @@ You can also manually specify the `filter` option, which will override automatic
 
 ### Configuring Partitioning
 
-By default the connector creates one partition per current core available (Spark Default Parallelism) to get maximum concurrent bandwidth. This can be configured explicitly with the <code>
-
-[parallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
-
-If not all partitions are currently being read some partitions may grow larger and some may be smaller or even empty. The fraction that partitions are allowed to grow beyond the expected total number of rows / number of partitions is bounded by the <code>
+By default the connector creates one partition per current core available (Spark Default Parallelism) to get maximum concurrent bandwidth. This can be configured explicitly with the <code>[parallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
 
 ## Building the Connector
 
