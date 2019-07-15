@@ -22,11 +22,10 @@ import com.google.api.gax.rpc.FixedHeaderProvider
 import com.google.auth.Credentials
 import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, BigQueryStorageSettings}
 import com.google.cloud.bigquery.storage.v1beta1.ReadOptions.TableReadOptions
-import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionRequest, DataFormat}
+import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionRequest, DataFormat, ShardingStrategy}
 import com.google.cloud.bigquery.storage.v1beta1.TableReferenceProto.TableReference
 import com.google.cloud.bigquery.{Schema, StandardTableDefinition, TableDefinition, TableInfo}
 import com.google.cloud.spark.bigquery.{BigQueryRelation, BuildInfo, SparkBigQueryOptions}
-import com.google.protobuf.UnknownFieldSet
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
@@ -88,12 +87,9 @@ private[bigquery] class DirectBigQueryRelation(
             .setRequestedStreams(getNumPartitions)
             .setReadOptions(readOptions)
             .setTableReference(tableReference)
-            // TODO(aryann): Once we rebuild the generated client code, we should change
-            // setUnknownFields() to use setShardingStrategy(ShardingStrategy.BALANCED). The
-            // BALANCED strategy is public at the moment, so setting it using the unknown fields
-            // API is safe.
-            .setUnknownFields(UnknownFieldSet.newBuilder().addField(
-          7, UnknownFieldSet.Field.newBuilder().addVarint(2).build()).build())
+            // The BALANCED sharding strategy causes the server to assign roughly the same
+            // number of rows to each stream.
+            .setShardingStrategy(ShardingStrategy.BALANCED)
             .build())
       val partitions = session.getStreamsList.asScala.map(_.getName)
           .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
