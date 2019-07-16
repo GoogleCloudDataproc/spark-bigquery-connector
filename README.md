@@ -118,7 +118,7 @@ or the Scala only implicit API:
 
 ```
 import com.google.cloud.spark.bigquery._
-val df: DataFrame = spark.read.bigquery("publicdata.samples.shakespeare")
+val df = spark.read.bigquery("publicdata.samples.shakespeare")
 ```
 
 See [Shakespeare.scala](src/main/scala/com/google/cloud/spark/bigquery/examples/Shakespeare.scala) and [shakespeare.py](examples/python/shakespeare.py) for more information.
