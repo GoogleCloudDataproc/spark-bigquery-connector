@@ -16,4 +16,5 @@ steps:
     entrypoint: 'sbt'
     args: ['it:test']
 
+# Tests take around 13 mins in general.
 timeout: 1200s
