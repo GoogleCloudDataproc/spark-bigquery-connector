@@ -1,0 +1,20 @@
+steps:
+  # 1. Create a Docker image. Repo will be automatically mounted on all docker containers.
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'docker-build'
+    args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit', '-f', 'cloudbuild/Dockerfile', '.']
+
+  # 2. Run unit tests
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+    id: 'unittests'
+    entrypoint: 'sbt'
+    args: ['test']
+
+  # 3. Run integration tests
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+    id: 'integration-tests'
+    entrypoint: 'sbt'
+    args: ['it:test']
+
+# Tests take around 13 mins in general.
+timeout: 1200s
