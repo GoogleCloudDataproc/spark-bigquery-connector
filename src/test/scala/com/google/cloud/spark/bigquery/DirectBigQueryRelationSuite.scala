@@ -42,7 +42,7 @@ class DirectBigQueryRelationSuite
           Field.of("foo", LegacySQLTypeName.STRING),
           Field.of("bar", LegacySQLTypeName.INTEGER))
         )
-        .setNumBytes(42L)
+        .setNumBytes(42L * 1000 * 1000 * 1000)  // 42GB
         .build())
   private var bigQueryRelation: DirectBigQueryRelation = _
 
@@ -57,7 +57,11 @@ class DirectBigQueryRelationSuite
   }
 
   test("size in bytes") {
-    assert(42 == bigQueryRelation.sizeInBytes)
+    assert(42L * 1000 * 1000 * 1000 == bigQueryRelation.sizeInBytes)
+  }
+
+  test("parallelism") {
+    assert(105  == bigQueryRelation.getNumPartitionsRequested)
   }
 
   test("schema") {

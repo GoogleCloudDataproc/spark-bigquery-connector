@@ -168,7 +168,7 @@ The API Supports a number of options to configure the read
    </td>
    <td>The number of partitions to split the data into. Actual number may be less if BigQuery deems the data small enough. If there are not enough executors to schedule a reader per partition, some partitions may be empty.
 <p>
-(Optional. Defaults to <code>SparkContext.getDefaultParallelism()</code>. See
+(Optional. Defaults to one partition per 400MB. See
 <a href="#configuring-partitioning">Configuring Partitioning</a>.)
    </td>
   </tr>
@@ -324,7 +324,8 @@ You can also manually specify the `filter` option, which will override automatic
 
 ### Configuring Partitioning
 
-By default the connector creates one partition per current core available (Spark Default Parallelism) to get maximum concurrent bandwidth. This can be configured explicitly with the <code>[parallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
+By default the connector creates one partition per 400MB in the table being read (before filtering). This should roughly correspond to the maximum number of readers supported by the BigQuery Storage API. 
+This can be configured explicitly with the <code>[parallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
 
 ## Building the Connector
 

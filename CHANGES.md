@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.9.0-beta - 2019-XX-XX
+
+* Switch requested partitions from SparkContext.defaultParallelism to one
+  partition per 400MB. This should work better with balanced sharding and
+  dynamic allocation.
+
 ## 0.8.0-beta - 2019-07-22
 * Upgrade version of google-cloud-bigquery library to 1.82.0
 * Upgrade version of google-cloud-bigquerystorage library to 0.98.0-beta

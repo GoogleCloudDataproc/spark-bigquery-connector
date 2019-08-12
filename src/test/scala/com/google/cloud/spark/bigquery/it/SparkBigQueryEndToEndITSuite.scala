@@ -147,12 +147,10 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   }
 
   test("default number of partitions") {
-    // This should be stable in our master local test environment.
-    val expectedParallelism = spark.sparkContext.defaultParallelism
     val df = spark.read.format("com.google.cloud.spark.bigquery")
         .option("table", LARGE_TABLE)
         .load()
-    assert(expectedParallelism == df.rdd.getNumPartitions)
+    assert(df.rdd.getNumPartitions == 35)
   }
 
   test("read data types") {
