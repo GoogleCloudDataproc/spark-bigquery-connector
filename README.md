@@ -4,6 +4,8 @@
 
 The connector uses the [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources) to read data from [Google BigQuery](https://cloud.google.com/bigquery/).
 
+It does not support writing data to [Google BigQuery](https://cloud.google.com/bigquery/).
+
 ## Beta Disclaimer
 
 The BigQuery Storage API and this connector are in Beta and are subject to change.
