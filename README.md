@@ -4,7 +4,7 @@
 
 The connector uses the [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources) to read data from [Google BigQuery](https://cloud.google.com/bigquery/).
 
-It does not support writing data to [Google BigQuery](https://cloud.google.com/bigquery/).
+The connector does not support writing data to [Google BigQuery](https://cloud.google.com/bigquery/). If you want to write data to Google BigQuery, you can use another [BigQuery Connector](https://cloud.google.com/dataproc/docs/concepts/connectors/bigquery), which implements the HDFS interface.
 
 ## Beta Disclaimer
 
