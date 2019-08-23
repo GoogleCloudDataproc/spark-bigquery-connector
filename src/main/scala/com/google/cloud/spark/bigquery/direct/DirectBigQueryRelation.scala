@@ -22,17 +22,15 @@ import com.google.api.gax.rpc.FixedHeaderProvider
 import com.google.auth.Credentials
 import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, BigQueryStorageSettings}
 import com.google.cloud.bigquery.storage.v1beta1.ReadOptions.TableReadOptions
-import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionRequest, DataFormat}
+import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionRequest, DataFormat, ShardingStrategy}
 import com.google.cloud.bigquery.storage.v1beta1.TableReferenceProto.TableReference
 import com.google.cloud.bigquery.{Schema, StandardTableDefinition, TableDefinition, TableInfo}
 import com.google.cloud.spark.bigquery.{BigQueryRelation, BuildInfo, SparkBigQueryOptions}
-import com.google.protobuf.UnknownFieldSet
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.sources._
-import org.apache.spark.sql.types._
 
 import scala.collection.JavaConverters._
 
@@ -67,6 +65,7 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
+    log.debug(s"filters pushed: ${filters.mkString(", ")}")
     val filter = getCompiledFilter(filters)
     log.debug(s"buildScan: cols: [${requiredColumns.mkString(", ")}], filter: '$filter'")
     val readOptions = TableReadOptions.newBuilder()
@@ -88,12 +87,9 @@ private[bigquery] class DirectBigQueryRelation(
             .setRequestedStreams(getNumPartitions)
             .setReadOptions(readOptions)
             .setTableReference(tableReference)
-            // TODO(aryann): Once we rebuild the generated client code, we should change
-            // setUnknownFields() to use setShardingStrategy(ShardingStrategy.BALANCED). The
-            // BALANCED strategy is public at the moment, so setting it using the unknown fields
-            // API is safe.
-            .setUnknownFields(UnknownFieldSet.newBuilder().addField(
-          7, UnknownFieldSet.Field.newBuilder().addVarint(2).build()).build())
+            // The BALANCED sharding strategy causes the server to assign roughly the same
+            // number of rows to each stream.
+            .setShardingStrategy(ShardingStrategy.BALANCED)
             .build())
       val partitions = session.getStreamsList.asScala.map(_.getName)
           .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
@@ -133,8 +129,7 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   private def handledFilters(filters: Array[Filter]): Array[Filter] = {
-    // We can currently only support one filter. So find first that is handled.
-    filters.find(filter => DirectBigQueryRelation.isHandled(filter, schema)).toArray
+    filters.filter(filter => DirectBigQueryRelation.isHandled(filter))
   }
 
   override def unhandledFilters(filters: Array[Filter]): Array[Filter] = {
@@ -170,37 +165,49 @@ object DirectBigQueryRelation {
     BigQueryStorageClient.create(clientSettings.build)
   }
 
-  def isComparable(dataType: DataType): Boolean = dataType match {
-    case LongType | IntegerType | ByteType => true
-    case DoubleType | FloatType | ShortType => true
-    case StringType => true
-    case _ => false
-  }
-
-  def isHandled(filter: Filter, schema: StructType): Boolean = filter match {
-    case GreaterThan(_, _) | GreaterThanOrEqual(_, _) | LessThan(_, _) | LessThanOrEqual(_, _)
-    => filter.references.forall(col => isComparable(schema(col).dataType))
+  def isHandled(filter: Filter): Boolean = filter match {
     case EqualTo(_, _) => true
-    // Includes And, Or IsNull, is
+    // There is no direct equivalent of EqualNullSafe in Google standard SQL.
+    case EqualNullSafe(_, _) => false
+    case GreaterThan(_, _) => true
+    case GreaterThanOrEqual(_, _) => true
+    case LessThan(_, _) => true
+    case LessThanOrEqual(_, _) => true
+    case In(_, _) => true
+    case IsNull(_) => true
+    case IsNotNull(_) => true
+    case And(lhs, rhs) => isHandled(lhs) && isHandled(rhs)
+    case Or(lhs, rhs) => isHandled(lhs) && isHandled(rhs)
+    case Not(child) => isHandled(child)
+    case StringStartsWith(_, _) => true
+    case StringEndsWith(_, _) => true
+    case StringContains(_, _) => true
     case _ => false
   }
 
-  // Mostly stolen from JDBCRDD.scala
-
+  // Mostly copied from JDBCRDD.scala
   def compileFilter(filter: Filter): String = filter match {
+    case EqualTo(attr, value) => s"${quote(attr)} = ${compileValue(value)}"
     case GreaterThan(attr, value) => s"$attr > ${compileValue(value)}"
-    case GreaterThanOrEqual(attr, value) => s"$attr >= ${compileValue(value)}"
-    case LessThan(attr, value) => s"$attr < ${compileValue(value)}"
-    case LessThanOrEqual(attr, value) => s"$attr <= ${compileValue(value)}"
-    case EqualTo(attr, value) => s"$attr = ${compileValue(value)}"
+    case GreaterThanOrEqual(attr, value) => s"${quote(attr)} >= ${compileValue(value)}"
+    case LessThan(attr, value) => s"${quote(attr)} < ${compileValue(value)}"
+    case LessThanOrEqual(attr, value) => s"${quote(attr)} <= ${compileValue(value)}"
+    case In(attr, values) => s"${quote(attr)} IN UNNEST(${compileValue(values)})"
+    case IsNull(attr) => s"${quote(attr)} IS NULL"
+    case IsNotNull(attr) => s"${quote(attr)} IS NOT NULL"
+    case And(lhs, rhs) => Seq(lhs, rhs).map(compileFilter).map(p => s"($p)").mkString(" AND ")
+    case Or(lhs, rhs) => Seq(lhs, rhs).map(compileFilter).map(p => s"($p)").mkString(" OR ")
+    case Not(child) => Seq(child).map(compileFilter).map(p => s"(NOT ($p))").mkString
+    case StringStartsWith(attr, value) =>
+      s"${quote(attr)} LIKE '''${value.replace("'", "\\'")}%'''"
+    case StringEndsWith(attr, value) =>
+      s"${quote(attr)} LIKE '''%${value.replace("'", "\\'")}'''"
+    case StringContains(attr, value) =>
+      s"${quote(attr)} LIKE '''%${value.replace("'", "\\'")}%'''"
     case _ => throw new IllegalArgumentException(s"Invalid filter: $filter")
   }
 
   def compileFilters(filters: Iterable[Filter]): String = {
-    // TODO remove when AND is supported
-    if (filters.size > 1) {
-      throw new IllegalArgumentException("Cannot support multiple filters")
-    }
     filters.map(compileFilter).toSeq.sorted.mkString(" AND ")
   }
 
@@ -209,11 +216,14 @@ object DirectBigQueryRelation {
    */
   private def compileValue(value: Any): Any = value match {
     case null => "null"
-    case stringValue: String => s"'${stringValue.replace("'", "''")}'"
+    case stringValue: String => s"'${stringValue.replace("'", "\\'")}'"
     case timestampValue: Timestamp => "'" + timestampValue + "'"
     case dateValue: Date => "'" + dateValue + "'"
-    case arrayValue: Array[Any] =>
-      throw new IllegalArgumentException("Cannot compare array values in filter")
+    case arrayValue: Array[Any] => arrayValue.map(compileValue).mkString("[", ", ", "]")
     case _ => value
+  }
+
+  private def quote(attr: String): String = {
+    s"""`$attr`"""
   }
 }

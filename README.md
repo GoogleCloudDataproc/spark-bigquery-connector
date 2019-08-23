@@ -4,6 +4,8 @@
 
 The connector uses the [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources) to read data from [Google BigQuery](https://cloud.google.com/bigquery/).
 
+The connector does not support writing data to [Google BigQuery](https://cloud.google.com/bigquery/). If you want to write data to Google BigQuery, you can use another [BigQuery Connector](https://cloud.google.com/dataproc/docs/concepts/connectors/bigquery).
+
 ## Beta Disclaimer
 
 The BigQuery Storage API and this connector are in Beta and are subject to change.
@@ -26,7 +28,7 @@ It does not leave any temporary files in Google Cloud Storage. Rows are read dir
 
 ### Filtering
 
-The new API allows column and limited predicate filtering to only read the data you are interested in.
+The new API allows column and predicate filtering to only read the data you are interested in.
 
 #### Column Filtering
 
@@ -34,11 +36,9 @@ Since BigQuery is [backed by a columnar datastore](https://cloud.google.com/blog
 
 #### Predicate Filtering
 
-The Storage API supports limited pushdown of predicate filters. It supports a single comparison to a literal e.g.
+The Storage API supports arbitrary pushdown of predicate filters. Connector version 0.8.0-beta and above support pushdown of arbitrary filters to Bigquery. 
 
-```
-col1 = 'val'
-```
+There is a known issue in Spark that does not allow pushdown of filters on nested fields. For example - filters like `address.city = "Sunnyvale"` will not get pushdown to Bigquery.
 
 ### Dynamic Sharding
 
@@ -93,14 +93,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery_${scala.version}</artifactId>
-  <version>0.7.0-beta</version>
+  <version>0.8.0-beta</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery" % "0.7.0-beta"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery" % "0.8.0-beta"
 ```
 
 ## API
@@ -118,7 +118,7 @@ or the Scala only implicit API:
 
 ```
 import com.google.cloud.spark.bigquery._
-val df: DataFrame = spark.read.bigquery("publicdata.samples.shakespeare")
+val df = spark.read.bigquery("publicdata.samples.shakespeare")
 ```
 
 See [Shakespeare.scala](src/main/scala/com/google/cloud/spark/bigquery/examples/Shakespeare.scala) and [shakespeare.py](examples/python/shakespeare.py) for more information.
@@ -302,12 +302,12 @@ The connector automatically computes column and pushdown filters the DataFrame's
 ```
 spark.read.bigquery("publicdata:samples.shakespeare")
   .select("word")
-  .where("word = 'Hamlet'")
+  .where("word = 'Hamlet' or word = 'Claudius'")
   .collect()
 ```
 
 
-filters to the column `word`  and pushed down the predicate filter `word = 'hamlet'`.
+filters to the column `word`  and pushed down the predicate filter `word = 'hamlet' or word = 'Claudius'`.
 
 If you do not wish to make multiple read requests to BigQuery, you can cache the DataFrame before filtering e.g.:
 
@@ -330,7 +330,7 @@ By default the connector creates one partition per current core available (Spark
 
 ## Building the Connector
 
-The connector is built using [SBT](https://www.scala-sbt.org/):
+The connector is built using [SBT](https://www.scala-sbt.org/). Following command creates a jar with shaded dependencies:
 
 ```
 sbt assembly

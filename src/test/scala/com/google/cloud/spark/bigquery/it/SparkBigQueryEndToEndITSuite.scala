@@ -15,20 +15,19 @@
  */
 package com.google.cloud.spark.bigquery.it
 
-import java.sql.Timestamp
-
 import com.google.cloud.spark.bigquery.TestUtils
 import com.google.cloud.spark.bigquery.it.TestConstants._
-import com.google.common.primitives.Bytes
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.sources._
 import org.scalatest.concurrent.TimeLimits
+import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.time.SpanSugar._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 class SparkBigQueryEndToEndITSuite extends FunSuite
-    with BeforeAndAfterAll with Matchers with TimeLimits {
+    with BeforeAndAfterAll with Matchers with TimeLimits with TableDrivenPropertyChecks {
   private val SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare"
   private val SHAKESPEARE_TABLE_NUM_ROWS = 164656L
   private val SHAKESPEARE_TABLE_SCHEMA = StructType(Seq(
@@ -66,7 +65,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     spark.stop()
   }
 
-  /** Generate a test that the given DataFrame is equal to a known BigQuery Table. */
+  /** Generate a test to verify that the given DataFrame is equal to a known result. */
   def testShakespeare(description: String)(df: => DataFrame): Unit = {
     test(description) {
       val youCannotImportVars = spark
@@ -96,13 +95,48 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     spark.read.format("bigquery").option("table", SHAKESPEARE_TABLE).load()
   }
 
+  val filterData = Table(
+    ("condition", "elements"),
+    ("word_count == 4", Seq("'A", "'But", "'Faith")),
+    ("word_count > 3", Seq("'", "''Tis", "'A")),
+    ("word_count >= 2", Seq("'", "''Lo", "''O")),
+    ("word_count < 3", Seq("''All", "''Among", "''And")),
+    ("word_count <= 5", Seq("'", "''All", "''Among")),
+    ("word_count in(8, 9)", Seq("'", "'Faith", "'Tis")),
+    ("word_count is null", Seq()),
+    ("word_count is not null", Seq("'", "''All", "''Among")),
+    ("word_count == 4 and corpus == 'twelfthnight'", Seq("'Thou", "'em", "Art")),
+    ("word_count == 4 or corpus > 'twelfthnight'", Seq("'", "''Tis", "''twas")),
+    ("not word_count in(8, 9)", Seq("'", "''All", "''Among")),
+    ("corpus like 'king%'", Seq("'", "'A", "'Affectionate")),
+    ("corpus like '%kinghenryiv'", Seq("'", "'And", "'Anon")),
+    ("corpus like '%king%'", Seq("'", "'A", "'Affectionate"))
+  )
+
+  test("test filters") {
+    import com.google.cloud.spark.bigquery._
+    val sparkImportVal = spark
+    import sparkImportVal.implicits._
+    forAll(filterData) { (condition, expectedElements) =>
+      val df = spark.read.bigquery(SHAKESPEARE_TABLE)
+      assert(SHAKESPEARE_TABLE_SCHEMA == df.schema)
+      assert(SHAKESPEARE_TABLE_NUM_ROWS == df.count)
+      val firstWords = df.select("word")
+        .where(condition)
+        .distinct
+        .as[String]
+        .sort("word")
+        .take(3)
+      firstWords should contain theSameElementsInOrderAs expectedElements
+    }
+  }
+
   test("out of order columns") {
     val row = spark.read.format("bigquery").option("table", SHAKESPEARE_TABLE).load()
         .select("word_count", "word").head
     assert(row(0).isInstanceOf[Long])
     assert(row(1).isInstanceOf[String])
   }
-
 
   test("number of partitions") {
     val df = spark.read.format("com.google.cloud.spark.bigquery")

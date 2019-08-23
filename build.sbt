@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
   name := "spark-bigquery",
-  version := "0.7.0-fork-spark-on-emr-with-s3-support",
+  version := "0.8.0-beta-SNAPSHOT",
   scalaVersion := "2.11.8",
   crossScalaVersions := Seq("2.10.5"),
   sparkVersion := "2.3.2",
@@ -54,11 +54,10 @@ val relocationPrefix = s"$myPackage.repackaged"
 
 libraryDependencies ++= Seq(
   // Keep com.google.cloud dependencies in sync
-  "com.google.cloud" % "google-cloud-bigquery" % "1.61.0",
-  // Note BigQuery Storage Generated Library is Alpha but the API is Beta
-  "com.google.cloud" % "google-cloud-bigquerystorage" % "0.88.0-alpha",
+  "com.google.cloud" % "google-cloud-bigquery" % "1.82.0",
+  "com.google.cloud" % "google-cloud-bigquerystorage" % "0.98.0-beta",
   // Keep in sync with com.google.cloud
-  "io.grpc" % "grpc-netty-shaded" % "1.17.1",
+  "io.grpc" % "grpc-netty-shaded" % "1.22.1",
 
   "org.apache.avro" % "avro" % "1.8.2",
 
