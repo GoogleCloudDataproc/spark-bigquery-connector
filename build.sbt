@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
   name := "spark-bigquery",
-  version := "0.7.0-beta",
+  version := "0.7.0-fork-spark-on-emr-with-s3-support",
   scalaVersion := "2.11.8",
   crossScalaVersions := Seq("2.10.5"),
   sparkVersion := "2.3.2",
@@ -61,6 +61,8 @@ libraryDependencies ++= Seq(
   "io.grpc" % "grpc-netty-shaded" % "1.17.1",
 
   "org.apache.avro" % "avro" % "1.8.2",
+
+  "com.amazonaws" % "aws-java-sdk-s3" % "1.11.592",
 
   // Brings SLF4J 1.7.25. Spark 2.2 has 1.7.16
   // TODO(pmkc): Shade

@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery
 
 import java.io.{ByteArrayInputStream, FileInputStream}
 
+import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.google.api.client.util.Base64
 import com.google.auth.Credentials
 import com.google.auth.oauth2.GoogleCredentials
@@ -34,12 +35,22 @@ case class SparkBigQueryOptions(
     schema: Option[StructType] = None,
     parallelism: Option[Int] = None) {
 
+  import SparkBigQueryOptions._
+
   def createCredentials: Option[Credentials] =
     (credentials, credentialsFile) match {
       case (Some(key), None) =>
         Some(GoogleCredentials.fromStream(new ByteArrayInputStream(Base64.decodeBase64(key))))
       case (None, Some(file)) =>
-        Some(GoogleCredentials.fromStream(new FileInputStream(file)))
+        if (file.toLowerCase.startsWith("s3")) {
+          val s3PathParts = file.split("://")
+          val s3BucketName = s3PathParts.last.mkString("").split("/").head
+          val s3ObjectKey = s3PathParts.last.mkString("").split("/").tail.mkString("/")
+          val s3Object = amazonS3Client.getObject(s3BucketName, s3ObjectKey)
+          Some(GoogleCredentials.fromStream(s3Object.getObjectContent()))
+        } else {
+          Some(GoogleCredentials.fromStream(new FileInputStream(file)))
+        }
       case (None, None) =>
         None
       case (Some(_), Some(_)) =>
@@ -50,6 +61,10 @@ case class SparkBigQueryOptions(
 
 /** Resolvers for {@link SparkBigQueryOptions} */
 object SparkBigQueryOptions {
+
+  lazy val amazonS3Client = AmazonS3ClientBuilder
+    .standard()
+    .build()
 
   def apply(
       parameters: Map[String, String],
