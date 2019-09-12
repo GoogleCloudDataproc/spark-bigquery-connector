@@ -93,14 +93,15 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery_${scala.version}</artifactId>
-  <version>0.8.0-beta</version>
+  <version>0.8.1-beta</version>
+  <classifier>shaded</classifier>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery" % "0.8.0-beta"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery" % "0.8.1-beta" classifier "shaded"
 ```
 
 ## API
