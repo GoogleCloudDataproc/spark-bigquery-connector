@@ -1,5 +1,8 @@
 # Release Notes
 
+## 0.8.1-beta - 2019-09-12
+* Adding a shaded version
+
 ## 0.8.0-beta - 2019-07-22
 * Upgrade version of google-cloud-bigquery library to 1.82.0
 * Upgrade version of google-cloud-bigquerystorage library to 0.98.0-beta

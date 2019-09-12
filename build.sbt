@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
   name := "spark-bigquery",
-  version := "0.8.0-beta-SNAPSHOT",
+  version := "0.8.1-beta-SNAPSHOT",
   scalaVersion := "2.11.8",
   crossScalaVersions := Seq("2.10.5"),
   sparkVersion := "2.3.2",
@@ -42,7 +42,9 @@ val excludedOrgs = Seq(
   // All use httpclient:4.3.6
   "org.apache.httpcomponents",
   // All use jackson-core-asl:1.9.13
-  "org.codehaus.jackson"
+  "org.codehaus.jackson",
+  // All use SLF4J 
+  "org.slf4j"
 )
 val myPackage = "com.google.cloud.spark.bigquery"
 
@@ -70,12 +72,21 @@ libraryDependencies ++= Seq(
   "org.mockito" % "mockito-all" % "1.10.19" % "test")
     .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
 val renamed = Seq(
+  "avro.shaded",
   "com.google",
+  "com.thoughtworks.paranamer",
+  "com.typesafe",
   "io.grpc",
   "io.opencensus",
-  "org.json",
+  "io.perfmark",
   "org.apache.avro",
-  "org.threeten")
+  "org.apache.commons",
+  "org.checkerframework",
+  "org.codehaus.mojo",
+  "org.json",
+  "org.threeten",
+  "org.tukaani.xz",
+  "org.xerial.snappy")
 val notRenamed = Seq(myPackage)
 
 def unitFilter(name: String): Boolean = (name endsWith "Suite") && !itFilter(name)
@@ -109,6 +120,14 @@ scmInfo := Some(ScmInfo(url("https://github.com/GoogleCloudPlatform/spark-bigque
   "git@github.com:GoogleCloudPlatform/spark-bigquery-connector.git"))
 licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))
 publishMavenStyle := true
+
+// publish the assembly
+artifact in (Compile, assembly) := {
+  val art = (artifact in (Compile, assembly)).value
+  art.withClassifier(Some("shaded"))
+}
+
+addArtifact(artifact in (Compile, assembly), assembly)
 
 pomExtra :=
   <developers>
