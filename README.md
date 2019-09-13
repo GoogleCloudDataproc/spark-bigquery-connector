@@ -325,6 +325,18 @@ val otherRows = cachedDF.select("word_count")
 
 You can also manually specify the `filter` option, which will override automatic pushdown and Spark will do the rest of the filtering in the client.
 
+### Partitioned Tables
+
+The pseudo columns \_PARTITIONDATE and \_PARTITIONTIME are not part of the table schema. Therefore in order to query by the partitions of [partitioned tables](https://cloud.google.com/bigquery/docs/partitioned-tables) do not use the where() method shown above. Instead, add a filter option in the following manner:
+
+```
+val df = spark.read.format("bigquery")
+  .option("table", TABLE)
+  .option("filter", "_PARTITIONDATE > '2019-01-01'")
+  ...
+  .load()
+```
+
 ### Configuring Partitioning
 
 By default the connector creates one partition per current core available (Spark Default Parallelism) to get maximum concurrent bandwidth. This can be configured explicitly with the <code>[parallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
