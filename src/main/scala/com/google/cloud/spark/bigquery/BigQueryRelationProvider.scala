@@ -19,6 +19,7 @@ import com.google.auth.Credentials
 import com.google.cloud.bigquery.TableDefinition.Type.TABLE
 import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, TableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
