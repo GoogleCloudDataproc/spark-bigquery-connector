@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery
 
 import com.google.cloud.bigquery.{TableDefinition, TableId, TableInfo}
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.spark.sql._
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
@@ -23,7 +24,7 @@ import org.apache.spark.sql.types.StructType
 /** Base BigQuery relation that uses google-cloud-bigquery to get table metadata */
 private[bigquery] case class BigQueryRelation(options: SparkBigQueryOptions, table: TableInfo)
     (@transient val sqlContext: SQLContext)
-    extends BaseRelation {
+    extends BaseRelation  with StrictLogging {
 
   val tableId: TableId = table.getTableId
   val tableName: String = BigQueryUtil.friendlyTableName(tableId)
@@ -34,6 +35,7 @@ private[bigquery] case class BigQueryRelation(options: SparkBigQueryOptions, tab
   override val schema: StructType = {
     options.schema.getOrElse(SchemaConverters.toSpark(tableDefinition.getSchema))
   }
+
 }
 
 
