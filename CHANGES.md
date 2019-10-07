@@ -1,14 +1,7 @@
 # Release Notes
 
-## 0.9.0-beta - 2019-10-08
-* Added write support
-* Cross built for both Scala 2.11 and 2.12
-* Upgrade version of google-cloud-bigquery library to 1.96.0
-* Upgrade version of google-cloud-bigquerystorage library to 0.114.0-beta
-* Upgrade version of grpc-netty-shaded library to 1.23.0
-
 ## 0.8.1-beta - 2019-09-12
-* Added a shaded version
+* Adding a shaded version
 
 ## 0.8.0-beta - 2019-07-22
 * Upgrade version of google-cloud-bigquery library to 1.82.0
@@ -27,7 +20,7 @@
   between partitions
 
 ## 0.6.0-beta - 2019-06-25
-* Support specifying credentials through configurations
+* Support specifiying credentials through configurations
 
 ## 0.5.1-beta - 2019-04-26
 
