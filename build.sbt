@@ -74,7 +74,10 @@ libraryDependencies ++= Seq(
   // Brings SLF4J 1.7.25. Spark 2.2 has 1.7.16
   "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
 
-  "com.google.cloud.bigdataoss" % "gcs-connector" % "hadoop2-2.0.0" % "test",
+  // runtime
+  "com.google.cloud.bigdataoss" % "gcs-connector" % "hadoop2-2.0.0" % "runtime",
+
+  // test
   "org.scalatest" %% "scalatest" % "3.0.4" % "test",
   "org.mockito" % "mockito-all" % "1.10.19" % "test")
     .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))

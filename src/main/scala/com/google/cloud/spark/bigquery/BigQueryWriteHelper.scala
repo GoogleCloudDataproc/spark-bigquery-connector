@@ -5,6 +5,7 @@ import java.util.UUID
 import com.google.cloud.bigquery.{BigQuery, BigQueryException, JobInfo, LoadJobConfiguration}
 import com.google.cloud.http.BaseHttpServiceException
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{Path, RemoteIterator}
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
@@ -21,6 +22,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
   val conf = sqlContext.sparkSession.sparkContext.hadoopConfiguration
 
   val temporaryGcsPath = {
+    verifyThatGcsConnectorIsInstalled
 
     var needNewPath = true
     var gcsPath: Path = null
@@ -97,6 +99,18 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     }
   }
 
+  def verifyThatGcsConnectorIsInstalled: Unit = {
+    try {
+      val path = new Path("gs://test/")
+      path.getFileSystem(conf)
+    } catch {
+      case e: Exception => throw new IllegalStateException(
+        """It seems that the Hadoop GCS connector it not installed or not
+          |configured properly. Please see
+          |https://cloud.google.com/dataproc/docs/concepts/connectors/cloud-storage
+          |for more details""".stripMargin.replace('\n',' '))
+    }
+  }
 
 }
 

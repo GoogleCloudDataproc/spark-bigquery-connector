@@ -19,7 +19,6 @@ import com.google.auth.Credentials
 import com.google.cloud.bigquery.TableDefinition.Type.TABLE
 import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, TableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
@@ -85,7 +84,8 @@ class BigQueryRelationProvider(
                |${BigQueryUtil.friendlyTableName(options.tableId)}
                |already exists. Did you want to add data to the table by setting
                |the SaveMode to Append? Example:
-               |df.write.format.options.mode(SaveMode.Append).save()""".stripMargin)
+               |df.write.format.options.mode(SaveMode.Append).save()"""
+              .stripMargin.replace('\n', ' '))
         }
       case SaveMode.Ignore =>
         if (!relation.exists) {
