@@ -26,15 +26,15 @@ import org.apache.spark.sql.types.StructType
 
 /** Options for defining {@link BigQueryRelation}s */
 case class SparkBigQueryOptions(
-                                 tableId: TableId,
-                                 parentProject: String,
-                                 credentials: Option[String] = None,
-                                 credentialsFile: Option[String] = None,
-                                 filter: Option[String] = None,
-                                 schema: Option[StructType] = None,
-                                 parallelism: Option[Int] = None,
-                                 temporaryGcsBucket: Option[String] = None,
-                                 intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat) {
+  tableId: TableId,
+  parentProject: String,
+  credentials: Option[String] = None,
+  credentialsFile: Option[String] = None,
+  filter: Option[String] = None,
+  schema: Option[StructType] = None,
+  parallelism: Option[Int] = None,
+  temporaryGcsBucket: Option[String] = None,
+  intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat) {
 
   def createCredentials: Option[Credentials] =
     (credentials, credentialsFile) match {
@@ -82,7 +82,10 @@ object SparkBigQueryOptions {
       .map(s => FormatOptions.of(s.toUpperCase))
       .getOrElse(DefaultFormat)
     if (!PermittedIntermediateFormats.contains(intermediateFormat)) {
-      throw new IllegalArgumentException(s"Intermediate format '${intermediateFormat.getType}' is not supported. Supported formats are ${PermittedIntermediateFormats.map(_.getType)}")
+      throw new IllegalArgumentException(
+        s"""Intermediate format '${intermediateFormat.getType}' is not supported.
+           |Supported formats are ${PermittedIntermediateFormats.map(_.getType)}"""
+          .stripMargin.replace('\n', ' '))
     }
 
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,

@@ -1,3 +1,18 @@
+/*
+ * Copyright 2018 Google Inc. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.google.cloud.spark.bigquery
 
 import java.util.UUID
@@ -5,7 +20,6 @@ import java.util.UUID
 import com.google.cloud.bigquery.{BigQuery, BigQueryException, JobInfo, LoadJobConfiguration}
 import com.google.cloud.http.BaseHttpServiceException
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{Path, RemoteIterator}
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
@@ -78,22 +92,23 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     if (finishedJob.getStatus.getError != null) {
       throw new BigQueryException(
         BaseHttpServiceException.UNKNOWN_CODE,
-        s"Failed to load to ${friendlyTableName} in job ${job.getJobId}. BigQuery error was ${finishedJob.getStatus.getError.getMessage}",
+        s"""Failed to load to ${friendlyTableName} in job ${job.getJobId}. BigQuery error was
+           |${finishedJob.getStatus.getError.getMessage}""".stripMargin.replace('\n', ' '),
         finishedJob.getStatus.getError)
     } else {
       logger.info(s"Done loading to ${friendlyTableName}. jobId: ${job.getJobId}")
     }
   }
 
-  def friendlyTableName = BigQueryUtil.friendlyTableName(options.tableId)
+  def friendlyTableName: String = BigQueryUtil.friendlyTableName(options.tableId)
 
   def cleanTempraryGcsPath: Unit = {
-    //TODO(davidrab): add flag to disable the deletion?
+    // TODO(davidrab): add flag to disable the deletion?
     val fs = temporaryGcsPath.getFileSystem(conf)
     fs.delete(temporaryGcsPath, true)
   }
 
-  def verifySaveMode = {
+  def verifySaveMode: Unit = {
     if (saveMode == SaveMode.ErrorIfExists || saveMode == SaveMode.Ignore) {
       throw new UnsupportedOperationException(s"SaveMode $saveMode is not supported")
     }
@@ -108,7 +123,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
         """It seems that the Hadoop GCS connector it not installed or not
           |configured properly. Please see
           |https://cloud.google.com/dataproc/docs/concepts/connectors/cloud-storage
-          |for more details""".stripMargin.replace('\n',' '))
+          |for more details""".stripMargin.replace('\n', ' '))
     }
   }
 
