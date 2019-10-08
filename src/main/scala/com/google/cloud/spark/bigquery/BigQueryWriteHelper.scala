@@ -152,6 +152,9 @@ case class HdfsPathDeleter(path: Path, conf: Configuration) extends Thread with 
   override def run : Unit = deletePath
 }
 
+/**
+  * Converts HDFS RemoteIterator to Scala iterator
+  */
 case class ToIterator[E](remote: RemoteIterator[E]) extends Iterator[E] {
   override def hasNext: Boolean = remote.hasNext
 
