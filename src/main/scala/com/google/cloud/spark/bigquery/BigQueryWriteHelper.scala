@@ -34,17 +34,18 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
   import org.apache.spark.sql.SaveMode
 
-  val conf = sqlContext.sparkSession.sparkContext.hadoopConfiguration
+  val conf = sqlContext.sparkContext.hadoopConfiguration
 
   val temporaryGcsPath = {
     verifyThatGcsConnectorIsInstalled
 
     var needNewPath = true
     var gcsPath: Path = null
+    val applicationId = sqlContext.sparkContext.applicationId
 
     while (needNewPath) {
       val gcsPathOption = options.temporaryGcsBucket.map(bucket =>
-        s"gs://$bucket/.spark-bigquery-${System.currentTimeMillis()}-${UUID.randomUUID()}")
+        s"gs://$bucket/.spark-bigquery-${applicationId}-${UUID.randomUUID()}")
       require(gcsPathOption.isDefined, "Temporary GCS path has not been set")
       gcsPath = new Path(gcsPathOption.get)
       val fs = gcsPath.getFileSystem(conf)
@@ -153,8 +154,8 @@ case class HdfsPathDeleter(path: Path, conf: Configuration) extends Thread with 
 }
 
 /**
-  * Converts HDFS RemoteIterator to Scala iterator
-  */
+ * Converts HDFS RemoteIterator to Scala iterator
+ */
 case class ToIterator[E](remote: RemoteIterator[E]) extends Iterator[E] {
   override def hasNext: Boolean = remote.hasNext
 
