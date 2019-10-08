@@ -2,14 +2,15 @@ package com.google.cloud.spark.bigquery
 
 import java.util.UUID
 
-import collection.JavaConverters._
-import com.google.cloud.bigquery.{BigQuery, BigQueryException, FormatOptions, JobInfo, LoadJobConfiguration}
+import com.google.cloud.bigquery.{BigQuery, BigQueryException, JobInfo, LoadJobConfiguration}
 import com.google.cloud.http.BaseHttpServiceException
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.fs.{Path, RemoteIterator}
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
-case class BigQueryWriteHelper(bigQuery:BigQuery,
+import scala.collection.JavaConverters._
+
+case class BigQueryWriteHelper(bigQuery: BigQuery,
                                sqlContext: SQLContext,
                                saveMode: SaveMode,
                                options: SparkBigQueryOptions,
@@ -21,36 +22,34 @@ case class BigQueryWriteHelper(bigQuery:BigQuery,
 
   val temporaryGcsPath = {
 
-    val gcsPathOption = options.temporaryGcsBucket.map(bucket =>
-      s"gs://$bucket/.spark-bigquery-${System.currentTimeMillis()}-${UUID.randomUUID()}")
-    require(gcsPathOption.isDefined, "Temporary GCS path has not been set")
-    val gcsPath = new Path(gcsPathOption.get)
-    val fs = gcsPath.getFileSystem(conf)
-    if (fs.exists(gcsPath)) {
-      throw new IllegalStateException(s"Conflict occurred creating export directory. Path %gcsPath already exists")
-    }
-    gcsPath
-  }
+    var needNewPath = true
+    var gcsPath: Path = null
 
-  def writeDataFrameToBigQuery : Unit = {
-    try {
-      val format = options.intermediateFormat.getType.toLowerCase
-      data.write.format(format).save(temporaryGcsPath.toString)
-      loadDataToBigQuery
-    } catch {
-      case e:Exception => throw new RuntimeException("Failed to write to BigQuery", e)
-    } finally {
-      cleanTempraryGcsPath
+    while (needNewPath) {
+      val gcsPathOption = options.temporaryGcsBucket.map(bucket =>
+        s"gs://$bucket/.spark-bigquery-${System.currentTimeMillis()}-${UUID.randomUUID()}")
+      require(gcsPathOption.isDefined, "Temporary GCS path has not been set")
+      gcsPath = new Path(gcsPathOption.get)
+      val fs = gcsPath.getFileSystem(conf)
+      needNewPath = fs.exists(gcsPath) // if teh path exists for some reason, then retry
     }
+
+    gcsPath
   }
 
   val saveModeToWriteDisposition = Map(
     SaveMode.Append -> JobInfo.WriteDisposition.WRITE_APPEND,
     SaveMode.Overwrite -> JobInfo.WriteDisposition.WRITE_TRUNCATE)
 
-  def verifySaveMode = {
-    if (saveMode == SaveMode.ErrorIfExists || saveMode == SaveMode.Ignore) {
-      throw new UnsupportedOperationException(s"SaveMode $saveMode is not supported")
+  def writeDataFrameToBigQuery: Unit = {
+    try {
+      val format = options.intermediateFormat.getType.toLowerCase
+      data.write.format(format).save(temporaryGcsPath.toString)
+      loadDataToBigQuery
+    } catch {
+      case e: Exception => throw new RuntimeException("Failed to write to BigQuery", e)
+    } finally {
+      cleanTempraryGcsPath
     }
   }
 
@@ -58,7 +57,7 @@ case class BigQueryWriteHelper(bigQuery:BigQuery,
     val fs = temporaryGcsPath.getFileSystem(conf)
     val sourceUris = ToIterator(fs.listFiles(temporaryGcsPath, false))
       .map(_.getPath.toString)
-      .filter(! _.endsWith("_SUCCESS"))
+      .filter(!_.endsWith("_SUCCESS"))
       .toList
       .asJava
 
@@ -92,10 +91,17 @@ case class BigQueryWriteHelper(bigQuery:BigQuery,
     fs.delete(temporaryGcsPath, true)
   }
 
+  def verifySaveMode = {
+    if (saveMode == SaveMode.ErrorIfExists || saveMode == SaveMode.Ignore) {
+      throw new UnsupportedOperationException(s"SaveMode $saveMode is not supported")
+    }
+  }
+
 
 }
 
-case class ToIterator[E](remote:RemoteIterator[E]) extends Iterator[E] {
+case class ToIterator[E](remote: RemoteIterator[E]) extends Iterator[E] {
   override def hasNext: Boolean = remote.hasNext
+
   override def next(): E = remote.next()
 }
