@@ -20,6 +20,7 @@ import java.util.UUID
 import com.google.cloud.bigquery.{BigQuery, BigQueryException, JobInfo, LoadJobConfiguration}
 import com.google.cloud.http.BaseHttpServiceException
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{Path, RemoteIterator}
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
@@ -59,6 +60,9 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
   def writeDataFrameToBigQuery: Unit = {
     try {
+      // based on pmkc's suggestion at https://git.io/JeWRt
+      Runtime.getRuntime.addShutdownHook(createTemporaryPathDeleter)
+
       val format = options.intermediateFormat.getType.toLowerCase
       data.write.format(format).save(temporaryGcsPath.toString)
       loadDataToBigQuery
@@ -104,9 +108,10 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
   def cleanTempraryGcsPath: Unit = {
     // TODO(davidrab): add flag to disable the deletion?
-    val fs = temporaryGcsPath.getFileSystem(conf)
-    fs.delete(temporaryGcsPath, true)
+    createTemporaryPathDeleter.deletePath
   }
+
+  private def createTemporaryPathDeleter = HdfsPathDeleter(temporaryGcsPath, conf)
 
   def verifySaveMode: Unit = {
     if (saveMode == SaveMode.ErrorIfExists || saveMode == SaveMode.Ignore) {
@@ -127,6 +132,24 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     }
   }
 
+}
+
+/**
+ * Resposible for recursively deleting an HDFS path. Implementing Thread in order
+ * to act as shutdown hook
+ * @param path the path to delete
+ * @param conf the hadoop configuration
+ */
+case class HdfsPathDeleter(path: Path, conf: Configuration) extends Thread with StrictLogging {
+  def deletePath: Unit =
+    try {
+      val fs = path.getFileSystem(conf)
+      fs.delete(path, true)
+    } catch {
+      case e: Exception => logger.error(s"Failed to delete path $path", e)
+    }
+
+  override def run : Unit = deletePath
 }
 
 case class ToIterator[E](remote: RemoteIterator[E]) extends Iterator[E] {
