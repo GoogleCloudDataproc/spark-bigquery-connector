@@ -63,7 +63,7 @@ case class BigQueryInsertableRelation(val bigQuery: BigQuery,
   /**
    * Returns the number of rows in the table. If the table does not exist return None
    */
-  def numberOfRows: Option[BigInteger] = getTable.map(t => t.getNumRows())
+  private def numberOfRows: Option[BigInteger] = getTable.map(t => t.getNumRows())
 
   private def getTable = Option(bigQuery.getTable(options.tableId))
 
@@ -72,8 +72,7 @@ case class BigQueryInsertableRelation(val bigQuery: BigQuery,
     val tableDefinition = tableInfo.getDefinition.asInstanceOf[TableDefinition]
     SchemaConverters.toSpark(tableDefinition.getSchema)
   }
-
-
+  
 }
 
 

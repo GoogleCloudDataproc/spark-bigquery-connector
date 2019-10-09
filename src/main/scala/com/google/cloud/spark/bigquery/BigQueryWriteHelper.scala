@@ -37,8 +37,6 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
   val conf = sqlContext.sparkContext.hadoopConfiguration
 
   val temporaryGcsPath = {
-    verifyThatGcsConnectorIsInstalled
-
     var needNewPath = true
     var gcsPath: Path = null
     val applicationId = sqlContext.sparkContext.applicationId
@@ -119,20 +117,6 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       throw new UnsupportedOperationException(s"SaveMode $saveMode is not supported")
     }
   }
-
-  def verifyThatGcsConnectorIsInstalled: Unit = {
-    try {
-      val path = new Path("gs://test/")
-      path.getFileSystem(conf)
-    } catch {
-      case e: Exception => throw new IllegalStateException(
-        """It seems that the Hadoop GCS connector it not installed or not
-          |configured properly. Please see
-          |https://cloud.google.com/dataproc/docs/concepts/connectors/cloud-storage
-          |for more details""".stripMargin.replace('\n', ' '))
-    }
-  }
-
 }
 
 /**
