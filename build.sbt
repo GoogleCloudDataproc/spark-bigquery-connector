@@ -5,7 +5,6 @@ lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
   name := "spark-bigquery",
   version := "0.9.0-beta-SNAPSHOT",
-  
   scalaVersion := scala211Version,
   crossScalaVersions := Seq(scala211Version, scala212Version),
   sparkVersion := "2.4.4",
