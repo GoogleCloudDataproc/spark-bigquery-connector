@@ -125,7 +125,9 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
  * @param path the path to delete
  * @param conf the hadoop configuration
  */
-case class IntermediateDataCleaner(path: Path, conf: Configuration) extends Thread with StrictLogging {
+case class IntermediateDataCleaner(path: Path, conf: Configuration)
+  extends Thread
+    with StrictLogging {
   def deletePath: Unit =
     try {
       val fs = path.getFileSystem(conf)
