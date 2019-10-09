@@ -72,7 +72,7 @@ case class BigQueryInsertableRelation(val bigQuery: BigQuery,
     val tableDefinition = tableInfo.getDefinition.asInstanceOf[TableDefinition]
     SchemaConverters.toSpark(tableDefinition.getSchema)
   }
-  
+
 }
 
 

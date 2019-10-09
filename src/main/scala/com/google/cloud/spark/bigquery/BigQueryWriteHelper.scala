@@ -110,7 +110,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     createTemporaryPathDeleter.deletePath
   }
 
-  private def createTemporaryPathDeleter = HdfsPathDeleter(temporaryGcsPath, conf)
+  private def createTemporaryPathDeleter = IntermediateDataCleaner(temporaryGcsPath, conf)
 
   def verifySaveMode: Unit = {
     if (saveMode == SaveMode.ErrorIfExists || saveMode == SaveMode.Ignore) {
@@ -120,12 +120,12 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 }
 
 /**
- * Resposible for recursively deleting an HDFS path. Implementing Thread in order
- * to act as shutdown hook
+ * Responsible for recursively deleting the intermediate path.
+ * Implementing Thread in order to act as shutdown hook.
  * @param path the path to delete
  * @param conf the hadoop configuration
  */
-case class HdfsPathDeleter(path: Path, conf: Configuration) extends Thread with StrictLogging {
+case class IntermediateDataCleaner(path: Path, conf: Configuration) extends Thread with StrictLogging {
   def deletePath: Unit =
     try {
       val fs = path.getFileSystem(conf)
