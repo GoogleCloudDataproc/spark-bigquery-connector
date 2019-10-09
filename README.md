@@ -196,8 +196,8 @@ The API Supports a number of options to configure the read
    <td>The number of partitions to split the data into. Actual number may be less
        if BigQuery deems the data small enough. If there are not enough executors
        to schedule a reader per partition, some partitions may be empty.
-       <br/>(Optional. Defaults to <code>SparkContext.getDefaultParallelism()</code>.
-       See <a href="#configuring-partitioning">Configuring Partitioning</a>.)
+       <br/>(Optional. Defaults to one partition per 400MB. See
+       <a href="#configuring-partitioning">Configuring Partitioning</a>.)
    </td>
    <td>Read</td>
   </tr>
@@ -383,7 +383,8 @@ val df = spark.read.format("bigquery")
 
 ### Configuring Partitioning
 
-By default the connector creates one partition per current core available (Spark Default Parallelism) to get maximum concurrent bandwidth. This can be configured explicitly with the <code>[parallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
+By default the connector creates one partition per 400MB in the table being read (before filtering). This should roughly correspond to the maximum number of readers supported by the BigQuery Storage API. 
+This can be configured explicitly with the <code>[parallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
 
 ## Building the Connector
 

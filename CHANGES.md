@@ -2,6 +2,9 @@
 
 ## 0.9.0-beta - 2019-10-08
 * Added write support
+* Switch requested partitions from SparkContext.defaultParallelism to one
+  partition per 400MB. This should work better with balanced sharding and
+  dynamic allocation.
 * Cross built for both Scala 2.11 and 2.12
 * Upgrade version of google-cloud-bigquery library to 1.96.0
 * Upgrade version of google-cloud-bigquerystorage library to 0.114.0-beta

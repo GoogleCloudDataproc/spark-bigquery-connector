@@ -20,10 +20,10 @@ import java.sql.{Date, Timestamp}
 import com.google.api.gax.core.CredentialsProvider
 import com.google.api.gax.rpc.FixedHeaderProvider
 import com.google.auth.Credentials
-import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, BigQueryStorageSettings}
 import com.google.cloud.bigquery.storage.v1beta1.ReadOptions.TableReadOptions
 import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionRequest, DataFormat, ShardingStrategy}
 import com.google.cloud.bigquery.storage.v1beta1.TableReferenceProto.TableReference
+import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, BigQueryStorageSettings}
 import com.google.cloud.bigquery.{Schema, StandardTableDefinition, TableDefinition, TableInfo}
 import com.google.cloud.spark.bigquery.{BigQueryRelation, BuildInfo, SparkBigQueryOptions}
 import com.typesafe.scalalogging.Logger
@@ -53,6 +53,13 @@ private[bigquery] class DirectBigQueryRelation(
   }
   private val log = Logger(getClass)
 
+  /**
+   * Default parallelism to 1 reader per 400MB, which should be about the maximum allowed by the
+   * BigQuery Storage API. The number of partitions returned may be significantly less depending
+   * on a number of factors.
+   */
+  val DEFAULT_BYTES_PER_PARTITION = 400L * 1000 * 1000
+
   override val needConversion: Boolean = false
   override val sizeInBytes: Long = tableDefinition.getNumBytes
 
@@ -79,12 +86,14 @@ private[bigquery] class DirectBigQueryRelation(
 
     val client = getClient(options)
 
+    val numPartitionsRequested = getNumPartitionsRequested
+
     try {
       val session = client.createReadSession(
         CreateReadSessionRequest.newBuilder()
             .setParent(s"projects/${options.parentProject}")
             .setFormat(DataFormat.AVRO)
-            .setRequestedStreams(getNumPartitions)
+            .setRequestedStreams(numPartitionsRequested)
             .setReadOptions(readOptions)
             .setTableReference(tableReference)
             // The BALANCED sharding strategy causes the server to assign roughly the same
@@ -96,6 +105,14 @@ private[bigquery] class DirectBigQueryRelation(
           .toArray
 
       log.info(s"Created read session for table '$tableName': ${session.getName}")
+
+      // This is spammy, but it will make it clear to users the number of partitions they got and
+      // why.
+      if (!numPartitionsRequested.equals(partitions.length)) {
+        log.warn(s"Requested $numPartitionsRequested partitions, but only received " +
+          s"${partitions.length} from the BigQuery Storage API for session ${session.getName}.")
+      }
+
       BigQueryRDD.scanTable(
         sqlContext,
         partitions.asInstanceOf[Array[Partition]],
@@ -115,10 +132,12 @@ private[bigquery] class DirectBigQueryRelation(
   /**
    * The theoretical number of Partitions of the returned DataFrame.
    * If the table is small the server will provide fewer readers and there will be fewer
-   * partitions. If all partitions are not read concurrently, some Partitions will be empty.
+   * partitions.
+   *
+   * VisibleForTesting
    */
-  protected def getNumPartitions: Int = options.parallelism
-      .getOrElse(sqlContext.sparkContext.defaultParallelism)
+  def getNumPartitionsRequested: Int = options.parallelism
+      .getOrElse(Math.max((sizeInBytes / DEFAULT_BYTES_PER_PARTITION).toInt, 1))
 
   private def getCompiledFilter(filters: Array[Filter]): String = {
     // If a manual filter has been specified do not push down anything.
