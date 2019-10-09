@@ -64,7 +64,7 @@ gcloud dataproc clusters create "$MY_CLUSTER"
 
 ## Downloading the Connector
 
-The latest version connector of the connector is publicly available in [gs://spark-lib/bigquery/spark-bigquery-latest.jar](https://console.cloud.google.com/storage/browser/spark-lib/bigquery).
+The latest version connector of the connector is publicly available in [gs://spark-lib/bigquery/spark-bigquery-latest.jar](https://console.cloud.google.com/storage/browser/spark-lib/bigquery). A Scala 2.12 compiled version exist in gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar.
 
 ## Hello World Example
 
@@ -77,7 +77,6 @@ gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
   --jars gs://spark-lib/bigquery/spark-bigquery-latest.jar \
   examples/python/shakespeare.py
 ```
-
 
 ## Compiling against the connector
 
