@@ -18,7 +18,7 @@ package com.google.cloud.spark.bigquery
 import java.math.BigInteger
 
 import com.google.cloud.bigquery.{BigQuery, TableDefinition}
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.Logger
 import org.apache.spark.sql.sources.{BaseRelation, InsertableRelation}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
@@ -32,9 +32,9 @@ case class BigQueryInsertableRelation(val bigQuery: BigQuery,
                                       val sqlContext: SQLContext,
                                       val options: SparkBigQueryOptions)
   extends BaseRelation
-    with InsertableRelation
-    with StrictLogging {
+    with InsertableRelation {
 
+  private val logger = Logger(getClass)
 
   override def insert(data: DataFrame, overwrite: Boolean): Unit = {
     logger.info(s"insert data=${data}, overwrite=$overwrite")

@@ -19,7 +19,7 @@ import java.util.UUID
 
 import com.google.cloud.bigquery.{BigQuery, BigQueryException, JobInfo, LoadJobConfiguration}
 import com.google.cloud.http.BaseHttpServiceException
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.Logger
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{Path, RemoteIterator}
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
@@ -30,10 +30,9 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
                                sqlContext: SQLContext,
                                saveMode: SaveMode,
                                options: SparkBigQueryOptions,
-                               data: DataFrame) extends StrictLogging {
+                               data: DataFrame) {
 
-  import org.apache.spark.sql.SaveMode
-
+  private val logger = Logger(getClass)
   val conf = sqlContext.sparkContext.hadoopConfiguration
 
   val temporaryGcsPath = {
@@ -126,8 +125,9 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
  * @param conf the hadoop configuration
  */
 case class IntermediateDataCleaner(path: Path, conf: Configuration)
-  extends Thread
-    with StrictLogging {
+  extends Thread {
+  private val logger = Logger(getClass)
+
   def deletePath: Unit =
     try {
       val fs = path.getFileSystem(conf)
