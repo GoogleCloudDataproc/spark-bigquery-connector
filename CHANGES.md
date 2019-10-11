@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.9.1-beta - 2019-10-11
+* A NPE in the shutdown hook has occurred in case the delete had succeeded
+  in the first time. This had no impact on the actual logic, just on the log.
+  The method now verifies the path exists before trying to delete it, and
+  hides the redundant exception.
+* Added support for data.write.bigquery("table") implicit import, fixed 
+  regression caused by relying of shaded scalalogging
+
 ## 0.9.0-beta - 2019-10-08
 * Added write support
 * Switch requested partitions from SparkContext.defaultParallelism to one
