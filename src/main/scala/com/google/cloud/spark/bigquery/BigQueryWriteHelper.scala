@@ -21,7 +21,7 @@ import com.google.cloud.bigquery.{BigQuery, BigQueryException, JobInfo, LoadJobC
 import com.google.cloud.http.BaseHttpServiceException
 import com.typesafe.scalalogging.Logger
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{Path, RemoteIterator}
+import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
 import scala.collection.JavaConverters._
@@ -131,12 +131,21 @@ case class IntermediateDataCleaner(path: Path, conf: Configuration)
   def deletePath: Unit =
     try {
       val fs = path.getFileSystem(conf)
-      if(fs.exists(path)) {
+      if(pathExists(fs, path)) {
         fs.delete(path, true)
       }
     } catch {
       case e: Exception => logger.error(s"Failed to delete path $path", e)
     }
+
+  // fs.exists can throw exception on missing path
+  private def pathExists(fs: FileSystem, path: Path) : Boolean = {
+    try {
+      fs.exists(path)
+    } catch {
+      case e: Exception => false
+    }
+  }
 
   override def run : Unit = deletePath
 }
