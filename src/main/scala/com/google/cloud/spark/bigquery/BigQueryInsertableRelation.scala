@@ -37,7 +37,7 @@ case class BigQueryInsertableRelation(val bigQuery: BigQuery,
   private val logger = Logger(getClass)
 
   override def insert(data: DataFrame, overwrite: Boolean): Unit = {
-    logger.info(s"insert data=${data}, overwrite=$overwrite")
+    logger.debug(s"insert data=${data}, overwrite=$overwrite")
     // the helper also supports the v2 api
     val saveMode = if (overwrite) SaveMode.Overwrite else SaveMode.Append
     val helper = BigQueryWriteHelper(bigQuery, sqlContext, saveMode, options, data)
