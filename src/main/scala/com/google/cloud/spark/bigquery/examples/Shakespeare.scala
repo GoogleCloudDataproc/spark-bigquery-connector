@@ -26,7 +26,7 @@ object Shakespeare {
 
     // Use the Cloud Storage bucket for temporary BigQuery export data used
     // by the connector. This assumes the Cloud Storage connector for
-    // Hadoop is configured.r
+    // Hadoop is configured.
     val bucket = spark.sparkContext.hadoopConfiguration.get("fs.gs.system.bucket")
     spark.conf.set("temporaryGcsBucket", bucket)
 
