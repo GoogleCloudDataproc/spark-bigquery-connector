@@ -131,7 +131,9 @@ case class IntermediateDataCleaner(path: Path, conf: Configuration)
   def deletePath: Unit =
     try {
       val fs = path.getFileSystem(conf)
-      fs.delete(path, true)
+      if(fs.exists(path)) {
+        fs.delete(path, true)
+      }
     } catch {
       case e: Exception => logger.error(s"Failed to delete path $path", e)
     }
