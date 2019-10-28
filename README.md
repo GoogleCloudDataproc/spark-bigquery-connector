@@ -204,7 +204,7 @@ The API Supports a number of options to configure the read
    <td><code>temporaryGcsBucket</code>
    </td>
    <td>The GCS bucket that temporarily holds the data before it is loaded to
-       BigQeury. Required unless set in the Spark configuration
+       BigQuery. Required unless set in the Spark configuration
        (<code>spark.conf.set(...)</code>).
    </td>
    <td>Write</td>
