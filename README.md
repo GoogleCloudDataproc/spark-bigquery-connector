@@ -78,6 +78,9 @@ gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
   examples/python/shakespeare.py
 ```
 
+### Example Codelab ###
+https://codelabs.developers.google.com/codelabs/pyspark-bigquery
+
 ## Compiling against the connector
 
 Unless you wish to use the implicit Scala API `spark.read.bigquery("TABLE_ID")`, there is no need to compile against the connector.
