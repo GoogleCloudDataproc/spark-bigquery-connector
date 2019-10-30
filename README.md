@@ -78,7 +78,7 @@ gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
   examples/python/shakespeare.py
 ```
 
-### Example Codelab ###
+## Example Codelab ##
 https://codelabs.developers.google.com/codelabs/pyspark-bigquery
 
 ## Compiling against the connector
