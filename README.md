@@ -149,6 +149,7 @@ df.write
   .save()
 ```
 
+*Inportant:* The connector does not configure the GCS connector, in order to avoid conflict with another GCS connector, if exists. In order to use the write capabilities of the connector, please configure the GCS connector on your cluster as explained [here](https://github.com/GoogleCloudPlatform/bigdata-interop/tree/master/gcs).
 
 ### Properties
 
