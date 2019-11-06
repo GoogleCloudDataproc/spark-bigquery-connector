@@ -62,10 +62,10 @@ val relocationPrefix = s"$myPackage.repackaged"
 
 libraryDependencies ++= Seq(
   // Keep com.google.cloud dependencies in sync
-  "com.google.cloud" % "google-cloud-bigquery" % "1.96.0",
-  "com.google.cloud" % "google-cloud-bigquerystorage" % "0.114.0-beta",
+  "com.google.cloud" % "google-cloud-bigquery" % "1.99.0",
+  "com.google.cloud" % "google-cloud-bigquerystorage" % "0.117.0-beta",
   // Keep in sync with com.google.cloud
-  "io.grpc" % "grpc-netty-shaded" % "1.23.0",
+  "io.grpc" % "grpc-netty-shaded" % "1.24.1",
   "com.google.guava" % "guava" % "28.1-jre",
 
   "org.apache.avro" % "avro" % "1.8.2",
