@@ -34,7 +34,8 @@ case class SparkBigQueryOptions(
   schema: Option[StructType] = None,
   parallelism: Option[Int] = None,
   temporaryGcsBucket: Option[String] = None,
-  intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat) {
+  intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat,
+  combinePushedDownFilters: Boolean = true) {
 
   def createCredentials: Option[Credentials] =
     (credentials, credentialsFile) match {
@@ -87,9 +88,13 @@ object SparkBigQueryOptions {
            |Supported formats are ${PermittedIntermediateFormats.map(_.getType)}"""
           .stripMargin.replace('\n', ' '))
     }
+    val combinePushedDownFilters = getAnyOption(allConf, parameters, "combinePushedDownFilters")
+      .map(_.toBoolean)
+      .getOrElse(true)
 
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
-      filter, schema, parallelism, temporaryGcsBucket, intermediateFormat)
+      filter, schema, parallelism, temporaryGcsBucket, intermediateFormat,
+      combinePushedDownFilters)
   }
 
 
