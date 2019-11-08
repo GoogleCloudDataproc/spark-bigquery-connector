@@ -120,33 +120,35 @@ class DirectBigQueryRelationSuite
 
   test("old filter behaviour, with filter option") {
     val r = new DirectBigQueryRelation(
-      SparkBigQueryOptions(ID, PROJECT_ID, combinePushedDownFilters = false, filter = Some("f>1")), TABLE)(sqlCtx)
-    checkFilters(r,"f>1", Array(GreaterThan("a",2)),"f>1")
+      SparkBigQueryOptions(
+        ID, PROJECT_ID, combinePushedDownFilters = false, filter = Some("f>1")
+      ), TABLE)(sqlCtx)
+    checkFilters(r, "f>1", Array(GreaterThan("a", 2)), "f>1")
   }
 
   test("old filter behaviour, no filter option") {
     val r = new DirectBigQueryRelation(
       SparkBigQueryOptions(ID, PROJECT_ID, combinePushedDownFilters = false), TABLE)(sqlCtx)
-    checkFilters(r,"", Array(GreaterThan("a",2)),"a > 2")
+    checkFilters(r, "", Array(GreaterThan("a", 2)), "a > 2")
   }
 
   test("new filter behaviour, with filter option") {
     val r = new DirectBigQueryRelation(
       SparkBigQueryOptions(ID, PROJECT_ID, filter = Some("f>1")), TABLE)(sqlCtx)
-    checkFilters(r,"(f>1)", Array(GreaterThan("a",2)),"(f>1) AND (a > 2)")
+    checkFilters(r, "(f>1)", Array(GreaterThan("a", 2)), "(f>1) AND (a > 2)")
   }
 
   test("new filter behaviour, no filter option") {
     val r = new DirectBigQueryRelation(
       SparkBigQueryOptions(ID, PROJECT_ID), TABLE)(sqlCtx)
-    checkFilters(r,"", Array(GreaterThan("a",2)),"(a > 2)")
+    checkFilters(r, "", Array(GreaterThan("a", 2)), "(a > 2)")
   }
 
   def checkFilters(
       r: DirectBigQueryRelation,
-      resultWithoutFilters:String,
+      resultWithoutFilters: String,
       filters: Array[Filter],
-      resultWithFilters:String
+      resultWithFilters: String
       ): Unit = {
     val result1 = r.getCompiledFilter(Array())
     result1 shouldBe resultWithoutFilters
