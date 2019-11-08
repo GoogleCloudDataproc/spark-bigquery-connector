@@ -334,16 +334,16 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   test("keeping filters behaviour") {
     val newBehaviourWords = extractWords(
       spark.read.format("bigquery")
-      .option("table","publicdata.samples.shakespeare")
-      .option("filter","length(word) = 1")
-      .option("combinePushedDownFilters","true")
+      .option("table", "publicdata.samples.shakespeare")
+      .option("filter", "length(word) = 1")
+      .option("combinePushedDownFilters", "true")
       .load())
 
     val oldBehaviourWords = extractWords(
       spark.read.format("bigquery")
-      .option("table","publicdata.samples.shakespeare")
-      .option("filter","length(word) = 1")
-      .option("combinePushedDownFilters","false")
+      .option("table", "publicdata.samples.shakespeare")
+      .option("filter", "length(word) = 1")
+      .option("combinePushedDownFilters", "false")
       .load())
 
     newBehaviourWords should equal (oldBehaviourWords)

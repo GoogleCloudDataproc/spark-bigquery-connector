@@ -109,8 +109,14 @@ private[bigquery] class DirectBigQueryRelation(
       // This is spammy, but it will make it clear to users the number of partitions they got and
       // why.
       if (!numPartitionsRequested.equals(partitions.length)) {
-        log.warn(s"Requested $numPartitionsRequested partitions, but only received " +
-          s"${partitions.length} from the BigQuery Storage API for session ${session.getName}.")
+        log.info(
+          s"""Requested $numPartitionsRequested partitions, but only
+             |received ${partitions.length} from the BigQuery Storage API for
+             |session ${session.getName}. Notice that the number of streams in
+             |actual may be lower than the requested number, depending on the
+             |amount parallelism that is reasonable for the table and the
+             |maximum amount of parallelism allowed by the system."""
+            .stripMargin.replace('\n',' '))
       }
 
       BigQueryRDD.scanTable(
