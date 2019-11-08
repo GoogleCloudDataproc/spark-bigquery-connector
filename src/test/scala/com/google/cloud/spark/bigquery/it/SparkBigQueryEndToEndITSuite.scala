@@ -331,6 +331,32 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     initialDataValuesExist shouldBe true
   }
 
+  test("keeping filters behaviour") {
+    val newBehaviourWords = extractWords(
+      spark.read.format("bigquery")
+      .option("table","publicdata.samples.shakespeare")
+      .option("filter","length(word) = 1")
+      .option("combinePushedDownFilters","true")
+      .load())
+
+    val oldBehaviourWords = extractWords(
+      spark.read.format("bigquery")
+      .option("table","publicdata.samples.shakespeare")
+      .option("filter","length(word) = 1")
+      .option("combinePushedDownFilters","false")
+      .load())
+
+    newBehaviourWords should equal (oldBehaviourWords)
+  }
+
+  def extractWords(df: DataFrame): Set[String] = {
+    df.select("word")
+      .where("corpus_date = 0")
+      .collect()
+      .map(_.getString(0))
+      .toSet
+  }
+
 }
 
 case class Animal(name: String, length: Int, weight: Double)

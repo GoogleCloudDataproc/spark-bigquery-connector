@@ -25,7 +25,7 @@ import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionReque
 import com.google.cloud.bigquery.storage.v1beta1.TableReferenceProto.TableReference
 import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, BigQueryStorageSettings}
 import com.google.cloud.bigquery.{Schema, StandardTableDefinition, TableDefinition, TableInfo}
-import com.google.cloud.spark.bigquery.{BigQueryRelation, BuildInfo, SparkBigQueryOptions}
+import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtil, BuildInfo, SparkBigQueryOptions}
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
@@ -139,11 +139,24 @@ private[bigquery] class DirectBigQueryRelation(
   def getNumPartitionsRequested: Int = options.parallelism
       .getOrElse(Math.max((sizeInBytes / DEFAULT_BYTES_PER_PARTITION).toInt, 1))
 
-  private def getCompiledFilter(filters: Array[Filter]): String = {
-    // If a manual filter has been specified do not push down anything.
-    options.filter.getOrElse {
-      // TODO(pclay): Figure out why there are unhandled filters after we already listed them
-      DirectBigQueryRelation.compileFilters(handledFilters(filters))
+  // VisibleForTesting
+  private[bigquery] def getCompiledFilter(filters: Array[Filter]): String = {
+    if(options.combinePushedDownFilters) {
+      // new behaviour, fixing https://github.com/GoogleCloudPlatform/spark-bigquery-connector/issues/74
+      Seq(
+        options.filter,
+        BigQueryUtil.noneIfEmpty(DirectBigQueryRelation.compileFilters(handledFilters(filters)))
+      )
+        .flatten
+        .map(f => s"($f)")
+        .mkString(" AND ")
+    } else {
+      // old behaviour, kept for backward compatibility
+      // If a manual filter has been specified do not push down anything.
+      options.filter.getOrElse {
+        // TODO(pclay): Figure out why there are unhandled filters after we already listed them
+        DirectBigQueryRelation.compileFilters(handledFilters(filters))
+      }
     }
   }
 
