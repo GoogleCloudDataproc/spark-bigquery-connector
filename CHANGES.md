@@ -1,5 +1,14 @@
 # Release Notes
 
+## 0.9.2-beta - 2019-11-11
+* Upgrade version of google-cloud-bigquery library to 1.99.0
+* Upgrade version of google-cloud-bigquerystorage library to 0.117.0-beta
+* Upgrade version of grpc-netty-shaded library to 1.24.1
+* Supporting reading large rows (Issue #22, https://issuetracker.google.com/143730055)
+* Made sure that all filters are pushed down (Issue #74)
+* Fixing log severity
+* Added Java Example
+
 ## 0.9.1-beta - 2019-10-11
 * A NPE in the shutdown hook has occurred in case the delete had succeeded
   in the first time. This had no impact on the actual logic, just on the log.
