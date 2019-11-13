@@ -15,8 +15,7 @@
  */
 package com.google.cloud.spark.bigquery
 
-import com.google.cloud.bigquery.{BigQueryError, BigQueryException, TableId}
-import com.google.cloud.http.BaseHttpServiceException.UNKNOWN_CODE
+import com.google.cloud.bigquery.TableId
 
 import scala.util.matching.Regex
 
@@ -66,7 +65,4 @@ object BigQueryUtil {
   }
 
   def noneIfEmpty(s: String): Option[String] =  Option(s).filterNot(_.trim.isEmpty)
-
-  def convertAndThrow(error: BigQueryError) : Unit =
-    throw new BigQueryException(UNKNOWN_CODE, error.getMessage, error)
 }
