@@ -205,6 +205,16 @@ The API Supports a number of options to configure the read
    <td>Read</td>
   </tr>
   <tr>
+   <td><code>viewsEnabled</code>
+   </td>
+   <td>Enables the connector to read from views and not only tables. Please read
+       the <a href="#reading-from-views">relevant section</a> before activating
+       this option.
+       <br/>(Optional. Defaults to <code>false</code>)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr>
    <td><code>temporaryGcsBucket</code>
    </td>
    <td>The GCS bucket that temporarily holds the data before it is loaded to
@@ -388,6 +398,22 @@ val df = spark.read.format("bigquery")
 
 By default the connector creates one partition per 400MB in the table being read (before filtering). This should roughly correspond to the maximum number of readers supported by the BigQuery Storage API. 
 This can be configured explicitly with the <code>[parallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
+
+### Reading From Views
+
+The connector has a preliminary support for reading from
+[BigQuery views](https://cloud.google.com/bigquery/docs/views-intro). Please
+note there are a few caveats:
+
+* BigQuery views are not materialized by default, which means that the connector
+  needs to materialize them before it can read them. This process affects the
+  read performance, even before running any `collect()` or `count()` action.
+* The materialization process can also incur additional costs to your BigQuery
+  bill.
+* Reading from views is not activated by default. In order to activate it,
+  either specify the viewsEnabled option when reading the specific view
+  (`.option("viewsEnabled", "true")`) or set it globally by calling
+  `spark.conf.set("viewsEnabled", "true")`.
 
 ## Building the Connector
 

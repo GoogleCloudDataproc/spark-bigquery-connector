@@ -1,5 +1,8 @@
 # Release Notes
 
+## 0.X.X-beta - xxxx-xx-xx
+* Added preliminary support for reading from BigQuery views (Issue #21)
+
 ## 0.9.2-beta - 2019-11-11
 * Upgrade version of google-cloud-bigquery library to 1.99.0
 * Upgrade version of google-cloud-bigquerystorage library to 0.117.0-beta
