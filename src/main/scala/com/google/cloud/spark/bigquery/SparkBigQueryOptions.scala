@@ -36,7 +36,8 @@ case class SparkBigQueryOptions(
   temporaryGcsBucket: Option[String] = None,
   intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat,
   combinePushedDownFilters: Boolean = true,
-  viewsEnabled: Boolean = false) {
+  viewsEnabled: Boolean = false,
+  viewExpirationTimeInHours:Int = 24) {
 
   def createCredentials: Option[Credentials] =
     (credentials, credentialsFile) match {

@@ -190,7 +190,14 @@ private[bigquery] class DirectBigQueryRelation(
     if(job.getStatus.getError != null) {
       BigQueryUtil.convertAndThrow(job.getStatus.getError)
     }
-    bigQuery.getTable(destinationTable)
+    // add expiration time to the table
+    val createdTable = bigQuery.getTable(destinationTable)
+    val expirationTime = createdTable.getCreationTime +
+      TimeUnit.HOURS.toMillis(options.viewExpirationTimeInHours)
+    val updatedTable = bigQuery.update(createdTable.toBuilder
+      .setExpirationTime(expirationTime)
+      .build())
+    updatedTable
   }
 
   def createSql(schema: Schema, requiredColumns: Array[String], filters: Array[Filter]): String = {
