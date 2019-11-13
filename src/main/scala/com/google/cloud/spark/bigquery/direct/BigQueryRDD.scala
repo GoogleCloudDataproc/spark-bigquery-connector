@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.direct
 
-import com.google.cloud.bigquery.Schema
+import com.google.cloud.bigquery.{BigQuery, QueryJobConfiguration, Schema}
 import com.google.cloud.bigquery.storage.v1beta1.Storage.{ReadRowsRequest, ReadRowsResponse, StreamPosition}
 import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, Storage}
 import com.google.cloud.spark.bigquery.{SchemaConverters, SparkBigQueryOptions}
@@ -37,7 +37,8 @@ class BigQueryRDD(sc: SparkContext,
     rawAvroSchema: String,
     bqSchema: Schema,
     options: SparkBigQueryOptions,
-    getClient: SparkBigQueryOptions => BigQueryStorageClient)
+    getClient: SparkBigQueryOptions => BigQueryStorageClient,
+    bigQueryClient: SparkBigQueryOptions => BigQuery)
     extends RDD[InternalRow](sc, Nil) {
 
   @transient private lazy val avroSchema = new AvroSchema.Parser().parse(rawAvroSchema)
@@ -94,7 +95,8 @@ object BigQueryRDD {
       bqSchema: Schema,
       columnsInOrder: Seq[String],
       options: SparkBigQueryOptions,
-      getClient: SparkBigQueryOptions => BigQueryStorageClient): BigQueryRDD = {
+      getClient: SparkBigQueryOptions => BigQueryStorageClient,
+      bigQueryClient: SparkBigQueryOptions => BigQuery): BigQueryRDD = {
     new BigQueryRDD(sqlContext.sparkContext,
       parts,
       sessionId,
@@ -102,6 +104,7 @@ object BigQueryRDD {
       avroSchema,
       bqSchema,
       options,
-      getClient)
+      getClient,
+      bigQueryClient)
   }
 }
