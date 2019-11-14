@@ -35,7 +35,11 @@ case class SparkBigQueryOptions(
   parallelism: Option[Int] = None,
   temporaryGcsBucket: Option[String] = None,
   intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat,
-  combinePushedDownFilters: Boolean = true) {
+  combinePushedDownFilters: Boolean = true,
+  viewsEnabled: Boolean = false,
+  viewMaterializationProject: Option[String] = None,
+  viewMaterializationDataset: Option[String] = None,
+  viewExpirationTimeInHours:Int = 24) {
 
   def createCredentials: Option[Credentials] =
     (credentials, credentialsFile) match {
@@ -56,17 +60,18 @@ case class SparkBigQueryOptions(
 object SparkBigQueryOptions {
 
   val IntermediateFormatOption = "intermediateFormat"
+  val ViewsEnabledOption = "viewsEnabled"
 
   val DefaultFormat = FormatOptions.parquet()
   private val PermittedIntermediateFormats =
     Set(FormatOptions.orc(), FormatOptions.parquet())
 
   def apply(
-             parameters: Map[String, String],
-             allConf: Map[String, String],
-             hadoopConf: Configuration,
-             schema: Option[StructType],
-             defaultBilledProject: Option[String])
+     parameters: Map[String, String],
+     allConf: Map[String, String],
+     hadoopConf: Configuration,
+     schema: Option[StructType],
+     defaultBilledProject: Option[String])
   : SparkBigQueryOptions = {
     val tableParam = getRequiredOption(parameters, "table")
     val datasetParam = getOption(parameters, "dataset")
@@ -88,13 +93,19 @@ object SparkBigQueryOptions {
            |Supported formats are ${PermittedIntermediateFormats.map(_.getType)}"""
           .stripMargin.replace('\n', ' '))
     }
-    val combinePushedDownFilters = getAnyOption(allConf, parameters, "combinePushedDownFilters")
-      .map(_.toBoolean)
-      .getOrElse(true)
+    val combinePushedDownFilters = getAnyBooleanOption(
+      allConf, parameters, "combinePushedDownFilters", true)
+    val viewsEnabled = getAnyBooleanOption(
+      allConf, parameters, ViewsEnabledOption, false)
+    val viewMaterializationProject =
+      getAnyOption(allConf, parameters, "viewMaterializationProject")
+    val viewMaterializationDataset =
+      getAnyOption(allConf, parameters, "viewMaterializationDataset")
 
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
       filter, schema, parallelism, temporaryGcsBucket, intermediateFormat,
-      combinePushedDownFilters)
+      combinePushedDownFilters, viewsEnabled, viewMaterializationProject,
+      viewMaterializationDataset)
   }
 
 
@@ -117,5 +128,13 @@ object SparkBigQueryOptions {
                            options: Map[String, String],
                            name: String): Option[String] =
     options.get(name).orElse(globalOptions.get(name))
+
+  private def getAnyBooleanOption(globalOptions: Map[String, String],
+                                  options: Map[String, String],
+                                  name: String,
+                                  defaultValue: Boolean): Boolean =
+    getAnyOption(globalOptions, options, ViewsEnabledOption)
+      .map(_.toBoolean)
+      .getOrElse(defaultValue)
 }
 
