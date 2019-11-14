@@ -37,6 +37,8 @@ case class SparkBigQueryOptions(
   intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat,
   combinePushedDownFilters: Boolean = true,
   viewsEnabled: Boolean = false,
+  viewMaterializationProject: Option[String] = None,
+  viewMaterializationDataset: Option[String] = None,
   viewExpirationTimeInHours:Int = 24) {
 
   def createCredentials: Option[Credentials] =
@@ -95,10 +97,15 @@ object SparkBigQueryOptions {
       allConf, parameters, "combinePushedDownFilters", true)
     val viewsEnabled = getAnyBooleanOption(
       allConf, parameters, ViewsEnabledOption, false)
+    val viewMaterializationProject =
+      getAnyOption(allConf, parameters, "viewMaterializationProject")
+    val viewMaterializationDataset =
+      getAnyOption(allConf, parameters, "viewMaterializationDataset")
 
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
       filter, schema, parallelism, temporaryGcsBucket, intermediateFormat,
-      combinePushedDownFilters, viewsEnabled)
+      combinePushedDownFilters, viewsEnabled, viewMaterializationProject,
+      viewMaterializationDataset)
   }
 
 

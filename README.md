@@ -215,6 +215,22 @@ The API Supports a number of options to configure the read
    <td>Read</td>
   </tr>
   <tr>
+   <td><code>viewMaterializationProject</code>
+   </td>
+   <td>The project id where the materialized view is going to be created
+       <br/>(Optional. Defaults to view's project id)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr>
+   <td><code>viewMaterializationDataset</code>
+   </td>
+   <td>The dataset where the materialized view is going to be created
+       <br/>(Optional. Defaults to view's dataset)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr>
    <td><code>temporaryGcsBucket</code>
    </td>
    <td>The GCS bucket that temporarily holds the data before it is loaded to
@@ -410,8 +426,12 @@ note there are a few caveats:
   read performance, even before running any `collect()` or `count()` action.
 * The materialization process can also incur additional costs to your BigQuery
   bill.
-* Reading from views is not activated by default. In order to activate it,
-  either specify the viewsEnabled option when reading the specific view
+* By default, the materialized views are created in the same project and
+  dataset. Those can be configured by the optional `viewMaterializationProject`
+  and `viewMaterializationDataset` options, respectively. These options can also
+  be globally set by calling `spark.conf.set(...)` before reading the views.
+* Reading from views is **disabled** by default. In order to enable it,
+  either set the viewsEnabled option when reading the specific view
   (`.option("viewsEnabled", "true")`) or set it globally by calling
   `spark.conf.set("viewsEnabled", "true")`.
 
