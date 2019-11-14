@@ -455,9 +455,13 @@ You can manually set the number of partitions with the `parallelism` property. B
 
 You can also always repartition after reading in Spark.
 
-### How do I write to BigQuery?
+### Calling count() takes a long time
 
-You can use the [existing MapReduce connector](https://github.com/GoogleCloudPlatform/bigdata-interop/tree/master/bigquery) or write DataFrames to GCS and then load the data into BigQuery.
+When spark runs `count()` on a DataFrame, it first loads the data and then
+counts the records. Unfortunately we cannot push this down to the BigQuery side.
+The best workaround is to run the count on the smallest field in the table
+(ideally a BOOLEAN or INTEGER). This approach will load less data then running
+`count()` in the usual manner.
 
 ### How do I authenticate outside GCE / Dataproc?
 
