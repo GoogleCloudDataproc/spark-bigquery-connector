@@ -73,9 +73,10 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
   def loadDataToBigQuery(): Unit = {
     val fs = temporaryGcsPath.getFileSystem(conf)
+    val format = options.intermediateFormat.getType.toLowerCase
     val sourceUris = ToIterator(fs.listFiles(temporaryGcsPath, false))
       .map(_.getPath.toString)
-      .filter(!_.endsWith("_SUCCESS"))
+      .filter(_.endsWith(s".$format"))
       .toList
       .asJava
 
