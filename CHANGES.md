@@ -1,7 +1,10 @@
 # Release Notes
 
-## 0.X.X-beta - xxxx-xx-xx
+## 0.10.0-beta - 2019-11-14
 * Added preliminary support for reading from BigQuery views (Issue #21)
+* Writing to BigQuery now white-listing the intermediate files instead
+  of black listing the _SUCCESS files (PR #75)
+* Added count() tip to the README
 
 ## 0.9.2-beta - 2019-11-11
 * Upgrade version of google-cloud-bigquery library to 1.99.0
