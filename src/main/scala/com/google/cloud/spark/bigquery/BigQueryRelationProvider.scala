@@ -24,10 +24,8 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
 class BigQueryRelationProvider(
-  getBigQuery: () => Option[BigQuery],
-  // This should never be nullable, but could be in very strange circumstances
-  defaultParentProject: Option[String] = Option(BigQueryOptions.getDefaultInstance.getProjectId))
-  extends RelationProvider
+    getBigQuery: () => Option[BigQuery])
+    extends RelationProvider
     with CreatableRelationProvider
     with SchemaRelationProvider
     with DataSourceRegister {
@@ -112,8 +110,7 @@ class BigQueryRelationProvider(
     SparkBigQueryOptions(parameters,
       sqlContext.getAllConfs,
       sqlContext.sparkContext.hadoopConfiguration,
-      schema,
-      defaultParentProject)
+      schema)
   }
 
   override def shortName: String = "bigquery"
