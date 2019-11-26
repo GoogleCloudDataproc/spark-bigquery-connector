@@ -16,12 +16,13 @@
 package com.google.cloud.spark.bigquery
 
 import com.google.auth.Credentials
-import com.google.cloud.bigquery.TableDefinition.Type.TABLE
+import com.google.cloud.bigquery.TableDefinition.Type.{TABLE, VIEW}
 import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, TableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
 class BigQueryRelationProvider(
     getBigQuery: () => Option[BigQuery])
@@ -52,14 +53,63 @@ class BigQueryRelationProvider(
       .getOrElse(sys.error(s"Table $tableName not found"))
     table.getDefinition[TableDefinition].getType match {
       case TABLE => new DirectBigQueryRelation(opts, table)(sqlContext)
-      case other => sys.error(s"Table type $other is not supported.")
+      case VIEW => if (opts.viewsEnabled) {
+        new DirectBigQueryRelation(opts, table)(sqlContext)
+      } else {
+        sys.error(
+          s"""Views were not enabled. You can enable views by setting
+             |'${SparkBigQueryOptions.ViewsEnabledOption}' to true.
+             |Notice additional cost may occur."""
+            .stripMargin.replace('\n', ' '))
+      }
     }
   }
 
-  override def createRelation(sqlContext: SQLContext,
-                              parameters: Map[String, String],
-                              schema: StructType): BaseRelation = {
-    createRelationInternal(sqlContext, parameters, schema = Some(schema))
+  // to allow write support
+  override def createRelation(
+                               sqlContext: SQLContext,
+                               mode: SaveMode,
+                               parameters: Map[String, String],
+                               data: DataFrame): BaseRelation = {
+    val options = createSparkBigQueryOptions(sqlContext, parameters, Option(data.schema))
+    val bigQuery = getOrCreateBigQuery(options)
+    val relation = BigQueryInsertableRelation(bigQuery, sqlContext, options)
+
+    mode match {
+      case SaveMode.Append => relation.insert(data, overwrite = false)
+      case SaveMode.Overwrite => relation.insert(data, overwrite = true)
+      case SaveMode.ErrorIfExists =>
+        if (!relation.exists) {
+          relation.insert(data, overwrite = false)
+        } else {
+          throw new IllegalArgumentException(
+            s"""SaveMode is set to ErrorIfExists and Table
+               |${BigQueryUtil.friendlyTableName(options.tableId)}
+               |already exists. Did you want to add data to the table by setting
+               |the SaveMode to Append? Example:
+               |df.write.format.options.mode(SaveMode.Append).save()"""
+              .stripMargin.replace('\n', ' '))
+        }
+      case SaveMode.Ignore =>
+        if (!relation.exists) {
+          relation.insert(data, overwrite = false)
+        }
+    }
+
+    relation
+  }
+
+  private def getOrCreateBigQuery(options: SparkBigQueryOptions) =
+    getBigQuery().getOrElse(BigQueryRelationProvider.createBigQuery(options))
+
+  def createSparkBigQueryOptions(sqlContext: SQLContext,
+                                 parameters: Map[String, String],
+                                 schema: Option[StructType] = None): SparkBigQueryOptions = {
+    SparkBigQueryOptions(parameters,
+      sqlContext.getAllConfs,
+      sqlContext.sparkContext.hadoopConfiguration,
+      schema,
+      defaultParentProject)
   }
 
   override def shortName: String = "bigquery"
@@ -73,7 +123,7 @@ object BigQueryRelationProvider {
     )(bigQueryWithCredentials(options.parentProject, _))
 
   private def bigQueryWithCredentials(parentProject: String,
-                                    credentials: Credentials): BigQuery = {
+                                      credentials: Credentials): BigQuery = {
     BigQueryOptions
       .newBuilder()
       .setProjectId(parentProject)

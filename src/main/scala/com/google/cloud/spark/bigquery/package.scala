@@ -24,4 +24,10 @@ package object bigquery {
       reader.format("bigquery").option("table", table).load()
     }
   }
+
+  implicit class BigQueryDataFrameWriter[T](writer: DataFrameWriter[T]) {
+    def bigquery(table: String): Unit = {
+      writer.format("bigquery").option("table", table).save()
+    }
+  }
 }

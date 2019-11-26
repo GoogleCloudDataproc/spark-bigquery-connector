@@ -34,6 +34,7 @@ private[bigquery] case class BigQueryRelation(options: SparkBigQueryOptions, tab
   override val schema: StructType = {
     options.schema.getOrElse(SchemaConverters.toSpark(tableDefinition.getSchema))
   }
+
 }
 
 

@@ -16,47 +16,70 @@
 package com.google.cloud.spark.bigquery.direct
 
 import java.sql.{Date, Timestamp}
+import java.util.UUID
+import java.util.concurrent.{Callable, TimeUnit}
 
 import com.google.api.gax.core.CredentialsProvider
 import com.google.api.gax.rpc.FixedHeaderProvider
 import com.google.auth.Credentials
-import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, BigQueryStorageSettings}
 import com.google.cloud.bigquery.storage.v1beta1.ReadOptions.TableReadOptions
-import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionRequest, DataFormat}
+import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionRequest, DataFormat, ShardingStrategy}
 import com.google.cloud.bigquery.storage.v1beta1.TableReferenceProto.TableReference
-import com.google.cloud.bigquery.{Schema, StandardTableDefinition, TableDefinition, TableInfo}
-import com.google.cloud.spark.bigquery.{BigQueryRelation, BuildInfo, SparkBigQueryOptions}
-import com.google.protobuf.UnknownFieldSet
+import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, BigQueryStorageSettings}
+import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
+import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtil, BuildInfo, SchemaConverters, SparkBigQueryOptions}
+import com.google.common.cache.{Cache, CacheBuilder}
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.sources._
-import org.apache.spark.sql.types._
 
 import scala.collection.JavaConverters._
 
 private[bigquery] class DirectBigQueryRelation(
     options: SparkBigQueryOptions,
-    table: TableInfo, getClient: SparkBigQueryOptions => BigQueryStorageClient =
-        DirectBigQueryRelation.createReadClient)
+    table: TableInfo,
+    getClient: SparkBigQueryOptions => BigQueryStorageClient =
+         DirectBigQueryRelation.createReadClient,
+    bigQueryClient: SparkBigQueryOptions => BigQuery =
+         DirectBigQueryRelation.createBigQueryClient)
     (@transient override val sqlContext: SQLContext)
     extends BigQueryRelation(options, table)(sqlContext)
         with TableScan with PrunedScan with PrunedFilteredScan {
 
-  val tableReference: TableReference = TableReference.newBuilder()
-      .setProjectId(tableId.getProject)
-      .setDatasetId(tableId.getDataset)
-      .setTableId(tableId.getTable)
-      .build()
-  val tableDefinition: StandardTableDefinition = {
-    require(TableDefinition.Type.TABLE == table.getDefinition[TableDefinition].getType)
-    table.getDefinition[StandardTableDefinition]
+  val tableReference: TableReference =
+    DirectBigQueryRelation.toTableReference(tableId)
+
+  lazy val bigQuery = bigQueryClient(options)
+
+  // used to cache the table instances in order to avoid redundant queries to
+  // the BigQuery service
+  case class DestinationTableBuilder(querySql: String) extends Callable[TableInfo] {
+    override def call(): TableInfo = createTableFromQuery(querySql)
   }
+  val destinationTableCache: Cache[String, TableInfo] =
+    CacheBuilder.newBuilder()
+      .expireAfterWrite(15, TimeUnit.MINUTES)
+      .maximumSize(1000)
+      .build()
+
+
+
   private val log = Logger(getClass)
 
+  /**
+   * Default parallelism to 1 reader per 400MB, which should be about the maximum allowed by the
+   * BigQuery Storage API. The number of partitions returned may be significantly less depending
+   * on a number of factors.
+   */
+  val DEFAULT_BYTES_PER_PARTITION = 400L * 1000 * 1000
+
   override val needConversion: Boolean = false
-  override val sizeInBytes: Long = tableDefinition.getNumBytes
+  override val sizeInBytes: Long = defaultTableDefinition.getNumBytes
+  // no added filters and with all column
+  lazy val defaultTableDefinition: StandardTableDefinition =
+    getActualTable(Array(), Array()).getDefinition[StandardTableDefinition]
 
   override def buildScan(): RDD[Row] = {
     buildScan(schema.fieldNames)
@@ -67,6 +90,12 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
+    val actualTable = getActualTable(requiredColumns,filters)
+    val actualTableDefinition = actualTable.getDefinition[StandardTableDefinition]
+    val actualTableReference =
+      DirectBigQueryRelation.toTableReference(actualTable.getTableId)
+
+    log.debug(s"filters pushed: ${filters.mkString(", ")}")
     val filter = getCompiledFilter(filters)
     log.debug(s"buildScan: cols: [${requiredColumns.mkString(", ")}], filter: '$filter'")
     val readOptions = TableReadOptions.newBuilder()
@@ -75,31 +104,44 @@ private[bigquery] class DirectBigQueryRelation(
         .build()
     val requiredColumnSet = requiredColumns.toSet
     val prunedSchema = Schema.of(
-      tableDefinition.getSchema.getFields.asScala
+      actualTableDefinition.getSchema.getFields.asScala
           .filter(f => requiredColumnSet.contains(f.getName)).asJava)
 
     val client = getClient(options)
+
+    val numPartitionsRequested = getNumPartitionsRequested(actualTableDefinition)
 
     try {
       val session = client.createReadSession(
         CreateReadSessionRequest.newBuilder()
             .setParent(s"projects/${options.parentProject}")
             .setFormat(DataFormat.AVRO)
-            .setRequestedStreams(getNumPartitions)
+            .setRequestedStreams(numPartitionsRequested)
             .setReadOptions(readOptions)
-            .setTableReference(tableReference)
-            // TODO(aryann): Once we rebuild the generated client code, we should change
-            // setUnknownFields() to use setShardingStrategy(ShardingStrategy.BALANCED). The
-            // BALANCED strategy is public at the moment, so setting it using the unknown fields
-            // API is safe.
-            .setUnknownFields(UnknownFieldSet.newBuilder().addField(
-          7, UnknownFieldSet.Field.newBuilder().addVarint(2).build()).build())
+            .setTableReference(actualTableReference)
+            // The BALANCED sharding strategy causes the server to assign roughly the same
+            // number of rows to each stream.
+            .setShardingStrategy(ShardingStrategy.BALANCED)
             .build())
       val partitions = session.getStreamsList.asScala.map(_.getName)
           .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
           .toArray
 
       log.info(s"Created read session for table '$tableName': ${session.getName}")
+
+      // This is spammy, but it will make it clear to users the number of partitions they got and
+      // why.
+      if (!numPartitionsRequested.equals(partitions.length)) {
+        log.info(
+          s"""Requested $numPartitionsRequested partitions, but only
+             |received ${partitions.length} from the BigQuery Storage API for
+             |session ${session.getName}. Notice that the number of streams in
+             |actual may be lower than the requested number, depending on the
+             |amount parallelism that is reasonable for the table and the
+             |maximum amount of parallelism allowed by the system."""
+            .stripMargin.replace('\n',' '))
+      }
+
       BigQueryRDD.scanTable(
         sqlContext,
         partitions.asInstanceOf[Array[Partition]],
@@ -108,7 +150,8 @@ private[bigquery] class DirectBigQueryRelation(
         prunedSchema,
         requiredColumns,
         options,
-        getClient).asInstanceOf[RDD[Row]]
+        getClient,
+        bigQueryClient).asInstanceOf[RDD[Row]]
 
     } finally {
       // scanTable returns immediately not after the actual data is read.
@@ -116,25 +159,114 @@ private[bigquery] class DirectBigQueryRelation(
     }
   }
 
+  def getActualTable(
+      requiredColumns: Array[String],
+      filters: Array[Filter]
+    ): TableInfo = {
+    val tableDefinition = table.getDefinition[TableDefinition]
+    val tableType = tableDefinition.getType
+    if(options.viewsEnabled && TableDefinition.Type.VIEW == tableType) {
+      // get it from the view
+      val querySql = createSql(tableDefinition.getSchema, requiredColumns, filters)
+      log.debug(s"querySql is $querySql")
+      destinationTableCache.get(querySql, DestinationTableBuilder(querySql))
+    } else {
+      // use the default one
+      table
+    }
+  }
+
+  def createTableFromQuery(querySql: String): TableInfo = {
+    val destinationTable = createDestinationTable
+    log.debug(s"destinationTable is $destinationTable")
+    val jobInfo = JobInfo.of(
+      QueryJobConfiguration
+        .newBuilder(querySql)
+        .setDestinationTable(destinationTable)
+        .build())
+    log.debug(s"running query $jobInfo")
+    val job = bigQuery.create(jobInfo).waitFor()
+    log.debug(s"job has finished. $job")
+    if(job.getStatus.getError != null) {
+      BigQueryUtil.convertAndThrow(job.getStatus.getError)
+    }
+    // add expiration time to the table
+    val createdTable = bigQuery.getTable(destinationTable)
+    val expirationTime = createdTable.getCreationTime +
+      TimeUnit.HOURS.toMillis(options.viewExpirationTimeInHours)
+    val updatedTable = bigQuery.update(createdTable.toBuilder
+      .setExpirationTime(expirationTime)
+      .build())
+    updatedTable
+  }
+
+  def createSql(schema: Schema, requiredColumns: Array[String], filters: Array[Filter]): String = {
+    val columns = if(requiredColumns.isEmpty) {
+      val sparkSchema = SchemaConverters.toSpark(schema)
+      sparkSchema.map(f => s"`${f.name}`").mkString(",")
+    } else {
+      requiredColumns.map(c => s"`$c`").mkString(",")
+    }
+
+    val whereClause = createWhereClause(filters)
+      .map(f => s"WHERE $f")
+      .getOrElse("")
+
+    return s"SELECT $columns FROM `$tableName` $whereClause"
+  }
+
+  // return empty if no filters are used
+  def createWhereClause(filters: Array[Filter]): Option[String] = {
+    val filtersString = DirectBigQueryRelation.compileFilters(filters)
+    BigQueryUtil.noneIfEmpty(filtersString)
+  }
+
+  def createDestinationTable: TableId = {
+    val project = options.viewMaterializationProject.getOrElse(tableId.getProject)
+    val dataset = options.viewMaterializationDataset.getOrElse(tableId.getDataset)
+    val uuid = UUID.randomUUID()
+    val name = s"_sbc_${uuid.getMostSignificantBits.toHexString}${uuid.getLeastSignificantBits.toHexString}"
+    TableId.of(project, dataset, name)
+  }
+
   /**
    * The theoretical number of Partitions of the returned DataFrame.
    * If the table is small the server will provide fewer readers and there will be fewer
-   * partitions. If all partitions are not read concurrently, some Partitions will be empty.
+   * partitions.
+   *
+   * VisibleForTesting
    */
-  protected def getNumPartitions: Int = options.parallelism
-      .getOrElse(sqlContext.sparkContext.defaultParallelism)
+  def getNumPartitionsRequested: Int =
+    getNumPartitionsRequested(defaultTableDefinition)
 
-  private def getCompiledFilter(filters: Array[Filter]): String = {
-    // If a manual filter has been specified do not push down anything.
-    options.filter.getOrElse {
-      // TODO(pclay): Figure out why there are unhandled filters after we already listed them
-      DirectBigQueryRelation.compileFilters(handledFilters(filters))
+  def getNumPartitionsRequested(tableDefinition: StandardTableDefinition): Int =
+    options.parallelism
+      .getOrElse(Math.max(
+        (tableDefinition.getNumBytes / DEFAULT_BYTES_PER_PARTITION).toInt, 1))
+
+  // VisibleForTesting
+  private[bigquery] def getCompiledFilter(filters: Array[Filter]): String = {
+    if(options.combinePushedDownFilters) {
+      // new behaviour, fixing https://github.com/GoogleCloudPlatform/spark-bigquery-connector/issues/74
+      Seq(
+        options.filter,
+        BigQueryUtil.noneIfEmpty(DirectBigQueryRelation.compileFilters(handledFilters(filters)))
+      )
+        .flatten
+        .map(f => s"($f)")
+        .mkString(" AND ")
+    } else {
+      // old behaviour, kept for backward compatibility
+      // If a manual filter has been specified do not push down anything.
+      options.filter.getOrElse {
+        // TODO(pclay): Figure out why there are unhandled filters after we already listed them
+        DirectBigQueryRelation.compileFilters(handledFilters(filters))
+      }
     }
   }
 
   private def handledFilters(filters: Array[Filter]): Array[Filter] = {
-    // We can currently only support one filter. So find first that is handled.
-    filters.find(filter => DirectBigQueryRelation.isHandled(filter, schema)).toArray
+    filters.filter(filter => DirectBigQueryRelation.isHandled(filter))
   }
 
   override def unhandledFilters(filters: Array[Filter]): Array[Filter] = {
@@ -156,8 +288,7 @@ object DirectBigQueryRelation {
     var clientSettings = BigQueryStorageSettings.newBuilder()
         .setTransportChannelProvider(
           BigQueryStorageSettings.defaultGrpcTransportProviderBuilder()
-              .setHeaderProvider(
-                FixedHeaderProvider.create("user-agent", BuildInfo.name + "/" + BuildInfo.version))
+            .setHeaderProvider(headerProvider)
               .build())
     options.createCredentials match {
       case Some(creds) => clientSettings.setCredentialsProvider(
@@ -170,37 +301,60 @@ object DirectBigQueryRelation {
     BigQueryStorageClient.create(clientSettings.build)
   }
 
-  def isComparable(dataType: DataType): Boolean = dataType match {
-    case LongType | IntegerType | ByteType => true
-    case DoubleType | FloatType | ShortType => true
-    case StringType => true
-    case _ => false
+  def createBigQueryClient(options: SparkBigQueryOptions): BigQuery = {
+    val BigQueryOptionsBuilder = BigQueryOptions.newBuilder()
+      .setHeaderProvider(headerProvider)
+    // set credentials of provided
+    options.createCredentials.foreach(BigQueryOptionsBuilder.setCredentials)
+    BigQueryOptionsBuilder.build.getService
   }
 
-  def isHandled(filter: Filter, schema: StructType): Boolean = filter match {
-    case GreaterThan(_, _) | GreaterThanOrEqual(_, _) | LessThan(_, _) | LessThanOrEqual(_, _)
-    => filter.references.forall(col => isComparable(schema(col).dataType))
+  private def headerProvider =
+    FixedHeaderProvider.create("user-agent", BuildInfo.name + "/" + BuildInfo.version)
+
+  def isHandled(filter: Filter): Boolean = filter match {
     case EqualTo(_, _) => true
-    // Includes And, Or IsNull, is
+    // There is no direct equivalent of EqualNullSafe in Google standard SQL.
+    case EqualNullSafe(_, _) => false
+    case GreaterThan(_, _) => true
+    case GreaterThanOrEqual(_, _) => true
+    case LessThan(_, _) => true
+    case LessThanOrEqual(_, _) => true
+    case In(_, _) => true
+    case IsNull(_) => true
+    case IsNotNull(_) => true
+    case And(lhs, rhs) => isHandled(lhs) && isHandled(rhs)
+    case Or(lhs, rhs) => isHandled(lhs) && isHandled(rhs)
+    case Not(child) => isHandled(child)
+    case StringStartsWith(_, _) => true
+    case StringEndsWith(_, _) => true
+    case StringContains(_, _) => true
     case _ => false
   }
 
-  // Mostly stolen from JDBCRDD.scala
-
+  // Mostly copied from JDBCRDD.scala
   def compileFilter(filter: Filter): String = filter match {
+    case EqualTo(attr, value) => s"${quote(attr)} = ${compileValue(value)}"
     case GreaterThan(attr, value) => s"$attr > ${compileValue(value)}"
-    case GreaterThanOrEqual(attr, value) => s"$attr >= ${compileValue(value)}"
-    case LessThan(attr, value) => s"$attr < ${compileValue(value)}"
-    case LessThanOrEqual(attr, value) => s"$attr <= ${compileValue(value)}"
-    case EqualTo(attr, value) => s"$attr = ${compileValue(value)}"
+    case GreaterThanOrEqual(attr, value) => s"${quote(attr)} >= ${compileValue(value)}"
+    case LessThan(attr, value) => s"${quote(attr)} < ${compileValue(value)}"
+    case LessThanOrEqual(attr, value) => s"${quote(attr)} <= ${compileValue(value)}"
+    case In(attr, values) => s"${quote(attr)} IN UNNEST(${compileValue(values)})"
+    case IsNull(attr) => s"${quote(attr)} IS NULL"
+    case IsNotNull(attr) => s"${quote(attr)} IS NOT NULL"
+    case And(lhs, rhs) => Seq(lhs, rhs).map(compileFilter).map(p => s"($p)").mkString(" AND ")
+    case Or(lhs, rhs) => Seq(lhs, rhs).map(compileFilter).map(p => s"($p)").mkString(" OR ")
+    case Not(child) => Seq(child).map(compileFilter).map(p => s"(NOT ($p))").mkString
+    case StringStartsWith(attr, value) =>
+      s"${quote(attr)} LIKE '''${value.replace("'", "\\'")}%'''"
+    case StringEndsWith(attr, value) =>
+      s"${quote(attr)} LIKE '''%${value.replace("'", "\\'")}'''"
+    case StringContains(attr, value) =>
+      s"${quote(attr)} LIKE '''%${value.replace("'", "\\'")}%'''"
     case _ => throw new IllegalArgumentException(s"Invalid filter: $filter")
   }
 
   def compileFilters(filters: Iterable[Filter]): String = {
-    // TODO remove when AND is supported
-    if (filters.size > 1) {
-      throw new IllegalArgumentException("Cannot support multiple filters")
-    }
     filters.map(compileFilter).toSeq.sorted.mkString(" AND ")
   }
 
@@ -209,11 +363,22 @@ object DirectBigQueryRelation {
    */
   private def compileValue(value: Any): Any = value match {
     case null => "null"
-    case stringValue: String => s"'${stringValue.replace("'", "''")}'"
+    case stringValue: String => s"'${stringValue.replace("'", "\\'")}'"
     case timestampValue: Timestamp => "'" + timestampValue + "'"
     case dateValue: Date => "'" + dateValue + "'"
-    case arrayValue: Array[Any] =>
-      throw new IllegalArgumentException("Cannot compare array values in filter")
+    case arrayValue: Array[Any] => arrayValue.map(compileValue).mkString("[", ", ", "]")
     case _ => value
   }
+
+  private def quote(attr: String): String = {
+    s"""`$attr`"""
+  }
+
+  def toTableReference(tableId: TableId): TableReference =
+    TableReference.newBuilder()
+      .setProjectId(tableId.getProject)
+      .setDatasetId(tableId.getDataset)
+      .setTableId(tableId.getTable)
+      .build()
+
 }

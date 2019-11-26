@@ -15,20 +15,43 @@
  */
 package com.google.cloud.spark.bigquery.it
 
-import java.sql.Timestamp
-
-import com.google.cloud.spark.bigquery.TestUtils
+import com.google.cloud.bigquery.{BigQueryOptions, QueryJobConfiguration}
 import com.google.cloud.spark.bigquery.it.TestConstants._
-import com.google.common.primitives.Bytes
+import com.google.cloud.spark.bigquery.{SparkBigQueryOptions, TestUtils}
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 import org.scalatest.concurrent.TimeLimits
+import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.time.SpanSugar._
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Matchers}
 
 class SparkBigQueryEndToEndITSuite extends FunSuite
-    with BeforeAndAfterAll with Matchers with TimeLimits {
+  with BeforeAndAfter
+  with BeforeAndAfterAll
+  with Matchers
+  with TimeLimits
+  with TableDrivenPropertyChecks {
+
+  val filterData = Table(
+    ("condition", "elements"),
+    ("word_count == 4", Seq("'A", "'But", "'Faith")),
+    ("word_count > 3", Seq("'", "''Tis", "'A")),
+    ("word_count >= 2", Seq("'", "''Lo", "''O")),
+    ("word_count < 3", Seq("''All", "''Among", "''And")),
+    ("word_count <= 5", Seq("'", "''All", "''Among")),
+    ("word_count in(8, 9)", Seq("'", "'Faith", "'Tis")),
+    ("word_count is null", Seq()),
+    ("word_count is not null", Seq("'", "''All", "''Among")),
+    ("word_count == 4 and corpus == 'twelfthnight'", Seq("'Thou", "'em", "Art")),
+    ("word_count == 4 or corpus > 'twelfthnight'", Seq("'", "''Tis", "''twas")),
+    ("not word_count in(8, 9)", Seq("'", "''All", "''Among")),
+    ("corpus like 'king%'", Seq("'", "'A", "'Affectionate")),
+    ("corpus like '%kinghenryiv'", Seq("'", "'And", "'Anon")),
+    ("corpus like '%king%'", Seq("'", "'A", "'Affectionate"))
+  )
+  val temporaryGcsBucket = "davidrab-sandbox"
+  val bq = BigQueryOptions.getDefaultInstance.getService
   private val SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare"
   private val SHAKESPEARE_TABLE_NUM_ROWS = 164656L
   private val SHAKESPEARE_TABLE_SCHEMA = StructType(Seq(
@@ -41,12 +64,31 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   private val LARGE_TABLE_NUM_ROWS = 137826763L
   private val NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent"
   private val ALL_TYPES_TABLE_NAME = "all_types"
-
   private val log: Logger = Logger(getClass)
-
   private var spark: SparkSession = _
   private var testDataset: String = _
+
+  before {
+    // have a fresh table for each test
+    testTable = s"test_${System.nanoTime()}"
+  }
+  private var testTable: String = _
   private var allTypesTable: DataFrame = _
+
+  testShakespeare("implicit read method") {
+    import com.google.cloud.spark.bigquery._
+    spark.read.bigquery(SHAKESPEARE_TABLE)
+  }
+
+  testShakespeare("explicit format") {
+    spark.read.format("com.google.cloud.spark.bigquery")
+      .option("table", SHAKESPEARE_TABLE)
+      .load()
+  }
+
+  testShakespeare("short format") {
+    spark.read.format("bigquery").option("table", SHAKESPEARE_TABLE).load()
+  }
 
   override def beforeAll: Unit = {
     spark = TestUtils.getOrCreateSparkSession()
@@ -56,69 +98,49 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     IntegrationTestUtils.runQuery(
       TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE.format(s"$testDataset.$ALL_TYPES_TABLE_NAME"))
     allTypesTable = spark.read.format("bigquery")
-        .option("dataset", testDataset)
-        .option("table", ALL_TYPES_TABLE_NAME)
-        .load()
+      .option("dataset", testDataset)
+      .option("table", ALL_TYPES_TABLE_NAME)
+      .load()
   }
 
-  override def afterAll: Unit = {
-    IntegrationTestUtils.deleteDatasetAndTables(testDataset)
-    spark.stop()
-  }
-
-  /** Generate a test that the given DataFrame is equal to a known BigQuery Table. */
-  def testShakespeare(description: String)(df: => DataFrame): Unit = {
-    test(description) {
-      val youCannotImportVars = spark
-      import youCannotImportVars.implicits._
-      assert(SHAKESPEARE_TABLE_SCHEMA == df.schema)
-      assert(SHAKESPEARE_TABLE_NUM_ROWS == df.count())
-      val firstWords = df.select("word")
-          .where("word >= 'a' AND word not like '%\\'%'")
-          .distinct
-          .as[String].sort("word").take(3)
-      firstWords should contain theSameElementsInOrderAs Seq("a", "abaissiez", "abandon")
-    }
-  }
-
-  testShakespeare("implicit read method") {
+  test("test filters") {
     import com.google.cloud.spark.bigquery._
-    spark.read.bigquery(SHAKESPEARE_TABLE)
-  }
-
-  testShakespeare("explicit format") {
-    spark.read.format("com.google.cloud.spark.bigquery")
-        .option("table", SHAKESPEARE_TABLE)
-        .load()
-  }
-
-  testShakespeare("short format") {
-    spark.read.format("bigquery").option("table", SHAKESPEARE_TABLE).load()
+    val sparkImportVal = spark
+    import sparkImportVal.implicits._
+    forAll(filterData) { (condition, expectedElements) =>
+      val df = spark.read.bigquery(SHAKESPEARE_TABLE)
+      assert(SHAKESPEARE_TABLE_SCHEMA == df.schema)
+      assert(SHAKESPEARE_TABLE_NUM_ROWS == df.count)
+      val firstWords = df.select("word")
+        .where(condition)
+        .distinct
+        .as[String]
+        .sort("word")
+        .take(3)
+      firstWords should contain theSameElementsInOrderAs expectedElements
+    }
   }
 
   test("out of order columns") {
     val row = spark.read.format("bigquery").option("table", SHAKESPEARE_TABLE).load()
-        .select("word_count", "word").head
+      .select("word_count", "word").head
     assert(row(0).isInstanceOf[Long])
     assert(row(1).isInstanceOf[String])
   }
 
-
   test("number of partitions") {
     val df = spark.read.format("com.google.cloud.spark.bigquery")
-        .option("table", LARGE_TABLE)
-        .option("parallelism", "5")
-        .load()
+      .option("table", LARGE_TABLE)
+      .option("parallelism", "5")
+      .load()
     assert(5 == df.rdd.getNumPartitions)
   }
 
   test("default number of partitions") {
-    // This should be stable in our master local test environment.
-    val expectedParallelism = spark.sparkContext.defaultParallelism
     val df = spark.read.format("com.google.cloud.spark.bigquery")
-        .option("table", LARGE_TABLE)
-        .load()
-    assert(expectedParallelism == df.rdd.getNumPartitions)
+      .option("table", LARGE_TABLE)
+      .load()
+    assert(df.rdd.getNumPartitions == 35)
   }
 
   test("read data types") {
@@ -181,4 +203,160 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
           sizeOfFirstPartition < (numRowsLowerBound * 1.1).toInt)
     }
   }
+
+  // Write tests. We have four save modes: Append, ErrorIfExists, Ignore and
+  // Overwrite. For each there are two behaviours - the table exists or not.
+  // See more at http://spark.apache.org/docs/2.3.2/api/java/org/apache/spark/sql/SaveMode.html
+
+  override def afterAll: Unit = {
+    IntegrationTestUtils.deleteDatasetAndTables(testDataset)
+    spark.stop()
+  }
+
+  /** Generate a test to verify that the given DataFrame is equal to a known result. */
+  def testShakespeare(description: String)(df: => DataFrame): Unit = {
+    test(description) {
+      val youCannotImportVars = spark
+      import youCannotImportVars.implicits._
+      assert(SHAKESPEARE_TABLE_SCHEMA == df.schema)
+      assert(SHAKESPEARE_TABLE_NUM_ROWS == df.count())
+      val firstWords = df.select("word")
+        .where("word >= 'a' AND word not like '%\\'%'")
+        .distinct
+        .as[String].sort("word").take(3)
+      firstWords should contain theSameElementsInOrderAs Seq("a", "abaissiez", "abandon")
+    }
+  }
+
+  private def initialData = spark.createDataFrame(spark.sparkContext.parallelize(
+    Seq(Animal("Armadillo", 120, 70.0), Animal("Barn Owl", 36, 0.6))))
+
+  private def additonalData = spark.createDataFrame(spark.sparkContext.parallelize(
+    Seq(Animal("Cat", 46, 4.5), Animal("Dodo", 100, 14.1))))
+
+  // getNumRows returns BigInteger, and it messes up the matchers
+  private def testTableNumberOfRows = bq.getTable(testDataset, testTable).getNumRows.intValue
+
+  private def writeToBigQuery(df: DataFrame, mode: SaveMode, format: String = "parquet") =
+    df.write.format("bigquery")
+      .mode(mode)
+      .option("table", fullTableName)
+      .option("temporaryGcsBucket", temporaryGcsBucket)
+      .option(SparkBigQueryOptions.IntermediateFormatOption, format)
+      .save()
+
+  private def initialDataValuesExist = numberOfRowsWith("Armadillo") == 1
+
+  private def numberOfRowsWith(name: String) =
+    bq.query(QueryJobConfiguration.of(s"select name from $fullTableName where name='$name'"))
+      .getTotalRows
+
+  private def fullTableName = s"$testDataset.$testTable"
+
+  private def additionalDataValuesExist = numberOfRowsWith("Cat") == 1
+
+  test("write to bq - append save mode") {
+    // initial write
+    writeToBigQuery(initialData, SaveMode.Append)
+    testTableNumberOfRows shouldBe 2
+    initialDataValuesExist shouldBe true
+    // second write
+    writeToBigQuery(additonalData, SaveMode.Append)
+    testTableNumberOfRows shouldBe 4
+    additionalDataValuesExist shouldBe true
+  }
+
+  test("write to bq - error if exists save mode") {
+    // initial write
+    writeToBigQuery(initialData, SaveMode.ErrorIfExists)
+    testTableNumberOfRows shouldBe 2
+    initialDataValuesExist shouldBe true
+    // second write
+    assertThrows[IllegalArgumentException] {
+      writeToBigQuery(additonalData, SaveMode.ErrorIfExists)
+    }
+  }
+
+  test("write to bq - ignore save mode") {
+    // initial write
+    writeToBigQuery(initialData, SaveMode.Ignore)
+    testTableNumberOfRows shouldBe 2
+    initialDataValuesExist shouldBe true
+    // second write
+    writeToBigQuery(additonalData, SaveMode.Ignore)
+    testTableNumberOfRows shouldBe 2
+    initialDataValuesExist shouldBe true
+    additionalDataValuesExist shouldBe false
+  }
+
+  test("write to bq - overwrite save mode") {
+    // initial write
+    writeToBigQuery(initialData, SaveMode.Overwrite)
+    testTableNumberOfRows shouldBe 2
+    initialDataValuesExist shouldBe true
+    // second write
+    writeToBigQuery(additonalData, SaveMode.Overwrite)
+    testTableNumberOfRows shouldBe 2
+    initialDataValuesExist shouldBe false
+    additionalDataValuesExist shouldBe true
+  }
+
+  test("write to bq - orc format") {
+    // required by ORC
+    spark.conf.set("spark.sql.orc.impl", "native")
+    writeToBigQuery(initialData, SaveMode.ErrorIfExists, "orc")
+    testTableNumberOfRows shouldBe 2
+    initialDataValuesExist shouldBe true
+  }
+
+  test("write to bq - parquet format") {
+    writeToBigQuery(initialData, SaveMode.ErrorIfExists, "parquet")
+    testTableNumberOfRows shouldBe 2
+    initialDataValuesExist shouldBe true
+  }
+
+  test("write to bq - unsupported format") {
+    assertThrows[IllegalArgumentException] {
+      writeToBigQuery(initialData, SaveMode.ErrorIfExists, "something else")
+    }
+  }
+
+  test("write to bq - adding the settings to spark.conf" ) {
+    spark.conf.set("temporaryGcsBucket", temporaryGcsBucket)
+    val df = initialData
+    df.write.format("bigquery")
+      .option("table", fullTableName)
+      .save()
+    testTableNumberOfRows shouldBe 2
+    initialDataValuesExist shouldBe true
+  }
+
+  test("keeping filters behaviour") {
+    val newBehaviourWords = extractWords(
+      spark.read.format("bigquery")
+      .option("table", "publicdata.samples.shakespeare")
+      .option("filter", "length(word) = 1")
+      .option("combinePushedDownFilters", "true")
+      .load())
+
+    val oldBehaviourWords = extractWords(
+      spark.read.format("bigquery")
+      .option("table", "publicdata.samples.shakespeare")
+      .option("filter", "length(word) = 1")
+      .option("combinePushedDownFilters", "false")
+      .load())
+
+    newBehaviourWords should equal (oldBehaviourWords)
+  }
+
+  def extractWords(df: DataFrame): Set[String] = {
+    df.select("word")
+      .where("corpus_date = 0")
+      .collect()
+      .map(_.getString(0))
+      .toSet
+  }
+
 }
+
+case class Animal(name: String, length: Int, weight: Double)

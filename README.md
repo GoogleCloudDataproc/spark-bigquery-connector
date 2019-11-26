@@ -2,7 +2,8 @@
 
 <!--- TODO(#2): split out into more documents. -->
 
-The connector uses the [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources) to read data from [Google BigQuery](https://cloud.google.com/bigquery/).
+The connector supports reading [Google BigQuery](https://cloud.google.com/bigquery/) tables into Spark's DataFrames, and writing DataFrames back into BigQuery.
+This is done by using the [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources) to communicate with BigQuery.
 
 ## Beta Disclaimer
 
@@ -26,7 +27,7 @@ It does not leave any temporary files in Google Cloud Storage. Rows are read dir
 
 ### Filtering
 
-The new API allows column and limited predicate filtering to only read the data you are interested in.
+The new API allows column and predicate filtering to only read the data you are interested in.
 
 #### Column Filtering
 
@@ -34,11 +35,9 @@ Since BigQuery is [backed by a columnar datastore](https://cloud.google.com/blog
 
 #### Predicate Filtering
 
-The Storage API supports limited pushdown of predicate filters. It supports a single comparison to a literal e.g.
+The Storage API supports arbitrary pushdown of predicate filters. Connector version 0.8.0-beta and above support pushdown of arbitrary filters to Bigquery. 
 
-```
-col1 = 'val'
-```
+There is a known issue in Spark that does not allow pushdown of filters on nested fields. For example - filters like `address.city = "Sunnyvale"` will not get pushdown to Bigquery.
 
 ### Dynamic Sharding
 
@@ -50,8 +49,7 @@ See [Configuring Partitioning](#configuring-partitioning) for more details.
 
 ### Enable the BigQuery Storage API
 
-Follow [these instructions](
-https://cloud.google.com/bigquery/docs/reference/storage/#enabling_the_api).
+Follow [these instructions](https://cloud.google.com/bigquery/docs/reference/storage/#enabling_the_api).
 
 ### Create a Google Cloud Dataproc cluster (Optional)
 
@@ -66,7 +64,7 @@ gcloud dataproc clusters create "$MY_CLUSTER"
 
 ## Downloading the Connector
 
-The latest version connector of the connector is publicly available in [gs://spark-lib/bigquery/spark-bigquery-latest.jar](https://console.cloud.google.com/storage/browser/spark-lib/bigquery).
+The latest version connector of the connector is publicly available in [gs://spark-lib/bigquery/spark-bigquery-latest.jar](https://console.cloud.google.com/storage/browser/spark-lib/bigquery). A Scala 2.12 compiled version exist in gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar.
 
 ## Hello World Example
 
@@ -77,9 +75,11 @@ You can run a simple PySpark wordcount against the API without compilation by ru
 ```
 gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
   --jars gs://spark-lib/bigquery/spark-bigquery-latest.jar \
-  examples/python/shakespeare.py
+  examples/python/shakespeare.py
 ```
 
+## Example Codelab ##
+https://codelabs.developers.google.com/codelabs/pyspark-bigquery
 
 ## Compiling against the connector
 
@@ -93,19 +93,22 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery_${scala.version}</artifactId>
-  <version>0.7.0-beta</version>
+  <version>0.10.0-beta</version>
+  <classifier>shaded</classifier>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery" % "0.7.0-beta"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery" % "0.10.0-beta" classifier "shaded"
 ```
 
 ## API
 
 The connector uses the cross language [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources):
+
+### Reading data from BigQuery
 
 ```
 df = spark.read
@@ -118,10 +121,35 @@ or the Scala only implicit API:
 
 ```
 import com.google.cloud.spark.bigquery._
-val df: DataFrame = spark.read.bigquery("publicdata.samples.shakespeare")
+val df = spark.read.bigquery("publicdata.samples.shakespeare")
 ```
 
 See [Shakespeare.scala](src/main/scala/com/google/cloud/spark/bigquery/examples/Shakespeare.scala) and [shakespeare.py](examples/python/shakespeare.py) for more information.
+
+### Writing data to BigQuery
+
+Writing a DataFrame to BigQuery is done in a similar manner. Notice that the process writes the data first to GCS and then loads it to BigQuery, a GCS bucket must be configured to indicate the temporary data location.
+
+```
+df.write
+  .format("bigquery")
+  .option("table","dataset.table")
+  .option("temporaryGcsBucket","some-bucket")
+  .save()
+```
+
+The data is temporarily stored using the [Apache parquet](https://parquet.apache.org/) format. An alternative format is [Apache ORC](https://orc.apache.org/).
+
+The GCS bucket and the format can also be set globally using Spark"s RuntimeConfig like this:
+```
+spark.conf.set("temporaryGcsBucket","some-bucket")
+df.write
+  .format("bigquery")
+  .option("table","dataset.table")
+  .save()
+```
+
+*Inportant:* The connector does not configure the GCS connector, in order to avoid conflict with another GCS connector, if exists. In order to use the write capabilities of the connector, please configure the GCS connector on your cluster as explained [here](https://github.com/GoogleCloudPlatform/bigdata-interop/tree/master/gcs).
 
 ### Properties
 
@@ -130,49 +158,95 @@ The API Supports a number of options to configure the read
 <!--- TODO(#2): Convert to markdown -->
 <table>
   <tr>
-   <td><strong>Property</strong>
-   </td>
-   <td><strong>Meaning</strong>
-   </td>
+   <th>Property</th>
+   <th>Meaning</th>
+   <th>Usage</th>
   </tr>
   <tr>
    <td><code>table</code>
    </td>
-   <td>The BigQuery table to read in the format <code>[[project:]dataset.]table</code>. <strong>(Required)</strong>
+   <td>The BigQuery table in the format <code>[[project:]dataset.]table</code>. <strong>(Required)</strong>
    </td>
+   <td>Read/Write</td>
   </tr>
   <tr>
    <td><code>dataset</code>
    </td>
-   <td>The dataset containing the table to read
-<p>
-(Optional unless omitted in <code>table</code>)
+   <td>The dataset containing the table.
+       <br/>(Optional unless omitted in <code>table</code>)
    </td>
+   <td>Read/Write</td>
   </tr>
   <tr>
    <td><code>project</code>
    </td>
-   <td>The Google Cloud Project ID of the table to read from.
-<p>
-(Optional. Defaults to the project of the Service Account being used)
+   <td>The Google Cloud Project ID of the table.
+       <br/>(Optional. Defaults to the project of the Service Account being used)
    </td>
+   <td>Read/Write</td>
   </tr>
   <tr>
    <td><code>parentProject</code>
    </td>
    <td>The Google Cloud Project ID of the table to bill for the export.
-<p>
-(Optional. Defaults to the project of the Service Account being used)
+       <br/>(Optional. Defaults to the project of the Service Account being used)
    </td>
+   <td>Read/Write</td>
   </tr>
   <tr>
    <td><code>parallelism</code>
    </td>
-   <td>The number of partitions to split the data into. Actual number may be less if BigQuery deems the data small enough. If there are not enough executors to schedule a reader per partition, some partitions may be empty.
-<p>
-(Optional. Defaults to <code>SparkContext.getDefaultParallelism()</code>. See
-<a href="#configuring-partitioning">Configuring Partitioning</a>.)
+   <td>The number of partitions to split the data into. Actual number may be less
+       if BigQuery deems the data small enough. If there are not enough executors
+       to schedule a reader per partition, some partitions may be empty.
+       <br/>(Optional. Defaults to one partition per 400MB. See
+       <a href="#configuring-partitioning">Configuring Partitioning</a>.)
    </td>
+   <td>Read</td>
+  </tr>
+  <tr>
+   <td><code>viewsEnabled</code>
+   </td>
+   <td>Enables the connector to read from views and not only tables. Please read
+       the <a href="#reading-from-views">relevant section</a> before activating
+       this option.
+       <br/>(Optional. Defaults to <code>false</code>)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr>
+   <td><code>viewMaterializationProject</code>
+   </td>
+   <td>The project id where the materialized view is going to be created
+       <br/>(Optional. Defaults to view's project id)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr>
+   <td><code>viewMaterializationDataset</code>
+   </td>
+   <td>The dataset where the materialized view is going to be created
+       <br/>(Optional. Defaults to view's dataset)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr>
+   <td><code>temporaryGcsBucket</code>
+   </td>
+   <td>The GCS bucket that temporarily holds the data before it is loaded to
+       BigQuery. Required unless set in the Spark configuration
+       (<code>spark.conf.set(...)</code>).
+   </td>
+   <td>Write</td>
+  </tr>
+  <tr>
+   <td><code>intermediateFormat</code>
+   </td>
+   <td>The format of the data before it is loaded to BigQuery, values can be
+       either "parquet" or "orc".
+       <br/>(Optional. Defaults to <code>parquet</code>). On write only.
+   </td>
+   <td>Write</td>
   </tr>
 </table>
 
@@ -302,12 +376,12 @@ The connector automatically computes column and pushdown filters the DataFrame's
 ```
 spark.read.bigquery("publicdata:samples.shakespeare")
   .select("word")
-  .where("word = 'Hamlet'")
+  .where("word = 'Hamlet' or word = 'Claudius'")
   .collect()
 ```
 
 
-filters to the column `word`  and pushed down the predicate filter `word = 'hamlet'`.
+filters to the column `word`  and pushed down the predicate filter `word = 'hamlet' or word = 'Claudius'`.
 
 If you do not wish to make multiple read requests to BigQuery, you can cache the DataFrame before filtering e.g.:
 
@@ -324,13 +398,46 @@ val otherRows = cachedDF.select("word_count")
 
 You can also manually specify the `filter` option, which will override automatic pushdown and Spark will do the rest of the filtering in the client.
 
+### Partitioned Tables
+
+The pseudo columns \_PARTITIONDATE and \_PARTITIONTIME are not part of the table schema. Therefore in order to query by the partitions of [partitioned tables](https://cloud.google.com/bigquery/docs/partitioned-tables) do not use the where() method shown above. Instead, add a filter option in the following manner:
+
+```
+val df = spark.read.format("bigquery")
+  .option("table", TABLE)
+  .option("filter", "_PARTITIONDATE > '2019-01-01'")
+  ...
+  .load()
+```
+
 ### Configuring Partitioning
 
-By default the connector creates one partition per current core available (Spark Default Parallelism) to get maximum concurrent bandwidth. This can be configured explicitly with the <code>[parallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
+By default the connector creates one partition per 400MB in the table being read (before filtering). This should roughly correspond to the maximum number of readers supported by the BigQuery Storage API. 
+This can be configured explicitly with the <code>[parallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
+
+### Reading From Views
+
+The connector has a preliminary support for reading from
+[BigQuery views](https://cloud.google.com/bigquery/docs/views-intro). Please
+note there are a few caveats:
+
+* BigQuery views are not materialized by default, which means that the connector
+  needs to materialize them before it can read them. This process affects the
+  read performance, even before running any `collect()` or `count()` action.
+* The materialization process can also incur additional costs to your BigQuery
+  bill.
+* By default, the materialized views are created in the same project and
+  dataset. Those can be configured by the optional `viewMaterializationProject`
+  and `viewMaterializationDataset` options, respectively. These options can also
+  be globally set by calling `spark.conf.set(...)` before reading the views.
+* Reading from views is **disabled** by default. In order to enable it,
+  either set the viewsEnabled option when reading the specific view
+  (`.option("viewsEnabled", "true")`) or set it globally by calling
+  `spark.conf.set("viewsEnabled", "true")`.
 
 ## Building the Connector
 
-The connector is built using [SBT](https://www.scala-sbt.org/):
+The connector is built using [SBT](https://www.scala-sbt.org/). Following command creates a jar with shaded dependencies:
 
 ```
 sbt assembly
@@ -348,9 +455,13 @@ You can manually set the number of partitions with the `parallelism` property. B
 
 You can also always repartition after reading in Spark.
 
-### How do I write to BigQuery?
+### Calling count() takes a long time
 
-You can use the [existing MapReduce connector](https://github.com/GoogleCloudPlatform/bigdata-interop/tree/master/bigquery) or write DataFrames to GCS and then load the data into BigQuery.
+When spark runs `count()` on a DataFrame, it first loads the data and then
+counts the records. Unfortunately we cannot push this down to the BigQuery side.
+The best workaround is to run the count on the smallest field in the table
+(ideally a BOOLEAN or INTEGER). This approach will load less data then running
+`count()` in the usual manner.
 
 ### How do I authenticate outside GCE / Dataproc?
 

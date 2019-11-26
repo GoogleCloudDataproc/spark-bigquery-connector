@@ -16,6 +16,8 @@
 package com.google.cloud.spark.bigquery
 
 import com.google.cloud.bigquery.TableId
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{LocatedFileStatus, Path}
 
 class BigQueryUtilsSuite extends org.scalatest.FunSuite {
 
@@ -87,5 +89,19 @@ class BigQueryUtilsSuite extends org.scalatest.FunSuite {
   test("short friendly name") {
     val name = BigQueryUtil.friendlyTableName(TableId.of("test_dataset", "test_table"))
     assert(name == "test_dataset.test_table")
+  }
+
+  test("ToIteratorTest") {
+    val path = new Path("src/test/resources/ToIteratorTest")
+    val fs = path.getFileSystem(new Configuration())
+    var it = ToIterator(fs.listFiles(path, false))
+
+    assert(it.isInstanceOf[scala.collection.Iterator[LocatedFileStatus]])
+    assert(it.size == 2)
+
+    // fresh instance
+    it = ToIterator(fs.listFiles(path, false))
+    assert(it.filter(f => f.getPath.getName.endsWith(".txt"))
+      .next.getPath.getName.endsWith("file1.txt"))
   }
 }

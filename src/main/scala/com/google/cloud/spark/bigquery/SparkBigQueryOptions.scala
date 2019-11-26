@@ -20,19 +20,26 @@ import java.io.{ByteArrayInputStream, FileInputStream}
 import com.google.api.client.util.Base64
 import com.google.auth.Credentials
 import com.google.auth.oauth2.GoogleCredentials
-import com.google.cloud.bigquery.{BigQueryOptions, TableId}
+import com.google.cloud.bigquery.{BigQueryOptions, FormatOptions, TableId}
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.types.StructType
 
 /** Options for defining {@link BigQueryRelation}s */
 case class SparkBigQueryOptions(
-    tableId: TableId,
-    parentProject: String,
-    credentials: Option[String] = None,
-    credentialsFile: Option[String] = None,
-    filter: Option[String] = None,
-    schema: Option[StructType] = None,
-    parallelism: Option[Int] = None) {
+  tableId: TableId,
+  parentProject: String,
+  credentials: Option[String] = None,
+  credentialsFile: Option[String] = None,
+  filter: Option[String] = None,
+  schema: Option[StructType] = None,
+  parallelism: Option[Int] = None,
+  temporaryGcsBucket: Option[String] = None,
+  intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat,
+  combinePushedDownFilters: Boolean = true,
+  viewsEnabled: Boolean = false,
+  viewMaterializationProject: Option[String] = None,
+  viewMaterializationDataset: Option[String] = None,
+  viewExpirationTimeInHours:Int = 24) {
 
   def createCredentials: Option[Credentials] =
     (credentials, credentialsFile) match {
@@ -46,10 +53,18 @@ case class SparkBigQueryOptions(
         throw new IllegalArgumentException("Only one of credentials or credentialsFile can be" +
           " specified in the options.")
     }
+
 }
 
 /** Resolvers for {@link SparkBigQueryOptions} */
 object SparkBigQueryOptions {
+
+  val IntermediateFormatOption = "intermediateFormat"
+  val ViewsEnabledOption = "viewsEnabled"
+
+  val DefaultFormat = FormatOptions.parquet()
+  private val PermittedIntermediateFormats =
+    Set(FormatOptions.orc(), FormatOptions.parquet())
 
   def apply(
       parameters: Map[String, String],
@@ -67,20 +82,38 @@ object SparkBigQueryOptions {
       defaultBilledProject)
     val filter = getOption(parameters, "filter")
     val parallelism = getOption(parameters, "parallelism").map(_.toInt)
+    val temporaryGcsBucket = getAnyOption(allConf, parameters, "temporaryGcsBucket")
+    val intermediateFormat = getAnyOption(allConf, parameters, IntermediateFormatOption)
+      .map(s => FormatOptions.of(s.toUpperCase))
+      .getOrElse(DefaultFormat)
+    if (!PermittedIntermediateFormats.contains(intermediateFormat)) {
+      throw new IllegalArgumentException(
+        s"""Intermediate format '${intermediateFormat.getType}' is not supported.
+           |Supported formats are ${PermittedIntermediateFormats.map(_.getType)}"""
+          .stripMargin.replace('\n', ' '))
+    }
+    val combinePushedDownFilters = getAnyBooleanOption(
+      allConf, parameters, "combinePushedDownFilters", true)
+    val viewsEnabled = getAnyBooleanOption(
+      allConf, parameters, ViewsEnabledOption, false)
+    val viewMaterializationProject =
+      getAnyOption(allConf, parameters, "viewMaterializationProject")
+    val viewMaterializationDataset =
+      getAnyOption(allConf, parameters, "viewMaterializationDataset")
 
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
-      filter, schema, parallelism)
+      filter, schema, parallelism, temporaryGcsBucket, intermediateFormat,
+      combinePushedDownFilters, viewsEnabled, viewMaterializationProject,
+      viewMaterializationDataset)
   }
 
-  private def defaultBilledProject = () =>
-    Some(BigQueryOptions.getDefaultInstance.getProjectId)
 
   private def getRequiredOption(
       options: Map[String, String],
       name: String,
       fallback: () => Option[String] = () => None): String = {
     getOption(options, name, fallback)
-        .getOrElse(sys.error(s"Option $name required."))
+      .getOrElse(sys.error(s"Option $name required."))
   }
 
   private def getOption(
@@ -94,5 +127,13 @@ object SparkBigQueryOptions {
                            options: Map[String, String],
                            name: String): Option[String] =
     options.get(name).orElse(globalOptions.get(name))
+
+  private def getAnyBooleanOption(globalOptions: Map[String, String],
+                                  options: Map[String, String],
+                                  name: String,
+                                  defaultValue: Boolean): Boolean =
+    getAnyOption(globalOptions, options, ViewsEnabledOption)
+      .map(_.toBoolean)
+      .getOrElse(defaultValue)
 }
 
