@@ -42,7 +42,7 @@ class DirectBigQueryRelationSuite
           Field.of("foo", LegacySQLTypeName.STRING),
           Field.of("bar", LegacySQLTypeName.INTEGER))
         )
-        .setNumBytes(42L)
+        .setNumBytes(42L * 1000 * 1000 * 1000)  // 42GB
         .build())
   private var bigQueryRelation: DirectBigQueryRelation = _
 
@@ -57,7 +57,11 @@ class DirectBigQueryRelationSuite
   }
 
   test("size in bytes") {
-    assert(42 == bigQueryRelation.sizeInBytes)
+    assert(42L * 1000 * 1000 * 1000 == bigQueryRelation.sizeInBytes)
+  }
+
+  test("parallelism") {
+    assert(105  == bigQueryRelation.getNumPartitionsRequested)
   }
 
   test("schema") {
@@ -113,5 +117,45 @@ class DirectBigQueryRelationSuite
     val unhandled = bigQueryRelation.unhandledFilters(Array(valid1, valid2, invalid1, invalid2))
     unhandled should contain allElementsOf Array(invalid1, invalid2)
   }
+
+  test("old filter behaviour, with filter option") {
+    val r = new DirectBigQueryRelation(
+      SparkBigQueryOptions(
+        ID, PROJECT_ID, combinePushedDownFilters = false, filter = Some("f>1")
+      ), TABLE)(sqlCtx)
+    checkFilters(r, "f>1", Array(GreaterThan("a", 2)), "f>1")
+  }
+
+  test("old filter behaviour, no filter option") {
+    val r = new DirectBigQueryRelation(
+      SparkBigQueryOptions(ID, PROJECT_ID, combinePushedDownFilters = false), TABLE)(sqlCtx)
+    checkFilters(r, "", Array(GreaterThan("a", 2)), "a > 2")
+  }
+
+  test("new filter behaviour, with filter option") {
+    val r = new DirectBigQueryRelation(
+      SparkBigQueryOptions(ID, PROJECT_ID, filter = Some("f>1")), TABLE)(sqlCtx)
+    checkFilters(r, "(f>1)", Array(GreaterThan("a", 2)), "(f>1) AND (a > 2)")
+  }
+
+  test("new filter behaviour, no filter option") {
+    val r = new DirectBigQueryRelation(
+      SparkBigQueryOptions(ID, PROJECT_ID), TABLE)(sqlCtx)
+    checkFilters(r, "", Array(GreaterThan("a", 2)), "(a > 2)")
+  }
+
+  def checkFilters(
+      r: DirectBigQueryRelation,
+      resultWithoutFilters: String,
+      filters: Array[Filter],
+      resultWithFilters: String
+      ): Unit = {
+    val result1 = r.getCompiledFilter(Array())
+    result1 shouldBe resultWithoutFilters
+    val result2 = r.getCompiledFilter(filters)
+    result2 shouldBe resultWithFilters
+  }
+
+
 }
 
