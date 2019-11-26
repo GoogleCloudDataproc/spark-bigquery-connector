@@ -15,6 +15,9 @@
  */
 package com.google.cloud.spark.bigquery
 
+import java.io.IOException
+
+import com.google.api.client.util.Base64
 import com.google.cloud.bigquery._
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.hadoop.conf.Configuration
@@ -59,7 +62,7 @@ class BigQueryRelationProviderSuite
     MockitoAnnotations.initMocks(this)
     conf = new Configuration(false)
     provider =
-      new BigQueryRelationProvider(() => Some(bigQuery), Some(ID.getProject))
+      new BigQueryRelationProvider(() => Some(bigQuery))
     table = TestUtils.table(TABLE)
 
     when(sqlCtx.sparkContext).thenReturn(sc)
@@ -75,7 +78,8 @@ class BigQueryRelationProviderSuite
   test("table exists") {
     when(bigQuery.getTable(any(classOf[TableId]))).thenReturn(table)
 
-    val relation = provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME))
+    val relation = provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
+      "parentProject" -> ID.getProject()))
     assert(relation.isInstanceOf[DirectBigQueryRelation])
 
     verify(bigQuery).getTable(Matchers.eq(ID))
@@ -85,9 +89,32 @@ class BigQueryRelationProviderSuite
     when(bigQuery.getTable(any(classOf[TableId]))).thenReturn(null)
 
     assertThrows[RuntimeException] {
-      provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME))
+      provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
+        "parentProject" -> ID.getProject()))
     }
-
     verify(bigQuery).getTable(Matchers.eq(ID))
   }
+
+  test("Credentials parameter is used to initialize BigQueryOptions") {
+
+    val defaultProvider = new BigQueryRelationProvider()
+    val invalidCredentials = Base64.encodeBase64String("{}".getBytes)
+
+    val caught = intercept[IOException] {
+      defaultProvider.createRelation(sqlCtx, Map("parentProject" -> ID.getProject,
+        "credentials" -> invalidCredentials, "table" -> TABLE_NAME))
+    }
+
+    assert(caught.getMessage.startsWith("Error reading credentials"))
+  }
+
+  test("default BigQueryOptions instance is used when no credentials provided") {
+    val defaultProvider = new BigQueryRelationProvider()
+    val caught = intercept[IllegalArgumentException] {
+      defaultProvider.createRelation(sqlCtx, Map("project" -> ID.getProject, "table" -> TABLE_NAME))
+    }
+    assert(caught.getMessage.contains("project ID is required"))
+  }
+
+
 }
