@@ -22,12 +22,12 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
 import org.mockito.Mockito._
 import org.mockito.{Mock, MockitoAnnotations}
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.{BeforeAndAfter, Matchers}
 
 
 class DirectBigQueryRelationSuite
-    extends FunSuite with BeforeAndAfter with MockitoSugar with Matchers {
+    extends AnyFunSuite with BeforeAndAfter with Matchers {
 
   private val PROJECT_ID = "test_project"
   private val ID = TableId.of("test_project", "test_dataset", "test_table")
