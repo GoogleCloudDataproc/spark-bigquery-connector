@@ -62,6 +62,7 @@ object SchemaConverters {
         // option of casting themselves.
         case DATETIME => StringType
         case RECORD => StructType(field.getSubFields.asScala.map(convert))
+        case GEOGRAPHY => StringType
         case other => throw new IllegalArgumentException(s"Unsupported type '$other'")
       }
       var nullable = true
@@ -111,7 +112,8 @@ object SchemaConverters {
       field.getType match {
         case INTEGER | FLOAT | BOOLEAN | DATE | TIME | TIMESTAMP => value
         // TODO(pmkc): use String for safety?
-        case STRING | DATETIME => UTF8String.fromBytes(value.asInstanceOf[Utf8].getBytes)
+        case STRING | DATETIME | GEOGRAPHY =>
+          UTF8String.fromBytes(value.asInstanceOf[Utf8].getBytes)
         case BYTES => getBytes(value.asInstanceOf[ByteBuffer])
         case NUMERIC =>
           val bytes = getBytes(value.asInstanceOf[ByteBuffer])
