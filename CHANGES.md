@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.11.0-beta - 2019-12-18
+* Upgrade version of google-cloud-bigquery library to 1.102.0
+* Upgrade version of google-cloud-bigquerystorage library to 0.120.0-beta
+* Issue #6: Do not initialize bigquery options by default
+* Added ReadRows retries on GRPC internal errors
+* Issue #97: Added support for GEOGRAPHY type
+
 ## 0.10.0-beta - 2019-11-14
 * Added preliminary support for reading from BigQuery views (Issue #21)
 * Writing to BigQuery now white-listing the intermediate files instead
