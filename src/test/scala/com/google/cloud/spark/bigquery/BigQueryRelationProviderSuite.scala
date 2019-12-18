@@ -23,21 +23,19 @@ import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
-import org.mockito.Matchers._
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
-import org.mockito.{Matchers, Mock, MockitoAnnotations}
-import org.scalatest.mockito.MockitoSugar
+import org.mockito.{ArgumentMatchers, Mock, MockitoAnnotations}
 import org.scalatest.{BeforeAndAfter, FunSuite}
 
 class BigQueryRelationProviderSuite
     extends FunSuite
-    with BeforeAndAfter
-    with MockitoSugar {
+    with BeforeAndAfter {
 
   // TODO(#23) Add test case covering 'credentials' and 'credentialsFile' options
 
-  private val ID = TableId.of("test_project", "test_dataset", "test_table")
-  private val TABLE_NAME = "test_project:test_dataset.test_table"
+  private val ID = TableId.of("testproject", "test_dataset", "test_table")
+  private val TABLE_NAME = "testproject:test_dataset.test_table"
   private val TABLE = TableInfo.of(
     ID,
     StandardTableDefinition
@@ -82,7 +80,7 @@ class BigQueryRelationProviderSuite
       "parentProject" -> ID.getProject()))
     assert(relation.isInstanceOf[DirectBigQueryRelation])
 
-    verify(bigQuery).getTable(Matchers.eq(ID))
+    verify(bigQuery).getTable(ArgumentMatchers.eq(ID))
   }
 
   test("table does not exist") {
@@ -92,7 +90,7 @@ class BigQueryRelationProviderSuite
       provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
         "parentProject" -> ID.getProject()))
     }
-    verify(bigQuery).getTable(Matchers.eq(ID))
+    verify(bigQuery).getTable(ArgumentMatchers.eq(ID))
   }
 
   test("Credentials parameter is used to initialize BigQueryOptions") {
@@ -108,6 +106,11 @@ class BigQueryRelationProviderSuite
     assert(caught.getMessage.startsWith("Error reading credentials"))
   }
 
+  /*
+  The test is removed as it doesn't work when the GOOGLE_APPLICATION_CREDENTIALS
+  environment variable is set. Also we want to check scenarios where the default
+  instance is used, such as on Dataproc servers.
+
   test("default BigQueryOptions instance is used when no credentials provided") {
     val defaultProvider = new BigQueryRelationProvider()
     val caught = intercept[IllegalArgumentException] {
@@ -115,6 +118,7 @@ class BigQueryRelationProviderSuite
     }
     assert(caught.getMessage.contains("project ID is required"))
   }
+  */
 
 
 }

@@ -18,7 +18,11 @@ package com.google.cloud.spark.bigquery
 import com.google.cloud.bigquery.{BigQueryError, BigQueryException, TableId}
 import com.google.cloud.http.BaseHttpServiceException.UNKNOWN_CODE
 
+
 import scala.util.matching.Regex
+import io.grpc.StatusRuntimeException
+import com.google.api.gax.rpc.StatusCode
+import io.grpc.Status
 
 /**
  * Static helpers for working with BigQuery.
@@ -65,8 +69,34 @@ object BigQueryUtil {
         .getOrElse(TableId.of(actualDataset, table))
   }
 
-  def noneIfEmpty(s: String): Option[String] =  Option(s).filterNot(_.trim.isEmpty)
+  def noneIfEmpty(s: String): Option[String] = Option(s).filterNot(_.trim.isEmpty)
 
   def convertAndThrow(error: BigQueryError) : Unit =
     throw new BigQueryException(UNKNOWN_CODE, error.getMessage, error)
+
+  def isRetryable(cause: Throwable): Boolean = {
+    var c: Throwable = cause
+    while(c != null) {
+      if (isRetryableInternalError(c)) {
+        return true
+      }
+      c = c.getCause
+    }
+    // failed
+    false
+  }
+  
+  val InternalErrorMessages = Seq(
+      "HTTP/2 error code: INTERNAL_ERROR",
+      "Connection closed with unknown cause",
+      "Received unexpected EOS on DATA frame from server")
+
+  def isRetryableInternalError(cause: Throwable) : Boolean = {
+    cause match {
+      case sse: StatusRuntimeException =>
+        sse.getStatus.getCode == Status.Code.INTERNAL &&
+        InternalErrorMessages.exists(errorMsg => cause.getMessage.contains(errorMsg))    
+      case _ => false
+    }
+  }
 }

@@ -39,7 +39,8 @@ case class SparkBigQueryOptions(
   viewsEnabled: Boolean = false,
   viewMaterializationProject: Option[String] = None,
   viewMaterializationDataset: Option[String] = None,
-  viewExpirationTimeInHours:Int = 24) {
+  viewExpirationTimeInHours:Int = 24,
+  maxReadRowsRetries:Int = 3) {
 
   def createCredentials: Option[Credentials] =
     (credentials, credentialsFile) match {

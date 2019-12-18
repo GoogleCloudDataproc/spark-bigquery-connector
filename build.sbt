@@ -62,8 +62,8 @@ val relocationPrefix = s"$myPackage.repackaged"
 
 libraryDependencies ++= Seq(
   // Keep com.google.cloud dependencies in sync
-  "com.google.cloud" % "google-cloud-bigquery" % "1.99.0",
-  "com.google.cloud" % "google-cloud-bigquerystorage" % "0.117.0-beta",
+  "com.google.cloud" % "google-cloud-bigquery" % "1.102.0",
+  "com.google.cloud" % "google-cloud-bigquerystorage" % "0.120.0-beta",
   // Keep in sync with com.google.cloud
   "io.grpc" % "grpc-netty-shaded" % "1.24.1",
   "com.google.guava" % "guava" % "28.1-jre",
@@ -77,8 +77,8 @@ libraryDependencies ++= Seq(
   "com.google.cloud.bigdataoss" % "gcs-connector" % "hadoop2-2.0.0" % "runtime",
 
   // test
-  "org.scalatest" %% "scalatest" % "3.0.4" % "test",
-  "org.mockito" % "mockito-all" % "1.10.19" % "test")
+  "org.scalatest" %% "scalatest" % "3.1.0" % "test",
+  "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test")
     .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
 val renamed = Seq(
   "avro.shaded",
