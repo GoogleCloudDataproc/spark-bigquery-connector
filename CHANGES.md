@@ -1,5 +1,8 @@
 # Release Notes
 
+## 0.12.0-beta - ???
+* Issue #72: Moved the shaded jar name from classifier to a new artifact name
+
 ## 0.11.0-beta - 2019-12-18
 * Upgrade version of google-cloud-bigquery library to 1.102.0
 * Upgrade version of google-cloud-bigquerystorage library to 0.120.0-beta
