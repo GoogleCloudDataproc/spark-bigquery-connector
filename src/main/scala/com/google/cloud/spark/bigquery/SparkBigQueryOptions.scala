@@ -39,8 +39,8 @@ case class SparkBigQueryOptions(
   viewsEnabled: Boolean = false,
   viewMaterializationProject: Option[String] = None,
   viewMaterializationDataset: Option[String] = None,
-  viewExpirationTimeInHours:Int = 24,
-  maxReadRowsRetries:Int = 3) {
+  viewExpirationTimeInHours: Int = 24,
+  maxReadRowsRetries: Int = 3) {
 
   def createCredentials: Option[Credentials] =
     (credentials, credentialsFile) match {
@@ -63,9 +63,8 @@ object SparkBigQueryOptions {
   val IntermediateFormatOption = "intermediateFormat"
   val ViewsEnabledOption = "viewsEnabled"
 
-  val DefaultFormat = FormatOptions.parquet()
-  private val PermittedIntermediateFormats =
-    Set(FormatOptions.orc(), FormatOptions.parquet())
+  val DefaultFormat: FormatOptions = FormatOptions.parquet()
+  private val PermittedIntermediateFormats = Set(FormatOptions.orc(), FormatOptions.parquet())
 
   def apply(
      parameters: Map[String, String],
@@ -135,7 +134,7 @@ object SparkBigQueryOptions {
                                   options: Map[String, String],
                                   name: String,
                                   defaultValue: Boolean): Boolean =
-    getAnyOption(globalOptions, options, ViewsEnabledOption)
+    getAnyOption(globalOptions, options, name)
       .map(_.toBoolean)
       .getOrElse(defaultValue)
 }
