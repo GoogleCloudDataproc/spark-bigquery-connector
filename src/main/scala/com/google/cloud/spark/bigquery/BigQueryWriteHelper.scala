@@ -52,9 +52,11 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     gcsPath
   }
 
-  val saveModeToWriteDisposition = Map(
-    SaveMode.Append -> JobInfo.WriteDisposition.WRITE_APPEND,
-    SaveMode.Overwrite -> JobInfo.WriteDisposition.WRITE_TRUNCATE)
+  def saveModeToWriteDisposition(saveMode: SaveMode): JobInfo.WriteDisposition = saveMode match {
+    case SaveMode.Append => JobInfo.WriteDisposition.WRITE_APPEND
+    case SaveMode.Overwrite => JobInfo.WriteDisposition.WRITE_TRUNCATE
+    case unsupported => throw new UnsupportedOperationException(s"SaveMode $unsupported is currently not supported.")
+  }
 
   def writeDataFrameToBigQuery: Unit = {
     try {

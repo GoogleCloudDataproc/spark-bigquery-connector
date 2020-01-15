@@ -64,6 +64,8 @@ class BigQueryRelationProvider(
              |Notice additional cost may occur."""
             .stripMargin.replace('\n', ' '))
       }
+      case unsupported => throw new UnsupportedOperationException(
+        s"The type of table $tableName is currently not supported: $unsupported")
     }
   }
 
