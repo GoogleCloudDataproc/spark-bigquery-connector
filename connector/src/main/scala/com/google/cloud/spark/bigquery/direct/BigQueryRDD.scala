@@ -24,6 +24,7 @@ import com.google.protobuf.ByteString
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import org.apache.avro.io.{BinaryDecoder, DecoderFactory}
 import org.apache.avro.{Schema => AvroSchema}
+import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.InternalRow
@@ -102,7 +103,8 @@ case class ReadRowsClientWrapper(client: BigQueryStorageClient)
 case class ReadRowsHelper(
                            client: ReadRowsClient,
                            request: ReadRowsRequest.Builder,
-                           maxReadRowsRetries: Int) {
+                           maxReadRowsRetries: Int
+                         ) extends Logging {
   def readRows(): Iterator[ReadRowsResponse] = {
     val readPosition = request.getReadPositionBuilder
     val readRowResponses = new MutableList[ReadRowsResponse]
@@ -114,6 +116,7 @@ case class ReadRowsHelper(
         val response = serverResponses.next
         readRowsCount += response.getRowCount
         readRowResponses += response
+        logInfo(s"read ${response.getSerializedSize} bytes")
       } catch {
         case e: Exception =>
           // if relevant, retry the read, from the last read position
