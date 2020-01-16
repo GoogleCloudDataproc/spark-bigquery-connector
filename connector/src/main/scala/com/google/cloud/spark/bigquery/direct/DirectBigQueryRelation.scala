@@ -29,7 +29,6 @@ import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, BigQuer
 import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
 import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtil, BuildInfo, SchemaConverters, SparkBigQueryOptions}
 import com.google.common.cache.{Cache, CacheBuilder}
-import com.typesafe.scalalogging.Logger
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
@@ -64,10 +63,6 @@ private[bigquery] class DirectBigQueryRelation(
       .maximumSize(1000)
       .build()
 
-
-
-  private val log = Logger(getClass)
-
   /**
    * Default parallelism to 1 reader per 400MB, which should be about the maximum allowed by the
    * BigQuery Storage API. The number of partitions returned may be significantly less depending
@@ -90,14 +85,14 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
-    val actualTable = getActualTable(requiredColumns,filters)
+    val actualTable = getActualTable(requiredColumns, filters)
     val actualTableDefinition = actualTable.getDefinition[StandardTableDefinition]
     val actualTableReference =
       DirectBigQueryRelation.toTableReference(actualTable.getTableId)
 
-    log.debug(s"filters pushed: ${filters.mkString(", ")}")
+    logDebug(s"filters pushed: ${filters.mkString(", ")}")
     val filter = getCompiledFilter(filters)
-    log.debug(s"buildScan: cols: [${requiredColumns.mkString(", ")}], filter: '$filter'")
+    logDebug(s"buildScan: cols: [${requiredColumns.mkString(", ")}], filter: '$filter'")
     val readOptions = TableReadOptions.newBuilder()
         .addAllSelectedFields(requiredColumns.toList.asJava)
         .setRowRestriction(filter)
@@ -127,19 +122,19 @@ private[bigquery] class DirectBigQueryRelation(
           .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
           .toArray
 
-      log.info(s"Created read session for table '$tableName': ${session.getName}")
+      logInfo(s"Created read session for table '$tableName': ${session.getName}")
 
       // This is spammy, but it will make it clear to users the number of partitions they got and
       // why.
       if (!numPartitionsRequested.equals(partitions.length)) {
-        log.info(
+        logInfo(
           s"""Requested $numPartitionsRequested partitions, but only
              |received ${partitions.length} from the BigQuery Storage API for
              |session ${session.getName}. Notice that the number of streams in
              |actual may be lower than the requested number, depending on the
              |amount parallelism that is reasonable for the table and the
              |maximum amount of parallelism allowed by the system."""
-            .stripMargin.replace('\n',' '))
+            .stripMargin.replace('\n', ' '))
       }
 
       BigQueryRDD.scanTable(
@@ -168,7 +163,7 @@ private[bigquery] class DirectBigQueryRelation(
     if(options.viewsEnabled && TableDefinition.Type.VIEW == tableType) {
       // get it from the view
       val querySql = createSql(tableDefinition.getSchema, requiredColumns, filters)
-      log.debug(s"querySql is $querySql")
+      logDebug(s"querySql is $querySql")
       destinationTableCache.get(querySql, DestinationTableBuilder(querySql))
     } else {
       // use the default one
@@ -178,15 +173,15 @@ private[bigquery] class DirectBigQueryRelation(
 
   def createTableFromQuery(querySql: String): TableInfo = {
     val destinationTable = createDestinationTable
-    log.debug(s"destinationTable is $destinationTable")
+    logDebug(s"destinationTable is $destinationTable")
     val jobInfo = JobInfo.of(
       QueryJobConfiguration
         .newBuilder(querySql)
         .setDestinationTable(destinationTable)
         .build())
-    log.debug(s"running query $jobInfo")
+    logDebug(s"running query $jobInfo")
     val job = bigQuery.create(jobInfo).waitFor()
-    log.debug(s"job has finished. $job")
+    logDebug(s"job has finished. $job")
     if(job.getStatus.getError != null) {
       BigQueryUtil.convertAndThrow(job.getStatus.getError)
     }
@@ -201,7 +196,7 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   def createSql(schema: Schema, requiredColumns: Array[String], filters: Array[Filter]): String = {
-    val columns = if(requiredColumns.isEmpty) {
+    val columns = if (requiredColumns.isEmpty) {
       val sparkSchema = SchemaConverters.toSpark(schema)
       sparkSchema.map(f => s"`${f.name}`").mkString(",")
     } else {
@@ -225,7 +220,8 @@ private[bigquery] class DirectBigQueryRelation(
     val project = options.viewMaterializationProject.getOrElse(tableId.getProject)
     val dataset = options.viewMaterializationDataset.getOrElse(tableId.getDataset)
     val uuid = UUID.randomUUID()
-    val name = s"_sbc_${uuid.getMostSignificantBits.toHexString}${uuid.getLeastSignificantBits.toHexString}"
+    val name =
+      s"_sbc_${uuid.getMostSignificantBits.toHexString}${uuid.getLeastSignificantBits.toHexString}"
     TableId.of(project, dataset, name)
   }
 
@@ -246,8 +242,9 @@ private[bigquery] class DirectBigQueryRelation(
 
   // VisibleForTesting
   private[bigquery] def getCompiledFilter(filters: Array[Filter]): String = {
-    if(options.combinePushedDownFilters) {
-      // new behaviour, fixing https://github.com/GoogleCloudPlatform/spark-bigquery-connector/issues/74
+    if (options.combinePushedDownFilters) {
+      // new behaviour, fixing
+      // https://github.com/GoogleCloudPlatform/spark-bigquery-connector/issues/74
       Seq(
         options.filter,
         BigQueryUtil.noneIfEmpty(DirectBigQueryRelation.compileFilters(handledFilters(filters)))
@@ -276,7 +273,7 @@ private[bigquery] class DirectBigQueryRelation(
     }
 
     val unhandled = filters.filterNot(handledFilters(filters).contains)
-    log.debug(s"unhandledFilters: ${unhandled.mkString(" ")}")
+    logDebug(s"unhandledFilters: ${unhandled.mkString(" ")}")
     unhandled
   }
 }

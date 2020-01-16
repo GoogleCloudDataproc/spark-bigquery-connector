@@ -18,7 +18,6 @@ package com.google.cloud.spark.bigquery.it
 import com.google.cloud.bigquery.{BigQueryOptions, QueryJobConfiguration}
 import com.google.cloud.spark.bigquery.it.TestConstants._
 import com.google.cloud.spark.bigquery.{SparkBigQueryOptions, TestUtils}
-import com.typesafe.scalalogging.Logger
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 import org.scalatest.concurrent.TimeLimits
@@ -64,7 +63,6 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   private val LARGE_TABLE_NUM_ROWS = 137826763L
   private val NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent"
   private val ALL_TYPES_TABLE_NAME = "all_types"
-  private val log: Logger = Logger(getClass)
   private var spark: SparkSession = _
   private var testDataset: String = _
 

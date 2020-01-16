@@ -40,9 +40,6 @@ lazy val connector = (project in file("connector"))
 
       "org.apache.avro" % "avro" % "1.8.2",
 
-      // Brings SLF4J 1.7.25. Spark 2.2 has 1.7.16
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
-
       // runtime
       "com.google.cloud.bigdataoss" % "gcs-connector" % "hadoop2-2.0.0" % "runtime",
 
