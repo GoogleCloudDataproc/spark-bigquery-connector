@@ -39,8 +39,13 @@ case class SparkBigQueryOptions(
   viewsEnabled: Boolean = false,
   viewMaterializationProject: Option[String] = None,
   viewMaterializationDataset: Option[String] = None,
+  partitionField: Option[String] = None,
+  partitionExpirationMs: Option[Long] = None,
+  partitionRequireFilter: Option[Boolean] = None,
+  partitionType: Option[String] = None,
   viewExpirationTimeInHours: Int = 24,
-  maxReadRowsRetries: Int = 3) {
+  maxReadRowsRetries: Int = 3
+  ) {
 
   def createCredentials: Option[Credentials] =
     (credentials, credentialsFile) match {
@@ -106,10 +111,16 @@ object SparkBigQueryOptions {
     val viewMaterializationDataset =
       getAnyOption(allConf, parameters, "viewMaterializationDataset")
 
+    val partitionField = getOption(parameters, "partitionField")
+    val partitionExpirationMs = getOption(parameters, "partitionExpirationMs").map(_.toLong)
+    val partitionRequireFilter = getOption(parameters, "partitionRequireFilter").map(_.toBoolean)
+    val partitionType = getOption(parameters, "partitionType")
+
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
       filter, schema, parallelism, temporaryGcsBucket, intermediateFormat,
       combinePushedDownFilters, viewsEnabled, viewMaterializationProject,
-      viewMaterializationDataset)
+      viewMaterializationDataset, partitionField, partitionExpirationMs,
+      partitionRequireFilter, partitionType)
   }
 
   private def defaultBilledProject = () =>
