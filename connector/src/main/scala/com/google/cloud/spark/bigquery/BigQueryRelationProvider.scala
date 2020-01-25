@@ -30,6 +30,8 @@ class BigQueryRelationProvider(
     with SchemaRelationProvider
     with DataSourceRegister {
 
+  BigQueryUtil.validateScalaVersionCompatibility
+
   override def createRelation(sqlContext: SQLContext,
                               parameters: Map[String, String]): BaseRelation = {
     createRelationInternal(sqlContext, parameters)

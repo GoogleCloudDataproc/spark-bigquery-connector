@@ -1,5 +1,6 @@
-lazy val scala211Version = "2.11.8"
-lazy val scala212Version = "2.12.8"
+lazy val scala211Version = "2.11.12"
+lazy val scala212Version = "2.12.7"
+lazy val sparkVersion = "2.4.0"
 
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
@@ -13,6 +14,7 @@ lazy val commonSettings = Seq(
 // https://github.com/sbt/sbt-assembly/#q-despite-the-concerned-friends-i-still-want-publish-fat-jars-what-advice-do-you-have
 lazy val root = (project in file("."))
   .disablePlugins(AssemblyPlugin)
+  .settings(commonSettings, skip in publish := true)
   .aggregate(connector, fatJar, published)
 
 lazy val connector = (project in file("connector"))
@@ -22,23 +24,28 @@ lazy val connector = (project in file("connector"))
     commonSettings,
     publishSettings,
     name := "spark-bigquery",
-    sparkVersion := "2.4.4",
-    spName := "google/spark-bigquery",
-    sparkComponents ++= Seq("core", "sql"),
     inConfig(ITest)(Defaults.testTasks),
     testOptions in Test := Seq(Tests.Filter(unitFilter)),
     testOptions in ITest := Seq(Tests.Filter(itFilter)),
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
     buildInfoPackage := "com.google.cloud.spark.bigquery",
+    resourceGenerators in Compile += Def.task {
+      val file = (resourceManaged in Compile).value / "spark-bigquery-connector.properties"
+      IO.write(file, s"scala.version=${scalaVersion.value}\n")
+      Seq(file)
+    }.taskValue,
     libraryDependencies ++= Seq(
-      // Keep com.google.cloud dependencies in sync
-      "com.google.cloud" % "google-cloud-bigquery" % "1.102.0",
-      "com.google.cloud" % "google-cloud-bigquerystorage" % "0.120.0-beta",
-      // Keep in sync with com.google.cloud
-      "io.grpc" % "grpc-netty-shaded" % "1.24.1",
-      "com.google.guava" % "guava" % "28.1-jre",
+      "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
+      "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
+      "org.slf4j" % "slf4j-api" % "1.7.25" % "provided",
 
-      "org.apache.avro" % "avro" % "1.8.2",
+      // Keep com.google.cloud dependencies in sync
+      "com.google.cloud" % "google-cloud-bigquery" % "1.103.0",
+      "com.google.cloud" % "google-cloud-bigquerystorage" % "0.120.1-beta",
+      // Keep in sync with com.google.cloud
+      "io.grpc" % "grpc-netty-shaded" % "1.25.0",
+      "com.google.api" % "gax-grpc" % "1.52.0",
+      "com.google.guava" % "guava" % "28.1-jre",
 
       // runtime
       "com.google.cloud.bigdataoss" % "gcs-connector" % "hadoop2-2.0.0" % "runtime",
@@ -61,6 +68,7 @@ lazy val fatJar = project
       ).map(_.inAll),
 
     assemblyMergeStrategy in assembly := {
+      case "module-info.class" => MergeStrategy.discard
       case PathList(ps@_*) if ps.last.endsWith(".properties") => MergeStrategy.filterDistinctLines
       case PathList(ps@_*) if ps.last.endsWith(".proto") => MergeStrategy.discard
       // Relocate netty-tcnative.so. This is necessary even though gRPC shades it, because we shade
@@ -92,23 +100,15 @@ lazy val relocationPrefix = s"$myPackage.repackaged"
 val excludedOrgs = Seq(
   // All use commons-cli:1.4
   "commons-cli",
-  // All use commons-lang:2.6
-  "commons-lang",
   // Not a runtime dependency
   "com.google.auto.value",
   // All use jsr305:3.0.0
   "com.google.code.findbugs",
-  // All use jackson-core:2.6.5
-  "com.fasterxml.jackson.core",
   "javax.annotation",
   // Spark Uses 2.9.9 google-cloud-core uses 2.9.2
   "joda-time",
-  // All use httpclient:4.3.6
-  "org.apache.httpcomponents",
   // All use jackson-core-asl:1.9.13
   "org.codehaus.jackson",
-  // All use SLF4J
-  "org.slf4j",
   "com.sun.jdmk",
   "com.sun.jmx",
   "javax.activation",
@@ -118,14 +118,15 @@ val excludedOrgs = Seq(
 
 lazy val renamed = Seq(
   "avro.shaded",
+  "com.fasterxml",
   "com.google",
   "com.thoughtworks.paranamer",
   "com.typesafe",
   "io.grpc",
   "io.opencensus",
   "io.perfmark",
-  "org.apache.avro",
   "org.apache.commons",
+  "org.apache.http",
   "org.checkerframework",
   "org.codehaus.mojo",
   "org.conscrypt",
@@ -144,7 +145,6 @@ parallelExecution in ITest := false
 def unitFilter(name: String): Boolean = (name endsWith "Suite") && !itFilter(name)
 
 def itFilter(name: String): Boolean = name endsWith "ITSuite"
-
 
 lazy val publishSettings = Seq(
   homepage := Some(url("https://github.com/GoogleCloudPlatform/spark-bigquery-connector")),
