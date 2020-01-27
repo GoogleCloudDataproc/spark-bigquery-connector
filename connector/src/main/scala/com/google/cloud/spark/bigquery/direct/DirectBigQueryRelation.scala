@@ -85,14 +85,24 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
+    logInfo(
+      s"""
+         |Querying table $tableName, parameters sent from Spark:
+         |requiredColumns=[${requiredColumns.mkString(",")}],
+         |filters=[${filters.map(_.toString).mkString(",")}]"""
+        .stripMargin.replace('\n', ' ').trim)
     val actualTable = getActualTable(requiredColumns, filters)
     val actualTableDefinition = actualTable.getDefinition[StandardTableDefinition]
     val actualTableReference =
       DirectBigQueryRelation.toTableReference(actualTable.getTableId)
 
-    logDebug(s"filters pushed: ${filters.mkString(", ")}")
     val filter = getCompiledFilter(filters)
-    logDebug(s"buildScan: cols: [${requiredColumns.mkString(", ")}], filter: '$filter'")
+    logInfo(
+      s"""
+         |Going to read from ${BigQueryUtil.friendlyTableName(actualTable.getTableId)}
+         |columns=[${requiredColumns.mkString(", ")}],
+         |filter='$filter'"""
+        .stripMargin.replace('\n', ' ').trim)
     val readOptions = TableReadOptions.newBuilder()
         .addAllSelectedFields(requiredColumns.toList.asJava)
         .setRowRestriction(filter)
