@@ -2,6 +2,9 @@
 
 ## 0.12.0-beta - ???
 * Issue #72: Moved the shaded jar name from classifier to a new artifact name
+* Issues #73, #87: Added better logging to help understand which columns and filters
+  are asked by spark, and which are passed down to BigQuery
+* Issue #107: The connector will now alert when is is used with the wrong scala version
 
 ## 0.11.0-beta - 2019-12-18
 * Upgrade version of google-cloud-bigquery library to 1.102.0
