@@ -1,5 +1,5 @@
 lazy val scala211Version = "2.11.12"
-lazy val scala212Version = "2.12.7"
+lazy val scala212Version = "2.12.10"
 lazy val sparkVersion = "2.4.0"
 
 lazy val commonSettings = Seq(
@@ -38,8 +38,11 @@ lazy val connector = (project in file("connector"))
       "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
       "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
       "org.slf4j" % "slf4j-api" % "1.7.25" % "provided",
+      "org.codehaus.jackson" % "jackson-core-asl" % "1.9.13" % "provided",
+      "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
 
-      // Keep com.google.cloud dependencies in sync
+
+// Keep com.google.cloud dependencies in sync
       "com.google.cloud" % "google-cloud-bigquery" % "1.103.0",
       "com.google.cloud" % "google-cloud-bigquerystorage" % "0.120.1-beta",
       // Keep in sync with com.google.cloud
@@ -48,7 +51,9 @@ lazy val connector = (project in file("connector"))
       "com.google.guava" % "guava" % "28.1-jre",
 
       // runtime
-      "com.google.cloud.bigdataoss" % "gcs-connector" % "hadoop2-2.0.0" % "runtime",
+      // scalastyle:off
+      "com.google.cloud.bigdataoss" % "gcs-connector" % "hadoop2-2.0.0" % "runtime" classifier("shaded"),
+      // scalastyle:on
 
       // test
       "org.scalatest" %% "scalatest" % "3.1.0" % "test",
@@ -107,8 +112,6 @@ val excludedOrgs = Seq(
   "javax.annotation",
   // Spark Uses 2.9.9 google-cloud-core uses 2.9.2
   "joda-time",
-  // All use jackson-core-asl:1.9.13
-  "org.codehaus.jackson",
   "com.sun.jdmk",
   "com.sun.jmx",
   "javax.activation",
