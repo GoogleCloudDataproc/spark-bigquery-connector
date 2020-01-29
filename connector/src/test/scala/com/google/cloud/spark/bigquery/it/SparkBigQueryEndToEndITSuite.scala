@@ -181,7 +181,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
   test("balanced partitions") {
     import com.google.cloud.spark.bigquery._
-    failAfter(60 seconds) {
+    failAfter(120 seconds) {
       // Select first partition
       val df = spark.read
           .option("parallelism", 5)
