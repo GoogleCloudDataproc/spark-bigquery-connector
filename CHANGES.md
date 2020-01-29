@@ -1,6 +1,6 @@
 # Release Notes
 
-## 0.12.0-beta - ???
+## 0.12.0-beta - 2020-01-29
 * Issue #72: Moved the shaded jar name from classifier to a new artifact name
 * Issues #73, #87: Added better logging to help understand which columns and filters
   are asked by spark, and which are passed down to BigQuery
