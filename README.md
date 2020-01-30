@@ -67,7 +67,7 @@ gcloud dataproc clusters create "$MY_CLUSTER"
 The latest version connector of the connector is publicly available in 
 [gs://spark-lib/bigquery/spark-bigquery-latest.jar](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest.jar).
 A Scala 2.12 compiled version exist in
-[gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest.jar).
+[gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar).
 
 The connector is also available from the
 [Maven Central](https://repo1.maven.org/maven2/com/google/cloud/spark/) 
