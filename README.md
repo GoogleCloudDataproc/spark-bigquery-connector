@@ -65,9 +65,9 @@ gcloud dataproc clusters create "$MY_CLUSTER"
 ## Downloading and Using the Connector
 
 The latest version connector of the connector is publicly available in 
-[https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest.jar](https://console.cloud.google.com/storage/browser/spark-lib/bigquery).
+[gs://spark-lib/bigquery/spark-bigquery-latest.jar](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest.jar).
 A Scala 2.12 compiled version exist in
-https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar.
+[gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar).
 
 The connector is also available from the
 [Maven Central](https://repo1.maven.org/maven2/com/google/cloud/spark/) 
@@ -87,7 +87,7 @@ You can run a simple PySpark wordcount against the API without compilation by ru
 
 ```
 gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
-  --jars https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest.jar \
+  --jars gs://spark-lib/bigquery/spark-bigquery-latest.jar \
   examples/python/shakespeare.py
 ```
 
