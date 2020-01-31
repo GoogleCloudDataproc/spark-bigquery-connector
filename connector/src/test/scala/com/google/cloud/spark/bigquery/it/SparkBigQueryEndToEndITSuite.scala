@@ -174,7 +174,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
   test("head does not time out and OOM") {
     import com.google.cloud.spark.bigquery._
-    failAfter(3 seconds) {
+    failAfter(10 seconds) {
       spark.read.bigquery(LARGE_TABLE).select(LARGE_TABLE_FIELD).head
     }
   }
