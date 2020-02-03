@@ -174,14 +174,14 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
   test("head does not time out and OOM") {
     import com.google.cloud.spark.bigquery._
-    failAfter(3 seconds) {
+    failAfter(10 seconds) {
       spark.read.bigquery(LARGE_TABLE).select(LARGE_TABLE_FIELD).head
     }
   }
 
   test("balanced partitions") {
     import com.google.cloud.spark.bigquery._
-    failAfter(60 seconds) {
+    failAfter(120 seconds) {
       // Select first partition
       val df = spark.read
           .option("parallelism", 5)

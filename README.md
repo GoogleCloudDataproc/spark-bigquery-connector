@@ -62,9 +62,22 @@ MY_CLUSTER=...
 gcloud dataproc clusters create "$MY_CLUSTER"
 ```
 
-## Downloading the Connector
+## Downloading and Using the Connector
 
-The latest version connector of the connector is publicly available in [gs://spark-lib/bigquery/spark-bigquery-latest.jar](https://console.cloud.google.com/storage/browser/spark-lib/bigquery). A Scala 2.12 compiled version exist in gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar.
+The latest version connector of the connector is publicly available in 
+[gs://spark-lib/bigquery/spark-bigquery-latest.jar](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest.jar).
+A Scala 2.12 compiled version exist in
+[gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar).
+
+The connector is also available from the
+[Maven Central](https://repo1.maven.org/maven2/com/google/cloud/spark/) 
+repository. It can be used using the `--packages` option or the
+`spark.jars.packages` configuration property. Use the following value
+
+| Scala version | Connector Artifact |
+| --- | --- |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.12.0-beta` |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.12.0-beta` |
 
 ## Hello World Example
 
@@ -81,30 +94,7 @@ gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
 ## Example Codelab ##
 https://codelabs.developers.google.com/codelabs/pyspark-bigquery
 
-## Compiling against the connector
-
-Unless you wish to use the implicit Scala API `spark.read.bigquery("TABLE_ID")`, there is no need to compile against the connector.
-
-To include the connector in your project:
-
-### Maven
-
-```xml
-<dependency>
-  <groupId>com.google.cloud.spark</groupId>
-  <artifactId>spark-bigquery_${scala.version}</artifactId>
-  <version>0.11.0-beta</version>
-  <classifier>shaded</classifier>
-</dependency>
-```
-
-### SBT
-
-```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery" % "0.11.0-beta" classifier "shaded"
-```
-
-## API
+## Usage
 
 The connector uses the cross language [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources):
 
@@ -465,6 +455,69 @@ note there are a few caveats:
   either set the viewsEnabled option when reading the specific view
   (`.option("viewsEnabled", "true")`) or set it globally by calling
   `spark.conf.set("viewsEnabled", "true")`.
+
+## Using in Jupyter Notebooks
+
+The connector can be used in [Jupyter notebooks](https://jupyter.org/) even if
+it is not installed on the Spark cluster. It can be added as an external jar in
+using the following code:
+
+**Python:**
+```python
+from pyspark.sql import SparkSession
+spark = SparkSession.builder\
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.12.0-beta")\
+  .getOrCreate()
+df = spark.read.format("bigquery")\
+  .option("table","dataset.table")\
+  .load()
+```
+
+**Scala:**
+```python
+val spark = SparkSession.builder
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.12.0-beta")
+  .getOrCreate()
+val df = spark.read.format("bigquery")
+  .option("table","dataset.table")
+  .load()
+```
+
+In case Spark cluster is using Scala 2.12 (it's optional for Spark 2.4.x,
+mandatory in 3.0.x), then the relevant package is
+com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.12.0-beta. In
+order to know which Scala version is used, please run the following code:
+
+**Python:**
+```python
+spark.sparkContext._jvm.scala.util.Properties.versionString()
+```
+
+**Scala:**
+```python
+scala.util.Properties.versionString
+```
+## Compiling against the connector
+
+Unless you wish to use the implicit Scala API `spark.read.bigquery("TABLE_ID")`, there is no need to compile against the connector.
+
+To include the connector in your project:
+
+### Maven
+
+```xml
+<dependency>
+  <groupId>com.google.cloud.spark</groupId>
+  <artifactId>spark-bigquery-with-dependencies_${scala.version}</artifactId>
+  <version>0.12.0-beta</version>
+</dependency>
+```
+
+### SBT
+
+```sbt
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.12.0-beta"
+```
 
 ## Building the Connector
 

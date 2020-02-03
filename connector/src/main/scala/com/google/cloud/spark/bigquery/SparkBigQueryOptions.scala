@@ -65,6 +65,9 @@ case class SparkBigQueryOptions(
 /** Resolvers for {@link SparkBigQueryOptions} */
 object SparkBigQueryOptions {
 
+  val GcsConfigCredentialsFileProperty = "google.cloud.auth.service.account.json.keyfile"
+  val GcsConfigProjectIdProperty = "fs.gs.project.id"
+
   val IntermediateFormatOption = "intermediateFormat"
   val ViewsEnabledOption = "viewsEnabled"
 
@@ -80,8 +83,10 @@ object SparkBigQueryOptions {
     val tableParam = getRequiredOption(parameters, "table")
     val datasetParam = getOption(parameters, "dataset")
     val projectParam = getOption(parameters, "project")
+      .orElse(Option(hadoopConf.get(GcsConfigProjectIdProperty)))
     val credsParam = getAnyOption(allConf, parameters, "credentials")
     val credsFileParam = getAnyOption(allConf, parameters, "credentialsFile")
+      .orElse(Option(hadoopConf.get(GcsConfigCredentialsFileProperty)))
     val tableId = BigQueryUtil.parseTableId(tableParam, datasetParam, projectParam)
     val parentProject = getRequiredOption(parameters, "parentProject",
       defaultBilledProject)
