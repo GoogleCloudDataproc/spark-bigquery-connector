@@ -39,8 +39,8 @@ case class SparkBigQueryOptions(
   viewsEnabled: Boolean = false,
   viewMaterializationProject: Option[String] = None,
   viewMaterializationDataset: Option[String] = None,
-  viewExpirationTimeInHours:Int = 24,
-  maxReadRowsRetries:Int = 3) {
+  viewExpirationTimeInHours: Int = 24,
+  maxReadRowsRetries: Int = 3) {
 
   def createCredentials: Option[Credentials] =
     (credentials, credentialsFile) match {
@@ -60,12 +60,14 @@ case class SparkBigQueryOptions(
 /** Resolvers for {@link SparkBigQueryOptions} */
 object SparkBigQueryOptions {
 
+  val GcsConfigCredentialsFileProperty = "google.cloud.auth.service.account.json.keyfile"
+  val GcsConfigProjectIdProperty = "fs.gs.project.id"
+
   val IntermediateFormatOption = "intermediateFormat"
   val ViewsEnabledOption = "viewsEnabled"
 
-  val DefaultFormat = FormatOptions.parquet()
-  private val PermittedIntermediateFormats =
-    Set(FormatOptions.orc(), FormatOptions.parquet())
+  val DefaultFormat: FormatOptions = FormatOptions.parquet()
+  private val PermittedIntermediateFormats = Set(FormatOptions.orc(), FormatOptions.parquet())
 
   def apply(
      parameters: Map[String, String],
@@ -76,8 +78,10 @@ object SparkBigQueryOptions {
     val tableParam = getRequiredOption(parameters, "table")
     val datasetParam = getOption(parameters, "dataset")
     val projectParam = getOption(parameters, "project")
+      .orElse(Option(hadoopConf.get(GcsConfigProjectIdProperty)))
     val credsParam = getAnyOption(allConf, parameters, "credentials")
     val credsFileParam = getAnyOption(allConf, parameters, "credentialsFile")
+      .orElse(Option(hadoopConf.get(GcsConfigCredentialsFileProperty)))
     val tableId = BigQueryUtil.parseTableId(tableParam, datasetParam, projectParam)
     val parentProject = getRequiredOption(parameters, "parentProject",
       defaultBilledProject)
@@ -135,7 +139,7 @@ object SparkBigQueryOptions {
                                   options: Map[String, String],
                                   name: String,
                                   defaultValue: Boolean): Boolean =
-    getAnyOption(globalOptions, options, ViewsEnabledOption)
+    getAnyOption(globalOptions, options, name)
       .map(_.toBoolean)
       .getOrElse(defaultValue)
 }

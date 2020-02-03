@@ -30,6 +30,8 @@ class BigQueryRelationProvider(
     with SchemaRelationProvider
     with DataSourceRegister {
 
+  BigQueryUtil.validateScalaVersionCompatibility
+
   override def createRelation(sqlContext: SQLContext,
                               parameters: Map[String, String]): BaseRelation = {
     createRelationInternal(sqlContext, parameters)
@@ -64,6 +66,8 @@ class BigQueryRelationProvider(
              |Notice additional cost may occur."""
             .stripMargin.replace('\n', ' '))
       }
+      case unsupported => throw new UnsupportedOperationException(
+        s"The type of table $tableName is currently not supported: $unsupported")
     }
   }
 

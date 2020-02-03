@@ -19,9 +19,9 @@ import java.nio.ByteBuffer
 
 import com.google.cloud.bigquery.LegacySQLTypeName._
 import com.google.cloud.bigquery.{Field, LegacySQLTypeName, Schema}
-import com.typesafe.scalalogging.Logger
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.util.Utf8
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.catalyst.util.GenericArrayData
@@ -31,9 +31,7 @@ import org.apache.spark.unsafe.types.UTF8String
 import scala.collection.JavaConverters._
 
 /** Stateless converters for Converting between Spark and BigQuery types. */
-object SchemaConverters {
-
-  private val log = Logger(getClass)
+object SchemaConverters extends Logging {
 
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
@@ -76,7 +74,7 @@ object SchemaConverters {
 
 
     val res = StructType(schema.getFields.asScala.map(convert))
-    log.debug(s"BQ Schema:\n'${schema.toString}'\n\nSpark schema:\n${res.treeString}")
+    logDebug(s"BQ Schema:\n'${schema.toString}'\n\nSpark schema:\n${res.treeString}")
     res
   }
 

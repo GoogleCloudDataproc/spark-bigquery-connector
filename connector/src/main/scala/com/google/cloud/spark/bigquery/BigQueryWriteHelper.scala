@@ -19,9 +19,9 @@ import java.util.UUID
 
 import com.google.cloud.bigquery.{BigQuery, BigQueryException, JobInfo, LoadJobConfiguration}
 import com.google.cloud.http.BaseHttpServiceException
-import com.typesafe.scalalogging.Logger
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
 import scala.collection.JavaConverters._
@@ -30,9 +30,9 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
                                sqlContext: SQLContext,
                                saveMode: SaveMode,
                                options: SparkBigQueryOptions,
-                               data: DataFrame) {
+                               data: DataFrame)
+  extends Logging {
 
-  private val logger = Logger(getClass)
   val conf = sqlContext.sparkContext.hadoopConfiguration
 
   val temporaryGcsPath = {
@@ -52,9 +52,11 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     gcsPath
   }
 
-  val saveModeToWriteDisposition = Map(
-    SaveMode.Append -> JobInfo.WriteDisposition.WRITE_APPEND,
-    SaveMode.Overwrite -> JobInfo.WriteDisposition.WRITE_TRUNCATE)
+  def saveModeToWriteDisposition(saveMode: SaveMode): JobInfo.WriteDisposition = saveMode match {
+    case SaveMode.Append => JobInfo.WriteDisposition.WRITE_APPEND
+    case SaveMode.Overwrite => JobInfo.WriteDisposition.WRITE_TRUNCATE
+    case unsupported => throw new UnsupportedOperationException(s"SaveMode $unsupported is currently not supported.")
+  }
 
   def writeDataFrameToBigQuery: Unit = {
     try {
@@ -89,7 +91,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     val jobInfo = JobInfo.of(jobConfiguration)
     val job = bigQuery.create(jobInfo)
 
-    logger.info(s"Submitted load to ${options.tableId}. jobId: ${job.getJobId}")
+    logInfo(s"Submitted load to ${options.tableId}. jobId: ${job.getJobId}")
     // TODO(davidrab): add retry options
     val finishedJob = job.waitFor()
     if (finishedJob.getStatus.getError != null) {
@@ -99,7 +101,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
            |${finishedJob.getStatus.getError.getMessage}""".stripMargin.replace('\n', ' '),
         finishedJob.getStatus.getError)
     } else {
-      logger.info(s"Done loading to ${friendlyTableName}. jobId: ${job.getJobId}")
+      logInfo(s"Done loading to ${friendlyTableName}. jobId: ${job.getJobId}")
     }
   }
 
@@ -126,8 +128,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
  * @param conf the hadoop configuration
  */
 case class IntermediateDataCleaner(path: Path, conf: Configuration)
-  extends Thread {
-  private val logger = Logger(getClass)
+  extends Thread with Logging {
 
   def deletePath: Unit =
     try {
@@ -136,7 +137,7 @@ case class IntermediateDataCleaner(path: Path, conf: Configuration)
         fs.delete(path, true)
       }
     } catch {
-      case e: Exception => logger.error(s"Failed to delete path $path", e)
+      case e: Exception => logError(s"Failed to delete path $path", e)
     }
 
   // fs.exists can throw exception on missing path

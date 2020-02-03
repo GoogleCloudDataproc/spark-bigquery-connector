@@ -15,9 +15,10 @@
  */
 package com.google.cloud.spark.bigquery
 
+import java.util.Properties
+
 import com.google.cloud.bigquery.{BigQueryError, BigQueryException, TableId}
 import com.google.cloud.http.BaseHttpServiceException.UNKNOWN_CODE
-
 
 import scala.util.matching.Regex
 import io.grpc.StatusRuntimeException
@@ -99,4 +100,23 @@ object BigQueryUtil {
       case _ => false
     }
   }
+
+  // validating that the connector's scala version and the runtime's scala
+  // version are the same
+  def validateScalaVersionCompatibility(): Unit = {
+    val runtimeScalaVersion = trimVersion(scala.util.Properties.versionNumberString)
+    val buildProperties = new Properties
+    buildProperties.load(getClass.getResourceAsStream("/spark-bigquery-connector.properties"))
+    val connectorScalaVersion = trimVersion(buildProperties.getProperty("scala.version"))
+    if (!runtimeScalaVersion.equals(connectorScalaVersion)) {
+      throw new IllegalStateException(
+        s"""
+           |This connector was made for Scala $connectorScalaVersion,
+           |it was not meant to run on Scala $runtimeScalaVersion"""
+          .stripMargin.replace('\n', ' '))
+    }
+  }
+
+  private def trimVersion(version: String) =
+    version.substring(0, version.lastIndexOf('.'))
 }
