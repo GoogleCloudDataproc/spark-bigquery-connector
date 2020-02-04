@@ -37,8 +37,8 @@ case class SparkBigQueryOptions(
   intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat,
   combinePushedDownFilters: Boolean = true,
   viewsEnabled: Boolean = false,
-  viewMaterializationProject: Option[String] = None,
-  viewMaterializationDataset: Option[String] = None,
+  materializationProject: Option[String] = None,
+  materializationDataset: Option[String] = None,
   partitionField: Option[String] = None,
   partitionExpirationMs: Option[Long] = None,
   partitionRequireFilter: Option[Boolean] = None,
@@ -106,10 +106,12 @@ object SparkBigQueryOptions {
       allConf, parameters, "combinePushedDownFilters", true)
     val viewsEnabled = getAnyBooleanOption(
       allConf, parameters, ViewsEnabledOption, false)
-    val viewMaterializationProject =
-      getAnyOption(allConf, parameters, "viewMaterializationProject")
-    val viewMaterializationDataset =
-      getAnyOption(allConf, parameters, "viewMaterializationDataset")
+    val materializationProject =
+      getAnyOption(allConf, parameters,
+        Seq("materializationProject", "viewMaterializationProject"))
+    val materializationDataset =
+      getAnyOption(allConf, parameters,
+        Seq("materializationDataset", "viewMaterializationDataset"))
 
     val partitionField = getOption(parameters, "partitionField")
     val partitionExpirationMs = getOption(parameters, "partitionExpirationMs").map(_.toLong)
@@ -118,8 +120,8 @@ object SparkBigQueryOptions {
 
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
       filter, schema, parallelism, temporaryGcsBucket, intermediateFormat,
-      combinePushedDownFilters, viewsEnabled, viewMaterializationProject,
-      viewMaterializationDataset, partitionField, partitionExpirationMs,
+      combinePushedDownFilters, viewsEnabled, materializationProject,
+      materializationDataset, partitionField, partitionExpirationMs,
       partitionRequireFilter, partitionType)
   }
 
@@ -145,6 +147,16 @@ object SparkBigQueryOptions {
                            options: Map[String, String],
                            name: String): Option[String] =
     options.get(name).orElse(globalOptions.get(name))
+
+  // gives the option to support old configurations as fallback
+  // Used to provide backward compatibility
+  private def getAnyOption(
+      globalOptions: Map[String, String],
+      options: Map[String, String],
+      names: Seq[String]): Option[String] =
+    names.map(getAnyOption(globalOptions, options, _))
+      .find(_.isDefined)
+      .getOrElse(None)
 
   private def getAnyBooleanOption(globalOptions: Map[String, String],
                                   options: Map[String, String],

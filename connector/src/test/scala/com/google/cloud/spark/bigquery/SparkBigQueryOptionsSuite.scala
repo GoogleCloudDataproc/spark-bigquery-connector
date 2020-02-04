@@ -79,7 +79,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
     }
   }
 
-  test("no project id is rovided") {
+  test("no project id is provided") {
     assertResult(null) {
       val options = SparkBigQueryOptions(
         parameters,
@@ -87,6 +87,50 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         new Configuration,
         None) // schema
       options.tableId.getProject
+    }
+  }
+
+  test("getAnyOptionWithFallback - only new config exist") {
+    assertResult(Some("foo")) {
+      val options = SparkBigQueryOptions(
+        parameters + ("materializationProject" -> "foo"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.materializationProject
+    }
+  }
+
+  test("getAnyOptionWithFallback - both configs exist") {
+    assertResult(Some("foo")) {
+      val options = SparkBigQueryOptions(
+        parameters + ("materializationProject" -> "foo", "viewMaterializationProject" -> "bar"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.materializationProject
+    }
+  }
+
+  test("getAnyOptionWithFallback - only old config exist") {
+    assertResult(Some("bar")) {
+      val options = SparkBigQueryOptions(
+        parameters + ("viewMaterializationProject" -> "bar"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.materializationProject
+    }
+  }
+
+  test("getAnyOptionWithFallback - no config exist") {
+    assertResult(None) {
+      val options = SparkBigQueryOptions(
+        parameters,
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.materializationProject
     }
   }
 }
