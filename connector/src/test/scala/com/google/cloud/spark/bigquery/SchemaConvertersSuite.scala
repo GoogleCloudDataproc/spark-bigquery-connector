@@ -55,7 +55,7 @@ class SchemaConvertersSuite extends org.scalatest.FunSuite {
       StructField("foo", StringType),
       StructField("bar", LongType),
       StructField("required", BooleanType, nullable = false),
-      StructField("binary_arr", ArrayType(BinaryType, containsNull = false)),
+      StructField("binary_arr", ArrayType(BinaryType, containsNull = true)),
       StructField("float", DoubleType),
       StructField("numeric", DataTypes.createDecimalType(38, 9)),
       StructField("date", DateType),
