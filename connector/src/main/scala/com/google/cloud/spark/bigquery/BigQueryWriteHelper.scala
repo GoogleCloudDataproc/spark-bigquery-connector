@@ -17,7 +17,7 @@ package com.google.cloud.spark.bigquery
 
 import java.util.UUID
 
-import com.google.cloud.bigquery.{BigQuery, BigQueryException, JobInfo, LoadJobConfiguration}
+import com.google.cloud.bigquery.{BigQuery, BigQueryException, JobInfo, LoadJobConfiguration, TimePartitioning}
 import com.google.cloud.http.BaseHttpServiceException
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
@@ -82,11 +82,32 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       .toList
       .asJava
 
-    val jobConfiguration = LoadJobConfiguration.newBuilder(
+    val jobConfigurationBuilder = LoadJobConfiguration.newBuilder(
       options.tableId, sourceUris, options.intermediateFormat)
       .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
       .setWriteDisposition(saveModeToWriteDisposition(saveMode))
-      .build
+
+    if (options.partitionField.isDefined || options.partitionType.isDefined) {
+      val timePartitionBuilder = TimePartitioning.newBuilder(
+        TimePartitioning.Type.valueOf(options.partitionType.getOrElse("DAY"))
+      )
+
+      if ( options.partitionExpirationMs.isDefined) {
+        timePartitionBuilder.setExpirationMs(options.partitionExpirationMs.get)
+      }
+
+      if ( options.partitionRequireFilter.isDefined) {
+        timePartitionBuilder.setRequirePartitionFilter(options.partitionRequireFilter.get)
+      }
+
+      if ( options.partitionField.isDefined) {
+        timePartitionBuilder.setField(options.partitionField.get)
+      }
+
+      jobConfigurationBuilder.setTimePartitioning(timePartitionBuilder.build())
+    }
+
+    val jobConfiguration = jobConfigurationBuilder.build
 
     val jobInfo = JobInfo.of(jobConfiguration)
     val job = bigQuery.create(jobInfo)
