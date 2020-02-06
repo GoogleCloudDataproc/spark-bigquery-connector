@@ -20,6 +20,7 @@ import java.io.{ByteArrayInputStream, FileInputStream}
 import com.google.api.client.util.Base64
 import com.google.auth.Credentials
 import com.google.auth.oauth2.GoogleCredentials
+import com.google.cloud.bigquery.JobInfo.CreateDisposition
 import com.google.cloud.bigquery.{BigQueryOptions, FormatOptions, TableId}
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.types.StructType
@@ -43,6 +44,7 @@ case class SparkBigQueryOptions(
   partitionExpirationMs: Option[Long] = None,
   partitionRequireFilter: Option[Boolean] = None,
   partitionType: Option[String] = None,
+  createDisposition: Option[CreateDisposition] = None,
   viewExpirationTimeInHours: Int = 24,
   maxReadRowsRetries: Int = 3
   ) {
@@ -118,11 +120,14 @@ object SparkBigQueryOptions {
     val partitionRequireFilter = getOption(parameters, "partitionRequireFilter").map(_.toBoolean)
     val partitionType = getOption(parameters, "partitionType")
 
+    val createDisposition = getOption(parameters, "createDisposition")
+        .map(_.toUpperCase).map(CreateDisposition.valueOf)
+
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
       filter, schema, parallelism, temporaryGcsBucket, intermediateFormat,
       combinePushedDownFilters, viewsEnabled, materializationProject,
       materializationDataset, partitionField, partitionExpirationMs,
-      partitionRequireFilter, partitionType)
+      partitionRequireFilter, partitionType, createDisposition)
   }
 
   private def defaultBilledProject = () =>

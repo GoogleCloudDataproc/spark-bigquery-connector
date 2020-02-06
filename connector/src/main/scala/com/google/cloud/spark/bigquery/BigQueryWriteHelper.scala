@@ -15,9 +15,11 @@
  */
 package com.google.cloud.spark.bigquery
 
+import java.io.IOException
 import java.util.UUID
 
-import com.google.cloud.bigquery.{BigQuery, BigQueryException, JobInfo, LoadJobConfiguration, TimePartitioning}
+import com.google.cloud.bigquery.JobInfo.CreateDisposition.CREATE_NEVER
+import com.google.cloud.bigquery._
 import com.google.cloud.http.BaseHttpServiceException
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
@@ -30,7 +32,8 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
                                sqlContext: SQLContext,
                                saveMode: SaveMode,
                                options: SparkBigQueryOptions,
-                               data: DataFrame)
+                               data: DataFrame,
+                               tableExists: Boolean)
   extends Logging {
 
   val conf = sqlContext.sparkContext.hadoopConfiguration
@@ -52,13 +55,18 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     gcsPath
   }
 
-  def saveModeToWriteDisposition(saveMode: SaveMode): JobInfo.WriteDisposition = saveMode match {
-    case SaveMode.Append => JobInfo.WriteDisposition.WRITE_APPEND
-    case SaveMode.Overwrite => JobInfo.WriteDisposition.WRITE_TRUNCATE
-    case unsupported => throw new UnsupportedOperationException(s"SaveMode $unsupported is currently not supported.")
-  }
-
   def writeDataFrameToBigQuery: Unit = {
+    // If the CreateDisposition is CREATE_NEVER, and the table does not exist,
+    // there's no point in writing the data to GCS in teh first place as it going
+    // to file on the BigQuery side.
+    if (options.createDisposition.map(cd => !tableExists && cd == CREATE_NEVER).getOrElse(false)) {
+      throw new IOException(
+        s"""
+           |For table ${BigQueryUtil.friendlyTableName(options.tableId)}
+           |Create Disposition is CREATE_NEVER and the table does not exists.
+           |Aborting the insert""".stripMargin.replace('\n', ' '))
+    }
+
     try {
       // based on pmkc's suggestion at https://git.io/JeWRt
       Runtime.getRuntime.addShutdownHook(createTemporaryPathDeleter)
@@ -87,20 +95,24 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
       .setWriteDisposition(saveModeToWriteDisposition(saveMode))
 
+    if (options.createDisposition.isDefined) {
+      jobConfigurationBuilder.setCreateDisposition(options.createDisposition.get)
+    }
+
     if (options.partitionField.isDefined || options.partitionType.isDefined) {
       val timePartitionBuilder = TimePartitioning.newBuilder(
         TimePartitioning.Type.valueOf(options.partitionType.getOrElse("DAY"))
       )
 
-      if ( options.partitionExpirationMs.isDefined) {
+      if (options.partitionExpirationMs.isDefined) {
         timePartitionBuilder.setExpirationMs(options.partitionExpirationMs.get)
       }
 
-      if ( options.partitionRequireFilter.isDefined) {
+      if (options.partitionRequireFilter.isDefined) {
         timePartitionBuilder.setRequirePartitionFilter(options.partitionRequireFilter.get)
       }
 
-      if ( options.partitionField.isDefined) {
+      if (options.partitionField.isDefined) {
         timePartitionBuilder.setField(options.partitionField.get)
       }
 
@@ -126,6 +138,12 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     }
   }
 
+  def saveModeToWriteDisposition(saveMode: SaveMode): JobInfo.WriteDisposition = saveMode match {
+    case SaveMode.Append => JobInfo.WriteDisposition.WRITE_APPEND
+    case SaveMode.Overwrite => JobInfo.WriteDisposition.WRITE_TRUNCATE
+    case unsupported => throw new UnsupportedOperationException(s"SaveMode $unsupported is currently not supported.")
+  }
+
   def friendlyTableName: String = BigQueryUtil.friendlyTableName(options.tableId)
 
   def cleanTempraryGcsPath: Unit = {
@@ -145,16 +163,19 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 /**
  * Responsible for recursively deleting the intermediate path.
  * Implementing Thread in order to act as shutdown hook.
+ *
  * @param path the path to delete
  * @param conf the hadoop configuration
  */
 case class IntermediateDataCleaner(path: Path, conf: Configuration)
   extends Thread with Logging {
 
+  override def run: Unit = deletePath
+
   def deletePath: Unit =
     try {
       val fs = path.getFileSystem(conf)
-      if(pathExists(fs, path)) {
+      if (pathExists(fs, path)) {
         fs.delete(path, true)
       }
     } catch {
@@ -162,15 +183,13 @@ case class IntermediateDataCleaner(path: Path, conf: Configuration)
     }
 
   // fs.exists can throw exception on missing path
-  private def pathExists(fs: FileSystem, path: Path) : Boolean = {
+  private def pathExists(fs: FileSystem, path: Path): Boolean = {
     try {
       fs.exists(path)
     } catch {
       case e: Exception => false
     }
   }
-
-  override def run : Unit = deletePath
 }
 
 /**
