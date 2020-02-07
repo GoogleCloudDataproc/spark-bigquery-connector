@@ -221,6 +221,24 @@ The API Supports a number of options to configure the read
    <td>Read</td>
   </tr>
   <tr>
+     <td><code>createDisposition</code>
+      </td>
+      <td>Specifies whether the job is allowed to create new tables. The permitted
+          values are:
+          <ul>
+            <li><code>CREATE_IF_NEEDED</code> - Configures the job to create the
+                table if it does not exist.</li>
+            <li><code>CREATE_NEVER</code> - Configures the job to fail if the
+                table does not exist.</li>
+          </ul>
+          This option takes place only in case Spark has decided to write data
+          to the table based on the SaveMode.
+         <br/>(Optional. Default to CREATE_IF_NEEDED).
+      </td>
+      <td>Read</td>
+   </tr>
+
+  <tr>
    <td><code>temporaryGcsBucket</code>
    </td>
    <td>The GCS bucket that temporarily holds the data before it is loaded to
@@ -266,9 +284,6 @@ The API Supports a number of options to configure the read
         </td>
         <td>Write</td>
      </tr>
-    
-    
-    
 </table>
 
 ### Data types

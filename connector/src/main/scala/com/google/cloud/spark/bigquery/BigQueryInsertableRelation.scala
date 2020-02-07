@@ -38,14 +38,14 @@ case class BigQueryInsertableRelation(val bigQuery: BigQuery,
     logDebug(s"insert data=${data}, overwrite=$overwrite")
     // the helper also supports the v2 api
     val saveMode = if (overwrite) SaveMode.Overwrite else SaveMode.Append
-    val helper = BigQueryWriteHelper(bigQuery, sqlContext, saveMode, options, data)
+    val helper = BigQueryWriteHelper(bigQuery, sqlContext, saveMode, options, data, exists)
     helper.writeDataFrameToBigQuery
   }
 
   /**
    * Does this table exist?
    */
-  def exists: Boolean = {
+  lazy val exists: Boolean = {
     // scalastyle:off
     // See https://googleapis.dev/java/google-cloud-clients/latest/com/google/cloud/bigquery/BigQuery.html#getTable-com.google.cloud.bigquery.TableId-com.google.cloud.bigquery.BigQuery.TableOption...-
     // scalastyle:on

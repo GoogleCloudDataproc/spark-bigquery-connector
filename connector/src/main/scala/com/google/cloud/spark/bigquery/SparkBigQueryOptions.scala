@@ -20,6 +20,7 @@ import java.io.{ByteArrayInputStream, FileInputStream}
 import com.google.api.client.util.Base64
 import com.google.auth.Credentials
 import com.google.auth.oauth2.GoogleCredentials
+import com.google.cloud.bigquery.JobInfo.CreateDisposition
 import com.google.cloud.bigquery.{BigQueryOptions, FormatOptions, TableId}
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.types.StructType
@@ -37,12 +38,13 @@ case class SparkBigQueryOptions(
   intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat,
   combinePushedDownFilters: Boolean = true,
   viewsEnabled: Boolean = false,
-  viewMaterializationProject: Option[String] = None,
-  viewMaterializationDataset: Option[String] = None,
+  materializationProject: Option[String] = None,
+  materializationDataset: Option[String] = None,
   partitionField: Option[String] = None,
   partitionExpirationMs: Option[Long] = None,
   partitionRequireFilter: Option[Boolean] = None,
   partitionType: Option[String] = None,
+  createDisposition: Option[CreateDisposition] = None,
   viewExpirationTimeInHours: Int = 24,
   maxReadRowsRetries: Int = 3
   ) {
@@ -106,21 +108,26 @@ object SparkBigQueryOptions {
       allConf, parameters, "combinePushedDownFilters", true)
     val viewsEnabled = getAnyBooleanOption(
       allConf, parameters, ViewsEnabledOption, false)
-    val viewMaterializationProject =
-      getAnyOption(allConf, parameters, "viewMaterializationProject")
-    val viewMaterializationDataset =
-      getAnyOption(allConf, parameters, "viewMaterializationDataset")
+    val materializationProject =
+      getAnyOption(allConf, parameters,
+        Seq("materializationProject", "viewMaterializationProject"))
+    val materializationDataset =
+      getAnyOption(allConf, parameters,
+        Seq("materializationDataset", "viewMaterializationDataset"))
 
     val partitionField = getOption(parameters, "partitionField")
     val partitionExpirationMs = getOption(parameters, "partitionExpirationMs").map(_.toLong)
     val partitionRequireFilter = getOption(parameters, "partitionRequireFilter").map(_.toBoolean)
     val partitionType = getOption(parameters, "partitionType")
 
+    val createDisposition = getOption(parameters, "createDisposition")
+        .map(_.toUpperCase).map(CreateDisposition.valueOf)
+
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
       filter, schema, parallelism, temporaryGcsBucket, intermediateFormat,
-      combinePushedDownFilters, viewsEnabled, viewMaterializationProject,
-      viewMaterializationDataset, partitionField, partitionExpirationMs,
-      partitionRequireFilter, partitionType)
+      combinePushedDownFilters, viewsEnabled, materializationProject,
+      materializationDataset, partitionField, partitionExpirationMs,
+      partitionRequireFilter, partitionType, createDisposition)
   }
 
   private def defaultBilledProject = () =>
@@ -145,6 +152,16 @@ object SparkBigQueryOptions {
                            options: Map[String, String],
                            name: String): Option[String] =
     options.get(name).orElse(globalOptions.get(name))
+
+  // gives the option to support old configurations as fallback
+  // Used to provide backward compatibility
+  private def getAnyOption(
+      globalOptions: Map[String, String],
+      options: Map[String, String],
+      names: Seq[String]): Option[String] =
+    names.map(getAnyOption(globalOptions, options, _))
+      .find(_.isDefined)
+      .getOrElse(None)
 
   private def getAnyBooleanOption(globalOptions: Map[String, String],
                                   options: Map[String, String],

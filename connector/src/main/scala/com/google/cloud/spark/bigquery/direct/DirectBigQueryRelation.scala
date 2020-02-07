@@ -227,8 +227,8 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   def createDestinationTable: TableId = {
-    val project = options.viewMaterializationProject.getOrElse(tableId.getProject)
-    val dataset = options.viewMaterializationDataset.getOrElse(tableId.getDataset)
+    val project = options.materializationProject.getOrElse(tableId.getProject)
+    val dataset = options.materializationDataset.getOrElse(tableId.getDataset)
     val uuid = UUID.randomUUID()
     val name =
       s"_sbc_${uuid.getMostSignificantBits.toHexString}${uuid.getLeastSignificantBits.toHexString}"
