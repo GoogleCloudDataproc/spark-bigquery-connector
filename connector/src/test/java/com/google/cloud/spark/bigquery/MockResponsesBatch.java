@@ -15,8 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.cloud.bigquery.storage.v1beta1.Storage.ReadRowsResponse;
-import com.google.protobuf.Message;
+import com.google.cloud.bigquery.storage.v1beta2.ReadRowsResponse;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;

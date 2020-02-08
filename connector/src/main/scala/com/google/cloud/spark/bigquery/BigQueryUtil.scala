@@ -96,7 +96,7 @@ object BigQueryUtil {
     cause match {
       case sse: StatusRuntimeException =>
         sse.getStatus.getCode == Status.Code.INTERNAL &&
-        InternalErrorMessages.exists(errorMsg => cause.getMessage.contains(errorMsg))    
+        InternalErrorMessages.exists(errorMsg => cause.getMessage.contains(errorMsg))
       case _ => false
     }
   }
