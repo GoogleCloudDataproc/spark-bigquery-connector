@@ -33,7 +33,7 @@ case class SparkBigQueryOptions(
   credentialsFile: Option[String] = None,
   filter: Option[String] = None,
   schema: Option[StructType] = None,
-  parallelism: Option[Int] = None,
+  maxParallelism: Option[Int] = None,
   temporaryGcsBucket: Option[String] = None,
   intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat,
   combinePushedDownFilters: Boolean = true,
@@ -93,7 +93,9 @@ object SparkBigQueryOptions {
     val parentProject = getRequiredOption(parameters, "parentProject",
       defaultBilledProject)
     val filter = getOption(parameters, "filter")
-    val parallelism = getOption(parameters, "parallelism").map(_.toInt)
+    val maxParallelism = getOptionFromMultipleParams(
+      parameters, Seq("maxParallelism", "parallelism"))
+      .map(_.toInt)
     val temporaryGcsBucket = getAnyOption(allConf, parameters, "temporaryGcsBucket")
     val intermediateFormat = getAnyOption(allConf, parameters, IntermediateFormatOption)
       .map(s => FormatOptions.of(s.toUpperCase))
@@ -121,10 +123,10 @@ object SparkBigQueryOptions {
     val partitionType = getOption(parameters, "partitionType")
 
     val createDisposition = getOption(parameters, "createDisposition")
-        .map(_.toUpperCase).map(CreateDisposition.valueOf)
+        .map(_.toUpperCase).map(param => CreateDisposition.valueOf(param))
 
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
-      filter, schema, parallelism, temporaryGcsBucket, intermediateFormat,
+      filter, schema, maxParallelism, temporaryGcsBucket, intermediateFormat,
       combinePushedDownFilters, viewsEnabled, materializationProject,
       materializationDataset, partitionField, partitionExpirationMs,
       partitionRequireFilter, partitionType, createDisposition)
@@ -148,9 +150,19 @@ object SparkBigQueryOptions {
     options.get(name).orElse(fallback())
   }
 
-  private def getAnyOption(globalOptions: Map[String, String],
-                           options: Map[String, String],
-                           name: String): Option[String] =
+  private def getOptionFromMultipleParams(
+      options: Map[String, String],
+      names: Seq[String],
+      fallback: () => Option[String] = () => None): Option[String] = {
+    names.map(getOption(options, _))
+      .find(_.isDefined)
+      .getOrElse(fallback())
+  }
+
+  private def getAnyOption(
+      globalOptions: Map[String, String],
+      options: Map[String, String],
+      name: String): Option[String] =
     options.get(name).orElse(globalOptions.get(name))
 
   // gives the option to support old configurations as fallback

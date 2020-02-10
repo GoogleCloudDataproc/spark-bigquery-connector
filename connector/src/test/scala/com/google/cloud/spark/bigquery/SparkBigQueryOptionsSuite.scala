@@ -133,4 +133,48 @@ class SparkBigQueryOptionsSuite extends FunSuite {
       options.materializationProject
     }
   }
+
+  test("maxParallelism - only new config exist") {
+    assertResult(Some(3)) {
+      val options = SparkBigQueryOptions(
+        parameters + ("maxParallelism" -> "3"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.maxParallelism
+    }
+  }
+
+  test("maxParallelism - both configs exist") {
+    assertResult(Some(3)) {
+      val options = SparkBigQueryOptions(
+        parameters + ("maxParallelism" -> "3", "parallelism" -> "10"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.maxParallelism
+    }
+  }
+
+  test("maxParallelism - only old config exist") {
+    assertResult(Some(10)) {
+      val options = SparkBigQueryOptions(
+        parameters + ("parallelism" -> "10"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.maxParallelism
+    }
+  }
+
+  test("maxParallelism - no config exist") {
+    assertResult(None) {
+      val options = SparkBigQueryOptions(
+        parameters,
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.maxParallelism
+    }
+  }
 }
