@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.13.0-beta - XXXX-XX-XX
+* Moved to use BigQuery Storage API v1beta2
+* changed the `parallelism` parameter to `maxParallelism` in order to reflect the 
+  Change in the underlining API (the old parameter has been deprecated) 
+* Upgrade version of google-cloud-bigquerystorage library to 0.122.0-beta.
+* Issue #121: Added the option to configure CreateDisposition when inserting data
+  to BigQuery.
+
 ## 0.12.0-beta - 2020-01-29
 * Issue #72: Moved the shaded jar name from classifier to a new artifact name
 * Issues #73, #87: Added better logging to help understand which columns and filters

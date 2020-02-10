@@ -111,7 +111,7 @@ private[bigquery] class DirectBigQueryRelation(
 
     val client = getClient(options)
 
-    val numPartitionsRequested = getNumPartitionsRequested(actualTableDefinition)
+    val maxNumPartitionsRequested = getMaxNumPartitionsRequested(actualTableDefinition)
 
     try {
       // The v1beta2 client uses only a BALANCED sharding strategy. This strategy
@@ -124,7 +124,7 @@ private[bigquery] class DirectBigQueryRelation(
             .setReadOptions(readOptions)
             .setTable(actualTablePath)
           )
-          .setMaxStreamCount(numPartitionsRequested)
+          .setMaxStreamCount(maxNumPartitionsRequested)
           .build())
       val partitions = session.getStreamsList.asScala.map(_.getName)
           .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
@@ -134,9 +134,9 @@ private[bigquery] class DirectBigQueryRelation(
 
       // This is spammy, but it will make it clear to users the number of partitions they got and
       // why.
-      if (!numPartitionsRequested.equals(partitions.length)) {
+      if (!maxNumPartitionsRequested.equals(partitions.length)) {
         logInfo(
-          s"""Requested $numPartitionsRequested partitions, but only
+          s"""Requested $maxNumPartitionsRequested max partitions, but only
              |received ${partitions.length} from the BigQuery Storage API for
              |session ${session.getName}. Notice that the number of streams in
              |actual may be lower than the requested number, depending on the
@@ -240,11 +240,11 @@ private[bigquery] class DirectBigQueryRelation(
    *
    * VisibleForTesting
    */
-  def getNumPartitionsRequested: Int =
-    getNumPartitionsRequested(defaultTableDefinition)
+  def getMaxNumPartitionsRequested: Int =
+    getMaxNumPartitionsRequested(defaultTableDefinition)
 
-  def getNumPartitionsRequested(tableDefinition: StandardTableDefinition): Int =
-    options.parallelism
+  def getMaxNumPartitionsRequested(tableDefinition: StandardTableDefinition): Int =
+    options.maxParallelism
       .getOrElse(Math.max(
         (tableDefinition.getNumBytes / DEFAULT_BYTES_PER_PARTITION).toInt, 1))
 

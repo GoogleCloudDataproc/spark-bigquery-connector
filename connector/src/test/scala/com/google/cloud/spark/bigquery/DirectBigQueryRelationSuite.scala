@@ -61,7 +61,7 @@ class DirectBigQueryRelationSuite
   }
 
   test("parallelism") {
-    assert(105  == bigQueryRelation.getNumPartitionsRequested)
+    assert(105  == bigQueryRelation.getMaxNumPartitionsRequested)
   }
 
   test("schema") {

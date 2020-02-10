@@ -147,19 +147,19 @@ The API Supports a number of options to configure the read
 
 <!--- TODO(#2): Convert to markdown -->
 <table>
-  <tr>
+  <tr valign="top">
    <th>Property</th>
    <th>Meaning</th>
    <th>Usage</th>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><code>table</code>
    </td>
    <td>The BigQuery table in the format <code>[[project:]dataset.]table</code>. <strong>(Required)</strong>
    </td>
    <td>Read/Write</td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><code>dataset</code>
    </td>
    <td>The dataset containing the table.
@@ -167,7 +167,7 @@ The API Supports a number of options to configure the read
    </td>
    <td>Read/Write</td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><code>project</code>
    </td>
    <td>The Google Cloud Project ID of the table.
@@ -175,7 +175,7 @@ The API Supports a number of options to configure the read
    </td>
    <td>Read/Write</td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><code>parentProject</code>
    </td>
    <td>The Google Cloud Project ID of the table to bill for the export.
@@ -183,18 +183,22 @@ The API Supports a number of options to configure the read
    </td>
    <td>Read/Write</td>
   </tr>
-  <tr>
-   <td><code>parallelism</code>
+  <tr valign="top">
+   <td><code>maxParallelism</code>
    </td>
-   <td>The number of partitions to split the data into. Actual number may be less
-       if BigQuery deems the data small enough. If there are not enough executors
-       to schedule a reader per partition, some partitions may be empty.
+   <td>The maximal number of partitions to split the data into. Actual number
+       may be less if BigQuery deems the data small enough. If there are not
+       enough executors to schedule a reader per partition, some partitions may
+       be empty.
+       <br/><b>Important:</b> The old parameter (<code>parallelism</code>) is
+            still supported but in deprecated mode. It will ve removed in
+            version 1.0 of the connector.
        <br/>(Optional. Defaults to one partition per 400MB. See
        <a href="#configuring-partitioning">Configuring Partitioning</a>.)
    </td>
    <td>Read</td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><code>viewsEnabled</code>
    </td>
    <td>Enables the connector to read from views and not only tables. Please read
@@ -204,7 +208,7 @@ The API Supports a number of options to configure the read
    </td>
    <td>Read</td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><code>viewMaterializationProject</code>
    </td>
    <td>The project id where the materialized view is going to be created
@@ -212,7 +216,7 @@ The API Supports a number of options to configure the read
    </td>
    <td>Read</td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><code>viewMaterializationDataset</code>
    </td>
    <td>The dataset where the materialized view is going to be created
@@ -220,7 +224,7 @@ The API Supports a number of options to configure the read
    </td>
    <td>Read</td>
   </tr>
-  <tr>
+  <tr valign="top">
      <td><code>createDisposition</code>
       </td>
       <td>Specifies whether the job is allowed to create new tables. The permitted
@@ -238,7 +242,7 @@ The API Supports a number of options to configure the read
       <td>Read</td>
    </tr>
 
-  <tr>
+  <tr valign="top">
    <td><code>temporaryGcsBucket</code>
    </td>
    <td>The GCS bucket that temporarily holds the data before it is loaded to
@@ -247,7 +251,7 @@ The API Supports a number of options to configure the read
    </td>
    <td>Write</td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><code>intermediateFormat</code>
    </td>
    <td>The format of the data before it is loaded to BigQuery, values can be
@@ -256,7 +260,7 @@ The API Supports a number of options to configure the read
    </td>
    <td>Write</td>
   </tr>
-  <tr>
+  <tr valign="top">
      <td><code>partitionField</code>
      </td>
      <td>If not set, the table is partitioned by pseudo column, referenced via either
@@ -267,7 +271,7 @@ The API Supports a number of options to configure the read
      </td>
      <td>Write</td>
     </tr>
-   <tr>
+   <tr valign="top">
     <td><code>partitionExpirationMs</code>
      </td>
      <td>Number of milliseconds for which to keep the storage for partitions in the table.
@@ -276,7 +280,7 @@ The API Supports a number of options to configure the read
      </td>
      <td>Write</td>
    </tr>
-   <tr>
+   <tr valign="top">
        <td><code>partitionType</code>
         </td>
         <td>The only type supported is DAY, which will generate one partition per day.
@@ -292,7 +296,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
 
 <!--- TODO(#2): Convert to markdown -->
 <table>
-  <tr>
+  <tr valign="top">
    <td><strong>BigQuery Standard SQL Data Type </strong>
    </td>
    <td><strong>Spark SQL</strong>
@@ -302,7 +306,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    <td><strong>Notes</strong>
    </td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><strong><code>BOOL</code></strong>
    </td>
    <td><strong><code>BooleanType</code></strong>
@@ -310,7 +314,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    <td>
    </td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><strong><code>INT64</code></strong>
    </td>
    <td><strong><code>LongType</code></strong>
@@ -318,7 +322,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    <td>
    </td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><strong><code>FLOAT64</code></strong>
    </td>
    <td><strong><code>DoubleType</code></strong>
@@ -326,7 +330,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    <td>
    </td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><strong><code>NUMERIC</code></strong>
    </td>
    <td><strong><code>DecimalType</code></strong>
@@ -335,7 +339,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
      This preserves <code>NUMERIC</code>'s full 38 digits of precision and 9 digits of scope.
    </td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><strong><code>STRING</code></strong>
    </td>
    <td><strong><code>StringType</code></strong>
@@ -343,7 +347,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    <td>
    </td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><strong><code>BYTES</code></strong>
    </td>
    <td><strong><code>BinaryType</code></strong>
@@ -351,7 +355,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    <td>
    </td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><strong><code>STRUCT</code></strong>
    </td>
    <td><strong><code>StructType</code></strong>
@@ -359,7 +363,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    <td>
    </td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><strong><code>ARRAY</code></strong>
    </td>
    <td><strong><code>ArrayType</code></strong>
@@ -367,7 +371,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    <td>
    </td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><strong><code>TIMESTAMP</code></strong>
    </td>
    <td><strong><code>TimestampType</code></strong>
@@ -375,7 +379,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    <td>
    </td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><strong><code>DATE</code></strong>
    </td>
    <td><strong><code>DateType</code></strong>
@@ -383,7 +387,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    <td>
    </td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><strong><code>DATETIME</code></strong>
    </td>
    <td><strong><code>StringType</code></strong>
@@ -393,7 +397,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
 We are considering adding an optional TimeZone property to allow automatically  converting to TimeStamp, this would be consistent with Spark's handling of CSV/JSON (except they always try to convert when inferring schema, and default to the local timezone)
    </td>
   </tr>
-  <tr>
+  <tr valign="top">
    <td><strong><code>TIME</code></strong>
    </td>
    <td><strong><code>LongType</code></strong>
@@ -550,7 +554,7 @@ See the [BigQuery pricing documentation](https://cloud.google.com/bigquery/prici
 
 ### I have very few partitions
 
-You can manually set the number of partitions with the `parallelism` property. BigQuery may provide fewer partitions than you ask for. See [Configuring Partitioning](#configuring-partitioning).
+You can manually set the number of partitions with the `maxParallelism` property. BigQuery may provide fewer partitions than you ask for. See [Configuring Partitioning](#configuring-partitioning).
 
 You can also always repartition after reading in Spark.
 
