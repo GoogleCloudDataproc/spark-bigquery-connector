@@ -225,6 +225,18 @@ The API Supports a number of options to configure the read
    <td>Read</td>
   </tr>
   <tr valign="top">
+   <td><code>optimizedEmptyProjection</code>
+   </td>
+   <td>The connector uses an optimized empty projection (select without any
+       columns) logic, used for <code>count()</code> execution. This logic takes
+       the data directly from the table metadata or performs a much efficient
+       `SELECT COUNT(*) WHERE...` in case there is a filter. You can cancel the
+       use of this logic byt setting this option to <code>false</code>.
+       <br/>(Optional, defaults to <code>true</code>)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr valign="top">
      <td><code>createDisposition</code>
       </td>
       <td>Specifies whether the job is allowed to create new tables. The permitted
@@ -239,7 +251,7 @@ The API Supports a number of options to configure the read
           to the table based on the SaveMode.
          <br/>(Optional. Default to CREATE_IF_NEEDED).
       </td>
-      <td>Read</td>
+      <td>Write</td>
    </tr>
 
   <tr valign="top">
@@ -557,14 +569,6 @@ See the [BigQuery pricing documentation](https://cloud.google.com/bigquery/prici
 You can manually set the number of partitions with the `maxParallelism` property. BigQuery may provide fewer partitions than you ask for. See [Configuring Partitioning](#configuring-partitioning).
 
 You can also always repartition after reading in Spark.
-
-### Calling count() takes a long time
-
-When spark runs `count()` on a DataFrame, it first loads the data and then
-counts the records. Unfortunately we cannot push this down to the BigQuery side.
-The best workaround is to run the count on the smallest field in the table
-(ideally a BOOLEAN or INTEGER). This approach will load less data then running
-`count()` in the usual manner.
 
 ### How do I authenticate outside GCE / Dataproc?
 

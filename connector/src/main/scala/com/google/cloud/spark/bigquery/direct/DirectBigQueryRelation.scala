@@ -30,6 +30,7 @@ import com.google.common.cache.{Cache, CacheBuilder}
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources._
 
 import scala.collection.JavaConverters._
@@ -90,8 +91,6 @@ private[bigquery] class DirectBigQueryRelation(
          |filters=[${filters.map(_.toString).mkString(",")}]"""
         .stripMargin.replace('\n', ' ').trim)
     val actualTable = getActualTable(requiredColumns, filters)
-    val actualTableDefinition = actualTable.getDefinition[StandardTableDefinition]
-    val actualTablePath = DirectBigQueryRelation.toTablePath(actualTable.getTableId)
 
     val filter = getCompiledFilter(filters)
     logInfo(
@@ -100,66 +99,94 @@ private[bigquery] class DirectBigQueryRelation(
          |columns=[${requiredColumns.mkString(", ")}],
          |filter='$filter'"""
         .stripMargin.replace('\n', ' ').trim)
-    val readOptions = TableReadOptions.newBuilder()
+
+    if (options.optimizedEmptyProjection && requiredColumns.isEmpty) {
+      generateEmptyRowRDD(actualTable, filter)
+    } else {
+      if (requiredColumns.isEmpty) {
+        logDebug(s"Not using optimized empty projection")
+      }
+      val actualTableDefinition = actualTable.getDefinition[StandardTableDefinition]
+      val actualTablePath = DirectBigQueryRelation.toTablePath(actualTable.getTableId)
+      val readOptions = TableReadOptions.newBuilder()
         .addAllSelectedFields(requiredColumns.toList.asJava)
         .setRowRestriction(filter)
         .build()
-    val requiredColumnSet = requiredColumns.toSet
-    val prunedSchema = Schema.of(
-      actualTableDefinition.getSchema.getFields.asScala
+      val requiredColumnSet = requiredColumns.toSet
+      val prunedSchema = Schema.of(
+        actualTableDefinition.getSchema.getFields.asScala
           .filter(f => requiredColumnSet.contains(f.getName)).asJava)
 
-    val client = getClient(options)
+      val client = getClient(options)
 
-    val maxNumPartitionsRequested = getMaxNumPartitionsRequested(actualTableDefinition)
+      val maxNumPartitionsRequested = getMaxNumPartitionsRequested(actualTableDefinition)
 
-    try {
-      // The v1beta2 client uses only a BALANCED sharding strategy. This strategy
-      // causes the server to assign roughly the same number of rows to each stream.
-      val session = client.createReadSession(
-        CreateReadSessionRequest.newBuilder()
-          .setParent(s"projects/${options.parentProject}")
-          .setReadSession(ReadSession.newBuilder()
-            .setDataFormat(DataFormat.AVRO)
-            .setReadOptions(readOptions)
-            .setTable(actualTablePath)
-          )
-          .setMaxStreamCount(maxNumPartitionsRequested)
-          .build())
-      val partitions = session.getStreamsList.asScala.map(_.getName)
+      try {
+        // The v1beta2 client uses only a BALANCED sharding strategy. This strategy
+        // causes the server to assign roughly the same number of rows to each stream.
+        val session = client.createReadSession(
+          CreateReadSessionRequest.newBuilder()
+            .setParent(s"projects/${options.parentProject}")
+            .setReadSession(ReadSession.newBuilder()
+              .setDataFormat(DataFormat.AVRO)
+              .setReadOptions(readOptions)
+              .setTable(actualTablePath)
+            )
+            .setMaxStreamCount(maxNumPartitionsRequested)
+            .build())
+        val partitions = session.getStreamsList.asScala.map(_.getName)
           .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
           .toArray
 
-      logInfo(s"Created read session for table '$tableName': ${session.getName}")
+        logInfo(s"Created read session for table '$tableName': ${session.getName}")
 
-      // This is spammy, but it will make it clear to users the number of partitions they got and
-      // why.
-      if (!maxNumPartitionsRequested.equals(partitions.length)) {
-        logInfo(
-          s"""Requested $maxNumPartitionsRequested max partitions, but only
-             |received ${partitions.length} from the BigQuery Storage API for
-             |session ${session.getName}. Notice that the number of streams in
-             |actual may be lower than the requested number, depending on the
-             |amount parallelism that is reasonable for the table and the
-             |maximum amount of parallelism allowed by the system."""
-            .stripMargin.replace('\n', ' '))
+        // This is spammy, but it will make it clear to users the number of partitions they got and
+        // why.
+        if (!maxNumPartitionsRequested.equals(partitions.length)) {
+          logInfo(
+            s"""Requested $maxNumPartitionsRequested max partitions, but only
+               |received ${partitions.length} from the BigQuery Storage API for
+               |session ${session.getName}. Notice that the number of streams in
+               |actual may be lower than the requested number, depending on the
+               |amount parallelism that is reasonable for the table and the
+               |maximum amount of parallelism allowed by the system."""
+              .stripMargin.replace('\n', ' '))
+        }
+
+        BigQueryRDD.scanTable(
+          sqlContext,
+          partitions.asInstanceOf[Array[Partition]],
+          session.getName,
+          session.getAvroSchema.getSchema,
+          prunedSchema,
+          requiredColumns,
+          options,
+          getClient,
+          bigQueryClient).asInstanceOf[RDD[Row]]
+
+      } finally {
+        // scanTable returns immediately not after the actual data is read.
+        client.close()
       }
-
-      BigQueryRDD.scanTable(
-        sqlContext,
-        partitions.asInstanceOf[Array[Partition]],
-        session.getName,
-        session.getAvroSchema.getSchema,
-        prunedSchema,
-        requiredColumns,
-        options,
-        getClient,
-        bigQueryClient).asInstanceOf[RDD[Row]]
-
-    } finally {
-      // scanTable returns immediately not after the actual data is read.
-      client.close()
     }
+  }
+
+  def  generateEmptyRowRDD(tableInfo: TableInfo, filter: String) : RDD[Row] = {
+    DirectBigQueryRelation.emptyRowRDDsCreated += 1
+    val numberOfRows: Long = if (filter.length == 0) {
+      // no need to query the table
+      tableInfo.getNumRows.longValue
+    } else {
+      // run a query
+      val table = DirectBigQueryRelation.toSqlTableReference(tableInfo.getTableId)
+      val sql = s"SELECT COUNT(*) from `$table` WHERE $filter"
+      val result = bigQuery.query(QueryJobConfiguration.of(sql))
+      result.iterateAll.iterator.next.get(0).getLongValue
+    }
+    logDebug(s"Creating a DataFrame of empty roes of size $numberOfRows")
+    sqlContext.sparkContext.range(0, numberOfRows)
+      .map(_ => InternalRow.empty)
+      .asInstanceOf[RDD[Row]]
   }
 
   def getActualTable(
@@ -287,6 +314,10 @@ private[bigquery] class DirectBigQueryRelation(
 }
 
 object DirectBigQueryRelation {
+
+  // used for testing
+  var emptyRowRDDsCreated = 0;
+
   def createReadClient(options: SparkBigQueryOptions): BigQueryReadClient = {
     // TODO(pmkc): investigate thread pool sizing and log spam matching
     // https://github.com/grpc/grpc-java/issues/4544 in integration tests
@@ -381,4 +412,7 @@ object DirectBigQueryRelation {
 
   def toTablePath(tableId: TableId): String =
     s"projects/${tableId.getProject}/datasets/${tableId.getDataset}/tables/${tableId.getTable}"
+
+  def toSqlTableReference(tableId: TableId): String =
+    s"${tableId.getProject}.${tableId.getDataset}.${tableId.getTable}"
 }

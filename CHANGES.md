@@ -5,6 +5,7 @@
 * changed the `parallelism` parameter to `maxParallelism` in order to reflect the 
   Change in the underlining API (the old parameter has been deprecated) 
 * Upgrade version of google-cloud-bigquerystorage library to 0.122.0-beta.
+* Issue #73: Optimized empty projection used for count() execution.
 * Issue #121: Added the option to configure CreateDisposition when inserting data
   to BigQuery.
 

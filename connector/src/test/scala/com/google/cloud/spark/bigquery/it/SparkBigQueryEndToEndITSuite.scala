@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.it
 
 import com.google.cloud.bigquery.{BigQueryOptions, QueryJobConfiguration}
+import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.it.TestConstants._
 import com.google.cloud.spark.bigquery.{SparkBigQueryOptions, TestUtils}
 import org.apache.spark.sql.types._
@@ -353,6 +354,48 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       .collect()
       .map(_.getString(0))
       .toSet
+  }
+
+  test("test optimized count(*)") {
+    DirectBigQueryRelation.emptyRowRDDsCreated = 0
+    val oldMethodCount = spark.read.format("bigquery")
+      .option("table", "publicdata.samples.shakespeare")
+      .option("optimizedEmptyProjection", "false")
+      .load()
+      .select("corpus_date")
+      .count()
+
+    assert(DirectBigQueryRelation.emptyRowRDDsCreated == 0)
+
+    assertResult(oldMethodCount) {
+      spark.read.format("bigquery")
+        .option("table", "publicdata.samples.shakespeare")
+        .load()
+        .count()
+    }
+    assert(DirectBigQueryRelation.emptyRowRDDsCreated == 1)
+  }
+
+  test("test optimized count(*) with filter") {
+    DirectBigQueryRelation.emptyRowRDDsCreated = 0
+    val oldMethodCount = spark.read.format("bigquery")
+      .option("table", "publicdata.samples.shakespeare")
+      .option("optimizedEmptyProjection", "false")
+      .load()
+      .select("corpus_date")
+      .where("corpus_date > 0")
+      .count()
+
+    assert(DirectBigQueryRelation.emptyRowRDDsCreated == 0)
+
+    assertResult(oldMethodCount) {
+      spark.read.format("bigquery")
+        .option("table", "publicdata.samples.shakespeare")
+        .load()
+        .where("corpus_date > 0")
+        .count()
+    }
+    assert(DirectBigQueryRelation.emptyRowRDDsCreated == 1)
   }
 
 }

@@ -27,26 +27,27 @@ import org.apache.spark.sql.types.StructType
 
 /** Options for defining {@link BigQueryRelation}s */
 case class SparkBigQueryOptions(
-  tableId: TableId,
-  parentProject: String,
-  credentials: Option[String] = None,
-  credentialsFile: Option[String] = None,
-  filter: Option[String] = None,
-  schema: Option[StructType] = None,
-  maxParallelism: Option[Int] = None,
-  temporaryGcsBucket: Option[String] = None,
-  intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat,
-  combinePushedDownFilters: Boolean = true,
-  viewsEnabled: Boolean = false,
-  materializationProject: Option[String] = None,
-  materializationDataset: Option[String] = None,
-  partitionField: Option[String] = None,
-  partitionExpirationMs: Option[Long] = None,
-  partitionRequireFilter: Option[Boolean] = None,
-  partitionType: Option[String] = None,
-  createDisposition: Option[CreateDisposition] = None,
-  viewExpirationTimeInHours: Int = 24,
-  maxReadRowsRetries: Int = 3
+    tableId: TableId,
+    parentProject: String,
+    credentials: Option[String] = None,
+    credentialsFile: Option[String] = None,
+    filter: Option[String] = None,
+    schema: Option[StructType] = None,
+    maxParallelism: Option[Int] = None,
+    temporaryGcsBucket: Option[String] = None,
+    intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat,
+    combinePushedDownFilters: Boolean = true,
+    viewsEnabled: Boolean = false,
+    materializationProject: Option[String] = None,
+    materializationDataset: Option[String] = None,
+    partitionField: Option[String] = None,
+    partitionExpirationMs: Option[Long] = None,
+    partitionRequireFilter: Option[Boolean] = None,
+    partitionType: Option[String] = None,
+    createDisposition: Option[CreateDisposition] = None,
+    optimizedEmptyProjection: Boolean = true,
+    viewExpirationTimeInHours: Int = 24,
+    maxReadRowsRetries: Int = 3
   ) {
 
   def createCredentials: Option[Credentials] =
@@ -77,10 +78,10 @@ object SparkBigQueryOptions {
   private val PermittedIntermediateFormats = Set(FormatOptions.orc(), FormatOptions.parquet())
 
   def apply(
-     parameters: Map[String, String],
-     allConf: Map[String, String],
-     hadoopConf: Configuration,
-     schema: Option[StructType])
+             parameters: Map[String, String],
+             allConf: Map[String, String],
+             hadoopConf: Configuration,
+             schema: Option[StructType])
   : SparkBigQueryOptions = {
     val tableParam = getRequiredOption(parameters, "table")
     val datasetParam = getOption(parameters, "dataset")
@@ -123,54 +124,52 @@ object SparkBigQueryOptions {
     val partitionType = getOption(parameters, "partitionType")
 
     val createDisposition = getOption(parameters, "createDisposition")
-        .map(_.toUpperCase).map(param => CreateDisposition.valueOf(param))
+      .map(_.toUpperCase).map(param => CreateDisposition.valueOf(param))
+
+    val optimizedEmptyProjection = getAnyBooleanOption(
+      allConf, parameters,"optimizedEmptyProjection", true)
 
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
       filter, schema, maxParallelism, temporaryGcsBucket, intermediateFormat,
       combinePushedDownFilters, viewsEnabled, materializationProject,
       materializationDataset, partitionField, partitionExpirationMs,
-      partitionRequireFilter, partitionType, createDisposition)
+      partitionRequireFilter, partitionType, createDisposition,
+      optimizedEmptyProjection)
   }
 
   private def defaultBilledProject = () =>
     Some(BigQueryOptions.getDefaultInstance.getProjectId)
 
   private def getRequiredOption(
-      options: Map[String, String],
-      name: String,
-      fallback: () => Option[String] = () => None): String = {
+                                 options: Map[String, String],
+                                 name: String,
+                                 fallback: () => Option[String] = () => None): String = {
     getOption(options, name, fallback)
-        .getOrElse(sys.error(s"Option $name required."))
-  }
-
-  private def getOption(
-      options: Map[String, String],
-      name: String,
-      fallback: () => Option[String] = () => None): Option[String] = {
-    options.get(name).orElse(fallback())
+      .getOrElse(sys.error(s"Option $name required."))
   }
 
   private def getOptionFromMultipleParams(
-      options: Map[String, String],
-      names: Seq[String],
-      fallback: () => Option[String] = () => None): Option[String] = {
+                                           options: Map[String, String],
+                                           names: Seq[String],
+                                           fallback: () => Option[String] = () => None): Option[String] = {
     names.map(getOption(options, _))
       .find(_.isDefined)
       .getOrElse(fallback())
   }
 
-  private def getAnyOption(
-      globalOptions: Map[String, String],
-      options: Map[String, String],
-      name: String): Option[String] =
-    options.get(name).orElse(globalOptions.get(name))
+  private def getOption(
+                         options: Map[String, String],
+                         name: String,
+                         fallback: () => Option[String] = () => None): Option[String] = {
+    options.get(name).orElse(fallback())
+  }
 
   // gives the option to support old configurations as fallback
   // Used to provide backward compatibility
   private def getAnyOption(
-      globalOptions: Map[String, String],
-      options: Map[String, String],
-      names: Seq[String]): Option[String] =
+                            globalOptions: Map[String, String],
+                            options: Map[String, String],
+                            names: Seq[String]): Option[String] =
     names.map(getAnyOption(globalOptions, options, _))
       .find(_.isDefined)
       .getOrElse(None)
@@ -182,5 +181,11 @@ object SparkBigQueryOptions {
     getAnyOption(globalOptions, options, name)
       .map(_.toBoolean)
       .getOrElse(defaultValue)
+
+  private def getAnyOption(
+                            globalOptions: Map[String, String],
+                            options: Map[String, String],
+                            name: String): Option[String] =
+    options.get(name).orElse(globalOptions.get(name))
 }
 
