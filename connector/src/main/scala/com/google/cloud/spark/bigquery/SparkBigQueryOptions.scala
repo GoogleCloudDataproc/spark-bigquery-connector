@@ -127,7 +127,7 @@ object SparkBigQueryOptions {
       .map(_.toUpperCase).map(param => CreateDisposition.valueOf(param))
 
     val optimizedEmptyProjection = getAnyBooleanOption(
-      allConf, parameters,"optimizedEmptyProjection", true)
+      allConf, parameters, "optimizedEmptyProjection", true)
 
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
       filter, schema, maxParallelism, temporaryGcsBucket, intermediateFormat,
@@ -148,21 +148,27 @@ object SparkBigQueryOptions {
       .getOrElse(sys.error(s"Option $name required."))
   }
 
-  private def getOptionFromMultipleParams(
-                                           options: Map[String, String],
-                                           names: Seq[String],
-                                           fallback: () => Option[String] = () => None): Option[String] = {
-    names.map(getOption(options, _))
-      .find(_.isDefined)
-      .getOrElse(fallback())
-  }
-
   private def getOption(
                          options: Map[String, String],
                          name: String,
                          fallback: () => Option[String] = () => None): Option[String] = {
     options.get(name).orElse(fallback())
   }
+
+  private def getOptionFromMultipleParams(
+      options: Map[String, String],
+      names: Seq[String],
+      fallback: () => Option[String] = () => None): Option[String] = {
+    names.map(getOption(options, _))
+      .find(_.isDefined)
+      .getOrElse(fallback())
+  }
+
+  private def getAnyOption(
+      globalOptions: Map[String, String],
+      options: Map[String, String],
+      name: String): Option[String] =
+    options.get(name).orElse(globalOptions.get(name))
 
   // gives the option to support old configurations as fallback
   // Used to provide backward compatibility
@@ -182,10 +188,5 @@ object SparkBigQueryOptions {
       .map(_.toBoolean)
       .getOrElse(defaultValue)
 
-  private def getAnyOption(
-                            globalOptions: Map[String, String],
-                            options: Map[String, String],
-                            name: String): Option[String] =
-    options.get(name).orElse(globalOptions.get(name))
 }
 
