@@ -1,6 +1,6 @@
 # Release Notes
 
-## 0.13.0-beta - XXXX-XX-XX
+## 0.13.0-beta - 2020-02-12
 * Moved to use BigQuery Storage API v1beta2
 * changed the `parallelism` parameter to `maxParallelism` in order to reflect the 
   Change in the underlining API (the old parameter has been deprecated) 
