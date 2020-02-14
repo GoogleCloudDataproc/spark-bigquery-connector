@@ -4,7 +4,7 @@ lazy val sparkVersion = "2.4.0"
 
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
-  version := "0.13.1-beta",
+  version := "0.13.2-beta-SNAPSHOT",
   scalaVersion := scala211Version,
   crossScalaVersions := Seq(scala211Version, scala212Version)
 )
