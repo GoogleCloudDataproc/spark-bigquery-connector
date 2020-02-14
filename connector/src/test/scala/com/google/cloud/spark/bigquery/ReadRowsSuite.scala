@@ -15,7 +15,8 @@
  */
 package com.google.cloud.spark.bigquery
 
-import com.google.cloud.bigquery.storage.v1beta2.{ReadRowsRequest, ReadRowsResponse}
+import com.google.cloud.bigquery.storage.v1beta1.Storage
+import com.google.cloud.bigquery.storage.v1beta1.Storage.{ReadRowsRequest, ReadRowsResponse}
 import com.google.cloud.spark.bigquery.direct.{ReadRowsClient, ReadRowsHelper}
 import io.grpc.{Status, StatusRuntimeException}
 import org.mockito.Mockito._
@@ -26,7 +27,9 @@ class ReadRowsSuite extends AnyFunSuite with Matchers {
 
   val client = mock(classOf[ReadRowsClient])
 
-  val request = ReadRowsRequest.newBuilder().setReadStream("test")
+  val request = ReadRowsRequest.newBuilder().setReadPosition(
+    Storage.StreamPosition.newBuilder().setStream(
+      Storage.Stream.newBuilder().setName("test")))
 
   test("no failures") {
     val batch1 = new MockResponsesBatch
