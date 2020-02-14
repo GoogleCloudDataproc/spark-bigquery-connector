@@ -1,6 +1,14 @@
 # Release Notes
 
+## 0.13.1-beta - 2020-02-14
+* The BigQuery Storage API was reverted to v1beta2. The v1beta2 API has not been
+  fully integrated with custom IAM roles, which can cause issues to customers using
+  those. The v1beta1 doesn't have this problem. Once the integration is complete,
+  the API will be upgraded again.
+
 ## 0.13.0-beta - 2020-02-12
+**Please don't use this version, use 0.13.1-beta instead**
+
 * Moved to use BigQuery Storage API v1beta2
 * changed the `parallelism` parameter to `maxParallelism` in order to reflect the 
   Change in the underlining API (the old parameter has been deprecated) 
