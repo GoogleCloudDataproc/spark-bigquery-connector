@@ -67,5 +67,19 @@ class SchemaConvertersSuite extends org.scalatest.FunSuite {
     val result = SchemaConverters.toSpark(bqSchema)
     assert(expected == result)
   }
+
+  test("field has description") {
+    val bqSchema = Schema.of(
+      Field.newBuilder("name", STRING)
+        .setDescription("foo")
+        .setMode(Mode.NULLABLE)
+        .build)
+    val expected = StructType(Seq(
+      StructField("name", StringType, true,
+        (new MetadataBuilder).putString("description", "foo").build)
+    ))
+    val result = SchemaConverters.toSpark(bqSchema)
+    assert(expected == result)
+  }
 }
 

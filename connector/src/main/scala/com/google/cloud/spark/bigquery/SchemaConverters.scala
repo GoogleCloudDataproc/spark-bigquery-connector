@@ -69,7 +69,11 @@ object SchemaConverters extends Logging {
         case Some(Field.Mode.REPEATED) => dataType = ArrayType(dataType, containsNull = false)
         case _ => () // nullable field
       }
-      StructField(field.getName, dataType, nullable)
+      val metadata = new MetadataBuilder
+      if (field.getDescription != null) {
+        metadata.putString("description", field.getDescription)
+      }
+      StructField(field.getName, dataType, nullable, metadata.build)
     }
 
 
