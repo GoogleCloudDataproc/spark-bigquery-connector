@@ -55,10 +55,14 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   private val SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare"
   private val SHAKESPEARE_TABLE_NUM_ROWS = 164656L
   private val SHAKESPEARE_TABLE_SCHEMA = StructType(Seq(
-    StructField("word", StringType, nullable = false),
-    StructField("word_count", LongType, nullable = false),
-    StructField("corpus", StringType, nullable = false),
-    StructField("corpus_date", LongType, nullable = false)))
+    StructField("word", StringType, nullable = false, metadata("description",
+        "A single unique word (where whitespace is the delimiter) extracted from a corpus.")),
+    StructField("word_count", LongType, nullable = false, metadata("description",
+      "The number of times this word appears in this corpus.")),
+    StructField("corpus", StringType, nullable = false, metadata("description",
+      "The work from which this word was extracted.")),
+    StructField("corpus_date", LongType, nullable = false, metadata("description",
+      "The year in which this corpus was published."))))
   private val LARGE_TABLE = "bigquery-public-data.samples.natality"
   private val LARGE_TABLE_FIELD = "is_male"
   private val LARGE_TABLE_NUM_ROWS = 137826763L
@@ -66,6 +70,16 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   private val ALL_TYPES_TABLE_NAME = "all_types"
   private var spark: SparkSession = _
   private var testDataset: String = _
+
+  private def metadata(key: String, value: String): Metadata = metadata(Map(key -> value))
+
+  private def metadata(map: Map[String, String]): Metadata = {
+    val metadata = new MetadataBuilder()
+    for((key, value) <- map) {
+      metadata.putString(key, value)
+    }
+    metadata.build()
+  }
 
   before {
     // have a fresh table for each test
