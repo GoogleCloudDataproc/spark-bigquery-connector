@@ -42,9 +42,9 @@ object TestConstants {
         StructField("pi", BQ_NUMERIC, nullable = true),
         StructField("big_pi", BQ_NUMERIC, nullable = true))),
       nullable = true),
-    StructField("int_arr", ArrayType(LongType, containsNull = false), nullable = true),
+    StructField("int_arr", ArrayType(LongType, containsNull = true), nullable = true),
     StructField("int_struct_arr", ArrayType(
-      StructType(Seq(StructField("i", LongType, nullable = true))), containsNull = false),
+      StructType(Seq(StructField("i", LongType, nullable = true))), containsNull = true),
       nullable = true)
   ))
   val ALL_TYPES_TABLE_QUERY_TEMPLATE: String =
