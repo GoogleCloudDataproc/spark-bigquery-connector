@@ -66,7 +66,7 @@ object SchemaConverters extends Logging {
       var nullable = true
       Option(field.getMode) match {
         case Some(Field.Mode.REQUIRED) => nullable = false
-        case Some(Field.Mode.REPEATED) => dataType = ArrayType(dataType, containsNull = false)
+        case Some(Field.Mode.REPEATED) => dataType = ArrayType(dataType, containsNull = true)
         case _ => () // nullable field
       }
       val metadata = new MetadataBuilder
