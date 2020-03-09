@@ -111,7 +111,6 @@ val excludedOrgs = Seq(
   "com.google.code.findbugs",
   "javax.annotation",
   // Spark Uses 2.9.9 google-cloud-core uses 2.9.2
-  "joda-time",
   "com.sun.jdmk",
   "com.sun.jmx",
   "javax.activation",

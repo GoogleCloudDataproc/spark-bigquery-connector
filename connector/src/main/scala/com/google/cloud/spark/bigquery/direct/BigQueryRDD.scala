@@ -19,15 +19,14 @@ import com.google.api.gax.rpc.ServerStreamingCallable
 import com.google.cloud.bigquery.storage.v1beta1.Storage.{ReadRowsRequest, ReadRowsResponse, StreamPosition}
 import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, Storage}
 import com.google.cloud.bigquery.{BigQuery, Schema}
-import com.google.cloud.spark.bigquery.{BigQueryUtil, SchemaConverters, SparkBigQueryOptions}
+import com.google.cloud.spark.bigquery.{ArrowBinaryIterator, AvroBinaryIterator, BigQueryUtil, SchemaConverters, SparkBigQueryOptions}
 import com.google.protobuf.ByteString
-import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
-import org.apache.avro.io.{BinaryDecoder, DecoderFactory}
 import org.apache.avro.{Schema => AvroSchema}
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.execution.arrow.ArrowUtils
 import org.apache.spark.{InterruptibleIterator, Partition, SparkContext, TaskContext}
 
 import scala.collection.mutable.MutableList
@@ -36,15 +35,12 @@ class BigQueryRDD(sc: SparkContext,
                   parts: Array[Partition],
                   sessionId: String,
                   columnsInOrder: Seq[String],
-                  rawAvroSchema: String,
+                  rawArrowSchema: ByteString,
                   bqSchema: Schema,
                   options: SparkBigQueryOptions,
                   getClient: SparkBigQueryOptions => BigQueryStorageClient,
                   bigQueryClient: SparkBigQueryOptions => BigQuery)
   extends RDD[InternalRow](sc, Nil) {
-
-  @transient private lazy val avroSchema = new AvroSchema.Parser().parse(rawAvroSchema)
-  private lazy val converter = SchemaConverters.createRowConverter(bqSchema, columnsInOrder) _
 
   override def compute(split: Partition, context: TaskContext): Iterator[InternalRow] = {
     val bqPartition = split.asInstanceOf[BigQueryPartition]
@@ -62,27 +58,53 @@ class BigQueryRDD(sc: SparkContext,
     val readRowResponses = ReadRowsHelper(
       ReadRowsClientWrapper(client), request, options.maxReadRowsRetries)
       .readRows()
-    val it = readRowResponses.flatMap(toRows)
+
+  //  val it = AvroConverter(bqSchema, columnsInOrder, rawAvroSchema, readRowResponses).
+  //  getIterator()
+    val it = ArrowConverter(columnsInOrder, rawArrowSchema, readRowResponses).getIterator()
+
     return new InterruptibleIterator(context, it)
 
   }
 
-  def toRows(response: ReadRowsResponse): Iterator[InternalRow] = new AvroBinaryIterator(
-    avroSchema,
-    response.getAvroRows.getSerializedBinaryRows).map(converter)
-
   override protected def getPartitions: Array[Partition] = parts
+}
 
-  class AvroBinaryIterator(schema: AvroSchema, bytes: ByteString) extends Iterator[GenericRecord] {
-    // TODO(pclay): replace nulls with reusable objects
-    val reader = new GenericDatumReader[GenericRecord](schema)
-    val in: BinaryDecoder = new DecoderFactory().binaryDecoder(bytes.toByteArray, null)
+case class ArrowConverter(columnsInOrder: Seq[String],
+                          rawArrowSchema : ByteString,
+                          rowResponseIterator : Iterator[ReadRowsResponse])
+{
+  def getIterator(): Iterator[InternalRow] =
+  {
+    // this byte string can get extremely long and may exceed memory.
+    // Figure out a way to combine iterators
+    var allRowsByteString = ByteString.EMPTY
 
-    override def hasNext: Boolean = !in.isEnd
+    rowResponseIterator.
+      foreach(readRowResponse => allRowsByteString = allRowsByteString.concat
+      (readRowResponse.getArrowRecordBatch.getSerializedRecordBatch))
 
-    override def next(): GenericRecord = reader.read(null, in)
+    new ArrowBinaryIterator(columnsInOrder, rawArrowSchema, allRowsByteString)
+  }
+}
+
+case class AvroConverter (bqSchema: Schema,
+                 columnsInOrder: Seq[String],
+                 rawAvroSchema: String,
+                 rowResponseIterator : Iterator[ReadRowsResponse])
+{
+  @transient private lazy val avroSchema = new AvroSchema.Parser().parse(rawAvroSchema)
+
+  def getIterator(): Iterator[InternalRow] =
+  {
+    rowResponseIterator.flatMap(toRows)
   }
 
+  def toRows(response: ReadRowsResponse): Iterator[InternalRow] = new AvroBinaryIterator(
+    bqSchema,
+    columnsInOrder,
+    avroSchema,
+    response.getAvroRows.getSerializedBinaryRows)
 }
 
 case class BigQueryPartition(stream: String, index: Int) extends Partition
@@ -146,7 +168,7 @@ object BigQueryRDD {
   def scanTable(sqlContext: SQLContext,
                 parts: Array[Partition],
                 sessionId: String,
-                avroSchema: String,
+                arrowSchema: ByteString,
                 bqSchema: Schema,
                 columnsInOrder: Seq[String],
                 options: SparkBigQueryOptions,
@@ -156,7 +178,7 @@ object BigQueryRDD {
       parts,
       sessionId,
       columnsInOrder: Seq[String],
-      avroSchema,
+      arrowSchema,
       bqSchema,
       options,
       getClient,
