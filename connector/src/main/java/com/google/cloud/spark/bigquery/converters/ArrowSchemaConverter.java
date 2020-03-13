@@ -120,8 +120,6 @@ public class ArrowSchemaConverter extends ColumnVector {
 
   private static DataType fromArrowType(ArrowType arrowType)
   {
-    ArrowTypeID x = arrowType.getTypeID();
-
     switch (arrowType.getTypeID())
     {
       case Int: return DataTypes.LongType;
@@ -353,9 +351,6 @@ public class ArrowSchemaConverter extends ColumnVector {
 
     @Override
     final long getLong(int rowId) {
-      String y = "abc";
-      Long x = accessor.get(rowId);
-
       return accessor.get(rowId);
     }
   }

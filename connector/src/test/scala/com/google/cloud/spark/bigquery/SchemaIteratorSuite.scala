@@ -21,23 +21,19 @@ import com.google.cloud.bigquery.{Field, Schema}
 import com.google.common.io.ByteStreams.toByteArray
 import com.google.protobuf.ByteString
 import org.apache.avro.{Schema => AvroSchema}
-import com.google.cloud.spark.bigquery.{ArrowBinaryIterator, AvroBinaryIterator}
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Row
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
-import org.apache.spark.sql.types.{ArrayType, BinaryType, BooleanType, DataTypes, DateType, DoubleType, LongType, StringType, StructField, StructType, TimestampType}
-import sun.net.www.content.text.Generic
+import org.apache.spark.sql.types.{ArrayType, BinaryType, StructType}
 
 class SchemaIteratorSuite extends org.scalatest.FunSuite {
 
-  test("empty schema conversion") {
+  test("compare arrow and avro results") {
+
+    val numFields = 12
     val avroByteString = ByteString.copyFrom(
       toByteArray(getClass.getResourceAsStream("/avrobytearray")))
     val arrowByteString = ByteString.copyFrom(
       toByteArray(getClass.getResourceAsStream("/arrowbytearray")))
 
-    val avroSchema = new AvroSchema.Parser().parse(getClass.getResourceAsStream("/avros.json"))
+    val avroSchema = new AvroSchema.Parser().parse(getClass.getResourceAsStream("/avroschema.json"))
     val arrowSchema = ByteString.copyFrom(toByteArray(getClass.getResourceAsStream("/arrowschema")))
     val columnsInOrder = Seq("int_req", "int_null", "bl", "str", "day", "ts", "dt", "tm", "binary",
       "float", "nums", "int_arr", "int_struct_arr")
@@ -62,14 +58,44 @@ class SchemaIteratorSuite extends org.scalatest.FunSuite {
       Field.newBuilder("int_struct_arr", RECORD,
         Field.of("i", INTEGER)).setMode(Mode.REPEATED).build())
 
-    val seqSchema = (SchemaConverters.toSpark(bqSchema))
+    val schemaFields = SchemaConverters.toSpark(bqSchema).fields
 
-    val  arrowSparkRow = new ArrowBinaryIterator(columnsInOrder, arrowSchema, arrowByteString).
-      next()
+    val arrowSparkRow = new ArrowBinaryIterator(columnsInOrder, arrowSchema, arrowByteString)
+      .next()
 
     val avroSparkRow = new AvroBinaryIterator(bqSchema,
       columnsInOrder, avroSchema, avroByteString).next()
 
-    assert (arrowSparkRow == avroSparkRow)
+    for (col <- 0 to numFields)
+    {
+        if (arrowSparkRow.isNullAt(col))
+        {
+            assert(avroSparkRow.isNullAt(col))
+        }
+        else
+        {
+            val schemaFieldDataType = schemaFields.apply(col).dataType
+
+            if (schemaFieldDataType == BinaryType)
+            {
+                avroSparkRow.getBinary(col).equals(arrowSparkRow.getBinary(col))
+            }
+            else
+            if (schemaFieldDataType == ArrayType)
+            {
+              assert(avroSparkRow.getArray(col).equals(arrowSparkRow.getArray(col)))
+            }
+            else
+            if (schemaFieldDataType == StructType)
+            {
+              assert(avroSparkRow.getStruct(col, 4).equals(arrowSparkRow.getStruct(col, 4)))
+            }
+            else
+            {
+              assert(avroSparkRow.get(col, schemaFieldDataType).equals(
+                arrowSparkRow.get(col, schemaFieldDataType)))
+            }
+        }
+    }
   }
 }
