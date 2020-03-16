@@ -21,20 +21,27 @@ import com.google.cloud.bigquery.{Field, Schema}
 import com.google.common.io.ByteStreams.toByteArray
 import com.google.protobuf.ByteString
 import org.apache.avro.{Schema => AvroSchema}
-import org.apache.spark.sql.types.{ArrayType, BinaryType, StructType}
+import org.apache.spark.sql.types.{ArrayType, BinaryType}
+import org.apache.spark.sql.types._
+import org.scalatest.{FunSuite}
 
-class SchemaIteratorSuite extends org.scalatest.FunSuite {
+/**
+ * A test for ensuring that Arrow and Avros Schema generate same results for
+ * underlying big query source
+ */
+class SchemaIteratorSuite extends FunSuite {
 
   test("compare arrow and avro results") {
-
-    val numFields = 12
+    // rows in the form of bytes string in both arrow and avro format
     val avroByteString = ByteString.copyFrom(
       toByteArray(getClass.getResourceAsStream("/avrobytearray")))
     val arrowByteString = ByteString.copyFrom(
       toByteArray(getClass.getResourceAsStream("/arrowbytearray")))
 
-    val avroSchema = new AvroSchema.Parser().parse(getClass.getResourceAsStream("/avroschema.json"))
+    // avro and arrow schemas required to read rows from bigquery
     val arrowSchema = ByteString.copyFrom(toByteArray(getClass.getResourceAsStream("/arrowschema")))
+    val avroSchema = new AvroSchema.Parser().parse(getClass.getResourceAsStream("/avroschema.json"))
+
     val columnsInOrder = Seq("int_req", "int_null", "bl", "str", "day", "ts", "dt", "tm", "binary",
       "float", "nums", "int_arr", "int_struct_arr")
 
@@ -66,7 +73,7 @@ class SchemaIteratorSuite extends org.scalatest.FunSuite {
     val avroSparkRow = new AvroBinaryIterator(bqSchema,
       columnsInOrder, avroSchema, avroByteString).next()
 
-    for (col <- 0 to numFields)
+    for (col <- 0 to 11)
     {
         if (arrowSparkRow.isNullAt(col))
         {
@@ -81,14 +88,19 @@ class SchemaIteratorSuite extends org.scalatest.FunSuite {
                 avroSparkRow.getBinary(col).equals(arrowSparkRow.getBinary(col))
             }
             else
-            if (schemaFieldDataType == ArrayType)
+            if (schemaFieldDataType == (ArrayType(LongType, true)))
             {
-              assert(avroSparkRow.getArray(col).equals(arrowSparkRow.getArray(col)))
+                val arr1 = avroSparkRow.getArray(col).array
+                val arr2 = arrowSparkRow.getArray(col).array
+
+                assert(arr1 sameElements arr2)
             }
             else
-            if (schemaFieldDataType == StructType)
-            {
-              assert(avroSparkRow.getStruct(col, 4).equals(arrowSparkRow.getStruct(col, 4)))
+            if (schemaFieldDataType.typeName == s"struct") {
+              for (fieldI <- 0 to 3) {
+                assert(avroSparkRow.getStruct(col, 4).getDecimal(fieldI, 38, 9)
+                  .equals(arrowSparkRow.getStruct(col, 4).getDecimal(fieldI, 38, 9)))
+              }
             }
             else
             {
@@ -97,5 +109,12 @@ class SchemaIteratorSuite extends org.scalatest.FunSuite {
             }
         }
     }
+
+    // handling last field specially because of its complex nature
+
+    val x = arrowSparkRow.getArray(12).getStruct(0, 1).getLong(0)
+    val y = avroSparkRow.getArray(12).getStruct(0, 1).getLong(0)
+
+    assert (x == y)
   }
 }

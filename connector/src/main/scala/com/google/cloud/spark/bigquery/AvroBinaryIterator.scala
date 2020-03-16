@@ -15,8 +15,6 @@
  */
 package com.google.cloud.spark.bigquery
 
-import java.io.{BufferedOutputStream, FileOutputStream}
-
 import com.google.cloud.bigquery.Schema
 import com.google.protobuf.ByteString
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
@@ -24,15 +22,22 @@ import org.apache.avro.io.{BinaryDecoder, DecoderFactory}
 import org.apache.avro.{Schema => AvroSchema}
 import org.apache.spark.sql.catalyst.InternalRow
 
+/**
+ * An iterator for scanning over rows serialized in Avro format
+ * @param bqSchema Schema of underlying BigQuery source
+ * @param columnsInOrder Sequence of columns in the schema
+ * @param schema Schema in avro format
+ * @param rowsInBytes Rows serialized in binary format for Avro
+ */
 class AvroBinaryIterator(bqSchema: Schema,
                          columnsInOrder: Seq[String],
                          schema: AvroSchema,
-                         bytes: ByteString) extends Iterator[InternalRow] {
+                         rowsInBytes: ByteString) extends Iterator[InternalRow] {
   // TODO(pclay): replace nulls with reusable objects
 
   private lazy val converter = SchemaConverters.createRowConverter(bqSchema, columnsInOrder) _
   val reader = new GenericDatumReader[GenericRecord](schema)
-  val in: BinaryDecoder = new DecoderFactory().binaryDecoder(bytes.toByteArray, null)
+  val in: BinaryDecoder = new DecoderFactory().binaryDecoder(rowsInBytes.toByteArray, null)
 
   override def hasNext: Boolean = !in.isEnd
 

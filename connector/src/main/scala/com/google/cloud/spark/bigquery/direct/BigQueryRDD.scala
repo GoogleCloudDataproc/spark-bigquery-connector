@@ -35,7 +35,7 @@ class BigQueryRDD(sc: SparkContext,
                   parts: Array[Partition],
                   sessionId: String,
                   columnsInOrder: Seq[String],
-                  rawArrowSchema: ByteString,
+                  rawAvroSchema: String,
                   bqSchema: Schema,
                   options: SparkBigQueryOptions,
                   getClient: SparkBigQueryOptions => BigQueryStorageClient,
@@ -59,24 +59,28 @@ class BigQueryRDD(sc: SparkContext,
       ReadRowsClientWrapper(client), request, options.maxReadRowsRetries)
       .readRows()
 
-  //  val it = AvroConverter(bqSchema, columnsInOrder, rawAvroSchema, readRowResponses).
-  //  getIterator()
-    val it = ArrowConverter(columnsInOrder, rawArrowSchema, readRowResponses).getIterator()
+    val it = AvroConverter(bqSchema, columnsInOrder, rawAvroSchema, readRowResponses).getIterator()
 
-    return new InterruptibleIterator(context, it)
-
+    new InterruptibleIterator(context, it)
   }
 
   override protected def getPartitions: Array[Partition] = parts
 }
 
+/**
+ * A converter for transforming an iterator on ReadRowsResponse to an iterator
+ * that converts each of these rows to Arrow Schema
+ * @param columnsInOrder Ordered columns in the Big Query schema
+ * @param rawArrowSchema Schema representation in arrow format
+ * @param rowResponseIterator Iterator over rows read from big query
+ */
 case class ArrowConverter(columnsInOrder: Seq[String],
                           rawArrowSchema : ByteString,
                           rowResponseIterator : Iterator[ReadRowsResponse])
 {
   def getIterator(): Iterator[InternalRow] =
   {
-    // this byte string can get extremely long and may exceed memory.
+    // TODO: this byte string can get extremely long and may exceed memory.
     // Figure out a way to combine iterators
     var allRowsByteString = ByteString.EMPTY
 
@@ -88,6 +92,14 @@ case class ArrowConverter(columnsInOrder: Seq[String],
   }
 }
 
+/**
+ * A converter for transforming an iterator on ReadRowsResponse to an iterator
+ * that converts each of these rows to Avro Schema
+ * @param bqSchema Schema of underlying big query source
+ * @param columnsInOrder Ordered columns in the Big Query schema
+ * @param rawAvroSchema Schema representation in Avro format
+ * @param rowResponseIterator Iterator over rows read from big query
+ */
 case class AvroConverter (bqSchema: Schema,
                  columnsInOrder: Seq[String],
                  rawAvroSchema: String,
@@ -168,7 +180,7 @@ object BigQueryRDD {
   def scanTable(sqlContext: SQLContext,
                 parts: Array[Partition],
                 sessionId: String,
-                arrowSchema: ByteString,
+                avroSchema: String,
                 bqSchema: Schema,
                 columnsInOrder: Seq[String],
                 options: SparkBigQueryOptions,
@@ -178,7 +190,7 @@ object BigQueryRDD {
       parts,
       sessionId,
       columnsInOrder: Seq[String],
-      arrowSchema,
+      avroSchema,
       bqSchema,
       options,
       getClient,

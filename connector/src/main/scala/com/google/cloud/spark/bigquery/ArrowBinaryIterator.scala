@@ -27,14 +27,20 @@ import org.apache.spark.sql.vectorized.{ColumnVector, ColumnarBatch}
 
 import collection.JavaConverters._
 
+/**
+ * An iterator for scanning over rows serialized in Arrow format
+ * @param columnsInOrder Sequence of columns in the schema
+ * @param schema Schema in avro format
+ * @param rowsInBytes Rows serialized in binary format for Arrow
+ */
 class ArrowBinaryIterator(columnsInOrder: Seq[String],
                           schema: ByteString,
-                          bytes: ByteString) extends Iterator[InternalRow] {
+                          rowsInBytes: ByteString) extends Iterator[InternalRow] {
 
   val allocator = ArrowUtils.rootAllocator.newChildAllocator("ArrowBinaryIterator",
     0, Long.MaxValue)
 
-  val byteStringWithSchema = schema.concat(bytes)
+  val byteStringWithSchema = schema.concat(rowsInBytes)
 
   val arrowStreamReader = new ArrowStreamReader(
     new ByteArrayInputStream(byteStringWithSchema.toByteArray).asInstanceOf[InputStream]

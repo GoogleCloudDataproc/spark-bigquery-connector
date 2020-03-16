@@ -158,7 +158,6 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
   test("read data types") {
     val expectedRow = spark.range(1).select(TestConstants.ALL_TYPES_TABLE_COLS: _*).head.toSeq
-    val expectedRowString = expectedRow.toString()
     val row = allTypesTable.head.toSeq
     row should contain theSameElementsInOrderAs expectedRow
   }

@@ -15,7 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.direct
 
-import java.io.{BufferedOutputStream, FileOutputStream}
 import java.sql.{Date, Timestamp}
 import java.util.UUID
 import java.util.concurrent.{Callable, TimeUnit}
@@ -130,7 +129,7 @@ private[bigquery] class DirectBigQueryRelation(
         val session = client.createReadSession(
           CreateReadSessionRequest.newBuilder()
             .setParent(s"projects/${options.parentProject}")
-            .setFormat(DataFormat.ARROW)
+            .setFormat(DataFormat.AVRO)
             .setRequestedStreams(maxNumPartitionsRequested)
             .setReadOptions(readOptions)
             .setTableReference(actualTableReference)
@@ -161,7 +160,7 @@ private[bigquery] class DirectBigQueryRelation(
           sqlContext,
           partitions.asInstanceOf[Array[Partition]],
           session.getName,
-          session.getArrowSchema.getSerializedSchema,
+          session.getAvroSchema.getSchema,
           prunedSchema,
           requiredColumns,
           options,
