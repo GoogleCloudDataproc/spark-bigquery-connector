@@ -27,13 +27,14 @@ import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionReque
 import com.google.cloud.bigquery.storage.v1beta1.TableReferenceProto.TableReference
 import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, BigQueryStorageSettings}
 import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
-import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtil, BuildInfo, SchemaConverters, SparkBigQueryOptions}
+import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtil, SchemaConverters, SparkBigQueryOptions}
 import com.google.common.cache.{Cache, CacheBuilder}
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources._
+import org.json4s.BuildInfo
 
 import scala.collection.JavaConverters._
 
