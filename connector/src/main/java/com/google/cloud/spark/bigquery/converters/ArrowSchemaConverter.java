@@ -18,7 +18,10 @@ import org.apache.arrow.vector.types.pojo.Field;
 import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDateTime;
 
-
+/**
+ * ArrowSchemaConverter class for accessing values and converting
+ * arrow data types to the types supported by big query.
+ */
 public class ArrowSchemaConverter extends ColumnVector {
 
   private final ArrowSchemaConverter.ArrowVectorAccessor accessor;
@@ -172,16 +175,8 @@ public class ArrowSchemaConverter extends ColumnVector {
 
     if (vector instanceof BitVector) {
       accessor = new ArrowSchemaConverter.BooleanAccessor((BitVector) vector);
-    } else if (vector instanceof TinyIntVector) {
-      accessor = new ArrowSchemaConverter.ByteAccessor((TinyIntVector) vector);
-    } else if (vector instanceof SmallIntVector) {
-      accessor = new ArrowSchemaConverter.ShortAccessor((SmallIntVector) vector);
-    } else if (vector instanceof IntVector) {
-      accessor = new ArrowSchemaConverter.IntAccessor((IntVector) vector);
     } else if (vector instanceof BigIntVector) {
       accessor = new ArrowSchemaConverter.LongAccessor((BigIntVector) vector);
-    } else if (vector instanceof Float4Vector) {
-      accessor = new ArrowSchemaConverter.FloatAccessor((Float4Vector) vector);
     } else if (vector instanceof Float8Vector) {
       accessor = new ArrowSchemaConverter.DoubleAccessor((Float8Vector) vector);
     } else if (vector instanceof DecimalVector) {
@@ -295,51 +290,6 @@ public class ArrowSchemaConverter extends ColumnVector {
     }
   }
 
-  private static class ByteAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final TinyIntVector accessor;
-
-    ByteAccessor(TinyIntVector vector) {
-      super(vector);
-      this.accessor = vector;
-    }
-
-    @Override
-    final byte getByte(int rowId) {
-      return accessor.get(rowId);
-    }
-  }
-
-  private static class ShortAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final SmallIntVector accessor;
-
-    ShortAccessor(SmallIntVector vector) {
-      super(vector);
-      this.accessor = vector;
-    }
-
-    @Override
-    final short getShort(int rowId) {
-      return accessor.get(rowId);
-    }
-  }
-
-  private static class IntAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final IntVector accessor;
-
-    IntAccessor(IntVector vector) {
-      super(vector);
-      this.accessor = vector;
-    }
-
-    @Override
-    final int getInt(int rowId) {
-      return accessor.get(rowId);
-    }
-  }
-
   private static class LongAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
 
     private final BigIntVector accessor;
@@ -351,21 +301,6 @@ public class ArrowSchemaConverter extends ColumnVector {
 
     @Override
     final long getLong(int rowId) {
-      return accessor.get(rowId);
-    }
-  }
-
-  private static class FloatAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final Float4Vector accessor;
-
-    FloatAccessor(Float4Vector vector) {
-      super(vector);
-      this.accessor = vector;
-    }
-
-    @Override
-    final float getFloat(int rowId) {
       return accessor.get(rowId);
     }
   }
