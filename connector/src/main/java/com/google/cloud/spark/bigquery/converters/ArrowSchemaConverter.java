@@ -114,8 +114,8 @@ public class ArrowSchemaConverter extends ColumnVector {
   }
 
   @Override
-  public ColumnarMap getMap(int rowId) {
-    throw new UnsupportedOperationException();
+  public ColumnarMap getMap(int ordinal) {
+    return null;
   }
 
   @Override

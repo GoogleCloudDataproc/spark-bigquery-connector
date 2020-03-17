@@ -34,13 +34,14 @@ class SchemaIteratorSuite extends FunSuite {
   test("compare arrow and avro results") {
     // rows in the form of bytes string in both arrow and avro format
     val avroByteString = ByteString.copyFrom(
-      toByteArray(getClass.getResourceAsStream("/avrobytearray")))
+      toByteArray(getClass.getResourceAsStream("/alltypes.avro")))
     val arrowByteString = ByteString.copyFrom(
-      toByteArray(getClass.getResourceAsStream("/arrowbytearray")))
+      toByteArray(getClass.getResourceAsStream("/alltypes.arrow")))
 
     // avro and arrow schemas required to read rows from bigquery
-    val arrowSchema = ByteString.copyFrom(toByteArray(getClass.getResourceAsStream("/arrowschema")))
-    val avroSchema = new AvroSchema.Parser().parse(getClass.getResourceAsStream("/avroschema.json"))
+    val arrowSchema = ByteString.copyFrom(toByteArray(getClass.getResourceAsStream("/alltypes.arrowschema")))
+    val avroSchema = new AvroSchema.Parser().
+      parse(getClass.getResourceAsStream("/alltypes.avroschema.json"))
 
     val columnsInOrder = Seq("int_req", "int_null", "bl", "str", "day", "ts", "dt", "tm", "binary",
       "float", "nums", "int_arr", "int_struct_arr")
