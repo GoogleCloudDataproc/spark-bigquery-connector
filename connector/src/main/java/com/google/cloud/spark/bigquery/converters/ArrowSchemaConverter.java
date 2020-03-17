@@ -355,7 +355,7 @@ public class ArrowSchemaConverter extends ColumnVector {
       if (stringResult.isSet == 0) {
         return null;
       } else {
-        return UTF8String.fromAddress(null,
+        return UTF8String.fromAddress(/* base = */null,
             stringResult.buffer.memoryAddress() + stringResult.start,
             stringResult.end - stringResult.start);
       }
@@ -387,6 +387,9 @@ public class ArrowSchemaConverter extends ColumnVector {
     }
 
     @Override
+    /**
+     * Interpreting Data here as int to keep it consistent with Avro.
+     */
     final int getInt(int rowId) {
       return accessor.get(rowId);
     }
@@ -460,7 +463,6 @@ public class ArrowSchemaConverter extends ColumnVector {
 
     @Override
     final boolean isNullAt(int rowId) {
-      // TODO: Workaround if vector has all non-null values, see ARROW-1948
       if (accessor.getValueCount() > 0 && accessor.getValidityBuffer().capacity() == 0) {
         return false;
       } else {
