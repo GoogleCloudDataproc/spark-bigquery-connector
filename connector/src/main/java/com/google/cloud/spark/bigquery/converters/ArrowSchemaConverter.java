@@ -1,5 +1,6 @@
 package com.google.cloud.spark.bigquery.converters;
 
+import com.google.inject.internal.cglib.core.$ClassNameReader;
 import io.netty.buffer.ArrowBuf;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.complex.*;
@@ -114,6 +115,8 @@ public class ArrowSchemaConverter extends ColumnVector {
   }
 
   @Override
+  // BigQuery does not support Map type but this function needs to be overridden since this
+  // class extends an abstract class
   public ColumnarMap getMap(int rowId) {
     throw new UnsupportedOperationException();
   }
