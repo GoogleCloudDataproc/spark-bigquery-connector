@@ -33,7 +33,6 @@ class AvroBinaryIterator(bqSchema: Schema,
                          columnsInOrder: Seq[String],
                          schema: AvroSchema,
                          rowsInBytes: ByteString) extends Iterator[InternalRow] {
-  // TODO(pclay): replace nulls with reusable objects
 
   private lazy val converter = SchemaConverters.createRowConverter(bqSchema, columnsInOrder) _
   val reader = new GenericDatumReader[GenericRecord](schema)
