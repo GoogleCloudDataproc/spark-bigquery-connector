@@ -412,11 +412,11 @@ public class ArrowSchemaConverter extends ColumnVector {
       this.accessor = vector;
     }
 
+    /**
+     * Interpreting Data here as int to keep it consistent with Avro.
+     */
     @Override
     final int getInt(int rowId) {
-      /**
-       * Interpreting Data here as int to keep it consistent with Avro.
-       */
       return accessor.get(rowId);
     }
   }
