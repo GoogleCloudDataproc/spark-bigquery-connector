@@ -375,6 +375,10 @@ public class ArrowSchemaConverter extends ColumnVector {
         int start = offsets.getInt(index);
         int end = offsets.getInt(index + VarCharVector.OFFSET_WIDTH);
 
+        /* Since the result is accessed lazily if the memory address is corrupted we
+         * might lose the data. Might be better to include a byte array. Not doing so
+         * for performance reasons.
+         */
         return UTF8String.fromAddress(/* base = */null,
             stringResult.buffer.memoryAddress() + start,
             end - start);
