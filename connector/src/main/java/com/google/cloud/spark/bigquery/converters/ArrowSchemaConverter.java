@@ -130,9 +130,11 @@ public class ArrowSchemaConverter extends ColumnVector {
   }
 
   @Override
-  // BigQuery does not support Map type but this function needs to be overridden since this
-  // class extends an abstract class
   public ColumnarMap getMap(int rowId) {
+    /**
+     *  BigQuery does not support Map type but this function needs to be overridden since this
+     *  class extends an abstract class
+     */
     throw new UnsupportedOperationException();
   }
 
@@ -411,10 +413,10 @@ public class ArrowSchemaConverter extends ColumnVector {
     }
 
     @Override
-    /**
-     * Interpreting Data here as int to keep it consistent with Avro.
-     */
     final int getInt(int rowId) {
+      /**
+       * Interpreting Data here as int to keep it consistent with Avro.
+       */
       return accessor.get(rowId);
     }
   }

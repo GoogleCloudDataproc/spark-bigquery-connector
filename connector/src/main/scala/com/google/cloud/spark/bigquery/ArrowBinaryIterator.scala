@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery
 
-import java.io.{ByteArrayInputStream, InputStream}
+import java.io.{ByteArrayInputStream, InputStream, SequenceInputStream}
 
 import com.google.cloud.spark.bigquery.converters.ArrowSchemaConverter
 import com.google.protobuf.ByteString
@@ -43,11 +43,11 @@ class ArrowBinaryIterator(columnsInOrder: Seq[String],
   val allocator = ArrowUtils.rootAllocator.newChildAllocator("ArrowBinaryIterator",
     0, maxAllocation)
 
-  val byteStringWithSchema = schema.concat(rowsInBytes)
+  val bytesWithSchemaStream = new SequenceInputStream(
+    new ByteArrayInputStream(schema.toByteArray).asInstanceOf[InputStream],
+    new ByteArrayInputStream(rowsInBytes.toByteArray).asInstanceOf[InputStream])
 
-  val arrowStreamReader = new ArrowStreamReader(
-    new ByteArrayInputStream(byteStringWithSchema.toByteArray).asInstanceOf[InputStream]
-    , allocator)
+  val arrowStreamReader = new ArrowStreamReader(bytesWithSchemaStream, allocator)
 
   val arrowReaderIterator = new ArrowReaderIterator(arrowStreamReader)
   val iterator = arrowReaderIterator.flatMap(root => toArrowRows(root, columnsInOrder))
