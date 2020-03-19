@@ -373,7 +373,7 @@ public class ArrowSchemaConverter extends ColumnVector {
         ArrowBuf offsets = accessor.getOffsetBuffer();
         int index = rowId * VarCharVector.OFFSET_WIDTH;
         int start = offsets.getInt(index);
-        int end = offsets.getInt(index + 1);
+        int end = offsets.getInt(index + VarCharVector.OFFSET_WIDTH);
 
         /* Since the result is accessed lazily if the memory address is corrupted we
          * might lose the data. Might be better to include a byte array. Not doing so
