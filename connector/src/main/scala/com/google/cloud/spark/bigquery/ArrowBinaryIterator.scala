@@ -44,8 +44,8 @@ class ArrowBinaryIterator(columnsInOrder: Seq[String],
     0, maxAllocation)
 
   val bytesWithSchemaStream = new SequenceInputStream(
-    new ByteArrayInputStream(schema.toByteArray).asInstanceOf[InputStream],
-    new ByteArrayInputStream(rowsInBytes.toByteArray).asInstanceOf[InputStream])
+    new ByteArrayInputStream(schema.toByteArray),
+    new ByteArrayInputStream(rowsInBytes.toByteArray))
 
   val arrowStreamReader = new ArrowStreamReader(bytesWithSchemaStream, allocator)
 
