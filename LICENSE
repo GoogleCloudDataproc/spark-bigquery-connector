@@ -200,3 +200,14 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+/src/main/java/com/google/cloud/spark/bigquery/converters/ArrowSchemaConverter.java
+
+This code has been derived from
+https://github.com/apache/spark/blob/master/sql/catalyst/src/main/java/org/apache/spark/sql/vectorized/ArrowColumnVector.java,
+which is under Apache 2.0 License
+
+Project Page: https://github.com/apache/spark
+License: Apache License Version 2.0 http://www.apache.org/licenses/LICENSE-2.0
