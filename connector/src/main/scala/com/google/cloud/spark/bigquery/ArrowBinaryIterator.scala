@@ -37,8 +37,11 @@ class ArrowBinaryIterator(columnsInOrder: Seq[String],
                           schema: ByteString,
                           rowsInBytes: ByteString) extends Iterator[InternalRow] {
 
+
+  // max allocation value for the allocator
+  var maxAllocation = Long.MaxValue
   val allocator = ArrowUtils.rootAllocator.newChildAllocator("ArrowBinaryIterator",
-    0, Long.MaxValue)
+    0, maxAllocation)
 
   val byteStringWithSchema = schema.concat(rowsInBytes)
 

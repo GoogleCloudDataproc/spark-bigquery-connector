@@ -29,6 +29,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.arrow.ArrowUtils
 import org.apache.spark.{InterruptibleIterator, Partition, SparkContext, TaskContext}
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable.MutableList
 
 class BigQueryRDD(sc: SparkContext,
@@ -78,17 +79,11 @@ case class ArrowConverter(columnsInOrder: Seq[String],
                           rawArrowSchema : ByteString,
                           rowResponseIterator : Iterator[ReadRowsResponse])
 {
-  def getIterator(): Iterator[InternalRow] =
-  {
-    // TODO: this byte string can get extremely long and may exceed memory.
-    // Figure out a way to combine iterators
-    var allRowsByteString = ByteString.EMPTY
-
-    rowResponseIterator.
-      foreach(readRowResponse => allRowsByteString = allRowsByteString.concat
-      (readRowResponse.getArrowRecordBatch.getSerializedRecordBatch))
-
-    new ArrowBinaryIterator(columnsInOrder, rawArrowSchema, allRowsByteString)
+  def getIterator(): Iterator[InternalRow] = {
+    rowResponseIterator.flatMap(readRowResponse =>
+      new ArrowBinaryIterator(columnsInOrder,
+        rawArrowSchema,
+        readRowResponse.getArrowRecordBatch.getSerializedRecordBatch));
   }
 }
 
