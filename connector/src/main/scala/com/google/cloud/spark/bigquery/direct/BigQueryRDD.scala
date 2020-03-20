@@ -30,7 +30,8 @@ import org.apache.spark.sql.execution.arrow.ArrowUtils
 import org.apache.spark.{InterruptibleIterator, Partition, SparkContext, TaskContext}
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable.MutableList
+import scala.collection.mutable
+import scala.collection.mutable.MutableList._
 
 class BigQueryRDD(sc: SparkContext,
                   parts: Array[Partition],
@@ -136,7 +137,7 @@ case class ReadRowsHelper(
                          ) extends Logging {
   def readRows(): Iterator[ReadRowsResponse] = {
     val readPosition = request.getReadPositionBuilder
-    val readRowResponses = new MutableList[ReadRowsResponse]
+    val readRowResponses = new mutable.MutableList[ReadRowsResponse]
     var readRowsCount: Long = 0
     var retries: Int = 0
     var serverResponses = fetchResponses(request)

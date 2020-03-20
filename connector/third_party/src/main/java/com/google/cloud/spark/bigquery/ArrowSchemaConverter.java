@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spark.bigquery.converters;
+package com.google.cloud.spark.bigquery;
 
 import io.netty.buffer.ArrowBuf;
 import org.apache.arrow.vector.*;

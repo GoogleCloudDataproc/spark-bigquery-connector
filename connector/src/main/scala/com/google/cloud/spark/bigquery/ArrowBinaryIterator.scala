@@ -15,9 +15,8 @@
  */
 package com.google.cloud.spark.bigquery
 
-import java.io.{ByteArrayInputStream, InputStream, SequenceInputStream}
+import java.io.{ByteArrayInputStream, SequenceInputStream}
 
-import com.google.cloud.spark.bigquery.converters.ArrowSchemaConverter
 import com.google.protobuf.ByteString
 import org.apache.arrow.vector.VectorSchemaRoot
 import org.apache.arrow.vector.ipc.{ArrowReader, ArrowStreamReader}
