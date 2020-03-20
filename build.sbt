@@ -24,6 +24,8 @@ lazy val connector = (project in file("connector"))
     commonSettings,
     publishSettings,
     name := "spark-bigquery",
+    unmanagedSourceDirectories in Compile += baseDirectory.value /
+      "third_party/apache-spark/src/main/java",
     inConfig(ITest)(Defaults.testTasks),
     testOptions in Test := Seq(Tests.Filter(unitFilter)),
     testOptions in ITest := Seq(Tests.Filter(itFilter)),
@@ -54,7 +56,6 @@ lazy val connector = (project in file("connector"))
       // scalastyle:off
       "com.google.cloud.bigdataoss" % "gcs-connector" % "hadoop2-2.0.0" % "runtime" classifier("shaded"),
       // scalastyle:on
-
       // test
       "org.scalatest" %% "scalatest" % "3.1.0" % "test",
       "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test")
@@ -111,7 +112,6 @@ val excludedOrgs = Seq(
   "com.google.code.findbugs",
   "javax.annotation",
   // Spark Uses 2.9.9 google-cloud-core uses 2.9.2
-  "joda-time",
   "com.sun.jdmk",
   "com.sun.jmx",
   "javax.activation",
