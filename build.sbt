@@ -24,7 +24,8 @@ lazy val connector = (project in file("connector"))
     commonSettings,
     publishSettings,
     name := "spark-bigquery",
-    unmanagedSourceDirectories in Compile += baseDirectory.value / "third_party/src/main/java",
+    unmanagedSourceDirectories in Compile += baseDirectory.value /
+      "third_party/apache-spark/src/main/java",
     inConfig(ITest)(Defaults.testTasks),
     testOptions in Test := Seq(Tests.Filter(unitFilter)),
     testOptions in ITest := Seq(Tests.Filter(itFilter)),
