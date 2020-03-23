@@ -90,6 +90,28 @@ class SparkBigQueryOptionsSuite extends FunSuite {
     }
   }
 
+  test("data format - no value set") {
+    assertResult("AVRO") {
+      val options = SparkBigQueryOptions(
+        parameters,
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.readDataFormat.toString
+    }
+  }
+
+  test("Set Read Data Format as Arrow") {
+    assertResult("ARROW") {
+      val options = SparkBigQueryOptions(
+        parameters + ("readDataFormat" -> "Arrow"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.readDataFormat.toString
+    }
+  }
+
   test("getAnyOptionWithFallback - only new config exist") {
     assertResult(Some("foo")) {
       val options = SparkBigQueryOptions(
