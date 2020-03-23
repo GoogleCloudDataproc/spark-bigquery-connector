@@ -96,8 +96,8 @@ class SparkBigQueryOptionsSuite extends FunSuite {
           parameters + ("readDataFormat" -> "abc"),
           Map.empty[String, String], // allConf
           new Configuration,
-          None)
-      }// schema
+          None) // schema
+      }
       assert (thrown.getMessage ==
         "No enum constant com.google.cloud.bigquery.storage.v1beta1.Storage.DataFormat.ABC")
   }
