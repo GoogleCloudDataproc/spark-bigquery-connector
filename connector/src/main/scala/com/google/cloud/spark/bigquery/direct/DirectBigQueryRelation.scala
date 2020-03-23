@@ -124,11 +124,13 @@ private[bigquery] class DirectBigQueryRelation(
 
       val maxNumPartitionsRequested = getMaxNumPartitionsRequested(actualTableDefinition)
 
+      val readDataFormat = options.readDataFormat
+
       try {
         val session = client.createReadSession(
           CreateReadSessionRequest.newBuilder()
             .setParent(s"projects/${options.parentProject}")
-            .setFormat(DataFormat.AVRO)
+            .setFormat(readDataFormat)
             .setRequestedStreams(maxNumPartitionsRequested)
             .setReadOptions(readOptions)
             .setTableReference(actualTableReference)
@@ -158,8 +160,7 @@ private[bigquery] class DirectBigQueryRelation(
         BigQueryRDD.scanTable(
           sqlContext,
           partitions.asInstanceOf[Array[Partition]],
-          session.getName,
-          session.getAvroSchema.getSchema,
+          session,
           prunedSchema,
           requiredColumns,
           options,

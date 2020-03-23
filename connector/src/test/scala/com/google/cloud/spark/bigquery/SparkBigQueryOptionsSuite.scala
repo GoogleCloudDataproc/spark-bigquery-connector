@@ -90,6 +90,40 @@ class SparkBigQueryOptionsSuite extends FunSuite {
     }
   }
 
+  test("Invalid data format") {
+      val thrown = intercept[Exception] {
+        SparkBigQueryOptions(
+          parameters + ("readDataFormat" -> "abc"),
+          Map.empty[String, String], // allConf
+          new Configuration,
+          None) // schema
+      }
+      assert (thrown.getMessage ==
+        "No enum constant com.google.cloud.bigquery.storage.v1beta1.Storage.DataFormat.ABC")
+  }
+
+  test("data format - no value set") {
+    assertResult("AVRO") {
+      val options = SparkBigQueryOptions(
+        parameters,
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.readDataFormat.toString
+    }
+  }
+
+  test("Set Read Data Format as Arrow") {
+    assertResult("ARROW") {
+      val options = SparkBigQueryOptions(
+        parameters + ("readDataFormat" -> "Arrow"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.readDataFormat.toString
+    }
+  }
+
   test("getAnyOptionWithFallback - only new config exist") {
     assertResult(Some("foo")) {
       val options = SparkBigQueryOptions(
