@@ -60,16 +60,14 @@ class BigQueryRDD(sc: SparkContext,
       ReadRowsClientWrapper(client), request, options.maxReadRowsRetries)
       .readRows()
 
-    var it: Iterator[InternalRow] = null
-
-    if (options.readDataFormat.equals(DataFormat.AVRO)) {
-      it = AvroConverter(bqSchema,
+    val it = if (options.readDataFormat.equals(DataFormat.AVRO)) {
+      AvroConverter(bqSchema,
         columnsInOrder,
         session.getAvroSchema.getSchema,
         readRowResponses).getIterator()
     }
-    else if (options.readDataFormat.equals(DataFormat.ARROW)) {
-      it = ArrowConverter(columnsInOrder,
+    else {
+      ArrowConverter(columnsInOrder,
         session.getArrowSchema.getSerializedSchema,
         readRowResponses).getIterator()
     }

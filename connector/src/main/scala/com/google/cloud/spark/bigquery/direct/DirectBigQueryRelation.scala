@@ -301,7 +301,7 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   private def handledFilters(filters: Array[Filter]): Array[Filter] = {
-    filters.filter(filter => DirectBigQueryRelation.isHandled(filter))
+    filters.filter(filter => DirectBigQueryRelation.isHandled(filter, options.readDataFormat))
   }
 
   override def unhandledFilters(filters: Array[Filter]): Array[Filter] = {
@@ -351,7 +351,7 @@ object DirectBigQueryRelation {
   private def headerProvider =
     FixedHeaderProvider.create("user-agent", BuildInfo.name + "/" + BuildInfo.version)
 
-  def isHandled(filter: Filter): Boolean = filter match {
+  def isHandled(filter: Filter, readDataFormat: DataFormat): Boolean = filter match {
     case EqualTo(_, _) => true
     // There is no direct equivalent of EqualNullSafe in Google standard SQL.
     case EqualNullSafe(_, _) => false
@@ -362,9 +362,10 @@ object DirectBigQueryRelation {
     case In(_, _) => true
     case IsNull(_) => true
     case IsNotNull(_) => true
-    case And(lhs, rhs) => isHandled(lhs) && isHandled(rhs)
-    case Or(lhs, rhs) => isHandled(lhs) && isHandled(rhs)
-    case Not(child) => isHandled(child)
+    case And(lhs, rhs) => isHandled(lhs, readDataFormat) && isHandled(rhs, readDataFormat)
+    case Or(lhs, rhs) => readDataFormat != DataFormat.ARROW &&
+      isHandled(lhs, readDataFormat) && isHandled(rhs, readDataFormat)
+    case Not(child) => isHandled(child, readDataFormat)
     case StringStartsWith(_, _) => true
     case StringEndsWith(_, _) => true
     case StringContains(_, _) => true

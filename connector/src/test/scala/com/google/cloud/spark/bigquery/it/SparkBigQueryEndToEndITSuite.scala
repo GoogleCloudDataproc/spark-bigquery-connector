@@ -243,7 +243,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       val newBehaviourWords = extractWords(
         spark.read.format("bigquery")
           .option("table", "publicdata.samples.shakespeare")
-          .option("filter", "length(word) = 1")
+          .option("filter", "length(word) = 1 OR length(word) = 2")
           .option("combinePushedDownFilters", "true")
           .option("readDataFormat", dataFormat)
           .load())
@@ -251,12 +251,28 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       val oldBehaviourWords = extractWords(
         spark.read.format("bigquery")
           .option("table", "publicdata.samples.shakespeare")
-          .option("filter", "length(word) = 1")
+          .option("filter", "length(word) = 1 OR length(word) = 2")
           .option("combinePushedDownFilters", "false")
           .option("readDataFormat", dataFormat)
           .load())
 
       newBehaviourWords should equal (oldBehaviourWords)
+    }
+  }
+
+  test("OR across columns with Arrow") {
+    try {
+      spark.read.format("bigquery")
+        .option("table", "publicdata.samples.shakespeare")
+        .option("filter", "word_count = 1 OR corpus_date = 0")
+        .option("readDataFormat", "ARROW")
+        .load().collect()
+    }
+    catch
+    {
+      case e: com.google.api.gax.rpc.InvalidArgumentException =>
+        assert (e.getMessage contains
+          "request failed: row filter '(word_count = 1 OR corpus_date = 0)' is too complex")
     }
   }
 
