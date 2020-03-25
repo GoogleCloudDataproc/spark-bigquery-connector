@@ -98,8 +98,8 @@ class SparkBigQueryOptionsSuite extends FunSuite {
           new Configuration,
           None) // schema
       }
-      assert (thrown.getMessage ==
-        "No enum constant com.google.cloud.bigquery.storage.v1beta1.Storage.DataFormat.ABC")
+      assert (thrown.getMessage contains
+        "Data read format 'ABC' is not supported. Supported formats are Set(ARROW, AVRO)")
   }
 
   test("data format - no value set") {

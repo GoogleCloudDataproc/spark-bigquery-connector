@@ -64,7 +64,6 @@ case class SparkBigQueryOptions(
         throw new IllegalArgumentException("Only one of credentials or credentialsFile can be" +
           " specified in the options.")
     }
-
 }
 
 /** Resolvers for {@link SparkBigQueryOptions} */
@@ -80,7 +79,7 @@ object SparkBigQueryOptions {
   val DefaultReadDataFormat: DataFormat = DataFormat.AVRO
   val DefaultFormat: FormatOptions = FormatOptions.parquet()
   private val PermittedIntermediateFormats = Set(FormatOptions.orc(), FormatOptions.parquet())
-  private val PermittedReadDataFormats = Set(DataFormat.ARROW, DataFormat.AVRO)
+  private val PermittedReadDataFormats = Set(DataFormat.ARROW.toString, DataFormat.AVRO.toString)
 
   def apply(
              parameters: Map[String, String],
@@ -112,15 +111,16 @@ object SparkBigQueryOptions {
            |Supported formats are ${PermittedIntermediateFormats.map(_.getType)}"""
           .stripMargin.replace('\n', ' '))
     }
-    val readDataFormat = getAnyOption(allConf, parameters, ReadDataFormatOption)
-      .map(s => DataFormat.valueOf(s.toUpperCase()))
-      .getOrElse(DefaultReadDataFormat)
-    if (!PermittedReadDataFormats.contains(readDataFormat)) {
+    val readDataFormatParam = getAnyOption(allConf, parameters, ReadDataFormatOption)
+      .map(s => s.toUpperCase())
+      .getOrElse(DefaultReadDataFormat.toString)
+    if (!PermittedReadDataFormats.contains(readDataFormatParam)) {
       throw new IllegalArgumentException(
-        s"""Data read format '${readDataFormat.toString}' is not supported.
+        s"""Data read format '${readDataFormatParam.toString}' is not supported.
            |Supported formats are ${PermittedReadDataFormats.map(_.toString)}"""
           .stripMargin.replace('\n', ' '))
     }
+    val readDataFormat = DataFormat.valueOf(readDataFormatParam)
     val combinePushedDownFilters = getAnyBooleanOption(
       allConf, parameters, "combinePushedDownFilters", true)
     val viewsEnabled = getAnyBooleanOption(

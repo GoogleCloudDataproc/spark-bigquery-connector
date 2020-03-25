@@ -260,6 +260,22 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     }
   }
 
+  test("OR across columns with Arrow") {
+    try {
+      spark.read.format("bigquery")
+        .option("table", "publicdata.samples.shakespeare")
+        .option("filter", "word_count = 1 OR corpus_date = 0")
+        .option("readDataFormat", "ARROW")
+        .load().collect()
+    }
+    catch
+    {
+      case e: com.google.api.gax.rpc.InvalidArgumentException =>
+        assert (e.getMessage contains
+          "request failed: row filter '(word_count = 1 OR corpus_date = 0)' is too complex")
+    }
+  }
+
   test("read data types") {
     val expectedRow = spark.range(1).select(TestConstants.ALL_TYPES_TABLE_COLS: _*).head.toSeq
     val row = allTypesTable.head.toSeq
