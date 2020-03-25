@@ -261,19 +261,37 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   }
 
   test("OR across columns with Arrow") {
-    try {
-      spark.read.format("bigquery")
-        .option("table", "publicdata.samples.shakespeare")
-        .option("filter", "word_count = 1 OR corpus_date = 0")
-        .option("readDataFormat", "ARROW")
-        .load().collect()
-    }
-    catch
-    {
-      case e: com.google.api.gax.rpc.InvalidArgumentException =>
-        assert (e.getMessage contains
-          "request failed: row filter '(word_count = 1 OR corpus_date = 0)' is too complex")
-    }
+
+    val avroResults = spark.read.format("bigquery")
+      .option("table", "publicdata.samples.shakespeare")
+      .option("filter", "word_count = 1 OR corpus_date = 0")
+      .option("readDataFormat", "AVRO")
+      .load().collect()
+
+    val arrowResults = spark.read.format("bigquery")
+      .option("table", "publicdata.samples.shakespeare")
+      .option("readDataFormat", "ARROW")
+      .load().where("word_count = 1 OR corpus_date = 0")
+      .collect()
+
+    avroResults should equal (arrowResults)
+  }
+
+  test("Count with filters - Arrow") {
+
+    val countResults = spark.read.format("bigquery")
+      .option("table", "publicdata.samples.shakespeare")
+      .option("readDataFormat", "ARROW")
+      .load().where("word_count = 1 OR corpus_date = 0")
+      .count()
+
+    val countAfterCollect = spark.read.format("bigquery")
+      .option("table", "publicdata.samples.shakespeare")
+      .option("readDataFormat", "ARROW")
+      .load().where("word_count = 1 OR corpus_date = 0")
+      .collect().size
+
+    countResults should equal (countAfterCollect)
   }
 
   test("read data types") {
