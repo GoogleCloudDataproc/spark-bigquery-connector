@@ -243,7 +243,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       val newBehaviourWords = extractWords(
         spark.read.format("bigquery")
           .option("table", "publicdata.samples.shakespeare")
-          .option("filter", "length(word) = 1 OR length(word) = 2")
+          .option("filter", "length(word) = 1")
           .option("combinePushedDownFilters", "true")
           .option("readDataFormat", dataFormat)
           .load())
@@ -251,7 +251,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       val oldBehaviourWords = extractWords(
         spark.read.format("bigquery")
           .option("table", "publicdata.samples.shakespeare")
-          .option("filter", "length(word) = 1 OR length(word) = 2")
+          .option("filter", "length(word) = 1")
           .option("combinePushedDownFilters", "false")
           .option("readDataFormat", dataFormat)
           .load())
