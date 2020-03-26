@@ -1,5 +1,8 @@
 # Release Notes
 
+## 0.13.2-beta - 2020-03-25
+* Added Arrow as a supported format for reading from BigQuery (Issue #96) 
+
 ## 0.13.1-beta - 2020-02-14
 * The BigQuery Storage API was reverted to v1beta2. The v1beta2 API has not been
   fully integrated with custom IAM roles, which can cause issues to customers using
