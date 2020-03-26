@@ -117,7 +117,7 @@ object SparkBigQueryOptions {
     if (!PermittedReadDataFormats.contains(readDataFormatParam)) {
       throw new IllegalArgumentException(
         s"""Data read format '${readDataFormatParam.toString}' is not supported.
-           |Supported formats are ${PermittedReadDataFormats.map(_.toString)}"""
+           |Supported formats are '${PermittedReadDataFormats.mkString(",")}'"""
           .stripMargin.replace('\n', ' '))
     }
     val readDataFormat = DataFormat.valueOf(readDataFormatParam)

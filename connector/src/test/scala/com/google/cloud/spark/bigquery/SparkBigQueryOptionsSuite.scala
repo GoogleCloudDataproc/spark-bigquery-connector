@@ -98,8 +98,8 @@ class SparkBigQueryOptionsSuite extends FunSuite {
           new Configuration,
           None) // schema
       }
-      assert (thrown.getMessage contains
-        "Data read format 'ABC' is not supported. Supported formats are Set(ARROW, AVRO)")
+      assert (thrown.getMessage ==
+        "Data read format 'ABC' is not supported. Supported formats are 'ARROW,AVRO'")
   }
 
   test("data format - no value set") {

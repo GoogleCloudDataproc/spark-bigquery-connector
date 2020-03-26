@@ -363,7 +363,7 @@ object DirectBigQueryRelation {
     case IsNull(_) => true
     case IsNotNull(_) => true
     case And(lhs, rhs) => isHandled(lhs, readDataFormat) && isHandled(rhs, readDataFormat)
-    case Or(lhs, rhs) => readDataFormat != DataFormat.ARROW &&
+    case Or(lhs, rhs) => readDataFormat == DataFormat.AVRO &&
       isHandled(lhs, readDataFormat) && isHandled(rhs, readDataFormat)
     case Not(child) => isHandled(child, readDataFormat)
     case StringStartsWith(_, _) => true
