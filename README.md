@@ -227,7 +227,7 @@ The API Supports a number of options to configure the read
   <tr valign="top">
    <td><code>readDataFormat</code>
    </td>
-   <td>Data Format for reading from BigQuery. Options : <code>ARROW, AVRO</code>
+   <td>Data Format for reading from BigQuery. Options : <code>ARROW</code>, <code>AVRO</code>
 	Unsupported Arrow filters are not pushed down and results are filtered later by Spark.
 	(Currently Arrow does not suport disjunction across columns).
        <br/>(Optional. Defaults to <code>AVRO</code>)
