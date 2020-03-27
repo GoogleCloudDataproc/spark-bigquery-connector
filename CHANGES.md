@@ -2,6 +2,7 @@
 
 ## 0.14.0-beta - 2020-03-26
 * Added Arrow as a supported format for reading from BigQuery (Issue #96) 
+* Issue #143: Allowing the setting of `SchemaUpdateOption`s When writing to BigQuery
 
 ## 0.13.1-beta - 2020-02-14
 * The BigQuery Storage API was reverted to v1beta2. The v1beta2 API has not been

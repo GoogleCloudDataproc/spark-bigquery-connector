@@ -310,6 +310,24 @@ The API Supports a number of options to configure the read
         </td>
         <td>Write</td>
      </tr>
+   <tr valign="top">
+       <td><code>allowFieldAddition</code>
+        </td>
+        <td>Adds the <a href="https://googleapis.dev/java/google-cloud-clients/latest/com/google/cloud/bigquery/JobInfo.SchemaUpdateOption.html#ALLOW_FIELD_ADDITION" target="_blank">ALLOW_FIELD_ADDITION</a>
+            SchemaUpdateOption to the BigQuery LoadJob. Allowed vales are <code>true</code> and <code>false</code>.
+           <br/>(Optional. Default to <code>false</code>).
+        </td>
+        <td>Write</td>
+     </tr>
+   <tr valign="top">
+       <td><code>allowFieldRelaxation</code>
+        </td>
+        <td>Adds the <a href="https://googleapis.dev/java/google-cloud-clients/latest/com/google/cloud/bigquery/JobInfo.SchemaUpdateOption.html#ALLOW_FIELD_RELAXATION" target="_blank">ALLOW_FIELD_RELAXATION</a>
+            SchemaUpdateOption to the BigQuery LoadJob. Allowed vales are <code>true</code> and <code>false</code>.
+           <br/>(Optional. Default to <code>false</code>).
+        </td>
+        <td>Write</td>
+     </tr>
 </table>
 
 ### Data types
