@@ -21,6 +21,7 @@ import com.google.api.client.util.Base64
 import com.google.auth.Credentials
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.bigquery.JobInfo.CreateDisposition
+import com.google.cloud.bigquery.storage.v1beta1.Storage.DataFormat
 import com.google.cloud.bigquery.{BigQueryOptions, FormatOptions, TableId}
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.types.StructType
@@ -36,6 +37,7 @@ case class SparkBigQueryOptions(
     maxParallelism: Option[Int] = None,
     temporaryGcsBucket: Option[String] = None,
     intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat,
+    readDataFormat: DataFormat = SparkBigQueryOptions.DefaultReadDataFormat,
     combinePushedDownFilters: Boolean = true,
     viewsEnabled: Boolean = false,
     materializationProject: Option[String] = None,
@@ -62,7 +64,6 @@ case class SparkBigQueryOptions(
         throw new IllegalArgumentException("Only one of credentials or credentialsFile can be" +
           " specified in the options.")
     }
-
 }
 
 /** Resolvers for {@link SparkBigQueryOptions} */
@@ -72,10 +73,13 @@ object SparkBigQueryOptions {
   val GcsConfigProjectIdProperty = "fs.gs.project.id"
 
   val IntermediateFormatOption = "intermediateFormat"
+  val ReadDataFormatOption = "readDataFormat"
   val ViewsEnabledOption = "viewsEnabled"
 
+  val DefaultReadDataFormat: DataFormat = DataFormat.AVRO
   val DefaultFormat: FormatOptions = FormatOptions.parquet()
   private val PermittedIntermediateFormats = Set(FormatOptions.orc(), FormatOptions.parquet())
+  private val PermittedReadDataFormats = Set(DataFormat.ARROW.toString, DataFormat.AVRO.toString)
 
   def apply(
              parameters: Map[String, String],
@@ -107,6 +111,16 @@ object SparkBigQueryOptions {
            |Supported formats are ${PermittedIntermediateFormats.map(_.getType)}"""
           .stripMargin.replace('\n', ' '))
     }
+    val readDataFormatParam = getAnyOption(allConf, parameters, ReadDataFormatOption)
+      .map(s => s.toUpperCase())
+      .getOrElse(DefaultReadDataFormat.toString)
+    if (!PermittedReadDataFormats.contains(readDataFormatParam)) {
+      throw new IllegalArgumentException(
+        s"""Data read format '${readDataFormatParam.toString}' is not supported.
+           |Supported formats are '${PermittedReadDataFormats.mkString(",")}'"""
+          .stripMargin.replace('\n', ' '))
+    }
+    val readDataFormat = DataFormat.valueOf(readDataFormatParam)
     val combinePushedDownFilters = getAnyBooleanOption(
       allConf, parameters, "combinePushedDownFilters", true)
     val viewsEnabled = getAnyBooleanOption(
@@ -130,7 +144,7 @@ object SparkBigQueryOptions {
       allConf, parameters, "optimizedEmptyProjection", true)
 
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
-      filter, schema, maxParallelism, temporaryGcsBucket, intermediateFormat,
+      filter, schema, maxParallelism, temporaryGcsBucket, intermediateFormat, readDataFormat,
       combinePushedDownFilters, viewsEnabled, materializationProject,
       materializationDataset, partitionField, partitionExpirationMs,
       partitionRequireFilter, partitionType, createDisposition,

@@ -225,6 +225,16 @@ The API Supports a number of options to configure the read
    <td>Read</td>
   </tr>
   <tr valign="top">
+   <td><code>readDataFormat</code>
+   </td>
+   <td>Data Format for reading from BigQuery. Options : <code>ARROW</code>, <code>AVRO</code>
+	Unsupported Arrow filters are not pushed down and results are filtered later by Spark.
+	(Currently Arrow does not suport disjunction across columns).
+       <br/>(Optional. Defaults to <code>AVRO</code>)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr valign="top">
    <td><code>optimizedEmptyProjection</code>
    </td>
    <td>The connector uses an optimized empty projection (select without any

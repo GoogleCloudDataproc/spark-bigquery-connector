@@ -90,6 +90,40 @@ class SparkBigQueryOptionsSuite extends FunSuite {
     }
   }
 
+  test("Invalid data format") {
+      val thrown = intercept[Exception] {
+        SparkBigQueryOptions(
+          parameters + ("readDataFormat" -> "abc"),
+          Map.empty[String, String], // allConf
+          new Configuration,
+          None) // schema
+      }
+      assert (thrown.getMessage ==
+        "Data read format 'ABC' is not supported. Supported formats are 'ARROW,AVRO'")
+  }
+
+  test("data format - no value set") {
+    assertResult("AVRO") {
+      val options = SparkBigQueryOptions(
+        parameters,
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.readDataFormat.toString
+    }
+  }
+
+  test("Set Read Data Format as Arrow") {
+    assertResult("ARROW") {
+      val options = SparkBigQueryOptions(
+        parameters + ("readDataFormat" -> "Arrow"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.readDataFormat.toString
+    }
+  }
+
   test("getAnyOptionWithFallback - only new config exist") {
     assertResult(Some("foo")) {
       val options = SparkBigQueryOptions(

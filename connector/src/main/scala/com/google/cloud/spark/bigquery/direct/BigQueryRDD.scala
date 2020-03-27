@@ -16,7 +16,7 @@
 package com.google.cloud.spark.bigquery.direct
 
 import com.google.api.gax.rpc.ServerStreamingCallable
-import com.google.cloud.bigquery.storage.v1beta1.Storage.{ReadRowsRequest, ReadRowsResponse, StreamPosition}
+import com.google.cloud.bigquery.storage.v1beta1.Storage.{DataFormat, ReadRowsRequest, ReadRowsResponse, StreamPosition}
 import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, Storage}
 import com.google.cloud.bigquery.{BigQuery, Schema}
 import com.google.cloud.spark.bigquery.{ArrowBinaryIterator, AvroBinaryIterator, BigQueryUtil, SchemaConverters, SparkBigQueryOptions}
@@ -35,9 +35,8 @@ import scala.collection.mutable.MutableList._
 
 class BigQueryRDD(sc: SparkContext,
                   parts: Array[Partition],
-                  sessionId: String,
+                  session: Storage.ReadSession,
                   columnsInOrder: Seq[String],
-                  rawAvroSchema: String,
                   bqSchema: Schema,
                   options: SparkBigQueryOptions,
                   getClient: SparkBigQueryOptions => BigQueryStorageClient,
@@ -51,7 +50,7 @@ class BigQueryRDD(sc: SparkContext,
       .setReadPosition(StreamPosition.newBuilder().setStream(bqStream))
 
     val client = getClient(options)
-    // Taken from FileScanRDD
+
     context.addTaskCompletionListener(ctx => {
       client.close
       ctx
@@ -61,7 +60,17 @@ class BigQueryRDD(sc: SparkContext,
       ReadRowsClientWrapper(client), request, options.maxReadRowsRetries)
       .readRows()
 
-    val it = AvroConverter(bqSchema, columnsInOrder, rawAvroSchema, readRowResponses).getIterator()
+    val it = if (options.readDataFormat.equals(DataFormat.AVRO)) {
+      AvroConverter(bqSchema,
+        columnsInOrder,
+        session.getAvroSchema.getSchema,
+        readRowResponses).getIterator()
+    }
+    else {
+      ArrowConverter(columnsInOrder,
+        session.getArrowSchema.getSerializedSchema,
+        readRowResponses).getIterator()
+    }
 
     new InterruptibleIterator(context, it)
   }
@@ -175,8 +184,7 @@ case class ReadRowsHelper(
 object BigQueryRDD {
   def scanTable(sqlContext: SQLContext,
                 parts: Array[Partition],
-                sessionId: String,
-                avroSchema: String,
+                session: Storage.ReadSession,
                 bqSchema: Schema,
                 columnsInOrder: Seq[String],
                 options: SparkBigQueryOptions,
@@ -184,9 +192,8 @@ object BigQueryRDD {
                 bigQueryClient: SparkBigQueryOptions => BigQuery): BigQueryRDD = {
     new BigQueryRDD(sqlContext.sparkContext,
       parts,
-      sessionId,
+      session,
       columnsInOrder: Seq[String],
-      avroSchema,
       bqSchema,
       options,
       getClient,
