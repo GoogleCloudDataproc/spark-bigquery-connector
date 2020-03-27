@@ -119,6 +119,10 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       jobConfigurationBuilder.setTimePartitioning(timePartitionBuilder.build())
     }
 
+    if (!options.loadSchemaUpdateOptions.isEmpty) {
+      jobConfigurationBuilder.setSchemaUpdateOptions(options.loadSchemaUpdateOptions)
+    }
+
     val jobConfiguration = jobConfigurationBuilder.build
 
     val jobInfo = JobInfo.of(jobConfiguration)
