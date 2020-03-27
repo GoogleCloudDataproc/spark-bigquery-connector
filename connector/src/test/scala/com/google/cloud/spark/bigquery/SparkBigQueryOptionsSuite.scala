@@ -15,8 +15,11 @@
  */
 package com.google.cloud.spark.bigquery
 
+import com.google.cloud.bigquery.JobInfo
 import org.apache.hadoop.conf.Configuration
 import org.scalatest.FunSuite
+
+import scala.collection.JavaConverters._
 
 class SparkBigQueryOptionsSuite extends FunSuite {
 
@@ -209,6 +212,51 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         new Configuration,
         None) // schema
       options.maxParallelism
+    }
+  }
+  
+  test("loadSchemaUpdateOption - allowFieldAddition") {
+    assertResult(Seq(JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION)) {
+      val options = SparkBigQueryOptions(
+        parameters + ("allowFieldAddition" -> "true"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.loadSchemaUpdateOptions.asScala.toSeq
+    }
+  }
+
+  test("loadSchemaUpdateOption - allowFieldRelaxation") {
+    assertResult(Seq(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION)) {
+      val options = SparkBigQueryOptions(
+        parameters + ("allowFieldRelaxation" -> "true"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.loadSchemaUpdateOptions.asScala.toSeq
+    }
+  }
+
+  test("loadSchemaUpdateOption - both") {
+    assertResult(Seq(
+      JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION,
+      JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION)) {
+      val options = SparkBigQueryOptions(
+        parameters + ("allowFieldAddition" -> "true", "allowFieldRelaxation" -> "true"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.loadSchemaUpdateOptions.asScala.toSeq
+    }
+  }
+  test("loadSchemaUpdateOption - none") {
+    assertResult(true) {
+      val options = SparkBigQueryOptions(
+        parameters,
+        Map.empty[String, String], // allConf
+        new Configuration,
+        None) // schema
+      options.loadSchemaUpdateOptions.isEmpty
     }
   }
 }
