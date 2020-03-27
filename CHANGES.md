@@ -1,7 +1,7 @@
 # Release Notes
 
-## 0.14.0-beta - 2020-03-26
-* Added Arrow as a supported format for reading from BigQuery (Issue #96) 
+## 0.14.0-beta - xxxx-xx-xx
+* Issue #96: Added Arrow as a supported format for reading from BigQuery 
 * Issue #143: Allowing the setting of `SchemaUpdateOption`s When writing to BigQuery
 
 ## 0.13.1-beta - 2020-02-14
