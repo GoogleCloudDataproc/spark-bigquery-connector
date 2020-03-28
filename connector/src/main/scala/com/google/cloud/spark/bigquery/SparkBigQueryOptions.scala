@@ -46,9 +46,9 @@ case class SparkBigQueryOptions(
     partitionType: Option[String] = None,
     createDisposition: Option[CreateDisposition] = None,
     optimizedEmptyProjection: Boolean = true,
+    accessToken: Option[String] = None,
     viewExpirationTimeInHours: Int = 24,
-    maxReadRowsRetries: Int = 3,
-    accessToken: Option[String] = None
+    maxReadRowsRetries: Int = 3
   ) {
 
   def createCredentials: Option[Credentials] =
@@ -79,7 +79,7 @@ object SparkBigQueryOptions {
   val DefaultFormat: FormatOptions = FormatOptions.parquet()
   private val PermittedIntermediateFormats = Set(FormatOptions.orc(), FormatOptions.parquet())
 
-  val GcsAccessTokenConfig = "spark.gcs.user.accessToken"
+  val GcsAccessToken = "spark.gcs.user.accessToken"
 
   def apply(
              parameters: Map[String, String],
@@ -132,14 +132,14 @@ object SparkBigQueryOptions {
 
     val optimizedEmptyProjection = getAnyBooleanOption(
       allConf, parameters, "optimizedEmptyProjection", true)
-    val accessToken = getAnyOption(allConf, parameters, GcsAccessTokenConfig)
+    val accessToken = getAnyOption(allConf, parameters, GcsAccessToken)
 
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
       filter, schema, maxParallelism, temporaryGcsBucket, intermediateFormat,
       combinePushedDownFilters, viewsEnabled, materializationProject,
       materializationDataset, partitionField, partitionExpirationMs,
       partitionRequireFilter, partitionType, createDisposition,
-      optimizedEmptyProjection, accessToken = accessToken)
+      optimizedEmptyProjection, accessToken)
   }
 
   private def defaultBilledProject = () =>
