@@ -50,6 +50,7 @@ case class SparkBigQueryOptions(
     partitionExpirationMs: Option[Long] = None,
     partitionRequireFilter: Option[Boolean] = None,
     partitionType: Option[String] = None,
+    clusteredFields: Option[Array[String]] = None,
     createDisposition: Option[CreateDisposition] = None,
     optimizedEmptyProjection: Boolean = true,
     loadSchemaUpdateOptions: java.util.List[JobInfo.SchemaUpdateOption] = ImmutableList.of(),
@@ -141,6 +142,7 @@ object SparkBigQueryOptions {
     val partitionExpirationMs = getOption(parameters, "partitionExpirationMs").map(_.toLong)
     val partitionRequireFilter = getOption(parameters, "partitionRequireFilter").map(_.toBoolean)
     val partitionType = getOption(parameters, "partitionType")
+    val clusteredFields = getOption(parameters, "clusteredFields").map(_.split(","))
 
     val createDisposition = getOption(parameters, "createDisposition")
       .map(_.toUpperCase).map(param => CreateDisposition.valueOf(param))
@@ -164,7 +166,7 @@ object SparkBigQueryOptions {
       filter, schema, maxParallelism, temporaryGcsBucket, intermediateFormat, readDataFormat,
       combinePushedDownFilters, viewsEnabled, materializationProject,
       materializationDataset, partitionField, partitionExpirationMs,
-      partitionRequireFilter, partitionType, createDisposition,
+      partitionRequireFilter, partitionType, clusteredFields,createDisposition,
       optimizedEmptyProjection, loadSchemaUpdateOptions.asJava)
   }
 

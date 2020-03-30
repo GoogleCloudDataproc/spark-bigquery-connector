@@ -310,6 +310,14 @@ The API Supports a number of options to configure the read
         </td>
         <td>Write</td>
      </tr>
+    <tr valign="top">
+           <td><code>clusteredFields</code>
+            </td>
+            <td>Comma separated list of non-repeated, top level columns. Clustering is only supported for partitioned tables 
+               <br/>(Optional).
+            </td>
+            <td>Write</td>
+         </tr>
    <tr valign="top">
        <td><code>allowFieldAddition</code>
         </td>

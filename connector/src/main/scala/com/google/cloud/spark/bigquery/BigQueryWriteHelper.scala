@@ -21,6 +21,7 @@ import java.util.UUID
 import com.google.cloud.bigquery.JobInfo.CreateDisposition.CREATE_NEVER
 import com.google.cloud.bigquery._
 import com.google.cloud.http.BaseHttpServiceException
+import com.google.common.collect.ImmutableList
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
 import org.apache.spark.internal.Logging
@@ -48,7 +49,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
         s"gs://$bucket/.spark-bigquery-${applicationId}-${UUID.randomUUID()}")
       require(gcsPathOption.isDefined, "Temporary GCS path has not been set")
       gcsPath = new Path(gcsPathOption.get)
-      val fs = gcsPath.getFileSystem(conf)
+      val fs = gcsPath.getFileSystem( conf)
       needNewPath = fs.exists(gcsPath) // if teh path exists for some reason, then retry
     }
 
@@ -117,6 +118,12 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       }
 
       jobConfigurationBuilder.setTimePartitioning(timePartitionBuilder.build())
+
+      if (options.clusteredFields.isDefined) {
+        val clustering =
+          Clustering.newBuilder().setFields(options.clusteredFields.get.toList.asJava).build();
+        jobConfigurationBuilder.setClustering(clustering)
+      }
     }
 
     if (!options.loadSchemaUpdateOptions.isEmpty) {
@@ -145,7 +152,8 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
   def saveModeToWriteDisposition(saveMode: SaveMode): JobInfo.WriteDisposition = saveMode match {
     case SaveMode.Append => JobInfo.WriteDisposition.WRITE_APPEND
     case SaveMode.Overwrite => JobInfo.WriteDisposition.WRITE_TRUNCATE
-    case unsupported => throw new UnsupportedOperationException(s"SaveMode $unsupported is currently not supported.")
+    case unsupported => throw
+      new UnsupportedOperationException(s"SaveMode $unsupported is currently not supported.")
   }
 
   def friendlyTableName: String = BigQueryUtil.friendlyTableName(options.tableId)

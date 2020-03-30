@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.it
 
-import com.google.cloud.bigquery.{BigQueryOptions, QueryJobConfiguration}
+import com.google.cloud.bigquery.{BigQueryOptions, QueryJobConfiguration, StandardTableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.it.TestConstants._
 import com.google.cloud.spark.bigquery.{SparkBigQueryOptions, TestUtils}
@@ -52,6 +52,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   )
   val temporaryGcsBucket = "davidrab-sandbox"
   val bq = BigQueryOptions.getDefaultInstance.getService
+  private val LIBRARIES_PROJECTS_TABLE = "bigquery-public-data.libraries_io.projects"
   private val SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare"
   private val SHAKESPEARE_TABLE_NUM_ROWS = 164656L
   private val SHAKESPEARE_TABLE_SCHEMA = StructType(Seq(
@@ -365,6 +366,9 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   // getNumRows returns BigInteger, and it messes up the matchers
   private def testTableNumberOfRows = bq.getTable(testDataset, testTable).getNumRows.intValue
 
+  private def testPartitionedTableDefinition = bq.getTable(testDataset, testTable + "_partitioned")
+    .getDefinition[StandardTableDefinition]()
+
   private def writeToBigQuery(df: DataFrame, mode: SaveMode, format: String = "parquet") =
     df.write.format("bigquery")
       .mode(mode)
@@ -380,6 +384,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       .getTotalRows
 
   private def fullTableName = s"$testDataset.$testTable"
+  private def fullTableNamePartitioned = s"$testDataset.${testTable}_partitioned"
 
   private def additionalDataValuesExist = numberOfRowsWith("Cat") == 1
 
@@ -457,6 +462,25 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       .save()
     testTableNumberOfRows shouldBe 2
     initialDataValuesExist shouldBe true
+  }
+
+  test ("write to bq - partitioned and clustered table") {
+    val df = spark.read.format("com.google.cloud.spark.bigquery")
+      .option("table", LIBRARIES_PROJECTS_TABLE)
+      .load()
+      .where("platform = 'Sublime'")
+
+    df.write.format("bigquery")
+      .option("table", fullTableNamePartitioned)
+      .option("temporaryGcsBucket", temporaryGcsBucket)
+      .option("partitionField", "created_timestamp")
+      .option("clusteredFields", "platform")
+      .mode(SaveMode.Overwrite)
+      .save()
+
+    val tableDefinition = testPartitionedTableDefinition
+    tableDefinition.getTimePartitioning.getField shouldBe "created_timestamp"
+    tableDefinition.getClustering.getFields should contain ("platform")
   }
 
   def extractWords(df: DataFrame): Set[String] = {
