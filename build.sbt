@@ -45,12 +45,12 @@ lazy val connector = (project in file("connector"))
 
 
 // Keep com.google.cloud dependencies in sync
-      "com.google.cloud" % "google-cloud-bigquery" % "1.103.0",
-      "com.google.cloud" % "google-cloud-bigquerystorage" % "0.122.0-beta",
+      "com.google.cloud" % "google-cloud-bigquery" % "1.110.0",
+      "com.google.cloud" % "google-cloud-bigquerystorage" % "0.126.0-beta",
       // Keep in sync with com.google.cloud
-      "io.grpc" % "grpc-netty-shaded" % "1.25.0",
-      "com.google.api" % "gax-grpc" % "1.52.0",
-      "com.google.guava" % "guava" % "28.1-jre",
+      "io.grpc" % "grpc-netty-shaded" % "1.27.0",
+      "com.google.api" % "gax-grpc" % "1.54.0",
+      "com.google.guava" % "guava" % "28.2-jre",
 
       // runtime
       // scalastyle:off
