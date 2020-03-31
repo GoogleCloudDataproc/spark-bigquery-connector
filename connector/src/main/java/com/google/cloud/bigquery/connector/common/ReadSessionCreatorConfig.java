@@ -19,7 +19,7 @@ import com.google.cloud.bigquery.storage.v1beta1.Storage;
 
 import java.util.Optional;
 
-class ReadSessionCreatorConfig {
+public class ReadSessionCreatorConfig {
     final boolean viewsEnabled;
     final Optional<String> viewMaterializationProject;
     final Optional<String> viewMaterializationDataset;
