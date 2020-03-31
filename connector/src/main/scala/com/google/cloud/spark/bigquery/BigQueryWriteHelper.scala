@@ -49,7 +49,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
         s"gs://$bucket/.spark-bigquery-${applicationId}-${UUID.randomUUID()}")
       require(gcsPathOption.isDefined, "Temporary GCS path has not been set")
       gcsPath = new Path(gcsPathOption.get)
-      val fs = gcsPath.getFileSystem( conf)
+      val fs = gcsPath.getFileSystem(conf)
       needNewPath = fs.exists(gcsPath) // if teh path exists for some reason, then retry
     }
 
@@ -152,8 +152,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
   def saveModeToWriteDisposition(saveMode: SaveMode): JobInfo.WriteDisposition = saveMode match {
     case SaveMode.Append => JobInfo.WriteDisposition.WRITE_APPEND
     case SaveMode.Overwrite => JobInfo.WriteDisposition.WRITE_TRUNCATE
-    case unsupported => throw
-      new UnsupportedOperationException(s"SaveMode $unsupported is currently not supported.")
+    case unsupported => throw new UnsupportedOperationException(s"SaveMode $unsupported is currently not supported.")
   }
 
   def friendlyTableName: String = BigQueryUtil.friendlyTableName(options.tableId)

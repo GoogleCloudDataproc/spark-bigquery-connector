@@ -166,7 +166,7 @@ object SparkBigQueryOptions {
       filter, schema, maxParallelism, temporaryGcsBucket, intermediateFormat, readDataFormat,
       combinePushedDownFilters, viewsEnabled, materializationProject,
       materializationDataset, partitionField, partitionExpirationMs,
-      partitionRequireFilter, partitionType, clusteredFields,createDisposition,
+      partitionRequireFilter, partitionType, clusteredFields, createDisposition,
       optimizedEmptyProjection, loadSchemaUpdateOptions.asJava)
   }
 
