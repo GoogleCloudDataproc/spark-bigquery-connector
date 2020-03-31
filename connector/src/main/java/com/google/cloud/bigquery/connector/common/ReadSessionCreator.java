@@ -75,7 +75,7 @@ public class ReadSessionCreator {
             Storage.ReadSession readSession = bigQueryStorageClient.createReadSession(
                     Storage.CreateReadSessionRequest.newBuilder()
                             .setParent("projects/" + bigQueryClient.getProjectId())
-                            .setFormat(readDataFormat)
+                            .setFormat(config.readDataFormat)
                             .setRequestedStreams(parallelism)
                             .setReadOptions(readOptions)
                             .setTableReference(tableReference)

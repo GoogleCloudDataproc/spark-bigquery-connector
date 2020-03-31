@@ -15,7 +15,12 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryStorageClientFactory;
+import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
+import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.storage.v1beta1.Storage;
+import com.google.common.collect.ImmutableList;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.sources.v2.reader.DataSourceReader;
@@ -30,21 +35,21 @@ public class BigQueryDataSourceReader implements DataSourceReader, SupportsPushD
 
 
     private Storage.ReadSession readSession;
+    ReadSessionCreatorConfig readSessionCreatorConfig;
+    BigQueryClient bigQueryClient;
+    BigQueryStorageClientFactory bigQueryStorageClientFactory;
+    StructType schema;
 
 
     @Override
     public StructType readSchema() {
-        if (readSession == null) {
-            createReadSession();
-        }
-        return null;
+        createReadSessionIfNeeded();
+        return schema;
     }
 
     @Override
     public List<InputPartition<InternalRow>> planInputPartitions() {
-        if (readSession == null) {
-            createReadSession();
-        }
+        createReadSessionIfNeeded();
         return null;
     }
 
@@ -63,8 +68,16 @@ public class BigQueryDataSourceReader implements DataSourceReader, SupportsPushD
 
     }
 
+    void createReadSessionIfNeeded() {
+        if (readSession == null && !schema.isEmpty()) {
+            createReadSession();
+        }
+    }
+
     void createReadSession() {
-        readSession = re
+        ImmutableList<String> selectedFields = ImmutableList.copyOf(schema.fieldNames());
+        ReadSessionCreator readSessionCreator = new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryStorageClientFactory);
+        readSession = readSessionCreator.create(table, selectefFields, filter, parallelism);
     }
 
 

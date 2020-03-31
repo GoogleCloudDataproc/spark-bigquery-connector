@@ -38,7 +38,7 @@ import static java.util.stream.Collectors.joining;
 // holds caches and mappings
 // presto converts the dataset and table names to lower case, while BigQuery is case sensitive
 // the mappings here keep the mappings
-class BigQueryClient {
+public class BigQueryClient {
     private final BigQuery bigQuery;
     private final Optional<String> viewMaterializationProject;
     private final Optional<String> viewMaterializationDataset;
