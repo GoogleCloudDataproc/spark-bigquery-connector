@@ -186,7 +186,7 @@ case class ReadRowsHelper(
   }
 
   // In order to enable testing
-  private[direct] def fetchResponses(readRowsRequest: ReadRowsRequest.Builder): java.util.Iterator[
+  private[bigquery] def fetchResponses(readRowsRequest: ReadRowsRequest.Builder): java.util.Iterator[
     ReadRowsResponse] =
     client.readRowsCallable
     .call(readRowsRequest.build)

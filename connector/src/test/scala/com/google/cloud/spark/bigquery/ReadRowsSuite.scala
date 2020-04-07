@@ -71,7 +71,7 @@ class MockReadRowsHelper(
 
   val responsesIterator = responses.iterator
 
-  override protected def fetchResponses(readRowsRequest: ReadRowsRequest.Builder) = {
+  override private[bigquery] def fetchResponses(readRowsRequest: ReadRowsRequest.Builder) = {
     responsesIterator.next
   }
 
