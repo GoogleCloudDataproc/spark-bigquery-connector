@@ -170,7 +170,7 @@ class ReadRowsIterator (val helper: ReadRowsHelper,
       }
     } while (serverResponses.hasNext)
 
-    null
+    throw new NoSuchElementException()
   }
 }
 
