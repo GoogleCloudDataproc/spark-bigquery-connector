@@ -44,7 +44,7 @@ lazy val connector = (project in file("connector"))
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
 
 
-// Keep com.google.cloud dependencies in sync
+      // Keep com.google.cloud dependencies in sync
       "com.google.cloud" % "google-cloud-bigquery" % "1.110.0",
       "com.google.cloud" % "google-cloud-bigquerystorage" % "0.126.0-beta",
       // Keep in sync with com.google.cloud
@@ -163,10 +163,9 @@ lazy val publishSettings = Seq(
       </developer>
     </developers>,
 
-  publishTo := Some(
-    "Some Nexus Repository Manager" at
-      "https://nexus.release.merlinjobs.com/repository/merlin-app-release/"
-  ),
-  credentials += Credentials("Sonatype Nexus Repository Manager",
-    "nexus.release.merlinjobs.com", "giovanny", "Fuck.321")
+  publishTo := Some(if (version.value.trim.endsWith("SNAPSHOT")) {
+    Opts.resolver.sonatypeSnapshots
+  } else {
+    Opts.resolver.sonatypeStaging
+  })
 )
