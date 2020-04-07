@@ -163,9 +163,10 @@ lazy val publishSettings = Seq(
       </developer>
     </developers>,
 
-  publishTo := Some(if (version.value.trim.endsWith("SNAPSHOT")) {
-    Opts.resolver.sonatypeSnapshots
-  } else {
-    Opts.resolver.sonatypeStaging
-  })
+  publishTo := Some(
+    "Some Nexus Repository Manager" at
+      "https://nexus.release.merlinjobs.com/repository/merlin-app-release/"
+  ),
+  credentials += Credentials("Sonatype Nexus Repository Manager",
+    "nexus.release.merlinjobs.com", "giovanny", "Fuck.321")
 )
