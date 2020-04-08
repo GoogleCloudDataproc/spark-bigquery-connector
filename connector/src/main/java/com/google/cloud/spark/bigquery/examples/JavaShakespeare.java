@@ -34,7 +34,7 @@ public class JavaShakespeare {
 
     // Load data in from BigQuery.
     Dataset<Row> wordsDF = spark.read().format("bigquery")
-        .option("table", "publicdata.samples.shakespeare").load().cache();
+        .option("table", "bigquery-public-data.samples.shakespeare").load().cache();
     wordsDF.show();
     wordsDF.printSchema();
     wordsDF.createOrReplaceTempView("words");
