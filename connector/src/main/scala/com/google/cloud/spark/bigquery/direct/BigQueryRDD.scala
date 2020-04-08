@@ -139,41 +139,54 @@ case class ReadRowsClientWrapper(client: BigQueryStorageClient)
   override def close: Unit = client.close
 }
 
+class ReadRowsIterator (val helper: ReadRowsHelper,
+                        val readPosition: com.google.cloud.bigquery.storage.v1beta1
+                        .Storage.StreamPosition.Builder,
+                        var serverResponses: java.util.Iterator[ReadRowsResponse] )
+  extends Logging with Iterator[ReadRowsResponse] {
+  var readRowsCount: Long = 0
+  var retries: Int = 0
+
+  override def hasNext: Boolean = serverResponses.hasNext
+
+  override def next(): ReadRowsResponse = {
+    do {
+      try {
+        val response = serverResponses.next
+        readRowsCount += response.getRowCount
+        logDebug(s"read ${response.getSerializedSize} bytes")
+        return response
+      } catch {
+        case e: Exception =>
+          // if relevant, retry the read, from the last read position
+          if (BigQueryUtil.isRetryable(e) && retries < helper.maxReadRowsRetries) {
+            serverResponses = helper.fetchResponses(helper.request.setReadPosition(
+              readPosition.setOffset(readRowsCount)))
+            retries += 1
+          } else {
+            helper.client.close
+            throw e
+          }
+      }
+    } while (serverResponses.hasNext)
+
+    throw new NoSuchElementException()
+  }
+}
+
 case class ReadRowsHelper(
                            client: ReadRowsClient,
                            request: ReadRowsRequest.Builder,
                            maxReadRowsRetries: Int
-                         ) extends Logging {
+                         )  {
   def readRows(): Iterator[ReadRowsResponse] = {
     val readPosition = request.getReadPositionBuilder
-    val readRowResponses = new mutable.MutableList[ReadRowsResponse]
-    var readRowsCount: Long = 0
-    var retries: Int = 0
-    var serverResponses = fetchResponses(request)
-    while (serverResponses.hasNext) {
-      try {
-        val response = serverResponses.next
-        readRowsCount += response.getRowCount
-        readRowResponses += response
-        logInfo(s"read ${response.getSerializedSize} bytes")
-      } catch {
-        case e: Exception =>
-          // if relevant, retry the read, from the last read position
-          if (BigQueryUtil.isRetryable(e) && retries < maxReadRowsRetries) {
-            serverResponses = fetchResponses(request.setReadPosition(
-              readPosition.setOffset(readRowsCount)))
-            retries += 1
-          } else {
-            client.close
-            throw e
-          }
-      }
-    }
-    readRowResponses.iterator
+    val serverResponses = fetchResponses(request)
+    new ReadRowsIterator(this, readPosition, serverResponses)
   }
 
   // In order to enable testing
-  protected def fetchResponses(readRowsRequest: ReadRowsRequest.Builder): java.util.Iterator[
+  private[bigquery] def fetchResponses(readRowsRequest: ReadRowsRequest.Builder): java.util.Iterator[
     ReadRowsResponse] =
     client.readRowsCallable
     .call(readRowsRequest.build)
