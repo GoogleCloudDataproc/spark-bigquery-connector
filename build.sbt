@@ -44,12 +44,13 @@ lazy val connector = (project in file("connector"))
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
 
 
-// Keep com.google.cloud dependencies in sync
+      // Keep com.google.cloud dependencies in sync
       "com.google.cloud" % "google-cloud-bigquery" % "1.110.0",
       "com.google.cloud" % "google-cloud-bigquerystorage" % "0.126.0-beta",
       // Keep in sync with com.google.cloud
-      "io.grpc" % "grpc-netty-shaded" % "1.27.0",
-      "com.google.api" % "gax-grpc" % "1.54.0",
+      "io.grpc" % "grpc-alts" % "1.28.1",
+      "io.grpc" % "grpc-netty-shaded" % "1.28.1",
+      "com.google.api" % "gax-grpc" % "1.55.0",
       "com.google.guava" % "guava" % "28.2-jre",
 
       // runtime

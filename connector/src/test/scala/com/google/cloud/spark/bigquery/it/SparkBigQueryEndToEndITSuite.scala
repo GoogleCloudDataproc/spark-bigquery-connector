@@ -197,7 +197,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     test("test optimized count(*). Data Format %s".format(dataFormat)) {
       DirectBigQueryRelation.emptyRowRDDsCreated = 0
       val oldMethodCount = spark.read.format("bigquery")
-        .option("table", "publicdata.samples.shakespeare")
+        .option("table", "bigquery-public-data.samples.shakespeare")
         .option("readDataFormat", dataFormat)
         .option("optimizedEmptyProjection", "false")
         .load()
@@ -208,7 +208,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
       assertResult(oldMethodCount) {
         spark.read.format("bigquery")
-          .option("table", "publicdata.samples.shakespeare")
+          .option("table", "bigquery-public-data.samples.shakespeare")
           .option("readDataFormat", dataFormat)
           .load()
           .count()
@@ -219,7 +219,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     test("test optimized count(*) with filter. Data Format %s".format(dataFormat)) {
       DirectBigQueryRelation.emptyRowRDDsCreated = 0
       val oldMethodCount = spark.read.format("bigquery")
-        .option("table", "publicdata.samples.shakespeare")
+        .option("table", "bigquery-public-data.samples.shakespeare")
         .option("optimizedEmptyProjection", "false")
         .option("readDataFormat", dataFormat)
         .load()
@@ -231,7 +231,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
       assertResult(oldMethodCount) {
         spark.read.format("bigquery")
-          .option("table", "publicdata.samples.shakespeare")
+          .option("table", "bigquery-public-data.samples.shakespeare")
           .option("readDataFormat", dataFormat)
           .load()
           .where("corpus_date > 0")
@@ -243,7 +243,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     test("keeping filters behaviour. Data Format %s".format(dataFormat)) {
       val newBehaviourWords = extractWords(
         spark.read.format("bigquery")
-          .option("table", "publicdata.samples.shakespeare")
+          .option("table", "bigquery-public-data.samples.shakespeare")
           .option("filter", "length(word) = 1")
           .option("combinePushedDownFilters", "true")
           .option("readDataFormat", dataFormat)
@@ -251,7 +251,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
       val oldBehaviourWords = extractWords(
         spark.read.format("bigquery")
-          .option("table", "publicdata.samples.shakespeare")
+          .option("table", "bigquery-public-data.samples.shakespeare")
           .option("filter", "length(word) = 1")
           .option("combinePushedDownFilters", "false")
           .option("readDataFormat", dataFormat)
@@ -264,13 +264,13 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   test("OR across columns with Arrow") {
 
     val avroResults = spark.read.format("bigquery")
-      .option("table", "publicdata.samples.shakespeare")
+      .option("table", "bigquery-public-data.samples.shakespeare")
       .option("filter", "word_count = 1 OR corpus_date = 0")
       .option("readDataFormat", "AVRO")
       .load().collect()
 
     val arrowResults = spark.read.format("bigquery")
-      .option("table", "publicdata.samples.shakespeare")
+      .option("table", "bigquery-public-data.samples.shakespeare")
       .option("readDataFormat", "ARROW")
       .load().where("word_count = 1 OR corpus_date = 0")
       .collect()
@@ -281,13 +281,13 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   test("Count with filters - Arrow") {
 
     val countResults = spark.read.format("bigquery")
-      .option("table", "publicdata.samples.shakespeare")
+      .option("table", "bigquery-public-data.samples.shakespeare")
       .option("readDataFormat", "ARROW")
       .load().where("word_count = 1 OR corpus_date = 0")
       .count()
 
     val countAfterCollect = spark.read.format("bigquery")
-      .option("table", "publicdata.samples.shakespeare")
+      .option("table", "bigquery-public-data.samples.shakespeare")
       .option("readDataFormat", "ARROW")
       .load().where("word_count = 1 OR corpus_date = 0")
       .collect().size

@@ -31,7 +31,7 @@ object Shakespeare {
     spark.conf.set("temporaryGcsBucket", bucket)
 
     // Load data in from BigQuery.
-    val wordsDF = spark.read.bigquery("publicdata.samples.shakespeare").cache()
+    val wordsDF = spark.read.bigquery("bigquery-public-data.samples.shakespeare").cache()
     wordsDF.show()
     wordsDF.printSchema()
     wordsDF.createOrReplaceTempView("words")

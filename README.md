@@ -103,7 +103,7 @@ The connector uses the cross language [Spark SQL Data Source API](https://spark.
 ```
 df = spark.read
   .format("bigquery")
-  .option("table", "publicdata.samples.shakespeare")
+  .option("table", "bigquery-public-data.samples.shakespeare")
   .load()
 ```
 
@@ -111,7 +111,7 @@ or the Scala only implicit API:
 
 ```
 import com.google.cloud.spark.bigquery._
-val df = spark.read.bigquery("publicdata.samples.shakespeare")
+val df = spark.read.bigquery("bigquery-public-data.samples.shakespeare")
 ```
 
 See [Shakespeare.scala](src/main/scala/com/google/cloud/spark/bigquery/examples/Shakespeare.scala) and [shakespeare.py](examples/python/shakespeare.py) for more information.
@@ -462,7 +462,7 @@ When casting to Timestamp TIME have the same TimeZone issues as DATETIME
 The connector automatically computes column and pushdown filters the DataFrame's `SELECT` statement e.g.
 
 ```
-spark.read.bigquery("publicdata:samples.shakespeare")
+spark.read.bigquery("bigquery-public-data:samples.shakespeare")
   .select("word")
   .where("word = 'Hamlet' or word = 'Claudius'")
   .collect()
@@ -474,7 +474,7 @@ filters to the column `word`  and pushed down the predicate filter `word = 'haml
 If you do not wish to make multiple read requests to BigQuery, you can cache the DataFrame before filtering e.g.:
 
 ```
-val cachedDF = spark.read.bigquery("publicdata:samples.shakespeare").cache()
+val cachedDF = spark.read.bigquery("bigquery-public-data:samples.shakespeare").cache()
 val rows = cachedDF.select("word")
   .where("word = 'Hamlet'")
   .collect()
