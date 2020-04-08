@@ -22,25 +22,25 @@ import java.util.concurrent.{Callable, TimeUnit}
 import com.google.api.gax.core.CredentialsProvider
 import com.google.api.gax.rpc.FixedHeaderProvider
 import com.google.auth.Credentials
-import com.google.cloud.bigquery.storage.v1beta1.ReadOptions.TableReadOptions
-import com.google.cloud.bigquery.storage.v1beta1.Storage.{CreateReadSessionRequest, DataFormat, ShardingStrategy}
-import com.google.cloud.bigquery.storage.v1beta1.TableReferenceProto.TableReference
-import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, BigQueryStorageSettings}
+import com.google.cloud.bigquery.storage.v1beta1.Storage.ShardingStrategy
+import com.google.cloud.bigquery.storage.v1beta2.ReadSession.TableReadOptions
+import com.google.cloud.bigquery.storage.v1beta2.{BigQueryReadClient, BigQueryReadSettings, CreateReadSessionRequest, DataFormat, ReadSession}
 import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
-import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtil, BuildInfo, SchemaConverters, SparkBigQueryOptions}
+import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtil, SchemaConverters, SparkBigQueryOptions}
 import com.google.common.cache.{Cache, CacheBuilder}
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources._
+import org.json4s.BuildInfo
 
 import scala.collection.JavaConverters._
 
 private[bigquery] class DirectBigQueryRelation(
     options: SparkBigQueryOptions,
     table: TableInfo,
-    getClient: SparkBigQueryOptions => BigQueryStorageClient =
+    getClient: SparkBigQueryOptions => BigQueryReadClient =
          DirectBigQueryRelation.createReadClient,
     bigQueryClient: SparkBigQueryOptions => BigQuery =
          DirectBigQueryRelation.createBigQueryClient)
@@ -48,8 +48,8 @@ private[bigquery] class DirectBigQueryRelation(
     extends BigQueryRelation(options, table)(sqlContext)
         with TableScan with PrunedScan with PrunedFilteredScan {
 
-  val tableReference: TableReference =
-    DirectBigQueryRelation.toTableReference(tableId)
+  val tablePath: String =
+    DirectBigQueryRelation.toTablePath(tableId)
 
   lazy val bigQuery = bigQueryClient(options)
 
@@ -109,8 +109,7 @@ private[bigquery] class DirectBigQueryRelation(
         logDebug(s"Not using optimized empty projection")
       }
       val actualTableDefinition = actualTable.getDefinition[StandardTableDefinition]
-      val actualTableReference =
-        DirectBigQueryRelation.toTableReference(actualTable.getTableId)
+      val actualTablePath = DirectBigQueryRelation.toTablePath(actualTable.getTableId)
       val readOptions = TableReadOptions.newBuilder()
         .addAllSelectedFields(requiredColumns.toList.asJava)
         .setRowRestriction(filter)
@@ -130,13 +129,15 @@ private[bigquery] class DirectBigQueryRelation(
         val session = client.createReadSession(
           CreateReadSessionRequest.newBuilder()
             .setParent(s"projects/${options.parentProject}")
-            .setFormat(readDataFormat)
-            .setRequestedStreams(maxNumPartitionsRequested)
-            .setReadOptions(readOptions)
-            .setTableReference(actualTableReference)
+            .setReadSession(ReadSession.newBuilder()
+              .setDataFormat(readDataFormat)
+              .setReadOptions(readOptions)
+              .setTable(actualTablePath)
+            )
+            .setMaxStreamCount(maxNumPartitionsRequested)
             // The BALANCED sharding strategy causes the server to assign roughly the same
             // number of rows to each stream.
-            .setShardingStrategy(ShardingStrategy.BALANCED)
+           // .setShardingStrategy(ShardingStrategy.BALANCED)
             .build())
         val partitions = session.getStreamsList.asScala.map(_.getName)
           .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
@@ -321,14 +322,14 @@ object DirectBigQueryRelation {
   // used for testing
   var emptyRowRDDsCreated = 0;
 
-  def createReadClient(options: SparkBigQueryOptions): BigQueryStorageClient = {
+  def createReadClient(options: SparkBigQueryOptions): BigQueryReadClient = {
     // TODO(pmkc): investigate thread pool sizing and log spam matching
     // https://github.com/grpc/grpc-java/issues/4544 in integration tests
-    var clientSettings = BigQueryStorageSettings.newBuilder()
-        .setTransportChannelProvider(
-          BigQueryStorageSettings.defaultGrpcTransportProviderBuilder()
-            .setHeaderProvider(headerProvider)
-              .build())
+    var clientSettings = BigQueryReadSettings.newBuilder()
+      .setTransportChannelProvider(
+        BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
+          .setHeaderProvider(headerProvider)
+          .build())
     options.createCredentials match {
       case Some(creds) => clientSettings.setCredentialsProvider(
         new CredentialsProvider {
@@ -337,7 +338,7 @@ object DirectBigQueryRelation {
       case None =>
     }
 
-    BigQueryStorageClient.create(clientSettings.build)
+    BigQueryReadClient.create(clientSettings.build)
   }
 
   def createBigQueryClient(options: SparkBigQueryOptions): BigQuery = {
@@ -413,13 +414,6 @@ object DirectBigQueryRelation {
   private def quote(attr: String): String = {
     s"""`$attr`"""
   }
-
-  def toTableReference(tableId: TableId): TableReference =
-    TableReference.newBuilder()
-      .setProjectId(tableId.getProject)
-      .setDatasetId(tableId.getDataset)
-      .setTableId(tableId.getTable)
-      .build()
 
   def toTablePath(tableId: TableId): String =
     s"projects/${tableId.getProject}/datasets/${tableId.getDataset}/tables/${tableId.getTable}"

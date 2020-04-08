@@ -16,7 +16,7 @@
 package com.google.cloud.spark.bigquery
 
 import com.google.cloud.bigquery._
-import com.google.cloud.bigquery.storage.v1beta1.Storage.DataFormat
+import com.google.cloud.bigquery.storage.v1beta2.DataFormat
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.sources._
