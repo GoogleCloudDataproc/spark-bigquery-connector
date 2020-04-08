@@ -22,7 +22,7 @@ import com.google.auth.Credentials
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.bigquery.JobInfo.CreateDisposition
 import com.google.cloud.bigquery.storage.v1beta2
-import com.google.cloud.bigquery.storage.v1beta2.DataFormat
+import com.google.cloud.bigquery.storage.v1.DataFormat
 import com.google.cloud.bigquery.{BigQueryOptions, FormatOptions, JobInfo, TableId}
 import com.google.common.collect.ImmutableList
 import org.apache.hadoop.conf.Configuration

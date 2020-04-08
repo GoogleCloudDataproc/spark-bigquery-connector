@@ -23,8 +23,8 @@ import com.google.api.gax.core.CredentialsProvider
 import com.google.api.gax.rpc.FixedHeaderProvider
 import com.google.auth.Credentials
 import com.google.cloud.bigquery.storage.v1beta1.Storage.ShardingStrategy
-import com.google.cloud.bigquery.storage.v1beta2.ReadSession.TableReadOptions
-import com.google.cloud.bigquery.storage.v1beta2.{BigQueryReadClient, BigQueryReadSettings, CreateReadSessionRequest, DataFormat, ReadSession}
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions
+import com.google.cloud.bigquery.storage.v1.{BigQueryReadClient, BigQueryReadSettings, CreateReadSessionRequest, DataFormat, ReadSession}
 import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
 import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtil, SchemaConverters, SparkBigQueryOptions}
 import com.google.common.cache.{Cache, CacheBuilder}
@@ -132,12 +132,11 @@ private[bigquery] class DirectBigQueryRelation(
             .setReadSession(ReadSession.newBuilder()
               .setDataFormat(readDataFormat)
               .setReadOptions(readOptions)
-              .setTable(actualTablePath)
-            )
+              .setTable(actualTablePath
+            ))
             .setMaxStreamCount(maxNumPartitionsRequested)
             // The BALANCED sharding strategy causes the server to assign roughly the same
             // number of rows to each stream.
-           // .setShardingStrategy(ShardingStrategy.BALANCED)
             .build())
         val partitions = session.getStreamsList.asScala.map(_.getName)
           .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
