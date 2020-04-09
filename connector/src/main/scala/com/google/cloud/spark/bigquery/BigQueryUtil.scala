@@ -21,6 +21,7 @@ import com.google.cloud.bigquery.{BigQueryError, BigQueryException, TableId}
 import com.google.cloud.http.BaseHttpServiceException.UNKNOWN_CODE
 
 import scala.util.matching.Regex
+import scala.collection.JavaConverters._
 import io.grpc.StatusRuntimeException
 import com.google.api.gax.rpc.StatusCode
 import io.grpc.Status
@@ -119,4 +120,8 @@ object BigQueryUtil {
 
   private def trimVersion(version: String) =
     version.substring(0, version.lastIndexOf('.'))
+
+  def toSeq[T](list: java.util.List[T]): Seq[T] = list.asScala.toSeq
+
+  def toJavaIterator[T](it: Iterator[T]): java.util.Iterator[T] = it.asJava
 }
