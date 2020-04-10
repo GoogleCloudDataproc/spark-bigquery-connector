@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery
 import java.io.{ByteArrayInputStream, SequenceInputStream}
 
 import com.google.protobuf.ByteString
+import org.apache.arrow.memory.RootAllocator
 import org.apache.arrow.vector.VectorSchemaRoot
 import org.apache.arrow.vector.ipc.{ArrowReader, ArrowStreamReader}
 import org.apache.spark.sql.catalyst.InternalRow
@@ -29,7 +30,7 @@ import collection.JavaConverters._
 /**
  * An iterator for scanning over rows serialized in Arrow format
  * @param columnsInOrder Sequence of columns in the schema
- * @param schema Schema in avro format
+ * @param schema Schema in arrow format
  * @param rowsInBytes Rows serialized in binary format for Arrow
  */
 class ArrowBinaryIterator(columnsInOrder: Seq[String],
@@ -39,7 +40,8 @@ class ArrowBinaryIterator(columnsInOrder: Seq[String],
 
   // max allocation value for the allocator
   var maxAllocation = Long.MaxValue
-  val allocator = ArrowUtils.rootAllocator.newChildAllocator("ArrowBinaryIterator",
+  val rootAllocator = new RootAllocator(maxAllocation)
+  val allocator = rootAllocator.newChildAllocator("ArrowBinaryIterator",
     0, maxAllocation)
 
   val bytesWithSchemaStream = new SequenceInputStream(
