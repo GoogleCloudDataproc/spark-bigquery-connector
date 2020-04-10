@@ -21,6 +21,7 @@ import java.util.UUID
 import com.google.cloud.bigquery.JobInfo.CreateDisposition.CREATE_NEVER
 import com.google.cloud.bigquery._
 import com.google.cloud.http.BaseHttpServiceException
+import com.google.common.collect.ImmutableList
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
 import org.apache.spark.internal.Logging
@@ -117,6 +118,16 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       }
 
       jobConfigurationBuilder.setTimePartitioning(timePartitionBuilder.build())
+
+      if (options.clusteredFields.isDefined) {
+        val clustering =
+          Clustering.newBuilder().setFields(options.clusteredFields.get.toList.asJava).build();
+        jobConfigurationBuilder.setClustering(clustering)
+      }
+    }
+
+    if (!options.loadSchemaUpdateOptions.isEmpty) {
+      jobConfigurationBuilder.setSchemaUpdateOptions(options.loadSchemaUpdateOptions)
     }
 
     val jobConfiguration = jobConfigurationBuilder.build

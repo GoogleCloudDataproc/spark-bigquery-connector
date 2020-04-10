@@ -1,7 +1,17 @@
 # Release Notes
 
+## 0.14.0-beta - 2020-03-31
+* Issue #96: Added Arrow as a supported format for reading from BigQuery 
+* Issue #130 Adding the field description to the schema metadata
+* Issue #124: Fixing null values in ArrayType
+* Issue #143: Allowing the setting of `SchemaUpdateOption`s When writing to BigQuery
+* PR #148: Add support for writing clustered tables
+* Upgrade version of google-cloud-bigquery library to 1.110.0
+* Upgrade version of google-cloud-bigquerystorage library to 0.126.0-beta
+
+
 ## 0.13.1-beta - 2020-02-14
-* The BigQuery Storage API was reverted to v1beta2. The v1beta2 API has not been
+* The BigQuery Storage API was reverted to v1beta1. The v1beta2 API has not been
   fully integrated with custom IAM roles, which can cause issues to customers using
   those. The v1beta1 doesn't have this problem. Once the integration is complete,
   the API will be upgraded again.

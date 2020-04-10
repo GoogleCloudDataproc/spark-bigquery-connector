@@ -21,12 +21,17 @@ import com.google.api.client.util.Base64
 import com.google.auth.Credentials
 import com.google.auth.oauth2.{AccessToken, GoogleCredentials}
 import com.google.cloud.bigquery.JobInfo.CreateDisposition
-import com.google.cloud.bigquery.{BigQueryOptions, FormatOptions, TableId}
+import com.google.cloud.bigquery.storage.v1beta1.Storage.DataFormat
+import com.google.cloud.bigquery.{BigQueryOptions, FormatOptions, JobInfo, TableId}
+import com.google.common.collect.ImmutableList
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.types.StructType
 
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.JavaConverters._
+
 /** Options for defining {@link BigQueryRelation}s */
-case class SparkBigQueryOptions(
+  case class SparkBigQueryOptions(
     tableId: TableId,
     parentProject: String,
     credentials: Option[String] = None,
@@ -36,6 +41,7 @@ case class SparkBigQueryOptions(
     maxParallelism: Option[Int] = None,
     temporaryGcsBucket: Option[String] = None,
     intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat,
+    readDataFormat: DataFormat = SparkBigQueryOptions.DefaultReadDataFormat,
     combinePushedDownFilters: Boolean = true,
     viewsEnabled: Boolean = false,
     materializationProject: Option[String] = None,
@@ -44,9 +50,11 @@ case class SparkBigQueryOptions(
     partitionExpirationMs: Option[Long] = None,
     partitionRequireFilter: Option[Boolean] = None,
     partitionType: Option[String] = None,
+    clusteredFields: Option[Array[String]] = None,
     createDisposition: Option[CreateDisposition] = None,
     optimizedEmptyProjection: Boolean = true,
     accessToken: Option[String] = None,
+    loadSchemaUpdateOptions: java.util.List[JobInfo.SchemaUpdateOption] = ImmutableList.of(),
     viewExpirationTimeInHours: Int = 24,
     maxReadRowsRetries: Int = 3
   ) {
@@ -74,10 +82,13 @@ object SparkBigQueryOptions {
   val GcsConfigProjectIdProperty = "fs.gs.project.id"
 
   val IntermediateFormatOption = "intermediateFormat"
+  val ReadDataFormatOption = "readDataFormat"
   val ViewsEnabledOption = "viewsEnabled"
 
+  val DefaultReadDataFormat: DataFormat = DataFormat.AVRO
   val DefaultFormat: FormatOptions = FormatOptions.parquet()
   private val PermittedIntermediateFormats = Set(FormatOptions.orc(), FormatOptions.parquet())
+  private val PermittedReadDataFormats = Set(DataFormat.ARROW.toString, DataFormat.AVRO.toString)
 
   val GcsAccessToken = "spark.gcs.user.accessToken"
 
@@ -111,6 +122,16 @@ object SparkBigQueryOptions {
            |Supported formats are ${PermittedIntermediateFormats.map(_.getType)}"""
           .stripMargin.replace('\n', ' '))
     }
+    val readDataFormatParam = getAnyOption(allConf, parameters, ReadDataFormatOption)
+      .map(s => s.toUpperCase())
+      .getOrElse(DefaultReadDataFormat.toString)
+    if (!PermittedReadDataFormats.contains(readDataFormatParam)) {
+      throw new IllegalArgumentException(
+        s"""Data read format '${readDataFormatParam.toString}' is not supported.
+           |Supported formats are '${PermittedReadDataFormats.mkString(",")}'"""
+          .stripMargin.replace('\n', ' '))
+    }
+    val readDataFormat = DataFormat.valueOf(readDataFormatParam)
     val combinePushedDownFilters = getAnyBooleanOption(
       allConf, parameters, "combinePushedDownFilters", true)
     val viewsEnabled = getAnyBooleanOption(
@@ -126,6 +147,7 @@ object SparkBigQueryOptions {
     val partitionExpirationMs = getOption(parameters, "partitionExpirationMs").map(_.toLong)
     val partitionRequireFilter = getOption(parameters, "partitionRequireFilter").map(_.toBoolean)
     val partitionType = getOption(parameters, "partitionType")
+    val clusteredFields = getOption(parameters, "clusteredFields").map(_.split(","))
 
     val createDisposition = getOption(parameters, "createDisposition")
       .map(_.toUpperCase).map(param => CreateDisposition.valueOf(param))
@@ -134,12 +156,24 @@ object SparkBigQueryOptions {
       allConf, parameters, "optimizedEmptyProjection", true)
     val accessToken = getAnyOption(allConf, parameters, GcsAccessToken)
 
+    val allowFieldAddition = getAnyBooleanOption(
+      allConf, parameters, "allowFieldAddition", false)
+    val allowFieldRelaxation = getAnyBooleanOption(
+      allConf, parameters, "allowFieldRelaxation", false)
+    val loadSchemaUpdateOptions = new ArrayBuffer[JobInfo.SchemaUpdateOption]
+    if (allowFieldAddition) {
+      loadSchemaUpdateOptions += JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION
+    }
+    if (allowFieldRelaxation) {
+      loadSchemaUpdateOptions += JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION
+    }
+
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
-      filter, schema, maxParallelism, temporaryGcsBucket, intermediateFormat,
+      filter, schema, maxParallelism, temporaryGcsBucket, intermediateFormat, readDataFormat,
       combinePushedDownFilters, viewsEnabled, materializationProject,
       materializationDataset, partitionField, partitionExpirationMs,
-      partitionRequireFilter, partitionType, createDisposition,
-      optimizedEmptyProjection, accessToken)
+      partitionRequireFilter, partitionType, clusteredFields, createDisposition,
+      optimizedEmptyProjection, accessToken, loadSchemaUpdateOptions.asJava)
   }
 
   private def defaultBilledProject = () =>

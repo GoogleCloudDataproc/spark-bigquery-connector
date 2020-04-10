@@ -4,7 +4,7 @@ lazy val sparkVersion = "2.4.0"
 
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
-  version := "0.13.2-beta-SNAPSHOT",
+  version := "0.14.1-beta-SNAPSHOT",
   scalaVersion := scala211Version,
   crossScalaVersions := Seq(scala211Version, scala212Version)
 )
@@ -44,13 +44,14 @@ lazy val connector = (project in file("connector"))
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
 
 
-// Keep com.google.cloud dependencies in sync
-      "com.google.cloud" % "google-cloud-bigquery" % "1.103.0",
-      "com.google.cloud" % "google-cloud-bigquerystorage" % "0.122.0-beta",
+      // Keep com.google.cloud dependencies in sync
+      "com.google.cloud" % "google-cloud-bigquery" % "1.110.0",
+      "com.google.cloud" % "google-cloud-bigquerystorage" % "0.126.0-beta",
       // Keep in sync with com.google.cloud
-      "io.grpc" % "grpc-netty-shaded" % "1.25.0",
-      "com.google.api" % "gax-grpc" % "1.52.0",
-      "com.google.guava" % "guava" % "28.1-jre",
+      "io.grpc" % "grpc-alts" % "1.28.1",
+      "io.grpc" % "grpc-netty-shaded" % "1.28.1",
+      "com.google.api" % "gax-grpc" % "1.55.0",
+      "com.google.guava" % "guava" % "28.2-jre",
 
       // runtime
       // scalastyle:off

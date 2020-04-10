@@ -16,7 +16,7 @@
 package com.google.cloud.spark.bigquery.direct
 
 import com.google.api.gax.rpc.ServerStreamingCallable
-import com.google.cloud.bigquery.storage.v1beta1.Storage.{ReadRowsRequest, ReadRowsResponse, StreamPosition}
+import com.google.cloud.bigquery.storage.v1beta1.Storage.{DataFormat, ReadRowsRequest, ReadRowsResponse, StreamPosition}
 import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, Storage}
 import com.google.cloud.bigquery.{BigQuery, Schema}
 import com.google.cloud.spark.bigquery.{ArrowBinaryIterator, AvroBinaryIterator, BigQueryUtil, SchemaConverters, SparkBigQueryOptions}
@@ -35,9 +35,8 @@ import scala.collection.mutable.MutableList._
 
 class BigQueryRDD(sc: SparkContext,
                   parts: Array[Partition],
-                  sessionId: String,
+                  session: Storage.ReadSession,
                   columnsInOrder: Seq[String],
-                  rawAvroSchema: String,
                   bqSchema: Schema,
                   options: SparkBigQueryOptions,
                   getClient: SparkBigQueryOptions => BigQueryStorageClient,
@@ -51,7 +50,7 @@ class BigQueryRDD(sc: SparkContext,
       .setReadPosition(StreamPosition.newBuilder().setStream(bqStream))
 
     val client = getClient(options)
-    // Taken from FileScanRDD
+
     context.addTaskCompletionListener(ctx => {
       client.close
       ctx
@@ -61,7 +60,17 @@ class BigQueryRDD(sc: SparkContext,
       ReadRowsClientWrapper(client), request, options.maxReadRowsRetries)
       .readRows()
 
-    val it = AvroConverter(bqSchema, columnsInOrder, rawAvroSchema, readRowResponses).getIterator()
+    val it = if (options.readDataFormat.equals(DataFormat.AVRO)) {
+      AvroConverter(bqSchema,
+        columnsInOrder,
+        session.getAvroSchema.getSchema,
+        readRowResponses).getIterator()
+    }
+    else {
+      ArrowConverter(columnsInOrder,
+        session.getArrowSchema.getSerializedSchema,
+        readRowResponses).getIterator()
+    }
 
     new InterruptibleIterator(context, it)
   }
@@ -130,41 +139,54 @@ case class ReadRowsClientWrapper(client: BigQueryStorageClient)
   override def close: Unit = client.close
 }
 
+class ReadRowsIterator (val helper: ReadRowsHelper,
+                        val readPosition: com.google.cloud.bigquery.storage.v1beta1
+                        .Storage.StreamPosition.Builder,
+                        var serverResponses: java.util.Iterator[ReadRowsResponse] )
+  extends Logging with Iterator[ReadRowsResponse] {
+  var readRowsCount: Long = 0
+  var retries: Int = 0
+
+  override def hasNext: Boolean = serverResponses.hasNext
+
+  override def next(): ReadRowsResponse = {
+    do {
+      try {
+        val response = serverResponses.next
+        readRowsCount += response.getRowCount
+        logDebug(s"read ${response.getSerializedSize} bytes")
+        return response
+      } catch {
+        case e: Exception =>
+          // if relevant, retry the read, from the last read position
+          if (BigQueryUtil.isRetryable(e) && retries < helper.maxReadRowsRetries) {
+            serverResponses = helper.fetchResponses(helper.request.setReadPosition(
+              readPosition.setOffset(readRowsCount)))
+            retries += 1
+          } else {
+            helper.client.close
+            throw e
+          }
+      }
+    } while (serverResponses.hasNext)
+
+    throw new NoSuchElementException()
+  }
+}
+
 case class ReadRowsHelper(
                            client: ReadRowsClient,
                            request: ReadRowsRequest.Builder,
                            maxReadRowsRetries: Int
-                         ) extends Logging {
+                         )  {
   def readRows(): Iterator[ReadRowsResponse] = {
     val readPosition = request.getReadPositionBuilder
-    val readRowResponses = new mutable.MutableList[ReadRowsResponse]
-    var readRowsCount: Long = 0
-    var retries: Int = 0
-    var serverResponses = fetchResponses(request)
-    while (serverResponses.hasNext) {
-      try {
-        val response = serverResponses.next
-        readRowsCount += response.getRowCount
-        readRowResponses += response
-        logInfo(s"read ${response.getSerializedSize} bytes")
-      } catch {
-        case e: Exception =>
-          // if relevant, retry the read, from the last read position
-          if (BigQueryUtil.isRetryable(e) && retries < maxReadRowsRetries) {
-            serverResponses = fetchResponses(request.setReadPosition(
-              readPosition.setOffset(readRowsCount)))
-            retries += 1
-          } else {
-            client.close
-            throw e
-          }
-      }
-    }
-    readRowResponses.iterator
+    val serverResponses = fetchResponses(request)
+    new ReadRowsIterator(this, readPosition, serverResponses)
   }
 
   // In order to enable testing
-  protected def fetchResponses(readRowsRequest: ReadRowsRequest.Builder): java.util.Iterator[
+  private[bigquery] def fetchResponses(readRowsRequest: ReadRowsRequest.Builder): java.util.Iterator[
     ReadRowsResponse] =
     client.readRowsCallable
     .call(readRowsRequest.build)
@@ -175,8 +197,7 @@ case class ReadRowsHelper(
 object BigQueryRDD {
   def scanTable(sqlContext: SQLContext,
                 parts: Array[Partition],
-                sessionId: String,
-                avroSchema: String,
+                session: Storage.ReadSession,
                 bqSchema: Schema,
                 columnsInOrder: Seq[String],
                 options: SparkBigQueryOptions,
@@ -184,9 +205,8 @@ object BigQueryRDD {
                 bigQueryClient: SparkBigQueryOptions => BigQuery): BigQueryRDD = {
     new BigQueryRDD(sqlContext.sparkContext,
       parts,
-      sessionId,
+      session,
       columnsInOrder: Seq[String],
-      avroSchema,
       bqSchema,
       options,
       getClient,

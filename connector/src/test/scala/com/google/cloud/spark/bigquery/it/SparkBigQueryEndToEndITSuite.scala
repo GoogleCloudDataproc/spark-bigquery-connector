@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.it
 
-import com.google.cloud.bigquery.{BigQueryOptions, QueryJobConfiguration}
+import com.google.cloud.bigquery.{BigQueryOptions, QueryJobConfiguration, StandardTableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.it.TestConstants._
 import com.google.cloud.spark.bigquery.{SparkBigQueryOptions, TestUtils}
@@ -52,6 +52,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   )
   val temporaryGcsBucket = "davidrab-sandbox"
   val bq = BigQueryOptions.getDefaultInstance.getService
+  private val LIBRARIES_PROJECTS_TABLE = "bigquery-public-data.libraries_io.projects"
   private val SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare"
   private val SHAKESPEARE_TABLE_NUM_ROWS = 164656L
   private val SHAKESPEARE_TABLE_SCHEMA = StructType(Seq(
@@ -103,6 +104,9 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     spark.read.format("bigquery").option("table", SHAKESPEARE_TABLE).load()
   }
 
+  testsWithReadInFormat("avro")
+  testsWithReadInFormat("arrow")
+
   override def beforeAll: Unit = {
     spark = TestUtils.getOrCreateSparkSession()
     testDataset = s"spark_bigquery_it_${System.currentTimeMillis()}"
@@ -134,26 +138,161 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     }
   }
 
-  test("out of order columns") {
-    val row = spark.read.format("bigquery").option("table", SHAKESPEARE_TABLE).load()
-      .select("word_count", "word").head
-    assert(row(0).isInstanceOf[Long])
-    assert(row(1).isInstanceOf[String])
+  def testsWithReadInFormat(dataFormat: String): Unit = {
+
+    test("out of order columns. Data Format %s".format(dataFormat)) {
+      val row = spark.read.format("bigquery")
+        .option("table", SHAKESPEARE_TABLE)
+        .option("readDataFormat", dataFormat).load()
+        .select("word_count", "word").head
+      assert(row(0).isInstanceOf[Long])
+      assert(row(1).isInstanceOf[String])
+    }
+
+    test("number of partitions. Data Format %s".format(dataFormat)) {
+      val df = spark.read.format("com.google.cloud.spark.bigquery")
+        .option("table", LARGE_TABLE)
+        .option("parallelism", "5")
+        .option("readDataFormat", dataFormat)
+        .load()
+      assert(5 == df.rdd.getNumPartitions)
+    }
+
+    test("default number of partitions. Data Format %s".format(dataFormat)) {
+      val df = spark.read.format("com.google.cloud.spark.bigquery")
+        .option("table", LARGE_TABLE)
+        .option("readDataFormat", dataFormat)
+        .load()
+      assert(df.rdd.getNumPartitions == 35)
+    }
+
+    test("balanced partitions. Data Format %s".format(dataFormat)) {
+      import com.google.cloud.spark.bigquery._
+      failAfter(120 seconds) {
+        // Select first partition
+        val df = spark.read
+          .option("parallelism", 5)
+          .option("readDataFormat", dataFormat)
+          .bigquery(LARGE_TABLE)
+          .select(LARGE_TABLE_FIELD) // minimize payload
+        val sizeOfFirstPartition = df.rdd.mapPartitionsWithIndex {
+          case (0, it) => it
+          case _ => Iterator.empty
+        }.count
+
+        // Since we are only reading from a single stream, we can expect to get
+        // at least as many rows
+        // in that stream as a perfectly uniform distribution would command.
+        // Note that the assertion
+        // is on a range of rows because rows are assigned to streams on the
+        // server-side in
+        // indivisible units of many rows.
+
+        val numRowsLowerBound = LARGE_TABLE_NUM_ROWS / df.rdd.getNumPartitions
+        assert(numRowsLowerBound <= sizeOfFirstPartition &&
+          sizeOfFirstPartition < (numRowsLowerBound * 1.1).toInt)
+      }
+    }
+
+    test("test optimized count(*). Data Format %s".format(dataFormat)) {
+      DirectBigQueryRelation.emptyRowRDDsCreated = 0
+      val oldMethodCount = spark.read.format("bigquery")
+        .option("table", "bigquery-public-data.samples.shakespeare")
+        .option("readDataFormat", dataFormat)
+        .option("optimizedEmptyProjection", "false")
+        .load()
+        .select("corpus_date")
+        .count()
+
+      assert(DirectBigQueryRelation.emptyRowRDDsCreated == 0)
+
+      assertResult(oldMethodCount) {
+        spark.read.format("bigquery")
+          .option("table", "bigquery-public-data.samples.shakespeare")
+          .option("readDataFormat", dataFormat)
+          .load()
+          .count()
+      }
+      assert(DirectBigQueryRelation.emptyRowRDDsCreated == 1)
+    }
+
+    test("test optimized count(*) with filter. Data Format %s".format(dataFormat)) {
+      DirectBigQueryRelation.emptyRowRDDsCreated = 0
+      val oldMethodCount = spark.read.format("bigquery")
+        .option("table", "bigquery-public-data.samples.shakespeare")
+        .option("optimizedEmptyProjection", "false")
+        .option("readDataFormat", dataFormat)
+        .load()
+        .select("corpus_date")
+        .where("corpus_date > 0")
+        .count()
+
+      assert(DirectBigQueryRelation.emptyRowRDDsCreated == 0)
+
+      assertResult(oldMethodCount) {
+        spark.read.format("bigquery")
+          .option("table", "bigquery-public-data.samples.shakespeare")
+          .option("readDataFormat", dataFormat)
+          .load()
+          .where("corpus_date > 0")
+          .count()
+      }
+      assert(DirectBigQueryRelation.emptyRowRDDsCreated == 1)
+    }
+
+    test("keeping filters behaviour. Data Format %s".format(dataFormat)) {
+      val newBehaviourWords = extractWords(
+        spark.read.format("bigquery")
+          .option("table", "bigquery-public-data.samples.shakespeare")
+          .option("filter", "length(word) = 1")
+          .option("combinePushedDownFilters", "true")
+          .option("readDataFormat", dataFormat)
+          .load())
+
+      val oldBehaviourWords = extractWords(
+        spark.read.format("bigquery")
+          .option("table", "bigquery-public-data.samples.shakespeare")
+          .option("filter", "length(word) = 1")
+          .option("combinePushedDownFilters", "false")
+          .option("readDataFormat", dataFormat)
+          .load())
+
+      newBehaviourWords should equal (oldBehaviourWords)
+    }
   }
 
-  test("number of partitions") {
-    val df = spark.read.format("com.google.cloud.spark.bigquery")
-      .option("table", LARGE_TABLE)
-      .option("parallelism", "5")
-      .load()
-    assert(5 == df.rdd.getNumPartitions)
+  test("OR across columns with Arrow") {
+
+    val avroResults = spark.read.format("bigquery")
+      .option("table", "bigquery-public-data.samples.shakespeare")
+      .option("filter", "word_count = 1 OR corpus_date = 0")
+      .option("readDataFormat", "AVRO")
+      .load().collect()
+
+    val arrowResults = spark.read.format("bigquery")
+      .option("table", "bigquery-public-data.samples.shakespeare")
+      .option("readDataFormat", "ARROW")
+      .load().where("word_count = 1 OR corpus_date = 0")
+      .collect()
+
+    avroResults should equal (arrowResults)
   }
 
-  test("default number of partitions") {
-    val df = spark.read.format("com.google.cloud.spark.bigquery")
-      .option("table", LARGE_TABLE)
-      .load()
-    assert(df.rdd.getNumPartitions == 35)
+  test("Count with filters - Arrow") {
+
+    val countResults = spark.read.format("bigquery")
+      .option("table", "bigquery-public-data.samples.shakespeare")
+      .option("readDataFormat", "ARROW")
+      .load().where("word_count = 1 OR corpus_date = 0")
+      .count()
+
+    val countAfterCollect = spark.read.format("bigquery")
+      .option("table", "bigquery-public-data.samples.shakespeare")
+      .option("readDataFormat", "ARROW")
+      .load().where("word_count = 1 OR corpus_date = 0")
+      .collect().size
+
+    countResults should equal (countAfterCollect)
   }
 
   test("read data types") {
@@ -194,29 +333,6 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     }
   }
 
-  test("balanced partitions") {
-    import com.google.cloud.spark.bigquery._
-    failAfter(120 seconds) {
-      // Select first partition
-      val df = spark.read
-          .option("parallelism", 5)
-          .bigquery(LARGE_TABLE)
-          .select(LARGE_TABLE_FIELD) // minimize payload
-      val sizeOfFirstPartition = df.rdd.mapPartitionsWithIndex {
-        case (0, it) => it
-        case _ => Iterator.empty
-      }.count
-
-      // Since we are only reading from a single stream, we can expect to get at least as many rows
-      // in that stream as a perfectly uniform distribution would command. Note that the assertion
-      // is on a range of rows because rows are assigned to streams on the server-side in
-      // indivisible units of many rows.
-      val numRowsLowerBound = LARGE_TABLE_NUM_ROWS / df.rdd.getNumPartitions
-      assert(numRowsLowerBound <= sizeOfFirstPartition &&
-          sizeOfFirstPartition < (numRowsLowerBound * 1.1).toInt)
-    }
-  }
-
   // Write tests. We have four save modes: Append, ErrorIfExists, Ignore and
   // Overwrite. For each there are two behaviours - the table exists or not.
   // See more at http://spark.apache.org/docs/2.3.2/api/java/org/apache/spark/sql/SaveMode.html
@@ -250,6 +366,9 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   // getNumRows returns BigInteger, and it messes up the matchers
   private def testTableNumberOfRows = bq.getTable(testDataset, testTable).getNumRows.intValue
 
+  private def testPartitionedTableDefinition = bq.getTable(testDataset, testTable + "_partitioned")
+    .getDefinition[StandardTableDefinition]()
+
   private def writeToBigQuery(df: DataFrame, mode: SaveMode, format: String = "parquet") =
     df.write.format("bigquery")
       .mode(mode)
@@ -265,6 +384,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       .getTotalRows
 
   private def fullTableName = s"$testDataset.$testTable"
+  private def fullTableNamePartitioned = s"$testDataset.${testTable}_partitioned"
 
   private def additionalDataValuesExist = numberOfRowsWith("Cat") == 1
 
@@ -344,22 +464,23 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     initialDataValuesExist shouldBe true
   }
 
-  test("keeping filters behaviour") {
-    val newBehaviourWords = extractWords(
-      spark.read.format("bigquery")
-      .option("table", "publicdata.samples.shakespeare")
-      .option("filter", "length(word) = 1")
-      .option("combinePushedDownFilters", "true")
-      .load())
+  test ("write to bq - partitioned and clustered table") {
+    val df = spark.read.format("com.google.cloud.spark.bigquery")
+      .option("table", LIBRARIES_PROJECTS_TABLE)
+      .load()
+      .where("platform = 'Sublime'")
 
-    val oldBehaviourWords = extractWords(
-      spark.read.format("bigquery")
-      .option("table", "publicdata.samples.shakespeare")
-      .option("filter", "length(word) = 1")
-      .option("combinePushedDownFilters", "false")
-      .load())
+    df.write.format("bigquery")
+      .option("table", fullTableNamePartitioned)
+      .option("temporaryGcsBucket", temporaryGcsBucket)
+      .option("partitionField", "created_timestamp")
+      .option("clusteredFields", "platform")
+      .mode(SaveMode.Overwrite)
+      .save()
 
-    newBehaviourWords should equal (oldBehaviourWords)
+    val tableDefinition = testPartitionedTableDefinition
+    tableDefinition.getTimePartitioning.getField shouldBe "created_timestamp"
+    tableDefinition.getClustering.getFields should contain ("platform")
   }
 
   def extractWords(df: DataFrame): Set[String] = {
@@ -369,49 +490,6 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       .map(_.getString(0))
       .toSet
   }
-
-  test("test optimized count(*)") {
-    DirectBigQueryRelation.emptyRowRDDsCreated = 0
-    val oldMethodCount = spark.read.format("bigquery")
-      .option("table", "publicdata.samples.shakespeare")
-      .option("optimizedEmptyProjection", "false")
-      .load()
-      .select("corpus_date")
-      .count()
-
-    assert(DirectBigQueryRelation.emptyRowRDDsCreated == 0)
-
-    assertResult(oldMethodCount) {
-      spark.read.format("bigquery")
-        .option("table", "publicdata.samples.shakespeare")
-        .load()
-        .count()
-    }
-    assert(DirectBigQueryRelation.emptyRowRDDsCreated == 1)
-  }
-
-  test("test optimized count(*) with filter") {
-    DirectBigQueryRelation.emptyRowRDDsCreated = 0
-    val oldMethodCount = spark.read.format("bigquery")
-      .option("table", "publicdata.samples.shakespeare")
-      .option("optimizedEmptyProjection", "false")
-      .load()
-      .select("corpus_date")
-      .where("corpus_date > 0")
-      .count()
-
-    assert(DirectBigQueryRelation.emptyRowRDDsCreated == 0)
-
-    assertResult(oldMethodCount) {
-      spark.read.format("bigquery")
-        .option("table", "publicdata.samples.shakespeare")
-        .load()
-        .where("corpus_date > 0")
-        .count()
-    }
-    assert(DirectBigQueryRelation.emptyRowRDDsCreated == 1)
-  }
-
 }
 
 case class Animal(name: String, length: Int, weight: Double)

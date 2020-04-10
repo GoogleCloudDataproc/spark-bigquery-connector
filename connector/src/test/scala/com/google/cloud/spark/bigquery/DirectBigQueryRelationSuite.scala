@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery
 
 import com.google.cloud.bigquery._
+import com.google.cloud.bigquery.storage.v1beta1.Storage.DataFormat
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.sources._
@@ -49,7 +50,7 @@ class DirectBigQueryRelationSuite
   before {
     MockitoAnnotations.initMocks(this)
     bigQueryRelation = new DirectBigQueryRelation(
-      SparkBigQueryOptions(ID, PROJECT_ID), TABLE)(sqlCtx)
+      SparkBigQueryOptions(ID, PROJECT_ID, readDataFormat = DataFormat.AVRO), TABLE)(sqlCtx)
   }
 
   after {
@@ -81,7 +82,7 @@ class DirectBigQueryRelationSuite
     assert(expectedSchema == schema)
   }
 
-  test("valid filters") {
+  test("valid filters for Avro") {
     val validFilters = Seq(
       EqualTo("foo", "manatee"),
       GreaterThan("foo", "aardvark"),
@@ -103,19 +104,57 @@ class DirectBigQueryRelationSuite
     }
   }
 
+  test("valid filters for Arrow") {
+    val bigQueryRelation = new DirectBigQueryRelation(
+      SparkBigQueryOptions(ID, PROJECT_ID, readDataFormat = DataFormat.ARROW), TABLE)(sqlCtx)
+
+    val validFilters = Seq(
+      EqualTo("foo", "manatee"),
+      GreaterThan("foo", "aardvark"),
+      GreaterThanOrEqual("bar", 2),
+      LessThan("foo", "zebra"),
+      LessThanOrEqual("bar", 1),
+      In("foo", Array(1, 2, 3)),
+      IsNull("foo"),
+      IsNotNull("foo"),
+      And(IsNull("foo"), IsNotNull("bar")),
+      Not(IsNull("foo")),
+      StringStartsWith("foo", "abc"),
+      StringEndsWith("foo", "def"),
+      StringContains("foo", "abcdef")
+    )
+    validFilters.foreach { f =>
+      assert(bigQueryRelation.unhandledFilters(Array(f)).isEmpty)
+    }
+  }
+
   test("multiple valid filters are handled") {
     val valid1 = EqualTo("foo", "bar")
     val valid2 = EqualTo("bar", 1)
     assert(bigQueryRelation.unhandledFilters(Array(valid1, valid2)).isEmpty)
   }
 
-  test("invalid filters") {
+  test("invalid filters with Avro") {
     val valid1 = EqualTo("foo", "bar")
     val valid2 = EqualTo("bar", 1)
     val invalid1 = EqualNullSafe("foo", "bar")
     val invalid2 = And(EqualTo("foo", "bar"), Not(EqualNullSafe("bar", 1)))
     val unhandled = bigQueryRelation.unhandledFilters(Array(valid1, valid2, invalid1, invalid2))
     unhandled should contain allElementsOf Array(invalid1, invalid2)
+  }
+
+  test("invalid filters with Arrow") {
+    val bigQueryRelation = new DirectBigQueryRelation(
+      SparkBigQueryOptions(ID, PROJECT_ID, readDataFormat = DataFormat.ARROW), TABLE)(sqlCtx)
+
+    val valid1 = EqualTo("foo", "bar")
+    val valid2 = EqualTo("bar", 1)
+    val invalid1 = EqualNullSafe("foo", "bar")
+    val invalid2 = And(EqualTo("foo", "bar"), Not(EqualNullSafe("bar", 1)))
+    val invalid3 = Or(IsNull("foo"), IsNotNull("foo"))
+    val unhandled = bigQueryRelation.unhandledFilters(Array(valid1, valid2,
+      invalid1, invalid2, invalid3))
+    unhandled should contain allElementsOf Array(invalid1, invalid2, invalid3)
   }
 
   test("old filter behaviour, with filter option") {

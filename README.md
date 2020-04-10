@@ -76,8 +76,8 @@ repository. It can be used using the `--packages` option or the
 
 | Scala version | Connector Artifact |
 | --- | --- |
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.13.1-beta` |
-| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.13.1-beta` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.14.0-beta` |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.14.0-beta` |
 
 ## Hello World Example
 
@@ -103,7 +103,7 @@ The connector uses the cross language [Spark SQL Data Source API](https://spark.
 ```
 df = spark.read
   .format("bigquery")
-  .option("table", "publicdata.samples.shakespeare")
+  .option("table", "bigquery-public-data.samples.shakespeare")
   .load()
 ```
 
@@ -111,7 +111,7 @@ or the Scala only implicit API:
 
 ```
 import com.google.cloud.spark.bigquery._
-val df = spark.read.bigquery("publicdata.samples.shakespeare")
+val df = spark.read.bigquery("bigquery-public-data.samples.shakespeare")
 ```
 
 See [Shakespeare.scala](src/main/scala/com/google/cloud/spark/bigquery/examples/Shakespeare.scala) and [shakespeare.py](examples/python/shakespeare.py) for more information.
@@ -225,6 +225,16 @@ The API Supports a number of options to configure the read
    <td>Read</td>
   </tr>
   <tr valign="top">
+   <td><code>readDataFormat</code>
+   </td>
+   <td>Data Format for reading from BigQuery. Options : <code>ARROW</code>, <code>AVRO</code>
+	Unsupported Arrow filters are not pushed down and results are filtered later by Spark.
+	(Currently Arrow does not suport disjunction across columns).
+       <br/>(Optional. Defaults to <code>AVRO</code>)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr valign="top">
    <td><code>optimizedEmptyProjection</code>
    </td>
    <td>The connector uses an optimized empty projection (select without any
@@ -297,6 +307,32 @@ The API Supports a number of options to configure the read
         </td>
         <td>The only type supported is DAY, which will generate one partition per day.
            <br/>(Optional. Default to DAY).
+        </td>
+        <td>Write</td>
+     </tr>
+    <tr valign="top">
+           <td><code>clusteredFields</code>
+            </td>
+            <td>Comma separated list of non-repeated, top level columns. Clustering is only supported for partitioned tables 
+               <br/>(Optional).
+            </td>
+            <td>Write</td>
+         </tr>
+   <tr valign="top">
+       <td><code>allowFieldAddition</code>
+        </td>
+        <td>Adds the <a href="https://googleapis.dev/java/google-cloud-clients/latest/com/google/cloud/bigquery/JobInfo.SchemaUpdateOption.html#ALLOW_FIELD_ADDITION" target="_blank">ALLOW_FIELD_ADDITION</a>
+            SchemaUpdateOption to the BigQuery LoadJob. Allowed vales are <code>true</code> and <code>false</code>.
+           <br/>(Optional. Default to <code>false</code>).
+        </td>
+        <td>Write</td>
+     </tr>
+   <tr valign="top">
+       <td><code>allowFieldRelaxation</code>
+        </td>
+        <td>Adds the <a href="https://googleapis.dev/java/google-cloud-clients/latest/com/google/cloud/bigquery/JobInfo.SchemaUpdateOption.html#ALLOW_FIELD_RELAXATION" target="_blank">ALLOW_FIELD_RELAXATION</a>
+            SchemaUpdateOption to the BigQuery LoadJob. Allowed vales are <code>true</code> and <code>false</code>.
+           <br/>(Optional. Default to <code>false</code>).
         </td>
         <td>Write</td>
      </tr>
@@ -426,7 +462,7 @@ When casting to Timestamp TIME have the same TimeZone issues as DATETIME
 The connector automatically computes column and pushdown filters the DataFrame's `SELECT` statement e.g.
 
 ```
-spark.read.bigquery("publicdata:samples.shakespeare")
+spark.read.bigquery("bigquery-public-data:samples.shakespeare")
   .select("word")
   .where("word = 'Hamlet' or word = 'Claudius'")
   .collect()
@@ -438,7 +474,7 @@ filters to the column `word`  and pushed down the predicate filter `word = 'haml
 If you do not wish to make multiple read requests to BigQuery, you can cache the DataFrame before filtering e.g.:
 
 ```
-val cachedDF = spark.read.bigquery("publicdata:samples.shakespeare").cache()
+val cachedDF = spark.read.bigquery("bigquery-public-data:samples.shakespeare").cache()
 val rows = cachedDF.select("word")
   .where("word = 'Hamlet'")
   .collect()
@@ -497,7 +533,7 @@ using the following code:
 ```python
 from pyspark.sql import SparkSession
 spark = SparkSession.builder\
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.13.1-beta")\
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.14.0-beta")\
   .getOrCreate()
 df = spark.read.format("bigquery")\
   .option("table","dataset.table")\
@@ -507,7 +543,7 @@ df = spark.read.format("bigquery")\
 **Scala:**
 ```python
 val spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.13.1-beta")
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.14.0-beta")
   .getOrCreate()
 val df = spark.read.format("bigquery")
   .option("table","dataset.table")
@@ -516,7 +552,7 @@ val df = spark.read.format("bigquery")
 
 In case Spark cluster is using Scala 2.12 (it's optional for Spark 2.4.x,
 mandatory in 3.0.x), then the relevant package is
-com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.13.1-beta. In
+com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.14.0-beta. In
 order to know which Scala version is used, please run the following code:
 
 **Python:**
@@ -540,14 +576,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery-with-dependencies_${scala.version}</artifactId>
-  <version>0.13.1-beta</version>
+  <version>0.14.0-beta</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.13.1-beta"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.14.0-beta"
 ```
 
 ## Building the Connector
