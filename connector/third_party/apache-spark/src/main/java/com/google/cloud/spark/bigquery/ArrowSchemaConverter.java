@@ -33,8 +33,6 @@ import org.apache.spark.sql.vectorized.ColumnarMap;
 import org.apache.spark.unsafe.types.UTF8String;
 
 import org.apache.arrow.vector.types.pojo.Field;
-// import org.joda.time.DateTimeZone;
-// import org.joda.time.LocalDateTime;
 
 /**
  * ArrowSchemaConverter class for accessing values and converting
