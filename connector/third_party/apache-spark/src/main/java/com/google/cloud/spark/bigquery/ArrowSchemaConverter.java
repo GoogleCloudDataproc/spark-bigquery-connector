@@ -17,6 +17,8 @@
 package com.google.cloud.spark.bigquery;
 
 import io.netty.buffer.ArrowBuf;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.complex.*;
 import org.apache.arrow.vector.holders.NullableVarCharHolder;
@@ -31,8 +33,6 @@ import org.apache.spark.sql.vectorized.ColumnarMap;
 import org.apache.spark.unsafe.types.UTF8String;
 
 import org.apache.arrow.vector.types.pojo.Field;
-import org.joda.time.DateTimeZone;
-import org.joda.time.LocalDateTime;
 
 /**
  * ArrowSchemaConverter class for accessing values and converting
@@ -455,9 +455,11 @@ public class ArrowSchemaConverter extends ColumnVector {
     final UTF8String getUTF8String(int rowId) {
       long epoch = accessor.get(rowId);
 
-      LocalDateTime dateTime = new LocalDateTime(java.util.concurrent.TimeUnit.MICROSECONDS.toMillis(epoch), DateTimeZone.UTC);
+      LocalDateTime dateTime = LocalDateTime.ofEpochSecond(epoch / 1000000,
+          (int)(epoch % 1_000_000) * 1000,
+          ZoneOffset.UTC);
 
-      return UTF8String.fromString(dateTime.toString() + epoch % 1000);
+      return UTF8String.fromString(dateTime.toString());
     }
   }
 
