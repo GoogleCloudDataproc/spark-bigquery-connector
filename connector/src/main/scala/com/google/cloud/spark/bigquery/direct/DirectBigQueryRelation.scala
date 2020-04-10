@@ -133,8 +133,6 @@ private[bigquery] class DirectBigQueryRelation(
               .setTable(actualTablePath
             ))
             .setMaxStreamCount(maxNumPartitionsRequested)
-            // The BALANCED sharding strategy causes the server to assign roughly the same
-            // number of rows to each stream.
             .build())
         val partitions = session.getStreamsList.asScala.map(_.getName)
           .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }

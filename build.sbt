@@ -134,6 +134,7 @@ lazy val renamed = Seq(
   "io.grpc",
   "io.netty",
   "io.opencensus",
+  "org.apache.arrow",
   "io.perfmark",
   "org.apache.commons",
   "org.apache.http",
