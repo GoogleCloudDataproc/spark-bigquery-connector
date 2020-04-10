@@ -21,7 +21,7 @@ import com.google.api.client.util.Base64
 import com.google.auth.Credentials
 import com.google.auth.oauth2.{AccessToken, GoogleCredentials}
 import com.google.cloud.bigquery.JobInfo.CreateDisposition
-import com.google.cloud.bigquery.storage.v1beta1.Storage.DataFormat
+import com.google.cloud.bigquery.storage.v1.DataFormat
 import com.google.cloud.bigquery.{BigQueryOptions, FormatOptions, JobInfo, TableId}
 import com.google.common.collect.ImmutableList
 import org.apache.hadoop.conf.Configuration
@@ -29,6 +29,7 @@ import org.apache.spark.sql.types.StructType
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
+
 
 /** Options for defining {@link BigQueryRelation}s */
   case class SparkBigQueryOptions(

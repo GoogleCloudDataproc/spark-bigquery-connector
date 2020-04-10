@@ -18,10 +18,10 @@ package com.google.cloud.spark.bigquery
 import java.io.{ByteArrayInputStream, SequenceInputStream}
 
 import com.google.protobuf.ByteString
+import org.apache.arrow.memory.RootAllocator
 import org.apache.arrow.vector.VectorSchemaRoot
 import org.apache.arrow.vector.ipc.{ArrowReader, ArrowStreamReader}
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.arrow.ArrowUtils
 import org.apache.spark.sql.vectorized.{ColumnVector, ColumnarBatch}
 
 import collection.JavaConverters._
@@ -29,18 +29,15 @@ import collection.JavaConverters._
 /**
  * An iterator for scanning over rows serialized in Arrow format
  * @param columnsInOrder Sequence of columns in the schema
- * @param schema Schema in avro format
+ * @param schema Schema in arrow format
  * @param rowsInBytes Rows serialized in binary format for Arrow
  */
 class ArrowBinaryIterator(columnsInOrder: Seq[String],
                           schema: ByteString,
                           rowsInBytes: ByteString) extends Iterator[InternalRow] {
 
-
-  // max allocation value for the allocator
-  var maxAllocation = Long.MaxValue
-  val allocator = ArrowUtils.rootAllocator.newChildAllocator("ArrowBinaryIterator",
-    0, maxAllocation)
+  val allocator = ArrowBinaryIterator.rootAllocator.newChildAllocator("ArrowBinaryIterator",
+    0, ArrowBinaryIterator.maxAllocation)
 
   val bytesWithSchemaStream = new SequenceInputStream(
     new ByteArrayInputStream(schema.toByteArray),
@@ -104,4 +101,10 @@ class ArrowBinaryIterator(columnsInOrder: Seq[String],
   override def hasNext: Boolean = iterator.hasNext
 
   override def next(): InternalRow = iterator.next()
+}
+
+object ArrowBinaryIterator {
+  // max allocation value for the allocator
+  var maxAllocation = Long.MaxValue
+  val rootAllocator = new RootAllocator(maxAllocation)
 }
