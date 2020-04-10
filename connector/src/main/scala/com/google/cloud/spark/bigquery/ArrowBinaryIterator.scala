@@ -22,7 +22,6 @@ import org.apache.arrow.memory.RootAllocator
 import org.apache.arrow.vector.VectorSchemaRoot
 import org.apache.arrow.vector.ipc.{ArrowReader, ArrowStreamReader}
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.arrow.ArrowUtils
 import org.apache.spark.sql.vectorized.{ColumnVector, ColumnarBatch}
 
 import collection.JavaConverters._
@@ -37,12 +36,8 @@ class ArrowBinaryIterator(columnsInOrder: Seq[String],
                           schema: ByteString,
                           rowsInBytes: ByteString) extends Iterator[InternalRow] {
 
-
-  // max allocation value for the allocator
-  var maxAllocation = Long.MaxValue
-  val rootAllocator = new RootAllocator(maxAllocation)
-  val allocator = rootAllocator.newChildAllocator("ArrowBinaryIterator",
-    0, maxAllocation)
+  val allocator = ArrowBinaryIterator.rootAllocator.newChildAllocator("ArrowBinaryIterator",
+    0, ArrowBinaryIterator.maxAllocation)
 
   val bytesWithSchemaStream = new SequenceInputStream(
     new ByteArrayInputStream(schema.toByteArray),
@@ -106,4 +101,10 @@ class ArrowBinaryIterator(columnsInOrder: Seq[String],
   override def hasNext: Boolean = iterator.hasNext
 
   override def next(): InternalRow = iterator.next()
+}
+
+object ArrowBinaryIterator {
+  // max allocation value for the allocator
+  var maxAllocation = Long.MaxValue
+  val rootAllocator = new RootAllocator(maxAllocation)
 }
