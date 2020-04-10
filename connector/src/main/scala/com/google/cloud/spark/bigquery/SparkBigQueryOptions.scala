@@ -90,7 +90,7 @@ object SparkBigQueryOptions {
   private val PermittedIntermediateFormats = Set(FormatOptions.orc(), FormatOptions.parquet())
   private val PermittedReadDataFormats = Set(DataFormat.ARROW.toString, DataFormat.AVRO.toString)
 
-  val GcsAccessToken = "spark.gcpAccessToken"
+  val GcsAccessToken = "gcpAccessToken"
 
   def apply(
              parameters: Map[String, String],
