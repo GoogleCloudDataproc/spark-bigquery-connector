@@ -461,7 +461,7 @@ public class ArrowSchemaConverter extends ColumnVector {
           (int)(epoch % 1_000_000) * 1000,
           ZoneOffset.UTC);
 
-      return UTF8String.fromString(dateTime.toString() + epoch % 1000);
+      return UTF8String.fromString(dateTime.toString());
     }
   }
 

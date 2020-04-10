@@ -56,13 +56,13 @@ lazy val connector = (project in file("connector"))
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
       "com.fasterxml.jackson.module" % "jackson-module-paranamer" % "2.10.3",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.10.3",
+      "io.netty" % "netty-all" % "4.1.27.Final" % "provided",
 
       // runtime
       // scalastyle:off
       "com.google.cloud.bigdataoss" % "gcs-connector" % "hadoop2-2.0.0" % "runtime" classifier("shaded"),
       // scalastyle:on
       // test
-      "io.netty" % "netty-all" % "4.1.17.Final" % "test",
       "org.scalatest" %% "scalatest" % "3.1.0" % "test",
       "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test")
       .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
@@ -132,6 +132,7 @@ lazy val renamed = Seq(
   "com.thoughtworks.paranamer",
   "com.typesafe",
   "io.grpc",
+  "io.netty",
   "io.opencensus",
   "io.perfmark",
   "org.apache.commons",
