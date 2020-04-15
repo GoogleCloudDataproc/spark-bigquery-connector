@@ -23,25 +23,60 @@ public class ReadSessionCreatorConfig {
     final boolean viewsEnabled;
     final Optional<String> viewMaterializationProject;
     final Optional<String> viewMaterializationDataset;
+    final String viewEnabledParamName;
     final int viewExpirationTimeInHours;
     final Storage.DataFormat readDataFormat;
     final int maxReadRowsRetries;
-    final String viewEnabledParamName;
+    final int parallelism;
 
     ReadSessionCreatorConfig(
             boolean viewsEnabled,
             Optional<String> viewMaterializationProject,
             Optional<String> viewMaterializationDataset,
-             int viewExpirationTimeInHours,
+            int viewExpirationTimeInHours,
             Storage.DataFormat readDataFormat,
             int maxReadRowsRetries,
-            String viewEnabledParamName) {
+            String viewEnabledParamName,
+            int parallelism) {
         this.viewsEnabled = viewsEnabled;
         this.viewMaterializationProject = viewMaterializationProject;
         this.viewMaterializationDataset = viewMaterializationDataset;
+        this.viewEnabledParamName = viewEnabledParamName;
         this.viewExpirationTimeInHours = viewExpirationTimeInHours;
         this.readDataFormat = readDataFormat;
         this.maxReadRowsRetries = maxReadRowsRetries;
-        this.viewEnabledParamName = viewEnabledParamName;
+        this.parallelism = parallelism;
+    }
+
+    public boolean isViewsEnabled() {
+        return viewsEnabled;
+    }
+
+    public Optional<String> getViewMaterializationProject() {
+        return viewMaterializationProject;
+    }
+
+    public Optional<String> getViewMaterializationDataset() {
+        return viewMaterializationDataset;
+    }
+
+    public String getViewEnabledParamName() {
+        return viewEnabledParamName;
+    }
+
+    public int getViewExpirationTimeInHours() {
+        return viewExpirationTimeInHours;
+    }
+
+    public Storage.DataFormat getReadDataFormat() {
+        return readDataFormat;
+    }
+
+    public int getMaxReadRowsRetries() {
+        return maxReadRowsRetries;
+    }
+
+    public int getParallelism() {
+        return parallelism;
     }
 }
