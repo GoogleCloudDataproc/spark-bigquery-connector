@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageClientFactory;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
@@ -30,21 +31,37 @@ import org.apache.spark.sql.sources.v2.reader.SupportsPushDownRequiredColumns;
 import org.apache.spark.sql.types.StructType;
 
 import java.util.List;
+import java.util.Optional;
 
-public class BigQueryDataSourceReader implements DataSourceReader, SupportsPushDownRequiredColumns, SupportsPushDownFilters {
+public class BigQueryDataSourceReader implements
+        DataSourceReader, SupportsPushDownRequiredColumns, SupportsPushDownFilters {
 
+    private final ReadSessionCreatorConfig readSessionCreatorConfig;
+    private final BigQueryClient bigQueryClient;
+    private final BigQueryStorageClientFactory bigQueryStorageClientFactory;
+    private final ReadSessionCreator readSessionCreator;
+    private final StructType schema;
 
     private Storage.ReadSession readSession;
-    ReadSessionCreatorConfig readSessionCreatorConfig;
-    BigQueryClient bigQueryClient;
-    BigQueryStorageClientFactory bigQueryStorageClientFactory;
-    StructType schema;
+    private StructType requiredSchema = new StructType();
 
+
+    public BigQueryDataSourceReader(
+            BigQueryClient bigQueryClient,
+            BigQueryStorageClientFactory bigQueryStorageClientFactory,
+            ReadSessionCreatorConfig readSessionCreatorConfig,
+            StructType schema) {
+        this.readSessionCreatorConfig = readSessionCreatorConfig;
+        this.bigQueryClient = bigQueryClient;
+        this.bigQueryStorageClientFactory = bigQueryStorageClientFactory;
+        this.readSessionCreator = new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryStorageClientFactory);
+        this.schema = schema;
+    }
 
     @Override
     public StructType readSchema() {
         createReadSessionIfNeeded();
-        return schema;
+        return requiredSchema != null ? requiredSchema : schema;
     }
 
     @Override
@@ -65,19 +82,21 @@ public class BigQueryDataSourceReader implements DataSourceReader, SupportsPushD
 
     @Override
     public void pruneColumns(StructType requiredSchema) {
-
+        this.requiredSchema = requiredSchema;
     }
 
     void createReadSessionIfNeeded() {
-        if (readSession == null && !schema.isEmpty()) {
+        if (readSession == null && !requiredSchema.isEmpty()) {
             createReadSession();
         }
     }
 
     void createReadSession() {
+        // TODO
         ImmutableList<String> selectedFields = ImmutableList.copyOf(schema.fieldNames());
-        ReadSessionCreator readSessionCreator = new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryStorageClientFactory);
-        readSession = readSessionCreator.create(table, selectefFields, filter, parallelism);
+        TableId table = null;
+        Optional<String> filter = null;
+        readSession = readSessionCreator.create(table, selectedFields, filter, readSessionCreatorConfig.getParallelism());
     }
 
 

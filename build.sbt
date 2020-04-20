@@ -64,8 +64,12 @@ lazy val connector = (project in file("connector"))
       // test
       "org.scalatest" %% "scalatest" % "3.1.0" % "test",
       "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test",
+<<<<<<< HEAD
 
       "org.apache.spark" %% "spark-avro" % sparkVersion % "test")
+=======
+      "com.google.truth" % "truth" % "1.0.1" % "test")
+>>>>>>> 9d4b355... Datasource v2 (#155)
       .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
   )
 
