@@ -66,7 +66,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       "The year in which this corpus was published."))))
   private val LARGE_TABLE = "bigquery-public-data.samples.natality"
   private val LARGE_TABLE_FIELD = "is_male"
-  private val LARGE_TABLE_NUM_ROWS = 137826763L
+  private val LARGE_TABLE_NUM_ROWS = 33271914L
   private val NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent"
   private val ALL_TYPES_TABLE_NAME = "all_types"
   private var spark: SparkSession = _
@@ -173,12 +173,12 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
         val df = spark.read
           .option("parallelism", 5)
           .option("readDataFormat", dataFormat)
+          .option("filter", "year > 2000")
           .bigquery(LARGE_TABLE)
           .select(LARGE_TABLE_FIELD) // minimize payload
         val sizeOfFirstPartition = df.rdd.mapPartitionsWithIndex {
-          case (0, it) => it
-          case _ => Iterator.empty
-        }.count
+          case (_, it) => Iterator(it.size)
+        }.collect().head
 
         // Since we are only reading from a single stream, we can expect to get
         // at least as many rows
