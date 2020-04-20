@@ -19,9 +19,9 @@ import java.io.{ByteArrayInputStream, FileInputStream}
 
 import com.google.api.client.util.Base64
 import com.google.auth.Credentials
-import com.google.auth.oauth2.GoogleCredentials
+import com.google.auth.oauth2.{AccessToken, GoogleCredentials}
 import com.google.cloud.bigquery.JobInfo.CreateDisposition
-import com.google.cloud.bigquery.storage.v1beta1.Storage.DataFormat
+import com.google.cloud.bigquery.storage.v1.DataFormat
 import com.google.cloud.bigquery.{BigQueryOptions, FormatOptions, JobInfo, TableId}
 import com.google.common.collect.ImmutableList
 import org.apache.hadoop.conf.Configuration
@@ -30,8 +30,9 @@ import org.apache.spark.sql.types.StructType
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 
+
 /** Options for defining {@link BigQueryRelation}s */
-case class SparkBigQueryOptions(
+  case class SparkBigQueryOptions(
     tableId: TableId,
     parentProject: String,
     credentials: Option[String] = None,
@@ -53,20 +54,23 @@ case class SparkBigQueryOptions(
     clusteredFields: Option[Array[String]] = None,
     createDisposition: Option[CreateDisposition] = None,
     optimizedEmptyProjection: Boolean = true,
+    accessToken: Option[String] = None,
     loadSchemaUpdateOptions: java.util.List[JobInfo.SchemaUpdateOption] = ImmutableList.of(),
     viewExpirationTimeInHours: Int = 24,
     maxReadRowsRetries: Int = 3
   ) {
 
   def createCredentials: Option[Credentials] =
-    (credentials, credentialsFile) match {
-      case (Some(key), None) =>
+    (accessToken, credentials, credentialsFile) match {
+      case (Some(accToken), _, _) =>
+        Some(GoogleCredentials.create(new AccessToken(accToken, null)))
+      case (_, Some(key), None) =>
         Some(GoogleCredentials.fromStream(new ByteArrayInputStream(Base64.decodeBase64(key))))
-      case (None, Some(file)) =>
+      case (_, None, Some(file)) =>
         Some(GoogleCredentials.fromStream(new FileInputStream(file)))
-      case (None, None) =>
+      case (_, None, None) =>
         None
-      case (Some(_), Some(_)) =>
+      case (_, Some(_), Some(_)) =>
         throw new IllegalArgumentException("Only one of credentials or credentialsFile can be" +
           " specified in the options.")
     }
@@ -86,6 +90,8 @@ object SparkBigQueryOptions {
   val DefaultFormat: FormatOptions = FormatOptions.parquet()
   private val PermittedIntermediateFormats = Set(FormatOptions.orc(), FormatOptions.parquet())
   private val PermittedReadDataFormats = Set(DataFormat.ARROW.toString, DataFormat.AVRO.toString)
+
+  val GcsAccessToken = "gcpAccessToken"
 
   def apply(
              parameters: Map[String, String],
@@ -149,6 +155,7 @@ object SparkBigQueryOptions {
 
     val optimizedEmptyProjection = getAnyBooleanOption(
       allConf, parameters, "optimizedEmptyProjection", true)
+    val accessToken = getAnyOption(allConf, parameters, GcsAccessToken)
 
     val allowFieldAddition = getAnyBooleanOption(
       allConf, parameters, "allowFieldAddition", false)
@@ -167,7 +174,7 @@ object SparkBigQueryOptions {
       combinePushedDownFilters, viewsEnabled, materializationProject,
       materializationDataset, partitionField, partitionExpirationMs,
       partitionRequireFilter, partitionType, clusteredFields, createDisposition,
-      optimizedEmptyProjection, loadSchemaUpdateOptions.asJava)
+      optimizedEmptyProjection, accessToken, loadSchemaUpdateOptions.asJava)
   }
 
   private def defaultBilledProject = () =>

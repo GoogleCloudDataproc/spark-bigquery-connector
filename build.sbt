@@ -42,6 +42,7 @@ lazy val connector = (project in file("connector"))
       "org.slf4j" % "slf4j-api" % "1.7.25" % "provided",
       "org.codehaus.jackson" % "jackson-core-asl" % "1.9.13" % "provided",
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
+      "org.apache.arrow" % "arrow-vector" % "0.16.0",
 
 
       // Keep com.google.cloud dependencies in sync
@@ -52,6 +53,10 @@ lazy val connector = (project in file("connector"))
       "io.grpc" % "grpc-netty-shaded" % "1.28.1",
       "com.google.api" % "gax-grpc" % "1.55.0",
       "com.google.guava" % "guava" % "28.2-jre",
+      "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
+      "com.fasterxml.jackson.module" % "jackson-module-paranamer" % "2.10.3",
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.10.3",
+      "io.netty" % "netty-all" % "4.1.27.Final" % "provided",
 
       // runtime
       // scalastyle:off
@@ -59,7 +64,8 @@ lazy val connector = (project in file("connector"))
       // scalastyle:on
       // test
       "org.scalatest" %% "scalatest" % "3.1.0" % "test",
-      "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test")
+      "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test",
+      "com.google.truth" % "truth" % "1.0.1" % "test")
       .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
   )
 
@@ -127,7 +133,9 @@ lazy val renamed = Seq(
   "com.thoughtworks.paranamer",
   "com.typesafe",
   "io.grpc",
+  "io.netty",
   "io.opencensus",
+  "org.apache.arrow",
   "io.perfmark",
   "org.apache.commons",
   "org.apache.http",

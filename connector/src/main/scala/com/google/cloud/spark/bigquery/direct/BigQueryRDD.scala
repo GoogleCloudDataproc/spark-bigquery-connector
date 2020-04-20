@@ -16,8 +16,7 @@
 package com.google.cloud.spark.bigquery.direct
 
 import com.google.api.gax.rpc.ServerStreamingCallable
-import com.google.cloud.bigquery.storage.v1beta1.Storage.{DataFormat, ReadRowsRequest, ReadRowsResponse, StreamPosition}
-import com.google.cloud.bigquery.storage.v1beta1.{BigQueryStorageClient, Storage}
+import com.google.cloud.bigquery.storage.v1.{BigQueryReadClient, DataFormat, ReadRowsRequest, ReadRowsResponse, ReadSession, ReadStream}
 import com.google.cloud.bigquery.{BigQuery, Schema}
 import com.google.cloud.spark.bigquery.{ArrowBinaryIterator, AvroBinaryIterator, BigQueryUtil, SchemaConverters, SparkBigQueryOptions}
 import com.google.protobuf.ByteString
@@ -35,19 +34,17 @@ import scala.collection.mutable.MutableList._
 
 class BigQueryRDD(sc: SparkContext,
                   parts: Array[Partition],
-                  session: Storage.ReadSession,
+                  session: ReadSession,
                   columnsInOrder: Seq[String],
                   bqSchema: Schema,
                   options: SparkBigQueryOptions,
-                  getClient: SparkBigQueryOptions => BigQueryStorageClient,
+                  getClient: SparkBigQueryOptions => BigQueryReadClient,
                   bigQueryClient: SparkBigQueryOptions => BigQuery)
   extends RDD[InternalRow](sc, Nil) {
 
   override def compute(split: Partition, context: TaskContext): Iterator[InternalRow] = {
     val bqPartition = split.asInstanceOf[BigQueryPartition]
-    val bqStream = Storage.Stream.newBuilder().setName(bqPartition.stream).build()
-    val request = ReadRowsRequest.newBuilder()
-      .setReadPosition(StreamPosition.newBuilder().setStream(bqStream))
+    val request = ReadRowsRequest.newBuilder().setReadStream(bqPartition.stream)
 
     val client = getClient(options)
 
@@ -130,7 +127,7 @@ trait ReadRowsClient extends AutoCloseable {
   def readRowsCallable: ServerStreamingCallable[ReadRowsRequest, ReadRowsResponse]
 }
 
-case class ReadRowsClientWrapper(client: BigQueryStorageClient)
+case class ReadRowsClientWrapper(client: BigQueryReadClient)
   extends ReadRowsClient {
 
   override def readRowsCallable: ServerStreamingCallable[ReadRowsRequest, ReadRowsResponse] =
@@ -140,8 +137,6 @@ case class ReadRowsClientWrapper(client: BigQueryStorageClient)
 }
 
 class ReadRowsIterator (val helper: ReadRowsHelper,
-                        val readPosition: com.google.cloud.bigquery.storage.v1beta1
-                        .Storage.StreamPosition.Builder,
                         var serverResponses: java.util.Iterator[ReadRowsResponse] )
   extends Logging with Iterator[ReadRowsResponse] {
   var readRowsCount: Long = 0
@@ -160,8 +155,7 @@ class ReadRowsIterator (val helper: ReadRowsHelper,
         case e: Exception =>
           // if relevant, retry the read, from the last read position
           if (BigQueryUtil.isRetryable(e) && retries < helper.maxReadRowsRetries) {
-            serverResponses = helper.fetchResponses(helper.request.setReadPosition(
-              readPosition.setOffset(readRowsCount)))
+            serverResponses = helper.fetchResponses(helper.request.setOffset(readRowsCount))
             retries += 1
           } else {
             helper.client.close
@@ -180,13 +174,13 @@ case class ReadRowsHelper(
                            maxReadRowsRetries: Int
                          )  {
   def readRows(): Iterator[ReadRowsResponse] = {
-    val readPosition = request.getReadPositionBuilder
     val serverResponses = fetchResponses(request)
-    new ReadRowsIterator(this, readPosition, serverResponses)
+    new ReadRowsIterator(this, serverResponses)
   }
 
   // In order to enable testing
-  private[bigquery] def fetchResponses(readRowsRequest: ReadRowsRequest.Builder): java.util.Iterator[
+  private[bigquery] def fetchResponses(readRowsRequest: ReadRowsRequest.Builder):
+  java.util.Iterator[
     ReadRowsResponse] =
     client.readRowsCallable
     .call(readRowsRequest.build)
@@ -197,11 +191,11 @@ case class ReadRowsHelper(
 object BigQueryRDD {
   def scanTable(sqlContext: SQLContext,
                 parts: Array[Partition],
-                session: Storage.ReadSession,
+                session: ReadSession,
                 bqSchema: Schema,
                 columnsInOrder: Seq[String],
                 options: SparkBigQueryOptions,
-                getClient: SparkBigQueryOptions => BigQueryStorageClient,
+                getClient: SparkBigQueryOptions => BigQueryReadClient,
                 bigQueryClient: SparkBigQueryOptions => BigQuery): BigQueryRDD = {
     new BigQueryRDD(sqlContext.sparkContext,
       parts,
