@@ -101,5 +101,4 @@ public class BigQueryUtil {
                 .map(p -> TableId.of(p, actualDataset, table))
                 .orElse(TableId.of(actualDataset, table));
     }
-
 }
