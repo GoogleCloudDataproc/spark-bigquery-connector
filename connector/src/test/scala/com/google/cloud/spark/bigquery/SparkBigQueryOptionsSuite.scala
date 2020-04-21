@@ -259,4 +259,12 @@ class SparkBigQueryOptionsSuite extends FunSuite {
       options.loadSchemaUpdateOptions.isEmpty
     }
   }
+
+  test("normalize All Conf") {
+    val originalConf = Map("key1" -> "val1", "spark.datasource.bigquery.key2" -> "val2")
+    val normalizedConf = SparkBigQueryOptions.normalizeAllConf(originalConf)
+
+    assert(normalizedConf.get("key1")  == Some("val1"))
+    assert(normalizedConf.get("key2")  == Some("val2"))
+  }
 }

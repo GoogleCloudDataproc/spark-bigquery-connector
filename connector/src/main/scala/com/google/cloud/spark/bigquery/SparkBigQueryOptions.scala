@@ -93,18 +93,28 @@ object SparkBigQueryOptions {
 
   val GcsAccessToken = "gcpAccessToken"
 
+  val ConfPrefix = "spark.datasource.bigquery."
+
+  private[bigquery] def normalizeAllConf(allConf: Map[String, String]): Map[String, String] = {
+    allConf ++ allConf
+      .filterKeys(_.startsWith(ConfPrefix))
+      .map { case(key, value) => (key.substring(ConfPrefix.length), value) }
+  }
+
   def apply(
              parameters: Map[String, String],
              allConf: Map[String, String],
              hadoopConf: Configuration,
              schema: Option[StructType])
   : SparkBigQueryOptions = {
+    val normalizedAllConf = normalizeAllConf(allConf)
+
     val tableParam = getRequiredOption(parameters, "table")
     val datasetParam = getOption(parameters, "dataset")
     val projectParam = getOption(parameters, "project")
       .orElse(Option(hadoopConf.get(GcsConfigProjectIdProperty)))
-    val credsParam = getAnyOption(allConf, parameters, "credentials")
-    val credsFileParam = getAnyOption(allConf, parameters, "credentialsFile")
+    val credsParam = getAnyOption(normalizedAllConf, parameters, "credentials")
+    val credsFileParam = getAnyOption(normalizedAllConf, parameters, "credentialsFile")
       .orElse(Option(hadoopConf.get(GcsConfigCredentialsFileProperty)))
     val tableId = BigQueryUtil.parseTableId(tableParam, datasetParam, projectParam)
     val parentProject = getRequiredOption(parameters, "parentProject",
@@ -113,8 +123,8 @@ object SparkBigQueryOptions {
     val maxParallelism = getOptionFromMultipleParams(
       parameters, Seq("maxParallelism", "parallelism"))
       .map(_.toInt)
-    val temporaryGcsBucket = getAnyOption(allConf, parameters, "temporaryGcsBucket")
-    val intermediateFormat = getAnyOption(allConf, parameters, IntermediateFormatOption)
+    val temporaryGcsBucket = getAnyOption(normalizedAllConf, parameters, "temporaryGcsBucket")
+    val intermediateFormat = getAnyOption(normalizedAllConf, parameters, IntermediateFormatOption)
       .map(s => FormatOptions.of(s.toUpperCase))
       .getOrElse(DefaultFormat)
     if (!PermittedIntermediateFormats.contains(intermediateFormat)) {
@@ -123,7 +133,7 @@ object SparkBigQueryOptions {
            |Supported formats are ${PermittedIntermediateFormats.map(_.getType)}"""
           .stripMargin.replace('\n', ' '))
     }
-    val readDataFormatParam = getAnyOption(allConf, parameters, ReadDataFormatOption)
+    val readDataFormatParam = getAnyOption(normalizedAllConf, parameters, ReadDataFormatOption)
       .map(s => s.toUpperCase())
       .getOrElse(DefaultReadDataFormat.toString)
     if (!PermittedReadDataFormats.contains(readDataFormatParam)) {
@@ -134,14 +144,14 @@ object SparkBigQueryOptions {
     }
     val readDataFormat = DataFormat.valueOf(readDataFormatParam)
     val combinePushedDownFilters = getAnyBooleanOption(
-      allConf, parameters, "combinePushedDownFilters", true)
+      normalizedAllConf, parameters, "combinePushedDownFilters", true)
     val viewsEnabled = getAnyBooleanOption(
-      allConf, parameters, ViewsEnabledOption, false)
+      normalizedAllConf, parameters, ViewsEnabledOption, false)
     val materializationProject =
-      getAnyOption(allConf, parameters,
+      getAnyOption(normalizedAllConf, parameters,
         Seq("materializationProject", "viewMaterializationProject"))
     val materializationDataset =
-      getAnyOption(allConf, parameters,
+      getAnyOption(normalizedAllConf, parameters,
         Seq("materializationDataset", "viewMaterializationDataset"))
 
     val partitionField = getOption(parameters, "partitionField")
@@ -154,13 +164,13 @@ object SparkBigQueryOptions {
       .map(_.toUpperCase).map(param => CreateDisposition.valueOf(param))
 
     val optimizedEmptyProjection = getAnyBooleanOption(
-      allConf, parameters, "optimizedEmptyProjection", true)
-    val accessToken = getAnyOption(allConf, parameters, GcsAccessToken)
+      normalizedAllConf, parameters, "optimizedEmptyProjection", true)
+    val accessToken = getAnyOption(normalizedAllConf, parameters, GcsAccessToken)
 
     val allowFieldAddition = getAnyBooleanOption(
-      allConf, parameters, "allowFieldAddition", false)
+      normalizedAllConf, parameters, "allowFieldAddition", false)
     val allowFieldRelaxation = getAnyBooleanOption(
-      allConf, parameters, "allowFieldRelaxation", false)
+      normalizedAllConf, parameters, "allowFieldRelaxation", false)
     val loadSchemaUpdateOptions = new ArrayBuffer[JobInfo.SchemaUpdateOption]
     if (allowFieldAddition) {
       loadSchemaUpdateOptions += JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION
