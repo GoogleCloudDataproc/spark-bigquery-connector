@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.15.0-beta - 2020-04-20
+* PR #150: Reading `DataFrame`s should be quicker, especially in interactive usage such in notebooks
+* PR #154: Upgraded to the BigQuery Storage v1 API
+* PR #146: Authentication can be done using [AccessToken](https://cloud.google.com/sdk/gcloud/reference/auth/application-default/print-access-token)
+  on top of Credentials file, Credentials, and the `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
+
 ## 0.14.0-beta - 2020-03-31
 * Issue #96: Added Arrow as a supported format for reading from BigQuery 
 * Issue #130 Adding the field description to the schema metadata
