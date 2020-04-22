@@ -88,7 +88,9 @@ object SparkBigQueryOptions {
 
   val DefaultReadDataFormat: DataFormat = DataFormat.AVRO
   val DefaultFormat: FormatOptions = FormatOptions.parquet()
-  private val PermittedIntermediateFormats = Set(FormatOptions.orc(), FormatOptions.parquet())
+  private val PermittedIntermediateFormats = Set(FormatOptions.avro(),
+    FormatOptions.orc(),
+    FormatOptions.parquet())
   private val PermittedReadDataFormats = Set(DataFormat.ARROW.toString, DataFormat.AVRO.toString)
 
   val GcsAccessToken = "gcpAccessToken"

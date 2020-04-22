@@ -369,7 +369,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   private def testPartitionedTableDefinition = bq.getTable(testDataset, testTable + "_partitioned")
     .getDefinition[StandardTableDefinition]()
 
-  private def writeToBigQuery(df: DataFrame, mode: SaveMode, format: String = "parquet") =
+  private def writeToBigQuery(df: DataFrame, mode: SaveMode, format: String = "avro") =
     df.write.format("bigquery")
       .mode(mode)
       .option("table", fullTableName)
