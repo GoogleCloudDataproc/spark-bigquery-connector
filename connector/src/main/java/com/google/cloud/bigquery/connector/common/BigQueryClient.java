@@ -40,15 +40,15 @@ import static java.util.stream.Collectors.joining;
 // the mappings here keep the mappings
 public class BigQueryClient {
     private final BigQuery bigQuery;
-    private final Optional<String> viewMaterializationProject;
-    private final Optional<String> viewMaterializationDataset;
+    private final Optional<String> materializationProject;
+    private final Optional<String> materializationDataset;
     private final ConcurrentMap<TableId, TableId> tableIds = new ConcurrentHashMap<>();
     private final ConcurrentMap<DatasetId, DatasetId> datasetIds = new ConcurrentHashMap<>();
 
-    BigQueryClient(BigQuery bigQuery, Optional<String> viewMaterializationProject, Optional<String> viewMaterializationDataset) {
+    BigQueryClient(BigQuery bigQuery, Optional<String> materializationProject, Optional<String> materializationDataset) {
         this.bigQuery = bigQuery;
-        this.viewMaterializationProject = viewMaterializationProject;
-        this.viewMaterializationDataset = viewMaterializationDataset;
+        this.materializationProject = materializationProject;
+        this.materializationDataset = materializationDataset;
     }
 
     // return empty if no filters are used
@@ -96,8 +96,8 @@ public class BigQueryClient {
     }
 
     TableId createDestinationTable(TableId tableId) {
-        String project = viewMaterializationProject.orElse(tableId.getProject());
-        String dataset = viewMaterializationDataset.orElse(tableId.getDataset());
+        String project = materializationProject.orElse(tableId.getProject());
+        String dataset = materializationDataset.orElse(tableId.getDataset());
         DatasetId datasetId = mapIfNeeded(project, dataset);
         UUID uuid = randomUUID();
         String name = format("_pbc_%s", randomUUID().toString().toLowerCase(ENGLISH).replace("-", ""));

@@ -36,6 +36,7 @@ import java.util.Optional;
 public class BigQueryDataSourceReader implements
         DataSourceReader, SupportsPushDownRequiredColumns, SupportsPushDownFilters {
 
+    private final TableId tableId;
     private final ReadSessionCreatorConfig readSessionCreatorConfig;
     private final BigQueryClient bigQueryClient;
     private final BigQueryStorageClientFactory bigQueryStorageClientFactory;
@@ -45,12 +46,13 @@ public class BigQueryDataSourceReader implements
     private Storage.ReadSession readSession;
     private StructType requiredSchema = new StructType();
 
-
     public BigQueryDataSourceReader(
+            TableId tableId,
             BigQueryClient bigQueryClient,
             BigQueryStorageClientFactory bigQueryStorageClientFactory,
             ReadSessionCreatorConfig readSessionCreatorConfig,
             StructType schema) {
+        this.tableId = tableId;
         this.readSessionCreatorConfig = readSessionCreatorConfig;
         this.bigQueryClient = bigQueryClient;
         this.bigQueryStorageClientFactory = bigQueryStorageClientFactory;
@@ -94,9 +96,9 @@ public class BigQueryDataSourceReader implements
     void createReadSession() {
         // TODO
         ImmutableList<String> selectedFields = ImmutableList.copyOf(schema.fieldNames());
-        TableId table = null;
         Optional<String> filter = null;
-        readSession = readSessionCreator.create(table, selectedFields, filter, readSessionCreatorConfig.getParallelism());
+        readSession = readSessionCreator.create(
+                tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
     }
 
 

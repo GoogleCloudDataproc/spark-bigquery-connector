@@ -43,6 +43,7 @@ lazy val connector = (project in file("connector"))
       "org.codehaus.jackson" % "jackson-core-asl" % "1.9.13" % "provided",
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
       "org.apache.arrow" % "arrow-vector" % "0.16.0",
+      "com.google.inject" % "guice" % "4.2.3",
 
 
       // Keep com.google.cloud dependencies in sync
