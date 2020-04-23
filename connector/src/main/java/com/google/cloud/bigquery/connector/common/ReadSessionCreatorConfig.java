@@ -18,46 +18,47 @@ package com.google.cloud.bigquery.connector.common;
 import com.google.cloud.bigquery.storage.v1beta1.Storage;
 
 import java.util.Optional;
+import java.util.OptionalInt;
 
 public class ReadSessionCreatorConfig {
     final boolean viewsEnabled;
-    final Optional<String> viewMaterializationProject;
-    final Optional<String> viewMaterializationDataset;
+    final Optional<String> materializationProject;
+    final Optional<String> materializationDataset;
     final String viewEnabledParamName;
     final int viewExpirationTimeInHours;
     final Storage.DataFormat readDataFormat;
     final int maxReadRowsRetries;
-    final int parallelism;
+    final OptionalInt maxParallelism;
 
-    ReadSessionCreatorConfig(
+    public ReadSessionCreatorConfig(
             boolean viewsEnabled,
-            Optional<String> viewMaterializationProject,
-            Optional<String> viewMaterializationDataset,
+            Optional<String> materializationProject,
+            Optional<String> materializationDataset,
             int viewExpirationTimeInHours,
             Storage.DataFormat readDataFormat,
             int maxReadRowsRetries,
             String viewEnabledParamName,
-            int parallelism) {
+            OptionalInt maxParallelism) {
         this.viewsEnabled = viewsEnabled;
-        this.viewMaterializationProject = viewMaterializationProject;
-        this.viewMaterializationDataset = viewMaterializationDataset;
+        this.materializationProject = materializationProject;
+        this.materializationDataset = materializationDataset;
         this.viewEnabledParamName = viewEnabledParamName;
         this.viewExpirationTimeInHours = viewExpirationTimeInHours;
         this.readDataFormat = readDataFormat;
         this.maxReadRowsRetries = maxReadRowsRetries;
-        this.parallelism = parallelism;
+        this.maxParallelism = maxParallelism;
     }
 
     public boolean isViewsEnabled() {
         return viewsEnabled;
     }
 
-    public Optional<String> getViewMaterializationProject() {
-        return viewMaterializationProject;
+    public Optional<String> getMaterializationProject() {
+        return materializationProject;
     }
 
-    public Optional<String> getViewMaterializationDataset() {
-        return viewMaterializationDataset;
+    public Optional<String> getMaterializationDataset() {
+        return materializationDataset;
     }
 
     public String getViewEnabledParamName() {
@@ -76,7 +77,7 @@ public class ReadSessionCreatorConfig {
         return maxReadRowsRetries;
     }
 
-    public int getParallelism() {
-        return parallelism;
+    public OptionalInt getMaxParallelism() {
+        return maxParallelism;
     }
 }

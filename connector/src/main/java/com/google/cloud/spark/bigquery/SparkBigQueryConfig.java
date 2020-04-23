@@ -4,7 +4,9 @@ import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
+import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.storage.v1beta1.Storage;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -26,7 +28,7 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
 
 
-public class SparkBigQueryConfig {
+public class SparkBigQueryConfig implements BigQueryConfig {
 
     private static final String GCS_CONFIG_CREDENTIALS_FILE_PROPERTY = "google.cloud.auth.service.account.json.keyfile";
     private static final String GCS_CONFIG_PROJECT_ID_PROPERTY = "fs.gs.project.id";
@@ -46,8 +48,10 @@ public class SparkBigQueryConfig {
     private static final Supplier<Optional<String>> DEFAULT_FALLBACK = () -> Optional.empty();
 
     TableId tableId;
-    String parentProject;
-    BigQueryCredentialsSupplier credentialsSupplier;
+    Optional<String> parentProjectId;
+    Optional<String> credentialsKey;
+    Optional<String> credentialsFile;
+    Optional<String> accessToken;
     Optional<String> filter = Optional.empty();
     Optional<StructType> schema = Optional.empty();
     OptionalInt maxParallelism = OptionalInt.empty();
@@ -80,14 +84,11 @@ public class SparkBigQueryConfig {
         Optional<String> projectParam = firstPresent(getOption(options, "project"),
                 Optional.ofNullable(hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY)));
         config.tableId = parseTableId(tableParam, datasetParam, projectParam);
-        Optional accessToken = getAnyOption(globalOptions, options, "gcpAccessToken");
-        Optional<String> credentialsKey = getAnyOption(globalOptions, options, "credentials");
-        Optional<String> credentialsFile = firstPresent(getAnyOption(globalOptions, options, "credentialsFile"),
+        config.parentProjectId = getAnyOption(globalOptions, options, "parentProject");
+        config.credentialsKey = getAnyOption(globalOptions, options, "credentials");
+        config.credentialsFile = firstPresent(getAnyOption(globalOptions, options, "credentialsFile"),
                 Optional.ofNullable(hadoopConfiguration.get(GCS_CONFIG_CREDENTIALS_FILE_PROPERTY)));
-        config.credentialsSupplier = new BigQueryCredentialsSupplier(
-                accessToken, credentialsKey, credentialsFile);
-        config.parentProject = getRequiredOption(options, "parentProject",
-                SparkBigQueryConfig.defaultBilledProject());
+        config.accessToken = getAnyOption(globalOptions, options, "gcpAccessToken");
         config.filter = getOption(options, "filter");
         config.maxParallelism = toOptionalInt(getOptionFromMultipleParams(
                 options, ImmutableList.of("maxParallelism", "parallelism"), DEFAULT_FALLBACK)
@@ -239,12 +240,25 @@ public class SparkBigQueryConfig {
         return tableId;
     }
 
-    public String getParentProject() {
-        return parentProject;
+    @Override
+    public Optional<String> getParentProjectId() {
+        return parentProjectId;
     }
 
-    public BigQueryCredentialsSupplier getCredentialsSupplier() {
-        return credentialsSupplier;
+    @Override
+    public Optional<String> getCredentialsKey() {
+        return credentialsKey;
+    }
+
+    @Override
+   public Optional<String> getCredentialsFile() {
+        return credentialsKey;
+    }
+
+    @Override
+    public Optional<String> getAccessToken() {
+        return accessToken;
+
     }
 
     public Optional<String> getFilter() {
@@ -279,10 +293,12 @@ public class SparkBigQueryConfig {
         return viewsEnabled;
     }
 
+    @Override
     public Optional<String> getMaterializationProject() {
         return materializationProject;
     }
 
+    @Override
     public Optional<String> getMaterializationDataset() {
         return materializationDataset;
     }
@@ -325,5 +341,16 @@ public class SparkBigQueryConfig {
 
     public int getMaxReadRowsRetries() {
         return maxReadRowsRetries;
+    }
+
+    public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
+        return new ReadSessionCreatorConfig(viewsEnabled,
+                 materializationProject,
+                 materializationDataset,
+         viewExpirationTimeInHours,
+         readDataFormat,
+         maxReadRowsRetries,
+         VIEWS_ENABLED_OPTION,
+                maxParallelism);
     }
 }
