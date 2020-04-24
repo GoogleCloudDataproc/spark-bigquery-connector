@@ -275,7 +275,7 @@ private[bigquery] class DirectBigQueryRelation(
   def getNumBytes(tableDefinition: TableDefinition): Long = {
     val tableType = tableDefinition.getType
     if (options.viewsEnabled && TableDefinition.Type.VIEW == tableType) {
-      0
+      sqlContext.sparkSession.sessionState.conf.defaultSizeInBytes
     } else {
       tableDefinition.asInstanceOf[StandardTableDefinition].getNumBytes
     }
