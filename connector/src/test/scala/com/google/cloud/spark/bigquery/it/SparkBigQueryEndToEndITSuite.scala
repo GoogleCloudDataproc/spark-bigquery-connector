@@ -371,7 +371,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   private def testPartitionedTableDefinition = bq.getTable(testDataset, testTable + "_partitioned")
     .getDefinition[StandardTableDefinition]()
 
-  private def writeToBigQuery(df: DataFrame, mode: SaveMode, format: String = "avro") =
+  private def writeToBigQuery(df: DataFrame, mode: SaveMode, format: String = "parquet") =
     df.write.format("bigquery")
       .mode(mode)
       .option("table", fullTableName)
@@ -379,7 +379,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       .option(SparkBigQueryOptions.IntermediateFormatOption, format)
       .save()
 
-  private def initialDataValuesExist = numberOfRowsWith("Armadillo") == 1
+  private def initialDataValuesExist = numberOfRowsWith("Abc") == 1
 
   private def numberOfRowsWith(name: String) =
     bq.query(QueryJobConfiguration.of(s"select name from $fullTableName where name='$name'"))
@@ -388,7 +388,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   private def fullTableName = s"$testDataset.$testTable"
   private def fullTableNamePartitioned = s"$testDataset.${testTable}_partitioned"
 
-  private def additionalDataValuesExist = numberOfRowsWith("Cat") == 1
+  private def additionalDataValuesExist = numberOfRowsWith("Xyz") == 1
 
   test("write to bq - append save mode") {
     // initial write
