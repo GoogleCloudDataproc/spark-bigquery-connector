@@ -29,6 +29,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
   hadoopConfiguration.set(SparkBigQueryOptions.GcsConfigProjectIdProperty, "hadoop_project")
 
   val parameters = Map("table" -> "dataset.table")
+  val sparkVersion = "2.4.0"
 
   test("taking credentials file from GCS hadoop config") {
     assertResult(Some("hadoop_cfile")) {
@@ -37,7 +38,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         hadoopConfiguration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.credentialsFile
     }
@@ -50,7 +51,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         hadoopConfiguration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.credentialsFile
     }
@@ -62,7 +63,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
       Map.empty[String, String], // allConf
       new Configuration,
       new SQLConf,
-      "2.4.0",
+      sparkVersion,
       None) // schema
     assert(options.credentialsFile.isEmpty)
   }
@@ -74,7 +75,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         hadoopConfiguration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.tableId.getProject
     }
@@ -87,7 +88,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         hadoopConfiguration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.tableId.getProject
     }
@@ -100,7 +101,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.tableId.getProject
     }
@@ -113,7 +114,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
           Map.empty[String, String], // allConf
           new Configuration,
           new SQLConf,
-          "2.4.0",
+          sparkVersion,
           None) // schema
       }
       assert (thrown.getMessage ==
@@ -127,7 +128,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.readDataFormat.toString
     }
@@ -140,7 +141,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.readDataFormat.toString
     }
@@ -153,7 +154,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.materializationProject
     }
@@ -166,7 +167,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.materializationProject
     }
@@ -179,7 +180,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.materializationProject
     }
@@ -192,7 +193,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.materializationProject
     }
@@ -205,7 +206,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.maxParallelism
     }
@@ -218,7 +219,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.maxParallelism
     }
@@ -231,7 +232,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.maxParallelism
     }
@@ -244,7 +245,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.maxParallelism
     }
@@ -257,7 +258,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.loadSchemaUpdateOptions.asScala.toSeq
     }
@@ -270,7 +271,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.loadSchemaUpdateOptions.asScala.toSeq
     }
@@ -285,7 +286,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.loadSchemaUpdateOptions.asScala.toSeq
     }
@@ -297,7 +298,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
-        "2.4.0",
+        sparkVersion,
         None) // schema
       options.loadSchemaUpdateOptions.isEmpty
     }

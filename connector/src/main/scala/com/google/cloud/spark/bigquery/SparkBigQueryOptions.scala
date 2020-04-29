@@ -206,19 +206,17 @@ object SparkBigQueryOptions {
 
   // could not load the spark-avro data source
   private def missingAvroException(sparkVersion: String, cause: Exception) = {
-    val message = if (sparkVersion >= "2.4") {
+    val avroPackage = if (sparkVersion >= "2.4") {
       val scalaVersion = Properties.versionNumberString
-      val scalaShortVersion = scalaVersion.substring(
-        0, scalaVersion.lastIndexOf('.'))
-      s"""Avro writing is not supported, as the spark-avro has not been
-         |found. Please re-run spark with the --packages
-         |org.apache.spark:spark-avro_$scalaShortVersion:$sparkVersion
-         |parameter""".stripMargin.replace('\n', ' ')
+      val scalaShortVersion = scalaVersion.substring(0, scalaVersion.lastIndexOf('.'))
+      s"org.apache.spark:spark-avro_$scalaShortVersion:$sparkVersion"
     } else {
-      s"""Avro writing is not supported, as the spark-avro has not been
-         |found. Please add the spark-avro package. Go to https://github.com/databricks/spark-avro"""
-        .stripMargin.replace('\n', ' ')
+      "com.databricks:spark-avro_2.11:4.0.0"
     }
+    val message = s"""Avro writing is not supported, as the spark-avro has not been
+                     |found. Please re-run spark with the --packages $avroPackage parameter"""
+      .stripMargin.replace('\n', ' ')
+
     new IllegalStateException(message, cause)
   }
 
