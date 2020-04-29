@@ -5,7 +5,6 @@ import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
-import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.storage.v1beta1.Storage;
 import com.google.common.annotations.VisibleForTesting;
@@ -55,6 +54,7 @@ public class SparkBigQueryConfig implements BigQueryConfig {
     Optional<String> filter = Optional.empty();
     Optional<StructType> schema = Optional.empty();
     OptionalInt maxParallelism = OptionalInt.empty();
+    int defaultParallelism = 1;
     Optional<String> temporaryGcsBucket = Optional.empty();
     FormatOptions intermediateFormat = DEFAULT_INTERMEDIATE_FORMAT;
     Storage.DataFormat readDataFormat = DEFAULT_READ_DATA_FORMAT;
@@ -76,7 +76,8 @@ public class SparkBigQueryConfig implements BigQueryConfig {
     public static SparkBigQueryConfig from(
             DataSourceOptions options,
             ImmutableMap<String, String> globalOptions,
-            Configuration hadoopConfiguration) {
+            Configuration hadoopConfiguration,
+            int defaultParallelism) {
         SparkBigQueryConfig config = new SparkBigQueryConfig();
 
         String tableParam = getRequiredOption(options, "table");
@@ -93,6 +94,7 @@ public class SparkBigQueryConfig implements BigQueryConfig {
         config.maxParallelism = toOptionalInt(getOptionFromMultipleParams(
                 options, ImmutableList.of("maxParallelism", "parallelism"), DEFAULT_FALLBACK)
                 .map(Integer::valueOf));
+        config.defaultParallelism = defaultParallelism;
         config.temporaryGcsBucket = getAnyOption(globalOptions, options, "temporaryGcsBucket");
         config.intermediateFormat = getAnyOption(globalOptions, options, INTERMEDIATE_FORMAT_OPTION)
                 .map(String::toUpperCase)
@@ -251,7 +253,7 @@ public class SparkBigQueryConfig implements BigQueryConfig {
     }
 
     @Override
-   public Optional<String> getCredentialsFile() {
+    public Optional<String> getCredentialsFile() {
         return credentialsKey;
     }
 
@@ -271,6 +273,10 @@ public class SparkBigQueryConfig implements BigQueryConfig {
 
     public OptionalInt getMaxParallelism() {
         return maxParallelism;
+    }
+
+    public int getDefaultParallelism() {
+        return defaultParallelism;
     }
 
     public Optional<String> getTemporaryGcsBucket() {
@@ -344,13 +350,15 @@ public class SparkBigQueryConfig implements BigQueryConfig {
     }
 
     public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
-        return new ReadSessionCreatorConfig(viewsEnabled,
-                 materializationProject,
-                 materializationDataset,
-         viewExpirationTimeInHours,
-         readDataFormat,
-         maxReadRowsRetries,
-         VIEWS_ENABLED_OPTION,
-                maxParallelism);
+        return new ReadSessionCreatorConfig(
+                viewsEnabled,
+                materializationProject,
+                materializationDataset,
+                viewExpirationTimeInHours,
+                readDataFormat,
+                maxReadRowsRetries,
+                VIEWS_ENABLED_OPTION,
+                maxParallelism,
+                defaultParallelism);
     }
 }

@@ -15,7 +15,10 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageClientFactory;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
@@ -30,8 +33,12 @@ import org.apache.spark.sql.sources.v2.reader.SupportsPushDownFilters;
 import org.apache.spark.sql.sources.v2.reader.SupportsPushDownRequiredColumns;
 import org.apache.spark.sql.types.StructType;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import static java.lang.String.format;
 
 public class BigQueryDataSourceReader implements
         DataSourceReader, SupportsPushDownRequiredColumns, SupportsPushDownFilters {
@@ -41,7 +48,9 @@ public class BigQueryDataSourceReader implements
     private final BigQueryClient bigQueryClient;
     private final BigQueryStorageClientFactory bigQueryStorageClientFactory;
     private final ReadSessionCreator readSessionCreator;
+    private final Optional<String> globalFilter;
     private final StructType schema;
+    private Filter[] pushedFilters = new Filter[]{};
 
     private Storage.ReadSession readSession;
     private StructType requiredSchema = new StructType();
@@ -51,12 +60,14 @@ public class BigQueryDataSourceReader implements
             BigQueryClient bigQueryClient,
             BigQueryStorageClientFactory bigQueryStorageClientFactory,
             ReadSessionCreatorConfig readSessionCreatorConfig,
+            Optional<String> globalFilter,
             StructType schema) {
         this.tableId = tableId;
         this.readSessionCreatorConfig = readSessionCreatorConfig;
         this.bigQueryClient = bigQueryClient;
         this.bigQueryStorageClientFactory = bigQueryStorageClientFactory;
         this.readSessionCreator = new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryStorageClientFactory);
+        this.globalFilter = globalFilter;
         this.schema = schema;
     }
 
@@ -68,18 +79,59 @@ public class BigQueryDataSourceReader implements
 
     @Override
     public List<InputPartition<InternalRow>> planInputPartitions() {
+        if(schema.isEmpty()) {
+            // create empty projection
+            return createEmptyProjectionPartitions();
+        }
+
+//        Schema prunedSchema = Schema.of(
+//                actualTableDefinition.getSchema.getFields.asScala
+//                        .filter(f = > requiredColumnSet.contains(f.getName)).asJava)
+//        ReadRowsResponseToInternalRowIteratorConverter converter;
+//        if (readSessionCreatorConfig.getReadDataFormat() == Storage.DataFormat.AVRO) {
+//            converter = ReadRowsResponseToInternalRowIteratorConverter.avro(readSession.getTableReference().ge)
+//        }
         createReadSessionIfNeeded();
-        return null;
+        return readSession.getStreamsList().stream()
+                .map(stream -> new BigQueryInputPartition(
+                        bigQueryStorageClientFactory,
+                        stream.getName(),
+                        readSessionCreatorConfig.getMaxReadRowsRetries(),
+                        null))
+                .collect(Collectors.toList());
+    }
+
+    List<InputPartition<InternalRow>> createEmptyProjectionPartitions() {
+        long rowCount = bigQueryClient.calculateTableSize(tableId, globalFilter);
+        int partitionsCount = readSessionCreatorConfig.getDefaultParallelism();
+        int partitionSize = (int)(rowCount / partitionsCount);
+        InputPartition<InternalRow>[] partitions = IntStream
+                .range(0, partitionsCount)
+                .mapToObj(ignored -> new BigQueryEmptyProjectionInputPartition(partitionSize))
+                .toArray(BigQueryEmptyProjectionInputPartition[]::new);
+        int firstPartitionSize = partitionSize + (int)(rowCount % partitionsCount);
+        partitions[0] = new BigQueryEmptyProjectionInputPartition(firstPartitionSize);
+        return ImmutableList.copyOf(partitions);
     }
 
     @Override
     public Filter[] pushFilters(Filter[] filters) {
-        return new Filter[0];
+        List<Filter> handledFilters = new ArrayList<>();
+        List<Filter> unhandledFilters = new ArrayList<>();
+        for (Filter filter : filters) {
+            if (SparkFilterUtils.isHandled(filter, readSessionCreatorConfig.getReadDataFormat())) {
+                handledFilters.add(filter);
+            } else {
+                unhandledFilters.add(filter);
+            }
+        }
+        pushedFilters = handledFilters.stream().toArray(Filter[]::new);
+        return unhandledFilters.stream().toArray(Filter[]::new);
     }
 
     @Override
     public Filter[] pushedFilters() {
-        return new Filter[0];
+        return pushedFilters;
     }
 
     @Override
@@ -96,10 +148,14 @@ public class BigQueryDataSourceReader implements
     void createReadSession() {
         // TODO
         ImmutableList<String> selectedFields = ImmutableList.copyOf(schema.fieldNames());
-        Optional<String> filter = null;
+        Optional<String> filter = emptyIfNeeded(SparkFilterUtils.getCompiledFilter(
+                readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
         readSession = readSessionCreator.create(
                 tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
     }
 
-
+    Optional<String> emptyIfNeeded(String value) {
+        return (value == null || value.length() == 0) ?
+                Optional.empty() : Optional.of(value);
+    }
 }

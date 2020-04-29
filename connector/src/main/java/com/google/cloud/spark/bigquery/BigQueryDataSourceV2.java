@@ -36,7 +36,8 @@ public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport {
 
         SparkBigQueryConfig config = SparkBigQueryConfig.from(options,
                 ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll())),
-                spark.sparkContext().hadoopConfiguration());
+                spark.sparkContext().hadoopConfiguration(),
+                spark.sparkContext().defaultParallelism());
 
         Injector injector = Guice.createInjector(
                 new BigQueryClientModule(),

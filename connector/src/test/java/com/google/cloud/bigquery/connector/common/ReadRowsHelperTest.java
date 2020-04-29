@@ -33,7 +33,7 @@ import static org.mockito.Mockito.mock;
 public class ReadRowsHelperTest
 {
     // it is not used, we just need the reference
-    BigQueryStorageClient client = mock(BigQueryStorageClient.class);
+    BigQueryStorageClientFactory clientFactory = mock(BigQueryStorageClientFactory.class);
     private ReadRowsRequest.Builder request = ReadRowsRequest.newBuilder().setReadPosition(
             StreamPosition.newBuilder().setStream(
                     Stream.newBuilder().setName("test")));
@@ -47,7 +47,7 @@ public class ReadRowsHelperTest
 
         // so we can run multiple tests
         ImmutableList<ReadRowsResponse> responses = ImmutableList.copyOf(
-                new MockReadRowsHelper(client, request, 3, ImmutableList.of(batch1))
+                new MockReadRowsHelper(clientFactory, request, 3, ImmutableList.of(batch1))
                         .readRows());
 
         assertThat(responses.size()).isEqualTo(2);
@@ -65,7 +65,7 @@ public class ReadRowsHelperTest
         batch2.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
 
         ImmutableList<ReadRowsResponse> responses = ImmutableList.copyOf(
-                new MockReadRowsHelper(client, request, 3, ImmutableList.of(batch1, batch2))
+                new MockReadRowsHelper(clientFactory, request, 3, ImmutableList.of(batch1, batch2))
                         .readRows());
 
         assertThat(responses.size()).isEqualTo(2);
@@ -77,9 +77,9 @@ public class ReadRowsHelperTest
     {
         Iterator<MockResponsesBatch> responses;
 
-        MockReadRowsHelper(BigQueryStorageClient client, ReadRowsRequest.Builder request, int maxReadRowsRetries, Iterable<MockResponsesBatch> responses)
+        MockReadRowsHelper(BigQueryStorageClientFactory clientFactory, ReadRowsRequest.Builder request, int maxReadRowsRetries, Iterable<MockResponsesBatch> responses)
         {
-            super(client, request, maxReadRowsRetries);
+            super(clientFactory, request, maxReadRowsRetries);
             this.responses = responses.iterator();
         }
 

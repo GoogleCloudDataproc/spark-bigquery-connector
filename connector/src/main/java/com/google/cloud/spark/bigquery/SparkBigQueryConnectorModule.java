@@ -45,10 +45,11 @@ public class SparkBigQueryConnectorModule implements Module {
     @Provides
     public BigQueryDataSourceReader provideDataSourceReader(BigQueryClient bigQueryClient,
                                                             BigQueryStorageClientFactory bigQueryStorageClientFactory) {
-        return new BigQueryDataSourceReader(tableId,
-                bigQueryClient,
-                bigQueryStorageClientFactory,
-                readSessionCreatorConfig,
-                schema);
+//        return new BigQueryDataSourceReader(tableId,
+//                bigQueryClient,
+//                bigQueryStorageClientFactory,
+//                readSessionCreatorConfig,
+//                schema);
+        return null;
     }
 }

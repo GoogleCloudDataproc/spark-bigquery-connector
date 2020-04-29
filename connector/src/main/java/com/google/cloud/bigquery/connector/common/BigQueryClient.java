@@ -56,7 +56,7 @@ public class BigQueryClient {
         return Optional.empty();
     }
 
-    TableInfo getTable(TableId tableId) {
+    public TableInfo getTable(TableId tableId) {
         TableId bigQueryTableId = tableIds.get(tableId);
         Table table = bigQuery.getTable(bigQueryTableId != null ? bigQueryTableId : tableId);
         if (table != null) {
@@ -151,5 +151,30 @@ public class BigQueryClient {
     String fullTableName(TableId tableId) {
         tableId = tableIds.getOrDefault(tableId, tableId);
         return format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
+    }
+
+    public long calculateTableSize(TableId tableId, Optional<String> filter) {
+        return calculateTableSize(getTable(tableId), filter);
+    }
+
+    public long calculateTableSize(TableInfo tableInfo, Optional<String> filter) {
+        try {
+            TableDefinition.Type type = tableInfo.getDefinition().getType();
+            if (type == TableDefinition.Type.TABLE && !filter.isPresent()) {
+                return tableInfo.getNumRows().longValue();
+            } else if (type == TableDefinition.Type.VIEW ||
+                    (type == TableDefinition.Type.TABLE && filter.isPresent())) {
+                // run a query
+                String table = fullTableName(tableInfo.getTableId());
+                String sql = format("SELECT COUNT(*) from `%s` WHERE %s", table, filter.get());
+                TableResult result = bigQuery.query(QueryJobConfiguration.of(sql));
+                return result.iterateAll().iterator().next().get(0).getLongValue();
+            } else {
+                throw new IllegalArgumentException(format("Unsupported table type %s for table %s",
+                        type, fullTableName(tableInfo.getTableId())));
+            }
+        } catch (InterruptedException e) {
+            throw new BigQueryConnectorException("Querying table size was interrupted on the client side", e);
+        }
     }
 }

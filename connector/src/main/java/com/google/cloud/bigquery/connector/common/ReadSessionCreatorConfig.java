@@ -29,6 +29,7 @@ public class ReadSessionCreatorConfig {
     final Storage.DataFormat readDataFormat;
     final int maxReadRowsRetries;
     final OptionalInt maxParallelism;
+    final int defaultParallelism;
 
     public ReadSessionCreatorConfig(
             boolean viewsEnabled,
@@ -38,7 +39,8 @@ public class ReadSessionCreatorConfig {
             Storage.DataFormat readDataFormat,
             int maxReadRowsRetries,
             String viewEnabledParamName,
-            OptionalInt maxParallelism) {
+            OptionalInt maxParallelism,
+            int defaultParallelism) {
         this.viewsEnabled = viewsEnabled;
         this.materializationProject = materializationProject;
         this.materializationDataset = materializationDataset;
@@ -47,6 +49,7 @@ public class ReadSessionCreatorConfig {
         this.readDataFormat = readDataFormat;
         this.maxReadRowsRetries = maxReadRowsRetries;
         this.maxParallelism = maxParallelism;
+        this.defaultParallelism = defaultParallelism;
     }
 
     public boolean isViewsEnabled() {
@@ -79,5 +82,9 @@ public class ReadSessionCreatorConfig {
 
     public OptionalInt getMaxParallelism() {
         return maxParallelism;
+    }
+
+    public int getDefaultParallelism() {
+        return defaultParallelism;
     }
 }

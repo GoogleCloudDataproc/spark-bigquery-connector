@@ -11,17 +11,14 @@ import java.util.Iterator;
 
 class BigQueryInputPartitionReader implements InputPartitionReader<InternalRow> {
 
-    private BigQueryStorageClient bigQueryStorageClient;
-    private Iterator<InternalRow> internalRowIterator;
+     private Iterator<InternalRow> internalRowIterator;
     private InternalRow currentRow;
 
 
     BigQueryInputPartitionReader(
             Iterator<Storage.ReadRowsResponse> rows,
-            ReadRowsResponseToInternalRowIteratorConverter converter,
-            BigQueryStorageClient bigQueryStorageClient) {
+            ReadRowsResponseToInternalRowIteratorConverter converter) {
         this.internalRowIterator = Iterators.concat(Iterators.transform(rows, converter::convert));
-        this.bigQueryStorageClient = bigQueryStorageClient;
     }
 
     @Override
