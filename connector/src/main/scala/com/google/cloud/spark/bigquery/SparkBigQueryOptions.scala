@@ -25,10 +25,13 @@ import com.google.cloud.bigquery.storage.v1.DataFormat
 import com.google.cloud.bigquery.{BigQueryOptions, FormatOptions, JobInfo, TableId}
 import com.google.common.collect.ImmutableList
 import org.apache.hadoop.conf.Configuration
+import org.apache.spark.sql.execution.datasources.DataSource
+import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
+import scala.util.Properties
 
 
 /** Options for defining {@link BigQueryRelation}s */
@@ -88,7 +91,10 @@ object SparkBigQueryOptions {
 
   val DefaultReadDataFormat: DataFormat = DataFormat.AVRO
   val DefaultFormat: FormatOptions = FormatOptions.parquet()
-  private val PermittedIntermediateFormats = Set(FormatOptions.orc(), FormatOptions.parquet())
+  private val PermittedIntermediateFormats = Set(FormatOptions.avro(),
+    FormatOptions.json(),
+    FormatOptions.orc(),
+    FormatOptions.parquet())
   private val PermittedReadDataFormats = Set(DataFormat.ARROW.toString, DataFormat.AVRO.toString)
 
   val GcsAccessToken = "gcpAccessToken"
@@ -105,6 +111,8 @@ object SparkBigQueryOptions {
              parameters: Map[String, String],
              allConf: Map[String, String],
              hadoopConf: Configuration,
+             sqlConf: SQLConf,
+             sparkVersion: String,
              schema: Option[StructType])
   : SparkBigQueryOptions = {
     val normalizedAllConf = normalizeAllConf(allConf)
@@ -132,6 +140,15 @@ object SparkBigQueryOptions {
         s"""Intermediate format '${intermediateFormat.getType}' is not supported.
            |Supported formats are ${PermittedIntermediateFormats.map(_.getType)}"""
           .stripMargin.replace('\n', ' '))
+    }
+    if (intermediateFormat == FormatOptions.avro()) {
+      try {
+        DataSource.lookupDataSource("avro", sqlConf)
+      } catch {
+        case re: RuntimeException =>
+          throw missingAvroException(sparkVersion, re)
+        case t: Throwable => throw t
+      }
     }
     val readDataFormatParam = getAnyOption(normalizedAllConf, parameters, ReadDataFormatOption)
       .map(s => s.toUpperCase())
@@ -185,6 +202,22 @@ object SparkBigQueryOptions {
       materializationDataset, partitionField, partitionExpirationMs,
       partitionRequireFilter, partitionType, clusteredFields, createDisposition,
       optimizedEmptyProjection, accessToken, loadSchemaUpdateOptions.asJava)
+  }
+
+  // could not load the spark-avro data source
+  private def missingAvroException(sparkVersion: String, cause: Exception) = {
+    val avroPackage = if (sparkVersion >= "2.4") {
+      val scalaVersion = Properties.versionNumberString
+      val scalaShortVersion = scalaVersion.substring(0, scalaVersion.lastIndexOf('.'))
+      s"org.apache.spark:spark-avro_$scalaShortVersion:$sparkVersion"
+    } else {
+      "com.databricks:spark-avro_2.11:4.0.0"
+    }
+    val message = s"""Avro writing is not supported, as the spark-avro has not been
+                     |found. Please re-run spark with the --packages $avroPackage parameter"""
+      .stripMargin.replace('\n', ' ')
+
+    new IllegalStateException(message, cause)
   }
 
   private def defaultBilledProject = () =>
