@@ -66,7 +66,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       "The year in which this corpus was published."))))
   private val LARGE_TABLE = "bigquery-public-data.samples.natality"
   private val LARGE_TABLE_FIELD = "is_male"
-  private val LARGE_TABLE_NUM_ROWS = 137826763L
+  private val LARGE_TABLE_NUM_ROWS = 33271914L
   private val NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent"
   private val ALL_TYPES_TABLE_NAME = "all_types"
   private var spark: SparkSession = _
@@ -173,12 +173,12 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
         val df = spark.read
           .option("parallelism", 5)
           .option("readDataFormat", dataFormat)
+          .option("filter", "year > 2000")
           .bigquery(LARGE_TABLE)
           .select(LARGE_TABLE_FIELD) // minimize payload
         val sizeOfFirstPartition = df.rdd.mapPartitionsWithIndex {
-          case (0, it) => it
-          case _ => Iterator.empty
-        }.count
+          case (_, it) => Iterator(it.size)
+        }.collect().head
 
         // Since we are only reading from a single stream, we can expect to get
         // at least as many rows
@@ -369,7 +369,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   private def testPartitionedTableDefinition = bq.getTable(testDataset, testTable + "_partitioned")
     .getDefinition[StandardTableDefinition]()
 
-  private def writeToBigQuery(df: DataFrame, mode: SaveMode, format: String = "parquet") =
+  private def writeToBigQuery(df: DataFrame, mode: SaveMode, format: String = "avro") =
     df.write.format("bigquery")
       .mode(mode)
       .option("table", fullTableName)
@@ -442,6 +442,12 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     initialDataValuesExist shouldBe true
   }
 
+  test("write to bq - avro format") {
+    writeToBigQuery(initialData, SaveMode.ErrorIfExists, "avro")
+    testTableNumberOfRows shouldBe 2
+    initialDataValuesExist shouldBe true
+  }
+
   test("write to bq - parquet format") {
     writeToBigQuery(initialData, SaveMode.ErrorIfExists, "parquet")
     testTableNumberOfRows shouldBe 2
@@ -452,6 +458,18 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     assertThrows[IllegalArgumentException] {
       writeToBigQuery(initialData, SaveMode.ErrorIfExists, "something else")
     }
+  }
+
+  test("write all types to bq - avro format") {
+    writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro")
+
+    val df = spark.read.format("bigquery")
+      .option("dataset", testDataset)
+      .option("table", testTable)
+      .load()
+
+    assert(df.head() == allTypesTable.head())
+    assert(df.schema == allTypesTable.schema)
   }
 
   test("write to bq - adding the settings to spark.conf" ) {
@@ -493,3 +511,6 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 }
 
 case class Animal(name: String, length: Int, weight: Double)
+case class Person(name: String, friends: Seq[Friend])
+case class Friend(age: Int, links: Seq[Link])
+case class Link(uri: String)

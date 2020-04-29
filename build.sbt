@@ -4,7 +4,7 @@ lazy val sparkVersion = "2.4.0"
 
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
-  version := "0.14.1-beta-SNAPSHOT",
+  version := "0.15.2-beta-SNAPSHOT",
   scalaVersion := scala211Version,
   crossScalaVersions := Seq(scala211Version, scala212Version)
 )
@@ -44,7 +44,6 @@ lazy val connector = (project in file("connector"))
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
       "org.apache.arrow" % "arrow-vector" % "0.16.0",
 
-
       // Keep com.google.cloud dependencies in sync
       "com.google.cloud" % "google-cloud-bigquery" % "1.110.0",
       "com.google.cloud" % "google-cloud-bigquerystorage" % "0.126.0-beta",
@@ -64,7 +63,9 @@ lazy val connector = (project in file("connector"))
       // scalastyle:on
       // test
       "org.scalatest" %% "scalatest" % "3.1.0" % "test",
-      "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test")
+      "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test",
+
+      "org.apache.spark" %% "spark-avro" % sparkVersion % "test")
       .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
   )
 
