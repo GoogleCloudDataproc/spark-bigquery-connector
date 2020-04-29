@@ -358,10 +358,12 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   }
 
   private def initialData = spark.createDataFrame(spark.sparkContext.parallelize(
-    Seq(Animal("Armadillo", 120, 70.0), Animal("Barn Owl", 36, 0.6))))
+    Seq(Person("Abc", Seq(Friend(10, Seq(Link("www.abc.com"))))),
+      Person("Def", Seq(Friend(12, Seq(Link("www.def.com"))))))))
 
   private def additonalData = spark.createDataFrame(spark.sparkContext.parallelize(
-    Seq(Animal("Cat", 46, 4.5), Animal("Dodo", 100, 14.1))))
+    Seq(Person("Xyz", Seq(Friend(10, Seq(Link("www.xyz.com"))))),
+      Person("Pqr", Seq(Friend(12, Seq(Link("www.pqr.com"))))))))
 
   // getNumRows returns BigInteger, and it messes up the matchers
   private def testTableNumberOfRows = bq.getTable(testDataset, testTable).getNumRows.intValue
@@ -510,7 +512,6 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   }
 }
 
-case class Animal(name: String, length: Int, weight: Double)
 case class Person(name: String, friends: Seq[Friend])
 case class Friend(age: Int, links: Seq[Link])
 case class Link(uri: String)
