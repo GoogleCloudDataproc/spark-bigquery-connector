@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.15.1-beta - 2020-04-27
+* PR #158: Users can now add the `spark.datasource.bigquery` prefix to the configuration options in order to support Spark's `--conf` command line flag
+* PR #160: View materialization is performed only on action, fixing a bug where view materialization was done too early
+
 ## 0.15.0-beta - 2020-04-20
 * PR #150: Reading `DataFrame`s should be quicker, especially in interactive usage such in notebooks
 * PR #154: Upgraded to the BigQuery Storage v1 API
