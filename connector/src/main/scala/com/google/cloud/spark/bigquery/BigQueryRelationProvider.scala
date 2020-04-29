@@ -114,6 +114,8 @@ class BigQueryRelationProvider(
     SparkBigQueryOptions(parameters,
       sqlContext.getAllConfs,
       sqlContext.sparkContext.hadoopConfiguration,
+      sqlContext.sparkSession.sessionState.conf,
+      sqlContext.sparkContext.version,
       schema)
   }
 

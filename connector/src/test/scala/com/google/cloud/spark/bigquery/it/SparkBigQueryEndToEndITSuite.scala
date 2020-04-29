@@ -442,6 +442,12 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     initialDataValuesExist shouldBe true
   }
 
+  test("write to bq - avro format") {
+    writeToBigQuery(initialData, SaveMode.ErrorIfExists, "avro")
+    testTableNumberOfRows shouldBe 2
+    initialDataValuesExist shouldBe true
+  }
+
   test("write to bq - parquet format") {
     writeToBigQuery(initialData, SaveMode.ErrorIfExists, "parquet")
     testTableNumberOfRows shouldBe 2
@@ -452,6 +458,18 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     assertThrows[IllegalArgumentException] {
       writeToBigQuery(initialData, SaveMode.ErrorIfExists, "something else")
     }
+  }
+
+  test("write all types to bq - avro format") {
+    writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro")
+
+    val df = spark.read.format("bigquery")
+      .option("dataset", testDataset)
+      .option("table", testTable)
+      .load()
+
+    assert(df.head() == allTypesTable.head())
+    assert(df.schema == allTypesTable.schema)
   }
 
   test("write to bq - adding the settings to spark.conf" ) {
@@ -493,3 +511,6 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 }
 
 case class Animal(name: String, length: Int, weight: Double)
+case class Person(name: String, friends: Seq[Friend])
+case class Friend(age: Int, links: Seq[Link])
+case class Link(uri: String)
