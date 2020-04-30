@@ -73,7 +73,13 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       Runtime.getRuntime.addShutdownHook(createTemporaryPathDeleter)
 
       val format = options.intermediateFormat.getType.toLowerCase
-      data.write.format(format).save(temporaryGcsPath.toString)
+
+      if (options.intermediateFormat == FormatOptions.avro()) {
+        data.write.format(BigQueryUtil.mapAvroIntermediateFormat(sqlContext.sparkContext.version))
+          .save(temporaryGcsPath.toString)
+      } else {
+        data.write.format(format).save(temporaryGcsPath.toString)
+      }
       loadDataToBigQuery
     } catch {
       case e: Exception => throw new RuntimeException("Failed to write to BigQuery", e)

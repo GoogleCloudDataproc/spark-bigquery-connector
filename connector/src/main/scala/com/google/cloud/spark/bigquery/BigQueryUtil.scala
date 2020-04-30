@@ -117,6 +117,14 @@ object BigQueryUtil {
     }
   }
 
+  def mapAvroIntermediateFormat (sparkVersion : String): String = {
+    if (sparkVersion >= "2.4") {
+      "avro"
+    } else {
+      "com.databricks.spark.avro"
+    }
+  }
+
   private def trimVersion(version: String) =
     version.substring(0, version.lastIndexOf('.'))
 }

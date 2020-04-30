@@ -143,9 +143,9 @@ object SparkBigQueryOptions {
     }
     if (intermediateFormat == FormatOptions.avro()) {
       try {
-        DataSource.lookupDataSource("avro", sqlConf)
+        DataSource.lookupDataSource(BigQueryUtil.mapAvroIntermediateFormat(sparkVersion), sqlConf)
       } catch {
-        case re: RuntimeException =>
+        case re: org.apache.spark.sql.AnalysisException =>
           throw missingAvroException(sparkVersion, re)
         case t: Throwable => throw t
       }
