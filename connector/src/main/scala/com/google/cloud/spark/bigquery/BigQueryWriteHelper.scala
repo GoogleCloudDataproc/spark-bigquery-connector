@@ -72,14 +72,9 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       // based on pmkc's suggestion at https://git.io/JeWRt
       Runtime.getRuntime.addShutdownHook(createTemporaryPathDeleter)
 
-      val format = options.intermediateFormat.getType.toLowerCase
+      val format = options.intermediateFormat.dataSource
+      data.write.format(format).save(temporaryGcsPath.toString)
 
-      if (options.intermediateFormat == FormatOptions.avro()) {
-        data.write.format(BigQueryUtil.mapAvroIntermediateFormat(sqlContext.sparkContext.version))
-          .save(temporaryGcsPath.toString)
-      } else {
-        data.write.format(format).save(temporaryGcsPath.toString)
-      }
       loadDataToBigQuery
     } catch {
       case e: Exception => throw new RuntimeException("Failed to write to BigQuery", e)
@@ -90,7 +85,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
   def loadDataToBigQuery(): Unit = {
     val fs = temporaryGcsPath.getFileSystem(conf)
-    val formatSuffix = s".${options.intermediateFormat.getType.toLowerCase}"
+    val formatSuffix = s".${options.intermediateFormat.formatOptions.getType.toLowerCase}"
     val sourceUris = ToIterator(fs.listFiles(temporaryGcsPath, false))
       .map(_.getPath.toString)
       .filter(_.toLowerCase.endsWith(formatSuffix))
@@ -98,7 +93,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       .asJava
 
     val jobConfigurationBuilder = LoadJobConfiguration.newBuilder(
-      options.tableId, sourceUris, options.intermediateFormat)
+      options.tableId, sourceUris, options.intermediateFormat.formatOptions)
       .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
       .setWriteDisposition(saveModeToWriteDisposition(saveMode))
 

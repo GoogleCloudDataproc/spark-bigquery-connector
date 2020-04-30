@@ -104,9 +104,4 @@ class BigQueryUtilsSuite extends org.scalatest.FunSuite {
     assert(it.filter(f => f.getPath.getName.endsWith(".txt"))
       .next.getPath.getName.endsWith("file1.txt"))
   }
-
-  test("MapAvroIntermediateFormatTest") {
-    assert(BigQueryUtil.mapAvroIntermediateFormat("2.3.0") == "com.databricks.spark.avro")
-    assert(BigQueryUtil.mapAvroIntermediateFormat("2.4.0") == "avro")
-  }
 }
