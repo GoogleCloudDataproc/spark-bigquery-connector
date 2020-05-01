@@ -130,6 +130,7 @@ object SparkBigQueryOptions {
       parameters, Seq("maxParallelism", "parallelism"))
       .map(_.toInt)
     val temporaryGcsBucket = getAnyOption(normalizedAllConf, parameters, "temporaryGcsBucket")
+
     val intermediateFormat = IntermediateFormat(
       getAnyOption(normalizedAllConf, parameters, IntermediateFormatOption)
         .map(s => s.toLowerCase())
