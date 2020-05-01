@@ -85,10 +85,9 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
   def loadDataToBigQuery(): Unit = {
     val fs = temporaryGcsPath.getFileSystem(conf)
-    val formatSuffix = s".${options.intermediateFormat.formatOptions.getType.toLowerCase}"
     val sourceUris = ToIterator(fs.listFiles(temporaryGcsPath, false))
       .map(_.getPath.toString)
-      .filter(_.toLowerCase.endsWith(formatSuffix))
+      .filter(_.toLowerCase.endsWith(options.intermediateFormat.formatSuffix))
       .toList
       .asJava
 
@@ -96,6 +95,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       options.tableId, sourceUris, options.intermediateFormat.formatOptions)
       .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
       .setWriteDisposition(saveModeToWriteDisposition(saveMode))
+      .setAutodetect(true)
 
     if (options.createDisposition.isDefined) {
       jobConfigurationBuilder.setCreateDisposition(options.createDisposition.get)

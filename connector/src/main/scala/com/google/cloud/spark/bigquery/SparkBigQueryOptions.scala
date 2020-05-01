@@ -92,7 +92,9 @@ object SparkBigQueryOptions {
   val DefaultReadDataFormat: DataFormat = DataFormat.AVRO
   val DefaultFormat: String = "parquet"
   val DefaultIntermediateFormat: IntermediateFormat =
-    IntermediateFormat(DefaultFormat, FormatOptions.parquet())
+    IntermediateFormat(DefaultFormat,
+      s".${FormatOptions.parquet().getType.toLowerCase}",
+      FormatOptions.parquet())
   private val PermittedReadDataFormats = Set(DataFormat.ARROW.toString, DataFormat.AVRO.toString)
 
   val GcsAccessToken = "gcpAccessToken"
@@ -130,6 +132,7 @@ object SparkBigQueryOptions {
       parameters, Seq("maxParallelism", "parallelism"))
       .map(_.toInt)
     val temporaryGcsBucket = getAnyOption(normalizedAllConf, parameters, "temporaryGcsBucket")
+
     val intermediateFormat = IntermediateFormat(
       getAnyOption(normalizedAllConf, parameters, IntermediateFormatOption)
         .map(s => s.toLowerCase())
@@ -241,7 +244,9 @@ object SparkBigQueryOptions {
       .getOrElse(defaultValue)
 }
 
-  case class IntermediateFormat(dataSource: String, formatOptions: FormatOptions)
+  case class IntermediateFormat(dataSource: String,
+                                formatSuffix: String,
+                                formatOptions: FormatOptions)
   object IntermediateFormat {
     private val PermittedIntermediateFormats = Map("avro" -> FormatOptions.avro(),
       "parquet" -> FormatOptions.parquet(),
@@ -249,6 +254,19 @@ object SparkBigQueryOptions {
       "orc" -> FormatOptions.orc())
 
     def apply (format: String, sparkVersion: String, sqlConf: SQLConf) : IntermediateFormat = {
+      if (!PermittedIntermediateFormats.contains(format)) {
+        throw new IllegalArgumentException(
+          s"""Data read format '${format}' is not supported.
+             |Supported formats are '${PermittedIntermediateFormats.keys.mkString(",")}'"""
+            .stripMargin.replace('\n', ' '))
+      }
+
+      val formatSuffix = if (format == "json") {
+        ".json"
+      } else {
+        s".${PermittedIntermediateFormats(format).getType.toLowerCase}"
+      }
+
       if (format == "avro") {
         val dataSource = if (sparkVersion >= "2.4") {
           format
@@ -264,17 +282,10 @@ object SparkBigQueryOptions {
           case t: Throwable => throw t
         }
 
-        return IntermediateFormat(dataSource, PermittedIntermediateFormats(format))
+        return IntermediateFormat(dataSource, formatSuffix, PermittedIntermediateFormats(format))
       }
 
-      if (!PermittedIntermediateFormats.contains(format)) {
-        throw new IllegalArgumentException(
-          s"""Data read format '${format}' is not supported.
-             |Supported formats are '${PermittedIntermediateFormats.keys.mkString(",")}'"""
-            .stripMargin.replace('\n', ' '))
-      }
-
-      IntermediateFormat(format, PermittedIntermediateFormats(format))
+      IntermediateFormat(format, formatSuffix, PermittedIntermediateFormats(format))
     }
 
     // could not load the spark-avro data source
