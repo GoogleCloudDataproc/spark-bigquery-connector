@@ -104,4 +104,5 @@ class BigQueryUtilsSuite extends org.scalatest.FunSuite {
     assert(it.filter(f => f.getPath.getName.endsWith(".txt"))
       .next.getPath.getName.endsWith("file1.txt"))
   }
+  
 }
