@@ -21,7 +21,6 @@ import java.util.UUID
 import com.google.cloud.bigquery.JobInfo.CreateDisposition.CREATE_NEVER
 import com.google.cloud.bigquery._
 import com.google.cloud.http.BaseHttpServiceException
-import com.google.common.collect.ImmutableList
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
 import org.apache.spark.internal.Logging
@@ -87,7 +86,8 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     val fs = temporaryGcsPath.getFileSystem(conf)
     val sourceUris = ToIterator(fs.listFiles(temporaryGcsPath, false))
       .map(_.getPath.toString)
-      .filter(_.toLowerCase.endsWith(options.intermediateFormat.formatSuffix))
+      .filter(_.toLowerCase.endsWith(
+        s".${options.intermediateFormat.formatOptions.getType.toLowerCase}"))
       .toList
       .asJava
 

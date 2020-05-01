@@ -480,18 +480,6 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     assert(df.schema == allTypesTable.schema)
   }
 
-  /* test("write all types to bq - json format") {
-    writeToBigQuery(allTypesTable, SaveMode.Overwrite, "json")
-
-    val df = spark.read.format("bigquery")
-      .option("dataset", testDataset)
-      .option("table", testTable)
-      .load()
-
-    assert(df.head() == allTypesTable.head())
-    assert(df.schema == allTypesTable.schema)
-  } */
-
   test("write to bq - adding the settings to spark.conf" ) {
     spark.conf.set("temporaryGcsBucket", temporaryGcsBucket)
     val df = initialData
