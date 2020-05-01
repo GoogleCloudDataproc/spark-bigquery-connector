@@ -450,12 +450,6 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     initialDataValuesExist shouldBe true
   }
 
-  test("write to bq - json format") {
-    writeToBigQuery(initialData, SaveMode.ErrorIfExists, "json")
-    testTableNumberOfRows shouldBe 2
-    initialDataValuesExist shouldBe true
-  }
-
   test("write to bq - parquet format") {
     writeToBigQuery(initialData, SaveMode.ErrorIfExists, "parquet")
     testTableNumberOfRows shouldBe 2

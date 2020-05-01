@@ -25,6 +25,7 @@ import com.google.cloud.bigquery.storage.v1.DataFormat
 import com.google.cloud.bigquery.{BigQueryOptions, FormatOptions, JobInfo, TableId}
 import com.google.common.collect.ImmutableList
 import org.apache.hadoop.conf.Configuration
+import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.execution.datasources.DataSource
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
@@ -247,7 +248,6 @@ object SparkBigQueryOptions {
   object IntermediateFormat {
     private val PermittedIntermediateFormats = Map("avro" -> FormatOptions.avro(),
       "parquet" -> FormatOptions.parquet(),
-      "json" -> FormatOptions.json(),
       "orc" -> FormatOptions.orc())
 
     def apply (format: String, sparkVersion: String, sqlConf: SQLConf) : IntermediateFormat = {
@@ -268,8 +268,8 @@ object SparkBigQueryOptions {
         try {
           DataSource.lookupDataSource(dataSource, sqlConf)
         } catch {
-          case re: org.apache.spark.sql.AnalysisException =>
-            throw missingAvroException(sparkVersion, re)
+          case ae: AnalysisException =>
+            throw missingAvroException(sparkVersion, ae)
           case t: Throwable => throw t
         }
 
