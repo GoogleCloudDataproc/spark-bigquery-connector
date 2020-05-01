@@ -25,6 +25,7 @@ import com.google.cloud.bigquery.storage.v1.DataFormat
 import com.google.cloud.bigquery.{BigQueryOptions, FormatOptions, JobInfo, TableId}
 import com.google.common.collect.ImmutableList
 import org.apache.hadoop.conf.Configuration
+import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.execution.datasources.DataSource
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
@@ -44,7 +45,7 @@ import scala.util.Properties
     schema: Option[StructType] = None,
     maxParallelism: Option[Int] = None,
     temporaryGcsBucket: Option[String] = None,
-    intermediateFormat: FormatOptions = SparkBigQueryOptions.DefaultFormat,
+    intermediateFormat: IntermediateFormat = SparkBigQueryOptions.DefaultIntermediateFormat,
     readDataFormat: DataFormat = SparkBigQueryOptions.DefaultReadDataFormat,
     combinePushedDownFilters: Boolean = true,
     viewsEnabled: Boolean = false,
@@ -90,11 +91,9 @@ object SparkBigQueryOptions {
   val ViewsEnabledOption = "viewsEnabled"
 
   val DefaultReadDataFormat: DataFormat = DataFormat.AVRO
-  val DefaultFormat: FormatOptions = FormatOptions.parquet()
-  private val PermittedIntermediateFormats = Set(FormatOptions.avro(),
-    FormatOptions.json(),
-    FormatOptions.orc(),
-    FormatOptions.parquet())
+  val DefaultFormat: String = "parquet"
+  val DefaultIntermediateFormat: IntermediateFormat =
+    IntermediateFormat(DefaultFormat, FormatOptions.parquet())
   private val PermittedReadDataFormats = Set(DataFormat.ARROW.toString, DataFormat.AVRO.toString)
 
   val GcsAccessToken = "gcpAccessToken"
@@ -132,24 +131,12 @@ object SparkBigQueryOptions {
       parameters, Seq("maxParallelism", "parallelism"))
       .map(_.toInt)
     val temporaryGcsBucket = getAnyOption(normalizedAllConf, parameters, "temporaryGcsBucket")
-    val intermediateFormat = getAnyOption(normalizedAllConf, parameters, IntermediateFormatOption)
-      .map(s => FormatOptions.of(s.toUpperCase))
-      .getOrElse(DefaultFormat)
-    if (!PermittedIntermediateFormats.contains(intermediateFormat)) {
-      throw new IllegalArgumentException(
-        s"""Intermediate format '${intermediateFormat.getType}' is not supported.
-           |Supported formats are ${PermittedIntermediateFormats.map(_.getType)}"""
-          .stripMargin.replace('\n', ' '))
-    }
-    if (intermediateFormat == FormatOptions.avro()) {
-      try {
-        DataSource.lookupDataSource("avro", sqlConf)
-      } catch {
-        case re: RuntimeException =>
-          throw missingAvroException(sparkVersion, re)
-        case t: Throwable => throw t
-      }
-    }
+
+    val intermediateFormat = IntermediateFormat(
+      getAnyOption(normalizedAllConf, parameters, IntermediateFormatOption)
+        .map(s => s.toLowerCase())
+        .getOrElse(DefaultFormat), sparkVersion, sqlConf)
+
     val readDataFormatParam = getAnyOption(normalizedAllConf, parameters, ReadDataFormatOption)
       .map(s => s.toUpperCase())
       .getOrElse(DefaultReadDataFormat.toString)
@@ -204,22 +191,6 @@ object SparkBigQueryOptions {
       optimizedEmptyProjection, accessToken, loadSchemaUpdateOptions.asJava)
   }
 
-  // could not load the spark-avro data source
-  private def missingAvroException(sparkVersion: String, cause: Exception) = {
-    val avroPackage = if (sparkVersion >= "2.4") {
-      val scalaVersion = Properties.versionNumberString
-      val scalaShortVersion = scalaVersion.substring(0, scalaVersion.lastIndexOf('.'))
-      s"org.apache.spark:spark-avro_$scalaShortVersion:$sparkVersion"
-    } else {
-      "com.databricks:spark-avro_2.11:4.0.0"
-    }
-    val message = s"""Avro writing is not supported, as the spark-avro has not been
-                     |found. Please re-run spark with the --packages $avroPackage parameter"""
-      .stripMargin.replace('\n', ' ')
-
-    new IllegalStateException(message, cause)
-  }
-
   private def defaultBilledProject = () =>
     Some(BigQueryOptions.getDefaultInstance.getProjectId)
 
@@ -270,6 +241,58 @@ object SparkBigQueryOptions {
     getAnyOption(globalOptions, options, name)
       .map(_.toBoolean)
       .getOrElse(defaultValue)
-
 }
+
+  case class IntermediateFormat(dataSource: String,
+                                formatOptions: FormatOptions)
+  object IntermediateFormat {
+    private val PermittedIntermediateFormats = Map("avro" -> FormatOptions.avro(),
+      "parquet" -> FormatOptions.parquet(),
+      "orc" -> FormatOptions.orc())
+
+    def apply (format: String, sparkVersion: String, sqlConf: SQLConf) : IntermediateFormat = {
+      if (!PermittedIntermediateFormats.contains(format)) {
+        throw new IllegalArgumentException(
+          s"""Data read format '${format}' is not supported.
+             |Supported formats are '${PermittedIntermediateFormats.keys.mkString(",")}'"""
+            .stripMargin.replace('\n', ' '))
+      }
+
+      if (format == "avro") {
+        val dataSource = if (sparkVersion >= "2.4") {
+          format
+        } else {
+          "com.databricks.spark.avro"
+        }
+
+        try {
+          DataSource.lookupDataSource(dataSource, sqlConf)
+        } catch {
+          case ae: AnalysisException =>
+            throw missingAvroException(sparkVersion, ae)
+          case t: Throwable => throw t
+        }
+
+        return IntermediateFormat(dataSource, PermittedIntermediateFormats(format))
+      }
+
+      IntermediateFormat(format, PermittedIntermediateFormats(format))
+    }
+
+    // could not load the spark-avro data source
+    private def missingAvroException(sparkVersion: String, cause: Exception) = {
+      val avroPackage = if (sparkVersion >= "2.4") {
+        val scalaVersion = Properties.versionNumberString
+        val scalaShortVersion = scalaVersion.substring(0, scalaVersion.lastIndexOf('.'))
+        s"org.apache.spark:spark-avro_$scalaShortVersion:$sparkVersion"
+      } else {
+        "com.databricks:spark-avro_2.11:4.0.0"
+      }
+      val message = s"""Avro writing is not supported, as the spark-avro has not been
+                       |found. Please re-run spark with the --packages $avroPackage parameter"""
+        .stripMargin.replace('\n', ' ')
+
+      new IllegalStateException(message, cause)
+    }
+  }
 

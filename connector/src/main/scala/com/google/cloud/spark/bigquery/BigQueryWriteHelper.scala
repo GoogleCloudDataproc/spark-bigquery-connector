@@ -21,7 +21,6 @@ import java.util.UUID
 import com.google.cloud.bigquery.JobInfo.CreateDisposition.CREATE_NEVER
 import com.google.cloud.bigquery._
 import com.google.cloud.http.BaseHttpServiceException
-import com.google.common.collect.ImmutableList
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
 import org.apache.spark.internal.Logging
@@ -72,8 +71,9 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       // based on pmkc's suggestion at https://git.io/JeWRt
       Runtime.getRuntime.addShutdownHook(createTemporaryPathDeleter)
 
-      val format = options.intermediateFormat.getType.toLowerCase
+      val format = options.intermediateFormat.dataSource
       data.write.format(format).save(temporaryGcsPath.toString)
+
       loadDataToBigQuery
     } catch {
       case e: Exception => throw new RuntimeException("Failed to write to BigQuery", e)
@@ -84,17 +84,18 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
   def loadDataToBigQuery(): Unit = {
     val fs = temporaryGcsPath.getFileSystem(conf)
-    val formatSuffix = s".${options.intermediateFormat.getType.toLowerCase}"
     val sourceUris = ToIterator(fs.listFiles(temporaryGcsPath, false))
       .map(_.getPath.toString)
-      .filter(_.toLowerCase.endsWith(formatSuffix))
+      .filter(_.toLowerCase.endsWith(
+        s".${options.intermediateFormat.formatOptions.getType.toLowerCase}"))
       .toList
       .asJava
 
     val jobConfigurationBuilder = LoadJobConfiguration.newBuilder(
-      options.tableId, sourceUris, options.intermediateFormat)
+      options.tableId, sourceUris, options.intermediateFormat.formatOptions)
       .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
       .setWriteDisposition(saveModeToWriteDisposition(saveMode))
+      .setAutodetect(true)
 
     if (options.createDisposition.isDefined) {
       jobConfigurationBuilder.setCreateDisposition(options.createDisposition.get)
