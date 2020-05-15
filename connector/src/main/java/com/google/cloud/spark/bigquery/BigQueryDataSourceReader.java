@@ -15,16 +15,14 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.connector.common.BigQueryClient;
-import com.google.cloud.bigquery.connector.common.BigQueryStorageClientFactory;
-import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
-import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
+import com.google.cloud.bigquery.connector.common.*;
 import com.google.cloud.bigquery.storage.v1beta1.Storage;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.sources.v2.reader.DataSourceReader;
@@ -36,33 +34,32 @@ import org.apache.spark.sql.types.StructType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import static java.lang.String.format;
 
 public class BigQueryDataSourceReader implements
         DataSourceReader, SupportsPushDownRequiredColumns, SupportsPushDownFilters {
 
+    private final TableInfo table;
     private final TableId tableId;
     private final ReadSessionCreatorConfig readSessionCreatorConfig;
     private final BigQueryClient bigQueryClient;
     private final BigQueryStorageClientFactory bigQueryStorageClientFactory;
     private final ReadSessionCreator readSessionCreator;
     private final Optional<String> globalFilter;
-    private final StructType schema;
+    private Optional<StructType> schema;
     private Filter[] pushedFilters = new Filter[]{};
 
-    private Storage.ReadSession readSession;
-    private StructType requiredSchema = new StructType();
-
     public BigQueryDataSourceReader(
-            TableId tableId,
+            TableInfo table,
             BigQueryClient bigQueryClient,
             BigQueryStorageClientFactory bigQueryStorageClientFactory,
             ReadSessionCreatorConfig readSessionCreatorConfig,
             Optional<String> globalFilter,
-            StructType schema) {
-        this.tableId = tableId;
+            Optional<StructType> schema) {
+        this.table = table;
+        this.tableId = table.getTableId();
         this.readSessionCreatorConfig = readSessionCreatorConfig;
         this.bigQueryClient = bigQueryClient;
         this.bigQueryStorageClientFactory = bigQueryStorageClientFactory;
@@ -73,43 +70,70 @@ public class BigQueryDataSourceReader implements
 
     @Override
     public StructType readSchema() {
-        createReadSessionIfNeeded();
-        return requiredSchema != null ? requiredSchema : schema;
+        // TODO: rely on Java code
+        return schema.orElse(SchemaConverters.toSpark(table.getDefinition().getSchema()));
     }
 
     @Override
     public List<InputPartition<InternalRow>> planInputPartitions() {
-        if(schema.isEmpty()) {
+        if (schema.map(StructType::isEmpty).orElse(false)) {
             // create empty projection
             return createEmptyProjectionPartitions();
         }
 
-//        Schema prunedSchema = Schema.of(
-//                actualTableDefinition.getSchema.getFields.asScala
-//                        .filter(f = > requiredColumnSet.contains(f.getName)).asJava)
-//        ReadRowsResponseToInternalRowIteratorConverter converter;
-//        if (readSessionCreatorConfig.getReadDataFormat() == Storage.DataFormat.AVRO) {
-//            converter = ReadRowsResponseToInternalRowIteratorConverter.avro(readSession.getTableReference().ge)
-//        }
-        createReadSessionIfNeeded();
+        ImmutableList<String> selectedFields = schema
+                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+                .orElse(ImmutableList.of());
+        Optional<String> filter = emptyIfNeeded(SparkFilterUtils.getCompiledFilter(
+                readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
+        ReadSessionResponse readSessionResponse = readSessionCreator.create(
+                tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
+        Storage.ReadSession readSession = readSessionResponse.getReadSession();
         return readSession.getStreamsList().stream()
                 .map(stream -> new BigQueryInputPartition(
                         bigQueryStorageClientFactory,
                         stream.getName(),
                         readSessionCreatorConfig.getMaxReadRowsRetries(),
-                        null))
+                        createConverter(selectedFields, readSessionResponse)))
                 .collect(Collectors.toList());
+    }
+
+    private ReadRowsResponseToInternalRowIteratorConverter createConverter(
+            ImmutableList<String> selectedFields, ReadSessionResponse readSessionResponse) {
+        ReadRowsResponseToInternalRowIteratorConverter converter;
+        if (readSessionCreatorConfig.getReadDataFormat() == Storage.DataFormat.AVRO) {
+            Schema schema = readSessionResponse.getReadTableInfo().getDefinition().getSchema();
+            if (selectedFields.isEmpty()) {
+                // means select *
+                selectedFields = schema.getFields().stream()
+                        .map(Field::getName)
+                        .collect(ImmutableList.toImmutableList());
+            } else {
+                Set<String> requiredColumnSet = ImmutableSet.copyOf(selectedFields);
+                schema = Schema.of(schema.getFields().stream()
+                        .filter(field -> requiredColumnSet.contains(field.getName()))
+                        .collect(Collectors.toList()));
+            }
+            return ReadRowsResponseToInternalRowIteratorConverter.avro(
+                    schema,
+                    selectedFields,
+                    readSessionResponse.getReadSession().getAvroSchema().getSchema());
+        } else {
+            return ReadRowsResponseToInternalRowIteratorConverter.arrow(
+                    selectedFields,
+                    readSessionResponse.getReadSession().getArrowSchema().getSerializedSchema());
+        }
     }
 
     List<InputPartition<InternalRow>> createEmptyProjectionPartitions() {
         long rowCount = bigQueryClient.calculateTableSize(tableId, globalFilter);
         int partitionsCount = readSessionCreatorConfig.getDefaultParallelism();
-        int partitionSize = (int)(rowCount / partitionsCount);
+        int partitionSize = (int) (rowCount / partitionsCount);
         InputPartition<InternalRow>[] partitions = IntStream
                 .range(0, partitionsCount)
                 .mapToObj(ignored -> new BigQueryEmptyProjectionInputPartition(partitionSize))
                 .toArray(BigQueryEmptyProjectionInputPartition[]::new);
-        int firstPartitionSize = partitionSize + (int)(rowCount % partitionsCount);
+        int firstPartitionSize = partitionSize + (int) (rowCount % partitionsCount);
         partitions[0] = new BigQueryEmptyProjectionInputPartition(firstPartitionSize);
         return ImmutableList.copyOf(partitions);
     }
@@ -136,22 +160,7 @@ public class BigQueryDataSourceReader implements
 
     @Override
     public void pruneColumns(StructType requiredSchema) {
-        this.requiredSchema = requiredSchema;
-    }
-
-    void createReadSessionIfNeeded() {
-        if (readSession == null && !requiredSchema.isEmpty()) {
-            createReadSession();
-        }
-    }
-
-    void createReadSession() {
-        // TODO
-        ImmutableList<String> selectedFields = ImmutableList.copyOf(schema.fieldNames());
-        Optional<String> filter = emptyIfNeeded(SparkFilterUtils.getCompiledFilter(
-                readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
-        readSession = readSessionCreator.create(
-                tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
+        this.schema = Optional.ofNullable(requiredSchema);
     }
 
     Optional<String> emptyIfNeeded(String value) {

@@ -26,6 +26,8 @@ import org.apache.spark.sql.sources.v2.ReadSupport;
 import org.apache.spark.sql.sources.v2.reader.DataSourceReader;
 import org.apache.spark.sql.types.StructType;
 
+import java.util.Optional;
+
 import static scala.collection.JavaConversions.mapAsJavaMap;
 
 public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport {
@@ -34,18 +36,9 @@ public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport {
     public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
         SparkSession spark = getDefaultSparkSessionOrCreate();
 
-        SparkBigQueryConfig config = SparkBigQueryConfig.from(options,
-                ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll())),
-                spark.sparkContext().hadoopConfiguration(),
-                spark.sparkContext().defaultParallelism());
-
         Injector injector = Guice.createInjector(
                 new BigQueryClientModule(),
-                new SparkBigQueryConnectorModule(
-                        spark.sparkContext(),
-                        config.getTableId(),
-                        config.toReadSessionCreatorConfig(),
-                        schema));
+                new SparkBigQueryConnectorModule(spark, options, Optional.ofNullable(schema)));
 
         BigQueryDataSourceReader reader = injector.getInstance(BigQueryDataSourceReader.class);
         return reader;

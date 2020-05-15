@@ -4,6 +4,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryStorageClientFactory;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1beta1.BigQueryStorageClient;
 import com.google.cloud.bigquery.storage.v1beta1.Storage;
+import com.google.common.collect.Iterators;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartition;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
@@ -35,7 +36,7 @@ public class BigQueryInputPartition implements InputPartition<InternalRow> {
                         .setStream(Storage.Stream.newBuilder()
                                 .setName(streamName)));
         ReadRowsHelper readRowsHelper = new ReadRowsHelper(bigQueryStorageClientFactory, readRowsRequest, maxReadRowsRetries);
-        Iterator<Storage.ReadRowsResponse> rows = readRowsHelper.readRows();
-        return new BigQueryInputPartitionReader(rows, converter);
+        Iterator<Storage.ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
+        return new BigQueryInputPartitionReader(readRowsResponses, converter);
     }
 }

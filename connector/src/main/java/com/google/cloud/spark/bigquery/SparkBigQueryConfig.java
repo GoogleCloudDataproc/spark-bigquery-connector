@@ -33,7 +33,7 @@ public class SparkBigQueryConfig implements BigQueryConfig {
     private static final String GCS_CONFIG_PROJECT_ID_PROPERTY = "fs.gs.project.id";
     private static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
     private static final String READ_DATA_FORMAT_OPTION = "readDataFormat";
-    private static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
+    public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
 
     @VisibleForTesting
     static final Storage.DataFormat DEFAULT_READ_DATA_FORMAT = Storage.DataFormat.AVRO;

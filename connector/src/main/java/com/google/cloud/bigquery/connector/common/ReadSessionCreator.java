@@ -68,7 +68,7 @@ public class ReadSessionCreator {
         this.bigQueryStorageClientFactory = bigQueryStorageClientFactory;
     }
 
-    public Storage.ReadSession create(
+    public ReadSessionResponse create(
             TableId table,
             ImmutableList<String> selectedFields,
             Optional<String> filter,
@@ -97,7 +97,7 @@ public class ReadSessionCreator {
                             .setShardingStrategy(Storage.ShardingStrategy.BALANCED)
                             .build());
 
-            return readSession;
+            return new ReadSessionResponse(readSession, actualTable);
         }
     }
 

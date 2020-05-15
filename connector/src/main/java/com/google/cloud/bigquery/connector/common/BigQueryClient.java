@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.StreamSupport;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.lang.String.format;
 import static java.util.Locale.ENGLISH;
@@ -64,6 +65,31 @@ public class BigQueryClient {
             datasetIds.putIfAbsent(toDatasetId(tableId), toDatasetId(table.getTableId()));
         }
         return table;
+    }
+
+    public TableInfo getSupportedTable(TableId tableId, boolean viewsEnabled, String viewEnabledParamName) {
+        TableInfo table = getTable(tableId);
+        if (table == null) {
+            return null;
+        }
+
+        TableDefinition tableDefinition = table.getDefinition();
+        TableDefinition.Type tableType = tableDefinition.getType();
+        if (TableDefinition.Type.TABLE == tableType) {
+            return table;
+        }
+        if (TableDefinition.Type.VIEW == tableType) {
+            if (viewsEnabled) {
+                return table;
+            } else {
+                throw new BigQueryConnectorException(UNSUPPORTED, format(
+                        "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
+                        viewEnabledParamName));
+            }
+        }
+        // not regular table or a view
+        throw new BigQueryConnectorException(UNSUPPORTED, format("Table type '%s' of table '%s.%s' is not supported",
+                tableType, table.getTableId().getDataset(), table.getTableId().getTable()));
     }
 
     DatasetId toDatasetId(TableId tableId) {

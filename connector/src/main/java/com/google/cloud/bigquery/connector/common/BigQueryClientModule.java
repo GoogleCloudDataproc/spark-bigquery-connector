@@ -20,9 +20,9 @@ public class BigQueryClientModule implements Module {
 
     @Provides
     @Singleton
-    public static HeaderProvider createHeaderProvider(VersionProvider versionProvider)
+    public static UserAgentHeaderProvider createUserAgentHeaderProvider(UserAgentProvider versionProvider)
     {
-        return FixedHeaderProvider.create("user-agent", versionProvider.getVersion());
+        return new UserAgentHeaderProvider(versionProvider.getUserAgent());
     }
 
     // Note that at this point the config has been validated, which means that option 2 or option 3 will always be valid
@@ -50,11 +50,11 @@ public class BigQueryClientModule implements Module {
 
     @Provides
     @Singleton
-    public BigQueryClient provideBigQueryClient(BigQueryConfig config, HeaderProvider headerProvider, BigQueryCredentialsSupplier bigQueryCredentialsSupplier)
+    public BigQueryClient provideBigQueryClient(BigQueryConfig config, UserAgentHeaderProvider userAgentHeaderProvider, BigQueryCredentialsSupplier bigQueryCredentialsSupplier)
     {
         String billingProjectId = calculateBillingProjectId(config.getParentProjectId(), bigQueryCredentialsSupplier.getCredentials());
         BigQueryOptions.Builder options = BigQueryOptions.newBuilder()
-                .setHeaderProvider(headerProvider)
+                .setHeaderProvider(userAgentHeaderProvider)
                 .setProjectId(billingProjectId);
         // set credentials of provided
         bigQueryCredentialsSupplier.getCredentials().ifPresent(options::setCredentials);

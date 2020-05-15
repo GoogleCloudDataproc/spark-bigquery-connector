@@ -1,8 +1,8 @@
 package com.google.cloud.bigquery.connector.common;
 
 @FunctionalInterface
-public interface VersionProvider {
+public interface UserAgentProvider {
 
-    String getVersion();
+    String getUserAgent();
 
 }
