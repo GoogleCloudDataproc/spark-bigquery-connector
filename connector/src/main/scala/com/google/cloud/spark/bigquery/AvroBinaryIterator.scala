@@ -22,6 +22,8 @@ import org.apache.avro.io.{BinaryDecoder, DecoderFactory}
 import org.apache.avro.{Schema => AvroSchema}
 import org.apache.spark.sql.catalyst.InternalRow
 
+import scala.collection.JavaConverters
+
 /**
  * An iterator for scanning over rows serialized in Avro format
  * @param bqSchema Schema of underlying BigQuery source
@@ -34,11 +36,12 @@ class AvroBinaryIterator(bqSchema: Schema,
                          schema: AvroSchema,
                          rowsInBytes: ByteString) extends Iterator[InternalRow] {
 
-  private lazy val converter = SchemaConverters.createRowConverter(bqSchema, columnsInOrder) _
   val reader = new GenericDatumReader[GenericRecord](schema)
+  val columnsInOrderList = JavaConverters.seqAsJavaListConverter(columnsInOrder).asJava
   val in: BinaryDecoder = new DecoderFactory().binaryDecoder(rowsInBytes.toByteArray, null)
 
   override def hasNext: Boolean = !in.isEnd
 
-  override def next(): InternalRow = converter(reader.read(null, in))
+  override def next(): InternalRow = SchemaConverters.createRowConverter(bqSchema,
+    columnsInOrderList, reader.read(null, in))
 }
