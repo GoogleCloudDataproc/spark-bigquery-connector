@@ -27,7 +27,7 @@ public class SchemaConverters {
     private final static int BQ_NUMERIC_PRECISION = 38;
     private final static int BQ_NUMERIC_SCALE = 9;
     private final static DecimalType NUMERIC_SPARK_TYPE = DataTypes.createDecimalType(
-    BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
+        BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
 
     /** Convert a BigQuery schema to a Spark schema */
     public static StructType toSpark(Schema schema) {

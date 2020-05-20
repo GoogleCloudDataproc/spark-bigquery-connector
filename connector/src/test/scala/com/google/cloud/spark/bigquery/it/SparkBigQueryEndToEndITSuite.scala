@@ -301,6 +301,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     row should contain theSameElementsInOrderAs expectedRow
   }
 
+
   test("known size in bytes") {
     val actualTableSize = allTypesTable.queryExecution.analyzed.stats.sizeInBytes
     assert(actualTableSize == ALL_TYPES_TABLE_SIZE)
