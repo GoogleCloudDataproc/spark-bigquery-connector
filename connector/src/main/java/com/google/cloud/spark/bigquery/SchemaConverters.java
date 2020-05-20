@@ -108,8 +108,8 @@ public class SchemaConverters {
 
     // Schema is not recursive so add helper for sequence of fields
     static GenericInternalRow convertAll(FieldList fieldList,
-                                         GenericRecord record,
-                                         List<String> namesInOrder) {
+                                  GenericRecord record,
+                                  List<String> namesInOrder) {
 
         Map<String, Object> fieldMap = new HashMap<>();
 
