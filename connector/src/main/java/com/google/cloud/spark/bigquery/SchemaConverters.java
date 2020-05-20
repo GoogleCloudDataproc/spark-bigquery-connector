@@ -6,11 +6,17 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
 
+<<<<<<< HEAD
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import org.apache.avro.generic.GenericRecord;
 import com.google.cloud.bigquery.Schema;
+=======
+import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.LegacySQLTypeName;
+import org.apache.avro.generic.GenericRecord;
+>>>>>>> 8aab4c16ea7cf17ff938b97453bf9be0cdde33e6
 import org.apache.avro.util.Utf8;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
@@ -108,8 +114,8 @@ public class SchemaConverters {
 
     // Schema is not recursive so add helper for sequence of fields
     static GenericInternalRow convertAll(FieldList fieldList,
-                                         GenericRecord record,
-                                         List<String> namesInOrder) {
+                                  GenericRecord record,
+                                  List<String> namesInOrder) {
 
         Map<String, Object> fieldMap = new HashMap<>();
 
