@@ -70,46 +70,4 @@ interface ReadRowsResponseToInternalRowIteratorConverter {
                             response.getArrowRecordBatch().getSerializedRecordBatch()));
         }
     }
-
-//    class AvroIterator implements Iterator<InternalRow>, Serializable {
-//
-//        private GenericDatumReader reader;
-//
-//        public AvroIterator(
-//                Schema bqSchema,
-//                List<String> columnsInOrder,
-//                org.apache.avro.Schema avroSchema,
-//                AvroRows avroRows) {
-//            this.bqSchema = bqSchema;
-//            this.columnsInOrder = columnsInOrder;
-//            this.rawAvroSchema = rawAvroSchema;
-//        }
-//
-//        private lazy val
-//        converter =SchemaConverters.createRowConverter(bqSchema,columnsInOrder)_
-//        val reader = new GenericDatumReader[GenericRecord](schema)
-//        val in:BinaryDecoder =new
-//
-//        DecoderFactory().
-//
-//        binaryDecoder(rowsInBytes.toByteArray, null)
-//
-//        override def
-//        hasNext:Boolean =
-//
-//        override def
-//
-//        next():InternalRow =
-//
-//
-//        @Override
-//        public boolean hasNext() {
-//            return !in.isEnd();
-//        }
-//
-//        @Override
-//        public InternalRow next() {
-//            return converter(reader.read(null, in));
-//        }
-//    }
 }
