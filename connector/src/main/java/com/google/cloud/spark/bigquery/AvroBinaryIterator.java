@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -44,10 +45,8 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
         try {
             return !in.isEnd();
         } catch (IOException e) {
-            log.error("Exception occurred in hasNext() of AvroBinaryIterator", e);
+            throw new UncheckedIOException(e);
         }
-
-        return false;
     }
 
     @Override
@@ -56,9 +55,7 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
             return SchemaConverters.createRowConverter(bqSchema,
                     columnsInOrder, (GenericRecord) reader.read(null, in));
         } catch (IOException e) {
-            log.error("Exception occurred in next() of AvroBinaryIterator", e);
+            throw new UncheckedIOException(e);
         }
-
-        return null;
     }
 }

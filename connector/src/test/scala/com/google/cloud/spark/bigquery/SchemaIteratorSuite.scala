@@ -21,6 +21,7 @@ import com.google.cloud.bigquery.{Field, Schema}
 import com.google.common.io.ByteStreams.toByteArray
 import com.google.protobuf.ByteString
 import org.apache.avro.{Schema => AvroSchema}
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.{ArrayType, BinaryType}
 import org.apache.spark.sql.types._
 import org.scalatest.FunSuite
@@ -70,12 +71,23 @@ class SchemaIteratorSuite extends FunSuite {
 
     val schemaFields = SchemaConverters.toSpark(bqSchema).fields
 
-    val arrowSparkRow = new ArrowBinaryIterator(columnsInOrder.asJava,
-      arrowSchema,
-      arrowByteString).asScala.next()
+    var avroSparkRow: InternalRow = null
+    var arrowSparkRow : InternalRow = null
 
-    val avroSparkRow = new AvroBinaryIterator(bqSchema,
-      columnsInOrder.asJava, avroSchema, avroByteString).next()
+    val arrowBinaryIterator = new ArrowBinaryIterator(columnsInOrder.asJava,
+      arrowSchema,
+      arrowByteString).asScala
+
+    if (arrowBinaryIterator.hasNext) {
+       arrowSparkRow = arrowBinaryIterator.next();
+    }
+
+    val avroBinaryIterator = new AvroBinaryIterator(bqSchema,
+      columnsInOrder.asJava, avroSchema, avroByteString)
+
+    if (avroBinaryIterator.hasNext) {
+      avroSparkRow = avroBinaryIterator.next()
+    }
 
     for (col <- 0 to 11)
     {

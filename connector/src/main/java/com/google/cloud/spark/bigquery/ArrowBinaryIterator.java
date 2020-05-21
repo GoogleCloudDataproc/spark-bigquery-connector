@@ -1,5 +1,6 @@
 package com.google.cloud.spark.bigquery;
 
+import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
@@ -16,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.SequenceInputStream;
+import java.io.UncheckedIOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -36,30 +38,26 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
 
         ArrowStreamReader arrowStreamReader = new ArrowStreamReader(bytesWithSchemaStream, allocator);
         arrowReaderIterator = new ArrowReaderIterator(arrowStreamReader);
+        currentIterator = ImmutableList.<InternalRow>of().iterator();
         this.columnsInOrder = columnsInOrder;
-        initializeCurrentIterator();
     }
 
     @Override
     public boolean hasNext() {
-        initializeCurrentIterator();
+        while (!currentIterator.hasNext()) {
+            if (!arrowReaderIterator.hasNext()) {
+                return false;
+            }
+            currentIterator = toArrowRows(arrowReaderIterator.next(), columnsInOrder);
+            arrowReaderIterator.next();
+        }
+
         return currentIterator.hasNext();
     }
 
     @Override
     public InternalRow next() {
         return currentIterator.next();
-    }
-
-    private void initializeCurrentIterator() {
-        while (currentIterator == null || !currentIterator.hasNext()) {
-            if (arrowReaderIterator.hasNext()) {
-                currentIterator = toArrowRows(arrowReaderIterator.next(), columnsInOrder);
-            } else {
-                break;
-            }
-            arrowReaderIterator.next();
-        }
     }
 
     private Iterator<InternalRow> toArrowRows(VectorSchemaRoot root, List<String> namesInOrder) {
@@ -77,7 +75,7 @@ class ArrowReaderIterator implements Iterator<VectorSchemaRoot> {
 
     boolean closed = false;
     VectorSchemaRoot current = null;
-    ArrowReader reader = null;
+    ArrowReader reader;
     private static final Logger log = LoggerFactory.getLogger(AvroBinaryIterator.class);
 
     public ArrowReaderIterator(ArrowReader reader) {
@@ -98,11 +96,9 @@ class ArrowReaderIterator implements Iterator<VectorSchemaRoot> {
                 ensureClosed();
             }
             return res;
-        } catch (Exception e) {
-            log.error("Exception occurred in next() of ArrowBinaryIterator", e);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
-
-        return false;
     }
 
     @Override
