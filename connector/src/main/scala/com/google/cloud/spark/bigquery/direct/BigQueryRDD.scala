@@ -18,7 +18,7 @@ package com.google.cloud.spark.bigquery.direct
 import com.google.api.gax.rpc.ServerStreamingCallable
 import com.google.cloud.bigquery.storage.v1.{BigQueryReadClient, DataFormat, ReadRowsRequest, ReadRowsResponse, ReadSession, ReadStream}
 import com.google.cloud.bigquery.{BigQuery, Schema}
-import com.google.cloud.spark.bigquery.{ArrowBinaryIterator, AvroBinaryIterator, BigQueryUtil, SchemaConverters, SparkBigQueryOptions}
+import com.google.cloud.spark.bigquery.{ArrowBinaryIterator, AvroBinaryIterator, BigQueryUtil, SparkBigQueryOptions}
 import com.google.protobuf.ByteString
 import org.apache.avro.{Schema => AvroSchema}
 import org.apache.spark.internal.Logging
