@@ -23,7 +23,9 @@ import com.google.protobuf.ByteString
 import org.apache.avro.{Schema => AvroSchema}
 import org.apache.spark.sql.types.{ArrayType, BinaryType}
 import org.apache.spark.sql.types._
-import org.scalatest.{FunSuite}
+import org.scalatest.FunSuite
+
+import scala.collection.JavaConverters._
 
 /**
  * A test for ensuring that Arrow and Avros Schema generate same results for
@@ -68,11 +70,12 @@ class SchemaIteratorSuite extends FunSuite {
 
     val schemaFields = SchemaConverters.toSpark(bqSchema).fields
 
-    val arrowSparkRow = new ArrowBinaryIterator(columnsInOrder, arrowSchema, arrowByteString)
-      .next()
+    val arrowSparkRow = new ArrowBinaryIterator(columnsInOrder.asJava,
+      arrowSchema,
+      arrowByteString).asScala.next()
 
     val avroSparkRow = new AvroBinaryIterator(bqSchema,
-      columnsInOrder, avroSchema, avroByteString).next()
+      columnsInOrder.asJava, avroSchema, avroByteString).next()
 
     for (col <- 0 to 11)
     {
