@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.connector.common.BigQueryClientModule;
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.apache.spark.sql.SparkSession;
@@ -27,8 +26,6 @@ import org.apache.spark.sql.sources.v2.reader.DataSourceReader;
 import org.apache.spark.sql.types.StructType;
 
 import java.util.Optional;
-
-import static scala.collection.JavaConversions.mapAsJavaMap;
 
 public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport {
 

@@ -15,7 +15,6 @@ public class BigQueryClientModule implements Module {
     public void configure(Binder binder) {
         // BigQuery related
         binder.bind(BigQueryStorageClientFactory.class).in(Scopes.SINGLETON);
-
     }
 
     @Provides
