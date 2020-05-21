@@ -76,8 +76,8 @@ repository. It can be used using the `--packages` option or the
 
 | Scala version | Connector Artifact |
 | --- | --- |
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.14.0-beta` |
-| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.14.0-beta` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.15.1-beta` |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.15.1-beta` |
 
 ## Hello World Example
 
@@ -533,7 +533,7 @@ using the following code:
 ```python
 from pyspark.sql import SparkSession
 spark = SparkSession.builder\
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.14.0-beta")\
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.15.1-beta")\
   .getOrCreate()
 df = spark.read.format("bigquery")\
   .option("table","dataset.table")\
@@ -543,7 +543,7 @@ df = spark.read.format("bigquery")\
 **Scala:**
 ```python
 val spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.14.0-beta")
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.15.1-beta")
   .getOrCreate()
 val df = spark.read.format("bigquery")
   .option("table","dataset.table")
@@ -552,7 +552,7 @@ val df = spark.read.format("bigquery")
 
 In case Spark cluster is using Scala 2.12 (it's optional for Spark 2.4.x,
 mandatory in 3.0.x), then the relevant package is
-com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.14.0-beta. In
+com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.15.1-beta. In
 order to know which Scala version is used, please run the following code:
 
 **Python:**
@@ -576,14 +576,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery-with-dependencies_${scala.version}</artifactId>
-  <version>0.14.0-beta</version>
+  <version>0.15.1-beta</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.14.0-beta"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.15.1-beta"
 ```
 
 ## Building the Connector
@@ -631,3 +631,16 @@ or
 ```
 spark.conf.set("credentialsFile", "</path/to/key/file>")
 ```
+
+Another alternative to passing the credentials, is to pass the access token used for authenticating
+the API calls to the Google Cloud Platform APIs. You can get the access token by running
+`gcloud auth application-default print-access-token`. 
+
+```
+spark.read.format("bigquery").option("gcpAccessToken", "<acccess-token>")
+```
+or
+```
+spark.conf.set("gcpAccessToken", "<access-token>")
+```
+

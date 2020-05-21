@@ -20,25 +20,31 @@ import com.google.cloud.bigquery.storage.v1beta1.Storage.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1beta1.Storage.ReadRowsResponse;
 import com.google.cloud.bigquery.storage.v1beta1.Storage.StreamPosition;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 import static java.util.Objects.requireNonNull;
 
 public class ReadRowsHelper {
-    private BigQueryStorageClient client;
+    private BigQueryStorageClientFactory bigQueryStorageClientFactory;
     private ReadRowsRequest.Builder request;
     private int maxReadRowsRetries;
+    private BigQueryStorageClient client;
 
-    public ReadRowsHelper(BigQueryStorageClient client, ReadRowsRequest.Builder request, int maxReadRowsRetries) {
-        this.client = requireNonNull(client, "client cannot be null");
-        this.request = requireNonNull(request, "client cannot be null");
+    public ReadRowsHelper(
+            BigQueryStorageClientFactory bigQueryStorageClientFactory,
+            ReadRowsRequest.Builder request,
+            int maxReadRowsRetries) {
+        this.bigQueryStorageClientFactory = requireNonNull(bigQueryStorageClientFactory, "bigQueryStorageClientFactory cannot be null");
+        this.request = requireNonNull(request, "request cannot be null");
         this.maxReadRowsRetries = maxReadRowsRetries;
     }
 
     public Iterator<ReadRowsResponse> readRows() {
+        if (client != null) {
+            client.close();
+        }
+        client = bigQueryStorageClientFactory.createBigQueryStorageClient();
         Iterator<ReadRowsResponse> serverResponses = fetchResponses(request);
         return new ReadRowsIterator(this, request.getReadPositionBuilder(), serverResponses);
     }
@@ -58,7 +64,10 @@ public class ReadRowsHelper {
         long readRowsCount;
         int retries;
 
-        public ReadRowsIterator(ReadRowsHelper helper, StreamPosition.Builder readPosition, Iterator<ReadRowsResponse> serverResponses) {
+        public ReadRowsIterator(
+                ReadRowsHelper helper,
+                StreamPosition.Builder readPosition,
+                Iterator<ReadRowsResponse> serverResponses) {
             this.helper = helper;
             this.readPosition = readPosition;
             this.serverResponses = serverResponses;
@@ -66,7 +75,11 @@ public class ReadRowsHelper {
 
         @Override
         public boolean hasNext() {
-            return serverResponses.hasNext();
+            boolean hasNext = serverResponses.hasNext();
+            if (!hasNext && !helper.client.isShutdown()) {
+                helper.client.close();
+            }
+            return hasNext;
         }
 
         @Override
@@ -77,16 +90,16 @@ public class ReadRowsHelper {
                     readRowsCount += response.getRowCount();
                     //logDebug(s"read ${response.getSerializedSize} bytes");
                     return response;
-                } catch (Exception e ) {
-                        // if relevant, retry the read, from the last read position
-                        if (BigQueryUtil.isRetryable(e) && retries < helper.maxReadRowsRetries) {
-                            serverResponses = helper.fetchResponses(helper.request.setReadPosition(
-                                    readPosition.setOffset(readRowsCount)));
-                            retries ++;
-                        } else {
-                            helper.client.close();
-                            throw e;
-                        }
+                } catch (Exception e) {
+                    // if relevant, retry the read, from the last read position
+                    if (BigQueryUtil.isRetryable(e) && retries < helper.maxReadRowsRetries) {
+                        serverResponses = helper.fetchResponses(helper.request.setReadPosition(
+                                readPosition.setOffset(readRowsCount)));
+                        retries++;
+                    } else {
+                        helper.client.close();
+                        throw e;
+                    }
                 }
             } while (serverResponses.hasNext());
 

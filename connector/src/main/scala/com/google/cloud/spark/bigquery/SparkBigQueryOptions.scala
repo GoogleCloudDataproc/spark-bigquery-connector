@@ -25,10 +25,15 @@ import com.google.cloud.bigquery.storage.v1.DataFormat
 import com.google.cloud.bigquery.{BigQueryOptions, FormatOptions, JobInfo, TableId}
 import com.google.common.collect.ImmutableList
 import org.apache.hadoop.conf.Configuration
+import org.apache.spark.sql.execution.datasources.DataSource
+import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
+import scala.util.Properties
+
+
 
 
 /** Options for defining {@link BigQueryRelation}s */
@@ -88,23 +93,38 @@ object SparkBigQueryOptions {
 
   val DefaultReadDataFormat: DataFormat = DataFormat.AVRO
   val DefaultFormat: FormatOptions = FormatOptions.parquet()
-  private val PermittedIntermediateFormats = Set(FormatOptions.orc(), FormatOptions.parquet())
+  private val PermittedIntermediateFormats = Set(FormatOptions.avro(),
+    FormatOptions.json(),
+    FormatOptions.orc(),
+    FormatOptions.parquet())
   private val PermittedReadDataFormats = Set(DataFormat.ARROW.toString, DataFormat.AVRO.toString)
 
   val GcsAccessToken = "gcpAccessToken"
+
+  val ConfPrefix = "spark.datasource.bigquery."
+
+  private[bigquery] def normalizeAllConf(allConf: Map[String, String]): Map[String, String] = {
+    allConf ++ allConf
+      .filterKeys(_.startsWith(ConfPrefix))
+      .map { case(key, value) => (key.substring(ConfPrefix.length), value) }
+  }
 
   def apply(
              parameters: Map[String, String],
              allConf: Map[String, String],
              hadoopConf: Configuration,
+             sqlConf: SQLConf,
+             sparkVersion: String,
              schema: Option[StructType])
   : SparkBigQueryOptions = {
+    val normalizedAllConf = normalizeAllConf(allConf)
+
     val tableParam = getRequiredOption(parameters, "table")
     val datasetParam = getOption(parameters, "dataset")
     val projectParam = getOption(parameters, "project")
       .orElse(Option(hadoopConf.get(GcsConfigProjectIdProperty)))
-    val credsParam = getAnyOption(allConf, parameters, "credentials")
-    val credsFileParam = getAnyOption(allConf, parameters, "credentialsFile")
+    val credsParam = getAnyOption(normalizedAllConf, parameters, "credentials")
+    val credsFileParam = getAnyOption(normalizedAllConf, parameters, "credentialsFile")
       .orElse(Option(hadoopConf.get(GcsConfigCredentialsFileProperty)))
     val tableId = BigQueryUtil.parseTableId(tableParam, datasetParam, projectParam)
     val parentProject = getRequiredOption(parameters, "parentProject",
@@ -113,8 +133,8 @@ object SparkBigQueryOptions {
     val maxParallelism = getOptionFromMultipleParams(
       parameters, Seq("maxParallelism", "parallelism"))
       .map(_.toInt)
-    val temporaryGcsBucket = getAnyOption(allConf, parameters, "temporaryGcsBucket")
-    val intermediateFormat = getAnyOption(allConf, parameters, IntermediateFormatOption)
+    val temporaryGcsBucket = getAnyOption(normalizedAllConf, parameters, "temporaryGcsBucket")
+    val intermediateFormat = getAnyOption(normalizedAllConf, parameters, IntermediateFormatOption)
       .map(s => FormatOptions.of(s.toUpperCase))
       .getOrElse(DefaultFormat)
     if (!PermittedIntermediateFormats.contains(intermediateFormat)) {
@@ -123,7 +143,16 @@ object SparkBigQueryOptions {
            |Supported formats are ${PermittedIntermediateFormats.map(_.getType)}"""
           .stripMargin.replace('\n', ' '))
     }
-    val readDataFormatParam = getAnyOption(allConf, parameters, ReadDataFormatOption)
+    if (intermediateFormat == FormatOptions.avro()) {
+      try {
+        DataSource.lookupDataSource("avro", sqlConf)
+      } catch {
+        case re: RuntimeException =>
+          throw missingAvroException(sparkVersion, re)
+        case t: Throwable => throw t
+      }
+    }
+    val readDataFormatParam = getAnyOption(normalizedAllConf, parameters, ReadDataFormatOption)
       .map(s => s.toUpperCase())
       .getOrElse(DefaultReadDataFormat.toString)
     if (!PermittedReadDataFormats.contains(readDataFormatParam)) {
@@ -134,14 +163,14 @@ object SparkBigQueryOptions {
     }
     val readDataFormat = DataFormat.valueOf(readDataFormatParam)
     val combinePushedDownFilters = getAnyBooleanOption(
-      allConf, parameters, "combinePushedDownFilters", true)
+      normalizedAllConf, parameters, "combinePushedDownFilters", true)
     val viewsEnabled = getAnyBooleanOption(
-      allConf, parameters, ViewsEnabledOption, false)
+      normalizedAllConf, parameters, ViewsEnabledOption, false)
     val materializationProject =
-      getAnyOption(allConf, parameters,
+      getAnyOption(normalizedAllConf, parameters,
         Seq("materializationProject", "viewMaterializationProject"))
     val materializationDataset =
-      getAnyOption(allConf, parameters,
+      getAnyOption(normalizedAllConf, parameters,
         Seq("materializationDataset", "viewMaterializationDataset"))
 
     val partitionField = getOption(parameters, "partitionField")
@@ -154,13 +183,13 @@ object SparkBigQueryOptions {
       .map(_.toUpperCase).map(param => CreateDisposition.valueOf(param))
 
     val optimizedEmptyProjection = getAnyBooleanOption(
-      allConf, parameters, "optimizedEmptyProjection", true)
-    val accessToken = getAnyOption(allConf, parameters, GcsAccessToken)
+      normalizedAllConf, parameters, "optimizedEmptyProjection", true)
+    val accessToken = getAnyOption(normalizedAllConf, parameters, GcsAccessToken)
 
     val allowFieldAddition = getAnyBooleanOption(
-      allConf, parameters, "allowFieldAddition", false)
+      normalizedAllConf, parameters, "allowFieldAddition", false)
     val allowFieldRelaxation = getAnyBooleanOption(
-      allConf, parameters, "allowFieldRelaxation", false)
+      normalizedAllConf, parameters, "allowFieldRelaxation", false)
     val loadSchemaUpdateOptions = new ArrayBuffer[JobInfo.SchemaUpdateOption]
     if (allowFieldAddition) {
       loadSchemaUpdateOptions += JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION
@@ -175,6 +204,22 @@ object SparkBigQueryOptions {
       materializationDataset, partitionField, partitionExpirationMs,
       partitionRequireFilter, partitionType, clusteredFields, createDisposition,
       optimizedEmptyProjection, accessToken, loadSchemaUpdateOptions.asJava)
+  }
+
+  // could not load the spark-avro data source
+  private def missingAvroException(sparkVersion: String, cause: Exception) = {
+    val avroPackage = if (sparkVersion >= "2.4") {
+      val scalaVersion = Properties.versionNumberString
+      val scalaShortVersion = scalaVersion.substring(0, scalaVersion.lastIndexOf('.'))
+      s"org.apache.spark:spark-avro_$scalaShortVersion:$sparkVersion"
+    } else {
+      "com.databricks:spark-avro_2.11:4.0.0"
+    }
+    val message = s"""Avro writing is not supported, as the spark-avro has not been
+                     |found. Please re-run spark with the --packages $avroPackage parameter"""
+      .stripMargin.replace('\n', ' ')
+
+    new IllegalStateException(message, cause)
   }
 
   private def defaultBilledProject = () =>

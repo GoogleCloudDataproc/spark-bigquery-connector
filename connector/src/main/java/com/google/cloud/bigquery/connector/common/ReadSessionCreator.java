@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -39,6 +40,13 @@ import static java.lang.String.format;
 
 // A helper class, also handles view materialization
 public class ReadSessionCreator {
+    /**
+     * Default parallelism to 1 reader per 400MB, which should be about the maximum allowed by the
+     * BigQuery Storage API. The number of partitions returned may be significantly less depending
+     * on a number of factors.
+     */
+    private static final int DEFAULT_BYTES_PER_PARTITION = 400 * 1000 * 1000;
+
     private static final Logger log = LoggerFactory.getLogger(ReadSessionCreator.class);
 
     private static Cache<String, TableInfo> destinationTableCache =
@@ -60,10 +68,15 @@ public class ReadSessionCreator {
         this.bigQueryStorageClientFactory = bigQueryStorageClientFactory;
     }
 
-    public Storage.ReadSession create(TableId table, ImmutableList<String> selectedFields, Optional<String> filter, int parallelism) {
+    public ReadSessionResponse create(
+            TableId table,
+            ImmutableList<String> selectedFields,
+            Optional<String> filter,
+            OptionalInt maxParallelism) {
         TableInfo tableDetails = bigQueryClient.getTable(table);
 
         TableInfo actualTable = getActualTable(tableDetails, selectedFields, new String[]{});
+        StandardTableDefinition tableDefinition = actualTable.getDefinition();
 
         try (BigQueryStorageClient bigQueryStorageClient = bigQueryStorageClientFactory.createBigQueryStorageClient()) {
             ReadOptions.TableReadOptions.Builder readOptions = ReadOptions.TableReadOptions.newBuilder()
@@ -76,7 +89,7 @@ public class ReadSessionCreator {
                     Storage.CreateReadSessionRequest.newBuilder()
                             .setParent("projects/" + bigQueryClient.getProjectId())
                             .setFormat(config.readDataFormat)
-                            .setRequestedStreams(parallelism)
+                            .setRequestedStreams(getMaxNumPartitionsRequested(maxParallelism, tableDefinition))
                             .setReadOptions(readOptions)
                             .setTableReference(tableReference)
                             // The BALANCED sharding strategy causes the server to
@@ -84,8 +97,13 @@ public class ReadSessionCreator {
                             .setShardingStrategy(Storage.ShardingStrategy.BALANCED)
                             .build());
 
-            return readSession;
+            return new ReadSessionResponse(readSession, actualTable);
         }
+    }
+
+    static int getMaxNumPartitionsRequested(OptionalInt maxParallelism, StandardTableDefinition tableDefinition) {
+        return maxParallelism.orElse(Math.max(
+                (int)(tableDefinition.getNumBytes() / DEFAULT_BYTES_PER_PARTITION), 1));
     }
 
     TableReferenceProto.TableReference toTableReference(TableId tableId) {

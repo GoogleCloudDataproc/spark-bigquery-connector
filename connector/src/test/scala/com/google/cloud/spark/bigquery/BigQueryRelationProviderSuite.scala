@@ -21,8 +21,9 @@ import com.google.api.client.util.Base64
 import com.google.cloud.bigquery._
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.hadoop.conf.Configuration
-import org.apache.spark.SparkContext
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.sql.internal.{SQLConf, SessionState}
+import org.apache.spark.sql.{SQLContext, SparkSession}
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.mockito.{ArgumentMatchers, Mock, MockitoAnnotations}
@@ -63,8 +64,18 @@ class BigQueryRelationProviderSuite
       new BigQueryRelationProvider(() => Some(bigQuery))
     table = TestUtils.table(TABLE)
 
+    val master = "local[*]"
+    val appName = "MyApp"
+    val sparkConf: SparkConf = new SparkConf()
+      .setMaster(master)
+      .setAppName(appName)
+    val ss = SparkSession.builder().config(sparkConf).getOrCreate()
+
     when(sqlCtx.sparkContext).thenReturn(sc)
     when(sc.hadoopConfiguration).thenReturn(conf)
+    when(sc.version).thenReturn("2.4.0")
+
+    when(sqlCtx.sparkSession).thenReturn(ss)
     when(sqlCtx.getAllConfs).thenReturn(Map.empty[String, String])
   }
 
