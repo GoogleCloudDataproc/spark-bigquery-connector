@@ -52,7 +52,7 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
     @Override
     public InternalRow next() {
         try {
-            return SchemaConverters.createRowConverter(bqSchema,
+            return SchemaConverters.convertToInternalRow(bqSchema,
                     columnsInOrder, (GenericRecord) reader.read(null, in));
         } catch (IOException e) {
             throw new UncheckedIOException(e);

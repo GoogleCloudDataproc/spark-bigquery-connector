@@ -38,7 +38,7 @@ public class SchemaConverters {
         return structType;
     }
 
-    public static InternalRow createRowConverter(Schema schema, List<String> namesInOrder, GenericRecord record) {
+    public static InternalRow convertToInternalRow(Schema schema, List<String> namesInOrder, GenericRecord record) {
         return convertAll(schema.getFields(), record, namesInOrder);
     }
 

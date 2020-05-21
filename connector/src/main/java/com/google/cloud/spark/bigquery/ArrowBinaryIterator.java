@@ -49,7 +49,6 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
                 return false;
             }
             currentIterator = toArrowRows(arrowReaderIterator.next(), columnsInOrder);
-            arrowReaderIterator.next();
         }
 
         return currentIterator.hasNext();
@@ -61,8 +60,9 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
     }
 
     private Iterator<InternalRow> toArrowRows(VectorSchemaRoot root, List<String> namesInOrder) {
-        List<FieldVector> vectors = namesInOrder.stream().map(name -> root.getVector(name)).collect(Collectors.toList());
-        ColumnVector[] columns = vectors.stream().map(vector -> new ArrowSchemaConverter(vector))
+        ColumnVector[] columns = namesInOrder.stream()
+                .map(name -> root.getVector(name))
+                .map(vector -> new ArrowSchemaConverter(vector))
                 .collect(Collectors.toList()).toArray(new ColumnVector[0]);
 
         ColumnarBatch batch = new ColumnarBatch(columns);
@@ -97,7 +97,7 @@ class ArrowReaderIterator implements Iterator<VectorSchemaRoot> {
             }
             return res;
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new UncheckedIOException("Failed to load the next arrow batch", e);
         }
     }
 
