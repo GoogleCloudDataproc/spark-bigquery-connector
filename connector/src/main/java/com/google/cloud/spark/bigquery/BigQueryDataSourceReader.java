@@ -15,31 +15,38 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.*;
 import com.google.cloud.bigquery.storage.v1beta1.Storage;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.Filter;
-import org.apache.spark.sql.sources.v2.reader.DataSourceReader;
-import org.apache.spark.sql.sources.v2.reader.InputPartition;
-import org.apache.spark.sql.sources.v2.reader.SupportsPushDownFilters;
-import org.apache.spark.sql.sources.v2.reader.SupportsPushDownRequiredColumns;
+import org.apache.spark.sql.sources.v2.reader.*;
 import org.apache.spark.sql.types.StructType;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class BigQueryDataSourceReader implements
-        DataSourceReader, SupportsPushDownRequiredColumns, SupportsPushDownFilters {
+        DataSourceReader,
+        SupportsPushDownRequiredColumns,
+        SupportsPushDownFilters,
+        SupportsReportStatistics {
+
+    private static Statistics UNKNOWN_STATISTICS = new Statistics() {
+
+        @Override
+        public OptionalLong sizeInBytes() {
+            return OptionalLong.empty();
+        }
+
+        @Override
+        public OptionalLong numRows() {
+            return OptionalLong.empty();
+        }
+    };
 
     private final TableInfo table;
     private final TableId tableId;
@@ -166,5 +173,33 @@ public class BigQueryDataSourceReader implements
     Optional<String> emptyIfNeeded(String value) {
         return (value == null || value.length() == 0) ?
                 Optional.empty() : Optional.of(value);
+    }
+
+
+    @Override
+    public Statistics estimateStatistics() {
+        return table.getDefinition().getType() == TableDefinition.Type.TABLE ?
+                new StandardTableStatistics(table.getDefinition()) :
+                UNKNOWN_STATISTICS;
+
+    }
+}
+
+class StandardTableStatistics implements Statistics {
+
+    private StandardTableDefinition tableDefinition;
+
+    public StandardTableStatistics(StandardTableDefinition tableDefinition) {
+        this.tableDefinition = tableDefinition;
+    }
+
+    @Override
+    public OptionalLong sizeInBytes() {
+        return OptionalLong.of(tableDefinition.getNumBytes());
+    }
+
+    @Override
+    public OptionalLong numRows() {
+        return OptionalLong.of(tableDefinition.getNumRows());
     }
 }
