@@ -49,14 +49,14 @@ import com.google.common.base.Optional;
  * short lived clients that can be closed independently.
  */
 public class BigQueryStorageClientFactory implements Serializable {
-    private final Optional<Credentials> credentials;
+    private final Credentials credentials;
     // using the user agent as HeaderProvider is not serializable
     private final UserAgentHeaderProvider userAgentHeaderProvider;
 
     @Inject
     public BigQueryStorageClientFactory(BigQueryCredentialsSupplier bigQueryCredentialsSupplier, UserAgentHeaderProvider userAgentHeaderProvider) {
         // using Guava's optional as it is serializable
-        this.credentials = Optional.fromJavaUtil(bigQueryCredentialsSupplier.getCredentials());
+        this.credentials = bigQueryCredentialsSupplier.getCredentials();
         this.userAgentHeaderProvider = userAgentHeaderProvider;
     }
 
@@ -66,9 +66,8 @@ public class BigQueryStorageClientFactory implements Serializable {
                     .setTransportChannelProvider(
                             BigQueryStorageSettings.defaultGrpcTransportProviderBuilder()
                                     .setHeaderProvider(userAgentHeaderProvider)
-                                    .build());
-            credentials.toJavaUtil().ifPresent(credentials ->
-                    clientSettings.setCredentialsProvider(FixedCredentialsProvider.create(credentials)));
+                                    .build())
+                    .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
             return BigQueryStorageClient.create(clientSettings.build());
         } catch (IOException e) {
             throw new UncheckedIOException("Error creating BigQueryStorageClient", e);
