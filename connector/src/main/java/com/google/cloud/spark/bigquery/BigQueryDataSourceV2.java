@@ -15,21 +15,43 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.connector.common.BigQueryClientModule;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.apache.spark.sql.sources.v2.DataSourceV2;
 import org.apache.spark.sql.sources.v2.ReadSupport;
 import org.apache.spark.sql.sources.v2.reader.DataSourceReader;
 import org.apache.spark.sql.types.StructType;
 
+import java.util.Optional;
+
 public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport {
 
     @Override
     public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
-        return null;
+        SparkSession spark = getDefaultSparkSessionOrCreate();
+
+        Injector injector = Guice.createInjector(
+                new BigQueryClientModule(),
+                new SparkBigQueryConnectorModule(spark, options, Optional.ofNullable(schema)));
+
+        BigQueryDataSourceReader reader = injector.getInstance(BigQueryDataSourceReader.class);
+        return reader;
+    }
+
+    private SparkSession getDefaultSparkSessionOrCreate() {
+        scala.Option<SparkSession> defaultSpareSession = SparkSession.getDefaultSession();
+        if (defaultSpareSession.isDefined()) {
+            return defaultSpareSession.get();
+        }
+        return SparkSession.builder().appName("spark-bigquery-connector").getOrCreate();
     }
 
     @Override
     public DataSourceReader createReader(DataSourceOptions options) {
-        return null;
+        return createReader(null, options);
     }
 }
+

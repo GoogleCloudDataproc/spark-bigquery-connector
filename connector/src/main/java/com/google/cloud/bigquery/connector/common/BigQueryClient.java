@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.StreamSupport;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.lang.String.format;
 import static java.util.Locale.ENGLISH;
@@ -40,15 +41,15 @@ import static java.util.stream.Collectors.joining;
 // the mappings here keep the mappings
 public class BigQueryClient {
     private final BigQuery bigQuery;
-    private final Optional<String> viewMaterializationProject;
-    private final Optional<String> viewMaterializationDataset;
+    private final Optional<String> materializationProject;
+    private final Optional<String> materializationDataset;
     private final ConcurrentMap<TableId, TableId> tableIds = new ConcurrentHashMap<>();
     private final ConcurrentMap<DatasetId, DatasetId> datasetIds = new ConcurrentHashMap<>();
 
-    BigQueryClient(BigQuery bigQuery, Optional<String> viewMaterializationProject, Optional<String> viewMaterializationDataset) {
+    BigQueryClient(BigQuery bigQuery, Optional<String> materializationProject, Optional<String> materializationDataset) {
         this.bigQuery = bigQuery;
-        this.viewMaterializationProject = viewMaterializationProject;
-        this.viewMaterializationDataset = viewMaterializationDataset;
+        this.materializationProject = materializationProject;
+        this.materializationDataset = materializationDataset;
     }
 
     // return empty if no filters are used
@@ -56,7 +57,7 @@ public class BigQueryClient {
         return Optional.empty();
     }
 
-    TableInfo getTable(TableId tableId) {
+    public TableInfo getTable(TableId tableId) {
         TableId bigQueryTableId = tableIds.get(tableId);
         Table table = bigQuery.getTable(bigQueryTableId != null ? bigQueryTableId : tableId);
         if (table != null) {
@@ -64,6 +65,31 @@ public class BigQueryClient {
             datasetIds.putIfAbsent(toDatasetId(tableId), toDatasetId(table.getTableId()));
         }
         return table;
+    }
+
+    public TableInfo getSupportedTable(TableId tableId, boolean viewsEnabled, String viewEnabledParamName) {
+        TableInfo table = getTable(tableId);
+        if (table == null) {
+            return null;
+        }
+
+        TableDefinition tableDefinition = table.getDefinition();
+        TableDefinition.Type tableType = tableDefinition.getType();
+        if (TableDefinition.Type.TABLE == tableType) {
+            return table;
+        }
+        if (TableDefinition.Type.VIEW == tableType) {
+            if (viewsEnabled) {
+                return table;
+            } else {
+                throw new BigQueryConnectorException(UNSUPPORTED, format(
+                        "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
+                        viewEnabledParamName));
+            }
+        }
+        // not regular table or a view
+        throw new BigQueryConnectorException(UNSUPPORTED, format("Table type '%s' of table '%s.%s' is not supported",
+                tableType, table.getTableId().getDataset(), table.getTableId().getTable()));
     }
 
     DatasetId toDatasetId(TableId tableId) {
@@ -96,8 +122,8 @@ public class BigQueryClient {
     }
 
     TableId createDestinationTable(TableId tableId) {
-        String project = viewMaterializationProject.orElse(tableId.getProject());
-        String dataset = viewMaterializationDataset.orElse(tableId.getDataset());
+        String project = materializationProject.orElse(tableId.getProject());
+        String dataset = materializationDataset.orElse(tableId.getDataset());
         DatasetId datasetId = mapIfNeeded(project, dataset);
         UUID uuid = randomUUID();
         String name = format("_pbc_%s", randomUUID().toString().toLowerCase(ENGLISH).replace("-", ""));
@@ -151,5 +177,30 @@ public class BigQueryClient {
     String fullTableName(TableId tableId) {
         tableId = tableIds.getOrDefault(tableId, tableId);
         return format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
+    }
+
+    public long calculateTableSize(TableId tableId, Optional<String> filter) {
+        return calculateTableSize(getTable(tableId), filter);
+    }
+
+    public long calculateTableSize(TableInfo tableInfo, Optional<String> filter) {
+        try {
+            TableDefinition.Type type = tableInfo.getDefinition().getType();
+            if (type == TableDefinition.Type.TABLE && !filter.isPresent()) {
+                return tableInfo.getNumRows().longValue();
+            } else if (type == TableDefinition.Type.VIEW ||
+                    (type == TableDefinition.Type.TABLE && filter.isPresent())) {
+                // run a query
+                String table = fullTableName(tableInfo.getTableId());
+                String sql = format("SELECT COUNT(*) from `%s` WHERE %s", table, filter.get());
+                TableResult result = bigQuery.query(QueryJobConfiguration.of(sql));
+                return result.iterateAll().iterator().next().get(0).getLongValue();
+            } else {
+                throw new IllegalArgumentException(format("Unsupported table type %s for table %s",
+                        type, fullTableName(tableInfo.getTableId())));
+            }
+        } catch (InterruptedException e) {
+            throw new BigQueryConnectorException("Querying table size was interrupted on the client side", e);
+        }
     }
 }

@@ -26,7 +26,7 @@ public class SparkBigQueryConfigTest {
     public void testDefaults() {
         Configuration hadoopConfiguration  = new Configuration();
         DataSourceOptions options = new DataSourceOptions(defaultOptions);
-        SparkBigQueryConfig config = SparkBigQueryConfig.from(options, ImmutableMap.of(), hadoopConfiguration);
+        SparkBigQueryConfig config = SparkBigQueryConfig.from(options, ImmutableMap.of(), hadoopConfiguration,10);
         assertThat(config.getTableId()).isEqualTo(TableId.of("dataset", "table"));
         assertThat(config.getFilter()).isEqualTo(Optional.empty());
         assertThat(config.getSchema()).isEqualTo(Optional.empty());
@@ -72,7 +72,7 @@ public class SparkBigQueryConfigTest {
                 .put("allowFieldAddition","true")
                 .put("allowFieldRelaxation","true")
         .build());
-        SparkBigQueryConfig config = SparkBigQueryConfig.from(options, ImmutableMap.of(), hadoopConfiguration);
+        SparkBigQueryConfig config = SparkBigQueryConfig.from(options, ImmutableMap.of(), hadoopConfiguration, 10);
         assertThat(config.getTableId()).isEqualTo(TableId.of("test_p", "test_d", "test_t"));
         assertThat(config.getFilter()).isEqualTo(Optional.of("test > 0"));
         assertThat(config.getSchema()).isEqualTo(Optional.empty());
