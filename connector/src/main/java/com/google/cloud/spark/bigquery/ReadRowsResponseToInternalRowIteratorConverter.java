@@ -26,7 +26,7 @@ import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 
-interface ReadRowsResponseToInternalRowIteratorConverter {
+public interface ReadRowsResponseToInternalRowIteratorConverter {
 
     Iterator<InternalRow> convert(Storage.ReadRowsResponse response);
 
@@ -57,12 +57,11 @@ interface ReadRowsResponseToInternalRowIteratorConverter {
 
         @Override
         public Iterator<InternalRow> convert(Storage.ReadRowsResponse response) {
-            return BigQueryUtil.toJavaIterator(
-                    new AvroBinaryIterator(
+            return new AvroBinaryIterator(
                             bqSchema,
-                            BigQueryUtil.toSeq(columnsInOrder),
+                            columnsInOrder,
                             new org.apache.avro.Schema.Parser().parse(rawAvroSchema),
-                            response.getAvroRows().getSerializedBinaryRows()));
+                            response.getAvroRows().getSerializedBinaryRows());
         }
     }
 
@@ -78,11 +77,10 @@ interface ReadRowsResponseToInternalRowIteratorConverter {
 
         @Override
         public Iterator<InternalRow> convert(Storage.ReadRowsResponse response) {
-            return BigQueryUtil.toJavaIterator(
-                    new ArrowBinaryIterator(
-                            BigQueryUtil.toSeq(columnsInOrder),
+            return new ArrowBinaryIterator(
+                            columnsInOrder,
                             arrowSchema,
-                            response.getArrowRecordBatch().getSerializedRecordBatch()));
+                            response.getArrowRecordBatch().getSerializedRecordBatch());
         }
     }
 }
