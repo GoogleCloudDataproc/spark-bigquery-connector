@@ -19,8 +19,6 @@ import com.google.api.client.util.Base64;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
@@ -34,7 +32,7 @@ public class BigQueryCredentialsSupplier {
     private final Optional<String> accessToken;
     private final Optional<String> credentialsKey;
     private final Optional<String> credentialsFile;
-    private final Supplier<Optional<Credentials>> credentialsCreator;
+    private final Credentials credentials;
 
     public BigQueryCredentialsSupplier(
             Optional<String> accessToken,
@@ -44,12 +42,11 @@ public class BigQueryCredentialsSupplier {
         this.credentialsKey = credentialsKey;
         this.credentialsFile = credentialsFile;
         // lazy creation, cache once it's created
-        this.credentialsCreator = Suppliers.memoize(() -> {
-            Optional<Credentials> credentialsFromAccessToken = credentialsKey.map(BigQueryCredentialsSupplier::createCredentialsFromAccessToken);
-            Optional<Credentials> credentialsFromKey = credentialsKey.map(BigQueryCredentialsSupplier::createCredentialsFromKey);
-            Optional<Credentials> credentialsFromFile = credentialsFile.map(BigQueryCredentialsSupplier::createCredentialsFromFile);
-            return firstPresent(credentialsFromAccessToken, credentialsFromKey, credentialsFromFile);
-        });
+        Optional<Credentials> credentialsFromAccessToken = credentialsKey.map(BigQueryCredentialsSupplier::createCredentialsFromAccessToken);
+        Optional<Credentials> credentialsFromKey = credentialsKey.map(BigQueryCredentialsSupplier::createCredentialsFromKey);
+        Optional<Credentials> credentialsFromFile = credentialsFile.map(BigQueryCredentialsSupplier::createCredentialsFromFile);
+        this.credentials = firstPresent(credentialsFromAccessToken, credentialsFromKey, credentialsFromFile)
+                        .orElse(createDefaultCredentials());
     }
 
     private static Credentials createCredentialsFromAccessToken(String accessToken) {
@@ -72,7 +69,15 @@ public class BigQueryCredentialsSupplier {
         }
     }
 
-    Optional<Credentials> getCredentials() {
-        return credentialsCreator.get();
+    private static Credentials createDefaultCredentials() {
+        try {
+            return GoogleCredentials.getApplicationDefault();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to create default Credentials", e);
+        }
+    }
+
+    Credentials getCredentials() {
+        return credentials;
     }
 }
