@@ -39,30 +39,8 @@ public class ReadRowsHelper {
     }
 
     public Iterator<ReadRowsResponse> readRows() {
-        List<ReadRowsResponse> readRowResponses = new ArrayList<>();
-        long readRowsCount = 0;
-        int retries = 0;
         Iterator<ReadRowsResponse> serverResponses = fetchResponses(request);
-        while (serverResponses.hasNext()) {
-            try {
-                ReadRowsResponse response = serverResponses.next();
-                readRowsCount += response.getRowCount();
-                readRowResponses.add(response);
-            } catch (RuntimeException e) {
-                // if relevant, retry the read, from the last read position
-                if (BigQueryUtil.isRetryable(e) && retries < maxReadRowsRetries) {
-                    request.getReadPositionBuilder().setOffset(readRowsCount);
-                    serverResponses = fetchResponses(request);
-                    retries++;
-                } else {
-                    // to safely close the client
-                    try (BigQueryStorageClient ignored = client) {
-                        throw e;
-                    }
-                }
-            }
-        }
-        return readRowResponses.iterator();
+        return new ReadRowsIterator(this, request.getReadPositionBuilder(), serverResponses);
     }
 
     // In order to enable testing

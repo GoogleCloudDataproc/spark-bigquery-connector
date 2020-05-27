@@ -17,34 +17,43 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.client.util.Base64;
 import com.google.auth.Credentials;
+import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.Streams;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Optional;
-import java.util.stream.Stream;
 
-class BigQueryCredentialsSupplier {
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
+
+public class BigQueryCredentialsSupplier {
+    private final Optional<String> accessToken;
     private final Optional<String> credentialsKey;
     private final Optional<String> credentialsFile;
     private final Supplier<Optional<Credentials>> credentialsCreator;
 
-    public BigQueryCredentialsSupplier(Optional<String> credentialsKey, Optional<String> credentialsFile) {
+    public BigQueryCredentialsSupplier(
+            Optional<String> accessToken,
+            Optional<String> credentialsKey,
+            Optional<String> credentialsFile) {
+        this.accessToken = accessToken;
         this.credentialsKey = credentialsKey;
         this.credentialsFile = credentialsFile;
         // lazy creation, cache once it's created
         this.credentialsCreator = Suppliers.memoize(() -> {
+            Optional<Credentials> credentialsFromAccessToken = credentialsKey.map(BigQueryCredentialsSupplier::createCredentialsFromAccessToken);
             Optional<Credentials> credentialsFromKey = credentialsKey.map(BigQueryCredentialsSupplier::createCredentialsFromKey);
             Optional<Credentials> credentialsFromFile = credentialsFile.map(BigQueryCredentialsSupplier::createCredentialsFromFile);
-            return Stream.of(credentialsFromKey, credentialsFromFile)
-                    .flatMap(Streams::stream)
-                    .findFirst();
+            return firstPresent(credentialsFromAccessToken, credentialsFromKey, credentialsFromFile);
         });
+    }
+
+    private static Credentials createCredentialsFromAccessToken(String accessToken) {
+        return GoogleCredentials.create(new AccessToken(accessToken, null));
     }
 
     private static Credentials createCredentialsFromKey(String key) {

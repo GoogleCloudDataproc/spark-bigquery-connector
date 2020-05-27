@@ -35,6 +35,7 @@ import scala.collection.JavaConverters._
 import scala.util.Properties
 
 
+
 /** Options for defining {@link BigQueryRelation}s */
   case class SparkBigQueryOptions(
     tableId: TableId,
