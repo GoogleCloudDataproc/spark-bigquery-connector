@@ -25,12 +25,9 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.arrow.ArrowUtils
 import org.apache.spark.{InterruptibleIterator, Partition, SparkContext, TaskContext}
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable
-import scala.collection.mutable.MutableList._
 
 class BigQueryRDD(sc: SparkContext,
                   parts: Array[Partition],
@@ -88,9 +85,9 @@ case class ArrowConverter(columnsInOrder: Seq[String],
 {
   def getIterator(): Iterator[InternalRow] = {
     rowResponseIterator.flatMap(readRowResponse =>
-      new ArrowBinaryIterator(columnsInOrder,
+      new ArrowBinaryIterator(columnsInOrder.asJava,
         rawArrowSchema,
-        readRowResponse.getArrowRecordBatch.getSerializedRecordBatch));
+        readRowResponse.getArrowRecordBatch.getSerializedRecordBatch).asScala);
   }
 }
 
@@ -116,9 +113,9 @@ case class AvroConverter (bqSchema: Schema,
 
   def toRows(response: ReadRowsResponse): Iterator[InternalRow] = new AvroBinaryIterator(
     bqSchema,
-    columnsInOrder,
+    columnsInOrder.asJava,
     avroSchema,
-    response.getAvroRows.getSerializedBinaryRows)
+    response.getAvroRows.getSerializedBinaryRows).asScala
 }
 
 case class BigQueryPartition(stream: String, index: Int) extends Partition
