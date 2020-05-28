@@ -285,11 +285,13 @@ The API Supports a number of options to configure the read
   <tr valign="top">
      <td><code>partitionField</code>
      </td>
-     <td>If not set, the table is partitioned by pseudo column, referenced via either
-            <code>'_PARTITIONTIME' as TIMESTAMP</code> type, or <code>'_PARTITIONDATE' as DATE</code> type. If field is specified,
-            the table is instead partitioned by this field. The field must be a top-level TIMESTAMP or DATE
-            field. Its mode must be <strong>NULLABLE</strong> or <strong>REQUIRED</strong>.
-            <br/>(Optional).
+     <td>If field is specified together with `partitionType`, the table is partitioned by this field.
+         The field must be a top-level TIMESTAMP or DATE field. Its mode must be <strong>NULLABLE</strong>
+         or <strong>REQUIRED</strong>.
+         If the option is not set for a partitioned table, then the table will be partitioned by pseudo
+         column, referenced via either<code>'_PARTITIONTIME' as TIMESTAMP</code> type, or
+         <code>'_PARTITIONDATE' as DATE</code> type.
+         <br/>(Optional).
      </td>
      <td>Write</td>
     </tr>
@@ -305,8 +307,9 @@ The API Supports a number of options to configure the read
    <tr valign="top">
        <td><code>partitionType</code>
         </td>
-        <td>The only type supported is DAY, which will generate one partition per day.
-           <br/>(Optional. Default to DAY).
+        <td>The only type supported is DAY, which will generate one partition per day. This option is <b>mandatory</b>
+            for a target table to be partitioned.
+            <br/>(Optional. Defaults to DAY if PartitionField is specified).
         </td>
         <td>Write</td>
      </tr>
