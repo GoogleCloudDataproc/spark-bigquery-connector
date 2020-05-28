@@ -15,26 +15,25 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.stream.Collectors;
-
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
-import org.apache.avro.generic.GenericRecord;
 import com.google.cloud.bigquery.Schema;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
 import org.apache.spark.sql.types.*;
-import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
 import org.apache.spark.unsafe.types.UTF8String;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class SchemaConverters {
     // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
@@ -42,9 +41,11 @@ public class SchemaConverters {
     private final static int BQ_NUMERIC_PRECISION = 38;
     private final static int BQ_NUMERIC_SCALE = 9;
     private final static DecimalType NUMERIC_SPARK_TYPE = DataTypes.createDecimalType(
-        BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
+            BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
 
-    /** Convert a BigQuery schema to a Spark schema */
+    /**
+     * Convert a BigQuery schema to a Spark schema
+     */
     public static StructType toSpark(Schema schema) {
         List<StructField> fieldList = schema.getFields().stream()
                 .map(SchemaConverters::convert).collect(Collectors.toList());
@@ -90,15 +91,15 @@ public class SchemaConverters {
         if (LegacySQLTypeName.STRING.equals(field.getType()) ||
                 LegacySQLTypeName.DATETIME.equals(field.getType()) ||
                 LegacySQLTypeName.GEOGRAPHY.equals(field.getType())) {
-            return UTF8String.fromBytes(((Utf8)value).getBytes());
+            return UTF8String.fromBytes(((Utf8) value).getBytes());
         }
 
         if (LegacySQLTypeName.BYTES.equals(field.getType())) {
-            return getBytes((ByteBuffer)value);
+            return getBytes((ByteBuffer) value);
         }
 
         if (LegacySQLTypeName.NUMERIC.equals(field.getType())) {
-            byte[] bytes = getBytes((ByteBuffer)value);
+            byte[] bytes = getBytes((ByteBuffer) value);
             BigDecimal b = new BigDecimal(new BigInteger(bytes), BQ_NUMERIC_SCALE);
             Decimal d = Decimal.apply(b, BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
 
@@ -107,7 +108,7 @@ public class SchemaConverters {
 
         if (LegacySQLTypeName.RECORD.equals(field.getType())) {
             return convertAll(field.getSubFields(),
-                    (GenericRecord)value,
+                    (GenericRecord) value,
                     field.getSubFields().stream().map(f -> f.getName()).collect(Collectors.toList()));
         }
 
@@ -123,13 +124,13 @@ public class SchemaConverters {
 
     // Schema is not recursive so add helper for sequence of fields
     static GenericInternalRow convertAll(FieldList fieldList,
-                                  GenericRecord record,
-                                  List<String> namesInOrder) {
+                                         GenericRecord record,
+                                         List<String> namesInOrder) {
 
         Map<String, Object> fieldMap = new HashMap<>();
 
-       fieldList.stream().forEach(field ->
-               fieldMap.put(field.getName(), convert(field, record.get(field.getName()))));
+        fieldList.stream().forEach(field ->
+                fieldMap.put(field.getName(), convert(field, record.get(field.getName()))));
 
         Object[] values = new Object[namesInOrder.size()];
         for (int i = 0; i < namesInOrder.size(); i++) {
@@ -141,10 +142,10 @@ public class SchemaConverters {
 
     /**
      * Create a function that converts an Avro row with the given BigQuery schema to a Spark SQL row
-     *
+     * <p>
      * The conversion is based on the BigQuery schema, not Avro Schema, because the Avro schema is
      * very painful to use.
-     *
+     * <p>
      * Not guaranteed to be stable across all versions of Spark.
      */
 

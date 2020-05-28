@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.cloud.bigquery.storage.v1beta1.Storage;
+import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import org.apache.spark.sql.sources.*;
 
@@ -34,7 +34,7 @@ class SparkFilterUtils {
     private SparkFilterUtils() {
     }
 
-    static boolean isHandled(Filter filter, Storage.DataFormat readDataFormat) {
+    static boolean isHandled(Filter filter, DataFormat readDataFormat) {
         if (filter instanceof EqualTo ||
                 filter instanceof GreaterThan ||
                 filter instanceof GreaterThanOrEqual ||
@@ -58,7 +58,7 @@ class SparkFilterUtils {
         }
         if (filter instanceof Or) {
             Or or = (Or) filter;
-            return readDataFormat == Storage.DataFormat.AVRO
+            return readDataFormat == DataFormat.AVRO
                     && isHandled(or.left(), readDataFormat)
                     && isHandled(or.right(), readDataFormat);
         }
@@ -68,28 +68,28 @@ class SparkFilterUtils {
         return false;
     }
 
-    static Iterable<Filter> handledFilters(Storage.DataFormat readDataFormat, Filter... filters) {
+    static Iterable<Filter> handledFilters(DataFormat readDataFormat, Filter... filters) {
         return handledFilters(readDataFormat, ImmutableList.copyOf(filters));
     }
 
-    static Iterable<Filter> handledFilters(Storage.DataFormat readDataFormat, Iterable<Filter> filters) {
+    static Iterable<Filter> handledFilters(DataFormat readDataFormat, Iterable<Filter> filters) {
         return StreamSupport.stream(filters.spliterator(), false)
                 .filter(f -> isHandled(f, readDataFormat))
                 .collect(Collectors.toList());
     }
 
-    static Iterable<Filter> unhandledFilters(Storage.DataFormat readDataFormat, Filter... filters) {
+    static Iterable<Filter> unhandledFilters(DataFormat readDataFormat, Filter... filters) {
         return unhandledFilters(readDataFormat, ImmutableList.copyOf(filters));
     }
 
-    static Iterable<Filter> unhandledFilters(Storage.DataFormat readDataFormat, Iterable<Filter> filters) {
+    static Iterable<Filter> unhandledFilters(DataFormat readDataFormat, Iterable<Filter> filters) {
         return StreamSupport.stream(filters.spliterator(), false)
                 .filter(f -> !isHandled(f, readDataFormat))
                 .collect(Collectors.toList());
     }
 
     static String getCompiledFilter(
-            Storage.DataFormat readDataFormat,
+            DataFormat readDataFormat,
             Optional<String> configFilter,
             Filter... pushedFilters) {
         String compiledPushedFilter = compileFilters(handledFilters(

@@ -18,7 +18,7 @@ package com.google.cloud.spark.bigquery;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.storage.v1beta1.Storage;
+import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.hadoop.conf.Configuration;
@@ -94,7 +94,7 @@ public class SparkBigQueryConfigTest {
         assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.of(99));
         assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("some_bucket"));
         assertThat(config.getIntermediateFormat()).isEqualTo(FormatOptions.orc());
-        assertThat(config.getReadDataFormat()).isEqualTo(Storage.DataFormat.ARROW);
+        assertThat(config.getReadDataFormat()).isEqualTo(DataFormat.ARROW);
         assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("vmp"));
         assertThat(config.getMaterializationDataset()).isEqualTo(Optional.of("vmd"));
         assertThat(config.getPartitionField()).isEqualTo(Optional.of("some_field"));

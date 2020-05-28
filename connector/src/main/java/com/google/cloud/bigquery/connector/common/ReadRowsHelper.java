@@ -15,10 +15,9 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import com.google.cloud.bigquery.storage.v1beta1.BigQueryStorageClient;
-import com.google.cloud.bigquery.storage.v1beta1.Storage.ReadRowsRequest;
-import com.google.cloud.bigquery.storage.v1beta1.Storage.ReadRowsResponse;
-import com.google.cloud.bigquery.storage.v1beta1.Storage.StreamPosition;
+import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
+import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
+import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -26,16 +25,16 @@ import java.util.NoSuchElementException;
 import static java.util.Objects.requireNonNull;
 
 public class ReadRowsHelper {
-    private BigQueryStorageClientFactory bigQueryStorageClientFactory;
+    private BigQueryReadClientFactory bigQueryReadClientFactory;
     private ReadRowsRequest.Builder request;
     private int maxReadRowsRetries;
-    private BigQueryStorageClient client;
+    private BigQueryReadClient client;
 
     public ReadRowsHelper(
-            BigQueryStorageClientFactory bigQueryStorageClientFactory,
+            BigQueryReadClientFactory bigQueryReadClientFactory,
             ReadRowsRequest.Builder request,
             int maxReadRowsRetries) {
-        this.bigQueryStorageClientFactory = requireNonNull(bigQueryStorageClientFactory, "bigQueryStorageClientFactory cannot be null");
+        this.bigQueryReadClientFactory = requireNonNull(bigQueryReadClientFactory, "bigQueryReadClientFactory cannot be null");
         this.request = requireNonNull(request, "request cannot be null");
         this.maxReadRowsRetries = maxReadRowsRetries;
     }
@@ -44,9 +43,9 @@ public class ReadRowsHelper {
         if (client != null) {
             client.close();
         }
-        client = bigQueryStorageClientFactory.createBigQueryStorageClient();
+        client = bigQueryReadClientFactory.createBigQueryReadClient();
         Iterator<ReadRowsResponse> serverResponses = fetchResponses(request);
-        return new ReadRowsIterator(this, request.getReadPositionBuilder(), serverResponses);
+        return new ReadRowsIterator(this, serverResponses);
     }
 
     // In order to enable testing
@@ -59,17 +58,14 @@ public class ReadRowsHelper {
     // Ported from https://github.com/GoogleCloudDataproc/spark-bigquery-connector/pull/150
     static class ReadRowsIterator implements Iterator<ReadRowsResponse> {
         ReadRowsHelper helper;
-        StreamPosition.Builder readPosition;
         Iterator<ReadRowsResponse> serverResponses;
         long readRowsCount;
         int retries;
 
         public ReadRowsIterator(
                 ReadRowsHelper helper,
-                StreamPosition.Builder readPosition,
                 Iterator<ReadRowsResponse> serverResponses) {
             this.helper = helper;
-            this.readPosition = readPosition;
             this.serverResponses = serverResponses;
         }
 
@@ -93,8 +89,7 @@ public class ReadRowsHelper {
                 } catch (Exception e) {
                     // if relevant, retry the read, from the last read position
                     if (BigQueryUtil.isRetryable(e) && retries < helper.maxReadRowsRetries) {
-                        serverResponses = helper.fetchResponses(helper.request.setReadPosition(
-                                readPosition.setOffset(readRowsCount)));
+                        serverResponses = helper.fetchResponses(helper.request.setOffset(readRowsCount));
                         retries++;
                     } else {
                         helper.client.close();

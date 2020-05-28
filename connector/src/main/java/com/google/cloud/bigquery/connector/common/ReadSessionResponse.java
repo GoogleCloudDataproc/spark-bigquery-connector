@@ -16,19 +16,19 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.storage.v1beta1.Storage;
+import com.google.cloud.bigquery.storage.v1.ReadSession;
 
 public class ReadSessionResponse {
 
-    private final Storage.ReadSession readSession;
+    private final ReadSession readSession;
     private final TableInfo readTableInfo;
 
-    public ReadSessionResponse(Storage.ReadSession readSession, TableInfo readTableInfo) {
+    public ReadSessionResponse(ReadSession readSession, TableInfo readTableInfo) {
         this.readSession = readSession;
         this.readTableInfo = readTableInfo;
     }
 
-    public Storage.ReadSession getReadSession() {
+    public ReadSession getReadSession() {
         return readSession;
     }
 

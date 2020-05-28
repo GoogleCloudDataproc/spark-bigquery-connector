@@ -31,44 +31,41 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
-import com.google.api.gax.rpc.FixedHeaderProvider;
-import com.google.api.gax.rpc.HeaderProvider;
 import com.google.auth.Credentials;
-import com.google.cloud.bigquery.storage.v1beta1.BigQueryStorageClient;
-import com.google.cloud.bigquery.storage.v1beta1.BigQueryStorageSettings;
+import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
+import com.google.cloud.bigquery.storage.v1.BigQueryReadSettings;
 
 import javax.inject.Inject;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
-import com.google.common.base.Optional;
 
 /**
  * Since Guice recommends to avoid injecting closeable resources (see
  * https://github.com/google/guice/wiki/Avoid-Injecting-Closable-Resources), this factory creates
  * short lived clients that can be closed independently.
  */
-public class BigQueryStorageClientFactory implements Serializable {
+public class BigQueryReadClientFactory implements Serializable {
     private final Credentials credentials;
     // using the user agent as HeaderProvider is not serializable
     private final UserAgentHeaderProvider userAgentHeaderProvider;
 
     @Inject
-    public BigQueryStorageClientFactory(BigQueryCredentialsSupplier bigQueryCredentialsSupplier, UserAgentHeaderProvider userAgentHeaderProvider) {
+    public BigQueryReadClientFactory(BigQueryCredentialsSupplier bigQueryCredentialsSupplier, UserAgentHeaderProvider userAgentHeaderProvider) {
         // using Guava's optional as it is serializable
         this.credentials = bigQueryCredentialsSupplier.getCredentials();
         this.userAgentHeaderProvider = userAgentHeaderProvider;
     }
 
-    BigQueryStorageClient createBigQueryStorageClient() {
+    BigQueryReadClient createBigQueryReadClient() {
         try {
-            BigQueryStorageSettings.Builder clientSettings = BigQueryStorageSettings.newBuilder()
+            BigQueryReadSettings.Builder clientSettings = BigQueryReadSettings.newBuilder()
                     .setTransportChannelProvider(
-                            BigQueryStorageSettings.defaultGrpcTransportProviderBuilder()
+                            BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
                                     .setHeaderProvider(userAgentHeaderProvider)
                                     .build())
                     .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
-            return BigQueryStorageClient.create(clientSettings.build());
+            return BigQueryReadClient.create(clientSettings.build());
         } catch (IOException e) {
             throw new UncheckedIOException("Error creating BigQueryStorageClient", e);
         }

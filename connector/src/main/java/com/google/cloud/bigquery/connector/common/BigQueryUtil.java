@@ -37,6 +37,19 @@ public class BigQueryUtil {
             "HTTP/2 error code: INTERNAL_ERROR",
             "Connection closed with unknown cause",
             "Received unexpected EOS on DATA frame from server");
+    private static final String PROJECT_PATTERN = "\\S+";
+    private static final String DATASET_PATTERN = "\\w+";
+    // Allow all non-whitespace beside ':' and '.'.
+    // These confuse the qualified table parsing.
+    private static final String TABLE_PATTERN = "[\\S&&[^.:]]+";
+    /**
+     * Regex for an optionally fully qualified table.
+     * <p>
+     * Must match 'project.dataset.table' OR the legacy 'project:dataset.table' OR 'dataset.table'
+     * OR 'table'.
+     */
+    private static final Pattern QUALIFIED_TABLE_REGEX =
+            Pattern.compile(format("^(((%s)[:.])?(%s)\\.)?(%s)$$", PROJECT_PATTERN, DATASET_PATTERN, TABLE_PATTERN));
 
     private BigQueryUtil() {
     }
@@ -65,22 +78,6 @@ public class BigQueryUtil {
                 .flatMap(Streams::stream)
                 .findFirst();
     }
-
-    private static final String PROJECT_PATTERN = "\\S+";
-    private static final String DATASET_PATTERN = "\\w+";
-
-    // Allow all non-whitespace beside ':' and '.'.
-    // These confuse the qualified table parsing.
-    private static final String TABLE_PATTERN = "[\\S&&[^.:]]+";
-
-    /**
-     * Regex for an optionally fully qualified table.
-     * <p>
-     * Must match 'project.dataset.table' OR the legacy 'project:dataset.table' OR 'dataset.table'
-     * OR 'table'.
-     */
-    private static final Pattern QUALIFIED_TABLE_REGEX =
-            Pattern.compile(format("^(((%s)[:.])?(%s)\\.)?(%s)$$", PROJECT_PATTERN, DATASET_PATTERN, TABLE_PATTERN));
 
     public static TableId parseTableId(
             String rawTable,

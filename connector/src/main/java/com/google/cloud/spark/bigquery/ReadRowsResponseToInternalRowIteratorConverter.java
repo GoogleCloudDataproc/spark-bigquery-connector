@@ -16,10 +16,8 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.storage.v1.AvroRows;
-import com.google.cloud.bigquery.storage.v1beta1.Storage;
+import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.protobuf.ByteString;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.spark.sql.catalyst.InternalRow;
 
 import java.io.Serializable;
@@ -27,8 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 
 public interface ReadRowsResponseToInternalRowIteratorConverter {
-
-    Iterator<InternalRow> convert(Storage.ReadRowsResponse response);
 
     static ReadRowsResponseToInternalRowIteratorConverter avro(
             final com.google.cloud.bigquery.Schema bqSchema,
@@ -43,6 +39,8 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
         return new Arrow(columnsInOrder, arrowSchema);
     }
 
+    Iterator<InternalRow> convert(ReadRowsResponse response);
+
     class Avro implements ReadRowsResponseToInternalRowIteratorConverter, Serializable {
 
         private final com.google.cloud.bigquery.Schema bqSchema;
@@ -56,12 +54,12 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
         }
 
         @Override
-        public Iterator<InternalRow> convert(Storage.ReadRowsResponse response) {
+        public Iterator<InternalRow> convert(ReadRowsResponse response) {
             return new AvroBinaryIterator(
-                            bqSchema,
-                            columnsInOrder,
-                            new org.apache.avro.Schema.Parser().parse(rawAvroSchema),
-                            response.getAvroRows().getSerializedBinaryRows());
+                    bqSchema,
+                    columnsInOrder,
+                    new org.apache.avro.Schema.Parser().parse(rawAvroSchema),
+                    response.getAvroRows().getSerializedBinaryRows());
         }
     }
 
@@ -76,11 +74,11 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
         }
 
         @Override
-        public Iterator<InternalRow> convert(Storage.ReadRowsResponse response) {
+        public Iterator<InternalRow> convert(ReadRowsResponse response) {
             return new ArrowBinaryIterator(
-                            columnsInOrder,
-                            arrowSchema,
-                            response.getArrowRecordBatch().getSerializedRecordBatch());
+                    columnsInOrder,
+                    arrowSchema,
+                    response.getArrowRecordBatch().getSerializedRecordBatch());
         }
     }
 }

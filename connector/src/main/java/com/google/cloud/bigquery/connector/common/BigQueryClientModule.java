@@ -24,12 +24,6 @@ import java.util.Optional;
 
 public class BigQueryClientModule implements Module {
 
-    @Override
-    public void configure(Binder binder) {
-        // BigQuery related
-        binder.bind(BigQueryStorageClientFactory.class).in(Scopes.SINGLETON);
-    }
-
     @Provides
     @Singleton
     public static UserAgentHeaderProvider createUserAgentHeaderProvider(UserAgentProvider versionProvider) {
@@ -49,6 +43,12 @@ public class BigQueryClientModule implements Module {
         }
         // 3. No configuration was provided, so get the default from the environment
         return BigQueryOptions.getDefaultProjectId();
+    }
+
+    @Override
+    public void configure(Binder binder) {
+        // BigQuery related
+        binder.bind(BigQueryReadClientFactory.class).in(Scopes.SINGLETON);
     }
 
     @Provides

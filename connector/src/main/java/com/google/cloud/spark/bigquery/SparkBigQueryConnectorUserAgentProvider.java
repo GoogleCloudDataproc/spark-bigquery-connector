@@ -40,20 +40,16 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvider {
 
-    private static String CONNECTOR_VERSION = BuildInfo.version();
-    private static String SPARK_VERSION = SparkSession.builder().getOrCreate().version();
-    private static String JAVA_VERSION = System.getProperty("java.runtime.version");
-    private static String SCALA_VERSION = Properties.versionNumberString();
-
-
     @VisibleForTesting
     static String GCP_REGION_PART = getGcpRegion().map(region -> " region/" + region).orElse("");
-
     @VisibleForTesting
     static String DATAPROC_IMAGE_PART = Optional.ofNullable(System.getenv("DATAPROC_IMAGE_VERSION"))
             .map(image -> " dataproc-image/" + image)
             .orElse("");
-
+    private static String CONNECTOR_VERSION = BuildInfo.version();
+    private static String SPARK_VERSION = SparkSession.builder().getOrCreate().version();
+    private static String JAVA_VERSION = System.getProperty("java.runtime.version");
+    private static String SCALA_VERSION = Properties.versionNumberString();
     static final String USER_AGENT = format("spark-bigquery-connector/%s spark/%s java/%s scala/%s%s%s",
             CONNECTOR_VERSION,
             SPARK_VERSION,
@@ -65,15 +61,11 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
 
     private SparkContext sparkContext;
 
-    public SparkBigQueryConnectorUserAgentProvider() {}
+    public SparkBigQueryConnectorUserAgentProvider() {
+    }
 
     public SparkBigQueryConnectorUserAgentProvider(SparkContext sparkContext) {
         this.sparkContext = sparkContext;
-    }
-
-    @Override
-    public String getUserAgent() {
-        return USER_AGENT;
     }
 
     // Queries the GCE metadata server
@@ -102,5 +94,10 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
                 // nothing to do
             }
         }
+    }
+
+    @Override
+    public String getUserAgent() {
+        return USER_AGENT;
     }
 }

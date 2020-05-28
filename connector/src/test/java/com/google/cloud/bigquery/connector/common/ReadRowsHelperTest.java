@@ -15,11 +15,9 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import com.google.cloud.bigquery.storage.v1beta1.BigQueryStorageClient;
-import com.google.cloud.bigquery.storage.v1beta1.Storage.ReadRowsRequest;
-import com.google.cloud.bigquery.storage.v1beta1.Storage.ReadRowsResponse;
-import com.google.cloud.bigquery.storage.v1beta1.Storage.Stream;
-import com.google.cloud.bigquery.storage.v1beta1.Storage.StreamPosition;
+
+import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
+import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.collect.ImmutableList;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -33,10 +31,8 @@ import static org.mockito.Mockito.mock;
 public class ReadRowsHelperTest
 {
     // it is not used, we just need the reference
-    BigQueryStorageClientFactory clientFactory = mock(BigQueryStorageClientFactory.class);
-    private ReadRowsRequest.Builder request = ReadRowsRequest.newBuilder().setReadPosition(
-            StreamPosition.newBuilder().setStream(
-                    Stream.newBuilder().setName("test")));
+    BigQueryReadClientFactory clientFactory = mock(BigQueryReadClientFactory.class);
+    private ReadRowsRequest.Builder request = ReadRowsRequest.newBuilder().setReadStream("test");
 
     @Test
     public void testNoFailures()
@@ -77,7 +73,7 @@ public class ReadRowsHelperTest
     {
         Iterator<MockResponsesBatch> responses;
 
-        MockReadRowsHelper(BigQueryStorageClientFactory clientFactory, ReadRowsRequest.Builder request, int maxReadRowsRetries, Iterable<MockResponsesBatch> responses)
+        MockReadRowsHelper(BigQueryReadClientFactory clientFactory, ReadRowsRequest.Builder request, int maxReadRowsRetries, Iterable<MockResponsesBatch> responses)
         {
             super(clientFactory, request, maxReadRowsRetries);
             this.responses = responses.iterator();

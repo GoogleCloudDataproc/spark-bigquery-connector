@@ -21,7 +21,7 @@ import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
-import com.google.cloud.bigquery.storage.v1beta1.Storage;
+import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -44,18 +44,17 @@ import static java.util.stream.Collectors.joining;
 
 public class SparkBigQueryConfig implements BigQueryConfig {
 
+    public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
+    @VisibleForTesting
+    static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.AVRO;
+    @VisibleForTesting
+    static final FormatOptions DEFAULT_INTERMEDIATE_FORMAT = FormatOptions.parquet();
     private static final String GCS_CONFIG_CREDENTIALS_FILE_PROPERTY = "google.cloud.auth.service.account.json.keyfile";
     private static final String GCS_CONFIG_PROJECT_ID_PROPERTY = "fs.gs.project.id";
     private static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
     private static final String READ_DATA_FORMAT_OPTION = "readDataFormat";
-    public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
-
-    @VisibleForTesting
-    static final Storage.DataFormat DEFAULT_READ_DATA_FORMAT = Storage.DataFormat.AVRO;
-    @VisibleForTesting
-    static final FormatOptions DEFAULT_INTERMEDIATE_FORMAT = FormatOptions.parquet();
     private static final ImmutableList<String> PERMITTED_READ_DATA_FORMATS = ImmutableList.of(
-            Storage.DataFormat.ARROW.toString(), Storage.DataFormat.AVRO.toString());
+            DataFormat.ARROW.toString(), DataFormat.AVRO.toString());
     private static final ImmutableList<FormatOptions> PERMITTED_INTERMEDIATE_FORMATS = ImmutableList.of(
             FormatOptions.orc(), FormatOptions.parquet());
 
@@ -72,7 +71,7 @@ public class SparkBigQueryConfig implements BigQueryConfig {
     int defaultParallelism = 1;
     Optional<String> temporaryGcsBucket = Optional.empty();
     FormatOptions intermediateFormat = DEFAULT_INTERMEDIATE_FORMAT;
-    Storage.DataFormat readDataFormat = DEFAULT_READ_DATA_FORMAT;
+    DataFormat readDataFormat = DEFAULT_READ_DATA_FORMAT;
     boolean combinePushedDownFilters = true;
     boolean viewsEnabled = false;
     Optional<String> materializationProject = Optional.empty();
@@ -87,6 +86,10 @@ public class SparkBigQueryConfig implements BigQueryConfig {
     ImmutableList<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.of();
     int viewExpirationTimeInHours = 24;
     int maxReadRowsRetries = 3;
+
+    private SparkBigQueryConfig() {
+        // empty
+    }
 
     public static SparkBigQueryConfig from(
             DataSourceOptions options,
@@ -129,7 +132,7 @@ public class SparkBigQueryConfig implements BigQueryConfig {
                     format("Data read format '%s' is not supported. Supported formats are '%s'", readDataFormatParam, String.join(",", PERMITTED_READ_DATA_FORMATS))
             );
         }
-        config.readDataFormat = Storage.DataFormat.valueOf(readDataFormatParam);
+        config.readDataFormat = DataFormat.valueOf(readDataFormatParam);
         config.combinePushedDownFilters = getAnyBooleanOption(
                 globalOptions, options, "combinePushedDownFilters", true);
         config.viewsEnabled = getAnyBooleanOption(
@@ -248,11 +251,6 @@ public class SparkBigQueryConfig implements BigQueryConfig {
                 .orElse(defaultValue);
     }
 
-
-    private SparkBigQueryConfig() {
-        // empty
-    }
-
     public TableId getTableId() {
         return tableId;
     }
@@ -302,7 +300,7 @@ public class SparkBigQueryConfig implements BigQueryConfig {
         return intermediateFormat;
     }
 
-    public Storage.DataFormat getReadDataFormat() {
+    public DataFormat getReadDataFormat() {
         return readDataFormat;
     }
 

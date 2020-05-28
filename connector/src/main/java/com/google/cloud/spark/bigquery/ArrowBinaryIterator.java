@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
-import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowReader;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
@@ -33,7 +32,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.SequenceInputStream;
 import java.io.UncheckedIOException;
-import java.util.*;
+import java.util.Iterator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class ArrowBinaryIterator implements Iterator<InternalRow> {
@@ -88,10 +88,10 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
 
 class ArrowReaderIterator implements Iterator<VectorSchemaRoot> {
 
+    private static final Logger log = LoggerFactory.getLogger(AvroBinaryIterator.class);
     boolean closed = false;
     VectorSchemaRoot current = null;
     ArrowReader reader;
-    private static final Logger log = LoggerFactory.getLogger(AvroBinaryIterator.class);
 
     public ArrowReaderIterator(ArrowReader reader) {
         this.reader = reader;

@@ -17,7 +17,8 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.*;
-import com.google.cloud.bigquery.storage.v1beta1.Storage;
+import com.google.cloud.bigquery.storage.v1.DataFormat;
+import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -52,7 +53,7 @@ public class BigQueryDataSourceReader implements
     private final TableId tableId;
     private final ReadSessionCreatorConfig readSessionCreatorConfig;
     private final BigQueryClient bigQueryClient;
-    private final BigQueryStorageClientFactory bigQueryStorageClientFactory;
+    private final BigQueryReadClientFactory bigQueryReadClientFactory;
     private final ReadSessionCreator readSessionCreator;
     private final Optional<String> globalFilter;
     private Optional<StructType> schema;
@@ -61,7 +62,7 @@ public class BigQueryDataSourceReader implements
     public BigQueryDataSourceReader(
             TableInfo table,
             BigQueryClient bigQueryClient,
-            BigQueryStorageClientFactory bigQueryStorageClientFactory,
+            BigQueryReadClientFactory bigQueryReadClientFactory,
             ReadSessionCreatorConfig readSessionCreatorConfig,
             Optional<String> globalFilter,
             Optional<StructType> schema) {
@@ -69,8 +70,8 @@ public class BigQueryDataSourceReader implements
         this.tableId = table.getTableId();
         this.readSessionCreatorConfig = readSessionCreatorConfig;
         this.bigQueryClient = bigQueryClient;
-        this.bigQueryStorageClientFactory = bigQueryStorageClientFactory;
-        this.readSessionCreator = new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryStorageClientFactory);
+        this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+        this.readSessionCreator = new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
         this.globalFilter = globalFilter;
         this.schema = schema;
     }
@@ -95,10 +96,10 @@ public class BigQueryDataSourceReader implements
                 readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
         ReadSessionResponse readSessionResponse = readSessionCreator.create(
                 tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
-        Storage.ReadSession readSession = readSessionResponse.getReadSession();
+        ReadSession readSession = readSessionResponse.getReadSession();
         return readSession.getStreamsList().stream()
                 .map(stream -> new BigQueryInputPartition(
-                        bigQueryStorageClientFactory,
+                        bigQueryReadClientFactory,
                         stream.getName(),
                         readSessionCreatorConfig.getMaxReadRowsRetries(),
                         createConverter(selectedFields, readSessionResponse)))
@@ -108,7 +109,7 @@ public class BigQueryDataSourceReader implements
     private ReadRowsResponseToInternalRowIteratorConverter createConverter(
             ImmutableList<String> selectedFields, ReadSessionResponse readSessionResponse) {
         ReadRowsResponseToInternalRowIteratorConverter converter;
-        if (readSessionCreatorConfig.getReadDataFormat() == Storage.DataFormat.AVRO) {
+        if (readSessionCreatorConfig.getReadDataFormat() == DataFormat.AVRO) {
             Schema schema = readSessionResponse.getReadTableInfo().getDefinition().getSchema();
             if (selectedFields.isEmpty()) {
                 // means select *

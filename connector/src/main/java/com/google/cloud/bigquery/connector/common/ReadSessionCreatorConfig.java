@@ -15,7 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import com.google.cloud.bigquery.storage.v1beta1.Storage;
+import com.google.cloud.bigquery.storage.v1.DataFormat;
 
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -26,7 +26,7 @@ public class ReadSessionCreatorConfig {
     final Optional<String> materializationDataset;
     final String viewEnabledParamName;
     final int viewExpirationTimeInHours;
-    final Storage.DataFormat readDataFormat;
+    final DataFormat readDataFormat;
     final int maxReadRowsRetries;
     final OptionalInt maxParallelism;
     final int defaultParallelism;
@@ -36,7 +36,7 @@ public class ReadSessionCreatorConfig {
             Optional<String> materializationProject,
             Optional<String> materializationDataset,
             int viewExpirationTimeInHours,
-            Storage.DataFormat readDataFormat,
+            DataFormat readDataFormat,
             int maxReadRowsRetries,
             String viewEnabledParamName,
             OptionalInt maxParallelism,
@@ -72,7 +72,7 @@ public class ReadSessionCreatorConfig {
         return viewExpirationTimeInHours;
     }
 
-    public Storage.DataFormat getReadDataFormat() {
+    public DataFormat getReadDataFormat() {
         return readDataFormat;
     }
 

@@ -18,7 +18,7 @@ package com.google.cloud.spark.bigquery;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
-import com.google.cloud.bigquery.connector.common.BigQueryStorageClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
@@ -67,13 +67,13 @@ public class SparkBigQueryConnectorModule implements Module {
     @Provides
     public BigQueryDataSourceReader provideDataSourceReader(
             BigQueryClient bigQueryClient,
-            BigQueryStorageClientFactory bigQueryStorageClientFactory,
+            BigQueryReadClientFactory bigQueryReadClientFactory,
             SparkBigQueryConfig config) {
         TableInfo tableInfo = bigQueryClient.getSupportedTable(config.getTableId(), config.isViewsEnabled(),
                 SparkBigQueryConfig.VIEWS_ENABLED_OPTION);
         return new BigQueryDataSourceReader(tableInfo,
                 bigQueryClient,
-                bigQueryStorageClientFactory,
+                bigQueryReadClientFactory,
                 config.toReadSessionCreatorConfig(),
                 config.getFilter(),
                 schema);

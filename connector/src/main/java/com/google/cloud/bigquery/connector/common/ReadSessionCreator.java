@@ -17,10 +17,9 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.BaseServiceException;
 import com.google.cloud.bigquery.*;
-import com.google.cloud.bigquery.storage.v1beta1.BigQueryStorageClient;
-import com.google.cloud.bigquery.storage.v1beta1.ReadOptions;
-import com.google.cloud.bigquery.storage.v1beta1.Storage;
-import com.google.cloud.bigquery.storage.v1beta1.TableReferenceProto;
+import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
+import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
+import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
@@ -57,15 +56,20 @@ public class ReadSessionCreator {
 
     private final ReadSessionCreatorConfig config;
     private final BigQueryClient bigQueryClient;
-    private final BigQueryStorageClientFactory bigQueryStorageClientFactory;
+    private final BigQueryReadClientFactory bigQueryReadClientFactory;
 
     public ReadSessionCreator(
             ReadSessionCreatorConfig config,
             BigQueryClient bigQueryClient,
-            BigQueryStorageClientFactory bigQueryStorageClientFactory) {
+            BigQueryReadClientFactory bigQueryReadClientFactory) {
         this.config = config;
         this.bigQueryClient = bigQueryClient;
-        this.bigQueryStorageClientFactory = bigQueryStorageClientFactory;
+        this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+    }
+
+    static int getMaxNumPartitionsRequested(OptionalInt maxParallelism, StandardTableDefinition tableDefinition) {
+        return maxParallelism.orElse(Math.max(
+                (int) (tableDefinition.getNumBytes() / DEFAULT_BYTES_PER_PARTITION), 1));
     }
 
     public ReadSessionResponse create(
@@ -78,40 +82,30 @@ public class ReadSessionCreator {
         TableInfo actualTable = getActualTable(tableDetails, selectedFields, new String[]{});
         StandardTableDefinition tableDefinition = actualTable.getDefinition();
 
-        try (BigQueryStorageClient bigQueryStorageClient = bigQueryStorageClientFactory.createBigQueryStorageClient()) {
-            ReadOptions.TableReadOptions.Builder readOptions = ReadOptions.TableReadOptions.newBuilder()
+        try (BigQueryReadClient bigQueryReadClient = bigQueryReadClientFactory.createBigQueryReadClient()) {
+            ReadSession.TableReadOptions.Builder readOptions = ReadSession.TableReadOptions.newBuilder()
                     .addAllSelectedFields(selectedFields);
             filter.ifPresent(readOptions::setRowRestriction);
 
-            TableReferenceProto.TableReference tableReference = toTableReference(actualTable.getTableId());
+            String tablePath = toTablePath(actualTable.getTableId());
 
-            Storage.ReadSession readSession = bigQueryStorageClient.createReadSession(
-                    Storage.CreateReadSessionRequest.newBuilder()
+            ReadSession readSession = bigQueryReadClient.createReadSession(
+                    CreateReadSessionRequest.newBuilder()
                             .setParent("projects/" + bigQueryClient.getProjectId())
-                            .setFormat(config.readDataFormat)
-                            .setRequestedStreams(getMaxNumPartitionsRequested(maxParallelism, tableDefinition))
-                            .setReadOptions(readOptions)
-                            .setTableReference(tableReference)
-                            // The BALANCED sharding strategy causes the server to
-                            // assign roughly the same number of rows to each stream.
-                            .setShardingStrategy(Storage.ShardingStrategy.BALANCED)
+                            .setReadSession(ReadSession.newBuilder()
+                                    .setDataFormat(config.readDataFormat)
+                                    .setReadOptions(readOptions)
+                                    .setTable(tablePath))
+                            .setMaxStreamCount(getMaxNumPartitionsRequested(maxParallelism, tableDefinition))
                             .build());
 
             return new ReadSessionResponse(readSession, actualTable);
         }
     }
 
-    static int getMaxNumPartitionsRequested(OptionalInt maxParallelism, StandardTableDefinition tableDefinition) {
-        return maxParallelism.orElse(Math.max(
-                (int)(tableDefinition.getNumBytes() / DEFAULT_BYTES_PER_PARTITION), 1));
-    }
-
-    TableReferenceProto.TableReference toTableReference(TableId tableId) {
-        return TableReferenceProto.TableReference.newBuilder()
-                .setProjectId(tableId.getProject())
-                .setDatasetId(tableId.getDataset())
-                .setTableId(tableId.getTable())
-                .build();
+    String toTablePath(TableId tableId) {
+        return format("projects/%s/datasets/%s/tables/%s",
+                tableId.getProject(), tableId.getDataset(), tableId.getTable());
     }
 
     TableInfo getActualTable(

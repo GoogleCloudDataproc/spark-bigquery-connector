@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.cloud.bigquery.storage.v1beta1.Storage;
+import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import org.apache.spark.sql.sources.EqualTo;
 import org.apache.spark.sql.sources.Filter;
@@ -28,8 +28,8 @@ import static com.google.common.truth.Truth.assertThat;
 
 public class SparkFilterUtilsTest {
 
-    private static final Storage.DataFormat ARROW = Storage.DataFormat.ARROW;
-    private static final Storage.DataFormat AVRO = Storage.DataFormat.AVRO;
+    private static final DataFormat ARROW = DataFormat.ARROW;
+    private static final DataFormat AVRO = DataFormat.AVRO;
 
     @Test public void testValidFiltersForAvro() {
         ImmutableList<Filter> validFilters = ImmutableList.of(
@@ -108,7 +108,7 @@ public class SparkFilterUtilsTest {
     }
 
     private void checkFilters(
-            Storage.DataFormat readDateFormat,
+            DataFormat readDateFormat,
             String resultWithoutFilters,
             String resultWithFilters, 
             Optional<String> configFilter,

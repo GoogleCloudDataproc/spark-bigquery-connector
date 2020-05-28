@@ -17,7 +17,7 @@ package com.google.cloud.spark.bigquery;
 
 
 import com.google.cloud.bigquery.*;
-import com.google.cloud.bigquery.storage.v1beta1.Storage;
+import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.TextFormat;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -69,9 +69,9 @@ public class BigQueryInputPartitionReaderTest {
     @Test
     public void testReadAvro() throws Exception {
         TableInfo allTypesTableInfo = allTypesTableInfo();
-        Storage.ReadRowsResponse.Builder readRowsResponse = Storage.ReadRowsResponse.newBuilder();
+        ReadRowsResponse.Builder readRowsResponse = ReadRowsResponse.newBuilder();
         TextFormat.merge(ALL_TYPES_TABLE_READ_ROWS_RESPONSE_STR, readRowsResponse);
-        Iterator<Storage.ReadRowsResponse> readRowsResponses = ImmutableList.of(readRowsResponse.build()).iterator();
+        Iterator<ReadRowsResponse> readRowsResponses = ImmutableList.of(readRowsResponse.build()).iterator();
 
         ReadRowsResponseToInternalRowIteratorConverter converter =
                 ReadRowsResponseToInternalRowIteratorConverter.avro(

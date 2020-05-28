@@ -15,9 +15,10 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.cloud.bigquery.connector.common.BigQueryStorageClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
-import com.google.cloud.bigquery.storage.v1beta1.Storage;
+import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
+import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartition;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
@@ -26,17 +27,17 @@ import java.util.Iterator;
 
 public class BigQueryInputPartition implements InputPartition<InternalRow> {
 
-    private final BigQueryStorageClientFactory bigQueryStorageClientFactory;
+    private final BigQueryReadClientFactory bigQueryReadClientFactory;
     private final String streamName;
     private final int maxReadRowsRetries;
     private final ReadRowsResponseToInternalRowIteratorConverter converter;
 
     public BigQueryInputPartition(
-            BigQueryStorageClientFactory bigQueryStorageClientFactory,
+            BigQueryReadClientFactory bigQueryReadClientFactory,
             String streamName,
             int maxReadRowsRetries,
             ReadRowsResponseToInternalRowIteratorConverter converter) {
-        this.bigQueryStorageClientFactory = bigQueryStorageClientFactory;
+        this.bigQueryReadClientFactory = bigQueryReadClientFactory;
         this.streamName = streamName;
         this.maxReadRowsRetries = maxReadRowsRetries;
         this.converter = converter;
@@ -44,12 +45,9 @@ public class BigQueryInputPartition implements InputPartition<InternalRow> {
 
     @Override
     public InputPartitionReader<InternalRow> createPartitionReader() {
-        Storage.ReadRowsRequest.Builder readRowsRequest = Storage.ReadRowsRequest.newBuilder()
-                .setReadPosition(Storage.StreamPosition.newBuilder()
-                        .setStream(Storage.Stream.newBuilder()
-                                .setName(streamName)));
-        ReadRowsHelper readRowsHelper = new ReadRowsHelper(bigQueryStorageClientFactory, readRowsRequest, maxReadRowsRetries);
-        Iterator<Storage.ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
+        ReadRowsRequest.Builder readRowsRequest = ReadRowsRequest.newBuilder().setReadStream(streamName);
+        ReadRowsHelper readRowsHelper = new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequest, maxReadRowsRetries);
+        Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
         return new BigQueryInputPartitionReader(readRowsResponses, converter);
     }
 }
