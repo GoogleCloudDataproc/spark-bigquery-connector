@@ -116,7 +116,7 @@ object SparkBigQueryOptions {
   : SparkBigQueryOptions = {
     val normalizedAllConf = normalizeAllConf(allConf)
 
-    val tableParam = getRequiredOption(parameters, "table")
+    val tableParam = getRequiredOption(parameters, "table", () => getOption(parameters, "path"))
     val datasetParam = getOption(parameters, "dataset")
     val projectParam = getOption(parameters, "project")
       .orElse(Option(hadoopConf.get(GcsConfigProjectIdProperty)))
