@@ -104,6 +104,10 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     spark.read.format("bigquery").option("table", SHAKESPEARE_TABLE).load()
   }
 
+  testShakespeare("simplified api") {
+    spark.read.format("bigquery").load(SHAKESPEARE_TABLE)
+  }
+
   testsWithReadInFormat("avro")
   testsWithReadInFormat("arrow")
 
@@ -344,7 +348,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
   /** Generate a test to verify that the given DataFrame is equal to a known result. */
   def testShakespeare(description: String)(df: => DataFrame): Unit = {
-    test(description) {
+    test(s"read using $description") {
       val youCannotImportVars = spark
       import youCannotImportVars.implicits._
       assert(SHAKESPEARE_TABLE_SCHEMA == df.schema)
@@ -452,6 +456,14 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
   test("write to bq - parquet format") {
     writeToBigQuery(initialData, SaveMode.ErrorIfExists, "parquet")
+    testTableNumberOfRows shouldBe 2
+    initialDataValuesExist shouldBe true
+  }
+
+  test("write to bq - simplified api") {
+    initialData.write.format("bigquery")
+      .option("temporaryGcsBucket", temporaryGcsBucket)
+      .save(fullTableName)
     testTableNumberOfRows shouldBe 2
     initialDataValuesExist shouldBe true
   }
