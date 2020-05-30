@@ -31,6 +31,7 @@ import java.util.OptionalInt;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED;
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
@@ -79,7 +80,7 @@ public class ReadSessionCreator {
             OptionalInt maxParallelism) {
         TableInfo tableDetails = bigQueryClient.getTable(table);
 
-        TableInfo actualTable = getActualTable(tableDetails, selectedFields, new String[]{});
+        TableInfo actualTable = getActualTable(tableDetails, selectedFields, filter);
         StandardTableDefinition tableDefinition = actualTable.getDefinition();
 
         try (BigQueryReadClient bigQueryReadClient = bigQueryReadClientFactory.createBigQueryReadClient()) {
@@ -106,6 +107,14 @@ public class ReadSessionCreator {
     String toTablePath(TableId tableId) {
         return format("projects/%s/datasets/%s/tables/%s",
                 tableId.getProject(), tableId.getDataset(), tableId.getTable());
+    }
+
+    TableInfo getActualTable(
+            TableInfo table,
+            ImmutableList<String> requiredColumns,
+            Optional<String> filter) {
+        String[] filters = filter.map(Stream::of).orElseGet(Stream::empty).toArray(String[]::new);
+        return getActualTable(table, requiredColumns, filters);
     }
 
     TableInfo getActualTable(

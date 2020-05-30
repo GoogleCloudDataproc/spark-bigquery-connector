@@ -28,8 +28,7 @@ public enum BigQueryErrorCode {
     BigQueryErrorCode(int code) {
         this.code = code;
     }
-
-
+    
     public int getCode() {
         return code;
     }

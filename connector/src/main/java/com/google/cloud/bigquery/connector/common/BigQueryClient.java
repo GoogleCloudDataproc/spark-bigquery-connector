@@ -19,14 +19,14 @@ import com.google.cloud.bigquery.*;
 import com.google.cloud.http.BaseHttpServiceException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
 
-import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
@@ -43,8 +43,6 @@ public class BigQueryClient {
     private final BigQuery bigQuery;
     private final Optional<String> materializationProject;
     private final Optional<String> materializationDataset;
-    private final ConcurrentMap<TableId, TableId> tableIds = new ConcurrentHashMap<>();
-    private final ConcurrentMap<DatasetId, DatasetId> datasetIds = new ConcurrentHashMap<>();
 
     BigQueryClient(BigQuery bigQuery, Optional<String> materializationProject, Optional<String> materializationDataset) {
         this.bigQuery = bigQuery;
@@ -54,17 +52,14 @@ public class BigQueryClient {
 
     // return empty if no filters are used
     private static Optional<String> createWhereClause(String[] filters) {
-        return Optional.empty();
+        if (filters.length == 0) {
+            return Optional.empty();
+        }
+        return Optional.of(Stream.of(filters).collect(Collectors.joining(") AND (", "(", ")")));
     }
 
     public TableInfo getTable(TableId tableId) {
-        TableId bigQueryTableId = tableIds.get(tableId);
-        Table table = bigQuery.getTable(bigQueryTableId != null ? bigQueryTableId : tableId);
-        if (table != null) {
-            tableIds.putIfAbsent(tableId, table.getTableId());
-            datasetIds.putIfAbsent(toDatasetId(tableId), toDatasetId(table.getTableId()));
-        }
-        return table;
+        return bigQuery.getTable(tableId);
     }
 
     public TableInfo getSupportedTable(TableId tableId, boolean viewsEnabled, String viewEnabledParamName) {
@@ -101,38 +96,23 @@ public class BigQueryClient {
     }
 
     Iterable<Dataset> listDatasets(String projectId) {
-        final Iterator<Dataset> datasets = bigQuery.listDatasets(projectId).iterateAll().iterator();
-        return () -> Iterators.transform(datasets, this::addDataSetMappingIfNeeded);
+        return bigQuery.listDatasets(projectId).iterateAll();
     }
 
     Iterable<Table> listTables(DatasetId datasetId, TableDefinition.Type... types) {
         Set<TableDefinition.Type> allowedTypes = ImmutableSet.copyOf(types);
-        DatasetId bigQueryDatasetId = datasetIds.getOrDefault(datasetId, datasetId);
-        Iterable<Table> allTables = bigQuery.listTables(bigQueryDatasetId).iterateAll();
+        Iterable<Table> allTables = bigQuery.listTables(datasetId).iterateAll();
         return StreamSupport.stream(allTables.spliterator(), false)
                 .filter(table -> allowedTypes.contains(table.getDefinition().getType()))
                 .collect(toImmutableList());
     }
 
-    private Dataset addDataSetMappingIfNeeded(Dataset dataset) {
-        DatasetId bigQueryDatasetId = dataset.getDatasetId();
-        DatasetId prestoDatasetId = DatasetId.of(bigQueryDatasetId.getProject(), bigQueryDatasetId.getDataset().toLowerCase(ENGLISH));
-        datasetIds.putIfAbsent(prestoDatasetId, bigQueryDatasetId);
-        return dataset;
-    }
-
     TableId createDestinationTable(TableId tableId) {
         String project = materializationProject.orElse(tableId.getProject());
         String dataset = materializationDataset.orElse(tableId.getDataset());
-        DatasetId datasetId = mapIfNeeded(project, dataset);
-        UUID uuid = randomUUID();
-        String name = format("_pbc_%s", randomUUID().toString().toLowerCase(ENGLISH).replace("-", ""));
-        return TableId.of(datasetId.getProject(), datasetId.getDataset(), name);
-    }
-
-    private DatasetId mapIfNeeded(String project, String dataset) {
         DatasetId datasetId = DatasetId.of(project, dataset);
-        return datasetIds.getOrDefault(datasetId, datasetId);
+        String name = format("_bqc_%s", randomUUID().toString().toLowerCase(ENGLISH).replace("-", ""));
+        return TableId.of(datasetId.getProject(), datasetId.getDataset(), name);
     }
 
     Table update(TableInfo table) {
@@ -164,18 +144,17 @@ public class BigQueryClient {
     }
 
     // assuming the SELECT part is properly formatted, can be used to call functions such as COUNT and SUM
-    String createSql(TableId table, String formatedQuery, String[] filters) {
+    String createSql(TableId table, String formattedQuery, String[] filters) {
         String tableName = fullTableName(table);
 
         String whereClause = createWhereClause(filters)
                 .map(clause -> "WHERE " + clause)
                 .orElse("");
 
-        return format("SELECT %s FROM `%s` %s", formatedQuery, tableName, whereClause);
+        return format("SELECT %s FROM `%s` %s", formattedQuery, tableName, whereClause);
     }
 
     String fullTableName(TableId tableId) {
-        tableId = tableIds.getOrDefault(tableId, tableId);
         return format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
     }
 

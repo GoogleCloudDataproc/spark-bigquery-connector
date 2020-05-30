@@ -176,7 +176,6 @@ public class BigQueryDataSourceReader implements
                 Optional.empty() : Optional.of(value);
     }
 
-
     @Override
     public Statistics estimateStatistics() {
         return table.getDefinition().getType() == TableDefinition.Type.TABLE ?
