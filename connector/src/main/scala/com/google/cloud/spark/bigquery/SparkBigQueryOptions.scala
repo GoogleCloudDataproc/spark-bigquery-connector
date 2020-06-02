@@ -34,7 +34,6 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 import scala.util.Properties
 
-
 /** Options for defining {@link BigQueryRelation}s */
   case class SparkBigQueryOptions(
     tableId: TableId,
@@ -116,7 +115,7 @@ object SparkBigQueryOptions {
   : SparkBigQueryOptions = {
     val normalizedAllConf = normalizeAllConf(allConf)
 
-    val tableParam = getRequiredOption(parameters, "table")
+    val tableParam = getRequiredOption(parameters, "table", () => getOption(parameters, "path"))
     val datasetParam = getOption(parameters, "dataset")
     val projectParam = getOption(parameters, "project")
       .orElse(Option(hadoopConf.get(GcsConfigProjectIdProperty)))
@@ -189,6 +188,22 @@ object SparkBigQueryOptions {
       materializationDataset, partitionField, partitionExpirationMs,
       partitionRequireFilter, partitionType, clusteredFields, createDisposition,
       optimizedEmptyProjection, accessToken, loadSchemaUpdateOptions.asJava)
+  }
+
+  // could not load the spark-avro data source
+  private def missingAvroException(sparkVersion: String, cause: Exception) = {
+    val avroPackage = if (sparkVersion >= "2.4") {
+      val scalaVersion = Properties.versionNumberString
+      val scalaShortVersion = scalaVersion.substring(0, scalaVersion.lastIndexOf('.'))
+      s"org.apache.spark:spark-avro_$scalaShortVersion:$sparkVersion"
+    } else {
+      "com.databricks:spark-avro_2.11:4.0.0"
+    }
+    val message = s"""Avro writing is not supported, as the spark-avro has not been
+                     |found. Please re-run spark with the --packages $avroPackage parameter"""
+      .stripMargin.replace('\n', ' ')
+
+    new IllegalStateException(message, cause)
   }
 
   private def defaultBilledProject = () =>
