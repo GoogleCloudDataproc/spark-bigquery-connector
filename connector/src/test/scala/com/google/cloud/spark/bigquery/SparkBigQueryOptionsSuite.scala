@@ -122,7 +122,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
   }
 
   test("data format - no value set") {
-    assertResult("AVRO") {
+    assertResult("ARROW") {
       val options = SparkBigQueryOptions(
         parameters,
         Map.empty[String, String], // allConf
@@ -134,10 +134,10 @@ class SparkBigQueryOptionsSuite extends FunSuite {
     }
   }
 
-  test("Set Read Data Format as Arrow") {
-    assertResult("ARROW") {
+  test("Set Read Data Format as Avro") {
+    assertResult("AVRO") {
       val options = SparkBigQueryOptions(
-        parameters + ("readDataFormat" -> "Arrow"),
+        parameters + ("readDataFormat" -> "Avro"),
         Map.empty[String, String], // allConf
         new Configuration,
         new SQLConf,
