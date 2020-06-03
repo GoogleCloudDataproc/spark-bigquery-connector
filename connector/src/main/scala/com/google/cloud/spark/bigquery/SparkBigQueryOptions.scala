@@ -89,7 +89,7 @@ object SparkBigQueryOptions {
   val ReadDataFormatOption = "readDataFormat"
   val ViewsEnabledOption = "viewsEnabled"
 
-  val DefaultReadDataFormat: DataFormat = DataFormat.AVRO
+  val DefaultReadDataFormat: DataFormat = DataFormat.ARROW
   val DefaultFormat: String = "parquet"
   val DefaultIntermediateFormat: IntermediateFormat =
     IntermediateFormat(DefaultFormat, FormatOptions.parquet())
