@@ -168,6 +168,9 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
         .load().cache()
 
       assert(df.head() == allTypesTable.head())
+
+      // read from cache
+      assert(df.head() == allTypesTable.head())
       assert(df.schema == allTypesTable.schema)
     }
 
