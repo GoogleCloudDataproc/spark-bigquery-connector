@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery;
+package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.BigQueryClientModule;
 import com.google.inject.Guice;
