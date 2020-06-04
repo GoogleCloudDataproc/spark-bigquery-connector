@@ -157,6 +157,20 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       assert(row(1).isInstanceOf[String])
     }
 
+    test("cache data frame in DataSource %s. Data Format %s".format(dataSourceFormat, dataFormat)) {
+      val allTypesTable = readAllTypesTable("bigquery")
+      writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro")
+
+      val df = spark.read.format("bigquery")
+        .option("dataset", testDataset)
+        .option("table", testTable)
+        .option("readDataFormat", "arrow")
+        .load().cache()
+
+      assert(df.head() == allTypesTable.head())
+      assert(df.schema == allTypesTable.schema)
+    }
+
     test("number of partitions. DataSource %s. Data Format %s"
       .format(dataSourceFormat, dataFormat)) {
       val df = spark.read.format("com.google.cloud.spark.bigquery")
