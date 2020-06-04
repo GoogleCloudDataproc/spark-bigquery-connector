@@ -29,12 +29,12 @@ import java.util.stream.StreamSupport;
 
 import static java.lang.String.format;
 
-class SparkFilterUtils {
+public class SparkFilterUtils {
 
     private SparkFilterUtils() {
     }
 
-    static boolean isHandled(Filter filter, DataFormat readDataFormat) {
+    public static boolean isHandled(Filter filter, DataFormat readDataFormat) {
         if (filter instanceof EqualTo ||
                 filter instanceof GreaterThan ||
                 filter instanceof GreaterThanOrEqual ||
@@ -68,27 +68,27 @@ class SparkFilterUtils {
         return false;
     }
 
-    static Iterable<Filter> handledFilters(DataFormat readDataFormat, Filter... filters) {
+    public static Iterable<Filter> handledFilters(DataFormat readDataFormat, Filter... filters) {
         return handledFilters(readDataFormat, ImmutableList.copyOf(filters));
     }
 
-    static Iterable<Filter> handledFilters(DataFormat readDataFormat, Iterable<Filter> filters) {
+    public static Iterable<Filter> handledFilters(DataFormat readDataFormat, Iterable<Filter> filters) {
         return StreamSupport.stream(filters.spliterator(), false)
                 .filter(f -> isHandled(f, readDataFormat))
                 .collect(Collectors.toList());
     }
 
-    static Iterable<Filter> unhandledFilters(DataFormat readDataFormat, Filter... filters) {
+    public static Iterable<Filter> unhandledFilters(DataFormat readDataFormat, Filter... filters) {
         return unhandledFilters(readDataFormat, ImmutableList.copyOf(filters));
     }
 
-    static Iterable<Filter> unhandledFilters(DataFormat readDataFormat, Iterable<Filter> filters) {
+    public static Iterable<Filter> unhandledFilters(DataFormat readDataFormat, Iterable<Filter> filters) {
         return StreamSupport.stream(filters.spliterator(), false)
                 .filter(f -> !isHandled(f, readDataFormat))
                 .collect(Collectors.toList());
     }
 
-    static String getCompiledFilter(
+    public static String getCompiledFilter(
             DataFormat readDataFormat,
             Optional<String> configFilter,
             Filter... pushedFilters) {
@@ -104,7 +104,7 @@ class SparkFilterUtils {
     }
 
     // Mostly copied from JDBCRDD.scala
-    static String compileFilter(Filter filter) {
+    public static String compileFilter(Filter filter) {
         if (filter instanceof EqualTo) {
             EqualTo equalTo = (EqualTo) filter;
             return format("%s = %s", quote(equalTo.attribute()), compileValue(equalTo.value()));
@@ -165,7 +165,7 @@ class SparkFilterUtils {
         throw new IllegalArgumentException(format("Invalid filter: %s", filter));
     }
 
-    static String compileFilters(Iterable<Filter> filters) {
+    public static String compileFilters(Iterable<Filter> filters) {
         return StreamSupport.stream(filters.spliterator(), false)
                 .map(SparkFilterUtils::compileFilter)
                 .sorted()

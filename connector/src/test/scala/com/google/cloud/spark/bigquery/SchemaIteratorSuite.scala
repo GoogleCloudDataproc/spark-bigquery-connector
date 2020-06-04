@@ -132,5 +132,7 @@ class SchemaIteratorSuite extends FunSuite {
     val y = avroSparkRow.getArray(12).getStruct(0, 1).getLong(0)
 
     assert (x == y)
+    assert(arrowBinaryIterator.hasNext == false)
+    assert(avroBinaryIterator.hasNext == false)
   }
 }

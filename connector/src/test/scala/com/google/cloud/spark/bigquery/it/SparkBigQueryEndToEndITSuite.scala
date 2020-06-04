@@ -108,13 +108,13 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   }
 
   testShakespeare("DataSource v2") {
-    spark.read.format("com.google.cloud.spark.bigquery.BigQueryDataSourceV2")
+    spark.read.format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
       .option("table", SHAKESPEARE_TABLE).load()
   }
 
   for (
     dataFormat <- Seq("avro", "arrow");
-    dataSourceFormat <- Seq("bigquery", "com.google.cloud.spark.bigquery.BigQueryDataSourceV2")
+    dataSourceFormat <- Seq("bigquery", "com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
   ) {
     testsWithReadInFormat(dataSourceFormat, dataFormat)
   }
@@ -287,7 +287,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       .load()
 
 
-  Seq("bigquery", "com.google.cloud.spark.bigquery.BigQueryDataSourceV2")
+  Seq("bigquery", "com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
     .foreach(testsWithDataSource)
 
   def testsWithDataSource(dataSourceFormat: String) {
