@@ -103,6 +103,10 @@ class ArrowReaderIterator implements Iterator<VectorSchemaRoot> {
             return true;
         }
 
+        if (closed) {
+            return false;
+        }
+
         try {
             boolean res = reader.loadNextBatch();
             if (res) {
