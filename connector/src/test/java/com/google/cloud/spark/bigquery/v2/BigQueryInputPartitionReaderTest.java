@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery;
+package com.google.cloud.spark.bigquery.v2;
 
 
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.TextFormat;
 import org.apache.spark.sql.catalyst.InternalRow;
