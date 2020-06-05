@@ -101,4 +101,10 @@ public class ReadRowsHelper {
             throw new NoSuchElementException("No more server responses");
         }
     }
+
+    public void close() {
+        if (!client.isShutdown()) {
+            client.close();
+        }
+    }
 }

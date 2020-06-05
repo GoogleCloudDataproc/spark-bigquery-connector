@@ -46,16 +46,16 @@ lazy val connector = (project in file("connector"))
       "com.google.inject" % "guice" % "4.2.3",
 
       // Keep com.google.cloud dependencies in sync
-      "com.google.cloud" % "google-cloud-bigquery" % "1.110.0",
-      "com.google.cloud" % "google-cloud-bigquerystorage" % "0.126.0-beta",
+      "com.google.cloud" % "google-cloud-bigquery" % "1.116.1",
+      "com.google.cloud" % "google-cloud-bigquerystorage" % "0.133.2-beta",
       // Keep in sync with com.google.cloud
-      "io.grpc" % "grpc-alts" % "1.28.1",
-      "io.grpc" % "grpc-netty-shaded" % "1.28.1",
-      "com.google.api" % "gax-grpc" % "1.55.0",
-      "com.google.guava" % "guava" % "28.2-jre",
-      "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
-      "com.fasterxml.jackson.module" % "jackson-module-paranamer" % "2.10.3",
-      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.10.3",
+      "io.grpc" % "grpc-alts" % "1.29.0",
+      "io.grpc" % "grpc-netty-shaded" % "1.29.0",
+      "com.google.api" % "gax-grpc" % "1.56.0",
+      "com.google.guava" % "guava" % "29.0-jre",
+      "com.fasterxml.jackson.core" % "jackson-databind" % "2.11.0",
+      "com.fasterxml.jackson.module" % "jackson-module-paranamer" % "2.11.0",
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.11.0",
       "io.netty" % "netty-all" % "4.1.27.Final" % "provided",
 
       // runtime

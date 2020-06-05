@@ -81,7 +81,7 @@ public class BigQueryInputPartitionReaderTest {
                         ALL_TYPES_TABLE_AVRO_RAW_SCHEMA
                 );
 
-        BigQueryInputPartitionReader reader = new BigQueryInputPartitionReader(readRowsResponses, converter);
+        BigQueryInputPartitionReader reader = new BigQueryInputPartitionReader(readRowsResponses, converter, null);
 
         assertThat(reader.next()).isTrue();
         InternalRow row = reader.get();

@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.common.collect.ImmutableList;
@@ -28,14 +29,17 @@ class BigQueryInputPartitionReader implements InputPartitionReader<InternalRow> 
 
     private Iterator<ReadRowsResponse> readRowsResponses;
     private ReadRowsResponseToInternalRowIteratorConverter converter;
+    private ReadRowsHelper readRowsHelper;
     private Iterator<InternalRow> rows = ImmutableList.<InternalRow>of().iterator();
     private InternalRow currentRow;
 
     BigQueryInputPartitionReader(
             Iterator<ReadRowsResponse> readRowsResponses,
-            ReadRowsResponseToInternalRowIteratorConverter converter) {
+            ReadRowsResponseToInternalRowIteratorConverter converter,
+            ReadRowsHelper readRowsHelper) {
         this.readRowsResponses = readRowsResponses;
         this.converter = converter;
+        this.readRowsHelper = readRowsHelper;
     }
 
     @Override
@@ -58,6 +62,6 @@ class BigQueryInputPartitionReader implements InputPartitionReader<InternalRow> 
 
     @Override
     public void close() throws IOException {
-
+        readRowsHelper.close();
     }
 }
