@@ -24,7 +24,6 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SparkSession;
 import scala.util.Properties;
 
@@ -59,13 +58,10 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
             DATAPROC_IMAGE_PART
     );
 
-    private SparkContext sparkContext;
+    private String dataSourceVersion;
 
-    public SparkBigQueryConnectorUserAgentProvider() {
-    }
-
-    public SparkBigQueryConnectorUserAgentProvider(SparkContext sparkContext) {
-        this.sparkContext = sparkContext;
+    public SparkBigQueryConnectorUserAgentProvider(String dataSourceVersion) {
+        this.dataSourceVersion = dataSourceVersion;
     }
 
     // Queries the GCE metadata server
@@ -98,6 +94,6 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
 
     @Override
     public String getUserAgent() {
-        return USER_AGENT;
+        return USER_AGENT + " datasource/" + dataSourceVersion;
     }
 }
