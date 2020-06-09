@@ -43,8 +43,7 @@ query_job.result()
 
 df = spark.read.format('bigquery') \
     .option('dataset', query_job.destination.dataset_id) \
-    .option('table', query_job.destination.table_id) \
-    .load()
+    .load(query_job.destination.table_id)
 
 print('Reading query results into Spark')
 df.show()

@@ -1,5 +1,19 @@
 # Release Notes
 
+## 0.16.0 - 2020-06-09
+* Apache Arrow is not the default read format. Based on our benchmarking, Arrow provides read
+  performance faster by 40% then Avro. (PR #180)
+* Usage simplification: Now instead of using the `table` mandatory option, user can use the built
+  in `path` parameter of `load()` and `save()`, so that read becomes
+  `df = spark.read.format("bigquery").load("source_table")` and write becomes
+  `df.write.format("bigquery").save("target_table")` (PR #176)
+* An experimental implementation of the DataSource v2 API has been added. **It is not ready for
+  production use.**
+* BigQuery API has been upgraded to version 1.116.1
+* BigQuery Storage API has been upgraded to version 0.133.2-beta
+* gRPC has been upgraded to version 1.29.0
+* Guava has been upgraded to version 29.0-jre
+
 ## 0.15.1-beta - 2020-04-27
 * PR #158: Users can now add the `spark.datasource.bigquery` prefix to the configuration options in order to support Spark's `--conf` command line flag
 * PR #160: View materialization is performed only on action, fixing a bug where view materialization was done too early

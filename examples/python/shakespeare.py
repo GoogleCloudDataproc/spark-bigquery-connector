@@ -20,7 +20,7 @@ from pyspark.sql import SparkSession
 spark = SparkSession.builder.appName('Shakespeare WordCount').getOrCreate()
 
 table = 'bigquery-public-data.samples.shakespeare'
-df = spark.read.format('bigquery').option('table', table).load()
+df = spark.read.format('bigquery').load(table)
 # Only these columns will be read
 df = df.select('word', 'word_count')
 # The filters that are allowed will be automatically pushed down.
