@@ -24,7 +24,6 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.spark.sql.SparkSession;
 import scala.util.Properties;
 
 import java.io.IOException;
@@ -46,7 +45,8 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
             .map(image -> " dataproc-image/" + image)
             .orElse("");
     private static String CONNECTOR_VERSION = BuildInfo.version();
-    private static String SPARK_VERSION = SparkSession.builder().getOrCreate().version();
+    // In order to avoid using SparkContext or SparkSession, we are going directly to the source
+    private static String SPARK_VERSION = org.apache.spark.package$.MODULE$.SPARK_VERSION();
     private static String JAVA_VERSION = System.getProperty("java.runtime.version");
     private static String SCALA_VERSION = Properties.versionNumberString();
     static final String USER_AGENT = format("spark-bigquery-connector/%s spark/%s java/%s scala/%s%s%s",
