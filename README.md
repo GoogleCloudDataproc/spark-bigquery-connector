@@ -76,8 +76,8 @@ repository. It can be used using the `--packages` option or the
 
 | Scala version | Connector Artifact |
 | --- | --- |
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.16.0` |
-| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.16.0` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.16.1` |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.16.1` |
 
 ## Hello World Example
 
@@ -278,7 +278,8 @@ The API Supports a number of options to configure the read
    <td><code>intermediateFormat</code>
    </td>
    <td>The format of the data before it is loaded to BigQuery, values can be
-       either "parquet" or "orc".
+       either "parquet","orc" or "avro". In order to use the Avro format, the
+       spark-avro package must be added in runtime.
        <br/>(Optional. Defaults to <code>parquet</code>). On write only.
    </td>
    <td>Write</td>
@@ -536,7 +537,7 @@ using the following code:
 ```python
 from pyspark.sql import SparkSession
 spark = SparkSession.builder\
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.16.0")\
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.16.1")\
   .getOrCreate()
 df = spark.read.format("bigquery")\
   .load("dataset.table")
@@ -545,7 +546,7 @@ df = spark.read.format("bigquery")\
 **Scala:**
 ```python
 val spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.16.0")
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.16.1")
   .getOrCreate()
 val df = spark.read.format("bigquery")
   .load("dataset.table")
@@ -553,7 +554,7 @@ val df = spark.read.format("bigquery")
 
 In case Spark cluster is using Scala 2.12 (it's optional for Spark 2.4.x,
 mandatory in 3.0.x), then the relevant package is
-com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.16.0. In
+com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.16.1. In
 order to know which Scala version is used, please run the following code:
 
 **Python:**
@@ -577,14 +578,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery-with-dependencies_${scala.version}</artifactId>
-  <version>0.16.0</version>
+  <version>0.16.1</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.16.0"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.16.1"
 ```
 
 ## Building the Connector
