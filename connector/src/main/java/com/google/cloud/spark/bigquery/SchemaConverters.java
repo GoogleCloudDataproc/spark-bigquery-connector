@@ -320,9 +320,7 @@ public class SchemaConverters {
       return LegacySQLTypeName.STRING;
     }
     if (elementType instanceof TimestampType) {
-      // return LegacySQLTypeName.TIMESTAMP; FIXME: Restore this correct conversion when the Vortex
-      // team adds microsecond support to their backend
-      return LegacySQLTypeName.INTEGER;
+      return LegacySQLTypeName.TIMESTAMP;
     }
     if (elementType instanceof DateType) {
       return LegacySQLTypeName.DATE;
