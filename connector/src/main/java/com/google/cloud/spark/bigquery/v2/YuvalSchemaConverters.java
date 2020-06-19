@@ -2,6 +2,7 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.api.services.bigquery.model.TableSchema;
 import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoSchemaConverter;
 import com.google.protobuf.DescriptorProtos;
@@ -40,14 +41,28 @@ public class YuvalSchemaConverters {
     private static final Logger logger = LoggerFactory.getLogger(YuvalSchemaConverters.class);
 
 
-    // We have to create a BigQuery table first!!
-    // If write job failed, MUST delete the table we created..
-    // FIXME
+    /*
+    SECTION 1
+    Spark ==> BigQuery Schema Converter:
+     */
+    public static Table createTable(BigQuery bigquery, TableId tableId, StructType sparkSchema){
+        Schema bqSchema = toBQSchema(sparkSchema);
+        TableDefinition tableDefinition = StandardTableDefinition.of(bqSchema);
+        TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
+        return bigquery.create(tableInfo);
+    }
+
+    /*
+    Create a BigQuery Schema given a Spark schema.
+     */
     public static Schema toBQSchema(StructType sparkSchema) {
         FieldList bqFields = sparkToBQFields(sparkSchema);
         return Schema.of(bqFields);
     }
 
+    /*
+    Returns a FieldList of all the Spark StructField objects converted to BigQuery Field objects
+     */
     private static FieldList sparkToBQFields(StructType sparkStruct){
         List<Field> bqFields = new ArrayList<>();
         StructField[] sparkFields = sparkStruct.fields();
@@ -58,6 +73,9 @@ public class YuvalSchemaConverters {
         return FieldList.of(bqFields);
     }
 
+    /*
+    Given a StructField and its name, returns the corresponding BigQuery Field
+     */
     private static Field makeBQColumn(String fieldName, StructField sparkField) {
         DataType sparkType = sparkField.dataType();
         String columnName = sparkField.name();
@@ -100,10 +118,58 @@ public class YuvalSchemaConverters {
         }
     }
 
-    private static Field makeField(String name, LegacySQLTypeName type, Field.Mode mode, FieldList subfields){
-        return Field.newBuilder(name, type, subfields).setMode(mode).build();
+    /*
+    Returns the BigQuery Data-Type corresponding to a Spark DataType.
+     */
+    private static LegacySQLTypeName toBQType(DataType elementType) {
+        if (elementType instanceof BinaryType) {
+            return LegacySQLTypeName.BYTES;
+        } else if (elementType instanceof ByteType ||
+                elementType instanceof ShortType ||
+                elementType instanceof IntegerType ||
+                elementType instanceof LongType) {
+            return LegacySQLTypeName.INTEGER;
+        } else if (elementType instanceof BooleanType) {
+            return LegacySQLTypeName.BOOLEAN;
+        } else if (elementType instanceof FloatType ||
+                elementType instanceof DoubleType) {
+            return LegacySQLTypeName.FLOAT;
+        } else if (elementType instanceof DecimalType) { // TODO
+            DecimalType decimalType = (DecimalType)elementType;
+            if (decimalType.isTighterThan(DataTypes.DoubleType)) {
+                return LegacySQLTypeName.FLOAT;
+            } else if (decimalType.precision() <= BQ_NUMERIC_PRECISION &&
+                    decimalType.scale() <= BQ_NUMERIC_SCALE) {
+                return LegacySQLTypeName.NUMERIC;
+            } else {
+                throw new IllegalStateException("Decimal type is too wide to fit in BigQuery Numeric format");
+            }
+        } else if (elementType instanceof StringType) {
+            return LegacySQLTypeName.STRING;
+        } else if (elementType instanceof TimestampType) {
+            return LegacySQLTypeName.TIMESTAMP;
+        } else if (elementType instanceof DateType) {
+            return LegacySQLTypeName.DATE;
+        } else {
+            throw new IllegalStateException("Data type not expected in toBQType: "+elementType.simpleString());
+        }
     }
 
+    /*
+    Helper function to simply make a field, after all parameters (name, type, mode, and sub-fields) have been extracted.
+     */
+    private static Field makeField(String name, LegacySQLTypeName type, Field.Mode mode, FieldList subfields){
+        return Field.newBuilder(name, type, subfields)
+                .setMode(mode)
+                .build();
+    }
+
+
+
+    /*
+    SECTION 2
+    BigQuery Schema ==> ProtoSchema
+     */
     // create DescriptorProto
     // for every field, create FieldDescriptorProto
     // DescriptorProto.addField(FieldDescriptorProto)-
@@ -208,42 +274,6 @@ public class YuvalSchemaConverters {
         return protoField;
     }
 
-    // TODO
-    public static ProtoBufProto.ProtoRows toBQRow(ProtoBufProto.ProtoSchema protoSchema, StructType schema, InternalRow row){
-        ProtoBufProto.ProtoRows.Builder rowBuilder = ProtoBufProto.ProtoRows.newBuilder();
-        StructField[] fields = schema.fields();
-        for(int i = 0; i < fields.length; i++){
-            // rowBuilder.
-        }
-        return null;
-    }
-
-    // TODO: change from sparkField to BigQuery Field...
-    private static Object convert(StructField sparkField, Object value) {
-        if (value == null) {
-            if(sparkField.nullable()) return null;
-            else throw new IllegalStateException("Required field received a null value");
-        }
-
-        DataType type = sparkField.dataType();
-
-        if (type instanceof NumericType || type instanceof BooleanType) {
-            return value;
-        }
-
-        // TODO: binary type
-
-        if (type instanceof StringType ||
-                type instanceof DateType ||
-                type instanceof TimestampType) {
-            return UTF8String.fromBytes(((Utf8) value).getBytes());
-        }
-
-        // TODO: non-atomic types
-
-        throw new IllegalStateException("Unexpected type: " + type);
-    }
-
     /*
     Given a BigQuery Schema Data-Type, returns the equivalent proto-buffer type.
      */
@@ -254,8 +284,8 @@ public class YuvalSchemaConverters {
             DescriptorProtos.FieldDescriptorProto.Builder protoFieldBuilder, LegacySQLTypeName bqType) {
         DescriptorProtos.FieldDescriptorProto.Type protoFieldType;
         if (LegacySQLTypeName.INTEGER.equals(bqType)) {
-             protoFieldType = DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64;
-             return protoFieldBuilder.setType(protoFieldType);
+            protoFieldType = DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64;
+            return protoFieldBuilder.setType(protoFieldType);
         }
         else if (LegacySQLTypeName.DATE.equals(bqType)) {
             protoFieldType = DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64;
@@ -306,38 +336,44 @@ public class YuvalSchemaConverters {
         }
     }
 
-    private static LegacySQLTypeName toBQType(DataType elementType) {
-        if (elementType instanceof BinaryType) {
-            return LegacySQLTypeName.BYTES;
-        } else if (elementType instanceof ByteType ||
-                elementType instanceof ShortType ||
-                elementType instanceof IntegerType ||
-                elementType instanceof LongType) {
-            return LegacySQLTypeName.INTEGER;
-        } else if (elementType instanceof BooleanType) {
-            return LegacySQLTypeName.BOOLEAN;
-        } else if (elementType instanceof FloatType ||
-                elementType instanceof DoubleType) {
-            return LegacySQLTypeName.FLOAT;
-        } else if (elementType instanceof DecimalType) { // TODO
-            DecimalType decimalType = (DecimalType)elementType;
-            if (decimalType.isTighterThan(DataTypes.DoubleType)) {
-                return LegacySQLTypeName.FLOAT;
-            } else if (decimalType.precision() <= BQ_NUMERIC_PRECISION &&
-                    decimalType.scale() <= BQ_NUMERIC_SCALE) {
-                return LegacySQLTypeName.NUMERIC;
-            } else {
-                throw new IllegalStateException("Decimal type is too wide to fit in BigQuery Numeric format")
-            }
-        } else if (elementType instanceof StringType) {
-            return LegacySQLTypeName.STRING;
-        } else if (elementType instanceof TimestampType) {
-            return LegacySQLTypeName.TIMESTAMP;
-        } else if (elementType instanceof DateType) {
-            return LegacySQLTypeName.DATE;
-        } else {
-            throw new IllegalStateException("Data type not expected in toBQType: "+elementType.simpleString())
+    /*
+    SECTION 3
+    Spark Row --> ProtoRows
+     */
+    // TODO
+    public static ProtoBufProto.ProtoRows toBQRow(ProtoBufProto.ProtoSchema protoSchema, StructType schema, InternalRow row){
+        ProtoBufProto.ProtoRows.Builder rowBuilder = ProtoBufProto.ProtoRows.newBuilder();
+        StructField[] fields = schema.fields();
+        for(int i = 0; i < fields.length; i++){
+            // rowBuilder.
         }
+        return null;
+    }
+
+    // TODO: change from sparkField to BigQuery Field...
+    private static Object convert(StructField sparkField, Object value) {
+        if (value == null) {
+            if(sparkField.nullable()) return null;
+            else throw new IllegalStateException("Required field received a null value");
+        }
+
+        DataType type = sparkField.dataType();
+
+        if (type instanceof NumericType || type instanceof BooleanType) {
+            return value;
+        }
+
+        // TODO: binary type
+
+        if (type instanceof StringType ||
+                type instanceof DateType ||
+                type instanceof TimestampType) {
+            return UTF8String.fromBytes(((Utf8) value).getBytes());
+        }
+
+        // TODO: non-atomic types
+
+        throw new IllegalStateException("Unexpected type: " + type);
     }
 
 }
