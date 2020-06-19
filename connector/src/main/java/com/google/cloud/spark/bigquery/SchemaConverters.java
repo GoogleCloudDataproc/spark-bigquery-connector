@@ -15,10 +15,9 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.FieldList;
-import com.google.cloud.bigquery.LegacySQLTypeName;
-import com.google.cloud.bigquery.Schema;
+import avro.shaded.com.google.common.base.Preconditions;
+import com.google.cloud.bigquery.*;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -30,9 +29,7 @@ import org.apache.spark.unsafe.types.UTF8String;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class SchemaConverters {
@@ -42,6 +39,9 @@ public class SchemaConverters {
   private static final int BQ_NUMERIC_SCALE = 9;
   private static final DecimalType NUMERIC_SPARK_TYPE =
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
+    // The maximum nesting depth of a BigQuery RECORD:
+    private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
+    private static final String MAPTYPE_ERROR_MESSAGE = "MapType is unsupported.";
 
   /** Convert a BigQuery schema to a Spark schema */
   public static StructType toSpark(Schema schema) {
@@ -204,4 +204,104 @@ public class SchemaConverters {
       throw new IllegalStateException("Unexpected type: " + field.getType());
     }
   }
+
+
+    /**
+     * Spark ==> BigQuery Schema Converter utils:
+     */
+    public static Schema toBigQuerySchema (StructType sparkSchema) {
+        FieldList bigQueryFields = sparkToBigQueryFields(sparkSchema, 0);
+        return Schema.of(bigQueryFields);
+    }
+
+    /**
+     * Returns a FieldList of all the Spark StructField objects, converted to BigQuery Field objects
+     */
+    private static FieldList sparkToBigQueryFields (StructType sparkStruct, int depth){
+        Preconditions.checkArgument(depth < MAX_BIGQUERY_NESTED_DEPTH,
+                "Spark Schema exceeds BigQuery maximum nesting depth.");
+        List<Field> bqFields = new ArrayList<>();
+        for (StructField field : sparkStruct.fields()){
+            bqFields.add(makeBigQueryColumn(field, depth));
+        }
+        return FieldList.of(bqFields);
+    }
+
+    /**
+     * Converts a single StructField to a BigQuery Field (column).
+     */
+    @VisibleForTesting
+    protected static Field makeBigQueryColumn (StructField sparkField, int depth) {
+        DataType sparkType = sparkField.dataType();
+        String fieldName = sparkField.name();
+        Field.Mode fieldMode = (sparkField.nullable()) ? Field.Mode.NULLABLE : Field.Mode.REQUIRED;
+        String description;
+        FieldList subFields = null;
+        LegacySQLTypeName fieldType;
+
+        if (sparkType instanceof ArrayType) {
+            ArrayType arrayType = (ArrayType)sparkType;
+            LegacySQLTypeName elementType = toBigQueryType(arrayType.elementType());
+            fieldType = elementType;
+            fieldMode = Field.Mode.REPEATED;
+        }
+        else if (sparkType instanceof MapType) {
+            throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
+        }
+        else if (sparkType instanceof StructType) {
+            subFields = sparkToBigQueryFields((StructType)sparkType, depth+1);
+            fieldType = LegacySQLTypeName.RECORD;
+        }
+        else {
+            fieldType = toBigQueryType(sparkType);
+        }
+
+        try {
+            description = sparkField.metadata().getString("description");
+        }
+        catch (NoSuchElementException e) {
+            return createBigQueryFieldBuilder(fieldName, fieldType, fieldMode, subFields).build();
+        }
+
+        return createBigQueryFieldBuilder(fieldName, fieldType, fieldMode, subFields)
+                .setDescription(description).build();
+    }
+
+    @VisibleForTesting
+    protected static LegacySQLTypeName toBigQueryType (DataType elementType) {
+        if (elementType instanceof BinaryType) {
+            return LegacySQLTypeName.BYTES;
+        } if (elementType instanceof ByteType ||
+                elementType instanceof ShortType ||
+                elementType instanceof IntegerType ||
+                elementType instanceof LongType) {
+            return LegacySQLTypeName.INTEGER;
+        } if (elementType instanceof BooleanType) {
+            return LegacySQLTypeName.BOOLEAN;
+        } if (elementType instanceof FloatType ||
+                elementType instanceof DoubleType) {
+            return LegacySQLTypeName.FLOAT;
+        } if (elementType instanceof DecimalType) {
+            DecimalType decimalType = (DecimalType)elementType;
+            if (decimalType.precision() <= BQ_NUMERIC_PRECISION &&
+                    decimalType.scale() <= BQ_NUMERIC_SCALE) {
+                return LegacySQLTypeName.NUMERIC;
+            } else {
+                throw new IllegalArgumentException("Decimal type is too wide to fit in BigQuery Numeric format"); // TODO
+            }
+        } if (elementType instanceof StringType) {
+            return LegacySQLTypeName.STRING;
+        } if (elementType instanceof TimestampType) {
+            return LegacySQLTypeName.TIMESTAMP;
+        } if (elementType instanceof DateType) { // TODO: TIME & DATETIME in BigQuery
+            return LegacySQLTypeName.DATE;
+        } else {
+            throw new IllegalArgumentException("Data type not expected in toBQType: "+elementType.simpleString());
+        }
+    }
+
+    private static Field.Builder createBigQueryFieldBuilder (String name, LegacySQLTypeName type, Field.Mode mode, FieldList subFields){
+        return Field.newBuilder(name, type, subFields)
+                .setMode(mode);
+    }
 }
