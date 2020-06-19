@@ -57,7 +57,7 @@ class BigQueryRelationProvider(
       .getOrElse(sys.error(s"Table $tableName not found"))
     table.getDefinition[TableDefinition].getType match {
       case TABLE => new DirectBigQueryRelation(opts, table)(sqlContext)
-      case VIEW || MATERIALIZED_VIEW => if (opts.viewsEnabled) {
+      case VIEW | MATERIALIZED_VIEW => if (opts.viewsEnabled) {
         new DirectBigQueryRelation(opts, table)(sqlContext)
       } else {
         sys.error(
