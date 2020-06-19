@@ -49,6 +49,6 @@ public class BigQueryInputPartition implements InputPartition<InternalRow> {
         ReadRowsRequest.Builder readRowsRequest = ReadRowsRequest.newBuilder().setReadStream(streamName);
         ReadRowsHelper readRowsHelper = new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequest, maxReadRowsRetries);
         Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
-        return new BigQueryInputPartitionReader(readRowsResponses, converter);
+        return new BigQueryInputPartitionReader(readRowsResponses, converter, readRowsHelper);
     }
 }

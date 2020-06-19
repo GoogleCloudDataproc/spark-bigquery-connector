@@ -52,7 +52,6 @@ public class SparkBigQueryConnectorModule implements Module {
 
     @Override
     public void configure(Binder binder) {
-        binder.bind(UserAgentProvider.class).to(SparkBigQueryConnectorUserAgentProvider.class).in(Singleton.class);
         binder.bind(BigQueryConfig.class).toProvider(this::provideSparkBigQueryConfig);
     }
 
@@ -80,4 +79,11 @@ public class SparkBigQueryConnectorModule implements Module {
                 config.getFilter(),
                 schema);
     }
+
+    @Singleton
+    @Provides
+    public UserAgentProvider provideUserAgentProvider() {
+        return new SparkBigQueryConnectorUserAgentProvider("v2");
+    }
+
 }

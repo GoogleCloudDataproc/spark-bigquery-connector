@@ -76,8 +76,8 @@ repository. It can be used using the `--packages` option or the
 
 | Scala version | Connector Artifact |
 | --- | --- |
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.15.1-beta` |
-| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.15.1-beta` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.16.1` |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.16.1` |
 
 ## Hello World Example
 
@@ -103,8 +103,7 @@ The connector uses the cross language [Spark SQL Data Source API](https://spark.
 ```
 df = spark.read
   .format("bigquery")
-  .option("table", "bigquery-public-data.samples.shakespeare")
-  .load()
+  .load("bigquery-public-data.samples.shakespeare")
 ```
 
 or the Scala only implicit API:
@@ -123,9 +122,8 @@ Writing a DataFrame to BigQuery is done in a similar manner. Notice that the pro
 ```
 df.write
   .format("bigquery")
-  .option("table","dataset.table")
   .option("temporaryGcsBucket","some-bucket")
-  .save()
+  .save("dataset.table")
 ```
 
 The data is temporarily stored using the [Apache parquet](https://parquet.apache.org/) format. An alternative format is [Apache ORC](https://orc.apache.org/).
@@ -135,8 +133,7 @@ The GCS bucket and the format can also be set globally using Spark"s RuntimeConf
 spark.conf.set("temporaryGcsBucket","some-bucket")
 df.write
   .format("bigquery")
-  .option("table","dataset.table")
-  .save()
+  .save("dataset.table")
 ```
 
 *Inportant:* The connector does not configure the GCS connector, in order to avoid conflict with another GCS connector, if exists. In order to use the write capabilities of the connector, please configure the GCS connector on your cluster as explained [here](https://github.com/GoogleCloudPlatform/bigdata-interop/tree/master/gcs).
@@ -155,7 +152,11 @@ The API Supports a number of options to configure the read
   <tr valign="top">
    <td><code>table</code>
    </td>
-   <td>The BigQuery table in the format <code>[[project:]dataset.]table</code>. <strong>(Required)</strong>
+   <td>The BigQuery table in the format <code>[[project:]dataset.]table</code>.
+       It is recommended to use the <code>path</code> parameter of 
+       <code>load()</code>/<code>save()</code> instead. This option has been
+       deprecated and will be removed in a future version.
+       <br/><strong>(Deprecated)</strong>
    </td>
    <td>Read/Write</td>
   </tr>
@@ -277,7 +278,8 @@ The API Supports a number of options to configure the read
    <td><code>intermediateFormat</code>
    </td>
    <td>The format of the data before it is loaded to BigQuery, values can be
-       either "parquet" or "orc".
+       either "parquet","orc" or "avro". In order to use the Avro format, the
+       spark-avro package must be added in runtime.
        <br/>(Optional. Defaults to <code>parquet</code>). On write only.
    </td>
    <td>Write</td>
@@ -495,10 +497,9 @@ The pseudo columns \_PARTITIONDATE and \_PARTITIONTIME are not part of the table
 
 ```
 val df = spark.read.format("bigquery")
-  .option("table", TABLE)
   .option("filter", "_PARTITIONDATE > '2019-01-01'")
   ...
-  .load()
+  .load(TABLE)
 ```
 
 ### Configuring Partitioning
@@ -536,26 +537,24 @@ using the following code:
 ```python
 from pyspark.sql import SparkSession
 spark = SparkSession.builder\
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.15.1-beta")\
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.16.1")\
   .getOrCreate()
 df = spark.read.format("bigquery")\
-  .option("table","dataset.table")\
-  .load()
+  .load("dataset.table")
 ```
 
 **Scala:**
 ```python
 val spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.15.1-beta")
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.16.1")
   .getOrCreate()
 val df = spark.read.format("bigquery")
-  .option("table","dataset.table")
-  .load()
+  .load("dataset.table")
 ```
 
 In case Spark cluster is using Scala 2.12 (it's optional for Spark 2.4.x,
 mandatory in 3.0.x), then the relevant package is
-com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.15.1-beta. In
+com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.16.1. In
 order to know which Scala version is used, please run the following code:
 
 **Python:**
@@ -579,14 +578,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery-with-dependencies_${scala.version}</artifactId>
-  <version>0.15.1-beta</version>
+  <version>0.16.1</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.15.1-beta"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.16.1"
 ```
 
 ## Building the Connector
