@@ -45,18 +45,18 @@ public class BigQueryDataSourceReader
         SupportsScanColumnarBatch {
 
   private static Statistics UNKNOWN_STATISTICS =
-      new Statistics() {
+          new Statistics() {
 
-        @Override
-        public OptionalLong sizeInBytes() {
-          return OptionalLong.empty();
-        }
+            @Override
+            public OptionalLong sizeInBytes() {
+              return OptionalLong.empty();
+            }
 
-        @Override
-        public OptionalLong numRows() {
-          return OptionalLong.empty();
-        }
-      };
+            @Override
+            public OptionalLong numRows() {
+              return OptionalLong.empty();
+            }
+          };
 
   private final TableInfo table;
   private final TableId tableId;
@@ -70,19 +70,19 @@ public class BigQueryDataSourceReader
   private Map<String, StructField> fields;
 
   public BigQueryDataSourceReader(
-      TableInfo table,
-      BigQueryClient bigQueryClient,
-      BigQueryReadClientFactory bigQueryReadClientFactory,
-      ReadSessionCreatorConfig readSessionCreatorConfig,
-      Optional<String> globalFilter,
-      Optional<StructType> schema) {
+          TableInfo table,
+          BigQueryClient bigQueryClient,
+          BigQueryReadClientFactory bigQueryReadClientFactory,
+          ReadSessionCreatorConfig readSessionCreatorConfig,
+          Optional<String> globalFilter,
+          Optional<StructType> schema) {
     this.table = table;
     this.tableId = table.getTableId();
     this.readSessionCreatorConfig = readSessionCreatorConfig;
     this.bigQueryClient = bigQueryClient;
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
     this.readSessionCreator =
-        new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
+            new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
     this.globalFilter = globalFilter;
     this.schema = schema;
     this.fields =
@@ -111,16 +111,16 @@ public class BigQueryDataSourceReader
     }
 
     ImmutableList<String> selectedFields =
-        schema
-            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-            .orElse(ImmutableList.of());
+            schema
+                    .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+                    .orElse(ImmutableList.of());
     Optional<String> filter =
-        emptyIfNeeded(
-            SparkFilterUtils.getCompiledFilter(
-                readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
+            emptyIfNeeded(
+                    SparkFilterUtils.getCompiledFilter(
+                            readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
     ReadSessionResponse readSessionResponse =
-        readSessionCreator.create(
-            tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
+            readSessionCreator.create(
+                    tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
     ReadSession readSession = readSessionResponse.getReadSession();
     return readSession.getStreamsList().stream()
         .map(
@@ -143,12 +143,12 @@ public class BigQueryDataSourceReader
             .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
             .orElse(ImmutableList.of());
     Optional<String> filter =
-        emptyIfNeeded(
-            SparkFilterUtils.getCompiledFilter(
-                readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
+            emptyIfNeeded(
+                    SparkFilterUtils.getCompiledFilter(
+                            readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
     ReadSessionResponse readSessionResponse =
-        readSessionCreator.create(
-            tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
+            readSessionCreator.create(
+                    tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
     ReadSession readSession = readSessionResponse.getReadSession();
     return readSession.getStreamsList().stream()
         .map(
