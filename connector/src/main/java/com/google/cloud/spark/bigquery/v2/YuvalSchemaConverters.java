@@ -1,31 +1,17 @@
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.api.services.bigquery.model.TableSchema;
 import com.google.cloud.bigquery.*;
-import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoSchemaConverter;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
-import org.apache.spark.sql.catalyst.util.ArrayData;
-import org.apache.spark.sql.catalyst.util.GenericArrayData;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.None;
-import scala.collection.Iterator;
-import scala.math.Ordering;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class YuvalSchemaConverters {
 
@@ -93,17 +79,17 @@ public class YuvalSchemaConverters {
         else if (sparkType instanceof MapType) {
             MapType mapType = (MapType)sparkType;
 
-            String keyName = ""; // TODO: what is the name of a key for a map in BQ?
+            String keyName = "K"; // TODO: what is the name of a key for a map in BQ?
             LegacySQLTypeName keyType = toBQType(mapType.keyType());
             Field keyField = makeField(keyName, keyType, mode, null); // TODO: what is the mode of a key in a map?
 
-            String valueName = ""; // TODO: what is the name of a value field for a map in BQ?
+            String valueName = "V"; // TODO: what is the name of a value field for a map in BQ?
             LegacySQLTypeName valueType = toBQType(mapType.valueType());
             Field valueField = makeField(valueName, valueType, mode, null); // TODO: what is the mode of a value in a map?
 
-            String pairName = ""; // TODO: how to name the K,V pair?
-            Field pairField = makeField(pairName, LegacySQLTypeName.RECORD, Field.Mode.REQUIRED,
-                    FieldList.of(keyField, valueField)); // TODO: is the pair-field of REQUIRED mode?
+            String pairName = "Pair"; // TODO: how to name the K,V pair?
+            Field pairField = makeField(pairName, LegacySQLTypeName.RECORD, Field.Mode.REPEATED,
+                    FieldList.of(keyField, valueField));
 
             return makeField(columnName, LegacySQLTypeName.RECORD, mode, FieldList.of(pairField));
         }
@@ -159,9 +145,11 @@ public class YuvalSchemaConverters {
     Helper function to simply make a field, after all parameters (name, type, mode, and sub-fields) have been extracted.
      */
     private static Field makeField(String name, LegacySQLTypeName type, Field.Mode mode, FieldList subfields){
-        return Field.newBuilder(name, type, subfields)
+        Field field = Field.newBuilder(name, type, subfields)
                 .setMode(mode)
                 .build();
+        logger.info("Created field: "+field.toString());
+        return field;
     }
 
 
