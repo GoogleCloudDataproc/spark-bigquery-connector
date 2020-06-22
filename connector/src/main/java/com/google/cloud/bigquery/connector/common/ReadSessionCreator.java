@@ -126,7 +126,7 @@ public class ReadSessionCreator {
         if (TableDefinition.Type.TABLE == tableType) {
             return table;
         }
-        if (TableDefinition.Type.VIEW == tableType) {
+        if (TableDefinition.Type.VIEW == tableType || TableDefinition.Type.MATERIALIZED_VIEW == tableType) {
             if (!config.viewsEnabled) {
                 throw new BigQueryConnectorException(UNSUPPORTED, format(
                         "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
