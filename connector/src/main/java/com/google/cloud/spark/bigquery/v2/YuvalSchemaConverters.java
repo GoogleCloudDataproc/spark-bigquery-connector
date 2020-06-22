@@ -3,6 +3,7 @@ package com.google.cloud.spark.bigquery.v2;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoSchemaConverter;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import org.apache.avro.util.Utf8;
@@ -32,7 +33,7 @@ public class YuvalSchemaConverters {
     Spark ==> BigQuery Schema Converter:
      */
     public static Table createTable(BigQuery bigquery, TableId tableId, StructType sparkSchema){
-        Schema bqSchema = toBQSchema(sparkSchema);
+        Schema bqSchema = toBigQuerySchema(sparkSchema);
         TableDefinition tableDefinition = StandardTableDefinition.of(bqSchema);
         TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
         return bigquery.create(tableInfo);
@@ -41,20 +42,19 @@ public class YuvalSchemaConverters {
     /*
     Create a BigQuery Schema given a Spark schema.
      */
-    public static Schema toBQSchema(StructType sparkSchema) {
-        FieldList bqFields = sparkToBQFields(sparkSchema);
-        return Schema.of(bqFields);
+    public static Schema toBigQuerySchema(StructType sparkSchema) {
+        FieldList bigQueryFields = sparkToBigQueryFields(sparkSchema);
+        logger.debug("Created schema {}", Arrays.toString(bigQueryFields.toArray()));
+        return Schema.of(bigQueryFields);
     }
 
     /*
     Returns a FieldList of all the Spark StructField objects converted to BigQuery Field objects
      */
-    private static FieldList sparkToBQFields(StructType sparkStruct){
+    private static FieldList sparkToBigQueryFields(StructType sparkStruct){
         List<Field> bqFields = new ArrayList<>();
-        StructField[] sparkFields = sparkStruct.fields();
-        String[] sparkFieldNames = sparkStruct.fieldNames();
-        for(String fieldName : sparkFieldNames){
-            bqFields.add(makeBQColumn(fieldName, sparkFields[(int)sparkStruct.getFieldIndex(fieldName).get()]));
+        for (StructField field : sparkStruct.fields()){
+            bqFields.add(makeBigQueryColumn(field));
         }
         return FieldList.of(bqFields);
     }
@@ -62,94 +62,93 @@ public class YuvalSchemaConverters {
     /*
     Given a StructField and its name, returns the corresponding BigQuery Field
      */
-    private static Field makeBQColumn(String fieldName, StructField sparkField) {
+    @VisibleForTesting
+    static Field makeBigQueryColumn(StructField sparkField) {
         DataType sparkType = sparkField.dataType();
-        String columnName = sparkField.name();
-        Field.Mode mode = (sparkField.nullable()) ? Field.Mode.NULLABLE : Field.Mode.REQUIRED;
+        String fieldName = sparkField.name();
+        Field.Mode fieldMode = (sparkField.nullable()) ? Field.Mode.NULLABLE : Field.Mode.REQUIRED;
 
         if(sparkType instanceof ArrayType) {
             ArrayType arrayType = (ArrayType)sparkType;
-
-            String elementName = ""; // TODO: what is the name of a field in an array? Empty?
-            LegacySQLTypeName elementType = toBQType(arrayType.elementType());
-            Field elementField = makeField(elementName, elementType, Field.Mode.REPEATED, null);
-
-            return makeField(columnName, LegacySQLTypeName.RECORD, mode, FieldList.of(elementField));
+            LegacySQLTypeName elementType = toBigQueryType(arrayType.elementType());
+            return makeBigQueryField(fieldName, elementType, Field.Mode.REPEATED, null);
         }
-        else if (sparkType instanceof MapType) {
+        if (sparkType instanceof MapType) {
+            throw new IllegalStateException("Unsupported type: Map");
+            /*
             MapType mapType = (MapType)sparkType;
 
-            String keyName = "K"; // TODO: what is the name of a key for a map in BQ?
+            String keyName = "K"; // TOD: what is the name of a key for a map in BQ?
             LegacySQLTypeName keyType = toBQType(mapType.keyType());
-            Field keyField = makeField(keyName, keyType, mode, null); // TODO: what is the mode of a key in a map?
+            Field keyField = makeField(keyName, keyType, mode, null); // TOD: what is the mode of a key in a map?
 
-            String valueName = "V"; // TODO: what is the name of a value field for a map in BQ?
+            String valueName = "V"; // TOD: what is the name of a value field for a map in BQ?
             LegacySQLTypeName valueType = toBQType(mapType.valueType());
-            Field valueField = makeField(valueName, valueType, mode, null); // TODO: what is the mode of a value in a map?
+            Field valueField = makeField(valueName, valueType, mode, null); // TOD: what is the mode of a value in a map?
 
-            String pairName = "Pair"; // TODO: how to name the K,V pair?
+            String pairName = "Pair"; // TOD: how to name the K,V pair?
             Field pairField = makeField(pairName, LegacySQLTypeName.RECORD, Field.Mode.REPEATED,
                     FieldList.of(keyField, valueField));
 
             return makeField(columnName, LegacySQLTypeName.RECORD, mode, FieldList.of(pairField));
+             */
         }
-        else if (sparkType instanceof StructType) {
-            FieldList variableFields = sparkToBQFields((StructType)sparkType);
+        if (sparkType instanceof StructType) {
+            FieldList subFields = sparkToBigQueryFields((StructType)sparkType);
 
-            return makeField(columnName, LegacySQLTypeName.RECORD, mode, variableFields);
+            return makeBigQueryField(fieldName, LegacySQLTypeName.RECORD, fieldMode, subFields);
         }
         else {
-            LegacySQLTypeName columnType = toBQType(sparkType);
-            return makeField(columnName, columnType, mode, null);
+            LegacySQLTypeName columnType = toBigQueryType(sparkType);
+            return makeBigQueryField(fieldName, columnType, fieldMode, null);
         }
     }
 
     /*
     Returns the BigQuery Data-Type corresponding to a Spark DataType.
      */
-    private static LegacySQLTypeName toBQType(DataType elementType) {
+    private static LegacySQLTypeName toBigQueryType(DataType elementType) {
         if (elementType instanceof BinaryType) {
             return LegacySQLTypeName.BYTES;
-        } else if (elementType instanceof ByteType ||
+        } if (elementType instanceof ByteType ||
                 elementType instanceof ShortType ||
                 elementType instanceof IntegerType ||
                 elementType instanceof LongType) {
             return LegacySQLTypeName.INTEGER;
-        } else if (elementType instanceof BooleanType) {
+        } if (elementType instanceof BooleanType) {
             return LegacySQLTypeName.BOOLEAN;
-        } else if (elementType instanceof FloatType ||
+        } if (elementType instanceof FloatType ||
                 elementType instanceof DoubleType) {
             return LegacySQLTypeName.FLOAT;
-        } else if (elementType instanceof DecimalType) { // TODO
+        } if (elementType instanceof DecimalType) {
             DecimalType decimalType = (DecimalType)elementType;
             if (decimalType.isTighterThan(DataTypes.DoubleType)) {
                 return LegacySQLTypeName.FLOAT;
-            } else if (decimalType.precision() <= BQ_NUMERIC_PRECISION &&
+            } if (decimalType.precision() <= BQ_NUMERIC_PRECISION &&
                     decimalType.scale() <= BQ_NUMERIC_SCALE) {
                 return LegacySQLTypeName.NUMERIC;
             } else {
-                throw new IllegalStateException("Decimal type is too wide to fit in BigQuery Numeric format");
+                throw new IllegalArgumentException("Decimal type is too wide to fit in BigQuery Numeric format"); // TODO
             }
-        } else if (elementType instanceof StringType) {
+        } if (elementType instanceof StringType) {
             return LegacySQLTypeName.STRING;
-        } else if (elementType instanceof TimestampType) {
+        } if (elementType instanceof TimestampType) {
             return LegacySQLTypeName.TIMESTAMP;
-        } else if (elementType instanceof DateType) {
+        } if (elementType instanceof DateType) { // TODO: TIME & DATETIME in BigQuery
             return LegacySQLTypeName.DATE;
         } else {
-            throw new IllegalStateException("Data type not expected in toBQType: "+elementType.simpleString());
+            throw new IllegalArgumentException("Data type not expected in toBQType: "+elementType.simpleString());
         }
     }
 
     /*
     Helper function to simply make a field, after all parameters (name, type, mode, and sub-fields) have been extracted.
      */
-    private static Field makeField(String name, LegacySQLTypeName type, Field.Mode mode, FieldList subfields){
-        Field field = Field.newBuilder(name, type, subfields)
+    private static Field makeBigQueryField(String name, LegacySQLTypeName type, Field.Mode mode, FieldList subfields){
+        return Field.newBuilder(name, type, subfields)
                 .setMode(mode)
                 .build();
-        logger.info("Created field: "+field.toString());
-        return field;
+        // TODO: log after creating a whole schema.
     }
 
 
@@ -166,6 +165,7 @@ public class YuvalSchemaConverters {
     public static ProtoBufProto.ProtoSchema toProtoSchema(Schema schema){
         try{
             Descriptors.Descriptor descriptor = toDescriptor(schema);
+            logger.debug("Created ProtoSchema: {}", Arrays.toString(descriptor.getFields().toArray()));
             return ProtoSchemaConverter.convert(descriptor);
         } catch (Descriptors.DescriptorValidationException e){
             logger.error("Descriptor Validation Exception");
@@ -178,7 +178,8 @@ public class YuvalSchemaConverters {
     Creates a descriptor for a given BigQuery Schema
      */
     public static Descriptors.Descriptor toDescriptor(Schema schema) throws Descriptors.DescriptorValidationException {
-        DescriptorProtos.DescriptorProto.Builder descriptorBuilder = DescriptorProtos.DescriptorProto.newBuilder().setName("SparkRow");
+        DescriptorProtos.DescriptorProto.Builder descriptorBuilder = DescriptorProtos.DescriptorProto.newBuilder()
+                .setName("Schema");
 
         FieldList fields = schema.getFields();
 
@@ -193,8 +194,6 @@ public class YuvalSchemaConverters {
                 .buildFrom(fileDescriptorProto, new Descriptors.FileDescriptor[]{})
                 .getMessageTypes()
                 .get(0);
-
-        logger.info("Created descriptor proto: "+descriptor.getFields());
         return descriptor;
     }
 
@@ -202,18 +201,20 @@ public class YuvalSchemaConverters {
     Takes a ProtoDescriptor and a FieldList object, and builds the ProtoDescriptor according to the Schema FieldList.
     Supports nested types in the Schema, but up to a maximum depth (which is nominally 15 layers with BigQuery).
      */
-    private static DescriptorProtos.DescriptorProto buildDescriptorWithFields(DescriptorProtos.DescriptorProto.Builder descriptorBuilder, FieldList fields, int depth){
+    private static DescriptorProtos.DescriptorProto buildDescriptorWithFields(
+            DescriptorProtos.DescriptorProto.Builder descriptorBuilder, FieldList fields, int depth){
         if(depth >= MAX_BQ_NESTED_DEPTH){
+            // TODO: throw an error if exceeded max depth??
             return descriptorBuilder.build();
         }
-        for (java.util.Iterator<Field> it = fields.iterator(); it.hasNext(); ) {
-            Field field = it.next();
+        int messageNumber = 1;
+        for (Field field : fields) {
             String fieldName = field.getName();
             FieldList subFields = field.getSubFields();
-            int index = fields.getIndex(fieldName); // TODO: can't be 0. This is probably the wrong index to use...
+            int index = fields.getIndex(fieldName);
 
             if(subFields == null){
-                descriptorBuilder.addField(makeProtoField(field, index));
+                descriptorBuilder.addField(makeProtoField(field, messageNumber));
             }
             else{
                 DescriptorProtos.DescriptorProto.Builder parentFieldBuilder = DescriptorProtos.DescriptorProto.newBuilder();
@@ -223,6 +224,7 @@ public class YuvalSchemaConverters {
 
                 descriptorBuilder.addNestedType(index, nestedField);    // QUESTION: should this be a nested type or a repeated type? Appears to be automatically a repeated type
             }
+            messageNumber++;
         }
         return descriptorBuilder.build();
     }
@@ -236,29 +238,23 @@ public class YuvalSchemaConverters {
         LegacySQLTypeName bqType = field.getType();
         String name = field.getName();
         String description = field.getDescription();    // FIXME: what to do with description?
-        DescriptorProtos.FieldDescriptorProto.Label label = DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL;
         Field.Mode bqMode = field.getMode();
 
-        if(bqMode == null) {
-            // TODO: if Field mode is empty?? Possible?
-        }
-        else {
-            switch (bqMode) {
-                case NULLABLE:
-                    label = DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL;
-                case REPEATED:
-                    label = DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED;
-                case REQUIRED:
-                    label = DescriptorProtos.FieldDescriptorProto.Label.LABEL_REQUIRED;
-            }
+        DescriptorProtos.FieldDescriptorProto.Builder protoFieldBuilder = DescriptorProtos.FieldDescriptorProto
+                .newBuilder().setName(name).setNumber(number);
+
+        switch (bqMode) {
+            case NULLABLE:
+                protoFieldBuilder.setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL);
+            case REPEATED:
+                protoFieldBuilder.setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED);
+            case REQUIRED:
+                protoFieldBuilder.setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_REQUIRED);
         }
 
-        DescriptorProtos.FieldDescriptorProto protoField = setProtoFieldType(DescriptorProtos.FieldDescriptorProto.newBuilder()
-                .setName(name)
-                .setNumber(number)
-                .setLabel(label), bqType).build();
+        DescriptorProtos.FieldDescriptorProto protoField = setProtoFieldType(protoFieldBuilder, bqType)
+                .build();
 
-        logger.info("Created proto field descriptor: "+protoField);
         return protoField;
     }
 
@@ -274,45 +270,36 @@ public class YuvalSchemaConverters {
         if (LegacySQLTypeName.INTEGER.equals(bqType)) {
             protoFieldType = DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64;
             return protoFieldBuilder.setType(protoFieldType);
-        }
-        else if (LegacySQLTypeName.DATE.equals(bqType)) {
+        } if (LegacySQLTypeName.DATE.equals(bqType)) {
             protoFieldType = DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64;
             // TODO: annotation
             return protoFieldBuilder.setType(protoFieldType);
-        }
-        else if (LegacySQLTypeName.DATETIME.equals(bqType)) {
+        } if (LegacySQLTypeName.DATETIME.equals(bqType)) {
             protoFieldType = DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64;
             // TODO: annotation
             return protoFieldBuilder.setType(protoFieldType);
-        }
-        else if (LegacySQLTypeName.TIMESTAMP.equals(bqType)) {
+        } if (LegacySQLTypeName.TIMESTAMP.equals(bqType)) {
             protoFieldType = DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64;
             // TODO: annotation
             return protoFieldBuilder.setType(protoFieldType);
-        }
-        else if (LegacySQLTypeName.BOOLEAN.equals(bqType)){
+        } if (LegacySQLTypeName.BOOLEAN.equals(bqType)){
             protoFieldType = DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL;
             return protoFieldBuilder.setType(protoFieldType);
-        }
-        else if (LegacySQLTypeName.STRING.equals(bqType)) {
+        } if (LegacySQLTypeName.STRING.equals(bqType)) {
             protoFieldType = DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING;
             return protoFieldBuilder.setType(protoFieldType);
-        }
-        else if (LegacySQLTypeName.GEOGRAPHY.equals(bqType)) {
+        } if (LegacySQLTypeName.GEOGRAPHY.equals(bqType)) {
             protoFieldType = DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES;
             // TODO: annotation
             return protoFieldBuilder.setType(protoFieldType);
-        }
-        else if (LegacySQLTypeName.BYTES.equals(bqType)) {
+        } if (LegacySQLTypeName.BYTES.equals(bqType)) {
             protoFieldType = DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES;
             return protoFieldBuilder.setType(protoFieldType);
-        }
-        else if (LegacySQLTypeName.NUMERIC.equals(bqType)) {
+        } if (LegacySQLTypeName.NUMERIC.equals(bqType)) {
             protoFieldType = DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES;
             // TODO: annotation
             return protoFieldBuilder.setType(protoFieldType);
-        }
-        else if (LegacySQLTypeName.FLOAT.equals(bqType)) {
+        } if (LegacySQLTypeName.FLOAT.equals(bqType)) {
             protoFieldType = DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE;
             return protoFieldBuilder.setType(protoFieldType);
         }
