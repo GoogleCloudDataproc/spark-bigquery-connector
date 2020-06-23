@@ -546,8 +546,8 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     var df = spark.read.format("bigquery")
       .option("table", "bigquery-public-data:ethereum_blockchain.live_logs")
       .option("viewsEnabled", "true")
-      .option("viewMaterializationProject", "bigquery-public-data")
-      .option("viewMaterializationDataset", "ethereum_blockchain")
+      .option("viewMaterializationProject", System.getenv("GOOGLE_CLOUD_PROJECT"))
+      .option("viewMaterializationDataset", testDataset)
       .load()
   }
 

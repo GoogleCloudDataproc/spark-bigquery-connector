@@ -193,7 +193,9 @@ private[bigquery] class DirectBigQueryRelation(
     ): TableInfo = {
     val tableDefinition = table.getDefinition[TableDefinition]
     val tableType = tableDefinition.getType
-    if(options.viewsEnabled && TableDefinition.Type.VIEW == tableType) {
+    if(options.viewsEnabled &&
+      (TableDefinition.Type.VIEW == tableType ||
+        TableDefinition.Type.MATERIALIZED_VIEW == tableType)) {
       // get it from the view
       val querySql = createSql(tableDefinition.getSchema, requiredColumns, filtersString)
       logDebug(s"querySql is $querySql")
@@ -274,7 +276,9 @@ private[bigquery] class DirectBigQueryRelation(
 
   def getNumBytes(tableDefinition: TableDefinition): Long = {
     val tableType = tableDefinition.getType
-    if (options.viewsEnabled && TableDefinition.Type.VIEW == tableType) {
+    if (options.viewsEnabled &&
+      (TableDefinition.Type.VIEW == tableType ||
+        TableDefinition.Type.MATERIALIZED_VIEW == tableType)) {
       sqlContext.sparkSession.sessionState.conf.defaultSizeInBytes
     } else {
       tableDefinition.asInstanceOf[StandardTableDefinition].getNumBytes
