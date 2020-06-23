@@ -33,7 +33,7 @@ import java.util.stream.StreamSupport;
 
 public class AcceptanceTestUtils {
 
-  // must be set in order to run rhe acceptance test
+  // must be set in order to run the acceptance test
   private static final String BUCKET = System.getenv("ACCEPTANCE_TEST_BUCKET");
 
   static Storage storage =
