@@ -1,3 +1,18 @@
+/*
+ * Copyright 2018 Google Inc. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 lazy val scala211Version = "2.11.12"
 lazy val scala212Version = "2.12.10"
 lazy val sparkVersion = "2.4.0"
@@ -9,13 +24,28 @@ lazy val commonSettings = Seq(
   crossScalaVersions := Seq(scala211Version, scala212Version)
 )
 
+// scalastyle:off
 // For https://github.com/GoogleCloudPlatform/spark-bigquery-connector/issues/72
 // Based on
 // https://github.com/sbt/sbt-assembly/#q-despite-the-concerned-friends-i-still-want-publish-fat-jars-what-advice-do-you-have
+// scalastyle:on
 lazy val root = (project in file("."))
   .disablePlugins(AssemblyPlugin)
   .settings(commonSettings, skip in publish := true)
   .aggregate(connector, fatJar, published)
+
+lazy val commonTestDependencies = Seq(
+  "io.grpc" % "grpc-alts" % "1.30.0",
+  "io.grpc" % "grpc-netty-shaded" % "1.30.0",
+  "com.google.api" % "gax-grpc" % "1.57.0",
+  "com.google.guava" % "guava" % "29.0-jre",
+
+  "org.scalatest" %% "scalatest" % "3.1.0" % "test",
+  "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test",
+  "junit" % "junit" % "4.13" % "test",
+  "com.novocode" % "junit-interface" % "0.11" % "test",
+  "com.google.truth" % "truth" % "1.0.1" % "test"
+)
 
 lazy val connector = (project in file("connector"))
   .enablePlugins(BuildInfoPlugin)
@@ -36,10 +66,11 @@ lazy val connector = (project in file("connector"))
       IO.write(file, s"scala.version=${scalaVersion.value}\n")
       Seq(file)
     }.taskValue,
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= (commonTestDependencies ++ Seq(
       "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
       "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
-      "org.slf4j" % "slf4j-api" % "1.7.25" % "provided",
+      "org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
+      "aopalliance" % "aopalliance" % "1.0" % "provided",
       "org.codehaus.jackson" % "jackson-core-asl" % "1.9.13" % "provided",
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
       "org.apache.arrow" % "arrow-vector" % "0.16.0",
@@ -49,10 +80,6 @@ lazy val connector = (project in file("connector"))
       "com.google.cloud" % "google-cloud-bigquery" % "1.116.1",
       "com.google.cloud" % "google-cloud-bigquerystorage" % "0.133.2-beta",
       // Keep in sync with com.google.cloud
-      "io.grpc" % "grpc-alts" % "1.29.0",
-      "io.grpc" % "grpc-netty-shaded" % "1.29.0",
-      "com.google.api" % "gax-grpc" % "1.56.0",
-      "com.google.guava" % "guava" % "29.0-jre",
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.11.0",
       "com.fasterxml.jackson.module" % "jackson-module-paranamer" % "2.11.0",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.11.0",
@@ -60,14 +87,13 @@ lazy val connector = (project in file("connector"))
 
       // runtime
       // scalastyle:off
-      "com.google.cloud.bigdataoss" % "gcs-connector" % "hadoop2-2.0.0" % "runtime" classifier("shaded"),
+      "com.google.cloud.bigdataoss" % "gcs-connector" % "hadoop2-2.0.0" % "runtime" classifier("shaded")
+        exclude("com.google.cloud.bigdataoss", "util-hadoop"),
       // scalastyle:on
       // test
-      "org.scalatest" %% "scalatest" % "3.1.0" % "test",
-      "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test",
 
-      "org.apache.spark" %% "spark-avro" % sparkVersion % "test",
-      "com.google.truth" % "truth" % "1.0.1" % "test")
+      "org.apache.spark" %% "spark-avro" % sparkVersion % "test"
+      ))
       .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
   )
 
@@ -88,8 +114,9 @@ lazy val fatJar = project
       case PathList(ps@_*) if ps.last.endsWith(".proto") => MergeStrategy.discard
       // Relocate netty-tcnative.so. This is necessary even though gRPC shades it, because we shade
       // gRPC.
-      case PathList("META-INF", "native", f) if f.contains("netty_tcnative") => RelocationMergeStrategy(
-        path => path.replace("native/lib", s"native/lib${relocationPrefix.replace('.', '_')}_"))
+      case PathList("META-INF", "native", f) if f.contains("netty_tcnative") =>
+        RelocationMergeStrategy(path =>
+          path.replace("native/lib", s"native/lib${relocationPrefix.replace('.', '_')}_"))
 
       // Relocate GRPC service registries
       case PathList("META-INF", "services", _) => ServiceResourceMergeStrategy(renamed,
@@ -99,13 +126,29 @@ lazy val fatJar = project
   )
   .dependsOn(connector)
 
-
+val publishVerified = taskKey[Seq[String]]("Published signed artifact after acceptance test")
 lazy val published = project
+  .configs(AcceptanceTest)
   .settings(
     commonSettings,
     publishSettings,
     name := "spark-bigquery-with-dependencies",
-    packageBin in Compile := (assembly in(fatJar, Compile)).value
+    packageBin in Compile := (assembly in(fatJar, Compile)).value,
+    test in AcceptanceTest := (test in AcceptanceTest).dependsOn(packageBin in Compile).value,
+    // publishSigned in SbtPgp := publishSigned.dependsOn(test in AcceptanceTest).value,
+    inConfig(AcceptanceTest)(Defaults.testTasks),
+    testOptions in Test := Seq(Tests.Filter(unitFilter)),
+    testOptions in AcceptanceTest := Seq(Tests.Filter(acceptanceFilter)),
+    publishVerified := { Seq(
+      (packageBin in Compile).value.toString,
+      (test in AcceptanceTest).value.toString
+    ) },
+    libraryDependencies ++= (commonTestDependencies ++ Seq(
+      "com.google.cloud" % "google-cloud-dataproc" % "1.0.0" % "test",
+      "com.google.cloud" % "google-cloud-storage" % "1.109.1" % "test"
+    ))
+      .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
+
   )
 
 lazy val myPackage = "com.google.cloud.spark.bigquery"
@@ -156,9 +199,16 @@ lazy val ITest = config("it") extend Test
 (test in Test) := ((test in Test) dependsOn scalastyle.in(Test).toTask("")).value
 parallelExecution in ITest := false
 
-def unitFilter(name: String): Boolean = (name endsWith "Suite") && !itFilter(name)
+// Default IntegrationTest config uses separate test directory, build files
+lazy val AcceptanceTest = config("acceptance") extend Test
+parallelExecution in AcceptanceTest := false
+
+def unitFilter(name: String): Boolean =
+  (name.endsWith("Suite") || name.endsWith("Test")) && !itFilter(name) && !acceptanceFilter(name)
 
 def itFilter(name: String): Boolean = name endsWith "ITSuite"
+
+def acceptanceFilter(name: String): Boolean = name endsWith "AcceptanceTest"
 
 lazy val publishSettings = Seq(
   homepage := Some(url("https://github.com/GoogleCloudPlatform/spark-bigquery-connector")),

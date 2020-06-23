@@ -69,7 +69,7 @@ public class BigQueryCredentialsSupplier {
         }
     }
 
-    private static Credentials createDefaultCredentials() {
+    public static Credentials createDefaultCredentials() {
         try {
             return GoogleCredentials.getApplicationDefault();
         } catch (IOException e) {

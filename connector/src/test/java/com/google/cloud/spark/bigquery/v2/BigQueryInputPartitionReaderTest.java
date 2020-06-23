@@ -18,9 +18,11 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.bigquery.storage.v1.StreamStats;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.TextFormat;
+import org.apache.log4j.Logger;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.junit.Test;
 
@@ -55,8 +57,7 @@ public class BigQueryInputPartitionReaderTest {
     );
 
     private static final String ALL_TYPES_TABLE_READ_ROWS_RESPONSE_STR =
-            "status {\n" +
-                    "  fraction_consumed: 0.5\n" +
+            "stats {\n" +
                     "  progress {\n" +
                     "    at_response_end: 0.5\n" +
                     "  }\n" +
