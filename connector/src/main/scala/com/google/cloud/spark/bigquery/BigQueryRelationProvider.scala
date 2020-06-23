@@ -16,7 +16,7 @@
 package com.google.cloud.spark.bigquery
 
 import com.google.auth.Credentials
-import com.google.cloud.bigquery.TableDefinition.Type.{TABLE, VIEW}
+import com.google.cloud.bigquery.TableDefinition.Type.{MATERIALIZED_VIEW, TABLE, VIEW}
 import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, TableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.sql.sources._
@@ -57,7 +57,7 @@ class BigQueryRelationProvider(
       .getOrElse(sys.error(s"Table $tableName not found"))
     table.getDefinition[TableDefinition].getType match {
       case TABLE => new DirectBigQueryRelation(opts, table)(sqlContext)
-      case VIEW => if (opts.viewsEnabled) {
+      case VIEW | MATERIALIZED_VIEW => if (opts.viewsEnabled) {
         new DirectBigQueryRelation(opts, table)(sqlContext)
       } else {
         sys.error(

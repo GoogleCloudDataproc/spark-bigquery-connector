@@ -346,7 +346,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       countResults should equal(countAfterCollect)
     }
     */
-    
+
     test("read data types. DataSource %s".format(dataSourceFormat)) {
       val allTypesTable = readAllTypesTable(dataSourceFormat)
       val expectedRow = spark.range(1).select(TestConstants.ALL_TYPES_TABLE_COLS: _*).head.toSeq
@@ -540,6 +540,15 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
     assert(df.head() == allTypesTable.head())
     assert(df.schema == allTypesTable.schema)
+  }
+
+  test("query materialized view") {
+    var df = spark.read.format("bigquery")
+      .option("table", "bigquery-public-data:ethereum_blockchain.live_logs")
+      .option("viewsEnabled", "true")
+      .option("viewMaterializationProject", System.getenv("GOOGLE_CLOUD_PROJECT"))
+      .option("viewMaterializationDataset", testDataset)
+      .load()
   }
 
   test("write to bq - adding the settings to spark.conf" ) {

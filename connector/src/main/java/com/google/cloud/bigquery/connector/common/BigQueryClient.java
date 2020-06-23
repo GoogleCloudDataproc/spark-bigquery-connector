@@ -73,7 +73,7 @@ public class BigQueryClient {
         if (TableDefinition.Type.TABLE == tableType) {
             return table;
         }
-        if (TableDefinition.Type.VIEW == tableType) {
+        if (TableDefinition.Type.VIEW == tableType || TableDefinition.Type.MATERIALIZED_VIEW == tableType) {
             if (viewsEnabled) {
                 return table;
             } else {
@@ -167,7 +167,7 @@ public class BigQueryClient {
             TableDefinition.Type type = tableInfo.getDefinition().getType();
             if (type == TableDefinition.Type.TABLE && !filter.isPresent()) {
                 return tableInfo.getNumRows().longValue();
-            } else if (type == TableDefinition.Type.VIEW ||
+            } else if (type == TableDefinition.Type.VIEW || type == TableDefinition.Type.MATERIALIZED_VIEW ||
                     (type == TableDefinition.Type.TABLE && filter.isPresent())) {
                 // run a query
                 String table = fullTableName(tableInfo.getTableId());
