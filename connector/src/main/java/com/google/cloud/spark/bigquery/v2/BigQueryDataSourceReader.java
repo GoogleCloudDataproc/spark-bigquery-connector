@@ -32,12 +32,14 @@ import org.apache.spark.sql.types.StructType;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.spark.sql.vectorized.ColumnarBatch;
 
 public class BigQueryDataSourceReader
     implements DataSourceReader,
         SupportsPushDownRequiredColumns,
         SupportsPushDownFilters,
-        SupportsReportStatistics {
+        SupportsReportStatistics,
+        SupportsScanColumnarBatch {
 
   private static Statistics UNKNOWN_STATISTICS =
       new Statistics() {
@@ -88,8 +90,13 @@ public class BigQueryDataSourceReader
   }
 
   @Override
+  public boolean enableBatchRead() {
+    return readSessionCreatorConfig.getReadDataFormat() == DataFormat.ARROW && !isEmptySchema();
+  }
+
+  @Override
   public List<InputPartition<InternalRow>> planInputPartitions() {
-    if (schema.map(StructType::isEmpty).orElse(false)) {
+    if (isEmptySchema()) {
       // create empty projection
       return createEmptyProjectionPartitions();
     }
@@ -117,10 +124,44 @@ public class BigQueryDataSourceReader
         .collect(Collectors.toList());
   }
 
+  @Override
+  public List<InputPartition<ColumnarBatch>> planBatchInputPartitions() {
+    if (!enableBatchRead()) {
+      throw new IllegalStateException("Batch reads should not be enabled");
+    }
+    ImmutableList<String> selectedFields =
+        schema
+            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+            .orElse(ImmutableList.of());
+    Optional<String> filter =
+        emptyIfNeeded(
+            SparkFilterUtils.getCompiledFilter(
+                readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
+    ReadSessionResponse readSessionResponse =
+        readSessionCreator.create(
+            tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
+    ReadSession readSession = readSessionResponse.getReadSession();
+    return readSession.getStreamsList().stream()
+        .map(
+            stream ->
+                new ArrowInputPartition(
+                    bigQueryReadClientFactory,
+                    stream.getName(),
+                    readSessionCreatorConfig.getMaxReadRowsRetries(),
+                    selectedFields,
+                    readSessionResponse))
+        .collect(Collectors.toList());
+  }
+
+  private boolean isEmptySchema() {
+    return schema.map(StructType::isEmpty).orElse(false);
+  }
+
   private ReadRowsResponseToInternalRowIteratorConverter createConverter(
       ImmutableList<String> selectedFields, ReadSessionResponse readSessionResponse) {
     ReadRowsResponseToInternalRowIteratorConverter converter;
-    if (readSessionCreatorConfig.getReadDataFormat() == DataFormat.AVRO) {
+    DataFormat format = readSessionCreatorConfig.getReadDataFormat();
+    if (format == DataFormat.AVRO) {
       Schema schema = readSessionResponse.getReadTableInfo().getDefinition().getSchema();
       if (selectedFields.isEmpty()) {
         // means select *
@@ -138,11 +179,9 @@ public class BigQueryDataSourceReader
       }
       return ReadRowsResponseToInternalRowIteratorConverter.avro(
           schema, selectedFields, readSessionResponse.getReadSession().getAvroSchema().getSchema());
-    } else {
-      return ReadRowsResponseToInternalRowIteratorConverter.arrow(
-          selectedFields,
-          readSessionResponse.getReadSession().getArrowSchema().getSerializedSchema());
     }
+    throw new IllegalArgumentException(
+        "No known converted for " + readSessionCreatorConfig.getReadDataFormat());
   }
 
   List<InputPartition<InternalRow>> createEmptyProjectionPartitions() {
