@@ -75,6 +75,7 @@ lazy val connector = (project in file("connector"))
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
       "org.apache.arrow" % "arrow-vector" % "0.16.0",
       "com.google.inject" % "guice" % "4.2.3",
+      "joda-time" % "joda-time" % "2.10.6",
 
       // Keep com.google.cloud dependencies in sync
       "com.google.cloud" % "google-cloud-bigquery" % "1.116.1",
