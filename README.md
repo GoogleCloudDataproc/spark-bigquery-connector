@@ -275,6 +275,23 @@ The API Supports a number of options to configure the read
    <td>Write</td>
   </tr>
   <tr valign="top">
+   <td><code>persistentGcsBucket</code>
+   </td>
+   <td>The GCS bucket that holds the data before it is loaded to
+       BigQuery. If informed, the data won't be deleted after write data 
+       into BigQuery.
+   </td>
+   <td>Write</td>
+  </tr>
+  <tr valign="top">
+   <td><code>persistentGcsPath</code>
+   </td>
+   <td>The GCS path that holds the data before it is loaded to
+       BigQuery. Used only with <code>persistentGcsBucket</code>.
+   </td>
+   <td>Write</td>
+  </tr>
+  <tr valign="top">
    <td><code>intermediateFormat</code>
    </td>
    <td>The format of the data before it is loaded to BigQuery, values can be
