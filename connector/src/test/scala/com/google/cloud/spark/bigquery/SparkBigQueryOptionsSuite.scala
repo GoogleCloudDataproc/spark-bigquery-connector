@@ -291,6 +291,7 @@ class SparkBigQueryOptionsSuite extends FunSuite {
       options.loadSchemaUpdateOptions.asScala.toSeq
     }
   }
+
   test("loadSchemaUpdateOption - none") {
     assertResult(true) {
       val options = SparkBigQueryOptions(
@@ -310,5 +311,31 @@ class SparkBigQueryOptionsSuite extends FunSuite {
 
     assert(normalizedConf.get("key1")  == Some("val1"))
     assert(normalizedConf.get("key2")  == Some("val2"))
+  }
+
+  test("Set persistentGcsPath") {
+    assertResult(Some("/persistent/path")) {
+      val options = SparkBigQueryOptions(
+        parameters + ("persistentGcsPath" -> "/persistent/path"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        new SQLConf,
+        sparkVersion,
+        None) // schema
+      options.persistentGcsPath
+    }
+  }
+
+  test("Set persistentGcsBucket") {
+    assertResult(Some("gs://persistentGcsBucket")) {
+      val options = SparkBigQueryOptions(
+        parameters + ("persistentGcsBucket" -> "gs://persistentGcsBucket"),
+        Map.empty[String, String], // allConf
+        new Configuration,
+        new SQLConf,
+        sparkVersion,
+        None) // schema
+      options.persistentGcsBucket
+    }
   }
 }

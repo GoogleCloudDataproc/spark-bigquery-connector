@@ -38,16 +38,23 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
   val conf = sqlContext.sparkContext.hadoopConfiguration
 
-  val temporaryGcsPath = {
+  val gcsPath = {
     var needNewPath = true
     var gcsPath: Path = null
     val applicationId = sqlContext.sparkContext.applicationId
 
     while (needNewPath) {
-      val gcsPathOption = options.temporaryGcsBucket.map(bucket =>
-        s"gs://$bucket/.spark-bigquery-${applicationId}-${UUID.randomUUID()}")
-      require(gcsPathOption.isDefined, "Temporary GCS path has not been set")
-      gcsPath = new Path(gcsPathOption.get)
+      val gcsPathOption = options.temporaryGcsBucket match {
+        case Some(bucket) => s"gs://$bucket/.spark-bigquery-${applicationId}-${UUID.randomUUID()}"
+        case None if options.persistentGcsBucket.isDefined && options.persistentGcsPath.isDefined =>
+          s"gs://${options.persistentGcsBucket.get}/${options.persistentGcsPath.get}"
+        case None if options.persistentGcsBucket.isDefined =>
+          s"gs://${options.persistentGcsBucket.get}/.spark-bigquery-${applicationId}-${UUID.randomUUID()}"
+        case _ =>
+          throw new IllegalArgumentException("Temporary ou persistent GCS bucket must be informed.")
+      }
+
+      gcsPath = new Path(gcsPathOption)
       val fs = gcsPath.getFileSystem(conf)
       needNewPath = fs.exists(gcsPath) // if teh path exists for some reason, then retry
     }
@@ -72,19 +79,19 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       Runtime.getRuntime.addShutdownHook(createTemporaryPathDeleter)
 
       val format = options.intermediateFormat.dataSource
-      data.write.format(format).save(temporaryGcsPath.toString)
+      data.write.format(format).save(gcsPath.toString)
 
       loadDataToBigQuery
     } catch {
       case e: Exception => throw new RuntimeException("Failed to write to BigQuery", e)
     } finally {
-      cleanTempraryGcsPath
+      if (options.persistentGcsBucket.nonEmpty) cleanTempraryGcsPath
     }
   }
 
   def loadDataToBigQuery(): Unit = {
-    val fs = temporaryGcsPath.getFileSystem(conf)
-    val sourceUris = ToIterator(fs.listFiles(temporaryGcsPath, false))
+    val fs = gcsPath.getFileSystem(conf)
+    val sourceUris = ToIterator(fs.listFiles(gcsPath, false))
       .map(_.getPath.toString)
       .filter(_.toLowerCase.endsWith(
         s".${options.intermediateFormat.formatOptions.getType.toLowerCase}"))
@@ -163,7 +170,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     createTemporaryPathDeleter.deletePath
   }
 
-  private def createTemporaryPathDeleter = IntermediateDataCleaner(temporaryGcsPath, conf)
+  private def createTemporaryPathDeleter = IntermediateDataCleaner(gcsPath, conf)
 
   def verifySaveMode: Unit = {
     if (saveMode == SaveMode.ErrorIfExists || saveMode == SaveMode.Ignore) {

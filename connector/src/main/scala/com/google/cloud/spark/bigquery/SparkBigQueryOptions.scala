@@ -44,6 +44,8 @@ import scala.util.Properties
     schema: Option[StructType] = None,
     maxParallelism: Option[Int] = None,
     temporaryGcsBucket: Option[String] = None,
+    persistentGcsBucket: Option[String] = None,
+    persistentGcsPath: Option[String] = None,
     intermediateFormat: IntermediateFormat = SparkBigQueryOptions.DefaultIntermediateFormat,
     readDataFormat: DataFormat = SparkBigQueryOptions.DefaultReadDataFormat,
     combinePushedDownFilters: Boolean = true,
@@ -130,6 +132,8 @@ object SparkBigQueryOptions {
       parameters, Seq("maxParallelism", "parallelism"))
       .map(_.toInt)
     val temporaryGcsBucket = getAnyOption(normalizedAllConf, parameters, "temporaryGcsBucket")
+    val persistentGcsBucket = getAnyOption(normalizedAllConf, parameters, "persistentGcsBucket")
+    val persistentGcsPath = getAnyOption(normalizedAllConf, parameters, "persistentGcsPath")
 
     val intermediateFormat = IntermediateFormat(
       getAnyOption(normalizedAllConf, parameters, IntermediateFormatOption)
@@ -183,7 +187,8 @@ object SparkBigQueryOptions {
     }
 
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
-      filter, schema, maxParallelism, temporaryGcsBucket, intermediateFormat, readDataFormat,
+      filter, schema, maxParallelism, temporaryGcsBucket, persistentGcsBucket,
+      persistentGcsPath, intermediateFormat, readDataFormat,
       combinePushedDownFilters, viewsEnabled, materializationProject,
       materializationDataset, partitionField, partitionExpirationMs,
       partitionRequireFilter, partitionType, clusteredFields, createDisposition,
