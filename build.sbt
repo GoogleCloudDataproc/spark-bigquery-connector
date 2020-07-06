@@ -16,6 +16,7 @@
 lazy val scala211Version = "2.11.12"
 lazy val scala212Version = "2.12.10"
 lazy val sparkVersion = "2.4.0"
+lazy val nettyVersion = "4.1.30.Final"
 
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
@@ -83,7 +84,11 @@ lazy val connector = (project in file("connector"))
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.11.0",
       "com.fasterxml.jackson.module" % "jackson-module-paranamer" % "2.11.0",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.11.0",
-      "io.netty" % "netty-all" % "4.1.27.Final" % "provided",
+
+      // Netty, with a version supporting Java 11
+      "io.netty" % "netty-all" % nettyVersion % "provided",
+      "io.netty" % "netty-buffer" % nettyVersion,
+      "io.netty" % "netty-common" % nettyVersion,
 
       // runtime
       // scalastyle:off
