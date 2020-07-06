@@ -19,27 +19,27 @@ import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNKNO
 
 public class BigQueryConnectorException extends RuntimeException {
 
-    final BigQueryErrorCode errorCode;
+  final BigQueryErrorCode errorCode;
 
-    public BigQueryConnectorException(String message) {
-        this(UNKNOWN, message);
-    }
+  public BigQueryConnectorException(String message) {
+    this(UNKNOWN, message);
+  }
 
-    public BigQueryConnectorException(String message, Throwable cause) {
-        this(UNKNOWN, message, cause);
-    }
+  public BigQueryConnectorException(String message, Throwable cause) {
+    this(UNKNOWN, message, cause);
+  }
 
-    public BigQueryConnectorException(BigQueryErrorCode errorCode, String message) {
-        super(message);
-        this.errorCode = errorCode;
-    }
+  public BigQueryConnectorException(BigQueryErrorCode errorCode, String message) {
+    super(message);
+    this.errorCode = errorCode;
+  }
 
-    public BigQueryConnectorException(BigQueryErrorCode errorCode, String message, Throwable cause) {
-        super(message, cause);
-        this.errorCode = errorCode;
-    }
+  public BigQueryConnectorException(BigQueryErrorCode errorCode, String message, Throwable cause) {
+    super(message, cause);
+    this.errorCode = errorCode;
+  }
 
-    public BigQueryErrorCode getErrorCode() {
-        return errorCode;
-    }
+  public BigQueryErrorCode getErrorCode() {
+    return errorCode;
+  }
 }

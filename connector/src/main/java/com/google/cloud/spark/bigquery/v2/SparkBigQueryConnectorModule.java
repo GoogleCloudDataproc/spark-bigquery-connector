@@ -37,53 +37,53 @@ import static scala.collection.JavaConversions.mapAsJavaMap;
 
 public class SparkBigQueryConnectorModule implements Module {
 
-    private final SparkSession spark;
-    private final DataSourceOptions options;
-    private final Optional<StructType> schema;
+  private final SparkSession spark;
+  private final DataSourceOptions options;
+  private final Optional<StructType> schema;
 
-    public SparkBigQueryConnectorModule(
-            SparkSession spark,
-            DataSourceOptions options,
-            Optional<StructType> schema) {
-        this.spark = spark;
-        this.options = options;
-        this.schema = schema;
-    }
+  public SparkBigQueryConnectorModule(
+      SparkSession spark, DataSourceOptions options, Optional<StructType> schema) {
+    this.spark = spark;
+    this.options = options;
+    this.schema = schema;
+  }
 
-    @Override
-    public void configure(Binder binder) {
-        binder.bind(BigQueryConfig.class).toProvider(this::provideSparkBigQueryConfig);
-    }
+  @Override
+  public void configure(Binder binder) {
+    binder.bind(BigQueryConfig.class).toProvider(this::provideSparkBigQueryConfig);
+  }
 
-    @Singleton
-    @Provides
-    public SparkBigQueryConfig provideSparkBigQueryConfig() {
-        return SparkBigQueryConfig.from(options,
-                ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll())),
-                spark.sparkContext().hadoopConfiguration(),
-                spark.sparkContext().defaultParallelism());
-    }
+  @Singleton
+  @Provides
+  public SparkBigQueryConfig provideSparkBigQueryConfig() {
+    return SparkBigQueryConfig.from(
+        options,
+        ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll())),
+        spark.sparkContext().hadoopConfiguration(),
+        spark.sparkContext().defaultParallelism());
+  }
 
-    @Singleton
-    @Provides
-    public BigQueryDataSourceReader provideDataSourceReader(
-            BigQueryClient bigQueryClient,
-            BigQueryReadClientFactory bigQueryReadClientFactory,
-            SparkBigQueryConfig config) {
-        TableInfo tableInfo = bigQueryClient.getSupportedTable(config.getTableId(), config.isViewsEnabled(),
-                SparkBigQueryConfig.VIEWS_ENABLED_OPTION);
-        return new BigQueryDataSourceReader(tableInfo,
-                bigQueryClient,
-                bigQueryReadClientFactory,
-                config.toReadSessionCreatorConfig(),
-                config.getFilter(),
-                schema);
-    }
+  @Singleton
+  @Provides
+  public BigQueryDataSourceReader provideDataSourceReader(
+      BigQueryClient bigQueryClient,
+      BigQueryReadClientFactory bigQueryReadClientFactory,
+      SparkBigQueryConfig config) {
+    TableInfo tableInfo =
+        bigQueryClient.getSupportedTable(
+            config.getTableId(), config.isViewsEnabled(), SparkBigQueryConfig.VIEWS_ENABLED_OPTION);
+    return new BigQueryDataSourceReader(
+        tableInfo,
+        bigQueryClient,
+        bigQueryReadClientFactory,
+        config.toReadSessionCreatorConfig(),
+        config.getFilter(),
+        schema);
+  }
 
-    @Singleton
-    @Provides
-    public UserAgentProvider provideUserAgentProvider() {
-        return new SparkBigQueryConnectorUserAgentProvider("v2");
-    }
-
+  @Singleton
+  @Provides
+  public UserAgentProvider provideUserAgentProvider() {
+    return new SparkBigQueryConnectorUserAgentProvider("v2");
+  }
 }

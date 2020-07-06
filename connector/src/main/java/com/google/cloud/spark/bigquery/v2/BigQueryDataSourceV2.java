@@ -29,29 +29,29 @@ import java.util.Optional;
 
 public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport {
 
-    @Override
-    public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
-        SparkSession spark = getDefaultSparkSessionOrCreate();
+  @Override
+  public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
+    SparkSession spark = getDefaultSparkSessionOrCreate();
 
-        Injector injector = Guice.createInjector(
-                new BigQueryClientModule(),
-                new SparkBigQueryConnectorModule(spark, options, Optional.ofNullable(schema)));
+    Injector injector =
+        Guice.createInjector(
+            new BigQueryClientModule(),
+            new SparkBigQueryConnectorModule(spark, options, Optional.ofNullable(schema)));
 
-        BigQueryDataSourceReader reader = injector.getInstance(BigQueryDataSourceReader.class);
-        return reader;
+    BigQueryDataSourceReader reader = injector.getInstance(BigQueryDataSourceReader.class);
+    return reader;
+  }
+
+  private SparkSession getDefaultSparkSessionOrCreate() {
+    scala.Option<SparkSession> defaultSpareSession = SparkSession.getDefaultSession();
+    if (defaultSpareSession.isDefined()) {
+      return defaultSpareSession.get();
     }
+    return SparkSession.builder().appName("spark-bigquery-connector").getOrCreate();
+  }
 
-    private SparkSession getDefaultSparkSessionOrCreate() {
-        scala.Option<SparkSession> defaultSpareSession = SparkSession.getDefaultSession();
-        if (defaultSpareSession.isDefined()) {
-            return defaultSpareSession.get();
-        }
-        return SparkSession.builder().appName("spark-bigquery-connector").getOrCreate();
-    }
-
-    @Override
-    public DataSourceReader createReader(DataSourceOptions options) {
-        return createReader(null, options);
-    }
+  @Override
+  public DataSourceReader createReader(DataSourceOptions options) {
+    return createReader(null, options);
+  }
 }
-

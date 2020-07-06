@@ -33,67 +33,73 @@ import java.util.Optional;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-/**
- * Provides the versions of the client environment in an anonymous way.
- */
+/** Provides the versions of the client environment in an anonymous way. */
 public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvider {
 
-    @VisibleForTesting
-    static String GCP_REGION_PART = getGcpRegion().map(region -> " region/" + region).orElse("");
-    @VisibleForTesting
-    static String DATAPROC_IMAGE_PART = Optional.ofNullable(System.getenv("DATAPROC_IMAGE_VERSION"))
-            .map(image -> " dataproc-image/" + image)
-            .orElse("");
-    private static String CONNECTOR_VERSION = BuildInfo.version();
-    // In order to avoid using SparkContext or SparkSession, we are going directly to the source
-    private static String SPARK_VERSION = org.apache.spark.package$.MODULE$.SPARK_VERSION();
-    private static String JAVA_VERSION = System.getProperty("java.runtime.version");
-    private static String SCALA_VERSION = Properties.versionNumberString();
-    static final String USER_AGENT = format("spark-bigquery-connector/%s spark/%s java/%s scala/%s%s%s",
-            CONNECTOR_VERSION,
-            SPARK_VERSION,
-            JAVA_VERSION,
-            SCALA_VERSION,
-            GCP_REGION_PART,
-            DATAPROC_IMAGE_PART
-    );
+  @VisibleForTesting
+  static String GCP_REGION_PART = getGcpRegion().map(region -> " region/" + region).orElse("");
 
-    private String dataSourceVersion;
+  @VisibleForTesting
+  static String DATAPROC_IMAGE_PART =
+      Optional.ofNullable(System.getenv("DATAPROC_IMAGE_VERSION"))
+          .map(image -> " dataproc-image/" + image)
+          .orElse("");
 
-    public SparkBigQueryConnectorUserAgentProvider(String dataSourceVersion) {
-        this.dataSourceVersion = dataSourceVersion;
+  private static String CONNECTOR_VERSION = BuildInfo.version();
+  // In order to avoid using SparkContext or SparkSession, we are going directly to the source
+  private static String SPARK_VERSION = org.apache.spark.package$.MODULE$.SPARK_VERSION();
+  private static String JAVA_VERSION = System.getProperty("java.runtime.version");
+  private static String SCALA_VERSION = Properties.versionNumberString();
+  static final String USER_AGENT =
+      format(
+          "spark-bigquery-connector/%s spark/%s java/%s scala/%s%s%s",
+          CONNECTOR_VERSION,
+          SPARK_VERSION,
+          JAVA_VERSION,
+          SCALA_VERSION,
+          GCP_REGION_PART,
+          DATAPROC_IMAGE_PART);
+
+  private String dataSourceVersion;
+
+  public SparkBigQueryConnectorUserAgentProvider(String dataSourceVersion) {
+    this.dataSourceVersion = dataSourceVersion;
+  }
+
+  // Queries the GCE metadata server
+  @VisibleForTesting
+  static Optional<String> getGcpRegion() {
+    RequestConfig config =
+        RequestConfig.custom()
+            .setConnectTimeout(100)
+            .setConnectionRequestTimeout(100)
+            .setSocketTimeout(100)
+            .build();
+    CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(config).build();
+    HttpGet httpGet =
+        new HttpGet("http://metadata.google.internal/computeMetadata/v1/instance/zone");
+    httpGet.addHeader("Metadata-Flavor", "Google");
+    try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+      if (response.getStatusLine().getStatusCode() == 200) {
+        String body =
+            CharStreams.toString(new InputStreamReader(response.getEntity().getContent(), UTF_8));
+        return Optional.of(body.substring(body.lastIndexOf('/') + 1));
+      } else {
+        return Optional.empty();
+      }
+    } catch (Exception e) {
+      return Optional.empty();
+    } finally {
+      try {
+        Closeables.close(httpClient, true);
+      } catch (IOException e) {
+        // nothing to do
+      }
     }
+  }
 
-    // Queries the GCE metadata server
-    @VisibleForTesting
-    static Optional<String> getGcpRegion() {
-        RequestConfig config = RequestConfig.custom()
-                .setConnectTimeout(100)
-                .setConnectionRequestTimeout(100)
-                .setSocketTimeout(100).build();
-        CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(config).build();
-        HttpGet httpGet = new HttpGet("http://metadata.google.internal/computeMetadata/v1/instance/zone");
-        httpGet.addHeader("Metadata-Flavor", "Google");
-        try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
-            if (response.getStatusLine().getStatusCode() == 200) {
-                String body = CharStreams.toString(new InputStreamReader(response.getEntity().getContent(), UTF_8));
-                return Optional.of(body.substring(body.lastIndexOf('/') + 1));
-            } else {
-                return Optional.empty();
-            }
-        } catch (Exception e) {
-            return Optional.empty();
-        } finally {
-            try {
-                Closeables.close(httpClient, true);
-            } catch (IOException e) {
-                // nothing to do
-            }
-        }
-    }
-
-    @Override
-    public String getUserAgent() {
-        return USER_AGENT + " datasource/" + dataSourceVersion;
-    }
+  @Override
+  public String getUserAgent() {
+    return USER_AGENT + " datasource/" + dataSourceVersion;
+  }
 }

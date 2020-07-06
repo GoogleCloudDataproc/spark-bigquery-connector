@@ -23,19 +23,19 @@ import static java.lang.String.format;
 
 public class SparkBigQueryConnectorVersionProvider implements VersionProvider {
 
-    private SparkContext sparkContext;
+  private SparkContext sparkContext;
 
-    public SparkBigQueryConnectorVersionProvider(SparkContext sparkContext) {
-        this.sparkContext = sparkContext;
-    }
+  public SparkBigQueryConnectorVersionProvider(SparkContext sparkContext) {
+    this.sparkContext = sparkContext;
+  }
 
-    @Override
-    public String getVersion() {
-        return format("spark-bigquery-connector/%s spark/%s java/%s scala/%s",
-                BuildInfo.version(),
-                sparkContext.version(),
-                System.getProperty("java.runtime.version"),
-                Properties.versionNumberString()
-        );
-    }
+  @Override
+  public String getVersion() {
+    return format(
+        "spark-bigquery-connector/%s spark/%s java/%s scala/%s",
+        BuildInfo.version(),
+        sparkContext.version(),
+        System.getProperty("java.runtime.version"),
+        Properties.versionNumberString());
+  }
 }

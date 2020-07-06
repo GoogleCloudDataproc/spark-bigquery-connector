@@ -21,14 +21,14 @@ import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
 public class BigQueryEmptyProjectionInputPartition implements InputPartition<InternalRow> {
 
-    final int partitionSize;
+  final int partitionSize;
 
-    public BigQueryEmptyProjectionInputPartition(int partitionSize) {
-        this.partitionSize = partitionSize;
-    }
+  public BigQueryEmptyProjectionInputPartition(int partitionSize) {
+    this.partitionSize = partitionSize;
+  }
 
-    @Override
-    public InputPartitionReader<InternalRow> createPartitionReader() {
-        return new BigQueryEmptyProjectionInputPartitionReader(partitionSize);
-    }
+  @Override
+  public InputPartitionReader<InternalRow> createPartitionReader() {
+    return new BigQueryEmptyProjectionInputPartitionReader(partitionSize);
+  }
 }

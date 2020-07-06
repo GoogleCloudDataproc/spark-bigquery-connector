@@ -19,17 +19,17 @@ import java.util.Optional;
 
 public interface BigQueryConfig {
 
-    Optional<String> getCredentialsKey();
+  Optional<String> getCredentialsKey();
 
-    Optional<String> getCredentialsFile();
+  Optional<String> getCredentialsFile();
 
-    Optional<String> getAccessToken();
+  Optional<String> getAccessToken();
 
-    Optional<String> getParentProjectId();
+  Optional<String> getParentProjectId();
 
-    boolean isViewsEnabled();
+  boolean isViewsEnabled();
 
-    Optional<String> getMaterializationProject();
+  Optional<String> getMaterializationProject();
 
-    Optional<String> getMaterializationDataset();
+  Optional<String> getMaterializationDataset();
 }

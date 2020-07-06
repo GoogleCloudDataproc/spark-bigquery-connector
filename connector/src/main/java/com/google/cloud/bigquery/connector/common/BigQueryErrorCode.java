@@ -16,21 +16,20 @@
 package com.google.cloud.bigquery.connector.common;
 
 public enum BigQueryErrorCode {
-    BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED(0),
-    BIGQUERY_DATETIME_PARSING_ERROR(1),
-    BIGQUERY_FAILED_TO_EXECUTE_QUERY(2),
-    // Should be last
-    UNSUPPORTED(9998),
-    UNKNOWN(9999);
+  BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED(0),
+  BIGQUERY_DATETIME_PARSING_ERROR(1),
+  BIGQUERY_FAILED_TO_EXECUTE_QUERY(2),
+  // Should be last
+  UNSUPPORTED(9998),
+  UNKNOWN(9999);
 
-    final int code;
+  final int code;
 
-    BigQueryErrorCode(int code) {
-        this.code = code;
-    }
-    
-    public int getCode() {
-        return code;
-    }
+  BigQueryErrorCode(int code) {
+    this.code = code;
+  }
 
+  public int getCode() {
+    return code;
+  }
 }

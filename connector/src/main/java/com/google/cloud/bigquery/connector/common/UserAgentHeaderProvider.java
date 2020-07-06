@@ -23,14 +23,14 @@ import java.util.Map;
 
 public class UserAgentHeaderProvider implements HeaderProvider, Serializable {
 
-    private final String userAgent;
+  private final String userAgent;
 
-    public UserAgentHeaderProvider(String userAgent) {
-        this.userAgent = userAgent;
-    }
+  public UserAgentHeaderProvider(String userAgent) {
+    this.userAgent = userAgent;
+  }
 
-    @Override
-    public Map<String, String> getHeaders() {
-        return ImmutableMap.of("user-agent", userAgent);
-    }
+  @Override
+  public Map<String, String> getHeaders() {
+    return ImmutableMap.of("user-agent", userAgent);
+  }
 }

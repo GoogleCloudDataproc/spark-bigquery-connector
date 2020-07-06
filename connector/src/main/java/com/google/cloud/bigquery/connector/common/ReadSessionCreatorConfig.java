@@ -21,70 +21,70 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 public class ReadSessionCreatorConfig {
-    final boolean viewsEnabled;
-    final Optional<String> materializationProject;
-    final Optional<String> materializationDataset;
-    final String viewEnabledParamName;
-    final int viewExpirationTimeInHours;
-    final DataFormat readDataFormat;
-    final int maxReadRowsRetries;
-    final OptionalInt maxParallelism;
-    final int defaultParallelism;
+  final boolean viewsEnabled;
+  final Optional<String> materializationProject;
+  final Optional<String> materializationDataset;
+  final String viewEnabledParamName;
+  final int viewExpirationTimeInHours;
+  final DataFormat readDataFormat;
+  final int maxReadRowsRetries;
+  final OptionalInt maxParallelism;
+  final int defaultParallelism;
 
-    public ReadSessionCreatorConfig(
-            boolean viewsEnabled,
-            Optional<String> materializationProject,
-            Optional<String> materializationDataset,
-            int viewExpirationTimeInHours,
-            DataFormat readDataFormat,
-            int maxReadRowsRetries,
-            String viewEnabledParamName,
-            OptionalInt maxParallelism,
-            int defaultParallelism) {
-        this.viewsEnabled = viewsEnabled;
-        this.materializationProject = materializationProject;
-        this.materializationDataset = materializationDataset;
-        this.viewEnabledParamName = viewEnabledParamName;
-        this.viewExpirationTimeInHours = viewExpirationTimeInHours;
-        this.readDataFormat = readDataFormat;
-        this.maxReadRowsRetries = maxReadRowsRetries;
-        this.maxParallelism = maxParallelism;
-        this.defaultParallelism = defaultParallelism;
-    }
+  public ReadSessionCreatorConfig(
+      boolean viewsEnabled,
+      Optional<String> materializationProject,
+      Optional<String> materializationDataset,
+      int viewExpirationTimeInHours,
+      DataFormat readDataFormat,
+      int maxReadRowsRetries,
+      String viewEnabledParamName,
+      OptionalInt maxParallelism,
+      int defaultParallelism) {
+    this.viewsEnabled = viewsEnabled;
+    this.materializationProject = materializationProject;
+    this.materializationDataset = materializationDataset;
+    this.viewEnabledParamName = viewEnabledParamName;
+    this.viewExpirationTimeInHours = viewExpirationTimeInHours;
+    this.readDataFormat = readDataFormat;
+    this.maxReadRowsRetries = maxReadRowsRetries;
+    this.maxParallelism = maxParallelism;
+    this.defaultParallelism = defaultParallelism;
+  }
 
-    public boolean isViewsEnabled() {
-        return viewsEnabled;
-    }
+  public boolean isViewsEnabled() {
+    return viewsEnabled;
+  }
 
-    public Optional<String> getMaterializationProject() {
-        return materializationProject;
-    }
+  public Optional<String> getMaterializationProject() {
+    return materializationProject;
+  }
 
-    public Optional<String> getMaterializationDataset() {
-        return materializationDataset;
-    }
+  public Optional<String> getMaterializationDataset() {
+    return materializationDataset;
+  }
 
-    public String getViewEnabledParamName() {
-        return viewEnabledParamName;
-    }
+  public String getViewEnabledParamName() {
+    return viewEnabledParamName;
+  }
 
-    public int getViewExpirationTimeInHours() {
-        return viewExpirationTimeInHours;
-    }
+  public int getViewExpirationTimeInHours() {
+    return viewExpirationTimeInHours;
+  }
 
-    public DataFormat getReadDataFormat() {
-        return readDataFormat;
-    }
+  public DataFormat getReadDataFormat() {
+    return readDataFormat;
+  }
 
-    public int getMaxReadRowsRetries() {
-        return maxReadRowsRetries;
-    }
+  public int getMaxReadRowsRetries() {
+    return maxReadRowsRetries;
+  }
 
-    public OptionalInt getMaxParallelism() {
-        return maxParallelism;
-    }
+  public OptionalInt getMaxParallelism() {
+    return maxParallelism;
+  }
 
-    public int getDefaultParallelism() {
-        return defaultParallelism;
-    }
+  public int getDefaultParallelism() {
+    return defaultParallelism;
+  }
 }
