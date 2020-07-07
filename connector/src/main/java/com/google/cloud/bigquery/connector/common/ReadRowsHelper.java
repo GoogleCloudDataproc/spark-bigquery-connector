@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.api.gax.rpc.ServerStream;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
@@ -29,6 +30,7 @@ public class ReadRowsHelper {
   private ReadRowsRequest.Builder request;
   private int maxReadRowsRetries;
   private BigQueryReadClient client;
+  private ServerStream<ReadRowsResponse> incomingStream;
 
   public ReadRowsHelper(
       BigQueryReadClientFactory bigQueryReadClientFactory,
@@ -51,7 +53,13 @@ public class ReadRowsHelper {
 
   // In order to enable testing
   protected Iterator<ReadRowsResponse> fetchResponses(ReadRowsRequest.Builder readRowsRequest) {
-    return client.readRowsCallable().call(readRowsRequest.build()).iterator();
+    incomingStream = client.readRowsCallable().call(readRowsRequest.build());
+    return incomingStream.iterator();
+  }
+
+  @Override
+  public String toString() {
+    return request.toString();
   }
 
   // Ported from https://github.com/GoogleCloudDataproc/spark-bigquery-connector/pull/150
@@ -89,7 +97,7 @@ public class ReadRowsHelper {
             serverResponses = helper.fetchResponses(helper.request.setOffset(readRowsCount));
             retries++;
           } else {
-            helper.client.close();
+            helper.close();
             throw e;
           }
         }
@@ -100,6 +108,10 @@ public class ReadRowsHelper {
   }
 
   public void close() {
+    if (incomingStream != null) {
+      incomingStream.cancel();
+      incomingStream = null;
+    }
     if (!client.isShutdown()) {
       client.close();
     }
