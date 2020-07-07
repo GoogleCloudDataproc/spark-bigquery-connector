@@ -31,28 +31,31 @@ import java.io.UncheckedIOException;
  * short lived clients that can be closed independently.
  */
 public class BigQueryReadClientFactory implements Serializable {
-    private final Credentials credentials;
-    // using the user agent as HeaderProvider is not serializable
-    private final UserAgentHeaderProvider userAgentHeaderProvider;
+  private final Credentials credentials;
+  // using the user agent as HeaderProvider is not serializable
+  private final UserAgentHeaderProvider userAgentHeaderProvider;
 
-    @Inject
-    public BigQueryReadClientFactory(BigQueryCredentialsSupplier bigQueryCredentialsSupplier, UserAgentHeaderProvider userAgentHeaderProvider) {
-        // using Guava's optional as it is serializable
-        this.credentials = bigQueryCredentialsSupplier.getCredentials();
-        this.userAgentHeaderProvider = userAgentHeaderProvider;
-    }
+  @Inject
+  public BigQueryReadClientFactory(
+      BigQueryCredentialsSupplier bigQueryCredentialsSupplier,
+      UserAgentHeaderProvider userAgentHeaderProvider) {
+    // using Guava's optional as it is serializable
+    this.credentials = bigQueryCredentialsSupplier.getCredentials();
+    this.userAgentHeaderProvider = userAgentHeaderProvider;
+  }
 
-    BigQueryReadClient createBigQueryReadClient() {
-        try {
-            BigQueryReadSettings.Builder clientSettings = BigQueryReadSettings.newBuilder()
-                    .setTransportChannelProvider(
-                            BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
-                                    .setHeaderProvider(userAgentHeaderProvider)
-                                    .build())
-                    .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
-            return BigQueryReadClient.create(clientSettings.build());
-        } catch (IOException e) {
-            throw new UncheckedIOException("Error creating BigQueryStorageClient", e);
-        }
+  BigQueryReadClient createBigQueryReadClient() {
+    try {
+      BigQueryReadSettings.Builder clientSettings =
+          BigQueryReadSettings.newBuilder()
+              .setTransportChannelProvider(
+                  BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
+                      .setHeaderProvider(userAgentHeaderProvider)
+                      .build())
+              .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
+      return BigQueryReadClient.create(clientSettings.build());
+    } catch (IOException e) {
+      throw new UncheckedIOException("Error creating BigQueryStorageClient", e);
     }
+  }
 }

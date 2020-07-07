@@ -26,59 +26,56 @@ import java.util.List;
 
 public interface ReadRowsResponseToInternalRowIteratorConverter {
 
-    static ReadRowsResponseToInternalRowIteratorConverter avro(
-            final com.google.cloud.bigquery.Schema bqSchema,
-            final List<String> columnsInOrder,
-            final String rawAvroSchema) {
-        return new Avro(bqSchema, columnsInOrder, rawAvroSchema);
+  static ReadRowsResponseToInternalRowIteratorConverter avro(
+      final com.google.cloud.bigquery.Schema bqSchema,
+      final List<String> columnsInOrder,
+      final String rawAvroSchema) {
+    return new Avro(bqSchema, columnsInOrder, rawAvroSchema);
+  }
+
+  static ReadRowsResponseToInternalRowIteratorConverter arrow(
+      final List<String> columnsInOrder, final ByteString arrowSchema) {
+    return new Arrow(columnsInOrder, arrowSchema);
+  }
+
+  Iterator<InternalRow> convert(ReadRowsResponse response);
+
+  class Avro implements ReadRowsResponseToInternalRowIteratorConverter, Serializable {
+
+    private final com.google.cloud.bigquery.Schema bqSchema;
+    private final List<String> columnsInOrder;
+    private final String rawAvroSchema;
+
+    public Avro(Schema bqSchema, List<String> columnsInOrder, String rawAvroSchema) {
+      this.bqSchema = bqSchema;
+      this.columnsInOrder = columnsInOrder;
+      this.rawAvroSchema = rawAvroSchema;
     }
 
-    static ReadRowsResponseToInternalRowIteratorConverter arrow(
-            final List<String> columnsInOrder,
-            final ByteString arrowSchema) {
-        return new Arrow(columnsInOrder, arrowSchema);
+    @Override
+    public Iterator<InternalRow> convert(ReadRowsResponse response) {
+      return new AvroBinaryIterator(
+          bqSchema,
+          columnsInOrder,
+          new org.apache.avro.Schema.Parser().parse(rawAvroSchema),
+          response.getAvroRows().getSerializedBinaryRows());
+    }
+  }
+
+  class Arrow implements ReadRowsResponseToInternalRowIteratorConverter, Serializable {
+
+    private final List<String> columnsInOrder;
+    private final ByteString arrowSchema;
+
+    public Arrow(List<String> columnsInOrder, ByteString arrowSchema) {
+      this.columnsInOrder = columnsInOrder;
+      this.arrowSchema = arrowSchema;
     }
 
-    Iterator<InternalRow> convert(ReadRowsResponse response);
-
-    class Avro implements ReadRowsResponseToInternalRowIteratorConverter, Serializable {
-
-        private final com.google.cloud.bigquery.Schema bqSchema;
-        private final List<String> columnsInOrder;
-        private final String rawAvroSchema;
-
-        public Avro(Schema bqSchema, List<String> columnsInOrder, String rawAvroSchema) {
-            this.bqSchema = bqSchema;
-            this.columnsInOrder = columnsInOrder;
-            this.rawAvroSchema = rawAvroSchema;
-        }
-
-        @Override
-        public Iterator<InternalRow> convert(ReadRowsResponse response) {
-            return new AvroBinaryIterator(
-                    bqSchema,
-                    columnsInOrder,
-                    new org.apache.avro.Schema.Parser().parse(rawAvroSchema),
-                    response.getAvroRows().getSerializedBinaryRows());
-        }
+    @Override
+    public Iterator<InternalRow> convert(ReadRowsResponse response) {
+      return new ArrowBinaryIterator(
+          columnsInOrder, arrowSchema, response.getArrowRecordBatch().getSerializedRecordBatch());
     }
-
-    class Arrow implements ReadRowsResponseToInternalRowIteratorConverter, Serializable {
-
-        private final List<String> columnsInOrder;
-        private final ByteString arrowSchema;
-
-        public Arrow(List<String> columnsInOrder, ByteString arrowSchema) {
-            this.columnsInOrder = columnsInOrder;
-            this.arrowSchema = arrowSchema;
-        }
-
-        @Override
-        public Iterator<InternalRow> convert(ReadRowsResponse response) {
-            return new ArrowBinaryIterator(
-                    columnsInOrder,
-                    arrowSchema,
-                    response.getArrowRecordBatch().getSerializedRecordBatch());
-        }
-    }
+  }
 }

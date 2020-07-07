@@ -28,27 +28,29 @@ import java.util.Iterator;
 
 public class BigQueryInputPartition implements InputPartition<InternalRow> {
 
-    private final BigQueryReadClientFactory bigQueryReadClientFactory;
-    private final String streamName;
-    private final int maxReadRowsRetries;
-    private final ReadRowsResponseToInternalRowIteratorConverter converter;
+  private final BigQueryReadClientFactory bigQueryReadClientFactory;
+  private final String streamName;
+  private final int maxReadRowsRetries;
+  private final ReadRowsResponseToInternalRowIteratorConverter converter;
 
-    public BigQueryInputPartition(
-            BigQueryReadClientFactory bigQueryReadClientFactory,
-            String streamName,
-            int maxReadRowsRetries,
-            ReadRowsResponseToInternalRowIteratorConverter converter) {
-        this.bigQueryReadClientFactory = bigQueryReadClientFactory;
-        this.streamName = streamName;
-        this.maxReadRowsRetries = maxReadRowsRetries;
-        this.converter = converter;
-    }
+  public BigQueryInputPartition(
+      BigQueryReadClientFactory bigQueryReadClientFactory,
+      String streamName,
+      int maxReadRowsRetries,
+      ReadRowsResponseToInternalRowIteratorConverter converter) {
+    this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+    this.streamName = streamName;
+    this.maxReadRowsRetries = maxReadRowsRetries;
+    this.converter = converter;
+  }
 
-    @Override
-    public InputPartitionReader<InternalRow> createPartitionReader() {
-        ReadRowsRequest.Builder readRowsRequest = ReadRowsRequest.newBuilder().setReadStream(streamName);
-        ReadRowsHelper readRowsHelper = new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequest, maxReadRowsRetries);
-        Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
-        return new BigQueryInputPartitionReader(readRowsResponses, converter, readRowsHelper);
-    }
+  @Override
+  public InputPartitionReader<InternalRow> createPartitionReader() {
+    ReadRowsRequest.Builder readRowsRequest =
+        ReadRowsRequest.newBuilder().setReadStream(streamName);
+    ReadRowsHelper readRowsHelper =
+        new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequest, maxReadRowsRetries);
+    Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
+    return new BigQueryInputPartitionReader(readRowsResponses, converter, readRowsHelper);
+  }
 }

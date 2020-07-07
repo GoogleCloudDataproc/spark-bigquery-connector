@@ -20,19 +20,19 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 
 public class ReadSessionResponse {
 
-    private final ReadSession readSession;
-    private final TableInfo readTableInfo;
+  private final ReadSession readSession;
+  private final TableInfo readTableInfo;
 
-    public ReadSessionResponse(ReadSession readSession, TableInfo readTableInfo) {
-        this.readSession = readSession;
-        this.readTableInfo = readTableInfo;
-    }
+  public ReadSessionResponse(ReadSession readSession, TableInfo readTableInfo) {
+    this.readSession = readSession;
+    this.readTableInfo = readTableInfo;
+  }
 
-    public ReadSession getReadSession() {
-        return readSession;
-    }
+  public ReadSession getReadSession() {
+    return readSession;
+  }
 
-    public TableInfo getReadTableInfo() {
-        return readTableInfo;
-    }
+  public TableInfo getReadTableInfo() {
+    return readTableInfo;
+  }
 }

@@ -41,337 +41,344 @@ import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTable
 import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
 
-
 public class SparkBigQueryConfig implements BigQueryConfig {
 
-    public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
-    @VisibleForTesting
-    static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.AVRO;
-    @VisibleForTesting
-    static final FormatOptions DEFAULT_INTERMEDIATE_FORMAT = FormatOptions.parquet();
-    private static final String GCS_CONFIG_CREDENTIALS_FILE_PROPERTY = "google.cloud.auth.service.account.json.keyfile";
-    private static final String GCS_CONFIG_PROJECT_ID_PROPERTY = "fs.gs.project.id";
-    private static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
-    private static final String READ_DATA_FORMAT_OPTION = "readDataFormat";
-    private static final ImmutableList<String> PERMITTED_READ_DATA_FORMATS = ImmutableList.of(
-            DataFormat.ARROW.toString(), DataFormat.AVRO.toString());
-    private static final ImmutableList<FormatOptions> PERMITTED_INTERMEDIATE_FORMATS = ImmutableList.of(
-            FormatOptions.orc(), FormatOptions.parquet());
+  public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
+  @VisibleForTesting static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.AVRO;
 
-    private static final Supplier<Optional<String>> DEFAULT_FALLBACK = () -> Optional.empty();
+  @VisibleForTesting
+  static final FormatOptions DEFAULT_INTERMEDIATE_FORMAT = FormatOptions.parquet();
 
-    TableId tableId;
-    Optional<String> parentProjectId;
-    Optional<String> credentialsKey;
-    Optional<String> credentialsFile;
-    Optional<String> accessToken;
-    Optional<String> filter = Optional.empty();
-    Optional<StructType> schema = Optional.empty();
-    OptionalInt maxParallelism = OptionalInt.empty();
-    int defaultParallelism = 1;
-    Optional<String> temporaryGcsBucket = Optional.empty();
-    FormatOptions intermediateFormat = DEFAULT_INTERMEDIATE_FORMAT;
-    DataFormat readDataFormat = DEFAULT_READ_DATA_FORMAT;
-    boolean combinePushedDownFilters = true;
-    boolean viewsEnabled = false;
-    Optional<String> materializationProject = Optional.empty();
-    Optional<String> materializationDataset = Optional.empty();
-    Optional<String> partitionField = Optional.empty();
-    OptionalLong partitionExpirationMs = OptionalLong.empty();
-    Optional<Boolean> partitionRequireFilter = Optional.empty();
-    Optional<String> partitionType = Optional.empty();
-    Optional<String[]> clusteredFields = Optional.empty();
-    Optional<JobInfo.CreateDisposition> createDisposition = Optional.empty();
-    boolean optimizedEmptyProjection = true;
-    ImmutableList<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.of();
-    int viewExpirationTimeInHours = 24;
-    int maxReadRowsRetries = 3;
+  private static final String GCS_CONFIG_CREDENTIALS_FILE_PROPERTY =
+      "google.cloud.auth.service.account.json.keyfile";
+  private static final String GCS_CONFIG_PROJECT_ID_PROPERTY = "fs.gs.project.id";
+  private static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
+  private static final String READ_DATA_FORMAT_OPTION = "readDataFormat";
+  private static final ImmutableList<String> PERMITTED_READ_DATA_FORMATS =
+      ImmutableList.of(DataFormat.ARROW.toString(), DataFormat.AVRO.toString());
+  private static final ImmutableList<FormatOptions> PERMITTED_INTERMEDIATE_FORMATS =
+      ImmutableList.of(FormatOptions.orc(), FormatOptions.parquet());
 
-    private SparkBigQueryConfig() {
-        // empty
-    }
+  private static final Supplier<Optional<String>> DEFAULT_FALLBACK = () -> Optional.empty();
 
-    public static SparkBigQueryConfig from(
-            DataSourceOptions options,
-            ImmutableMap<String, String> globalOptions,
-            Configuration hadoopConfiguration,
-            int defaultParallelism) {
-        SparkBigQueryConfig config = new SparkBigQueryConfig();
+  TableId tableId;
+  Optional<String> parentProjectId;
+  Optional<String> credentialsKey;
+  Optional<String> credentialsFile;
+  Optional<String> accessToken;
+  Optional<String> filter = Optional.empty();
+  Optional<StructType> schema = Optional.empty();
+  OptionalInt maxParallelism = OptionalInt.empty();
+  int defaultParallelism = 1;
+  Optional<String> temporaryGcsBucket = Optional.empty();
+  FormatOptions intermediateFormat = DEFAULT_INTERMEDIATE_FORMAT;
+  DataFormat readDataFormat = DEFAULT_READ_DATA_FORMAT;
+  boolean combinePushedDownFilters = true;
+  boolean viewsEnabled = false;
+  Optional<String> materializationProject = Optional.empty();
+  Optional<String> materializationDataset = Optional.empty();
+  Optional<String> partitionField = Optional.empty();
+  OptionalLong partitionExpirationMs = OptionalLong.empty();
+  Optional<Boolean> partitionRequireFilter = Optional.empty();
+  Optional<String> partitionType = Optional.empty();
+  Optional<String[]> clusteredFields = Optional.empty();
+  Optional<JobInfo.CreateDisposition> createDisposition = Optional.empty();
+  boolean optimizedEmptyProjection = true;
+  ImmutableList<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.of();
+  int viewExpirationTimeInHours = 24;
+  int maxReadRowsRetries = 3;
 
-        String tableParam = getRequiredOption(options, "table");
-        Optional<String> datasetParam = getOption(options, "dataset");
-        Optional<String> projectParam = firstPresent(getOption(options, "project"),
-                Optional.ofNullable(hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY)));
-        config.tableId = parseTableId(tableParam, datasetParam, projectParam);
-        config.parentProjectId = getAnyOption(globalOptions, options, "parentProject");
-        config.credentialsKey = getAnyOption(globalOptions, options, "credentials");
-        config.credentialsFile = firstPresent(getAnyOption(globalOptions, options, "credentialsFile"),
-                Optional.ofNullable(hadoopConfiguration.get(GCS_CONFIG_CREDENTIALS_FILE_PROPERTY)));
-        config.accessToken = getAnyOption(globalOptions, options, "gcpAccessToken");
-        config.filter = getOption(options, "filter");
-        config.maxParallelism = toOptionalInt(getOptionFromMultipleParams(
-                options, ImmutableList.of("maxParallelism", "parallelism"), DEFAULT_FALLBACK)
+  private SparkBigQueryConfig() {
+    // empty
+  }
+
+  public static SparkBigQueryConfig from(
+      DataSourceOptions options,
+      ImmutableMap<String, String> globalOptions,
+      Configuration hadoopConfiguration,
+      int defaultParallelism) {
+    SparkBigQueryConfig config = new SparkBigQueryConfig();
+
+    String tableParam = getRequiredOption(options, "table");
+    Optional<String> datasetParam = getOption(options, "dataset");
+    Optional<String> projectParam =
+        firstPresent(
+            getOption(options, "project"),
+            Optional.ofNullable(hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY)));
+    config.tableId = parseTableId(tableParam, datasetParam, projectParam);
+    config.parentProjectId = getAnyOption(globalOptions, options, "parentProject");
+    config.credentialsKey = getAnyOption(globalOptions, options, "credentials");
+    config.credentialsFile =
+        firstPresent(
+            getAnyOption(globalOptions, options, "credentialsFile"),
+            Optional.ofNullable(hadoopConfiguration.get(GCS_CONFIG_CREDENTIALS_FILE_PROPERTY)));
+    config.accessToken = getAnyOption(globalOptions, options, "gcpAccessToken");
+    config.filter = getOption(options, "filter");
+    config.maxParallelism =
+        toOptionalInt(
+            getOptionFromMultipleParams(
+                    options, ImmutableList.of("maxParallelism", "parallelism"), DEFAULT_FALLBACK)
                 .map(Integer::valueOf));
-        config.defaultParallelism = defaultParallelism;
-        config.temporaryGcsBucket = getAnyOption(globalOptions, options, "temporaryGcsBucket");
-        config.intermediateFormat = getAnyOption(globalOptions, options, INTERMEDIATE_FORMAT_OPTION)
-                .map(String::toUpperCase)
-                .map(FormatOptions::of)
-                .orElse(DEFAULT_INTERMEDIATE_FORMAT);
-        if (!PERMITTED_INTERMEDIATE_FORMATS.contains(config.intermediateFormat)) {
-            throw new IllegalArgumentException(
-                    format("Intermediate format '%s' is not supported. Supported formats are %s",
-                            config.intermediateFormat.getType(), PERMITTED_INTERMEDIATE_FORMATS.stream().map(FormatOptions::getType).collect(joining(","))
-                    ));
-        }
-        String readDataFormatParam = getAnyOption(globalOptions, options, READ_DATA_FORMAT_OPTION)
-                .map(String::toUpperCase)
-                .orElse(DEFAULT_READ_DATA_FORMAT.toString());
-        if (!PERMITTED_READ_DATA_FORMATS.contains(readDataFormatParam)) {
-            throw new IllegalArgumentException(
-                    format("Data read format '%s' is not supported. Supported formats are '%s'", readDataFormatParam, String.join(",", PERMITTED_READ_DATA_FORMATS))
-            );
-        }
-        config.readDataFormat = DataFormat.valueOf(readDataFormatParam);
-        config.combinePushedDownFilters = getAnyBooleanOption(
-                globalOptions, options, "combinePushedDownFilters", true);
-        config.viewsEnabled = getAnyBooleanOption(
-                globalOptions, options, VIEWS_ENABLED_OPTION, false);
-        config.materializationProject =
-                getAnyOption(globalOptions, options,
-                        ImmutableList.of("materializationProject", "viewMaterializationProject"));
-        config.materializationDataset =
-                getAnyOption(globalOptions, options,
-                        ImmutableList.of("materializationDataset", "viewMaterializationDataset"));
-
-        config.partitionField = getOption(options, "partitionField");
-        config.partitionExpirationMs = toOptionalLong(getOption(options, "partitionExpirationMs").map(Long::valueOf));
-        config.partitionRequireFilter = getOption(options, "partitionRequireFilter").map(Boolean::valueOf);
-        config.partitionType = getOption(options, "partitionType");
-        config.clusteredFields = getOption(options, "clusteredFields").map(s -> s.split(","));
-
-        config.createDisposition = getOption(options, "createDisposition")
-                .map(String::toUpperCase)
-                .map(JobInfo.CreateDisposition::valueOf);
-
-        config.optimizedEmptyProjection = getAnyBooleanOption(
-                globalOptions, options, "optimizedEmptyProjection", true);
-
-        boolean allowFieldAddition = getAnyBooleanOption(
-                globalOptions, options, "allowFieldAddition", false);
-        boolean allowFieldRelaxation = getAnyBooleanOption(
-                globalOptions, options, "allowFieldRelaxation", false);
-        ImmutableList.Builder<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.builder();
-        if (allowFieldAddition) {
-            loadSchemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION);
-        }
-        if (allowFieldRelaxation) {
-            loadSchemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION);
-        }
-        config.loadSchemaUpdateOptions = loadSchemaUpdateOptions.build();
-
-        return config;
+    config.defaultParallelism = defaultParallelism;
+    config.temporaryGcsBucket = getAnyOption(globalOptions, options, "temporaryGcsBucket");
+    config.intermediateFormat =
+        getAnyOption(globalOptions, options, INTERMEDIATE_FORMAT_OPTION)
+            .map(String::toUpperCase)
+            .map(FormatOptions::of)
+            .orElse(DEFAULT_INTERMEDIATE_FORMAT);
+    if (!PERMITTED_INTERMEDIATE_FORMATS.contains(config.intermediateFormat)) {
+      throw new IllegalArgumentException(
+          format(
+              "Intermediate format '%s' is not supported. Supported formats are %s",
+              config.intermediateFormat.getType(),
+              PERMITTED_INTERMEDIATE_FORMATS.stream()
+                  .map(FormatOptions::getType)
+                  .collect(joining(","))));
     }
-
-    private static OptionalInt toOptionalInt(Optional<Integer> o) {
-        return o.map(Stream::of).orElse(Stream.empty()).mapToInt(Integer::intValue).findFirst();
+    String readDataFormatParam =
+        getAnyOption(globalOptions, options, READ_DATA_FORMAT_OPTION)
+            .map(String::toUpperCase)
+            .orElse(DEFAULT_READ_DATA_FORMAT.toString());
+    if (!PERMITTED_READ_DATA_FORMATS.contains(readDataFormatParam)) {
+      throw new IllegalArgumentException(
+          format(
+              "Data read format '%s' is not supported. Supported formats are '%s'",
+              readDataFormatParam, String.join(",", PERMITTED_READ_DATA_FORMATS)));
     }
+    config.readDataFormat = DataFormat.valueOf(readDataFormatParam);
+    config.combinePushedDownFilters =
+        getAnyBooleanOption(globalOptions, options, "combinePushedDownFilters", true);
+    config.viewsEnabled = getAnyBooleanOption(globalOptions, options, VIEWS_ENABLED_OPTION, false);
+    config.materializationProject =
+        getAnyOption(
+            globalOptions,
+            options,
+            ImmutableList.of("materializationProject", "viewMaterializationProject"));
+    config.materializationDataset =
+        getAnyOption(
+            globalOptions,
+            options,
+            ImmutableList.of("materializationDataset", "viewMaterializationDataset"));
 
-    private static OptionalLong toOptionalLong(Optional<Long> o) {
-        return o.map(Stream::of).orElse(Stream.empty()).mapToLong(Long::longValue).findFirst();
+    config.partitionField = getOption(options, "partitionField");
+    config.partitionExpirationMs =
+        toOptionalLong(getOption(options, "partitionExpirationMs").map(Long::valueOf));
+    config.partitionRequireFilter =
+        getOption(options, "partitionRequireFilter").map(Boolean::valueOf);
+    config.partitionType = getOption(options, "partitionType");
+    config.clusteredFields = getOption(options, "clusteredFields").map(s -> s.split(","));
+
+    config.createDisposition =
+        getOption(options, "createDisposition")
+            .map(String::toUpperCase)
+            .map(JobInfo.CreateDisposition::valueOf);
+
+    config.optimizedEmptyProjection =
+        getAnyBooleanOption(globalOptions, options, "optimizedEmptyProjection", true);
+
+    boolean allowFieldAddition =
+        getAnyBooleanOption(globalOptions, options, "allowFieldAddition", false);
+    boolean allowFieldRelaxation =
+        getAnyBooleanOption(globalOptions, options, "allowFieldRelaxation", false);
+    ImmutableList.Builder<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions =
+        ImmutableList.builder();
+    if (allowFieldAddition) {
+      loadSchemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION);
     }
-
-    private static Supplier<String> defaultBilledProject() {
-        return () -> BigQueryOptions.getDefaultInstance().getProjectId();
+    if (allowFieldRelaxation) {
+      loadSchemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION);
     }
+    config.loadSchemaUpdateOptions = loadSchemaUpdateOptions.build();
 
-    private static String getRequiredOption(
-            DataSourceOptions options,
-            String name) {
-        return getOption(options, name, DEFAULT_FALLBACK)
-                .orElseThrow(() -> new IllegalArgumentException(format("Option %s required.", name)));
-    }
+    return config;
+  }
 
-    private static String getRequiredOption(
-            DataSourceOptions options,
-            String name,
-            Supplier<String> fallback) {
-        return getOption(options, name, DEFAULT_FALLBACK).orElseGet(fallback);
-    }
+  private static OptionalInt toOptionalInt(Optional<Integer> o) {
+    return o.map(Stream::of).orElse(Stream.empty()).mapToInt(Integer::intValue).findFirst();
+  }
 
-    private static Optional<String> getOption(
-            DataSourceOptions options,
-            String name) {
-        return getOption(options, name, DEFAULT_FALLBACK);
-    }
+  private static OptionalLong toOptionalLong(Optional<Long> o) {
+    return o.map(Stream::of).orElse(Stream.empty()).mapToLong(Long::longValue).findFirst();
+  }
 
-    private static Optional<String> getOption(
-            DataSourceOptions options,
-            String name,
-            Supplier<Optional<String>> fallback) {
-        return firstPresent(options.get(name), fallback.get());
-    }
+  private static Supplier<String> defaultBilledProject() {
+    return () -> BigQueryOptions.getDefaultInstance().getProjectId();
+  }
 
-    private static Optional<String> getOptionFromMultipleParams(
-            DataSourceOptions options,
-            Collection<String> names,
-            Supplier<Optional<String>> fallback) {
-        return names.stream().map(name -> getOption(options, name))
-                .filter(Optional::isPresent)
-                .findFirst()
-                .orElseGet(fallback);
-    }
+  private static String getRequiredOption(DataSourceOptions options, String name) {
+    return getOption(options, name, DEFAULT_FALLBACK)
+        .orElseThrow(() -> new IllegalArgumentException(format("Option %s required.", name)));
+  }
 
-    private static Optional<String> getAnyOption(
-            ImmutableMap<String, String> globalOptions,
-            DataSourceOptions options,
-            String name) {
-        return Optional.ofNullable(options.get(name).orElse(globalOptions.get(name)));
-    }
+  private static String getRequiredOption(
+      DataSourceOptions options, String name, Supplier<String> fallback) {
+    return getOption(options, name, DEFAULT_FALLBACK).orElseGet(fallback);
+  }
 
-    // gives the option to support old configurations as fallback
-    // Used to provide backward compatibility
-    private static Optional<String> getAnyOption(
-            ImmutableMap<String, String> globalOptions,
-            DataSourceOptions options,
-            Collection<String> names) {
-        return names.stream()
-                .map(name -> getAnyOption(globalOptions, options, name))
-                .filter(optional -> optional.isPresent())
-                .findFirst()
-                .orElse(Optional.empty());
-    }
+  private static Optional<String> getOption(DataSourceOptions options, String name) {
+    return getOption(options, name, DEFAULT_FALLBACK);
+  }
 
-    private static boolean getAnyBooleanOption(ImmutableMap<String, String> globalOptions,
-                                               DataSourceOptions options,
-                                               String name,
-                                               boolean defaultValue) {
-        return getAnyOption(globalOptions, options, name)
-                .map(Boolean::valueOf)
-                .orElse(defaultValue);
-    }
+  private static Optional<String> getOption(
+      DataSourceOptions options, String name, Supplier<Optional<String>> fallback) {
+    return firstPresent(options.get(name), fallback.get());
+  }
 
-    public TableId getTableId() {
-        return tableId;
-    }
+  private static Optional<String> getOptionFromMultipleParams(
+      DataSourceOptions options, Collection<String> names, Supplier<Optional<String>> fallback) {
+    return names.stream()
+        .map(name -> getOption(options, name))
+        .filter(Optional::isPresent)
+        .findFirst()
+        .orElseGet(fallback);
+  }
 
-    @Override
-    public Optional<String> getParentProjectId() {
-        return parentProjectId;
-    }
+  private static Optional<String> getAnyOption(
+      ImmutableMap<String, String> globalOptions, DataSourceOptions options, String name) {
+    return Optional.ofNullable(options.get(name).orElse(globalOptions.get(name)));
+  }
 
-    @Override
-    public Optional<String> getCredentialsKey() {
-        return credentialsKey;
-    }
+  // gives the option to support old configurations as fallback
+  // Used to provide backward compatibility
+  private static Optional<String> getAnyOption(
+      ImmutableMap<String, String> globalOptions,
+      DataSourceOptions options,
+      Collection<String> names) {
+    return names.stream()
+        .map(name -> getAnyOption(globalOptions, options, name))
+        .filter(optional -> optional.isPresent())
+        .findFirst()
+        .orElse(Optional.empty());
+  }
 
-    @Override
-    public Optional<String> getCredentialsFile() {
-        return credentialsKey;
-    }
+  private static boolean getAnyBooleanOption(
+      ImmutableMap<String, String> globalOptions,
+      DataSourceOptions options,
+      String name,
+      boolean defaultValue) {
+    return getAnyOption(globalOptions, options, name).map(Boolean::valueOf).orElse(defaultValue);
+  }
 
-    @Override
-    public Optional<String> getAccessToken() {
-        return accessToken;
+  public TableId getTableId() {
+    return tableId;
+  }
 
-    }
+  @Override
+  public Optional<String> getParentProjectId() {
+    return parentProjectId;
+  }
 
-    public Optional<String> getFilter() {
-        return filter;
-    }
+  @Override
+  public Optional<String> getCredentialsKey() {
+    return credentialsKey;
+  }
 
-    public Optional<StructType> getSchema() {
-        return schema;
-    }
+  @Override
+  public Optional<String> getCredentialsFile() {
+    return credentialsKey;
+  }
 
-    public OptionalInt getMaxParallelism() {
-        return maxParallelism;
-    }
+  @Override
+  public Optional<String> getAccessToken() {
+    return accessToken;
+  }
 
-    public int getDefaultParallelism() {
-        return defaultParallelism;
-    }
+  public Optional<String> getFilter() {
+    return filter;
+  }
 
-    public Optional<String> getTemporaryGcsBucket() {
-        return temporaryGcsBucket;
-    }
+  public Optional<StructType> getSchema() {
+    return schema;
+  }
 
-    public FormatOptions getIntermediateFormat() {
-        return intermediateFormat;
-    }
+  public OptionalInt getMaxParallelism() {
+    return maxParallelism;
+  }
 
-    public DataFormat getReadDataFormat() {
-        return readDataFormat;
-    }
+  public int getDefaultParallelism() {
+    return defaultParallelism;
+  }
 
-    public boolean isCombinePushedDownFilters() {
-        return combinePushedDownFilters;
-    }
+  public Optional<String> getTemporaryGcsBucket() {
+    return temporaryGcsBucket;
+  }
 
-    public boolean isViewsEnabled() {
-        return viewsEnabled;
-    }
+  public FormatOptions getIntermediateFormat() {
+    return intermediateFormat;
+  }
 
-    @Override
-    public Optional<String> getMaterializationProject() {
-        return materializationProject;
-    }
+  public DataFormat getReadDataFormat() {
+    return readDataFormat;
+  }
 
-    @Override
-    public Optional<String> getMaterializationDataset() {
-        return materializationDataset;
-    }
+  public boolean isCombinePushedDownFilters() {
+    return combinePushedDownFilters;
+  }
 
-    public Optional<String> getPartitionField() {
-        return partitionField;
-    }
+  public boolean isViewsEnabled() {
+    return viewsEnabled;
+  }
 
-    public OptionalLong getPartitionExpirationMs() {
-        return partitionExpirationMs;
-    }
+  @Override
+  public Optional<String> getMaterializationProject() {
+    return materializationProject;
+  }
 
-    public Optional<Boolean> getPartitionRequireFilter() {
-        return partitionRequireFilter;
-    }
+  @Override
+  public Optional<String> getMaterializationDataset() {
+    return materializationDataset;
+  }
 
-    public Optional<String> getPartitionType() {
-        return partitionType;
-    }
+  public Optional<String> getPartitionField() {
+    return partitionField;
+  }
 
-    public Optional<String[]> getClusteredFields() {
-        return clusteredFields;
-    }
+  public OptionalLong getPartitionExpirationMs() {
+    return partitionExpirationMs;
+  }
 
-    public Optional<JobInfo.CreateDisposition> getCreateDisposition() {
-        return createDisposition;
-    }
+  public Optional<Boolean> getPartitionRequireFilter() {
+    return partitionRequireFilter;
+  }
 
-    public boolean isOptimizedEmptyProjection() {
-        return optimizedEmptyProjection;
-    }
+  public Optional<String> getPartitionType() {
+    return partitionType;
+  }
 
-    public ImmutableList<JobInfo.SchemaUpdateOption> getLoadSchemaUpdateOptions() {
-        return loadSchemaUpdateOptions;
-    }
+  public Optional<String[]> getClusteredFields() {
+    return clusteredFields;
+  }
 
-    public int getViewExpirationTimeInHours() {
-        return viewExpirationTimeInHours;
-    }
+  public Optional<JobInfo.CreateDisposition> getCreateDisposition() {
+    return createDisposition;
+  }
 
-    public int getMaxReadRowsRetries() {
-        return maxReadRowsRetries;
-    }
+  public boolean isOptimizedEmptyProjection() {
+    return optimizedEmptyProjection;
+  }
 
-    public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
-        return new ReadSessionCreatorConfig(
-                viewsEnabled,
-                materializationProject,
-                materializationDataset,
-                viewExpirationTimeInHours,
-                readDataFormat,
-                maxReadRowsRetries,
-                VIEWS_ENABLED_OPTION,
-                maxParallelism,
-                defaultParallelism);
-    }
+  public ImmutableList<JobInfo.SchemaUpdateOption> getLoadSchemaUpdateOptions() {
+    return loadSchemaUpdateOptions;
+  }
+
+  public int getViewExpirationTimeInHours() {
+    return viewExpirationTimeInHours;
+  }
+
+  public int getMaxReadRowsRetries() {
+    return maxReadRowsRetries;
+  }
+
+  public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
+    return new ReadSessionCreatorConfig(
+        viewsEnabled,
+        materializationProject,
+        materializationDataset,
+        viewExpirationTimeInHours,
+        readDataFormat,
+        maxReadRowsRetries,
+        VIEWS_ENABLED_OPTION,
+        maxParallelism,
+        defaultParallelism);
+  }
 }

@@ -29,55 +29,59 @@ import java.util.Optional;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
 
 public class BigQueryCredentialsSupplier {
-    private final Optional<String> accessToken;
-    private final Optional<String> credentialsKey;
-    private final Optional<String> credentialsFile;
-    private final Credentials credentials;
+  private final Optional<String> accessToken;
+  private final Optional<String> credentialsKey;
+  private final Optional<String> credentialsFile;
+  private final Credentials credentials;
 
-    public BigQueryCredentialsSupplier(
-            Optional<String> accessToken,
-            Optional<String> credentialsKey,
-            Optional<String> credentialsFile) {
-        this.accessToken = accessToken;
-        this.credentialsKey = credentialsKey;
-        this.credentialsFile = credentialsFile;
-        // lazy creation, cache once it's created
-        Optional<Credentials> credentialsFromAccessToken = credentialsKey.map(BigQueryCredentialsSupplier::createCredentialsFromAccessToken);
-        Optional<Credentials> credentialsFromKey = credentialsKey.map(BigQueryCredentialsSupplier::createCredentialsFromKey);
-        Optional<Credentials> credentialsFromFile = credentialsFile.map(BigQueryCredentialsSupplier::createCredentialsFromFile);
-        this.credentials = firstPresent(credentialsFromAccessToken, credentialsFromKey, credentialsFromFile)
-                .orElse(createDefaultCredentials());
-    }
+  public BigQueryCredentialsSupplier(
+      Optional<String> accessToken,
+      Optional<String> credentialsKey,
+      Optional<String> credentialsFile) {
+    this.accessToken = accessToken;
+    this.credentialsKey = credentialsKey;
+    this.credentialsFile = credentialsFile;
+    // lazy creation, cache once it's created
+    Optional<Credentials> credentialsFromAccessToken =
+        credentialsKey.map(BigQueryCredentialsSupplier::createCredentialsFromAccessToken);
+    Optional<Credentials> credentialsFromKey =
+        credentialsKey.map(BigQueryCredentialsSupplier::createCredentialsFromKey);
+    Optional<Credentials> credentialsFromFile =
+        credentialsFile.map(BigQueryCredentialsSupplier::createCredentialsFromFile);
+    this.credentials =
+        firstPresent(credentialsFromAccessToken, credentialsFromKey, credentialsFromFile)
+            .orElse(createDefaultCredentials());
+  }
 
-    private static Credentials createCredentialsFromAccessToken(String accessToken) {
-        return GoogleCredentials.create(new AccessToken(accessToken, null));
-    }
+  private static Credentials createCredentialsFromAccessToken(String accessToken) {
+    return GoogleCredentials.create(new AccessToken(accessToken, null));
+  }
 
-    private static Credentials createCredentialsFromKey(String key) {
-        try {
-            return GoogleCredentials.fromStream(new ByteArrayInputStream(Base64.decodeBase64(key)));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to create Credentials from key", e);
-        }
+  private static Credentials createCredentialsFromKey(String key) {
+    try {
+      return GoogleCredentials.fromStream(new ByteArrayInputStream(Base64.decodeBase64(key)));
+    } catch (IOException e) {
+      throw new UncheckedIOException("Failed to create Credentials from key", e);
     }
+  }
 
-    private static Credentials createCredentialsFromFile(String file) {
-        try {
-            return GoogleCredentials.fromStream(new FileInputStream(file));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to create Credentials from file", e);
-        }
+  private static Credentials createCredentialsFromFile(String file) {
+    try {
+      return GoogleCredentials.fromStream(new FileInputStream(file));
+    } catch (IOException e) {
+      throw new UncheckedIOException("Failed to create Credentials from file", e);
     }
+  }
 
-    public static Credentials createDefaultCredentials() {
-        try {
-            return GoogleCredentials.getApplicationDefault();
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to create default Credentials", e);
-        }
+  public static Credentials createDefaultCredentials() {
+    try {
+      return GoogleCredentials.getApplicationDefault();
+    } catch (IOException e) {
+      throw new UncheckedIOException("Failed to create default Credentials", e);
     }
+  }
 
-    Credentials getCredentials() {
-        return credentials;
-    }
+  Credentials getCredentials() {
+    return credentials;
+  }
 }
