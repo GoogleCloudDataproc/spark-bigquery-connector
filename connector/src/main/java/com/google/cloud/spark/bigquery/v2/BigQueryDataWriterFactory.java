@@ -17,11 +17,8 @@ public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow>
 
     final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterFactory.class);
 
-    private final BigQueryWriteClient client;
     private final Schema bigQuerySchema;
     private final StructType sparkSchema;
-    private final Descriptors.Descriptor schemaDescriptor;
-    private final ProtoBufProto.ProtoSchema protoSchema;
     private final String writeUUID;
     private final String tableId;
     private final String tableIdForReading;
@@ -29,24 +26,20 @@ public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow>
 
     public BigQueryDataWriterFactory(String writeUUID, String tableId, String tableIdForReading,
                                      Schema bigQuerySchema, StructType sparkSchema,
-                                     Descriptors.Descriptor schemaDescriptor, ProtoBufProto.ProtoSchema protoSchema,
-                                     boolean ignoreInputs, BigQueryWriteClient client) {
+                                     boolean ignoreInputs) {
         logger.debug("BigQueryWriterFactory( {}, {}, {}, {}, {}, {}, {}, {}, {})", writeUUID, tableId, tableIdForReading,
-                bigQuerySchema, sparkSchema, schemaDescriptor, protoSchema, ignoreInputs, client);
+                bigQuerySchema, sparkSchema, ignoreInputs);
         this.writeUUID = writeUUID;
         this.tableId = tableId;
         this.tableIdForReading = tableIdForReading;
         this.bigQuerySchema = bigQuerySchema;
         this.sparkSchema = sparkSchema;
-        this.schemaDescriptor = schemaDescriptor;
-        this.protoSchema = protoSchema;
         this.ignoreInputs = ignoreInputs;
-        this.client = client;
     }
 
     @Override
     public DataWriter<InternalRow> createDataWriter(int partitionId, long taskId, long epochId) {
-        return new BigQueryDataWriter(partitionId, taskId, epochId, client, writeUUID, tableId, tableIdForReading,
-                bigQuerySchema, sparkSchema, schemaDescriptor, protoSchema, ignoreInputs);
+        return new BigQueryDataWriter(partitionId, taskId, epochId, writeUUID, tableId, tableIdForReading,
+                bigQuerySchema, sparkSchema, ignoreInputs);
     }
 }
