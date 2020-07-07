@@ -14,7 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-import static com.google.cloud.spark.bigquery.ProtoBufUtils.createSingleRowMessage;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.createSingleRowMessage;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
 import static junit.framework.Assert.assertEquals;
 
 public class BigQueryDataWriter implements DataWriter<InternalRow> {
@@ -40,25 +41,31 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
     private int rowCounter;
     private int offset;
 
-    public BigQueryDataWriter(int partitionId, long taskId, long epochId, BigQueryWriteClient client, String writeUUID,
-                              String tableId, String tableIdForReading, Schema bigQuerySchema, StructType sparkSchema,
-                              Descriptors.Descriptor schemaDescriptor, ProtoBufProto.ProtoSchema protoSchema,
+    public BigQueryDataWriter(int partitionId, long taskId, long epochId, String writeUUID, String tableId,
+                              String tableIdForReading, Schema bigQuerySchema, StructType sparkSchema,
                               boolean ignoreInputs) {
         logger.debug("BigQueryDataWriter( {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} )", partitionId, taskId, epochId,
-                client, writeUUID, tableId, tableIdForReading, bigQuerySchema, sparkSchema, schemaDescriptor, protoSchema,
-                ignoreInputs);
+                writeUUID, tableId, tableIdForReading, bigQuerySchema, sparkSchema, ignoreInputs);
         this.partitionId = partitionId;
         this.taskId = taskId;
         this.epochId = epochId;
-        this.client = client;
         this.writeUUID = writeUUID;
         this.tableId = tableId;
         this.tableIdForReading = tableIdForReading;
         this.bigQuerySchema = bigQuerySchema;
         this.sparkSchema = sparkSchema;
-        this.schemaDescriptor = schemaDescriptor;
-        this.protoSchema = protoSchema;
+        try {
+            this.schemaDescriptor = toDescriptor(sparkSchema);
+        } catch (Descriptors.DescriptorValidationException e) {
+            throw new RuntimeException("Could not infer descriptor from the Spark Schema.", e);
+        }
+        this.protoSchema = ProtoSchemaConverter.convert(schemaDescriptor);
         this.ignoreInputs = ignoreInputs;
+        try {
+            this.client = BigQueryWriteClient.create();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to initialize BigQueryWriteClient.", e);
+        }
 
         Stream.WriteStream aWriteStream = Stream.WriteStream.newBuilder()
                 .setType(Stream.WriteStream.Type.PENDING).build();
@@ -121,6 +128,8 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
                                 .setName(writeStream.getName()).build());
 
         long rowCount = finalizeResponse.getRowCount();
+
+        logger.debug("Data Writer {} has finalized with row count: {}", partitionId, rowCount);
 
         return new BigQueryWriterCommitMessage(writeStream.getName(), partitionId, taskId, epochId, tableIdForReading, rowCount);
     }

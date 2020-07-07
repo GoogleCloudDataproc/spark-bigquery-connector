@@ -19,7 +19,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Arrays;
 
-import static com.google.cloud.spark.bigquery.ProtoBufUtils.toDescriptor;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
 import static com.google.cloud.spark.bigquery.SchemaConverters.toBigQuerySchema;
 
 public class BigQueryDataSourceWriter implements DataSourceWriter {
@@ -33,8 +34,6 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     private String tableName;
     private StructType sparkSchema;
     private Schema bigQuerySchema;
-    private Descriptors.Descriptor schemaDescriptor;
-    private final ProtoBufProto.ProtoSchema protoSchema;
 
     private TableInfo tableInfo;
     private String tableId;
@@ -52,12 +51,6 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
         this.tableName = tableName;
         this.sparkSchema = sparkSchema;
         this.bigQuerySchema = toBigQuerySchema(sparkSchema);
-        try {
-            this.schemaDescriptor = toDescriptor(sparkSchema);
-        } catch (Descriptors.DescriptorValidationException e) {
-            throw new RuntimeException("Spark Schema could not be converted to protocol-buffer Descriptor.", e);
-        }
-        this.protoSchema = ProtoSchemaConverter.convert(schemaDescriptor);
         this.tableInfo =
                 TableInfo.newBuilder(
                         TableId.of(datasetName, tableName),
@@ -114,8 +107,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
 
     @Override
     public DataWriterFactory<InternalRow> createWriterFactory() {
-        return new BigQueryDataWriterFactory(writeUUID, tableId, tableIdForReading,
-                bigQuerySchema, sparkSchema, schemaDescriptor, protoSchema, ignoreInputs, client);
+        return new BigQueryDataWriterFactory(writeUUID, tableId, tableIdForReading, bigQuerySchema, sparkSchema, ignoreInputs);
     }
 
     @Override
@@ -131,8 +123,8 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
             Storage.BatchCommitWriteStreamsRequest.Builder batchCommitWriteStreamsRequest =
                     Storage.BatchCommitWriteStreamsRequest.newBuilder()
                             .setParent(tableId);
-            for(BigQueryWriterCommitMessage message : (BigQueryWriterCommitMessage[])messages) {
-                batchCommitWriteStreamsRequest.addWriteStreams(message.getWriteStreamName());
+            for(WriterCommitMessage message : messages) {
+                batchCommitWriteStreamsRequest.addWriteStreams(((BigQueryWriterCommitMessage)message).getWriteStreamName());
             }
             Storage.BatchCommitWriteStreamsResponse batchCommitWriteStreamsResponse = client.batchCommitWriteStreams(
                     batchCommitWriteStreamsRequest.build());
