@@ -16,7 +16,7 @@
 lazy val scala211Version = "2.11.12"
 lazy val scala212Version = "2.12.10"
 lazy val sparkVersion = "2.4.0"
-lazy val nettyVersion = "4.1.30.Final"
+lazy val nettyVersion = "4.1.50.Final"
 
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
@@ -114,6 +114,7 @@ lazy val fatJar = project
       ).map(_.inAll),
 
     assemblyMergeStrategy in assembly := {
+      case x if x.endsWith("/public-suffix-list.txt") => MergeStrategy.filterDistinctLines
       case "module-info.class" => MergeStrategy.discard
       case PathList(ps@_*) if ps.last.endsWith(".properties") => MergeStrategy.filterDistinctLines
       case PathList(ps@_*) if ps.last.endsWith(".proto") => MergeStrategy.discard
