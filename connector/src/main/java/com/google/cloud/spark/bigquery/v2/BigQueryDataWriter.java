@@ -84,44 +84,54 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
     public void write(InternalRow record) throws IOException {
         logger.debug("DataWriter {} write( {} )", partitionId, record);
         if(ignoreInputs) return;
+
         if(rowCounter >= APPEND_REQUEST_SIZE) {
-            Storage.AppendRowsRequest.Builder requestBuilder = Storage.AppendRowsRequest.newBuilder()
-                    .setOffset(Int64Value.of(offset));
-            Storage.AppendRowsRequest.ProtoData.Builder dataBuilder =
-                    Storage.AppendRowsRequest.ProtoData.newBuilder();
-            dataBuilder.setWriterSchema(protoSchema);
-
-            dataBuilder.setRows(protoRows.build());
-            requestBuilder
-                    .setProtoRows(dataBuilder.build())
-                    .setWriteStream(writeStream.getName());
-
-            // Append call
-            try (StreamWriter streamWriter =
-                         StreamWriter.newBuilder(writeStream.getName()).build()) {
-                ApiFuture<Storage.AppendRowsResponse> response =
-                        streamWriter.append(requestBuilder.build());
-                try {
-                    assertEquals(this.offset, response.get().getOffset());
-                } catch (Exception e) {
-                    logger.error("Append request had an offset that was not expected.", e);
-                    abort();
-                }
-            } catch (InterruptedException e) {
-                logger.error("Stream writer had an interrupted build.", e);
-                abort();
-            }
-
+            appendRequest();
+            protoRows = ProtoBufProto.ProtoRows.newBuilder();
             this.offset += APPEND_REQUEST_SIZE;
         }
-        else {
-            protoRows.addSerializedRows(createSingleRowMessage(sparkSchema, schemaDescriptor, record).toByteString());
+
+        protoRows.addSerializedRows(createSingleRowMessage(sparkSchema, schemaDescriptor, record).toByteString());
+    }
+
+    public void appendRequest() throws IOException {
+        Storage.AppendRowsRequest.Builder requestBuilder = Storage.AppendRowsRequest.newBuilder()
+                .setOffset(Int64Value.of(offset));
+        Storage.AppendRowsRequest.ProtoData.Builder dataBuilder =
+                Storage.AppendRowsRequest.ProtoData.newBuilder();
+        dataBuilder.setWriterSchema(protoSchema);
+
+        dataBuilder.setRows(protoRows.build());
+        requestBuilder
+                .setProtoRows(dataBuilder.build())
+                .setWriteStream(writeStream.getName());
+
+        // Append call
+        try (StreamWriter streamWriter =
+                     StreamWriter.newBuilder(writeStream.getName()).build()) {
+            ApiFuture<Storage.AppendRowsResponse> response =
+                    streamWriter.append(requestBuilder.build());
+            try {
+                assertEquals(this.offset, response.get().getOffset());
+            } catch (Exception e) {
+                logger.error("Append request had an offset that was not expected.", e);
+                abort();
+            }
+        } catch (InterruptedException e) {
+            logger.error("Stream writer had an interrupted build.", e);
+            abort();
         }
     }
 
     @Override
     public WriterCommitMessage commit() throws IOException {
         logger.debug("Data Writer {} commit()", partitionId);
+
+        // Append all leftover since the last append:
+        if(protoRows.getSerializedRowsCount() > 0) {
+            appendRequest();
+        }
+
         Storage.FinalizeWriteStreamResponse finalizeResponse =
                 client.finalizeWriteStream(
                         Storage.FinalizeWriteStreamRequest.newBuilder()

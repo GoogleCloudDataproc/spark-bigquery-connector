@@ -35,7 +35,7 @@ public class SparkBigQueryWriteTest {
                 .master("local[*]")
                 .getOrCreate();
         df = spark.read().format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
-                .option("table", "google.com:hadoop-cloud-dev:ymed.PittsburghPools")
+                .option("table", "google.com:hadoop-cloud-dev:ymed.Titanic")
                 .load();
         RemoteBigQueryHelper bigqueryHelper = RemoteBigQueryHelper.create();
         bigquery = bigqueryHelper.getOptions().getService();
