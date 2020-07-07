@@ -10,10 +10,11 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class SparkBigQueryWriteTests {
+public class SparkBigQueryWriteTest {
 
     public static final Logger logger = LogManager.getLogger("com.google.cloud.spark.bigquery");
 
@@ -34,7 +35,7 @@ public class SparkBigQueryWriteTests {
                 .master("local[*]")
                 .getOrCreate();
         df = spark.read().format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
-                .option("table", "google.com:hadoop-cloud-dev:ymed.Titanic")
+                .option("table", "google.com:hadoop-cloud-dev:ymed.PittsburghPools")
                 .load();
         RemoteBigQueryHelper bigqueryHelper = RemoteBigQueryHelper.create();
         bigquery = bigqueryHelper.getOptions().getService();
@@ -42,6 +43,14 @@ public class SparkBigQueryWriteTests {
                 DatasetInfo.newBuilder(/* datasetId = */ DATASET).setDescription(DESCRIPTION).build();
         bigquery.create(datasetInfo);
         logger.info("Created test dataset: " + DATASET);
+    }
+
+    @AfterClass
+    public static void close() {
+        if (bigquery != null) {
+            RemoteBigQueryHelper.forceDelete(bigquery, DATASET);
+            logger.info("Deleted test dataset: " + DATASET);
+        }
     }
 
     @Test
