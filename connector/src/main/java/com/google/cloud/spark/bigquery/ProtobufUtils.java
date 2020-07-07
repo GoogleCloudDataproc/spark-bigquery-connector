@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery;
 
 import avro.shaded.com.google.common.base.Preconditions;
+import com.google.cloud.ByteArray;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
@@ -29,6 +30,7 @@ import com.google.protobuf.DynamicMessage;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.*;
+import org.apache.spark.unsafe.types.UTF8String;
 
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -216,6 +218,10 @@ public class ProtobufUtils {
                                 (InternalRow)row.get(i-1, sparkType)));
             }
             else {
+                Object converted = convert(sparkField, row.get(i-1, sparkType));
+                if (converted == null) {
+                    continue;
+                }
                 messageBuilder.setField(schemaDescriptor.findFieldByNumber(i),
                         convert(sparkField,
                                 row.get(i-1, sparkType)));
@@ -292,12 +298,18 @@ public class ProtobufUtils {
 
         if (sparkType instanceof DateType) {
             return Date.valueOf((String)value).getTime();
+        } // TODO: CalendarInterval
+
+        if (sparkType instanceof BooleanType) {
+            return value;
         }
 
-        if (sparkType instanceof BooleanType ||
-                sparkType instanceof StringType ||
-                sparkType instanceof BinaryType) {
-            return value;
+        if (sparkType instanceof StringType) {
+            return new String(((UTF8String)value).getBytes());
+        }
+
+        if (sparkType instanceof BinaryType) {
+            return ((ByteArray)value).toByteArray();
         }
 
         if (sparkType instanceof MapType) {
