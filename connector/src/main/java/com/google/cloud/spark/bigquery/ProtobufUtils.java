@@ -30,6 +30,8 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.*;
 
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
@@ -261,10 +263,6 @@ public class ProtobufUtils {
                         "Encountered a null value inside a non-null-containing array.");
                 return toAtomicProtoRowValue(elementType, value);
             } ).collect(Collectors.toList());
-        } else if (fieldType instanceof StructType) {
-            throw new IllegalStateException("Method did not expect to convert a StructType instance.");
-        } else if (fieldType instanceof MapType) {
-            throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
         }
         else {
             return toAtomicProtoRowValue(fieldType, sparkValue);
@@ -278,9 +276,7 @@ public class ProtobufUtils {
         if (sparkType instanceof ByteType ||
                 sparkType instanceof ShortType ||
                 sparkType instanceof IntegerType ||
-                sparkType instanceof LongType ||
-                sparkType instanceof TimestampType ||
-                sparkType instanceof DateType) {
+                sparkType instanceof LongType) {
             return ((Number)value).longValue();
         }
 
@@ -290,13 +286,22 @@ public class ProtobufUtils {
             return ((Number)value).doubleValue(); // TODO: should decimal be converted to double? Or a Bytes type containing extra width?
         }
 
-        if (sparkType instanceof BooleanType) {
-            return ((Boolean)value).booleanValue(); // TODO: can be unboxed?
+        if (sparkType instanceof TimestampType) {
+            return Timestamp.valueOf((String)value).getTime(); //
         }
 
-        if (sparkType instanceof StringType ||
+        if (sparkType instanceof DateType) {
+            return Date.valueOf((String)value).getTime();
+        }
+
+        if (sparkType instanceof BooleanType ||
+                sparkType instanceof StringType ||
                 sparkType instanceof BinaryType) {
-            return value; // TODO: verify correct method for extracting this value.
+            return value;
+        }
+
+        if (sparkType instanceof MapType) {
+            throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
         }
 
         throw new IllegalStateException("Unexpected type: " + sparkType);
@@ -315,9 +320,6 @@ public class ProtobufUtils {
             DescriptorProtos.FieldDescriptorProto.Type fieldType;
 
             DataType sparkType = field.dataType();
-            if (sparkType instanceof MapType) {
-                throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
-            }
             if (sparkType instanceof StructType) {
                 StructType structType = (StructType)sparkType;
                 String nestedName = RESERVED_NESTED_TYPE_NAME +messageNumber; // TODO: this should be a reserved name. No column can have this name.
@@ -354,7 +356,7 @@ public class ProtobufUtils {
     // NOTE: annotations for DATETIME and TIMESTAMP objects are currently unsupported for external users,
     // but if they become available, it would be advisable to append an annotation to the protoFieldBuilder
     // for these and other types.
-    // This function only converts atomic Spark DataTypes (MapType, ArrayType, and StructType will throw an error).
+    // This function only converts atomic Spark DataTypes
     private static DescriptorProtos.FieldDescriptorProto.Type sparkAtomicTypeToProtoFieldType(DataType sparkType) {
         if (sparkType instanceof ByteType ||
                 sparkType instanceof ShortType ||
@@ -382,6 +384,10 @@ public class ProtobufUtils {
 
         if (sparkType instanceof StringType) {
             return DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING;
+        }
+
+        if (sparkType instanceof MapType) {
+            throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
         }
 
         throw new IllegalStateException("Unexpected type: " + sparkType);

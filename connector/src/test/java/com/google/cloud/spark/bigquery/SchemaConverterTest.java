@@ -106,7 +106,7 @@ public class SchemaConverterTest {
 
         Schema converted = toBigQuerySchema(schema);
 
-        for(int i = 0; i < converted.getFields().size(); i++){
+        for(int i = 0; i < expected.getFields().size(); i++){
             assertThat(converted.getFields().get(i)).isEqualTo(expected.getFields().get(i));
         }
     }
@@ -190,14 +190,18 @@ public class SchemaConverterTest {
     public final StructField SPARK_ARRAY_FIELD = new StructField("Array",
             DataTypes.createArrayType(DataTypes.IntegerType),
             true, Metadata.empty());
-    public final StructField SPARK_MAP_FIELD = new StructField("Map",
-            DataTypes.createMapType(DataTypes.IntegerType, DataTypes.StringType),
-            true, Metadata.empty());
     public final StructField SPARK_DOUBLE_FIELD = new StructField("Float", DataTypes.DoubleType,
             true, Metadata.empty());
     public final StructField SPARK_BOOLEAN_FIELD = new StructField("Boolean", DataTypes.BooleanType,
             true, Metadata.empty());
     public final StructField SPARK_NUMERIC_FIELD = new StructField("Numeric", NUMERIC_SPARK_TYPE,
+            true, Metadata.empty());
+    public final StructField SPARK_BINARY_FIELD = new StructField("Binary", DataTypes.BinaryType,
+            true, Metadata.empty());
+    public final StructField SPARK_DATE_FIELD = new StructField("Date", DataTypes.DateType,
+            true, Metadata.empty());
+    public final StructField SPARK_MAP_FIELD = new StructField("Map",
+            DataTypes.createMapType(DataTypes.IntegerType, DataTypes.StringType),
             true, Metadata.empty());
 
     public final StructType BIG_SPARK_SCHEMA = new StructType()
@@ -207,7 +211,9 @@ public class SchemaConverterTest {
             .add(SPARK_NESTED_STRUCT_FIELD)
             .add(SPARK_DOUBLE_FIELD)
             .add(SPARK_BOOLEAN_FIELD)
-            .add(SPARK_NUMERIC_FIELD);
+            .add(SPARK_NUMERIC_FIELD)
+            .add(SPARK_BINARY_FIELD)
+            .add(SPARK_DATE_FIELD);
 
     public final StructType BIG_SPARK_SCHEMA2 = new StructType()
             .add(new StructField("foo", DataTypes.StringType,true, Metadata.empty()))
@@ -257,9 +263,14 @@ public class SchemaConverterTest {
             .setMode(Field.Mode.NULLABLE).build();
     public final Field BIGQUERY_NUMERIC_FIELD = Field.newBuilder("Numeric", LegacySQLTypeName.NUMERIC, (FieldList)null)
             .setMode(Field.Mode.NULLABLE).build();
+    public final Field BIGQUERY_BYTES_FIELD = Field.newBuilder("Binary", LegacySQLTypeName.BYTES, (FieldList)null)
+            .setMode(Field.Mode.NULLABLE).build();
+    public final Field BIGQUERY_DATE_FIELD = Field.newBuilder("Date", LegacySQLTypeName.DATE, (FieldList)null)
+            .setMode(Field.Mode.NULLABLE).build();
 
-    public final Schema BIG_BIGQUERY_SCHEMA = Schema.of(BIGQUERY_INTEGER_FIELD, BIGQUERY_STRING_FIELD, BIGQUERY_ARRAY_FIELD, BIGQUERY_NESTED_STRUCT_FIELD,
-            BIGQUERY_FLOAT_FIELD, BIGQUERY_BOOLEAN_FIELD, BIGQUERY_NUMERIC_FIELD);
+    public final Schema BIG_BIGQUERY_SCHEMA = Schema.of(BIGQUERY_INTEGER_FIELD, BIGQUERY_STRING_FIELD, BIGQUERY_ARRAY_FIELD,
+            BIGQUERY_NESTED_STRUCT_FIELD, BIGQUERY_FLOAT_FIELD, BIGQUERY_BOOLEAN_FIELD, BIGQUERY_NUMERIC_FIELD,
+            BIGQUERY_BYTES_FIELD, BIGQUERY_DATE_FIELD);
 
     /* TODO: create SchemaConverters.convert() from BigQuery -> Spark test. Translate specific test from SchemaIteratorSuite.scala
     private final List<String> BIG_SCHEMA_NAMES_INORDER = Arrays.asList(

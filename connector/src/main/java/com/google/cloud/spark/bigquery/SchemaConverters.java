@@ -245,9 +245,6 @@ public class SchemaConverters {
             fieldType = elementType;
             fieldMode = Field.Mode.REPEATED;
         }
-        else if (sparkType instanceof MapType) {
-            throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
-        }
         else if (sparkType instanceof StructType) {
             subFields = sparkToBigQueryFields((StructType)sparkType, depth+1);
             fieldType = LegacySQLTypeName.RECORD;
@@ -287,15 +284,18 @@ public class SchemaConverters {
                     decimalType.scale() <= BQ_NUMERIC_SCALE) {
                 return LegacySQLTypeName.NUMERIC;
             } else {
-                throw new IllegalArgumentException("Decimal type is too wide to fit in BigQuery Numeric format"); // TODO
+                throw new IllegalArgumentException("Decimal type is too wide to fit in BigQuery Numeric format");
             }
         } if (elementType instanceof StringType) {
             return LegacySQLTypeName.STRING;
         } if (elementType instanceof TimestampType) {
             return LegacySQLTypeName.TIMESTAMP;
-        } if (elementType instanceof DateType) { // TODO: TIME & DATETIME in BigQuery
+        } if (elementType instanceof DateType) {
             return LegacySQLTypeName.DATE;
-        } else {
+        } if (elementType instanceof MapType) {
+            throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
+        }
+        else {
             throw new IllegalArgumentException("Data type not expected in toBQType: "+elementType.simpleString());
         }
     }
