@@ -300,16 +300,13 @@ public class ProtobufUtils {
             return Date.valueOf((String)value).getTime();
         } // TODO: CalendarInterval
 
-        if (sparkType instanceof BooleanType) {
+        if (sparkType instanceof BooleanType ||
+                sparkType instanceof BinaryType) {
             return value;
         }
 
         if (sparkType instanceof StringType) {
             return new String(((UTF8String)value).getBytes());
-        }
-
-        if (sparkType instanceof BinaryType) {
-            return ((ByteArray)value).toByteArray();
         }
 
         if (sparkType instanceof MapType) {

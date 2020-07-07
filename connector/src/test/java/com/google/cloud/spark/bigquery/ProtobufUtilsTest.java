@@ -31,6 +31,8 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.*;
+import org.apache.spark.unsafe.types.ByteArray;
+import org.apache.spark.unsafe.types.UTF8String;
 import org.junit.AssumptionViolatedException;
 import org.junit.Test;
 
@@ -177,7 +179,7 @@ public class ProtobufUtilsTest {
                 new InternalRow[]{
                         new GenericInternalRow(new Object[]{
                                 1,
-                                "A",
+                                UTF8String.fromString("A"),
                                 ArrayData.toArrayData(new int[]{0,1,2}),
                                 INTERNAL_STRUCT_DATA,
                                 3.14,
@@ -325,10 +327,10 @@ public class ProtobufUtilsTest {
             .addNestedType(NESTED_STRUCT_DESCRIPTOR).addField(PROTO_STRUCT_FIELD).setName("Schema").build();
 
     private final InternalRow INTEGER_INTERNAL_ROW = new GenericInternalRow(new Object[]{1});
-    private final InternalRow STRING_INTERNAL_ROW = new GenericInternalRow(new Object[]{"A"});
+    private final InternalRow STRING_INTERNAL_ROW = new GenericInternalRow(new Object[]{UTF8String.fromString("A")});
     private final InternalRow ARRAY_INTERNAL_ROW = new GenericInternalRow(new Object[]{ArrayData.toArrayData(
             new int[]{0,1,2})});
-    private final InternalRow INTERNAL_STRUCT_DATA = new GenericInternalRow(new Object[]{1, "A"});
+    private final InternalRow INTERNAL_STRUCT_DATA = new GenericInternalRow(new Object[]{1, UTF8String.fromString("A")});
     private final InternalRow STRUCT_INTERNAL_ROW = new GenericInternalRow(new Object[]{INTERNAL_STRUCT_DATA});
 
 
