@@ -19,6 +19,8 @@ lazy val sparkVersion = "2.4.0"
 lazy val grpcVersion = "1.30.2"
 // should match the dependency from grpc-netty
 lazy val nettyVersion = "4.1.48.Final"
+// should match the dependency in grpc-netty
+lazy val nettyTcnativeVersion = "2.0.29.Final"
 
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
@@ -92,6 +94,11 @@ lazy val connector = (project in file("connector"))
       "io.netty" % "netty-all" % nettyVersion % "provided",
       "io.netty" % "netty-buffer" % nettyVersion,
       "io.netty" % "netty-common" % nettyVersion,
+      "org.eclipse.jetty.alpn" % "alpn-api" % "1.1.3.v20160715",
+      // scalastyle:off
+      // See https://github.com/grpc/grpc-java/blob/master/SECURITY.md#tls-with-netty-tcnative-on-boringssl
+      // scalastyle:on
+      "io.netty" % "netty-tcnative-boringssl-static" % nettyTcnativeVersion,
 
       // runtime
       // scalastyle:off
