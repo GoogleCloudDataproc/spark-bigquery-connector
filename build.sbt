@@ -82,8 +82,8 @@ lazy val connector = (project in file("connector"))
       "com.google.inject" % "guice" % "4.2.3",
 
       // Keep com.google.cloud dependencies in sync
-      "com.google.cloud" % "google-cloud-bigquery" % "1.116.1",
-      "com.google.cloud" % "google-cloud-bigquerystorage" % "0.133.2-beta"
+      "com.google.cloud" % "google-cloud-bigquery" % "1.116.3",
+      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.0.0"
         exclude("io.grpc", "grpc-netty-shaded"),
       // Keep in sync with com.google.cloud
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.11.0",
