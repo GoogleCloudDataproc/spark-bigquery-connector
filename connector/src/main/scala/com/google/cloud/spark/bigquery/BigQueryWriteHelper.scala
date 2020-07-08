@@ -76,7 +76,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
     try {
       // based on pmkc's suggestion at https://git.io/JeWRt
-      Runtime.getRuntime.addShutdownHook(createTemporaryPathDeleter)
+      createTemporaryPathDeleter.map(Runtime.getRuntime.addShutdownHook(_))
 
       val format = options.intermediateFormat.dataSource
       data.write.format(format).save(gcsPath.toString)
@@ -85,7 +85,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     } catch {
       case e: Exception => throw new RuntimeException("Failed to write to BigQuery", e)
     } finally {
-      if (options.persistentGcsBucket.nonEmpty) cleanTempraryGcsPath
+      cleanTemporaryGcsPathIfNeeded
     }
   }
 
@@ -165,12 +165,17 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
   def friendlyTableName: String = BigQueryUtil.friendlyTableName(options.tableId)
 
-  def cleanTempraryGcsPath: Unit = {
+  def cleanTemporaryGcsPathIfNeeded: Unit = {
     // TODO(davidrab): add flag to disable the deletion?
-    createTemporaryPathDeleter.deletePath
+    createTemporaryPathDeleter.map(_.deletePath)
   }
 
-  private def createTemporaryPathDeleter = IntermediateDataCleaner(gcsPath, conf)
+  private def createTemporaryPathDeleter: Option[IntermediateDataCleaner] = {
+    options.temporaryGcsBucket match {
+      case Some(_) => Some(IntermediateDataCleaner(gcsPath, conf))
+      case _ => None
+    }
+  }
 
   def verifySaveMode: Unit = {
     if (saveMode == SaveMode.ErrorIfExists || saveMode == SaveMode.Ignore) {
