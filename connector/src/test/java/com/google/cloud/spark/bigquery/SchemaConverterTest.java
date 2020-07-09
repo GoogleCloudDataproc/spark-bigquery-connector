@@ -87,16 +87,9 @@ public class SchemaConverterTest {
         assertThat(result).isEqualTo(expected);
     }
 
-    @Test
-    public void testSparkStructFieldToBigQuery() throws Exception {
-        logger.setLevel(Level.DEBUG);
-
-        Field expected = BIGQUERY_NESTED_STRUCT_FIELD;
-        Field converted = makeBigQueryColumn(SPARK_NESTED_STRUCT_FIELD, 0);
-
-        assertThat(converted).isEqualTo(expected);
-    }
-
+    /*
+    Spark -> BigQuery conversion tests:
+     */
     @Test
     public void testSparkToBQSchema() throws Exception {
         logger.setLevel(Level.DEBUG);
@@ -194,11 +187,11 @@ public class SchemaConverterTest {
             true, Metadata.empty());
     public final StructField SPARK_BOOLEAN_FIELD = new StructField("Boolean", DataTypes.BooleanType,
             true, Metadata.empty());
-    public final StructField SPARK_NUMERIC_FIELD = new StructField("Numeric", NUMERIC_SPARK_TYPE,
-            true, Metadata.empty());
     public final StructField SPARK_BINARY_FIELD = new StructField("Binary", DataTypes.BinaryType,
             true, Metadata.empty());
     public final StructField SPARK_DATE_FIELD = new StructField("Date", DataTypes.DateType,
+            true, Metadata.empty());
+    public final StructField SPARK_TIMESTAMP_FIELD = new StructField("TimeStamp", DataTypes.TimestampType,
             true, Metadata.empty());
     public final StructField SPARK_MAP_FIELD = new StructField("Map",
             DataTypes.createMapType(DataTypes.IntegerType, DataTypes.StringType),
@@ -211,9 +204,38 @@ public class SchemaConverterTest {
             .add(SPARK_NESTED_STRUCT_FIELD)
             .add(SPARK_DOUBLE_FIELD)
             .add(SPARK_BOOLEAN_FIELD)
-            .add(SPARK_NUMERIC_FIELD)
             .add(SPARK_BINARY_FIELD)
-            .add(SPARK_DATE_FIELD);
+            .add(SPARK_DATE_FIELD)
+            .add(SPARK_TIMESTAMP_FIELD);
+
+
+    public final Field BIGQUERY_INTEGER_FIELD = Field.newBuilder("Number", LegacySQLTypeName.INTEGER,
+            (FieldList)null).setMode(Field.Mode.NULLABLE).build();
+    public final Field BIGQUERY_STRING_FIELD = Field.newBuilder("String", LegacySQLTypeName.STRING, (FieldList) null)
+            .setMode(Field.Mode.REQUIRED).build();
+    public final Field BIGQUERY_NESTED_STRUCT_FIELD = Field.newBuilder("Struct", LegacySQLTypeName.RECORD,
+            Field.newBuilder("Number", LegacySQLTypeName.INTEGER, (FieldList) null)
+                    .setMode(Field.Mode.NULLABLE).build(),
+            Field.newBuilder("String", LegacySQLTypeName.STRING, (FieldList) null)
+                    .setMode(Field.Mode.NULLABLE).build())
+            .setMode(Field.Mode.NULLABLE).build();
+    public final Field BIGQUERY_ARRAY_FIELD = Field.newBuilder("Array", LegacySQLTypeName.INTEGER, (FieldList) null)
+            .setMode(Field.Mode.REPEATED).build();
+    public final Field BIGQUERY_FLOAT_FIELD = Field.newBuilder("Float", LegacySQLTypeName.FLOAT, (FieldList)null)
+            .setMode(Field.Mode.NULLABLE).build();
+    public final Field BIGQUERY_BOOLEAN_FIELD = Field.newBuilder("Boolean", LegacySQLTypeName.BOOLEAN, (FieldList)null)
+            .setMode(Field.Mode.NULLABLE).build();
+    public final Field BIGQUERY_BYTES_FIELD = Field.newBuilder("Binary", LegacySQLTypeName.BYTES, (FieldList)null)
+            .setMode(Field.Mode.NULLABLE).build();
+    public final Field BIGQUERY_DATE_FIELD = Field.newBuilder("Date", LegacySQLTypeName.DATE, (FieldList)null)
+            .setMode(Field.Mode.NULLABLE).build();
+    public final Field BIGQUERY_TIMESTAMP_FIELD = Field.newBuilder("TimeStamp", LegacySQLTypeName.TIMESTAMP, (FieldList)null)
+            .setMode(Field.Mode.NULLABLE).build();
+
+    public final Schema BIG_BIGQUERY_SCHEMA = Schema.of(BIGQUERY_INTEGER_FIELD, BIGQUERY_STRING_FIELD, BIGQUERY_ARRAY_FIELD,
+            BIGQUERY_NESTED_STRUCT_FIELD, BIGQUERY_FLOAT_FIELD, BIGQUERY_BOOLEAN_FIELD, BIGQUERY_BYTES_FIELD, BIGQUERY_DATE_FIELD,
+            BIGQUERY_TIMESTAMP_FIELD);
+
 
     public final StructType BIG_SPARK_SCHEMA2 = new StructType()
             .add(new StructField("foo", DataTypes.StringType,true, Metadata.empty()))
@@ -244,35 +266,7 @@ public class SchemaConverterTest {
                     Field.of("timestamp", LegacySQLTypeName.TIMESTAMP),
                     Field.of("datetime", LegacySQLTypeName.DATETIME)));
 
-
-    public final Field BIGQUERY_INTEGER_FIELD = Field.newBuilder("Number", LegacySQLTypeName.INTEGER,
-            (FieldList)null).setMode(Field.Mode.NULLABLE).build();
-    public final Field BIGQUERY_STRING_FIELD = Field.newBuilder("String", LegacySQLTypeName.STRING, (FieldList) null)
-            .setMode(Field.Mode.REQUIRED).build();
-    public final Field BIGQUERY_NESTED_STRUCT_FIELD = Field.newBuilder("Struct", LegacySQLTypeName.RECORD,
-            Field.newBuilder("Number", LegacySQLTypeName.INTEGER, (FieldList) null)
-                    .setMode(Field.Mode.NULLABLE).build(),
-            Field.newBuilder("String", LegacySQLTypeName.STRING, (FieldList) null)
-                    .setMode(Field.Mode.NULLABLE).build())
-            .setMode(Field.Mode.NULLABLE).build();
-    public final Field BIGQUERY_ARRAY_FIELD = Field.newBuilder("Array", LegacySQLTypeName.INTEGER, (FieldList) null)
-            .setMode(Field.Mode.REPEATED).build();
-    public final Field BIGQUERY_FLOAT_FIELD = Field.newBuilder("Float", LegacySQLTypeName.FLOAT, (FieldList)null)
-            .setMode(Field.Mode.NULLABLE).build();
-    public final Field BIGQUERY_BOOLEAN_FIELD = Field.newBuilder("Boolean", LegacySQLTypeName.BOOLEAN, (FieldList)null)
-            .setMode(Field.Mode.NULLABLE).build();
-    public final Field BIGQUERY_NUMERIC_FIELD = Field.newBuilder("Numeric", LegacySQLTypeName.NUMERIC, (FieldList)null)
-            .setMode(Field.Mode.NULLABLE).build();
-    public final Field BIGQUERY_BYTES_FIELD = Field.newBuilder("Binary", LegacySQLTypeName.BYTES, (FieldList)null)
-            .setMode(Field.Mode.NULLABLE).build();
-    public final Field BIGQUERY_DATE_FIELD = Field.newBuilder("Date", LegacySQLTypeName.DATE, (FieldList)null)
-            .setMode(Field.Mode.NULLABLE).build();
-
-    public final Schema BIG_BIGQUERY_SCHEMA = Schema.of(BIGQUERY_INTEGER_FIELD, BIGQUERY_STRING_FIELD, BIGQUERY_ARRAY_FIELD,
-            BIGQUERY_NESTED_STRUCT_FIELD, BIGQUERY_FLOAT_FIELD, BIGQUERY_BOOLEAN_FIELD, BIGQUERY_NUMERIC_FIELD,
-            BIGQUERY_BYTES_FIELD, BIGQUERY_DATE_FIELD);
-
-    /* TODO: create SchemaConverters.convert() from BigQuery -> Spark test. Translate specific test from SchemaIteratorSuite.scala
+    /* TODO: translate BigQuery to Spark row conversion tests, from SchemaIteratorSuite.scala
     private final List<String> BIG_SCHEMA_NAMES_INORDER = Arrays.asList(
             new String[]{"Number", "String", "Array", "Struct", "Float", "Boolean", "Numeric"});
 

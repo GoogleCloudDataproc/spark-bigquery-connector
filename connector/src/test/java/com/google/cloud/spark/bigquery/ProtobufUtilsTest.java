@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.storage.v1alpha2.ProtoSchemaConverter;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.Message;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -31,13 +32,9 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.*;
-import org.apache.spark.unsafe.types.ByteArray;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.junit.AssumptionViolatedException;
 import org.junit.Test;
-
-import java.sql.Date;
-import java.sql.Timestamp;
 
 import static com.google.cloud.spark.bigquery.ProtobufUtils.*;
 import static com.google.common.truth.Truth.assertThat;
@@ -86,6 +83,7 @@ public class ProtobufUtilsTest {
                                                 .addField(PROTO_BOOLEAN_FIELD.clone().setNumber(6))
                                                 .addField(PROTO_BYTES_FIELD.clone().setNumber(7))
                                                 .addField(PROTO_INTEGER_FIELD.clone().setName("Date").setNumber(8))
+                                                .addField(PROTO_INTEGER_FIELD.clone().setName("TimeStamp").setNumber(9))
                                                 .setName("Schema").build()
                                 ).build(), new Descriptors.FileDescriptor[]{}
                 ).getMessageTypes().get(0)
@@ -100,72 +98,12 @@ public class ProtobufUtilsTest {
     }
 
     @Test
-    public void testSparkIntegerSchemaToDescriptor() throws Exception {
-        logger.setLevel(Level.DEBUG);
-
-        StructType schema = new StructType().add(SPARK_INTEGER_FIELD);
-        DescriptorProtos.DescriptorProto converted = toDescriptor(schema).toProto();
-
-        DescriptorProtos.DescriptorProto expected = DESCRIPTOR_PROTO_INTEGER;
-
-        assertThat(converted).isEqualTo(expected);
-    }
-
-    @Test
-    public void testSparkStringSchemaToDescriptor() throws Exception {
-        logger.setLevel(Level.DEBUG);
-
-        StructType schema = new StructType().add(SPARK_STRING_FIELD);
-        DescriptorProtos.DescriptorProto converted = toDescriptor(schema).toProto();
-
-        DescriptorProtos.DescriptorProto expected = DESCRIPTOR_PROTO_STRING;
-
-        assertThat(converted).isEqualTo(expected);
-    }
-
-    @Test
-    public void testSparkArraySchemaToDescriptor() throws Exception {
-        logger.setLevel(Level.DEBUG);
-
-        StructType schema = new StructType().add(SPARK_ARRAY_FIELD);
-        DescriptorProtos.DescriptorProto converted = toDescriptor(schema).toProto();
-
-        DescriptorProtos.DescriptorProto expected = DESCRIPTOR_PROTO_ARRAY;
-
-        assertThat(converted).isEqualTo(expected);
-    }
-
-    @Test
-    public void testSparkNestedStructSchemaToDescriptor() throws Exception {
-        logger.setLevel(Level.DEBUG);
-
-        StructType schema = new StructType().add(SPARK_NESTED_STRUCT_FIELD);
-        DescriptorProtos.DescriptorProto converted = toDescriptor(schema).toProto();
-
-        DescriptorProtos.DescriptorProto expected = DESCRIPTOR_PROTO_STRUCT;
-
-        assertThat(converted).isEqualTo(expected);
-    }
-
-    @Test
-    public void testSparkArrayRowToDynamicMessage() throws Exception {
-        logger.setLevel(Level.DEBUG);
-
-        StructType schema = new StructType().add(SPARK_ARRAY_FIELD);
-        DynamicMessage converted = createSingleRowMessage(schema, toDescriptor(schema),
-                ARRAY_INTERNAL_ROW);
-        DynamicMessage expected = ARRAY_ROW_MESSAGE;
-
-        assertThat(converted.toString()).isEqualTo(expected.toString());
-    }
-
-    @Test
     public void testSparkStructRowToDynamicMessage() throws Exception {
         logger.setLevel(Level.DEBUG);
 
         StructType schema = new StructType().add(SPARK_NESTED_STRUCT_FIELD);
-        DynamicMessage converted = createSingleRowMessage(schema, toDescriptor(schema),
-                STRUCT_INTERNAL_ROW);
+        Descriptors.Descriptor schemaDescriptor = toDescriptor(schema);
+        Message converted = buildSingleRowMessage(schema, schemaDescriptor, STRUCT_INTERNAL_ROW);
         DynamicMessage expected = StructRowMessage;
 
         assertThat(converted.toString()).isEqualTo(expected.toString());
@@ -185,7 +123,8 @@ public class ProtobufUtilsTest {
                                 3.14,
                                 true,
                                 new byte[]{11, 0x7F},
-                                "2020-07-07"
+                                1594080000000L,
+                                1594080000000L
                         })}
         );
 
@@ -199,12 +138,17 @@ public class ProtobufUtilsTest {
         logger.setLevel(Level.DEBUG);
 
         try {
-            convert(SPARK_STRING_FIELD, null);
+            ProtoBufProto.ProtoRows converted = toProtoRows(new StructType()
+                            .add(new StructField("String", DataTypes.StringType, false, Metadata.empty())),
+                    new InternalRow[]{
+                            new GenericInternalRow(new Object[]{null})});
             fail("Convert did not assert field's /'Required/' status");
-        } catch (IllegalArgumentException e){}
+        } catch (Exception e){}
         try {
-            convert(new StructField("String", DataTypes.StringType, true, Metadata.empty()),
-                    null);
+            ProtoBufProto.ProtoRows converted = toProtoRows(new StructType()
+                            .add(new StructField("String", DataTypes.StringType, true, Metadata.empty())),
+                    new InternalRow[]{
+                            new GenericInternalRow(new Object[]{null})});
         } catch (Exception e) {
             fail("A nullable field could not be set to null.");
         }
@@ -212,7 +156,7 @@ public class ProtobufUtilsTest {
 
 
 
-    private final StructType MY_STRUCT = DataTypes.createStructType(
+    public final StructType MY_STRUCT = DataTypes.createStructType(
             new StructField[]{new StructField("Number", DataTypes.IntegerType,
                     true, Metadata.empty()),
                     new StructField("String", DataTypes.StringType,
@@ -235,8 +179,7 @@ public class ProtobufUtilsTest {
             true, Metadata.empty());
     public final StructField SPARK_DATE_FIELD = new StructField("Date", DataTypes.DateType,
             true, Metadata.empty());
-    public final StructField SPARK_MAP_FIELD = new StructField("Map",
-            DataTypes.createMapType(DataTypes.IntegerType, DataTypes.StringType),
+    public final StructField SPARK_TIMESTAMP_FIELD = new StructField("TimeStamp", DataTypes.TimestampType,
             true, Metadata.empty());
 
     public final StructType BIG_SPARK_SCHEMA = new StructType()
@@ -247,7 +190,8 @@ public class ProtobufUtilsTest {
             .add(SPARK_DOUBLE_FIELD)
             .add(SPARK_BOOLEAN_FIELD)
             .add(SPARK_BINARY_FIELD)
-            .add(SPARK_DATE_FIELD);
+            .add(SPARK_DATE_FIELD)
+            .add(SPARK_TIMESTAMP_FIELD);
 
 
     public final Field BIGQUERY_INTEGER_FIELD = Field.newBuilder("Number", LegacySQLTypeName.INTEGER,
@@ -270,72 +214,75 @@ public class ProtobufUtilsTest {
             .setMode(Field.Mode.NULLABLE).build();
     public final Field BIGQUERY_DATE_FIELD = Field.newBuilder("Date", LegacySQLTypeName.DATE, (FieldList)null)
             .setMode(Field.Mode.NULLABLE).build();
+    public final Field BIGQUERY_TIMESTAMP_FIELD = Field.newBuilder("TimeStamp", LegacySQLTypeName.TIMESTAMP, (FieldList)null)
+            .setMode(Field.Mode.NULLABLE).build();
 
     public final Schema BIG_BIGQUERY_SCHEMA = Schema.of(BIGQUERY_INTEGER_FIELD, BIGQUERY_STRING_FIELD, BIGQUERY_ARRAY_FIELD,
-            BIGQUERY_NESTED_STRUCT_FIELD, BIGQUERY_FLOAT_FIELD, BIGQUERY_BOOLEAN_FIELD, BIGQUERY_BYTES_FIELD, BIGQUERY_DATE_FIELD);
+            BIGQUERY_NESTED_STRUCT_FIELD, BIGQUERY_FLOAT_FIELD, BIGQUERY_BOOLEAN_FIELD, BIGQUERY_BYTES_FIELD, BIGQUERY_DATE_FIELD,
+            BIGQUERY_TIMESTAMP_FIELD);
 
 
-    private final DescriptorProtos.FieldDescriptorProto.Builder PROTO_INTEGER_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
+    public final DescriptorProtos.FieldDescriptorProto.Builder PROTO_INTEGER_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
             .setName("Number")
             .setNumber(1)
             .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
             .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL);
-    private final DescriptorProtos.FieldDescriptorProto.Builder PROTO_STRING_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
+    public final DescriptorProtos.FieldDescriptorProto.Builder PROTO_STRING_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
             .setName("String")
             .setNumber(1)
             .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
             .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_REQUIRED);
-    private final DescriptorProtos.FieldDescriptorProto.Builder PROTO_ARRAY_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
+    public final DescriptorProtos.FieldDescriptorProto.Builder PROTO_ARRAY_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
             .setName("Array")
             .setNumber(1)
             .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
             .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED);
-    private final DescriptorProtos.DescriptorProto.Builder NESTED_STRUCT_DESCRIPTOR = DescriptorProtos.DescriptorProto.newBuilder()
+    public final DescriptorProtos.DescriptorProto.Builder NESTED_STRUCT_DESCRIPTOR = DescriptorProtos.DescriptorProto.newBuilder()
             .setName("STRUCT1")
             .addField(PROTO_INTEGER_FIELD.clone())
             .addField(PROTO_STRING_FIELD.clone().setNumber(2)
                     .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL));
-    private final DescriptorProtos.FieldDescriptorProto.Builder PROTO_STRUCT_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
+    public final DescriptorProtos.FieldDescriptorProto.Builder PROTO_STRUCT_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
             .setName("Struct")
             .setNumber(1)
             .setTypeName("STRUCT1")
             .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL);
-    private final DescriptorProtos.FieldDescriptorProto.Builder PROTO_DOUBLE_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
+    public final DescriptorProtos.FieldDescriptorProto.Builder PROTO_DOUBLE_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
             .setName("Double")
             .setNumber(1)
             .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
             .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL);
-    private final DescriptorProtos.FieldDescriptorProto.Builder PROTO_BOOLEAN_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
+    public final DescriptorProtos.FieldDescriptorProto.Builder PROTO_BOOLEAN_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
             .setName("Boolean")
             .setNumber(1)
             .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL)
             .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL);
-    private final DescriptorProtos.FieldDescriptorProto.Builder PROTO_BYTES_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
+    public final DescriptorProtos.FieldDescriptorProto.Builder PROTO_BYTES_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
             .setName("Binary")
             .setNumber(1)
             .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
             .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL);
 
 
-    private final DescriptorProtos.DescriptorProto DESCRIPTOR_PROTO_INTEGER = DescriptorProtos.DescriptorProto.newBuilder()
+    public final DescriptorProtos.DescriptorProto DESCRIPTOR_PROTO_INTEGER = DescriptorProtos.DescriptorProto.newBuilder()
             .addField(PROTO_INTEGER_FIELD).setName("Schema").build();
-    private final DescriptorProtos.DescriptorProto DESCRIPTOR_PROTO_STRING = DescriptorProtos.DescriptorProto.newBuilder()
+    public final DescriptorProtos.DescriptorProto DESCRIPTOR_PROTO_STRING = DescriptorProtos.DescriptorProto.newBuilder()
             .addField(PROTO_STRING_FIELD).setName("Schema").build();
-    private final DescriptorProtos.DescriptorProto DESCRIPTOR_PROTO_ARRAY = DescriptorProtos.DescriptorProto.newBuilder()
+    public final DescriptorProtos.DescriptorProto DESCRIPTOR_PROTO_ARRAY = DescriptorProtos.DescriptorProto.newBuilder()
             .addField(PROTO_ARRAY_FIELD).setName("Schema").build();
-    private final DescriptorProtos.DescriptorProto DESCRIPTOR_PROTO_STRUCT = DescriptorProtos.DescriptorProto.newBuilder()
+    public final DescriptorProtos.DescriptorProto DESCRIPTOR_PROTO_STRUCT = DescriptorProtos.DescriptorProto.newBuilder()
             .addNestedType(NESTED_STRUCT_DESCRIPTOR).addField(PROTO_STRUCT_FIELD).setName("Schema").build();
 
-    private final InternalRow INTEGER_INTERNAL_ROW = new GenericInternalRow(new Object[]{1});
-    private final InternalRow STRING_INTERNAL_ROW = new GenericInternalRow(new Object[]{UTF8String.fromString("A")});
-    private final InternalRow ARRAY_INTERNAL_ROW = new GenericInternalRow(new Object[]{ArrayData.toArrayData(
+    public final InternalRow INTEGER_INTERNAL_ROW = new GenericInternalRow(new Object[]{1});
+    public final InternalRow STRING_INTERNAL_ROW = new GenericInternalRow(new Object[]{UTF8String.fromString("A")});
+    public final InternalRow ARRAY_INTERNAL_ROW = new GenericInternalRow(new Object[]{ArrayData.toArrayData(
             new int[]{0,1,2})});
-    private final InternalRow INTERNAL_STRUCT_DATA = new GenericInternalRow(new Object[]{1, UTF8String.fromString("A")});
-    private final InternalRow STRUCT_INTERNAL_ROW = new GenericInternalRow(new Object[]{INTERNAL_STRUCT_DATA});
+    public final InternalRow INTERNAL_STRUCT_DATA = new GenericInternalRow(new Object[]{1, UTF8String.fromString("A")});
+    public final InternalRow STRUCT_INTERNAL_ROW = new GenericInternalRow(new Object[]{INTERNAL_STRUCT_DATA});
 
 
-    private Descriptors.Descriptor INTEGER_SCHEMA_DESCRIPTOR = createIntegerSchemaDescriptor();
-    private Descriptors.Descriptor createIntegerSchemaDescriptor() {
+    public Descriptors.Descriptor INTEGER_SCHEMA_DESCRIPTOR = createIntegerSchemaDescriptor();
+    public Descriptors.Descriptor createIntegerSchemaDescriptor() {
         try {
             return toDescriptor(
                     new StructType().add(SPARK_INTEGER_FIELD)
@@ -344,8 +291,8 @@ public class ProtobufUtilsTest {
             throw new AssumptionViolatedException("Could not create INTEGER_SCHEMA_DESCRIPTOR", e);
         }
     }
-    private Descriptors.Descriptor STRING_SCHEMA_DESCRIPTOR = createStringSchemaDescriptor();
-    private Descriptors.Descriptor createStringSchemaDescriptor() {
+    public Descriptors.Descriptor STRING_SCHEMA_DESCRIPTOR = createStringSchemaDescriptor();
+    public Descriptors.Descriptor createStringSchemaDescriptor() {
         try {
             return toDescriptor(
                     new StructType().add(SPARK_STRING_FIELD)
@@ -354,8 +301,8 @@ public class ProtobufUtilsTest {
             throw new AssumptionViolatedException("Could not create STRING_SCHEMA_DESCRIPTOR", e);
         }
     }
-    private Descriptors.Descriptor ARRAY_SCHEMA_DESCRIPTOR = createArraySchemaDescriptor();
-    private Descriptors.Descriptor createArraySchemaDescriptor() {
+    public Descriptors.Descriptor ARRAY_SCHEMA_DESCRIPTOR = createArraySchemaDescriptor();
+    public Descriptors.Descriptor createArraySchemaDescriptor() {
         try {
             return toDescriptor(
                     new StructType().add(SPARK_ARRAY_FIELD)
@@ -364,8 +311,8 @@ public class ProtobufUtilsTest {
             throw new AssumptionViolatedException("Could not create ARRAY_SCHEMA_DESCRIPTOR", e);
         }
     }
-    private Descriptors.Descriptor STRUCT_SCHEMA_DESCRIPTOR = createStructSchemaDescriptor();
-    private Descriptors.Descriptor createStructSchemaDescriptor() {
+    public Descriptors.Descriptor STRUCT_SCHEMA_DESCRIPTOR = createStructSchemaDescriptor();
+    public Descriptors.Descriptor createStructSchemaDescriptor() {
         try {
             return toDescriptor(
                     new StructType().add(SPARK_NESTED_STRUCT_FIELD)
@@ -375,56 +322,53 @@ public class ProtobufUtilsTest {
         }
     }
 
-
-    private final DynamicMessage INTEGER_ROW_MESSAGE = DynamicMessage.newBuilder(INTEGER_SCHEMA_DESCRIPTOR)
-            .setField(INTEGER_SCHEMA_DESCRIPTOR.findFieldByNumber(1), 1L).build();
-    private final DynamicMessage STRING_ROW_MESSAGE = DynamicMessage.newBuilder(STRING_SCHEMA_DESCRIPTOR)
-            .setField(STRING_SCHEMA_DESCRIPTOR.findFieldByNumber(1), "A").build();
-    private final DynamicMessage ARRAY_ROW_MESSAGE = DynamicMessage.newBuilder(ARRAY_SCHEMA_DESCRIPTOR)
-            .addRepeatedField(ARRAY_SCHEMA_DESCRIPTOR.findFieldByNumber(1), 0L)
-            .addRepeatedField(ARRAY_SCHEMA_DESCRIPTOR.findFieldByNumber(1), 1L)
-            .addRepeatedField(ARRAY_SCHEMA_DESCRIPTOR.findFieldByNumber(1), 2L).build();
-    private DynamicMessage StructRowMessage = createStructRowMessage();
-    private DynamicMessage createStructRowMessage() {
-        try{
-            return DynamicMessage.newBuilder(STRUCT_SCHEMA_DESCRIPTOR)
-                    .setField(STRUCT_SCHEMA_DESCRIPTOR.findFieldByNumber(1), createSingleRowMessage(
-                            MY_STRUCT, toDescriptor(MY_STRUCT), INTERNAL_STRUCT_DATA
-                    )).build();
-        } catch (Descriptors.DescriptorValidationException e) {
-            throw new AssumptionViolatedException("Could not create STRUCT_ROW_MESSAGE", e);
+    Descriptors.Descriptor STRUCT_DESCRIPTOR = makeStructDescriptor();
+    public Descriptors.Descriptor makeStructDescriptor() throws AssumptionViolatedException {
+        try {
+            return toDescriptor(MY_STRUCT);
+        }
+        catch(Descriptors.DescriptorValidationException e) {
+            throw new AssumptionViolatedException("Could not create STRUCT_DESCRIPTOR.", e);
         }
     }
 
 
-    private Descriptors.Descriptor BIG_SCHEMA_ROW_DESCRIPTOR = createBigSchemaRowDescriptor();
-    private Descriptors.Descriptor createBigSchemaRowDescriptor() {
+    public final DynamicMessage INTEGER_ROW_MESSAGE = DynamicMessage.newBuilder(INTEGER_SCHEMA_DESCRIPTOR)
+            .setField(INTEGER_SCHEMA_DESCRIPTOR.findFieldByNumber(1), 1L).build();
+    public final DynamicMessage STRING_ROW_MESSAGE = DynamicMessage.newBuilder(STRING_SCHEMA_DESCRIPTOR)
+            .setField(STRING_SCHEMA_DESCRIPTOR.findFieldByNumber(1), "A").build();
+    public final DynamicMessage ARRAY_ROW_MESSAGE = DynamicMessage.newBuilder(ARRAY_SCHEMA_DESCRIPTOR)
+            .addRepeatedField(ARRAY_SCHEMA_DESCRIPTOR.findFieldByNumber(1), 0L)
+            .addRepeatedField(ARRAY_SCHEMA_DESCRIPTOR.findFieldByNumber(1), 1L)
+            .addRepeatedField(ARRAY_SCHEMA_DESCRIPTOR.findFieldByNumber(1), 2L).build();
+    public DynamicMessage StructRowMessage = DynamicMessage.newBuilder(STRUCT_SCHEMA_DESCRIPTOR)
+            .setField(STRUCT_SCHEMA_DESCRIPTOR.findFieldByNumber(1), buildSingleRowMessage(
+                    MY_STRUCT, STRUCT_DESCRIPTOR, INTERNAL_STRUCT_DATA
+            )).build();
+
+
+    public Descriptors.Descriptor BIG_SCHEMA_ROW_DESCRIPTOR = createBigSchemaRowDescriptor();
+    public Descriptors.Descriptor createBigSchemaRowDescriptor() {
         try {
             return toDescriptor(BIG_SPARK_SCHEMA);
         } catch (Descriptors.DescriptorValidationException e) {
             throw new AssumptionViolatedException("Could not create BIG_SCHEMA_ROW_DESCRIPTOR", e);
         }
     }
-    private ProtoBufProto.ProtoRows MY_PROTO_ROWS = createMyProtoRows();
-    private ProtoBufProto.ProtoRows createMyProtoRows() {
-        try {
-            return ProtoBufProto.ProtoRows.newBuilder().addSerializedRows(
-                    DynamicMessage.newBuilder(BIG_SCHEMA_ROW_DESCRIPTOR)
-                            .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(1), 1L)
-                            .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(2), "A")
-                            .addRepeatedField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(3), 0L)
-                            .addRepeatedField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(3), 1L)
-                            .addRepeatedField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(3), 2L)
-                            .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(4),
-                                    createSingleRowMessage(
-                                            MY_STRUCT, toDescriptor(MY_STRUCT), INTERNAL_STRUCT_DATA))
-                            .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(5), 3.14)
-                            .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(6), true)
-                            .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(7), new byte[]{11, 0x7F})
-                            .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(8), 1594080000000L)
-                            .build().toByteString()).build();
-        } catch (Descriptors.DescriptorValidationException e) {
-            throw new AssumptionViolatedException("Could not create MY_PROTO_ROWS", e);
-        }
-    }
+    public ProtoBufProto.ProtoRows MY_PROTO_ROWS = ProtoBufProto.ProtoRows.newBuilder().addSerializedRows(
+            DynamicMessage.newBuilder(BIG_SCHEMA_ROW_DESCRIPTOR)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(1), 1L)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(2), "A")
+                    .addRepeatedField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(3), 0L)
+                    .addRepeatedField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(3), 1L)
+                    .addRepeatedField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(3), 2L)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(4),
+                            buildSingleRowMessage(
+                                    MY_STRUCT, STRUCT_DESCRIPTOR, INTERNAL_STRUCT_DATA))
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(5), 3.14)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(6), true)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(7), new byte[]{11, 0x7F})
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(8), 1594080000000L)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(9), 1594080000000L)
+                    .build().toByteString()).build();
 }
