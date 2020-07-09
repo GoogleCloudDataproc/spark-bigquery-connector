@@ -67,8 +67,9 @@ public class ProtobufUtils {
 
     FieldList fields = schema.getFields();
 
+    int initialDepth = 0;
     DescriptorProtos.DescriptorProto descriptorProto =
-        buildDescriptorProtoWithFields(descriptorBuilder, fields, 0);
+        buildDescriptorProtoWithFields(descriptorBuilder, fields, initialDepth);
 
     return createDescriptorFromProto(descriptorProto);
   }
@@ -134,15 +135,9 @@ public class ProtobufUtils {
 
   @VisibleForTesting
   protected static DescriptorProtos.FieldDescriptorProto.Builder createProtoFieldBuilder(
-      String fieldName,
-      DescriptorProtos.FieldDescriptorProto.Label fieldLabel,
-      int messageNumber,
+      String fieldName, DescriptorProtos.FieldDescriptorProto.Label fieldLabel, int messageNumber,
       DescriptorProtos.FieldDescriptorProto.Type fieldType) {
-    return DescriptorProtos.FieldDescriptorProto.newBuilder()
-        .setName(fieldName)
-        .setLabel(fieldLabel)
-        .setNumber(messageNumber)
-        .setType(fieldType);
+    return createProtoFieldBuilder(fieldName, fieldLabel, messageNumber).setType(fieldType);
   }
 
   private static DescriptorProtos.FieldDescriptorProto.Label toProtoFieldLabel(Field.Mode mode) {
@@ -185,13 +180,13 @@ public class ProtobufUtils {
     }
     if (LegacySQLTypeName.FLOAT.equals(bqType)) {
       return DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE;
-    } else {
-      if (LegacySQLTypeName.RECORD.equals(bqType)) {
-        throw new IllegalStateException(
-            "Program attempted to return an atomic data-type for a RECORD");
-      }
-      throw new IllegalArgumentException("Unexpected type: " + bqType.name());
     }
+
+    if (LegacySQLTypeName.RECORD.equals(bqType)) {
+      throw new IllegalStateException("Program attempted to return an atomic data-type for a RECORD");
+    }
+
+    throw new IllegalArgumentException("Unexpected type: " + bqType.name());
   }
 
   /**
@@ -216,14 +211,14 @@ public class ProtobufUtils {
       StructType schema, Descriptors.Descriptor schemaDescriptor, InternalRow row) {
     DynamicMessage.Builder messageBuilder = DynamicMessage.newBuilder(schemaDescriptor);
 
-    for (int fieldIndex = 1; fieldIndex <= schemaDescriptor.getFields().size(); fieldIndex++) {
-      StructField sparkField = schema.fields()[fieldIndex - 1];
+    for (int fieldIndex = 0; fieldIndex < schemaDescriptor.getFields().size(); fieldIndex++) {
+      StructField sparkField = schema.fields()[fieldIndex];
       DataType sparkType = sparkField.dataType();
 
-      Object sparkValue = row.get(fieldIndex - 1, sparkType);
+      Object sparkValue = row.get(fieldIndex, sparkType);
       boolean nullable = sparkField.nullable();
       Descriptors.Descriptor nestedTypeDescriptor =
-          schemaDescriptor.findNestedTypeByName(RESERVED_NESTED_TYPE_NAME + fieldIndex);
+          schemaDescriptor.findNestedTypeByName(RESERVED_NESTED_TYPE_NAME + (fieldIndex+1));
       Object protoValue =
           convertToProtoRowValue(sparkType, sparkValue, nullable, nestedTypeDescriptor);
 
@@ -233,7 +228,7 @@ public class ProtobufUtils {
         continue;
       }
 
-      messageBuilder.setField(schemaDescriptor.findFieldByNumber(fieldIndex), protoValue);
+      messageBuilder.setField(schemaDescriptor.findFieldByNumber(fieldIndex+1), protoValue);
     }
 
     return messageBuilder.build();
@@ -244,8 +239,9 @@ public class ProtobufUtils {
     DescriptorProtos.DescriptorProto.Builder descriptorBuilder =
         DescriptorProtos.DescriptorProto.newBuilder().setName("Schema");
 
+    int initialDepth = 0;
     DescriptorProtos.DescriptorProto descriptorProto =
-        buildDescriptorProtoWithFields(descriptorBuilder, schema.fields(), 0);
+        buildDescriptorProtoWithFields(descriptorBuilder, schema.fields(), initialDepth);
 
     return createDescriptorFromProto(descriptorProto);
   }

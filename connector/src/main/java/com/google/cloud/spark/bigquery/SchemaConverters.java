@@ -219,14 +219,14 @@ public class SchemaConverters {
         depth < MAX_BIGQUERY_NESTED_DEPTH, "Spark Schema exceeds BigQuery maximum nesting depth.");
     List<Field> bqFields = new ArrayList<>();
     for (StructField field : sparkStruct.fields()) {
-      bqFields.add(makeBigQueryColumn(field, depth));
+      bqFields.add(createBigQueryColumn(field, depth));
     }
     return FieldList.of(bqFields);
   }
 
   /** Converts a single StructField to a BigQuery Field (column). */
   @VisibleForTesting
-  protected static Field makeBigQueryColumn(StructField sparkField, int depth) {
+  protected static Field createBigQueryColumn(StructField sparkField, int depth) {
     DataType sparkType = sparkField.dataType();
     String fieldName = sparkField.name();
     Field.Mode fieldMode = (sparkField.nullable()) ? Field.Mode.NULLABLE : Field.Mode.REQUIRED;

@@ -109,7 +109,7 @@ public class SchemaConverterTest {
         logger.setLevel(Level.DEBUG);
 
         try {
-            makeBigQueryColumn(SPARK_MAP_FIELD, 0);
+            createBigQueryColumn(SPARK_MAP_FIELD, 0);
             fail("Did not throw an error for an unsupported map-type");
         } catch (IllegalArgumentException e) {}
     }
@@ -140,7 +140,7 @@ public class SchemaConverterTest {
         logger.setLevel(Level.DEBUG);
 
         String description = "I love bananas";
-        Field result = makeBigQueryColumn(new StructField("Field", DataTypes.IntegerType,
+        Field result = createBigQueryColumn(new StructField("Field", DataTypes.IntegerType,
                 true, new MetadataBuilder().putString("description", description).build()), 0);
 
         assertThat(result.getDescription().equals(description));
@@ -159,7 +159,7 @@ public class SchemaConverterTest {
         }
 
         try {
-            makeBigQueryColumn(superRecursiveSchema.fields()[0], 0);
+            createBigQueryColumn(superRecursiveSchema.fields()[0], 0);
             fail("Did not detect super-recursive schema of depth = 16.");
         }
         catch (IllegalArgumentException e) {}
