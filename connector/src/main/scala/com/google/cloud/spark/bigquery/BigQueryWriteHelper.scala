@@ -170,12 +170,8 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     createTemporaryPathDeleter.map(_.deletePath)
   }
 
-  private def createTemporaryPathDeleter: Option[IntermediateDataCleaner] = {
-    options.temporaryGcsBucket match {
-      case Some(_) => Some(IntermediateDataCleaner(gcsPath, conf))
-      case _ => None
-    }
-  }
+  private def createTemporaryPathDeleter: Option[IntermediateDataCleaner] =
+    options.temporaryGcsBucket.map(_ => IntermediateDataCleaner(gcsPath, conf))
 
   def verifySaveMode: Unit = {
     if (saveMode == SaveMode.ErrorIfExists || saveMode == SaveMode.Ignore) {
