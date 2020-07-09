@@ -1,6 +1,11 @@
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.connector.common.BigQueryWriteClientModule;
+import com.google.common.base.Preconditions;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.apache.spark.sql.sources.v2.DataSourceV2;
 import org.apache.spark.sql.sources.v2.WriteSupport;
@@ -19,15 +24,22 @@ public class BigQueryWriteSupportDataSourceV2 implements DataSourceV2, WriteSupp
     public Optional<DataSourceWriter> createWriter(String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
         logger.trace("createWriter({}, {}, {}, {})", writeUUID, schema, mode, options);
 
-        // table name and dataset-name in BigQuery
-        assert options.get("table").isPresent() && options.get("database").isPresent() /*FIXME: is this the dataset name?*/;
+        SparkSession spark = getDefaultSparkSessionOrCreate();
 
-        String tableName = options.get("table").get();
-        String datasetName = options.get("database").get();
-        Optional<DataSourceWriter> writer = Optional.of(new BigQueryDataSourceWriter(mode, schema, writeUUID, tableName,
-                datasetName));
-        logger.info("writer {} created successfully.", writeUUID);
+        Injector injector =
+                Guice.createInjector(
+                        new BigQueryWriteClientModule(),
+                        new SparkBigQueryConnectorWriteModule(writeUUID, spark, schema, mode, options));
 
-        return writer;
+        BigQueryDataSourceWriter writer = injector.getInstance(BigQueryDataSourceWriter.class);
+        return Optional.of(writer);
+    }
+
+    private SparkSession getDefaultSparkSessionOrCreate() {
+        scala.Option<SparkSession> defaultSpareSession = SparkSession.getDefaultSession();
+        if (defaultSpareSession.isDefined()) {
+            return defaultSpareSession.get();
+        }
+        return SparkSession.builder().appName("spark-bigquery-connector").getOrCreate();
     }
 }

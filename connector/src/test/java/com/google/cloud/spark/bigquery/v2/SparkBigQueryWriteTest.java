@@ -18,8 +18,10 @@ public class SparkBigQueryWriteTest {
 
     public static final Logger logger = LogManager.getLogger("com.google.cloud.spark.bigquery");
 
-    public static final String DATASET = RemoteBigQueryHelper.generateDatasetName();
-    private static final String DESCRIPTION = "Spark BigQuery connector write session tests.";
+    public static final String PROJECT = "google.com:hadoop-cloud-dev";
+    public static final String DATASET = "ymed_"+RemoteBigQueryHelper.generateDatasetName();
+    public static final String TABLE = "testTable";
+    public static final String DESCRIPTION = "Spark BigQuery connector write session tests.";
 
     public static SparkSession spark;
     public static BigQuery bigquery;
@@ -35,7 +37,12 @@ public class SparkBigQueryWriteTest {
                 .master("local[*]")
                 .getOrCreate();
         df = spark.read().format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
-                .option("table", "google.com:hadoop-cloud-dev:ymed.Titanic")
+                .option("table", "google.com:hadoop-cloud-dev:ymed.Titanic"
+                        /*"bigquery-public-data:bbc_news.fulltext"*/
+                        /*"bigquery-public-data:fda_drug.drug_enforcement"*/
+                        /*"bigquery-public-data:san_francisco_bikeshare.bikeshare_station_info"*/
+                        /*"bigquery-public-data:austin_incidents.incidents_2016"*/
+                        /*"google.com:hadoop-cloud-dev:spark_bigquery_it_1588126384826.all_types"*/)
                 .load();
         RemoteBigQueryHelper bigqueryHelper = RemoteBigQueryHelper.create();
         bigquery = bigqueryHelper.getOptions().getService();
@@ -47,17 +54,18 @@ public class SparkBigQueryWriteTest {
 
     @AfterClass
     public static void close() {
-        if (bigquery != null) {
+        /*if (bigquery != null) {
             RemoteBigQueryHelper.forceDelete(bigquery, DATASET);
             logger.info("Deleted test dataset: " + DATASET);
-        }
+        }*/
     }
 
     @Test
     public void testSparkBigQueryWrite() {
         df.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
-                .option("table", "testtable")
-                .option("database", DATASET)
+                .option("table", TABLE)
+                .option("dataset", DATASET)
+                .option("project", PROJECT)
                 .mode(SaveMode.Overwrite)
                 .save();
     }
