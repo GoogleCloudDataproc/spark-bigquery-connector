@@ -16,10 +16,12 @@
 
 package com.google.cloud.spark.bigquery
 
-import com.google.cloud.bigquery.{BigQuery}
+import com.google.cloud.bigquery.BigQuery
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.streaming.OutputMode
+import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Row, SQLContext, SaveMode}
 
 private[bigquery] object BigQueryStreamWriter extends Logging {
@@ -37,14 +39,15 @@ private[bigquery] object BigQueryStreamWriter extends Logging {
                  outputMode: OutputMode,
                  opts: SparkBigQueryOptions,
                  client: BigQuery): Unit = {
-    val rowConvertor: RowConverter = RowConverter(data.schema)
+    val schema: StructType = data.schema
+    val expressionEncoder: ExpressionEncoder[Row] = RowEncoder(schema).resolveAndBind()
     val rowRdd: RDD[Row] = data.queryExecution.toRdd.mapPartitions(iter =>
       iter.map(internalRow =>
-        rowConvertor.convertToRow(internalRow)
+        expressionEncoder.fromRow(internalRow)
       )
     )
-    // Create non streaming dataframe
-    val dataFrame: DataFrame = sqlContext.createDataFrame(rowRdd, data.schema)
+    // Create fixed dataframe
+    val dataFrame: DataFrame = sqlContext.createDataFrame(rowRdd, schema)
     val table = Option(client.getTable(opts.tableId))
 
     val saveMode = getSaveMode(outputMode)
@@ -52,6 +55,15 @@ private[bigquery] object BigQueryStreamWriter extends Logging {
     helper.writeDataFrameToBigQuery
   }
 
+  /**
+   * Convert Output mode to save mode
+   *  Complete => Truncate
+   *  Append => Append (Default)
+   *  Update => Not yet supported
+   * @param outputMode
+   * @throws NotImplementedError
+   * @return SaveMode
+   */
   @throws[NotImplementedError]
   private def getSaveMode(outputMode: OutputMode): SaveMode = {
     if (outputMode == OutputMode.Complete()) {
