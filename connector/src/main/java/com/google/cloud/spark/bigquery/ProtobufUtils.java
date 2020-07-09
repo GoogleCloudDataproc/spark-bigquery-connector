@@ -134,9 +134,7 @@ public class ProtobufUtils {
 
   @VisibleForTesting
   protected static DescriptorProtos.FieldDescriptorProto.Builder createProtoFieldBuilder(
-      String fieldName,
-      DescriptorProtos.FieldDescriptorProto.Label fieldLabel,
-      int messageNumber,
+      String fieldName, DescriptorProtos.FieldDescriptorProto.Label fieldLabel, int messageNumber,
       DescriptorProtos.FieldDescriptorProto.Type fieldType) {
     return createProtoFieldBuilder(fieldName, fieldLabel, messageNumber).setType(fieldType);
   }
