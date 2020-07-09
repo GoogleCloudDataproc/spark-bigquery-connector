@@ -135,7 +135,9 @@ public class ProtobufUtils {
 
   @VisibleForTesting
   protected static DescriptorProtos.FieldDescriptorProto.Builder createProtoFieldBuilder(
-      String fieldName, DescriptorProtos.FieldDescriptorProto.Label fieldLabel, int messageNumber,
+      String fieldName,
+      DescriptorProtos.FieldDescriptorProto.Label fieldLabel,
+      int messageNumber,
       DescriptorProtos.FieldDescriptorProto.Type fieldType) {
     return createProtoFieldBuilder(fieldName, fieldLabel, messageNumber).setType(fieldType);
   }
@@ -183,7 +185,8 @@ public class ProtobufUtils {
     }
 
     if (LegacySQLTypeName.RECORD.equals(bqType)) {
-      throw new IllegalStateException("Program attempted to return an atomic data-type for a RECORD");
+      throw new IllegalStateException(
+          "Program attempted to return an atomic data-type for a RECORD");
     }
 
     throw new IllegalArgumentException("Unexpected type: " + bqType.name());
@@ -218,7 +221,7 @@ public class ProtobufUtils {
       Object sparkValue = row.get(fieldIndex, sparkType);
       boolean nullable = sparkField.nullable();
       Descriptors.Descriptor nestedTypeDescriptor =
-          schemaDescriptor.findNestedTypeByName(RESERVED_NESTED_TYPE_NAME + (fieldIndex+1));
+          schemaDescriptor.findNestedTypeByName(RESERVED_NESTED_TYPE_NAME + (fieldIndex + 1));
       Object protoValue =
           convertToProtoRowValue(sparkType, sparkValue, nullable, nestedTypeDescriptor);
 
@@ -228,7 +231,7 @@ public class ProtobufUtils {
         continue;
       }
 
-      messageBuilder.setField(schemaDescriptor.findFieldByNumber(fieldIndex+1), protoValue);
+      messageBuilder.setField(schemaDescriptor.findFieldByNumber(fieldIndex + 1), protoValue);
     }
 
     return messageBuilder.build();
