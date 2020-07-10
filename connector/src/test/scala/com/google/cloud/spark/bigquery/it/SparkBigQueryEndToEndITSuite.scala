@@ -391,6 +391,18 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
           .head
       }
     }
+    test("Unhandle filter on struct. DataSource %s".format(dataSourceFormat)) {
+      val df = spark.read.format(dataSourceFormat)
+        .option("table", "bigquery-public-data:samples.github_nested")
+        .option("filter", "url like '%spark'")
+        .load()
+
+      val result = df.select("url")
+        .where("repository is not null")
+        .collect()
+
+      result.size shouldBe 85
+    }
   }
   // Write tests. We have four save modes: Append, ErrorIfExists, Ignore and
   // Overwrite. For each there are two behaviours - the table exists or not.

@@ -25,6 +25,7 @@ import com.google.auth.Credentials
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions
 import com.google.cloud.bigquery.storage.v1.{BigQueryReadClient, BigQueryReadSettings, CreateReadSessionRequest, DataFormat, ReadSession}
 import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
+import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation.{compileFilter, compileValue, quote}
 import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtil, BuildInfo, SchemaConverters, SparkBigQueryConnectorUserAgentProvider, SparkBigQueryOptions}
 import com.google.common.cache.{Cache, CacheBuilder}
 import org.apache.spark.Partition
@@ -32,6 +33,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources._
+import org.apache.spark.sql.types.{StructField, StructType}
 
 import scala.collection.JavaConverters._
 
@@ -50,6 +52,12 @@ private[bigquery] class DirectBigQueryRelation(
     DirectBigQueryRelation.toTablePath(tableId)
 
   lazy val bigQuery = bigQueryClient(options)
+
+  val topLevelFields = SchemaConverters
+    .toSpark(table.getDefinition[TableDefinition].getSchema)
+    .fields
+    .map(field => (field.name, field))
+    .toMap
 
   // used to cache the table instances in order to avoid redundant queries to
   // the BigQuery service
@@ -308,7 +316,8 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   private def handledFilters(filters: Array[Filter]): Array[Filter] = {
-    filters.filter(filter => DirectBigQueryRelation.isHandled(filter, options.readDataFormat))
+    filters.filter(filter => DirectBigQueryRelation.isTopLevelFieldFilterHandled(
+      filter, options.readDataFormat, topLevelFields))
   }
 
   override def unhandledFilters(filters: Array[Filter]): Array[Filter] = {
@@ -358,6 +367,55 @@ object DirectBigQueryRelation {
   private def headerProvider =
     FixedHeaderProvider.create("user-agent",
       new SparkBigQueryConnectorUserAgentProvider("v1").getUserAgent)
+
+  def isTopLevelFieldFilterHandled(
+      filter: Filter,
+      readDataFormat: DataFormat,
+      fields: Map[String, StructField]): Boolean = filter match {
+    case EqualTo(attr, _) =>
+      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+    case GreaterThan(attr, _) =>
+      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+    case GreaterThanOrEqual(attr, _) =>
+      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+    case LessThan(attr, _) =>
+      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+    case LessThanOrEqual(attr, _) =>
+      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+    case In(attr, _) =>
+      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+    case IsNull(attr) =>
+      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+    case IsNotNull(attr) =>
+      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+    case And(lhs, rhs) =>
+      isTopLevelFieldFilterHandled(lhs, readDataFormat, fields) &&
+      isTopLevelFieldFilterHandled(rhs, readDataFormat, fields)
+    case Or(lhs, rhs) =>
+      readDataFormat == DataFormat.AVRO &&
+      isTopLevelFieldFilterHandled(lhs, readDataFormat, fields) &&
+      isTopLevelFieldFilterHandled(rhs, readDataFormat, fields)
+    case Not(child) => isTopLevelFieldFilterHandled(child, readDataFormat, fields)
+    case StringStartsWith(attr, _) =>
+      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+    case StringEndsWith(attr, _) =>
+      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+    case StringContains(attr, _) =>
+      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+    case _ => false
+  }
+
+  // BigQuery Storage API does not handle RECORD/STRUCT fields at the moment
+  def isFilterWithNamedFieldHandled(
+      filter: Filter,
+      readDataFormat: DataFormat,
+      fields: Map[String, StructField],
+      fieldName: String): Boolean = {
+    fields.get(fieldName)
+      .filter(_.dataType.isInstanceOf[StructType])
+      .map(_ => false)
+      .getOrElse(isHandled(filter, readDataFormat))
+  }
 
   def isHandled(filter: Filter, readDataFormat: DataFormat): Boolean = filter match {
     case EqualTo(_, _) => true

@@ -18,10 +18,13 @@ package com.google.cloud.spark.bigquery;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import org.apache.spark.sql.sources.*;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,6 +35,85 @@ import static java.lang.String.format;
 public class SparkFilterUtils {
 
   private SparkFilterUtils() {}
+
+  // Structs are not handled
+  public static boolean isTopLevelFieldHandled(
+      Filter filter, DataFormat readDataFormat, Map<String, StructField> fields) {
+    if (filter instanceof EqualTo) {
+      EqualTo equalTo = (EqualTo) filter;
+      return isFilterWithNamedFieldHandled(filter, readDataFormat, fields, equalTo.attribute());
+    }
+    if (filter instanceof GreaterThan) {
+      GreaterThan greaterThan = (GreaterThan) filter;
+      return isFilterWithNamedFieldHandled(filter, readDataFormat, fields, greaterThan.attribute());
+    }
+    if (filter instanceof GreaterThanOrEqual) {
+      GreaterThanOrEqual greaterThanOrEqual = (GreaterThanOrEqual) filter;
+      return isFilterWithNamedFieldHandled(
+          filter, readDataFormat, fields, greaterThanOrEqual.attribute());
+    }
+    if (filter instanceof LessThan) {
+      LessThan lessThan = (LessThan) filter;
+      return isFilterWithNamedFieldHandled(filter, readDataFormat, fields, lessThan.attribute());
+    }
+    if (filter instanceof LessThanOrEqual) {
+      LessThanOrEqual lessThanOrEqual = (LessThanOrEqual) filter;
+      return isFilterWithNamedFieldHandled(
+          filter, readDataFormat, fields, lessThanOrEqual.attribute());
+    }
+    if (filter instanceof In) {
+      In in = (In) filter;
+      return isFilterWithNamedFieldHandled(filter, readDataFormat, fields, in.attribute());
+    }
+    if (filter instanceof IsNull) {
+      IsNull isNull = (IsNull) filter;
+      return isFilterWithNamedFieldHandled(filter, readDataFormat, fields, isNull.attribute());
+    }
+    if (filter instanceof IsNotNull) {
+      IsNotNull isNotNull = (IsNotNull) filter;
+      return isFilterWithNamedFieldHandled(filter, readDataFormat, fields, isNotNull.attribute());
+    }
+    if (filter instanceof And) {
+      And and = (And) filter;
+      return isTopLevelFieldHandled(and.left(), readDataFormat, fields)
+          && isTopLevelFieldHandled(and.right(), readDataFormat, fields);
+    }
+    if (filter instanceof Or) {
+      Or or = (Or) filter;
+      return readDataFormat == DataFormat.AVRO
+          && isTopLevelFieldHandled(or.left(), readDataFormat, fields)
+          && isTopLevelFieldHandled(or.right(), readDataFormat, fields);
+    }
+    if (filter instanceof Not) {
+      Not not = (Not) filter;
+      return isTopLevelFieldHandled(not.child(), readDataFormat, fields);
+    }
+    if (filter instanceof StringStartsWith) {
+      StringStartsWith stringStartsWith = (StringStartsWith) filter;
+      return isFilterWithNamedFieldHandled(
+          filter, readDataFormat, fields, stringStartsWith.attribute());
+    }
+    if (filter instanceof StringEndsWith) {
+      StringEndsWith stringEndsWith = (StringEndsWith) filter;
+      return isFilterWithNamedFieldHandled(
+          filter, readDataFormat, fields, stringEndsWith.attribute());
+    }
+    if (filter instanceof StringContains) {
+      StringContains stringContains = (StringContains) filter;
+      return isFilterWithNamedFieldHandled(
+          filter, readDataFormat, fields, stringContains.attribute());
+    }
+
+    throw new IllegalArgumentException(format("Invalid filter: %s", filter));
+  }
+
+  static boolean isFilterWithNamedFieldHandled(
+      Filter filter, DataFormat readDataFormat, Map<String, StructField> fields, String fieldName) {
+    return Optional.ofNullable(fields.get(fieldName))
+        .filter(field -> field.dataType() instanceof StructType)
+        .map(field -> false)
+        .orElse(isHandled(filter, readDataFormat));
+  }
 
   public static boolean isHandled(Filter filter, DataFormat readDataFormat) {
     if (filter instanceof EqualTo

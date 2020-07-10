@@ -27,12 +27,15 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.sources.v2.reader.*;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.vectorized.ColumnarBatch;
+import scala.collection.JavaConversions;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.spark.sql.vectorized.ColumnarBatch;
 
 public class BigQueryDataSourceReader
     implements DataSourceReader,
@@ -64,6 +67,7 @@ public class BigQueryDataSourceReader
   private final Optional<String> globalFilter;
   private Optional<StructType> schema;
   private Filter[] pushedFilters = new Filter[] {};
+  private Map<String, StructField> fields;
 
   public BigQueryDataSourceReader(
       TableInfo table,
@@ -81,6 +85,11 @@ public class BigQueryDataSourceReader
         new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
     this.globalFilter = globalFilter;
     this.schema = schema;
+    this.fields =
+        JavaConversions.asJavaCollection(
+                SchemaConverters.toSpark(table.getDefinition().getSchema()))
+            .stream()
+            .collect(Collectors.toMap(field -> field.name(), Function.identity()));
   }
 
   @Override
@@ -202,7 +211,8 @@ public class BigQueryDataSourceReader
     List<Filter> handledFilters = new ArrayList<>();
     List<Filter> unhandledFilters = new ArrayList<>();
     for (Filter filter : filters) {
-      if (SparkFilterUtils.isHandled(filter, readSessionCreatorConfig.getReadDataFormat())) {
+      if (SparkFilterUtils.isTopLevelFieldHandled(
+          filter, readSessionCreatorConfig.getReadDataFormat(), fields)) {
         handledFilters.add(filter);
       } else {
         unhandledFilters.add(filter);
