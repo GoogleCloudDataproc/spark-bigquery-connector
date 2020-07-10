@@ -133,7 +133,7 @@ object SparkBigQueryOptions {
       .map(_.toInt)
     val temporaryGcsBucket = getAnyOption(normalizedAllConf, parameters, "temporaryGcsBucket")
     val persistentGcsBucket = getAnyOption(normalizedAllConf, parameters, "persistentGcsBucket")
-    val persistentGcsPath = getAnyOption(normalizedAllConf, parameters, "persistentGcsPath")
+    val persistentGcsPath = getOption(parameters, "persistentGcsPath")
 
     val intermediateFormat = IntermediateFormat(
       getAnyOption(normalizedAllConf, parameters, IntermediateFormatOption)
