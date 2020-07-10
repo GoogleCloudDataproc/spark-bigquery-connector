@@ -215,13 +215,15 @@ public class ProtobufUtils {
     DynamicMessage.Builder messageBuilder = DynamicMessage.newBuilder(schemaDescriptor);
 
     for (int fieldIndex = 0; fieldIndex < schemaDescriptor.getFields().size(); fieldIndex++) {
+      int protoFieldNumber = fieldIndex+1;
+
       StructField sparkField = schema.fields()[fieldIndex];
       DataType sparkType = sparkField.dataType();
 
       Object sparkValue = row.get(fieldIndex, sparkType);
       boolean nullable = sparkField.nullable();
       Descriptors.Descriptor nestedTypeDescriptor =
-          schemaDescriptor.findNestedTypeByName(RESERVED_NESTED_TYPE_NAME + (fieldIndex + 1));
+          schemaDescriptor.findNestedTypeByName(RESERVED_NESTED_TYPE_NAME + (protoFieldNumber));
       Object protoValue =
           convertToProtoRowValue(sparkType, sparkValue, nullable, nestedTypeDescriptor);
 
@@ -231,7 +233,7 @@ public class ProtobufUtils {
         continue;
       }
 
-      messageBuilder.setField(schemaDescriptor.findFieldByNumber(fieldIndex + 1), protoValue);
+      messageBuilder.setField(schemaDescriptor.findFieldByNumber(protoFieldNumber), protoValue);
     }
 
     return messageBuilder.build();

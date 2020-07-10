@@ -322,8 +322,8 @@ public class ProtobufUtilsTest {
         }
     }
 
-    Descriptors.Descriptor STRUCT_DESCRIPTOR = makeStructDescriptor();
-    public Descriptors.Descriptor makeStructDescriptor() throws AssumptionViolatedException {
+    Descriptors.Descriptor STRUCT_DESCRIPTOR = createStructDescriptor();
+    public Descriptors.Descriptor createStructDescriptor() throws AssumptionViolatedException {
         try {
             return toDescriptor(MY_STRUCT);
         }
