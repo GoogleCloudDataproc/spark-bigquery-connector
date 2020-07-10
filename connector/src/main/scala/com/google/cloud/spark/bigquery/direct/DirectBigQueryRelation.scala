@@ -352,7 +352,11 @@ object DirectBigQueryRelation {
       .setHeaderProvider(headerProvider)
     // set credentials of provided
     options.createCredentials.foreach(BigQueryOptionsBuilder.setCredentials)
-    BigQueryOptionsBuilder.build.getService
+
+    BigQueryOptionsBuilder
+      .setProjectId(options.parentProject)
+      .build
+      .getService
   }
 
   private def headerProvider =
