@@ -170,7 +170,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     createTemporaryPathDeleter.map(_.deletePath)
   }
 
-  private def createTemporaryPathDeleter: Option[IntermediateDataCleaner] =
+  private def createTemporaryPathDeleter: scala.Option[IntermediateDataCleaner] =
     options.temporaryGcsBucket.map(_ => IntermediateDataCleaner(gcsPath, conf))
 
   def verifySaveMode: Unit = {
