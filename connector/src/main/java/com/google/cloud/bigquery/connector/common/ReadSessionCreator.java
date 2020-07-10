@@ -46,7 +46,6 @@ public class ReadSessionCreator {
   private static final int DEFAULT_BYTES_PER_PARTITION = 400 * 1000 * 1000;
 
   private static final Logger log = LoggerFactory.getLogger(ReadSessionCreator.class);
-
   private final ReadSessionCreatorConfig config;
   private final BigQueryClient bigQueryClient;
   private final BigQueryReadClientFactory bigQueryReadClientFactory;
