@@ -19,7 +19,9 @@ import com.google.auth.Credentials
 import com.google.cloud.bigquery.TableDefinition.Type.{MATERIALIZED_VIEW, TABLE, VIEW}
 import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, TableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
+import org.apache.spark.sql.execution.streaming.Sink
 import org.apache.spark.sql.sources._
+import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
@@ -28,7 +30,8 @@ class BigQueryRelationProvider(
     extends RelationProvider
     with CreatableRelationProvider
     with SchemaRelationProvider
-    with DataSourceRegister {
+    with DataSourceRegister
+    with StreamSinkProvider {
 
   BigQueryUtil.validateScalaVersionCompatibility
 
@@ -43,6 +46,17 @@ class BigQueryRelationProvider(
                               parameters: Map[String, String],
                               schema: StructType): BaseRelation = {
     createRelationInternal(sqlContext, parameters, schema = Some(schema))
+  }
+
+  // To allow streaming writes
+  override def createSink(
+                           sqlContext: SQLContext,
+                           parameters: Map[String, String],
+                           partitionColumns: Seq[String],
+                           outputMode: OutputMode): Sink = {
+    val opts = createSparkBigQueryOptions(sqlContext, parameters, null)
+    val bigquery: BigQuery = getOrCreateBigQuery(opts)
+    BigQueryStreamingSink(sqlContext, parameters, partitionColumns, outputMode, opts, bigquery)
   }
 
   protected def createRelationInternal(
