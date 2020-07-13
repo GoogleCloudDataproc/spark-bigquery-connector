@@ -15,6 +15,10 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.api.gax.rpc.FixedHeaderProvider;
+import com.google.api.gax.rpc.HeaderProvider;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import org.apache.spark.sql.sources.*;
@@ -34,7 +38,9 @@ import static java.lang.String.format;
 
 public class SparkFilterUtils {
 
-  private SparkFilterUtils() {}
+  private HeaderProvider headerProvider =
+          FixedHeaderProvider.create("user-agent",
+                  new SparkBigQueryConnectorUserAgentProvider("v1").getUserAgent());
 
   // Structs are not handled
   public static boolean isTopLevelFieldHandled(

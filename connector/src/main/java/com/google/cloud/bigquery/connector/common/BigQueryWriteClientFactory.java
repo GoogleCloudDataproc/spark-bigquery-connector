@@ -41,13 +41,4 @@ public class BigQueryWriteClientFactory implements Serializable {
             throw new UncheckedIOException("Error creating BigQueryStorageClient", e);
         }
     }
-/*
-    public BigQueryWriteClient createBigQueryWriteClient() {
-        try {
-            return BigQueryWriteClient.create();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to initialize BigQueryWriteClient.", e);
-        }
-    }
- */
 }
