@@ -74,6 +74,12 @@ class BigQueryUtilsSuite extends org.scalatest.FunSuite {
     assert(tableId == TableId.of("default_dataset", "test_table$12345"))
   }
 
+  test("parse table with date partition") {
+    val tableId = BigQueryUtil.parseTableId(
+      "test_table", dataset = Some("default_dataset"), datePartition = Some("20200101"))
+    assert(tableId == TableId.of("default_dataset", "test_table$20200101"))
+  }
+
   test("unparsable table") {
     assertThrows[IllegalArgumentException] {
       val tableId = BigQueryUtil.parseTableId("foo:bar:baz")
