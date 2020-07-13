@@ -16,19 +16,7 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.BaseServiceException;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryException;
-import com.google.cloud.bigquery.Dataset;
-import com.google.cloud.bigquery.DatasetId;
-import com.google.cloud.bigquery.Job;
-import com.google.cloud.bigquery.JobConfiguration;
-import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.QueryJobConfiguration;
-import com.google.cloud.bigquery.Table;
-import com.google.cloud.bigquery.TableDefinition;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.bigquery.*;
 import com.google.cloud.http.BaseHttpServiceException;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -86,6 +74,19 @@ public class BigQueryClient {
 
   public TableInfo getTable(TableId tableId) {
     return bigQuery.getTable(tableId);
+  }
+
+  public boolean tableExists(TableId tableId) {
+    return getTable(tableId) != null;
+  }
+
+  public Table createTable(TableId tableId, Schema schema) {
+    TableInfo tableInfo = TableInfo.newBuilder(tableId, StandardTableDefinition.of(schema)).build();
+    return bigQuery.create(tableInfo);
+  }
+
+  public boolean deleteTable(TableId tableId) {
+    return bigQuery.delete(tableId);
   }
 
   public TableInfo getReadTable(ReadTableOptions options) {
