@@ -65,6 +65,19 @@ public class BigQueryClient {
     return bigQuery.getTable(tableId);
   }
 
+  public boolean tableExists(TableId tableId) {
+    return getTable(tableId) != null;
+  }
+
+  public Table createTable(TableId tableId, Schema schema) {
+    TableInfo tableInfo = TableInfo.newBuilder(tableId, StandardTableDefinition.of(schema)).build();
+    return bigQuery.create(tableInfo);
+  }
+
+  public boolean deleteTable(TableId tableId) {
+    return bigQuery.delete(tableId);
+  }
+
   public TableInfo getSupportedTable(
       TableId tableId, boolean viewsEnabled, String viewEnabledParamName) {
     TableInfo table = getTable(tableId);

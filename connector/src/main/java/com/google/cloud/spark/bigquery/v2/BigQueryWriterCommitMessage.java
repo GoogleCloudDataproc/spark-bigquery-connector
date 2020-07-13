@@ -1,31 +1,31 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.storage.v1alpha2.Stream;
 import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
-
-import java.util.Optional;
 
 public class BigQueryWriterCommitMessage implements WriterCommitMessage {
 
-    private final Optional<String> writeStreamName;
+    private final String writeStreamName;
     private final int partitionId;
     private final long taskId;
     private final long epochId;
-    private final TableId tableId;
-    private final Optional<Long> rowCount;
+    private final String tablePath;
+    private final Long rowCount;
 
-    public BigQueryWriterCommitMessage(Optional<String> writeStreamName, int partitionId, long taskId, long epochId,
-                                       TableId tableId, Optional<Long> rowCount) {
+    public BigQueryWriterCommitMessage(String writeStreamName, int partitionId, long taskId, long epochId,
+                                       String tablePath, Long rowCount) {
         this.writeStreamName = writeStreamName;
         this.partitionId = partitionId;
         this.taskId = taskId;
         this.epochId = epochId;
-        this.tableId = tableId;
+        this.tablePath = tablePath;
         this.rowCount = rowCount;
     }
 
-    public Optional<String> getWriteStreamName() {
+    public String getWriteStreamName() throws NoSuchFieldError{
+        if(writeStreamName == null) {
+            throw new NoSuchFieldError("Data writer did not create a write-stream.");
+        }
         return writeStreamName;
     }
 
@@ -41,23 +41,26 @@ public class BigQueryWriterCommitMessage implements WriterCommitMessage {
         return epochId;
     }
 
-    public TableId getTableId() {
-        return tableId;
+    public String getTablePath() {
+        return tablePath;
     }
 
-    public Optional<Long> getRowCount() {
+    public long getRowCount() throws NoSuchFieldError{
+        if(rowCount == null) {
+            throw new NoSuchFieldError("Data write did not create a write-stream and did not write to BigQuery.");
+        }
         return rowCount;
     }
 
     @Override
     public String toString() {
-        if(writeStreamName.isPresent() && rowCount.isPresent()) {
+        if(writeStreamName != null && rowCount != null) {
             return "BigQueryWriterCommitMessage{" +
                     ", writeStreamName='" + writeStreamName +
                     "partitionId=" + partitionId +
                     ", taskId=" + taskId +
                     ", epochId=" + epochId +
-                    ", tableId='" + tableId +
+                    ", tableId='" + tablePath +
                     ", rowCount='" + rowCount + '\'' +
                     '}';
         }
@@ -65,7 +68,7 @@ public class BigQueryWriterCommitMessage implements WriterCommitMessage {
                 "partitionId=" + partitionId +
                 ", taskId=" + taskId +
                 ", epochId=" + epochId +
-                ", tableId='" + tableId + '\'' +
+                ", tableId='" + tablePath + '\'' +
                 '}';
     }
 }

@@ -3,8 +3,8 @@ package com.google.cloud.spark.bigquery.v2;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
-import com.google.cloud.bigquery.connector.common.WriteSessionConfig;
 import com.google.cloud.bigquery.storage.v1alpha2.*;
+import com.google.protobuf.Descriptors;
 import com.google.protobuf.Int64Value;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.writer.DataWriter;
@@ -14,9 +14,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Optional;
 
 import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessage;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
 import static junit.framework.Assert.assertEquals;
 
 public class BigQueryDataWriter implements DataWriter<InternalRow> {
@@ -27,36 +27,43 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
     private final int partitionId;
     private final long taskId;
     private final long epochId;
-    private final BigQueryWriteClient writeClient;
-    private final TableId tableId;
+    private final String tablePath;
     private final StructType sparkSchema;
+    private final Descriptors.Descriptor schemaDescriptor;
     private final ProtoBufProto.ProtoSchema protoSchema;
     private final boolean ignoreInputs;
 
+    private BigQueryWriteClient writeClient;
     private Stream.WriteStream writeStream;
     private ProtoBufProto.ProtoRows.Builder protoRows;
     private int rowCounter;
     private int offset;
 
     public BigQueryDataWriter(int partitionId, long taskId, long epochId, BigQueryWriteClientFactory writeClientFactory,
-                              WriteSessionConfig writeSessionConfig, boolean ignoreInputs) {
+                              String tablePath, StructType sparkSchema, ProtoBufProto.ProtoSchema protoSchema,
+                              boolean ignoreInputs) {
         this.partitionId = partitionId;
         this.taskId = taskId;
         this.epochId = epochId;
-        this.writeClient = writeClientFactory.createBigQueryWriteClient();
-        this.tableId = writeSessionConfig.getTableId();
-        this.sparkSchema = writeSessionConfig.getSparkSchema();
-        this.protoSchema = writeSessionConfig.getProtoSchema();
+        this.tablePath = tablePath;
+        this.sparkSchema = sparkSchema;
+        try {
+            this.schemaDescriptor = toDescriptor(sparkSchema);
+        } catch (Descriptors.DescriptorValidationException e) {
+            throw new RuntimeException("Could not convert spark-schema to descriptor object.", e);
+        }
+        this.protoSchema = protoSchema;
         this.ignoreInputs = ignoreInputs;
 
         if (ignoreInputs) return;
 
+        this.writeClient = writeClientFactory.createBigQueryWriteClient();
         Stream.WriteStream aWriteStream = Stream.WriteStream.newBuilder()
                 .setType(Stream.WriteStream.Type.PENDING).build();
         this.writeStream =
                 writeClient.createWriteStream(
                         Storage.CreateWriteStreamRequest.newBuilder()
-                                .setParent(tableId.toString())
+                                .setParent(tablePath)
                                 .setWriteStream(aWriteStream)
                                 .build());
         this.protoRows = ProtoBufProto.ProtoRows.newBuilder();
@@ -75,7 +82,7 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
             this.offset += APPEND_REQUEST_SIZE;
         }
 
-        protoRows.addSerializedRows(buildSingleRowMessage(sparkSchema, protoSchema.getDescriptorForType(), record)
+        protoRows.addSerializedRows(buildSingleRowMessage(sparkSchema, schemaDescriptor, record)
                 .toByteString());
     }
 
@@ -112,8 +119,8 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
     public WriterCommitMessage commit() throws IOException {
         logger.debug("Data Writer {} commit()", partitionId);
 
-        Optional<Long> rowCount = Optional.empty();
-        Optional<String> writeStreamName = Optional.empty();
+        Long rowCount = null;
+        String writeStreamName = null;
 
         if (!ignoreInputs) {
             // Append all leftover since the last append:
@@ -126,13 +133,15 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
                             Storage.FinalizeWriteStreamRequest.newBuilder()
                                     .setName(writeStream.getName()).build());
 
-            writeStreamName = Optional.of(writeStream.getName());
-            rowCount = Optional.of(finalizeResponse.getRowCount());
+            writeStreamName = writeStream.getName();
+            rowCount = finalizeResponse.getRowCount();
 
-            logger.debug("Data Writer {}'s write-stream has finalized with row count: {}", partitionId, rowCount.get());
+            writeClient.shutdown();
+
+            logger.debug("Data Writer {}'s write-stream has finalized with row count: {}", partitionId, rowCount);
         }
 
-        return new BigQueryWriterCommitMessage(writeStreamName, partitionId, taskId, epochId, tableId, rowCount);
+        return new BigQueryWriterCommitMessage(writeStreamName, partitionId, taskId, epochId, tablePath, rowCount);
     }
 
     @Override
