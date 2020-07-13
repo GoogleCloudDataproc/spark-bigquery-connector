@@ -48,6 +48,8 @@ import scala.util.Properties
     persistentGcsPath: Option[String] = None,
     intermediateFormat: IntermediateFormat = SparkBigQueryOptions.DefaultIntermediateFormat,
     readDataFormat: DataFormat = SparkBigQueryOptions.DefaultReadDataFormat,
+    arrowEnableUnsafeMemoryAccess: Boolean = false,
+    arrowEnableNullCheckGet: Boolean = true,
     combinePushedDownFilters: Boolean = true,
     viewsEnabled: Boolean = false,
     materializationProject: Option[String] = None,
@@ -96,6 +98,9 @@ object SparkBigQueryOptions {
   val DefaultIntermediateFormat: IntermediateFormat =
     IntermediateFormat(DefaultFormat, FormatOptions.parquet())
   private val PermittedReadDataFormats = Set(DataFormat.ARROW.toString, DataFormat.AVRO.toString)
+
+  val DefaultArrowUnsafeMemoryAccess: Boolean = false
+  val DefaultArrowNullCheckForGet: Boolean = true
 
   val GcsAccessToken = "gcpAccessToken"
 
@@ -150,6 +155,22 @@ object SparkBigQueryOptions {
           .stripMargin.replace('\n', ' '))
     }
     val readDataFormat = DataFormat.valueOf(readDataFormatParam)
+    val arrowEnableUnsafeMemoryAccessProperty = "arrow.enable_unsafe_memory_access"
+    val arrowEnableUnsafeMemoryAccess = getAnyBooleanOption(normalizedAllConf,
+      parameters,
+      arrowEnableUnsafeMemoryAccessProperty,
+      DefaultArrowUnsafeMemoryAccess)
+    System.setProperty(arrowEnableUnsafeMemoryAccessProperty,
+      arrowEnableUnsafeMemoryAccess.toString)
+
+    val arrowEnableNullCheckGetProperty = "arrow.enable_null_check_for_get"
+    val arrowEnableNullCheckGet = getAnyBooleanOption(normalizedAllConf,
+      parameters,
+      arrowEnableNullCheckGetProperty,
+      DefaultArrowNullCheckForGet)
+    System.setProperty(arrowEnableNullCheckGetProperty,
+      arrowEnableNullCheckGet.toString)
+
     val combinePushedDownFilters = getAnyBooleanOption(
       normalizedAllConf, parameters, "combinePushedDownFilters", true)
     val viewsEnabled = getAnyBooleanOption(
@@ -189,6 +210,7 @@ object SparkBigQueryOptions {
     SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
       filter, schema, maxParallelism, temporaryGcsBucket, persistentGcsBucket,
       persistentGcsPath, intermediateFormat, readDataFormat,
+      arrowEnableUnsafeMemoryAccess, arrowEnableNullCheckGet,
       combinePushedDownFilters, viewsEnabled, materializationProject,
       materializationDataset, partitionField, partitionExpirationMs,
       partitionRequireFilter, partitionType, clusteredFields, createDisposition,

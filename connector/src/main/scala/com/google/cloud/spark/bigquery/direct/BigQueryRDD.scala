@@ -61,6 +61,11 @@ class BigQueryRDD(sc: SparkContext,
         readRowResponses).getIterator()
     }
     else {
+      System.setProperty("arrow.enable_unsafe_memory_access",
+        options.arrowEnableUnsafeMemoryAccess.toString)
+      System.setProperty("arrow.enable_null_check_for_get",
+        options.arrowEnableNullCheckGet.toString)
+
       ArrowConverter(columnsInOrder,
         session.getArrowSchema.getSerializedSchema,
         readRowResponses).getIterator()

@@ -49,6 +49,12 @@ public class SparkBigQueryConfig implements BigQueryConfig {
   @VisibleForTesting
   static final FormatOptions DEFAULT_INTERMEDIATE_FORMAT = FormatOptions.parquet();
 
+  @VisibleForTesting
+  static final boolean DEFAULT_ARROW_UNSAFE_MEMORY_ACCESS = false;
+
+  @VisibleForTesting
+  static final boolean DEFAULT_ARROW_NULL_CHECK_GET = true;
+
   private static final String GCS_CONFIG_CREDENTIALS_FILE_PROPERTY =
       "google.cloud.auth.service.account.json.keyfile";
   private static final String GCS_CONFIG_PROJECT_ID_PROPERTY = "fs.gs.project.id";
@@ -73,6 +79,8 @@ public class SparkBigQueryConfig implements BigQueryConfig {
   Optional<String> temporaryGcsBucket = Optional.empty();
   FormatOptions intermediateFormat = DEFAULT_INTERMEDIATE_FORMAT;
   DataFormat readDataFormat = DEFAULT_READ_DATA_FORMAT;
+  boolean arrowEnableUnsafeMemoryAccess = false;
+  boolean arrowEnableNullCheckGet = true;
   boolean combinePushedDownFilters = true;
   boolean viewsEnabled = false;
   Optional<String> materializationProject = Optional.empty();
@@ -117,7 +125,7 @@ public class SparkBigQueryConfig implements BigQueryConfig {
     config.maxParallelism =
         toOptionalInt(
             getOptionFromMultipleParams(
-                    options, ImmutableList.of("maxParallelism", "parallelism"), DEFAULT_FALLBACK)
+                options, ImmutableList.of("maxParallelism", "parallelism"), DEFAULT_FALLBACK)
                 .map(Integer::valueOf));
     config.defaultParallelism = defaultParallelism;
     config.temporaryGcsBucket = getAnyOption(globalOptions, options, "temporaryGcsBucket");
@@ -146,6 +154,12 @@ public class SparkBigQueryConfig implements BigQueryConfig {
               readDataFormatParam, String.join(",", PERMITTED_READ_DATA_FORMATS)));
     }
     config.readDataFormat = DataFormat.valueOf(readDataFormatParam);
+
+    config.arrowEnableNullCheckGet =
+        getAnyBooleanOption(globalOptions, options, "arrow.enable_null_check_for_get", DEFAULT_ARROW_NULL_CHECK_GET);
+    config.arrowEnableUnsafeMemoryAccess =
+        getAnyBooleanOption(globalOptions, options, "arrow.enable_unsafe_memory_access", DEFAULT_ARROW_UNSAFE_MEMORY_ACCESS);
+
     config.combinePushedDownFilters =
         getAnyBooleanOption(globalOptions, options, "combinePushedDownFilters", true);
     config.viewsEnabled = getAnyBooleanOption(globalOptions, options, VIEWS_ENABLED_OPTION, false);
@@ -309,6 +323,14 @@ public class SparkBigQueryConfig implements BigQueryConfig {
 
   public DataFormat getReadDataFormat() {
     return readDataFormat;
+  }
+
+  public boolean isArrowUnsafeMemoryAccessEnabled() {
+    return arrowEnableUnsafeMemoryAccess;
+  }
+
+  public boolean isArrowNullCheckGetEnabled() {
+    return arrowEnableNullCheckGet;
   }
 
   public boolean isCombinePushedDownFilters() {

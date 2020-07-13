@@ -49,6 +49,8 @@ public class SparkBigQueryConfigTest {
         assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.empty());
         assertThat(config.getIntermediateFormat()).isEqualTo(SparkBigQueryConfig.DEFAULT_INTERMEDIATE_FORMAT);
         assertThat(config.getReadDataFormat()).isEqualTo(SparkBigQueryConfig.DEFAULT_READ_DATA_FORMAT);
+        assertThat(config.isArrowNullCheckGetEnabled()).isEqualTo(SparkBigQueryConfig.DEFAULT_ARROW_NULL_CHECK_GET);
+        assertThat(config.isArrowUnsafeMemoryAccessEnabled()).isEqualTo(SparkBigQueryConfig.DEFAULT_ARROW_UNSAFE_MEMORY_ACCESS);
         assertThat(config.getMaterializationProject()).isEqualTo(Optional.empty());
         assertThat(config.getMaterializationDataset()).isEqualTo(Optional.empty());
         assertThat(config.getPartitionField()).isEqualTo(Optional.empty());
@@ -76,6 +78,8 @@ public class SparkBigQueryConfigTest {
                 .put("viewMaterializationProject","vmp")
                 .put("viewMaterializationDataset","vmd")
                 .put("readDataFormat","ARROW")
+                .put("arrow.enable_null_check_for_get","false")
+                .put("arrow.enable_unsafe_memory_access","true")
                 .put("optimizedEmptyProjection","false")
                 .put("createDisposition","CREATE_NEVER")
                 .put("temporaryGcsBucket","some_bucket")
@@ -105,5 +109,7 @@ public class SparkBigQueryConfigTest {
         assertThat(config.getLoadSchemaUpdateOptions()).isEqualTo(ImmutableList.of(JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION, JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION));
         assertThat(config.getViewExpirationTimeInHours()).isEqualTo(24);
         assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
+        assertThat(config.arrowEnableNullCheckGet).isEqualTo(false);
+        assertThat(config.arrowEnableUnsafeMemoryAccess).isEqualTo(true);
     }
 }
