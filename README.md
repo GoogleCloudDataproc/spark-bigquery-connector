@@ -136,7 +136,17 @@ df.write
   .save("dataset.table")
 ```
 
-*Inportant:* The connector does not configure the GCS connector, in order to avoid conflict with another GCS connector, if exists. In order to use the write capabilities of the connector, please configure the GCS connector on your cluster as explained [here](https://github.com/GoogleCloudPlatform/bigdata-interop/tree/master/gcs).
+When writing a streaming DataFrame to BigQuery, each batch is written in the same manner as a non-streaming DataFrame. Note that a HDFS compatible checkpoint location must be specified.
+
+```
+df.writeStream
+  .format("bigquery")
+  .option("temporaryGcsBucket","some-bucket")
+  .option("checkpointLocation", "some-location")
+  .option("table", "dataset.table")
+```
+
+*Important:* The connector does not configure the GCS connector, in order to avoid conflict with another GCS connector, if exists. In order to use the write capabilities of the connector, please configure the GCS connector on your cluster as explained [here](https://github.com/GoogleCloudPlatform/bigdata-interop/tree/master/gcs).
 
 ### Properties
 
