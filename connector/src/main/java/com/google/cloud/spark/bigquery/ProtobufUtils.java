@@ -226,7 +226,7 @@ public class ProtobufUtils {
       Object protoValue =
           convertToProtoRowValue(sparkType, sparkValue, nullable, nestedTypeDescriptor);
 
-      logger.debug("Converted value {} to proto-value: {}", sparkValue, protoValue);
+      //logger.debug("Converted value {} to proto-value: {}", sparkValue, protoValue);
 
       if (protoValue == null) {
         continue;
@@ -258,7 +258,7 @@ public class ProtobufUtils {
       Object sparkValue,
       boolean nullable,
       Descriptors.Descriptor nestedTypeDescriptor) {
-    logger.debug("Converting type: {}", sparkType.json());
+    //logger.debug("Converting type: {}", sparkType.json());
     if (sparkValue == null) {
       if (!nullable) {
         throw new IllegalArgumentException("Non-nullable field was null.");
