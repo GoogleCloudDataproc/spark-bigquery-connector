@@ -74,11 +74,11 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
         if(bigQueryClient.tableExists(tableId)) {
             switch (saveMode) {
                 case Append:
-                    break; // TODO: truncation table stuff...
+                    break;
                 case Overwrite:
                     Preconditions.checkArgument(bigQueryClient.deleteTable(tableId),
                             new IOException("Could not delete an existing table in BigQuery, in order to overwrite."));
-                    return createBigQueryTable();
+                    return createBigQueryTable(); // FIXME: don't delete table, not atomic and not transactional
                 case Ignore:
                     ignoreInputs = true;
                     break;
@@ -115,8 +115,8 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
                     Storage.BatchCommitWriteStreamsRequest.newBuilder()
                             .setParent(tablePath);
             for(WriterCommitMessage message : messages) {
-                batchCommitWriteStreamsRequest.addWriteStreams(((BigQueryWriterCommitMessage)message)
-                        .getWriteStreamName());
+                batchCommitWriteStreamsRequest.addAllWriteStreams(
+                        ((BigQueryWriterCommitMessage)message).getWriteStreamNames());
             }
             Storage.BatchCommitWriteStreamsResponse batchCommitWriteStreamsResponse = writeClient.batchCommitWriteStreams(
                     batchCommitWriteStreamsRequest.build());
