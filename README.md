@@ -136,7 +136,7 @@ df.write
   .save("dataset.table")
 ```
 
-When writing a streaming DataFrame to BigQuery, each batch is written in the same manner as a non-streaming DataFrame. Note that a HDFS compatible checkpoint location must be specified.
+When writing a streaming DataFrame to BigQuery, each batch is written in the same manner as a non-streaming DataFrame. Note that a HDFS compatible [checkpoint location](http://spark.apache.org/docs/latest/structured-streaming-programming-guide.html#recovering-from-failures-with-checkpointing) (eg: path/to/HDFS/dir or gs://checkpointBucket/checkpointDir) must be specified.
 
 ```
 df.writeStream
