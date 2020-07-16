@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 public class ProtobufUtils {
@@ -306,8 +307,12 @@ public class ProtobufUtils {
       return ((Decimal) sparkValue).toDouble();
     }
 
-    if (sparkType instanceof BooleanType || sparkType instanceof BinaryType) {
+    if (sparkType instanceof BooleanType) {
       return sparkValue;
+    }
+
+    if (sparkType instanceof BinaryType) {
+      return Base64.getEncoder().encode((byte[])sparkValue);
     }
 
     if (sparkType instanceof StringType) {

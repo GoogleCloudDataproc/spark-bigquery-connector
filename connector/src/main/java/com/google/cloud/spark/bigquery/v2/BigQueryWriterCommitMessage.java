@@ -2,20 +2,18 @@ package com.google.cloud.spark.bigquery.v2;
 
 import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 
-import java.util.List;
-
 public class BigQueryWriterCommitMessage implements WriterCommitMessage {
 
-    private final List<String> writeStreamNames;
+    private final String writeStreamName;
     private final int partitionId;
     private final long taskId;
     private final long epochId;
     private final String tablePath;
     private final Long rowCount;
 
-    public BigQueryWriterCommitMessage(/*String writeStreamName*/List<String> writeStreamNames, int partitionId, long taskId, long epochId,
+    public BigQueryWriterCommitMessage(String writeStreamName/*List<String> writeStreamNames*/, int partitionId, long taskId, long epochId,
                                                                  String tablePath, Long rowCount) {
-        this.writeStreamNames = writeStreamNames;
+        this.writeStreamName = writeStreamName;
         this.partitionId = partitionId;
         this.taskId = taskId;
         this.epochId = epochId;
@@ -23,11 +21,11 @@ public class BigQueryWriterCommitMessage implements WriterCommitMessage {
         this.rowCount = rowCount;
     }
 
-    public List<String> getWriteStreamNames() throws NoSuchFieldError{
-        if(writeStreamNames == null) {
+    public String getWriteStreamName() throws NoSuchFieldError{
+        if(writeStreamName == null) {
             throw new NoSuchFieldError("Data writer did not create a write-stream.");
         }
-        return writeStreamNames;
+        return writeStreamName;
     }
 
     public int getPartitionId() {
@@ -55,9 +53,9 @@ public class BigQueryWriterCommitMessage implements WriterCommitMessage {
 
     @Override
     public String toString() {
-        if(writeStreamNames != null && rowCount != null) {
+        if(writeStreamName != null && rowCount != null) {
             return "BigQueryWriterCommitMessage{" +
-                    ", writeStreamName='" + writeStreamNames +
+                    ", writeStreamName='" + writeStreamName +
                     "partitionId=" + partitionId +
                     ", taskId=" + taskId +
                     ", epochId=" + epochId +
