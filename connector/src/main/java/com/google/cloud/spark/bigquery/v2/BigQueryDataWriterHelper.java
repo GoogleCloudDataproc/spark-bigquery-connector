@@ -10,20 +10,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 public class BigQueryDataWriterHelper {
 
     final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterHelper.class);
-    final long APPEND_REQUEST_SIZE = 10L * 1000L; // 10kB limit for each append
-    final long MAX_STREAM_SIZE = 1000L * 1000L; // 1MB limit for streams
+    final long APPEND_REQUEST_SIZE = 1000L * 1000L; // 1MB limit for each append
 
     private final BigQueryWriteClient writeClient;
     private final String tablePath;
     private final ProtoBufProto.ProtoSchema protoSchema;
-    private final List<String> writeStreamNames = new ArrayList();
 
     private Stream.WriteStream writeStream;
     private StreamWriter streamWriter;
@@ -34,9 +30,6 @@ public class BigQueryDataWriterHelper {
 
     private long writeStreamBytes = 0; // total bytes of the current write-stream
     private long writeStreamRows = 0; // total offset / rows of the current write-stream
-
-    private long dataWriterRows = 0; // total rows of all of the data writer's write-streams
-    private long dataWriterBytes = 0; // total bytes of all of the data writer's write-streams
 
     protected BigQueryDataWriterHelper(BigQueryWriteClientFactory writeClientFactory, String tablePath,
                                        StructType sparkSchema, ProtoBufProto.ProtoSchema protoSchema) {
@@ -58,9 +51,6 @@ public class BigQueryDataWriterHelper {
                                                 .setType(Stream.WriteStream.Type.PENDING).build()
                                 )
                                 .build());
-        if(this.streamWriter != null) {
-            streamWriter.close();
-        }
 
         try {
             this.streamWriter =
@@ -68,8 +58,6 @@ public class BigQueryDataWriterHelper {
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException("Could not build stream-writer.", e);
         }
-
-        this.writeStreamNames.add(this.writeStream.getName());
     }
 
     protected void addRow(ByteString message) throws IOException {
@@ -77,16 +65,14 @@ public class BigQueryDataWriterHelper {
 
         if(appendBytes + messageSize > APPEND_REQUEST_SIZE) {
             appendRequest();
+            appendRows = 0;
+            appendBytes = 0;
         }
-
+/*
         if(writeStreamBytes + messageSize > MAX_STREAM_SIZE) {
-            finalizeStream();
-            createWriteStreamAndStreamWriter();
-            dataWriterBytes += writeStreamBytes;
-            dataWriterRows += writeStreamRows;
-            writeStreamBytes = 0;
-            writeStreamRows = 0;
+            throw new IOException("Data writer exceeded maximum write-stream size"); // suppress error.
         }
+ */
 
         protoRows.addSerializedRows(message);
         appendBytes += messageSize;
@@ -120,8 +106,6 @@ public class BigQueryDataWriterHelper {
         clearProtoRows();
         this.writeStreamRows += appendRows; // add the # of rows appended to writeStreamRows
         this.writeStreamBytes += appendBytes;
-        appendRows = 0;
-        appendBytes = 0;
     }
 
     protected void finalizeStream() throws IOException {
@@ -138,23 +122,29 @@ public class BigQueryDataWriterHelper {
             throw new IOException("Finalize response had an unexpected row count.");
         }
 
-        logger.debug("Write-stream {} finalized with row-count {}", writeStream.getName(), finalizeResponse.getRowCount());
-    }
-
-    protected void closeHelperAndFinalizeStream() throws IOException {
-        finalizeStream();
         writeClient.shutdown();
+
+        logger.debug("Write-stream {} finalized with row-count {}", writeStream.getName(), finalizeResponse.getRowCount());
     }
 
     private void clearProtoRows() {
         this.protoRows.clear();
     }
 
-    protected List<String> getWriteStreamNames() {
-        return this.writeStreamNames;
+    protected String getWriteStreamName() {
+        return writeStream.getName();
     }
 
     protected long getDataWriterRows() {
-        return dataWriterRows;
+        return writeStreamRows;
+    }
+
+    protected void abort() {
+        if(streamWriter != null) {
+            streamWriter.close();
+        }
+        if(writeClient != null && !writeClient.isShutdown()) {
+            writeClient.shutdown();
+        }
     }
 }

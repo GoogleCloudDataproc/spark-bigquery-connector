@@ -46,6 +46,8 @@ import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessag
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoRows;
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
+import java.util.Base64;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.*;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
@@ -439,24 +441,20 @@ public class ProtobufUtilsTest {
     }
   }
 
-  public ProtoRows MY_PROTO_ROWS =
-      ProtoRows.newBuilder()
-          .addSerializedRows(
-              DynamicMessage.newBuilder(BIG_SCHEMA_ROW_DESCRIPTOR)
-                  .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(1), 1L)
-                  .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(2), "A")
-                  .addRepeatedField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(3), 0L)
-                  .addRepeatedField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(3), 1L)
-                  .addRepeatedField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(3), 2L)
-                  .setField(
-                      BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(4),
-                      buildSingleRowMessage(MY_STRUCT, STRUCT_DESCRIPTOR, INTERNAL_STRUCT_DATA))
-                  .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(5), 3.14)
-                  .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(6), true)
-                  .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(7), new byte[] {11, 0x7F})
-                  .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(8), 1594080000000L)
-                  .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(9), 1594080000000L)
-                  .build()
-                  .toByteString())
-          .build();
+    public ProtoRows MY_PROTO_ROWS = ProtoRows.newBuilder().addSerializedRows(
+            DynamicMessage.newBuilder(BIG_SCHEMA_ROW_DESCRIPTOR)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(1), 1L)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(2), "A")
+                    .addRepeatedField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(3), 0L)
+                    .addRepeatedField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(3), 1L)
+                    .addRepeatedField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(3), 2L)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(4),
+                            buildSingleRowMessage(
+                                    MY_STRUCT, STRUCT_DESCRIPTOR, INTERNAL_STRUCT_DATA))
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(5), 3.14)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(6), true)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(7), Base64.getEncoder().encode(new byte[]{11, 0x7F}))
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(8), 1594080000000L)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(9), 1594080000000L)
+                    .build().toByteString()).build();
 }
