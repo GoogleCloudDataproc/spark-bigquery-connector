@@ -1,13 +1,9 @@
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.api.core.ApiFuture;
-import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
 import com.google.cloud.bigquery.storage.v1alpha2.*;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
-import com.google.protobuf.DynamicMessage;
-import com.google.protobuf.Int64Value;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.writer.DataWriter;
 import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
@@ -16,16 +12,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.List;
 
 import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessage;
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
-import static junit.framework.Assert.assertEquals;
 
 public class BigQueryDataWriter implements DataWriter<InternalRow> {
 
     final Logger logger = LoggerFactory.getLogger(BigQueryDataWriter.class);
-    private final long APPEND_REQUEST_SIZE = 1000L * 1000L; // 1MB limit for append requests
 
     private final int partitionId;
     private final long taskId;
@@ -64,6 +57,8 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
     public void write(InternalRow record) throws IOException {
         if(ignoreInputs) return;
 
+        //if(partitionId == 3) abort(); FIXME: for debugging purposes.
+
         ByteString message = buildSingleRowMessage(sparkSchema, schemaDescriptor, record).toByteString();
         writerHelper.addRow(message);
     }
@@ -73,23 +68,23 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
         logger.debug("Data Writer {} commit()", partitionId);
 
         Long finalizedRowCount = null;
-        List<String> writeStreamNames = null;
+        String writeStreamName = null;
 
         if (!ignoreInputs) {
-            writerHelper.closeHelperAndFinalizeStream();
+            writerHelper.finalizeStream();
 
             finalizedRowCount = writerHelper.getDataWriterRows();
-            writeStreamNames = writerHelper.getWriteStreamNames();
+            writeStreamName = writerHelper.getWriteStreamName();
 
             logger.debug("Data Writer {}'s write-stream has finalized with row count: {}", partitionId, finalizedRowCount);
         }
 
-        return new BigQueryWriterCommitMessage(writeStreamNames, partitionId, taskId, epochId, tablePath, finalizedRowCount);
+        return new BigQueryWriterCommitMessage(writeStreamName, partitionId, taskId, epochId, tablePath, finalizedRowCount);
     }
 
     @Override
     public void abort() throws IOException {
         logger.debug("Data Writer {} abort()", partitionId);
-        // TODO
+        writerHelper.abort();
     }
 }

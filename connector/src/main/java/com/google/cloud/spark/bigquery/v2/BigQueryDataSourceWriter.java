@@ -115,8 +115,8 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
                     Storage.BatchCommitWriteStreamsRequest.newBuilder()
                             .setParent(tablePath);
             for(WriterCommitMessage message : messages) {
-                batchCommitWriteStreamsRequest.addAllWriteStreams(
-                        ((BigQueryWriterCommitMessage)message).getWriteStreamNames());
+                batchCommitWriteStreamsRequest.addWriteStreams(
+                        ((BigQueryWriterCommitMessage)message).getWriteStreamName());
             }
             Storage.BatchCommitWriteStreamsResponse batchCommitWriteStreamsResponse = writeClient.batchCommitWriteStreams(
                     batchCommitWriteStreamsRequest.build());
@@ -130,7 +130,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     @Override
     public void abort(WriterCommitMessage[] messages) {
         logger.warn("BigQuery Data Source writer {} aborted.", writeUUID);
-        if (!ignoreInputs) {
+        if (writeClient != null && !writeClient.isShutdown()) {
             writeClient.shutdown(); // TODO help delete data in intermediary? Or keep in sink until TTL.
         }
     }
