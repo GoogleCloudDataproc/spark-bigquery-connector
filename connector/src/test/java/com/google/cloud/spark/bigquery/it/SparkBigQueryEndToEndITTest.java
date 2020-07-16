@@ -13,6 +13,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -20,7 +21,8 @@ import static java.time.Duration.ofSeconds;
 import static org.apache.spark.sql.types.DataTypes.*;
 import static org.junit.Assert.fail;
 
-public class SparkBigQueryEndToEndITTest {/*
+public class SparkBigQueryEndToEndITTest {
+    /*
     val filterData = Table(
             ("condition", "elements"),
     ("word_count == 4", Seq("'A", "'But", "'Faith")),
@@ -79,14 +81,14 @@ public class SparkBigQueryEndToEndITTest {/*
         testTable = "test_"+System.nanoTime();
     }
 
-    /*
+
     @Test
     public void testImplicitReadMethod() {
     import com.google.cloud.spark.bigquery._
         spark.read().bigquery(SHAKESPEARE_TABLE)
     }
-     */
-/*
+
+
     @Test
     public void testExplicitFormat() throws Exception {
         testShakespeare(spark.read().format("com.google.cloud.spark.bigquery")
@@ -177,7 +179,7 @@ public class SparkBigQueryEndToEndITTest {/*
             assertThat(df.schema()).isEqualTo(allTypesTable.schema());
         }
         catch (Exception e) {
-            fail("cache data frame in DataSource %s. Data Format %s".format(dataSourceFormat, dataFormat))
+            fail(String.format("cache data frame in DataSource %s. Data Format %s", dataSourceFormat, dataFormat));
         }
 
         try {
@@ -189,8 +191,7 @@ public class SparkBigQueryEndToEndITTest {/*
             assertThat(5 == df.rdd().getNumPartitions());
         }
         catch (Exception e) {
-            fail("number of partitions. DataSource %s. Data Format %s"
-                    .format(dataSourceFormat, dataFormat));
+            fail(String.format("number of partitions. DataSource %s. Data Format %s", dataSourceFormat, dataFormat));
         }
 
         try {
@@ -201,8 +202,7 @@ public class SparkBigQueryEndToEndITTest {/*
             assertThat(df.rdd().getNumPartitions() == 35)
         }
         catch (Exception e) {
-            fail("default number of partitions. DataSource %s. Data Format %s"
-                    .format(dataSourceFormat, dataFormat));
+            fail(String.format("default number of partitions. DataSource %s. Data Format %s", dataSourceFormat, dataFormat));
         }
 
         try {
@@ -232,8 +232,7 @@ public class SparkBigQueryEndToEndITTest {/*
             });
         }
         catch (Exception e) {
-            fail("balanced partitions. DataSource %s. Data Format %s"
-                    .format(dataSourceFormat, dataFormat));
+            fail(String.format("balanced partitions. DataSource %s. Data Format %s", dataSourceFormat, dataFormat));
         }
 
         test("test optimized count(*). DataSource %s. Data Format %s"
@@ -602,10 +601,17 @@ public class SparkBigQueryEndToEndITTest {/*
                 .map(_.getString(0))
                 .toSet
     }
-}
 
-case class Person(name: String, friends: Seq[Friend])
-        case class Friend(age: Int, links: Seq[Link])
-        case class Link(uri: String)
-}
-       */ }
+
+    class Person {
+        String name;
+        List<Friend> friends;
+    }
+    class Friend {
+        int age;
+        List<Link> links;
+    }
+    class Link {
+        String uri;
+    }
+*/}
