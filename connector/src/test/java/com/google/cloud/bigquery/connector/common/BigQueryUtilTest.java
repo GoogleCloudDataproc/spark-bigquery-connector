@@ -24,24 +24,23 @@ import static com.google.common.truth.Truth.assertThat;
 
 public class BigQueryUtilTest {
 
-    @Test
-    public void testParseTableId() {
-        assertThat(BigQueryUtil.parseTableId("t", Optional.of("D"), Optional.of("P")))
-                .isEqualTo(TableId.of("P", "D", "t"));
-        assertThat(BigQueryUtil.parseTableId("d.t", Optional.of("D"), Optional.of("P")))
-                .isEqualTo(TableId.of("P", "d", "t"));
-        assertThat(BigQueryUtil.parseTableId("d.t", Optional.empty(), Optional.of("P")))
-                .isEqualTo(TableId.of("P", "d", "t"));
-        assertThat(BigQueryUtil.parseTableId("d.t", Optional.empty(), Optional.empty()))
-                .isEqualTo(TableId.of("d", "t"));
-        assertThat(BigQueryUtil.parseTableId("p.d.t", Optional.of("D"), Optional.of("P")))
-                .isEqualTo(TableId.of("p", "d", "t"));
-        assertThat(BigQueryUtil.parseTableId("p.d.t", Optional.empty(), Optional.empty()))
-                .isEqualTo(TableId.of("p", "d", "t"));
-        assertThat(BigQueryUtil.parseTableId("p:d.t", Optional.of("D"), Optional.of("P")))
-                .isEqualTo(TableId.of("p", "d", "t"));
-        assertThat(BigQueryUtil.parseTableId("p:d.t", Optional.empty(), Optional.empty()))
-                .isEqualTo(TableId.of("p", "d", "t"));
-    }
-
+  @Test
+  public void testParseTableId() {
+    assertThat(BigQueryUtil.parseTableId("t", Optional.of("D"), Optional.of("P")))
+        .isEqualTo(TableId.of("P", "D", "t"));
+    assertThat(BigQueryUtil.parseTableId("d.t", Optional.of("D"), Optional.of("P")))
+        .isEqualTo(TableId.of("P", "d", "t"));
+    assertThat(BigQueryUtil.parseTableId("d.t", Optional.empty(), Optional.of("P")))
+        .isEqualTo(TableId.of("P", "d", "t"));
+    assertThat(BigQueryUtil.parseTableId("d.t", Optional.empty(), Optional.empty()))
+        .isEqualTo(TableId.of("d", "t"));
+    assertThat(BigQueryUtil.parseTableId("p.d.t", Optional.of("D"), Optional.of("P")))
+        .isEqualTo(TableId.of("p", "d", "t"));
+    assertThat(BigQueryUtil.parseTableId("p.d.t", Optional.empty(), Optional.empty()))
+        .isEqualTo(TableId.of("p", "d", "t"));
+    assertThat(BigQueryUtil.parseTableId("p:d.t", Optional.of("D"), Optional.of("P")))
+        .isEqualTo(TableId.of("p", "d", "t"));
+    assertThat(BigQueryUtil.parseTableId("p:d.t", Optional.empty(), Optional.empty()))
+        .isEqualTo(TableId.of("p", "d", "t"));
+  }
 }

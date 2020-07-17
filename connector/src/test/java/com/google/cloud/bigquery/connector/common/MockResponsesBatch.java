@@ -21,37 +21,31 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
 
-class MockResponsesBatch
-        implements Iterator<ReadRowsResponse>
-{
-    private Queue<Object> responses = new LinkedList<>();
+class MockResponsesBatch implements Iterator<ReadRowsResponse> {
+  private Queue<Object> responses = new LinkedList<>();
 
-    void addResponse(ReadRowsResponse response)
-    {
-        responses.add(response);
-    }
+  void addResponse(ReadRowsResponse response) {
+    responses.add(response);
+  }
 
-    void addException(RuntimeException exception)
-    {
-        responses.add(exception);
-    }
+  void addException(RuntimeException exception) {
+    responses.add(exception);
+  }
 
-    @Override
-    public boolean hasNext()
-    {
-        return !responses.isEmpty();
-    }
+  @Override
+  public boolean hasNext() {
+    return !responses.isEmpty();
+  }
 
-    @Override
-    public ReadRowsResponse next()
-    {
-        Object next = responses.poll();
-        if (next instanceof ReadRowsResponse) {
-            return (ReadRowsResponse) next;
-        }
-        if (next instanceof RuntimeException) {
-            throw (RuntimeException) next;
-        }
-        return null;
+  @Override
+  public ReadRowsResponse next() {
+    Object next = responses.poll();
+    if (next instanceof ReadRowsResponse) {
+      return (ReadRowsResponse) next;
     }
+    if (next instanceof RuntimeException) {
+      throw (RuntimeException) next;
+    }
+    return null;
+  }
 }
