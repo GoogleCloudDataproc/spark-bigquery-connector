@@ -33,77 +33,86 @@ import static com.google.common.truth.Truth.assertThat;
 
 public class SparkBigQueryConfigTest {
 
-    ImmutableMap<String, String> defaultOptions = ImmutableMap.of(
-            "table", "dataset.table");
-            //"project", "test_project"); // to remove the need for default project
+  ImmutableMap<String, String> defaultOptions = ImmutableMap.of("table", "dataset.table");
+  // "project", "test_project"); // to remove the need for default project
 
-    @Test
-    public void testDefaults() {
-        Configuration hadoopConfiguration  = new Configuration();
-        DataSourceOptions options = new DataSourceOptions(defaultOptions);
-        SparkBigQueryConfig config = SparkBigQueryConfig.from(options, ImmutableMap.of(), hadoopConfiguration,10);
-        assertThat(config.getTableId()).isEqualTo(TableId.of("dataset", "table"));
-        assertThat(config.getFilter()).isEqualTo(Optional.empty());
-        assertThat(config.getSchema()).isEqualTo(Optional.empty());
-        assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.empty());
-        assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.empty());
-        assertThat(config.getIntermediateFormat()).isEqualTo(SparkBigQueryConfig.DEFAULT_INTERMEDIATE_FORMAT);
-        assertThat(config.getReadDataFormat()).isEqualTo(SparkBigQueryConfig.DEFAULT_READ_DATA_FORMAT);
-        assertThat(config.getMaterializationProject()).isEqualTo(Optional.empty());
-        assertThat(config.getMaterializationDataset()).isEqualTo(Optional.empty());
-        assertThat(config.getPartitionField()).isEqualTo(Optional.empty());
-        assertThat(config.getPartitionExpirationMs()).isEqualTo(OptionalLong.empty());
-        assertThat(config.getPartitionRequireFilter()).isEqualTo(Optional.empty());
-        assertThat(config.getPartitionType()).isEqualTo(Optional.empty());
-        assertThat(config.getClusteredFields()).isEqualTo(Optional.empty());
-        assertThat(config.getCreateDisposition()).isEqualTo(Optional.empty());
-        assertThat(config.getLoadSchemaUpdateOptions()).isEqualTo(ImmutableList.of());
-        assertThat(config.getViewExpirationTimeInHours()).isEqualTo(24);
-        assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
-    }
+  @Test
+  public void testDefaults() {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options = new DataSourceOptions(defaultOptions);
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(options, ImmutableMap.of(), hadoopConfiguration, 10);
+    assertThat(config.getTableId()).isEqualTo(TableId.of("dataset", "table"));
+    assertThat(config.getFilter()).isEqualTo(Optional.empty());
+    assertThat(config.getSchema()).isEqualTo(Optional.empty());
+    assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.empty());
+    assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.empty());
+    assertThat(config.getIntermediateFormat())
+        .isEqualTo(SparkBigQueryConfig.DEFAULT_INTERMEDIATE_FORMAT);
+    assertThat(config.getReadDataFormat()).isEqualTo(SparkBigQueryConfig.DEFAULT_READ_DATA_FORMAT);
+    assertThat(config.getMaterializationProject()).isEqualTo(Optional.empty());
+    assertThat(config.getMaterializationDataset()).isEqualTo(Optional.empty());
+    assertThat(config.getPartitionField()).isEqualTo(Optional.empty());
+    assertThat(config.getPartitionExpirationMs()).isEqualTo(OptionalLong.empty());
+    assertThat(config.getPartitionRequireFilter()).isEqualTo(Optional.empty());
+    assertThat(config.getPartitionType()).isEqualTo(Optional.empty());
+    assertThat(config.getClusteredFields()).isEqualTo(Optional.empty());
+    assertThat(config.getCreateDisposition()).isEqualTo(Optional.empty());
+    assertThat(config.getLoadSchemaUpdateOptions()).isEqualTo(ImmutableList.of());
+    assertThat(config.getViewExpirationTimeInHours()).isEqualTo(24);
+    assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
+  }
 
-    @Test
-    public void testConfigFromOptions() {
-        Configuration hadoopConfiguration  = new Configuration();
-        DataSourceOptions options = new DataSourceOptions(ImmutableMap.<String, String>builder()
-                .put("table","test_t")
-                .put("dataset","test_d")
-                .put("project","test_p")
-                .put("filter","test > 0")
-                .put("parentProject","test_pp")
-                .put("maxParallelism","99")
-                .put("viewsEnabled","true")
-                .put("viewMaterializationProject","vmp")
-                .put("viewMaterializationDataset","vmd")
-                .put("readDataFormat","ARROW")
-                .put("optimizedEmptyProjection","false")
-                .put("createDisposition","CREATE_NEVER")
-                .put("temporaryGcsBucket","some_bucket")
-                .put("intermediateFormat","ORC")
+  @Test
+  public void testConfigFromOptions() {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options =
+        new DataSourceOptions(
+            ImmutableMap.<String, String>builder()
+                .put("table", "test_t")
+                .put("dataset", "test_d")
+                .put("project", "test_p")
+                .put("filter", "test > 0")
+                .put("parentProject", "test_pp")
+                .put("maxParallelism", "99")
+                .put("viewsEnabled", "true")
+                .put("viewMaterializationProject", "vmp")
+                .put("viewMaterializationDataset", "vmd")
+                .put("readDataFormat", "ARROW")
+                .put("optimizedEmptyProjection", "false")
+                .put("createDisposition", "CREATE_NEVER")
+                .put("temporaryGcsBucket", "some_bucket")
+                .put("intermediateFormat", "ORC")
                 .put("partitionRequireFilter", "true")
-                .put("partitionField","some_field")
-                .put("partitionExpirationMs","999")
-                .put("clusteredFields","field1,field2")
-                .put("allowFieldAddition","true")
-                .put("allowFieldRelaxation","true")
-        .build());
-        SparkBigQueryConfig config = SparkBigQueryConfig.from(options, ImmutableMap.of(), hadoopConfiguration, 10);
-        assertThat(config.getTableId()).isEqualTo(TableId.of("test_p", "test_d", "test_t"));
-        assertThat(config.getFilter()).isEqualTo(Optional.of("test > 0"));
-        assertThat(config.getSchema()).isEqualTo(Optional.empty());
-        assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.of(99));
-        assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("some_bucket"));
-        assertThat(config.getIntermediateFormat()).isEqualTo(FormatOptions.orc());
-        assertThat(config.getReadDataFormat()).isEqualTo(DataFormat.ARROW);
-        assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("vmp"));
-        assertThat(config.getMaterializationDataset()).isEqualTo(Optional.of("vmd"));
-        assertThat(config.getPartitionField()).isEqualTo(Optional.of("some_field"));
-        assertThat(config.getPartitionExpirationMs()).isEqualTo(OptionalLong.of(999));
-        assertThat(config.getPartitionRequireFilter()).isEqualTo(Optional.of(true));
-        assertThat(config.getClusteredFields().get()).isEqualTo(new String[] {"field1", "field2"});
-        assertThat(config.getCreateDisposition()).isEqualTo(Optional.of(JobInfo.CreateDisposition.CREATE_NEVER));
-        assertThat(config.getLoadSchemaUpdateOptions()).isEqualTo(ImmutableList.of(JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION, JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION));
-        assertThat(config.getViewExpirationTimeInHours()).isEqualTo(24);
-        assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
-    }
+                .put("partitionField", "some_field")
+                .put("partitionExpirationMs", "999")
+                .put("clusteredFields", "field1,field2")
+                .put("allowFieldAddition", "true")
+                .put("allowFieldRelaxation", "true")
+                .build());
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(options, ImmutableMap.of(), hadoopConfiguration, 10);
+    assertThat(config.getTableId()).isEqualTo(TableId.of("test_p", "test_d", "test_t"));
+    assertThat(config.getFilter()).isEqualTo(Optional.of("test > 0"));
+    assertThat(config.getSchema()).isEqualTo(Optional.empty());
+    assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.of(99));
+    assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("some_bucket"));
+    assertThat(config.getIntermediateFormat()).isEqualTo(FormatOptions.orc());
+    assertThat(config.getReadDataFormat()).isEqualTo(DataFormat.ARROW);
+    assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("vmp"));
+    assertThat(config.getMaterializationDataset()).isEqualTo(Optional.of("vmd"));
+    assertThat(config.getPartitionField()).isEqualTo(Optional.of("some_field"));
+    assertThat(config.getPartitionExpirationMs()).isEqualTo(OptionalLong.of(999));
+    assertThat(config.getPartitionRequireFilter()).isEqualTo(Optional.of(true));
+    assertThat(config.getClusteredFields().get()).isEqualTo(new String[] {"field1", "field2"});
+    assertThat(config.getCreateDisposition())
+        .isEqualTo(Optional.of(JobInfo.CreateDisposition.CREATE_NEVER));
+    assertThat(config.getLoadSchemaUpdateOptions())
+        .isEqualTo(
+            ImmutableList.of(
+                JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION,
+                JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION));
+    assertThat(config.getViewExpirationTimeInHours()).isEqualTo(24);
+    assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
+  }
 }
