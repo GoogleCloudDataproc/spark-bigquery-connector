@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.it
 
-import com.google.cloud.bigquery.{BigQueryOptions, QueryJobConfiguration, StandardTableDefinition}
+import com.google.cloud.bigquery._
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.it.TestConstants._
 import com.google.cloud.spark.bigquery.{SparkBigQueryOptions, TestUtils}
@@ -28,6 +28,8 @@ import org.scalatest.concurrent.TimeLimits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.time.SpanSugar._
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Matchers}
+
+import scala.collection.JavaConverters._
 
 class SparkBigQueryEndToEndITSuite extends FunSuite
   with BeforeAndAfter
@@ -60,7 +62,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   private val SHAKESPEARE_TABLE_NUM_ROWS = 164656L
   private val SHAKESPEARE_TABLE_SCHEMA = StructType(Seq(
     StructField("word", StringType, nullable = false, metadata("description",
-        "A single unique word (where whitespace is the delimiter) extracted from a corpus.")),
+      "A single unique word (where whitespace is the delimiter) extracted from a corpus.")),
     StructField("word_count", LongType, nullable = false, metadata("description",
       "The number of times this word appears in this corpus.")),
     StructField("corpus", StringType, nullable = false, metadata("description",
@@ -79,7 +81,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
   private def metadata(map: Map[String, String]): Metadata = {
     val metadata = new MetadataBuilder()
-    for((key, value) <- map) {
+    for ((key, value) <- map) {
       metadata.putString(key, value)
     }
     metadata.build()
@@ -248,7 +250,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
           .count()
       }
 
-      if("bigquery" == dataSourceFormat) {
+      if ("bigquery" == dataSourceFormat) {
         assert(DirectBigQueryRelation.emptyRowRDDsCreated == 1)
       }
     }
@@ -273,7 +275,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
           .load()
           .count()
       }
-      if("bigquery" == dataSourceFormat) {
+      if ("bigquery" == dataSourceFormat) {
         assert(DirectBigQueryRelation.emptyRowRDDsCreated == 1)
       }
     }
@@ -296,7 +298,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
           .option("readDataFormat", dataFormat)
           .load())
 
-      newBehaviourWords should equal (oldBehaviourWords)
+      newBehaviourWords should equal(oldBehaviourWords)
     }
   }
 
@@ -407,6 +409,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       result.size shouldBe 85
     }
   }
+
   // Write tests. We have four save modes: Append, ErrorIfExists, Ignore and
   // Overwrite. For each there are two behaviours - the table exists or not.
   // See more at http://spark.apache.org/docs/2.3.2/api/java/org/apache/spark/sql/SaveMode.html
@@ -460,6 +463,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       .getTotalRows
 
   private def fullTableName = s"$testDataset.$testTable"
+
   private def fullTableNamePartitioned = s"$testDataset.${testTable}_partitioned"
 
   private def additionalDataValuesExist = numberOfRowsWith("Xyz") == 1
@@ -604,7 +608,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       .load()
   }
 
-  test("write to bq - adding the settings to spark.conf" ) {
+  test("write to bq - adding the settings to spark.conf") {
     spark.conf.set("temporaryGcsBucket", temporaryGcsBucket)
     val df = initialData
     df.write.format("bigquery")
@@ -614,7 +618,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     initialDataValuesExist shouldBe true
   }
 
-  test ("write to bq - partitioned and clustered table") {
+  test("write to bq - partitioned and clustered table") {
     val df = spark.read.format("com.google.cloud.spark.bigquery")
       .option("table", LIBRARIES_PROJECTS_TABLE)
       .load()
@@ -630,7 +634,49 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 
     val tableDefinition = testPartitionedTableDefinition
     tableDefinition.getTimePartitioning.getField shouldBe "created_timestamp"
-    tableDefinition.getClustering.getFields should contain ("platform")
+    tableDefinition.getClustering.getFields should contain("platform")
+  }
+
+  test("overwrite single partition") {
+    // create partitioned table
+    val tableName = "partitioned_table"
+    val fullTableName = s"$testDataset.$tableName"
+    bq.create(TableInfo.of(
+      TableId.of(testDataset, tableName),
+      StandardTableDefinition.newBuilder()
+        .setSchema(Schema.of(
+          Field.of("the_date", LegacySQLTypeName.DATE),
+          Field.of("some_text", LegacySQLTypeName.STRING)
+        ))
+        .setTimePartitioning(TimePartitioning.newBuilder(TimePartitioning.Type.DAY)
+          .setField("the_date").build()).build()))
+    // entering the data
+    bq.query(QueryJobConfiguration.of(
+      s"""
+         |insert into `$fullTableName` (the_date, some_text) values
+         |('2020-07-01', 'foo'),
+         |('2020-07-02', 'bar')
+         |""".stripMargin.replace('\n', ' ')))
+
+    // overrding a single partition
+    val newDataDF = spark.createDataFrame(
+      List(Row(java.sql.Date.valueOf("2020-07-01"), "baz")).asJava,
+      StructType(Array(
+        StructField("the_date", DateType),
+        StructField("some_text", StringType))))
+
+    newDataDF.write.format("bigquery")
+      .option("temporaryGcsBucket", temporaryGcsBucket)
+      .option("datePartition", "20200701")
+      .mode("overwrite")
+      .save(fullTableName)
+
+    val result = spark.read.format("bigquery").load(fullTableName).collect()
+
+    result.size shouldBe 2
+    result.filter(row => row(1).equals("bar")).size shouldBe 1
+    result.filter(row => row(1).equals("baz")).size shouldBe 1
+
   }
 
   def extractWords(df: DataFrame): Set[String] = {
@@ -643,5 +689,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
 }
 
 case class Person(name: String, friends: Seq[Friend])
+
 case class Friend(age: Int, links: Seq[Link])
+
 case class Link(uri: String)

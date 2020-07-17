@@ -16,6 +16,8 @@
 package com.google.cloud.spark.bigquery
 
 import java.io.{ByteArrayInputStream, FileInputStream}
+import java.security.Policy.Parameters
+import java.time.format.{DateTimeFormatter, DateTimeParseException}
 
 import com.google.api.client.util.Base64
 import com.google.auth.Credentials
@@ -52,6 +54,7 @@ import scala.util.Properties
     viewsEnabled: Boolean = false,
     materializationProject: Option[String] = None,
     materializationDataset: Option[String] = None,
+    datePartition: Option[String] = None,
     partitionField: Option[String] = None,
     partitionExpirationMs: Option[Long] = None,
     partitionRequireFilter: Option[Boolean] = None,
@@ -124,7 +127,9 @@ object SparkBigQueryOptions {
     val credsParam = getAnyOption(normalizedAllConf, parameters, "credentials")
     val credsFileParam = getAnyOption(normalizedAllConf, parameters, "credentialsFile")
       .orElse(Option(hadoopConf.get(GcsConfigCredentialsFileProperty)))
-    val tableId = BigQueryUtil.parseTableId(tableParam, datasetParam, projectParam)
+    val datePartitionParam = getOption(parameters, "datePartition")
+    datePartitionParam.foreach(validateDateFormat(_, "datePartition"))
+    val tableId = BigQueryUtil.parseTableId(tableParam, datasetParam, projectParam, datePartitionParam)
     val parentProject = getRequiredOption(parameters, "parentProject",
       defaultBilledProject)
     val filter = getOption(parameters, "filter")
@@ -190,9 +195,18 @@ object SparkBigQueryOptions {
       filter, schema, maxParallelism, temporaryGcsBucket, persistentGcsBucket,
       persistentGcsPath, intermediateFormat, readDataFormat,
       combinePushedDownFilters, viewsEnabled, materializationProject,
-      materializationDataset, partitionField, partitionExpirationMs,
+      materializationDataset, datePartitionParam, partitionField, partitionExpirationMs,
       partitionRequireFilter, partitionType, clusteredFields, createDisposition,
       optimizedEmptyProjection, accessToken, loadSchemaUpdateOptions.asJava)
+  }
+
+  private def validateDateFormat(date: String, optionName: String): Unit = {
+    try {
+      DateTimeFormatter.BASIC_ISO_DATE.parse(date)
+    } catch {
+      case e: DateTimeParseException => throw new IllegalArgumentException(
+        s"Invalid argument for option $optionName, format is YYYYMMDD")
+    }
   }
 
   // could not load the spark-avro data source
