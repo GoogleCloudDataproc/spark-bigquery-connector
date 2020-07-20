@@ -12,29 +12,37 @@ import org.slf4j.LoggerFactory;
 
 public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow> {
 
-    final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterFactory.class);
+  final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterFactory.class);
 
-    private final BigQueryWriteClientFactory writeClientFactory;
-    private final String tablePath;
-    private final StructType sparkSchema;
-    private final ProtoBufProto.ProtoSchema protoSchema;
-    private final boolean ignoreInputs;
+  private final BigQueryWriteClientFactory writeClientFactory;
+  private final String tablePath;
+  private final StructType sparkSchema;
+  private final ProtoBufProto.ProtoSchema protoSchema;
+  private final boolean ignoreInputs;
 
-    public BigQueryDataWriterFactory(BigQueryWriteClientFactory writeClientFactory,
-                                     String tablePath,
-                                     StructType sparkSchema,
-                                     ProtoBufProto.ProtoSchema protoSchema,
-                                     boolean ignoreInputs) {
-        this.writeClientFactory = writeClientFactory;
-        this.tablePath = tablePath;
-        this.sparkSchema = sparkSchema;
-        this.protoSchema = protoSchema;
-        this.ignoreInputs = ignoreInputs;
-    }
+  public BigQueryDataWriterFactory(
+      BigQueryWriteClientFactory writeClientFactory,
+      String tablePath,
+      StructType sparkSchema,
+      ProtoBufProto.ProtoSchema protoSchema,
+      boolean ignoreInputs) {
+    this.writeClientFactory = writeClientFactory;
+    this.tablePath = tablePath;
+    this.sparkSchema = sparkSchema;
+    this.protoSchema = protoSchema;
+    this.ignoreInputs = ignoreInputs;
+  }
 
-    @Override
-    public DataWriter<InternalRow> createDataWriter(int partitionId, long taskId, long epochId) {
-        return new BigQueryDataWriter(partitionId, taskId, epochId, writeClientFactory,
-                tablePath, sparkSchema, protoSchema, ignoreInputs);
-    }
+  @Override
+  public DataWriter<InternalRow> createDataWriter(int partitionId, long taskId, long epochId) {
+    return new BigQueryDataWriter(
+        partitionId,
+        taskId,
+        epochId,
+        writeClientFactory,
+        tablePath,
+        sparkSchema,
+        protoSchema,
+        ignoreInputs);
+  }
 }
