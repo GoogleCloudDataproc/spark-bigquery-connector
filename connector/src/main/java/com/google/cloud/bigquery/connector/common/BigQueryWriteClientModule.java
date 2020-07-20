@@ -15,35 +15,30 @@ import java.util.Optional;
 
 public class BigQueryWriteClientModule implements Module {
 
-    final String writeUUID;
-    final SaveMode saveMode;
-    final StructType sparkSchema;
+  final String writeUUID;
+  final SaveMode saveMode;
+  final StructType sparkSchema;
 
-    public BigQueryWriteClientModule(String writeUUID, SaveMode saveMode, StructType sparkSchema) {
-        this.writeUUID = writeUUID;
-        this.saveMode = saveMode;
-        this.sparkSchema = sparkSchema;
-    }
+  public BigQueryWriteClientModule(String writeUUID, SaveMode saveMode, StructType sparkSchema) {
+    this.writeUUID = writeUUID;
+    this.saveMode = saveMode;
+    this.sparkSchema = sparkSchema;
+  }
 
-    @Override
-    public void configure(Binder binder) {
-        // BigQuery related
-        binder.bind(BigQueryWriteClientFactory.class).in(Scopes.SINGLETON);
-    }
+  @Override
+  public void configure(Binder binder) {
+    // BigQuery related
+    binder.bind(BigQueryWriteClientFactory.class).in(Scopes.SINGLETON);
+  }
 
-    @Singleton
-    @Provides
-    public BigQueryDataSourceWriter provideDataSourceWriter(
-            BigQueryClient bigQueryClient,
-            BigQueryWriteClientFactory bigQueryWriteClientFactory,
-            SparkBigQueryConfig config) {
-        TableId tableId = config.getTableId();
-        return new BigQueryDataSourceWriter(
-                bigQueryClient,
-                bigQueryWriteClientFactory,
-                tableId,
-                writeUUID,
-                saveMode,
-                sparkSchema);
-    }
+  @Singleton
+  @Provides
+  public BigQueryDataSourceWriter provideDataSourceWriter(
+      BigQueryClient bigQueryClient,
+      BigQueryWriteClientFactory bigQueryWriteClientFactory,
+      SparkBigQueryConfig config) {
+    TableId tableId = config.getTableId();
+    return new BigQueryDataSourceWriter(
+        bigQueryClient, bigQueryWriteClientFactory, tableId, writeUUID, saveMode, sparkSchema);
+  }
 }

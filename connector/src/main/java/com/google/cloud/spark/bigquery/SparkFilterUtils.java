@@ -39,8 +39,8 @@ import static java.lang.String.format;
 public class SparkFilterUtils {
 
   private HeaderProvider headerProvider =
-          FixedHeaderProvider.create("user-agent",
-                  new SparkBigQueryConnectorUserAgentProvider("v1").getUserAgent());
+      FixedHeaderProvider.create(
+          "user-agent", new SparkBigQueryConnectorUserAgentProvider("v1").getUserAgent());
 
   // Structs are not handled
   public static boolean isTopLevelFieldHandled(
