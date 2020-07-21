@@ -76,8 +76,8 @@ repository. It can be used using the `--packages` option or the
 
 | Scala version | Connector Artifact |
 | --- | --- |
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.16.1` |
-| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.16.1` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.17.0` |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.17.0` |
 
 ## Hello World Example
 
@@ -136,7 +136,10 @@ df.write
   .save("dataset.table")
 ```
 
-When writing a streaming DataFrame to BigQuery, each batch is written in the same manner as a non-streaming DataFrame. Note that a HDFS compatible [checkpoint location](http://spark.apache.org/docs/latest/structured-streaming-programming-guide.html#recovering-from-failures-with-checkpointing) (eg: path/to/HDFS/dir or gs://checkpointBucket/checkpointDir) must be specified.
+When streaming a DataFrame to BigQuery, each batch is written in the same manner as a non-streaming DataFrame.
+Note that a HDFS compatible
+[checkpoint location](http://spark.apache.org/docs/latest/structured-streaming-programming-guide.html#recovering-from-failures-with-checkpointing)
+(eg: `path/to/HDFS/dir` or `gs://checkpoint-bucket/checkpointDir`) must be specified.
 
 ```
 df.writeStream
@@ -146,7 +149,7 @@ df.writeStream
   .option("table", "dataset.table")
 ```
 
-*Important:* The connector does not configure the GCS connector, in order to avoid conflict with another GCS connector, if exists. In order to use the write capabilities of the connector, please configure the GCS connector on your cluster as explained [here](https://github.com/GoogleCloudPlatform/bigdata-interop/tree/master/gcs).
+**Important:** The connector does not configure the GCS connector, in order to avoid conflict with another GCS connector, if exists. In order to use the write capabilities of the connector, please configure the GCS connector on your cluster as explained [here](https://github.com/GoogleCloudPlatform/bigdata-interop/tree/master/gcs).
 
 ### Properties
 
@@ -220,7 +223,7 @@ The API Supports a number of options to configure the read
    <td>Read</td>
   </tr>
   <tr valign="top">
-   <td><code>viewMaterializationProject</code>
+   <td><code>materializationProject</code>
    </td>
    <td>The project id where the materialized view is going to be created
        <br/>(Optional. Defaults to view's project id)
@@ -228,7 +231,7 @@ The API Supports a number of options to configure the read
    <td>Read</td>
   </tr>
   <tr valign="top">
-   <td><code>viewMaterializationDataset</code>
+   <td><code>materializationDataset</code>
    </td>
    <td>The dataset where the materialized view is going to be created
        <br/>(Optional. Defaults to view's dataset)
@@ -311,7 +314,6 @@ The API Supports a number of options to configure the read
    </td>
    <td>Write</td>
   </tr>
-  <!--
   <tr valign="top">
    <td><code>datePartition</code>
    </td>
@@ -325,7 +327,6 @@ The API Supports a number of options to configure the read
    </td>
    <td>Write</td>
   </tr>
-  -->
   <tr valign="top">
      <td><code>partitionField</code>
      </td>
@@ -384,6 +385,11 @@ The API Supports a number of options to configure the read
         <td>Write</td>
      </tr>
 </table>
+
+Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter
+of the `gcloud dataproc submit spark`. In order to use this, prepend the prefix `spark.datasource.bigquery.` to any of
+the options, for example `spark.conf.set("temporaryGcsBucket", "some-bucket")` can also be set as
+`--conf spark.datasource.bigquery.temporaryGcsBucket=some-bucket`.
 
 ### Data types
 
@@ -579,7 +585,7 @@ using the following code:
 ```python
 from pyspark.sql import SparkSession
 spark = SparkSession.builder\
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.16.1")\
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.17.0")\
   .getOrCreate()
 df = spark.read.format("bigquery")\
   .load("dataset.table")
@@ -588,7 +594,7 @@ df = spark.read.format("bigquery")\
 **Scala:**
 ```python
 val spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.16.1")
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.17.0")
   .getOrCreate()
 val df = spark.read.format("bigquery")
   .load("dataset.table")
@@ -596,7 +602,7 @@ val df = spark.read.format("bigquery")
 
 In case Spark cluster is using Scala 2.12 (it's optional for Spark 2.4.x,
 mandatory in 3.0.x), then the relevant package is
-com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.16.1. In
+com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.17.0. In
 order to know which Scala version is used, please run the following code:
 
 **Python:**
@@ -620,14 +626,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery-with-dependencies_${scala.version}</artifactId>
-  <version>0.16.1</version>
+  <version>0.17.0</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.16.1"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.17.0"
 ```
 
 ## Building the Connector
