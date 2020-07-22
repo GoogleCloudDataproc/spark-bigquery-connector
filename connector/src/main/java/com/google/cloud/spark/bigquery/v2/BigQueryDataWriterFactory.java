@@ -35,6 +35,9 @@ public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow>
 
   @Override
   public DataWriter<InternalRow> createDataWriter(int partitionId, long taskId, long epochId) {
+    if (ignoreInputs) {
+      return new NoOpDataWriter();
+    }
     return new BigQueryDataWriter(
         partitionId,
         taskId,
