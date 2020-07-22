@@ -19,12 +19,11 @@ import com.google.cloud.bigquery.*;
 import com.google.cloud.http.BaseHttpServiceException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -74,8 +73,45 @@ public class BigQueryClient {
     return bigQuery.create(tableInfo);
   }
 
+  public Table createTempTable(TableId destinationTableId, Schema schema) {
+    String tempProject = materializationProject.orElseGet(destinationTableId::getProject);
+    String tempDataset = materializationDataset.orElseGet(destinationTableId::getDataset);
+    TableId tempTableId =
+        TableId.of(tempProject, tempDataset, destinationTableId.getTable() + System.nanoTime());
+    return createTable(tempTableId, schema);
+  }
+
   public boolean deleteTable(TableId tableId) {
     return bigQuery.delete(tableId);
+  }
+
+  public Job overwriteDestinationWithTemporary(
+      TableId temporaryTableId, TableId destinationTableId) {
+    String queryFormat =
+        "MERGE `%s`\n"
+            + "USING (SELECT * FROM `%s`)\n"
+            + "ON FALSE\n"
+            + "WHEN NOT MATCHED THEN INSERT ROW\n"
+            + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
+
+    QueryJobConfiguration queryConfig =
+        QueryJobConfiguration.newBuilder(
+                sqlFromFormat(queryFormat, destinationTableId, temporaryTableId))
+            .setUseLegacySql(false)
+            .build();
+
+    return create(JobInfo.newBuilder(queryConfig).build());
+  }
+
+  String sqlFromFormat(String queryFormat, TableId destinationTableId, TableId temporaryTableId) {
+    return String.format(
+        queryFormat, fullTableName(destinationTableId), fullTableName(temporaryTableId));
+  }
+
+  public String createTablePathForBigQueryStorage(TableId tableId) {
+    return String.format(
+        "projects/%s/datasets/%s/tables/%s",
+        tableId.getProject(), tableId.getDataset(), tableId.getTable());
   }
 
   public TableInfo getSupportedTable(

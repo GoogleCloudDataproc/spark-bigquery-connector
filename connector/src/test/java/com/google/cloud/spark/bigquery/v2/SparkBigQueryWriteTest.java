@@ -1,37 +1,44 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.ServiceOptions;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryOptions;
-import com.google.cloud.bigquery.DatasetInfo;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.testing.RemoteBigQueryHelper;
+import com.google.cloud.bigquery.*;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.*;
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.util.Arrays;
+
 import static com.google.common.truth.Truth.assertThat;
+import static org.apache.spark.sql.types.DataTypes.*;
 import static org.junit.Assert.fail;
 
 public class SparkBigQueryWriteTest {
 
-    public static final Logger logger = LogManager.getLogger("com.google.cloud.spark.bigquery");
+    // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
+    // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
+    private final static int BQ_NUMERIC_PRECISION = 38;
+    private final static int BQ_NUMERIC_SCALE = 9;
+
+    public static final Logger logger = LogManager.getLogger("com.google.cloud");
 
     public static final String PROJECT = ServiceOptions.getDefaultProjectId();
-    public static final String DATASET = "spark_bigquery_it_"+RemoteBigQueryHelper.generateDatasetName(); // TODO: make own random number generator.
+    public static final String DATASET = "spark_bigquery_vortex_it_"+System.nanoTime();
     public static final String TABLE = "testTable";
     public static final String DESCRIPTION = "Spark BigQuery connector write session tests.";
 
-    public static final String ALL_TYPES_TABLE = "google.com:hadoop-cloud-dev:ymed.all_types";  // TODO: move this table to a different project
-
     public static final String BIGQUERY_PUBLIC_DATA = "bigquery-public-data";
+    public static final String SMALL_DATA_DATASET = "san_francisco_bikeshare";
+    public static final String SMALL_DATA_TABLE = "bikeshare_station_status";
+    public static final String SMALL_DATA_ID = BIGQUERY_PUBLIC_DATA+":"+SMALL_DATA_DATASET+"."+SMALL_DATA_TABLE;
     public static final String MB20_DATASET = "baseball";
     public static final String MB20_TABLE = "games_post_wide";
     public static final String MB20_ID = BIGQUERY_PUBLIC_DATA+":"+MB20_DATASET+"."+MB20_TABLE;
@@ -52,6 +59,7 @@ public class SparkBigQueryWriteTest {
     public static BigQuery bigquery;
 
     public static Dataset<Row> allTypesDf;
+    public static Dataset<Row> smallDataDf;
     public static Dataset<Row> MB20Df;
     public static Dataset<Row> MB100Df;
     public static Dataset<Row> GB3Df;
@@ -68,9 +76,10 @@ public class SparkBigQueryWriteTest {
                 .config("some-config", "some-value")
                 .master("local[*]")
                 .getOrCreate();
-        allTypesDf = spark.read().format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
-                .option("table", ALL_TYPES_TABLE)
-                .load().drop("timestamp").toDF(); // TODO: when timestamps are supported externally in Vortex, delete ".drop" operations.
+        allTypesDf = spark.createDataFrame(Arrays.asList(ALL_TYPES_ROWS), ALL_TYPES_SCHEMA);
+        smallDataDf = spark.read().format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+                .option("table", SMALL_DATA_ID)
+                .load();
         MB20Df = spark.read().format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
                 .option("table", MB20_ID)
                 .load().drop("startTime").drop("createdAt").drop("updatedAt")/*.coalesce(20)*/.toDF();
@@ -97,7 +106,7 @@ public class SparkBigQueryWriteTest {
     @AfterClass
     public static void close() throws Exception {
         if (bigquery != null) {
-            RemoteBigQueryHelper.forceDelete(bigquery, DATASET);
+            bigquery.delete(DATASET, BigQuery.DatasetDeleteOption.deleteContents());
             logger.info("Deleted test dataset: " + DATASET);
         }
     }
@@ -122,10 +131,99 @@ public class SparkBigQueryWriteTest {
                 .option("project", PROJECT)
                 .load();
 
-        assertThat(actualDF.schema()).isEqualTo(expectedDF.schema());
+        assertThat(actualDF.schema()).isEqualTo(ALL_TYPES_SCHEMA_BIGQUERY_REPRESENTATION);
 
         Dataset<Row> intersection = actualDF.intersectAll(expectedDF);
         assertThat(intersection.count() == actualDF.count() && intersection.count() == expectedDF.count());
+    }
+
+    @Test
+    public void testSparkWriteSaveModes() throws Exception {
+        String writeTo = "append";
+
+        Dataset<Row> twiceAsBigDf = smallDataDf.unionAll(smallDataDf);
+
+        Dataset<Row> expectedDF = twiceAsBigDf;
+
+        smallDataDf.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+                .option("table", writeTo)
+                .option("dataset", DATASET)
+                .option("project", PROJECT)
+                .mode(SaveMode.ErrorIfExists)
+                .save();
+
+        smallDataDf.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+                .option("table", writeTo)
+                .option("dataset", DATASET)
+                .option("project", PROJECT)
+                .mode(SaveMode.Append)
+                .save();
+
+        Dataset<Row> actualDF = spark.read()
+                .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+                .option("table", writeTo)
+                .option("dataset", DATASET)
+                .option("project", PROJECT)
+                .load();
+
+        Dataset<Row> intersection = actualDF.intersectAll(expectedDF);
+        // append was successful:
+        assertThat(intersection.count() == actualDF.count() && intersection.count() == expectedDF.count());
+
+
+        expectedDF = smallDataDf;
+
+        smallDataDf.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+                .option("table", writeTo)
+                .option("dataset", DATASET)
+                .option("project", PROJECT)
+                .mode(SaveMode.Overwrite)
+                .save();
+
+        actualDF = spark.read()
+                .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+                .option("table", writeTo)
+                .option("dataset", DATASET)
+                .option("project", PROJECT)
+                .load();
+
+        intersection = actualDF.intersectAll(expectedDF);
+        // overwrite was successful:
+        assertThat(intersection.count() == actualDF.count() && intersection.count() == expectedDF.count());
+
+
+        expectedDF = smallDataDf;
+
+        twiceAsBigDf.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+                .option("table", writeTo)
+                .option("dataset", DATASET)
+                .option("project", PROJECT)
+                .mode(SaveMode.Ignore)
+                .save();
+
+        actualDF = spark.read()
+                .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+                .option("table", writeTo)
+                .option("dataset", DATASET)
+                .option("project", PROJECT)
+                .load();
+
+        intersection = actualDF.intersectAll(expectedDF);
+        // overwrite was successful:
+        assertThat(intersection.count() == actualDF.count() && intersection.count() == expectedDF.count());
+
+
+        try {
+            twiceAsBigDf.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+                    .option("table", writeTo)
+                    .option("dataset", DATASET)
+                    .option("project", PROJECT)
+                    .mode(SaveMode.ErrorIfExists)
+                    .save();
+            fail("Did not throw an error for ErrorIfExists");
+        } catch (RuntimeException e) {
+            // Successfully threw an exception for ErrorIfExists
+        }
     }
 
     @Test
@@ -209,4 +307,87 @@ public class SparkBigQueryWriteTest {
         assertThat(bigquery.getTable(TableId.of(PROJECT, DATASET, writeTo)).getNumBytes()
                 == bigquery.getTable(TableId.of(BIGQUERY_PUBLIC_DATA, GB250_DATASET, GB250_TABLE)).getNumBytes());
     }
+
+    public static final StructType ALL_TYPES_SCHEMA = new StructType()
+            .add(new StructField("int_req", IntegerType,false, new MetadataBuilder().putString("description", "required integer").build()))
+            .add(new StructField("int_null", IntegerType, true, Metadata.empty()))
+            .add(new StructField("long", LongType, true, Metadata.empty()))
+            .add(new StructField("short", ShortType, true, Metadata.empty()))
+            .add(new StructField("bytenum", ByteType, true, Metadata.empty()))
+            .add(new StructField("bool", BooleanType, true, Metadata.empty()))
+            .add(new StructField("str", StringType, true, Metadata.empty()))
+            .add(new StructField("date", DateType, true, Metadata.empty()))
+            /*.add(new StructField("timestamp", TimestampType, true, Metadata.empty()))*/ // TODO: restore when Vortex adds external TimeStamp support.
+            .add(new StructField("binary", BinaryType, true, Metadata.empty()))
+            .add(new StructField("float", DoubleType, true, Metadata.empty()))
+            .add(new StructField("nums", new StructType()
+                    .add(new StructField("min", new DecimalType(38,9), true, Metadata.empty()))
+                    .add(new StructField("max", new DecimalType(38,9), true, Metadata.empty()))
+                    .add(new StructField("pi", new DecimalType(38,9), true, Metadata.empty()))
+                    .add(new StructField("big_pi", new DecimalType(38,9), true, Metadata.empty())),
+                    true, Metadata.empty()))
+            .add(new StructField("int_arr",
+                    new ArrayType(IntegerType,true),
+                    true, Metadata.empty()))
+            .add(new StructField("int_struct_arr",
+                    new ArrayType(new StructType()
+                            .add(new StructField("i", IntegerType, true, Metadata.empty())),
+                            true),
+                    true, Metadata.empty()));
+
+    // same as ALL_TYPES_SCHEMA, except all IntegerType's are LongType's.
+    public static final StructType ALL_TYPES_SCHEMA_BIGQUERY_REPRESENTATION = new StructType()
+            .add(new StructField("int_req", LongType,false, new MetadataBuilder().putString("description", "required integer").build()))
+            .add(new StructField("int_null", LongType, true, Metadata.empty()))
+            .add(new StructField("long", LongType, true, Metadata.empty()))
+            .add(new StructField("short", LongType, true, Metadata.empty()))
+            .add(new StructField("bytenum", LongType, true, Metadata.empty()))
+            .add(new StructField("bool", BooleanType, true, Metadata.empty()))
+            .add(new StructField("str", StringType, true, Metadata.empty()))
+            .add(new StructField("date", DateType, true, Metadata.empty()))
+            /*.add(new StructField("timestamp", TimestampType, true, Metadata.empty()))*/ // TODO: restore when Vortex adds external TimeStamp support.
+            .add(new StructField("binary", BinaryType, true, Metadata.empty()))
+            .add(new StructField("float", DoubleType, true, Metadata.empty()))
+            .add(new StructField("nums", new StructType()
+                    .add(new StructField("min", new DecimalType(38,9), true, Metadata.empty()))
+                    .add(new StructField("max", new DecimalType(38,9), true, Metadata.empty()))
+                    .add(new StructField("pi", new DecimalType(38,9), true, Metadata.empty()))
+                    .add(new StructField("big_pi", new DecimalType(38,9), true, Metadata.empty())),
+                    true, Metadata.empty()))
+            .add(new StructField("int_arr",
+                    new ArrayType(LongType,true),
+                    true, Metadata.empty()))
+            .add(new StructField("int_struct_arr",
+                    new ArrayType(new StructType()
+                            .add(new StructField("i", LongType, true, Metadata.empty())),
+                            true),
+                    true, Metadata.empty()));
+
+    public static final Row[] ALL_TYPES_ROWS = new Row[]{
+            RowFactory.create(
+                    123456789,
+                    null,
+                    123456789L,
+                    (short)1024,
+                    (byte)127,
+                    true,
+                    "new byte[]{3, 4, 5, 6}",
+                    new Date(1595010664123L),
+                    /*new Timestamp(1595010664123L),*/ // TODO: restore when Vortex adds external TimeStamp support.
+                    new byte[]{1, 2, 3, 4},
+                    1.2345,
+                    RowFactory.create(
+                            Decimal.apply(new BigDecimal("-99999999999999999999999999999.999999999")),
+                            Decimal.apply(new BigDecimal("99999999999999999999999999999.999999999")),
+                            Decimal.apply(new BigDecimal("3.14")),
+                            Decimal.apply(new BigDecimal("31415926535897932384626433832.795028841"))
+                    ),
+                    new int[]{1,2,3,4},
+                    new Row[]{
+                            RowFactory.create(
+                                    1
+                            )
+                    }
+            )
+    };
 }

@@ -7,7 +7,6 @@ import com.google.cloud.bigquery.storage.v1alpha2.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoSchemaConverter;
 import com.google.cloud.bigquery.storage.v1alpha2.Storage;
-import com.google.common.base.Preconditions;
 import com.google.protobuf.Descriptors;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -18,7 +17,6 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Arrays;
 
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
@@ -30,8 +28,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
 
   private final BigQueryClient bigQueryClient;
   private final BigQueryWriteClientFactory writeClientFactory;
-  private final TableId tableId;
-  private final String tablePath;
+  private final TableId destinationTableId;
   private final StructType sparkSchema;
   private final Schema bigQuerySchema;
   private final Descriptors.Descriptor schemaDescriptor;
@@ -39,25 +36,29 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
   private final SaveMode saveMode;
   private final String writeUUID;
 
-  private final TableInfo table;
+  private final TableId temporaryTableId;
+  private final String tablePathForBigQueryStorage;
 
   private BigQueryWriteClient writeClient;
-  private boolean ignoreInputs = false;
+
+  enum WritingMode {
+    IGNORE_INPUTS,
+    OVERWRITE,
+    ALL_ELSE
+  }
+
+  private WritingMode writingMode = WritingMode.ALL_ELSE;
 
   public BigQueryDataSourceWriter(
       BigQueryClient bigQueryClient,
       BigQueryWriteClientFactory bigQueryWriteClientFactory,
-      TableId tableId,
+      TableId destinationTableId,
       String writeUUID,
       SaveMode saveMode,
       StructType sparkSchema) {
     this.bigQueryClient = bigQueryClient;
     this.writeClientFactory = bigQueryWriteClientFactory;
-    this.tableId = tableId;
-    this.tablePath =
-        String.format(
-            "projects/%s/datasets/%s/tables/%s",
-            tableId.getProject(), tableId.getDataset(), tableId.getTable());
+    this.destinationTableId = destinationTableId;
     this.writeUUID = writeUUID;
     this.saveMode = saveMode;
     this.sparkSchema = sparkSchema;
@@ -69,46 +70,45 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     }
     this.protoSchema = ProtoSchemaConverter.convert(schemaDescriptor);
 
-    this.table = checkIfTableExists(saveMode);
+    this.temporaryTableId = getOrCreateTable(saveMode, destinationTableId, bigQuerySchema);
+    this.tablePathForBigQueryStorage =
+        bigQueryClient.createTablePathForBigQueryStorage(temporaryTableId);
 
-    if (!ignoreInputs) {
+    if (!writingMode.equals(WritingMode.IGNORE_INPUTS)) {
       this.writeClient = writeClientFactory.createBigQueryWriteClient();
     }
   }
 
-  private TableInfo checkIfTableExists(SaveMode saveMode) {
-    if (bigQueryClient.tableExists(tableId)) {
+  private TableId getOrCreateTable(
+      SaveMode saveMode, TableId destinationTableId, Schema bigQuerySchema) {
+    if (bigQueryClient.tableExists(destinationTableId)) {
       switch (saveMode) {
         case Append:
           break;
         case Overwrite:
-          Preconditions.checkArgument(
-              bigQueryClient.deleteTable(tableId),
-              new IOException(
-                  "Could not delete an existing table in BigQuery, in order to overwrite."));
-          return createBigQueryTable(); // FIXME: don't delete table, not atomic and not
-          // transactional
+          writingMode = WritingMode.OVERWRITE;
+          return bigQueryClient.createTempTable(destinationTableId, bigQuerySchema).getTableId();
         case Ignore:
-          ignoreInputs = true;
+          writingMode = WritingMode.IGNORE_INPUTS;
           break;
         case ErrorIfExists:
           throw new RuntimeException(
               "Table already exists in BigQuery."); // TODO: should this be a RuntimeException?
       }
-      return bigQueryClient.getTable(tableId);
+      return bigQueryClient.getTable(destinationTableId).getTableId();
     } else {
-      return createBigQueryTable();
+      return bigQueryClient.createTable(destinationTableId, bigQuerySchema).getTableId();
     }
-  }
-
-  private TableInfo createBigQueryTable() {
-    return bigQueryClient.createTable(tableId, bigQuerySchema);
   }
 
   @Override
   public DataWriterFactory<InternalRow> createWriterFactory() {
     return new BigQueryDataWriterFactory(
-        writeClientFactory, tablePath, sparkSchema, protoSchema, ignoreInputs);
+        writeClientFactory,
+        tablePathForBigQueryStorage,
+        sparkSchema,
+        protoSchema,
+        writingMode.equals(WritingMode.IGNORE_INPUTS));
   }
 
   @Override
@@ -116,32 +116,41 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
 
   @Override
   public void commit(WriterCommitMessage[] messages) {
+    if (writingMode.equals(WritingMode.IGNORE_INPUTS)) return;
     logger.info(
         "BigQuery DataSource writer {} committed with messages:\n{}",
         writeUUID,
         Arrays.toString(messages));
 
-    if (!ignoreInputs) {
-      Storage.BatchCommitWriteStreamsRequest.Builder batchCommitWriteStreamsRequest =
-          Storage.BatchCommitWriteStreamsRequest.newBuilder().setParent(tablePath);
-      for (WriterCommitMessage message : messages) {
-        batchCommitWriteStreamsRequest.addWriteStreams(
-            ((BigQueryWriterCommitMessage) message).getWriteStreamName());
-      }
-      Storage.BatchCommitWriteStreamsResponse batchCommitWriteStreamsResponse =
-          writeClient.batchCommitWriteStreams(batchCommitWriteStreamsRequest.build());
-
-      logger.info(
-          "BigQuery DataSource writer has committed at time: {}.",
-          batchCommitWriteStreamsResponse.getCommitTime());
-
-      writeClient.shutdown();
+    Storage.BatchCommitWriteStreamsRequest.Builder batchCommitWriteStreamsRequest =
+        Storage.BatchCommitWriteStreamsRequest.newBuilder().setParent(tablePathForBigQueryStorage);
+    for (WriterCommitMessage message : messages) {
+      batchCommitWriteStreamsRequest.addWriteStreams(
+          ((BigQueryWriterCommitMessage) message).getWriteStreamName());
     }
+    Storage.BatchCommitWriteStreamsResponse batchCommitWriteStreamsResponse =
+        writeClient.batchCommitWriteStreams(batchCommitWriteStreamsRequest.build());
+
+    if (!batchCommitWriteStreamsResponse.hasCommitTime()) {
+      throw new RuntimeException(
+          "DataSource writer failed to batch commit its BigQuery write-streams.");
+    }
+
+    logger.info(
+        "BigQuery DataSource writer has committed at time: {}.",
+        batchCommitWriteStreamsResponse.getCommitTime());
+
+    if (writingMode.equals(WritingMode.OVERWRITE)) {
+      bigQueryClient.overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
+    }
+
+    writeClient.shutdown();
   }
 
   @Override
   public void abort(WriterCommitMessage[] messages) {
     logger.warn("BigQuery Data Source writer {} aborted.", writeUUID);
+    if (writingMode.equals(WritingMode.IGNORE_INPUTS)) return;
     if (writeClient != null && !writeClient.isShutdown()) {
       writeClient.shutdown(); // TODO help delete data in intermediary? Or keep in sink until TTL.
     }
