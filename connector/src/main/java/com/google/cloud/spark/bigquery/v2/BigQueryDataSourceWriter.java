@@ -7,6 +7,7 @@ import com.google.cloud.bigquery.storage.v1alpha2.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoSchemaConverter;
 import com.google.cloud.bigquery.storage.v1alpha2.Storage;
+import com.google.common.base.Preconditions;
 import com.google.protobuf.Descriptors;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -95,6 +96,13 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
           throw new RuntimeException(
               "Table already exists in BigQuery."); // TODO: should this be a RuntimeException?
       }
+      Preconditions.checkArgument(
+              bigQueryClient
+                      .getTable(destinationTableId)
+                      .getDefinition()
+                      .getSchema()
+                      .equals(bigQuerySchema),
+              new RuntimeException("Destination table's schema is not compatible."));
       return bigQueryClient.getTable(destinationTableId).getTableId();
     } else {
       return bigQueryClient.createTable(destinationTableId, bigQuerySchema).getTableId();
@@ -152,7 +160,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     logger.warn("BigQuery Data Source writer {} aborted.", writeUUID);
     if (writingMode.equals(WritingMode.IGNORE_INPUTS)) return;
     if (writeClient != null && !writeClient.isShutdown()) {
-      writeClient.shutdown(); // TODO help delete data in intermediary? Or keep in sink until TTL.
+      writeClient.shutdown();
     }
   }
 }
