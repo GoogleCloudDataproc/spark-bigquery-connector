@@ -1,5 +1,6 @@
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.RetryOption;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.bigquery.*;
 import org.apache.log4j.Level;
@@ -11,13 +12,15 @@ import org.apache.spark.sql.types.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.threeten.bp.Duration;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
-import java.sql.Timestamp;
 import java.util.Arrays;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.lang.String.format;
 import static org.apache.spark.sql.types.DataTypes.*;
 import static org.junit.Assert.fail;
 
@@ -32,7 +35,7 @@ public class SparkBigQueryWriteTest {
 
     public static final String PROJECT = ServiceOptions.getDefaultProjectId();
     public static final String DATASET = "spark_bigquery_vortex_it_"+System.nanoTime();
-    public static final String TABLE = "testTable";
+    public static final String OVERWRITE_TABLE = "testTable";
     public static final String DESCRIPTION = "Spark BigQuery connector write session tests.";
 
     public static final String BIGQUERY_PUBLIC_DATA = "bigquery-public-data";
@@ -59,6 +62,7 @@ public class SparkBigQueryWriteTest {
     public static BigQuery bigquery;
 
     public static Dataset<Row> allTypesDf;
+    public static Dataset<Row> twiceAsBigDf;
     public static Dataset<Row> smallDataDf;
     public static Dataset<Row> MB20Df;
     public static Dataset<Row> MB100Df;
@@ -80,6 +84,7 @@ public class SparkBigQueryWriteTest {
         smallDataDf = spark.read().format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
                 .option("table", SMALL_DATA_ID)
                 .load();
+        twiceAsBigDf = smallDataDf.unionAll(smallDataDf);
         MB20Df = spark.read().format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
                 .option("table", MB20_ID)
                 .load().drop("startTime").drop("createdAt").drop("updatedAt")/*.coalesce(20)*/.toDF();
@@ -101,6 +106,49 @@ public class SparkBigQueryWriteTest {
                 DatasetInfo.newBuilder(/* datasetId = */ DATASET).setDescription(DESCRIPTION).build();
         bigquery.create(datasetInfo);
         logger.info("Created test dataset: " + DATASET);
+
+        // create small data frame inside of our test data-set (to be over-written by the twice-as-big dataframe in
+        // testSparkOverWriteSaveMode()
+        TableId overWriteTableId = TableId.of(PROJECT, DATASET, OVERWRITE_TABLE);
+        TableId smallDataTableId = TableId.of(BIGQUERY_PUBLIC_DATA, SMALL_DATA_DATASET, SMALL_DATA_TABLE);
+        bigquery.create(
+                TableInfo.of(overWriteTableId,
+                        bigquery.getTable(smallDataTableId).getDefinition())
+        );
+        copyTable(smallDataTableId, overWriteTableId);
+    }
+
+    public static void copyTable(TableId from, TableId to) {
+        String queryFormat = "INSERT INTO `%s`\n" + "SELECT * FROM `%s`";
+        QueryJobConfiguration queryConfig =
+                QueryJobConfiguration.newBuilder(
+                        sqlFromFormat(queryFormat, to, from))
+                        .setUseLegacySql(false)
+                        .build();
+
+        Job copy = bigquery.create(JobInfo.newBuilder(queryConfig).build());
+
+        try {
+            Job completedJob =
+                    copy.waitFor(
+                            RetryOption.initialRetryDelay(Duration.ofSeconds(1)),
+                            RetryOption.totalTimeout(Duration.ofMinutes(3)));
+            if (completedJob == null && completedJob.getStatus().getError() != null) {
+                throw new IOException(completedJob.getStatus().getError().toString());
+            }
+        } catch (InterruptedException | IOException e) {
+            throw new RuntimeException(
+                    "Could not copy table from temporary sink to destination table.", e);
+        }
+    }
+
+    static String sqlFromFormat(String queryFormat, TableId destinationTableId, TableId temporaryTableId) {
+        return String.format(
+                queryFormat, fullTableName(destinationTableId), fullTableName(temporaryTableId));
+    }
+
+    static String fullTableName(TableId tableId) {
+        return format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
     }
 
     @AfterClass
@@ -138,10 +186,8 @@ public class SparkBigQueryWriteTest {
     }
 
     @Test
-    public void testSparkWriteSaveModes() throws Exception {
+    public void testSparkAppendSaveMode() throws Exception {
         String writeTo = "append";
-
-        Dataset<Row> twiceAsBigDf = smallDataDf.unionAll(smallDataDf);
 
         Dataset<Row> expectedDF = twiceAsBigDf;
 
@@ -149,7 +195,6 @@ public class SparkBigQueryWriteTest {
                 .option("table", writeTo)
                 .option("dataset", DATASET)
                 .option("project", PROJECT)
-                .mode(SaveMode.ErrorIfExists)
                 .save();
 
         smallDataDf.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
@@ -169,30 +214,44 @@ public class SparkBigQueryWriteTest {
         Dataset<Row> intersection = actualDF.intersectAll(expectedDF);
         // append was successful:
         assertThat(intersection.count() == actualDF.count() && intersection.count() == expectedDF.count());
+    }
 
+    @Test
+    public void testSparkOverWriteSaveMode() throws Exception {
+        String writeTo = OVERWRITE_TABLE;
 
-        expectedDF = smallDataDf;
+        Dataset<Row> expectedDF = twiceAsBigDf;
 
-        smallDataDf.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+        twiceAsBigDf.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
                 .option("table", writeTo)
                 .option("dataset", DATASET)
                 .option("project", PROJECT)
                 .mode(SaveMode.Overwrite)
                 .save();
 
-        actualDF = spark.read()
+        Dataset<Row> actualDF = spark.read()
                 .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
                 .option("table", writeTo)
                 .option("dataset", DATASET)
                 .option("project", PROJECT)
                 .load();
 
-        intersection = actualDF.intersectAll(expectedDF);
+        Dataset<Row> intersection = actualDF.intersectAll(expectedDF);
         // overwrite was successful:
         assertThat(intersection.count() == actualDF.count() && intersection.count() == expectedDF.count());
+    }
 
+    @Test
+    public void testSparkWriteIgnoreSaveMode() throws Exception {
+        String writeTo = "ignore";
 
-        expectedDF = smallDataDf;
+        Dataset<Row> expectedDF = smallDataDf;
+
+        smallDataDf.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+                .option("table", writeTo)
+                .option("dataset", DATASET)
+                .option("project", PROJECT)
+                .save();
 
         twiceAsBigDf.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
                 .option("table", writeTo)
@@ -201,20 +260,30 @@ public class SparkBigQueryWriteTest {
                 .mode(SaveMode.Ignore)
                 .save();
 
-        actualDF = spark.read()
+        Dataset<Row> actualDF = spark.read()
                 .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
                 .option("table", writeTo)
                 .option("dataset", DATASET)
                 .option("project", PROJECT)
                 .load();
 
-        intersection = actualDF.intersectAll(expectedDF);
-        // overwrite was successful:
+        Dataset<Row> intersection = actualDF.intersectAll(expectedDF);
+        // ignore was successful:
         assertThat(intersection.count() == actualDF.count() && intersection.count() == expectedDF.count());
+    }
 
+    @Test
+    public void testSparkWriteErrorSaveMode() throws Exception {
+        String writeTo = "error";
+
+        smallDataDf.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+                .option("table", writeTo)
+                .option("dataset", DATASET)
+                .option("project", PROJECT)
+                .save();
 
         try {
-            twiceAsBigDf.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+            smallDataDf.write().format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
                     .option("table", writeTo)
                     .option("dataset", DATASET)
                     .option("project", PROJECT)
