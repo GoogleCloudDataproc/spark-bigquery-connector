@@ -37,6 +37,8 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 public class ProtobufUtils {
 
   static final Logger logger = LoggerFactory.getLogger(ProtobufUtils.class);
@@ -164,10 +166,12 @@ public class ProtobufUtils {
       LegacySQLTypeName bqType) {
     DescriptorProtos.FieldDescriptorProto.Type protoFieldType;
     if (LegacySQLTypeName.INTEGER.equals(bqType)
-        || LegacySQLTypeName.DATE.equals(bqType)
         || LegacySQLTypeName.DATETIME.equals(bqType)
         || LegacySQLTypeName.TIMESTAMP.equals(bqType)) {
       return DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64;
+    }
+    if (LegacySQLTypeName.DATE.equals(bqType)) {
+      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32;
     }
     if (LegacySQLTypeName.BOOLEAN.equals(bqType)) {
       return DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL;
@@ -225,7 +229,7 @@ public class ProtobufUtils {
       Descriptors.Descriptor nestedTypeDescriptor =
           schemaDescriptor.findNestedTypeByName(RESERVED_NESTED_TYPE_NAME + (protoFieldNumber));
       Object protoValue =
-          convertToProtoRowValue(sparkType, sparkValue, nullable, nestedTypeDescriptor);
+          convertSparkValueToProtoRowValue(sparkType, sparkValue, nullable, nestedTypeDescriptor);
 
       // logger.debug("Converted value {} to proto-value: {}", sparkValue, protoValue);
 
@@ -254,7 +258,7 @@ public class ProtobufUtils {
   /*
   Takes a value in Spark format and converts it into ProtoRows format (to eventually be given to BigQuery).
    */
-  private static Object convertToProtoRowValue(
+  private static Object convertSparkValueToProtoRowValue(
       DataType sparkType,
       Object sparkValue,
       boolean nullable,
@@ -276,7 +280,7 @@ public class ProtobufUtils {
       List<Object> protoValue = new ArrayList<>();
       for (Object sparkElement : sparkArrayData) {
         Object converted =
-            convertToProtoRowValue(elementType, sparkElement, containsNull, nestedTypeDescriptor);
+            convertSparkValueToProtoRowValue(elementType, sparkElement, containsNull, nestedTypeDescriptor);
         if (converted == null) {
           continue;
         }
@@ -294,17 +298,20 @@ public class ProtobufUtils {
         || sparkType instanceof ShortType
         || sparkType instanceof IntegerType
         || sparkType instanceof LongType
-        || sparkType instanceof TimestampType
-        || sparkType instanceof DateType) {
+        || sparkType instanceof TimestampType) {
       return ((Number) sparkValue).longValue();
     } // TODO: CalendarInterval
+
+    if (sparkType instanceof DateType) {
+      return ((Number) sparkValue).intValue();
+    }
 
     if (sparkType instanceof FloatType || sparkType instanceof DoubleType) {
       return ((Number) sparkValue).doubleValue();
     }
 
     if (sparkType instanceof DecimalType) {
-      return ((Decimal) sparkValue).toDouble();
+      return Base64.getEncoder().encode(sparkValue.toString().getBytes(UTF_8));
     }
 
     if (sparkType instanceof BooleanType) {
@@ -316,7 +323,7 @@ public class ProtobufUtils {
     }
 
     if (sparkType instanceof StringType) {
-      return new String(((UTF8String) sparkValue).getBytes());
+      return new String(((UTF8String) sparkValue).getBytes(), UTF_8);
     }
 
     if (sparkType instanceof MapType) {
@@ -366,7 +373,7 @@ public class ProtobufUtils {
             createProtoFieldBuilder(fieldName, fieldLabel, messageNumber).setTypeName(nestedName);
       } else {
         DescriptorProtos.FieldDescriptorProto.Type fieldType =
-            sparkAtomicTypeToProtoFieldType(sparkType);
+            toProtoFieldType(sparkType);
         protoFieldBuilder =
             createProtoFieldBuilder(fieldName, fieldLabel, messageNumber, fieldType);
       }
@@ -382,30 +389,30 @@ public class ProtobufUtils {
   // protoFieldBuilder
   // for these and other types.
   // This function only converts atomic Spark DataTypes
-  private static DescriptorProtos.FieldDescriptorProto.Type sparkAtomicTypeToProtoFieldType(
+  private static DescriptorProtos.FieldDescriptorProto.Type toProtoFieldType(
       DataType sparkType) {
     if (sparkType instanceof ByteType
         || sparkType instanceof ShortType
         || sparkType instanceof IntegerType
         || sparkType instanceof LongType
-        || sparkType instanceof TimestampType
-        || sparkType instanceof DateType) {
+        || sparkType instanceof TimestampType) {
       return DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64;
     }
 
+    if (sparkType instanceof DateType) {
+      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32;
+    }
+
     if (sparkType instanceof FloatType
-        || sparkType instanceof DoubleType
-        || sparkType instanceof DecimalType) {
+        || sparkType instanceof DoubleType) {
       return DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE;
-      /* TODO: an annotation to distinguish between decimals that are doubles, and decimals that are
-      NUMERIC (Bytes types) */
     }
 
     if (sparkType instanceof BooleanType) {
       return DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL;
     }
 
-    if (sparkType instanceof BinaryType) {
+    if (sparkType instanceof BinaryType || sparkType instanceof DecimalType) {
       return DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES;
     }
 
