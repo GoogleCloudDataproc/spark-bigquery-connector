@@ -454,7 +454,9 @@ public class ProtobufUtilsTest {
                     .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(5), 3.14)
                     .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(6), true)
                     .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(7), Base64.getEncoder().encode(new byte[]{11, 0x7F}))
-                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(8), 1594080000000L)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(8), 1594080000)
                     .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(9), 1594080000000L)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(10),
+                            Base64.getEncoder().encode("-99999999999999999999999999999.999999999".getBytes()))
                     .build().toByteString()).build();
 }

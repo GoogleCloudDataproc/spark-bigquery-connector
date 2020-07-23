@@ -153,10 +153,10 @@ public class SparkBigQueryWriteTest {
 
     @AfterClass
     public static void close() throws Exception {
-        if (bigquery != null) {
+        /*if (bigquery != null) {
             bigquery.delete(DATASET, BigQuery.DatasetDeleteOption.deleteContents());
             logger.info("Deleted test dataset: " + DATASET);
-        }
+        }*/
     }
 
     @Test
@@ -440,19 +440,22 @@ public class SparkBigQueryWriteTest {
                     (short)1024,
                     (byte)127,
                     true,
-                    "new byte[]{3, 4, 5, 6}",
+                    "hello",
                     new Date(1595010664123L),
                     /*new Timestamp(1595010664123L),*/ // TODO: restore when Vortex adds external TimeStamp support.
                     new byte[]{1, 2, 3, 4},
                     1.2345,
                     RowFactory.create(
-                            Decimal.apply(new BigDecimal("-99999999999999999999999999999.999999999")),
-                            Decimal.apply(new BigDecimal("99999999999999999999999999999.999999999")),
-                            Decimal.apply(new BigDecimal("3.14")),
-                            Decimal.apply(new BigDecimal("31415926535897932384626433832.795028841"))
+                            new BigDecimal("-99999999999999999999999999999.999999999"),
+                            new BigDecimal("99999999999999999999999999999.999999999"),
+                            new BigDecimal("3.14"),
+                            new BigDecimal("31415926535897932384626433832.795028841")
                     ),
                     new int[]{1,2,3,4},
                     new Row[]{
+                            RowFactory.create(
+                                    1
+                            ),
                             RowFactory.create(
                                     1
                             )
