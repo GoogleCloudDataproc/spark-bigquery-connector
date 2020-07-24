@@ -153,10 +153,10 @@ public class SparkBigQueryWriteTest {
 
     @AfterClass
     public static void close() throws Exception {
-        /*if (bigquery != null) {
+        if (bigquery != null) {
             bigquery.delete(DATASET, BigQuery.DatasetDeleteOption.deleteContents());
             logger.info("Deleted test dataset: " + DATASET);
-        }*/
+        }
     }
 
     @Test

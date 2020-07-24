@@ -280,7 +280,8 @@ public class ProtobufUtils {
       List<Object> protoValue = new ArrayList<>();
       for (Object sparkElement : sparkArrayData) {
         Object converted =
-            convertSparkValueToProtoRowValue(elementType, sparkElement, containsNull, nestedTypeDescriptor);
+            convertSparkValueToProtoRowValue(
+                elementType, sparkElement, containsNull, nestedTypeDescriptor);
         if (converted == null) {
           continue;
         }
@@ -372,8 +373,7 @@ public class ProtobufUtils {
         protoFieldBuilder =
             createProtoFieldBuilder(fieldName, fieldLabel, messageNumber).setTypeName(nestedName);
       } else {
-        DescriptorProtos.FieldDescriptorProto.Type fieldType =
-            toProtoFieldType(sparkType);
+        DescriptorProtos.FieldDescriptorProto.Type fieldType = toProtoFieldType(sparkType);
         protoFieldBuilder =
             createProtoFieldBuilder(fieldName, fieldLabel, messageNumber, fieldType);
       }
@@ -389,8 +389,7 @@ public class ProtobufUtils {
   // protoFieldBuilder
   // for these and other types.
   // This function only converts atomic Spark DataTypes
-  private static DescriptorProtos.FieldDescriptorProto.Type toProtoFieldType(
-      DataType sparkType) {
+  private static DescriptorProtos.FieldDescriptorProto.Type toProtoFieldType(DataType sparkType) {
     if (sparkType instanceof ByteType
         || sparkType instanceof ShortType
         || sparkType instanceof IntegerType
@@ -403,8 +402,7 @@ public class ProtobufUtils {
       return DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32;
     }
 
-    if (sparkType instanceof FloatType
-        || sparkType instanceof DoubleType) {
+    if (sparkType instanceof FloatType || sparkType instanceof DoubleType) {
       return DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE;
     }
 
