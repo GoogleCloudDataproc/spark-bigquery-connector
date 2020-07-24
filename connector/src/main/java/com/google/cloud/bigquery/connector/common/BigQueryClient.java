@@ -79,8 +79,10 @@ public class BigQueryClient {
     TableId tempTableId =
         TableId.of(tempProject, tempDataset, destinationTableId.getTable() + System.nanoTime());
     // Build TableInfo with expiration time of one day from current epoch.
-    TableInfo tableInfo = TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema))
-            .setExpirationTime(System.currentTimeMillis()+86400000L).build();
+    TableInfo tableInfo =
+        TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema))
+            .setExpirationTime(System.currentTimeMillis() + 86400000L)
+            .build();
     return bigQuery.create(tableInfo);
   }
 

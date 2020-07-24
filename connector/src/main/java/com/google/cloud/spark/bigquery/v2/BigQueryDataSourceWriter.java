@@ -97,12 +97,12 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
               "Table already exists in BigQuery."); // TODO: should this be a RuntimeException?
       }
       Preconditions.checkArgument(
-              bigQueryClient
-                      .getTable(destinationTableId)
-                      .getDefinition()
-                      .getSchema()
-                      .equals(bigQuerySchema),
-              new RuntimeException("Destination table's schema is not compatible."));
+          bigQueryClient
+              .getTable(destinationTableId)
+              .getDefinition()
+              .getSchema()
+              .equals(bigQuerySchema),
+          new RuntimeException("Destination table's schema is not compatible."));
       return bigQueryClient.getTable(destinationTableId).getTableId();
     } else {
       return bigQueryClient.createTable(destinationTableId, bigQuerySchema).getTableId();

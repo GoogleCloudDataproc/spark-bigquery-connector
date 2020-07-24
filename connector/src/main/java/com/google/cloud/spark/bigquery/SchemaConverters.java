@@ -309,9 +309,11 @@ public class SchemaConverters {
     }
     if (elementType instanceof DecimalType) {
       DecimalType decimalType = (DecimalType) elementType;
-      Preconditions.checkArgument(decimalType.scale() <= BQ_NUMERIC_SCALE &&
-              decimalType.precision() <= BQ_NUMERIC_PRECISION,
-              new IllegalArgumentException("Decimal type is too wide to fit in BigQuery Numeric format"));
+      Preconditions.checkArgument(
+          decimalType.scale() <= BQ_NUMERIC_SCALE
+              && decimalType.precision() <= BQ_NUMERIC_PRECISION,
+          new IllegalArgumentException(
+              "Decimal type is too wide to fit in BigQuery Numeric format"));
       return LegacySQLTypeName.NUMERIC;
     }
     if (elementType instanceof StringType) {
