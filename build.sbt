@@ -94,7 +94,6 @@ lazy val connector = (project in file("connector"))
       "io.netty" % "netty-all" % nettyVersion % "provided",
       "io.netty" % "netty-buffer" % nettyVersion,
       "io.netty" % "netty-common" % nettyVersion,
-      "org.eclipse.jetty.alpn" % "alpn-api" % "1.1.3.v20160715",
       // scalastyle:off
       // See https://github.com/grpc/grpc-java/blob/master/SECURITY.md#tls-with-netty-tcnative-on-boringssl
       // scalastyle:on
