@@ -208,7 +208,7 @@ public class SparkFilterUtils {
     if (filter instanceof LessThanOrEqual) {
       LessThanOrEqual lessThanOrEqual = (LessThanOrEqual) filter;
       return format(
-          "%s <>>= %s", quote(lessThanOrEqual.attribute()), compileValue(lessThanOrEqual.value()));
+          "%s <= %s", quote(lessThanOrEqual.attribute()), compileValue(lessThanOrEqual.value()));
     }
     if (filter instanceof In) {
       In in = (In) filter;
