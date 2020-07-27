@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
 import static com.google.cloud.spark.bigquery.SchemaConverters.toBigQuerySchema;
 
 public class BigQueryDataSourceWriter implements DataSourceWriter {
@@ -32,7 +33,6 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
   private final TableId destinationTableId;
   private final StructType sparkSchema;
   private final Schema bigQuerySchema;
-  private final Descriptors.Descriptor schemaDescriptor;
   private final ProtoBufProto.ProtoSchema protoSchema;
   private final SaveMode saveMode;
   private final String writeUUID;
@@ -65,11 +65,10 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     this.sparkSchema = sparkSchema;
     this.bigQuerySchema = toBigQuerySchema(sparkSchema);
     try {
-      this.schemaDescriptor = toDescriptor(sparkSchema);
-    } catch (Descriptors.DescriptorValidationException e) {
+      this.protoSchema = toProtoSchema(sparkSchema);
+    } catch (IllegalArgumentException e) {
       throw new RuntimeException("Could not convert Spark schema to protobuf descriptor.", e);
     }
-    this.protoSchema = ProtoSchemaConverter.convert(schemaDescriptor);
 
     this.temporaryTableId = getOrCreateTable(saveMode, destinationTableId, bigQuerySchema);
     this.tablePathForBigQueryStorage =
