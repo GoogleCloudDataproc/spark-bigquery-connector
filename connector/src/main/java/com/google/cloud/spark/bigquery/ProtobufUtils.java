@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
 import com.google.cloud.bigquery.storage.v1beta2.ProtoSchemaConverter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
@@ -37,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -50,6 +52,43 @@ public class ProtobufUtils {
   // number of the corresponding field that is of this type in the containing message.
   private static final String RESERVED_NESTED_TYPE_NAME = "STRUCT";
   private static final String MAPTYPE_ERROR_MESSAGE = "MapType is unsupported.";
+
+  private static final ImmutableMap<LegacySQLTypeName, DescriptorProtos.FieldDescriptorProto.Type>
+      BigQueryToProtoType =
+          new ImmutableMap.Builder<LegacySQLTypeName, DescriptorProtos.FieldDescriptorProto.Type>()
+              .put(LegacySQLTypeName.BYTES, DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
+              .put(LegacySQLTypeName.INTEGER, DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+              .put(LegacySQLTypeName.BOOLEAN, DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL)
+              .put(LegacySQLTypeName.FLOAT, DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
+              .put(LegacySQLTypeName.NUMERIC, DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
+              .put(LegacySQLTypeName.STRING, DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
+              .put(
+                  LegacySQLTypeName.TIMESTAMP,
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+              .put(LegacySQLTypeName.DATE, DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32)
+                  .put(LegacySQLTypeName.DATETIME, DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+                  .put(LegacySQLTypeName.GEOGRAPHY, DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
+              .build();
+  private static final ImmutableMap<String, DescriptorProtos.FieldDescriptorProto.Type>
+          SparkToProtoType =
+          new ImmutableMap.Builder<String, DescriptorProtos.FieldDescriptorProto.Type>()
+                  .put(DataTypes.BinaryType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
+                  .put(DataTypes.ByteType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+                  .put(DataTypes.ShortType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+                  .put(DataTypes.IntegerType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+                  .put(DataTypes.LongType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+                  .put(DataTypes.BooleanType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL)
+                  .put(DataTypes.FloatType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
+                  .put(DataTypes.DoubleType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
+                  .put(DecimalType.SYSTEM_DEFAULT().json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
+                  .put(DataTypes.StringType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
+                  .put(DataTypes.TimestampType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+                  .put(DataTypes.DateType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32).build();
+  private static final ImmutableMap<Field.Mode, DescriptorProtos.FieldDescriptorProto.Label> BigQueryModeToProtoFieldLabel =
+          new ImmutableMap.Builder<Field.Mode, DescriptorProtos.FieldDescriptorProto.Label>()
+          .put(Field.Mode.NULLABLE, DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL)
+          .put(Field.Mode.REPEATED, DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED)
+                  .put(Field.Mode.REQUIRED, DescriptorProtos.FieldDescriptorProto.Label.LABEL_REQUIRED).build();
 
   /** BigQuery Schema ==> ProtoSchema converter utils: */
   public static ProtoSchema toProtoSchema(Schema schema) throws IllegalArgumentException {
@@ -145,16 +184,8 @@ public class ProtobufUtils {
   }
 
   private static DescriptorProtos.FieldDescriptorProto.Label toProtoFieldLabel(Field.Mode mode) {
-    switch (mode) {
-      case NULLABLE:
-        return DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL;
-      case REPEATED:
-        return DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED;
-      case REQUIRED:
-        return DescriptorProtos.FieldDescriptorProto.Label.LABEL_REQUIRED;
-      default:
-        throw new IllegalArgumentException("A BigQuery Field Mode was invalid: " + mode.name());
-    }
+    return Preconditions.checkNotNull(BigQueryModeToProtoFieldLabel.get(mode),
+            new IllegalArgumentException("A BigQuery Field Mode was invalid: " + mode.name()));
   }
 
   // NOTE: annotations for DATETIME and TIMESTAMP objects are currently unsupported for external
@@ -164,36 +195,12 @@ public class ProtobufUtils {
   // for these and other types.
   private static DescriptorProtos.FieldDescriptorProto.Type toProtoFieldType(
       LegacySQLTypeName bqType) {
-    DescriptorProtos.FieldDescriptorProto.Type protoFieldType;
-    if (LegacySQLTypeName.INTEGER.equals(bqType)
-        || LegacySQLTypeName.DATETIME.equals(bqType)
-        || LegacySQLTypeName.TIMESTAMP.equals(bqType)) {
-      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64;
-    }
-    if (LegacySQLTypeName.DATE.equals(bqType)) {
-      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32;
-    }
-    if (LegacySQLTypeName.BOOLEAN.equals(bqType)) {
-      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL;
-    }
-    if (LegacySQLTypeName.STRING.equals(bqType)) {
-      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING;
-    }
-    if (LegacySQLTypeName.GEOGRAPHY.equals(bqType)
-        || LegacySQLTypeName.BYTES.equals(bqType)
-        || LegacySQLTypeName.NUMERIC.equals(bqType)) {
-      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES;
-    }
-    if (LegacySQLTypeName.FLOAT.equals(bqType)) {
-      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE;
-    }
-
     if (LegacySQLTypeName.RECORD.equals(bqType)) {
       throw new IllegalStateException(
           "Program attempted to return an atomic data-type for a RECORD");
     }
-
-    throw new IllegalArgumentException("Unexpected type: " + bqType.name());
+    return Preconditions.checkNotNull(BigQueryToProtoType.get(bqType),
+            new IllegalArgumentException("Unexpected type: " + bqType.name()));
   }
 
   /**
@@ -383,45 +390,14 @@ public class ProtobufUtils {
     return descriptorBuilder.build();
   }
 
-  // NOTE: annotations for DATETIME and TIMESTAMP objects are currently unsupported for external
-  // users,
-  // but if they become available, it would be advisable to append an annotation to the
-  // protoFieldBuilder
-  // for these and other types.
-  // This function only converts atomic Spark DataTypes
   private static DescriptorProtos.FieldDescriptorProto.Type toProtoFieldType(DataType sparkType) {
-    if (sparkType instanceof ByteType
-        || sparkType instanceof ShortType
-        || sparkType instanceof IntegerType
-        || sparkType instanceof LongType
-        || sparkType instanceof TimestampType) {
-      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64;
-    }
-
-    if (sparkType instanceof DateType) {
-      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32;
-    }
-
-    if (sparkType instanceof FloatType || sparkType instanceof DoubleType) {
-      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE;
-    }
-
-    if (sparkType instanceof BooleanType) {
-      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL;
-    }
-
-    if (sparkType instanceof BinaryType || sparkType instanceof DecimalType) {
-      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES;
-    }
-
-    if (sparkType instanceof StringType) {
-      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING;
-    }
-
     if (sparkType instanceof MapType) {
       throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
     }
-
-    throw new IllegalStateException("Unexpected type: " + sparkType);
+    if (sparkType instanceof DecimalType) {
+      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES;
+    }
+    return Preconditions.checkNotNull(SparkToProtoType.get(sparkType.json()),
+            new IllegalStateException("Unexpected type: " + sparkType));
   }
 }
