@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.common.base.Preconditions;
+import avro.shaded.com.google.common.base.Preconditions;
 import com.google.cloud.bigquery.*;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.avro.generic.GenericRecord;
@@ -278,18 +278,20 @@ public class SchemaConverters {
     }
     if (elementType instanceof DecimalType) {
       DecimalType decimalType = (DecimalType) elementType;
-      Preconditions.checkArgument(
-          decimalType.scale() <= BQ_NUMERIC_SCALE
-              && decimalType.precision() <= BQ_NUMERIC_PRECISION,
-          new IllegalArgumentException(
-              "Decimal type is too wide to fit in BigQuery Numeric format"));
-      return LegacySQLTypeName.NUMERIC;
+      if (decimalType.precision() <= BQ_NUMERIC_PRECISION
+          && decimalType.scale() <= BQ_NUMERIC_SCALE) {
+        return LegacySQLTypeName.NUMERIC;
+      } else {
+        throw new IllegalArgumentException(
+            "Decimal type is too wide to fit in BigQuery Numeric format");
+      }
     }
     if (elementType instanceof StringType) {
       return LegacySQLTypeName.STRING;
     }
     if (elementType instanceof TimestampType) {
-      return LegacySQLTypeName.TIMESTAMP;
+      // return LegacySQLTypeName.TIMESTAMP; FIXME: Restore this correct conversion when the Vortex team adds microsecond support to their backend
+      return LegacySQLTypeName.INTEGER;
     }
     if (elementType instanceof DateType) {
       return LegacySQLTypeName.DATE;
