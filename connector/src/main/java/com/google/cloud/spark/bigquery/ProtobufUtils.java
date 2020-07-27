@@ -26,7 +26,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
-import com.google.protobuf.Message;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.*;
@@ -215,7 +214,7 @@ public class ProtobufUtils {
     DynamicMessage.Builder messageBuilder = DynamicMessage.newBuilder(schemaDescriptor);
 
     for (int fieldIndex = 0; fieldIndex < schemaDescriptor.getFields().size(); fieldIndex++) {
-      int protoFieldNumber = fieldIndex+1;
+      int protoFieldNumber = fieldIndex + 1;
 
       StructField sparkField = schema.fields()[fieldIndex];
       DataType sparkType = sparkField.dataType();

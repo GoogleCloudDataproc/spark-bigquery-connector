@@ -238,14 +238,14 @@ public class ProtobufUtilsTest {
             .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
             .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED);
     public final DescriptorProtos.DescriptorProto.Builder NESTED_STRUCT_DESCRIPTOR = DescriptorProtos.DescriptorProto.newBuilder()
-            .setName("STRUCT1")
+            .setName("STRUCT4")
             .addField(PROTO_INTEGER_FIELD.clone())
             .addField(PROTO_STRING_FIELD.clone().setNumber(2)
                     .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL));
     public final DescriptorProtos.FieldDescriptorProto.Builder PROTO_STRUCT_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
             .setName("Struct")
             .setNumber(1)
-            .setTypeName("STRUCT1")
+            .setTypeName("STRUCT4")
             .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL);
     public final DescriptorProtos.FieldDescriptorProto.Builder PROTO_DOUBLE_FIELD = DescriptorProtos.FieldDescriptorProto.newBuilder()
             .setName("Double")
