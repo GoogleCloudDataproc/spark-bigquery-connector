@@ -82,7 +82,9 @@ public class BigQueryDataWriterHelper {
     appendRows++;
   }
 
-  // from https://stackoverflow.com/questions/9655181/how-to-convert-a-byte-array-to-a-hex-string-in-java :
+  // from
+  // https://stackoverflow.com/questions/9655181/how-to-convert-a-byte-array-to-a-hex-string-in-java
+  // :
   public static String bytesToHex(byte[] bytes) {
     byte[] hexChars = new byte[bytes.length * 2];
     for (int j = 0; j < bytes.length; j++) {

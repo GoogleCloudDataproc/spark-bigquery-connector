@@ -50,32 +50,34 @@ public class SchemaConverters {
   private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
   private static final String MAPTYPE_ERROR_MESSAGE = "MapType is unsupported.";
   private static final ImmutableMap<String, LegacySQLTypeName> SparkToBigQueryTypes =
-          new ImmutableMap.Builder<String, LegacySQLTypeName>()
-                  .put(DataTypes.BinaryType.json(), LegacySQLTypeName.BYTES)
-                  .put(DataTypes.ByteType.json(), LegacySQLTypeName.INTEGER)
-                  .put(DataTypes.ShortType.json(), LegacySQLTypeName.INTEGER)
-                  .put(DataTypes.IntegerType.json(), LegacySQLTypeName.INTEGER)
-                  .put(DataTypes.LongType.json(), LegacySQLTypeName.INTEGER)
-                  .put(DataTypes.BooleanType.json(), LegacySQLTypeName.BOOLEAN)
-                  .put(DataTypes.FloatType.json(), LegacySQLTypeName.FLOAT)
-                  .put(DataTypes.DoubleType.json(), LegacySQLTypeName.FLOAT)
-                  .put(DecimalType.SYSTEM_DEFAULT().json(), LegacySQLTypeName.NUMERIC)
-                  .put(DataTypes.StringType.json(), LegacySQLTypeName.STRING)
-                  .put(DataTypes.TimestampType.json(), LegacySQLTypeName.TIMESTAMP)
-                  .put(DataTypes.DateType.json(), LegacySQLTypeName.DATE).build();
+      new ImmutableMap.Builder<String, LegacySQLTypeName>()
+          .put(DataTypes.BinaryType.json(), LegacySQLTypeName.BYTES)
+          .put(DataTypes.ByteType.json(), LegacySQLTypeName.INTEGER)
+          .put(DataTypes.ShortType.json(), LegacySQLTypeName.INTEGER)
+          .put(DataTypes.IntegerType.json(), LegacySQLTypeName.INTEGER)
+          .put(DataTypes.LongType.json(), LegacySQLTypeName.INTEGER)
+          .put(DataTypes.BooleanType.json(), LegacySQLTypeName.BOOLEAN)
+          .put(DataTypes.FloatType.json(), LegacySQLTypeName.FLOAT)
+          .put(DataTypes.DoubleType.json(), LegacySQLTypeName.FLOAT)
+          .put(DecimalType.SYSTEM_DEFAULT().json(), LegacySQLTypeName.NUMERIC)
+          .put(DataTypes.StringType.json(), LegacySQLTypeName.STRING)
+          .put(DataTypes.TimestampType.json(), LegacySQLTypeName.TIMESTAMP)
+          .put(DataTypes.DateType.json(), LegacySQLTypeName.DATE)
+          .build();
   private static final ImmutableMap<LegacySQLTypeName, DataType> BigQueryToSparkTypes =
-          new ImmutableMap.Builder<LegacySQLTypeName, DataType>()
-                  .put(LegacySQLTypeName.INTEGER, DataTypes.LongType)
-                  .put(LegacySQLTypeName.FLOAT, DataTypes.DoubleType)
-                  .put(LegacySQLTypeName.NUMERIC, NUMERIC_SPARK_TYPE)
-                  .put(LegacySQLTypeName.STRING, DataTypes.StringType)
-                  .put(LegacySQLTypeName.BOOLEAN, DataTypes.BooleanType)
-                  .put(LegacySQLTypeName.BYTES, DataTypes.BinaryType)
-                  .put(LegacySQLTypeName.DATE, DataTypes.DateType)
-                  .put(LegacySQLTypeName.TIMESTAMP, DataTypes.TimestampType)
-                  .put(LegacySQLTypeName.TIME, DataTypes.LongType)
-                  .put(LegacySQLTypeName.DATETIME, DataTypes.StringType)
-                  .put(LegacySQLTypeName.GEOGRAPHY, DataTypes.StringType).build();
+      new ImmutableMap.Builder<LegacySQLTypeName, DataType>()
+          .put(LegacySQLTypeName.INTEGER, DataTypes.LongType)
+          .put(LegacySQLTypeName.FLOAT, DataTypes.DoubleType)
+          .put(LegacySQLTypeName.NUMERIC, NUMERIC_SPARK_TYPE)
+          .put(LegacySQLTypeName.STRING, DataTypes.StringType)
+          .put(LegacySQLTypeName.BOOLEAN, DataTypes.BooleanType)
+          .put(LegacySQLTypeName.BYTES, DataTypes.BinaryType)
+          .put(LegacySQLTypeName.DATE, DataTypes.DateType)
+          .put(LegacySQLTypeName.TIMESTAMP, DataTypes.TimestampType)
+          .put(LegacySQLTypeName.TIME, DataTypes.LongType)
+          .put(LegacySQLTypeName.DATETIME, DataTypes.StringType)
+          .put(LegacySQLTypeName.GEOGRAPHY, DataTypes.StringType)
+          .build();
 
   /** Convert a BigQuery schema to a Spark schema */
   public static StructType toSpark(Schema schema) {
@@ -332,8 +334,9 @@ public class SchemaConverters {
               "Decimal type is too wide to fit in BigQuery Numeric format"));
       return LegacySQLTypeName.NUMERIC;
     }
-    return Preconditions.checkNotNull(SparkToBigQueryTypes.get(elementType.json()),
-            new IllegalArgumentException("Data type not expected: " + elementType.simpleString()));
+    return Preconditions.checkNotNull(
+        SparkToBigQueryTypes.get(elementType.json()),
+        new IllegalArgumentException("Data type not expected: " + elementType.simpleString()));
   }
 
   private static Field.Builder createBigQueryFieldBuilder(

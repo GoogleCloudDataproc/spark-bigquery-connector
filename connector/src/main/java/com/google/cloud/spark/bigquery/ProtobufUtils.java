@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -65,29 +64,52 @@ public class ProtobufUtils {
                   LegacySQLTypeName.TIMESTAMP,
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
               .put(LegacySQLTypeName.DATE, DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32)
-                  .put(LegacySQLTypeName.DATETIME, DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
-                  .put(LegacySQLTypeName.GEOGRAPHY, DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
+              .put(
+                  LegacySQLTypeName.DATETIME, DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+              .put(
+                  LegacySQLTypeName.GEOGRAPHY,
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
               .build();
   private static final ImmutableMap<String, DescriptorProtos.FieldDescriptorProto.Type>
-          SparkToProtoType =
+      SparkToProtoType =
           new ImmutableMap.Builder<String, DescriptorProtos.FieldDescriptorProto.Type>()
-                  .put(DataTypes.BinaryType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
-                  .put(DataTypes.ByteType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
-                  .put(DataTypes.ShortType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
-                  .put(DataTypes.IntegerType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
-                  .put(DataTypes.LongType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
-                  .put(DataTypes.BooleanType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL)
-                  .put(DataTypes.FloatType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
-                  .put(DataTypes.DoubleType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
-                  .put(DecimalType.SYSTEM_DEFAULT().json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
-                  .put(DataTypes.StringType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
-                  .put(DataTypes.TimestampType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
-                  .put(DataTypes.DateType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32).build();
-  private static final ImmutableMap<Field.Mode, DescriptorProtos.FieldDescriptorProto.Label> BigQueryModeToProtoFieldLabel =
+              .put(
+                  DataTypes.BinaryType.json(),
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
+              .put(DataTypes.ByteType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+              .put(
+                  DataTypes.ShortType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+              .put(
+                  DataTypes.IntegerType.json(),
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+              .put(DataTypes.LongType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+              .put(
+                  DataTypes.BooleanType.json(),
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL)
+              .put(
+                  DataTypes.FloatType.json(),
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
+              .put(
+                  DataTypes.DoubleType.json(),
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
+              .put(
+                  DecimalType.SYSTEM_DEFAULT().json(),
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
+              .put(
+                  DataTypes.StringType.json(),
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
+              .put(
+                  DataTypes.TimestampType.json(),
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
+              .put(DataTypes.DateType.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32)
+              .build();
+  private static final ImmutableMap<Field.Mode, DescriptorProtos.FieldDescriptorProto.Label>
+      BigQueryModeToProtoFieldLabel =
           new ImmutableMap.Builder<Field.Mode, DescriptorProtos.FieldDescriptorProto.Label>()
-          .put(Field.Mode.NULLABLE, DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL)
-          .put(Field.Mode.REPEATED, DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED)
-                  .put(Field.Mode.REQUIRED, DescriptorProtos.FieldDescriptorProto.Label.LABEL_REQUIRED).build();
+              .put(Field.Mode.NULLABLE, DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL)
+              .put(Field.Mode.REPEATED, DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED)
+              .put(Field.Mode.REQUIRED, DescriptorProtos.FieldDescriptorProto.Label.LABEL_REQUIRED)
+              .build();
 
   /** BigQuery Schema ==> ProtoSchema converter utils: */
   public static ProtoBufProto.ProtoSchema toProtoSchema(Schema schema)
@@ -101,7 +123,7 @@ public class ProtobufUtils {
   }
 
   public static ProtoBufProto.ProtoSchema toProtoSchema(StructType schema)
-          throws IllegalArgumentException {
+      throws IllegalArgumentException {
     try {
       Descriptors.Descriptor descriptor = toDescriptor(schema);
       return ProtoSchemaConverter.convert(descriptor);
@@ -193,8 +215,9 @@ public class ProtobufUtils {
   }
 
   private static DescriptorProtos.FieldDescriptorProto.Label toProtoFieldLabel(Field.Mode mode) {
-    return Preconditions.checkNotNull(BigQueryModeToProtoFieldLabel.get(mode),
-            new IllegalArgumentException("A BigQuery Field Mode was invalid: " + mode.name()));
+    return Preconditions.checkNotNull(
+        BigQueryModeToProtoFieldLabel.get(mode),
+        new IllegalArgumentException("A BigQuery Field Mode was invalid: " + mode.name()));
   }
 
   // NOTE: annotations for DATETIME and TIMESTAMP objects are currently unsupported for external
@@ -208,8 +231,9 @@ public class ProtobufUtils {
       throw new IllegalStateException(
           "Program attempted to return an atomic data-type for a RECORD");
     }
-    return Preconditions.checkNotNull(BigQueryToProtoType.get(bqType),
-            new IllegalArgumentException("Unexpected type: " + bqType.name()));
+    return Preconditions.checkNotNull(
+        BigQueryToProtoType.get(bqType),
+        new IllegalArgumentException("Unexpected type: " + bqType.name()));
   }
 
   /**
@@ -406,7 +430,8 @@ public class ProtobufUtils {
     if (sparkType instanceof DecimalType) {
       return DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES;
     }
-    return Preconditions.checkNotNull(SparkToProtoType.get(sparkType.json()),
-            new IllegalStateException("Unexpected type: " + sparkType));
+    return Preconditions.checkNotNull(
+        SparkToProtoType.get(sparkType.json()),
+        new IllegalStateException("Unexpected type: " + sparkType));
   }
 }
