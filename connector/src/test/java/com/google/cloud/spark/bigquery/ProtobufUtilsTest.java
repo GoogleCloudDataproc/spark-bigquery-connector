@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
@@ -212,47 +211,47 @@ public class ProtobufUtilsTest {
           .add(SPARK_TIMESTAMP_FIELD);
 
   public final Field BIGQUERY_INTEGER_FIELD =
-      Field.newBuilder("Number", LegacySQLTypeName.INTEGER, (FieldList) null)
+      Field.newBuilder("Number", LegacySQLTypeName.INTEGER)
           .setMode(Field.Mode.NULLABLE)
           .build();
   public final Field BIGQUERY_STRING_FIELD =
-      Field.newBuilder("String", LegacySQLTypeName.STRING, (FieldList) null)
+      Field.newBuilder("String", LegacySQLTypeName.STRING)
           .setMode(Field.Mode.REQUIRED)
           .build();
   public final Field BIGQUERY_NESTED_STRUCT_FIELD =
       Field.newBuilder(
               "Struct",
               LegacySQLTypeName.RECORD,
-              Field.newBuilder("Number", LegacySQLTypeName.INTEGER, (FieldList) null)
+              Field.newBuilder("Number", LegacySQLTypeName.INTEGER)
                   .setMode(Field.Mode.NULLABLE)
                   .build(),
-              Field.newBuilder("String", LegacySQLTypeName.STRING, (FieldList) null)
+              Field.newBuilder("String", LegacySQLTypeName.STRING)
                   .setMode(Field.Mode.NULLABLE)
                   .build())
           .setMode(Field.Mode.NULLABLE)
           .build();
   public final Field BIGQUERY_ARRAY_FIELD =
-      Field.newBuilder("Array", LegacySQLTypeName.INTEGER, (FieldList) null)
+      Field.newBuilder("Array", LegacySQLTypeName.INTEGER)
           .setMode(Field.Mode.REPEATED)
           .build();
   public final Field BIGQUERY_FLOAT_FIELD =
-      Field.newBuilder("Float", LegacySQLTypeName.FLOAT, (FieldList) null)
+      Field.newBuilder("Float", LegacySQLTypeName.FLOAT)
           .setMode(Field.Mode.NULLABLE)
           .build();
   public final Field BIGQUERY_BOOLEAN_FIELD =
-      Field.newBuilder("Boolean", LegacySQLTypeName.BOOLEAN, (FieldList) null)
+      Field.newBuilder("Boolean", LegacySQLTypeName.BOOLEAN)
           .setMode(Field.Mode.NULLABLE)
           .build();
   public final Field BIGQUERY_BYTES_FIELD =
-      Field.newBuilder("Binary", LegacySQLTypeName.BYTES, (FieldList) null)
+      Field.newBuilder("Binary", LegacySQLTypeName.BYTES)
           .setMode(Field.Mode.NULLABLE)
           .build();
   public final Field BIGQUERY_DATE_FIELD =
-      Field.newBuilder("Date", LegacySQLTypeName.DATE, (FieldList) null)
+      Field.newBuilder("Date", LegacySQLTypeName.DATE)
           .setMode(Field.Mode.NULLABLE)
           .build();
   public final Field BIGQUERY_TIMESTAMP_FIELD =
-      Field.newBuilder("TimeStamp", LegacySQLTypeName.TIMESTAMP, (FieldList) null)
+      Field.newBuilder("TimeStamp", LegacySQLTypeName.TIMESTAMP)
           .setMode(Field.Mode.NULLABLE)
           .build();
 
