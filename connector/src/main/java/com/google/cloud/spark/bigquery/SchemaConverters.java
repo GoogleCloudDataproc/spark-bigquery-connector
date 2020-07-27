@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.cloud.bigquery.*;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.spark.ml.linalg.SQLDataTypes;
@@ -48,6 +49,33 @@ public class SchemaConverters {
   // The maximum nesting depth of a BigQuery RECORD:
   private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
   private static final String MAPTYPE_ERROR_MESSAGE = "MapType is unsupported.";
+  private static final ImmutableMap<String, LegacySQLTypeName> SparkToBigQueryTypes =
+          new ImmutableMap.Builder<String, LegacySQLTypeName>()
+                  .put(DataTypes.BinaryType.json(), LegacySQLTypeName.BYTES)
+                  .put(DataTypes.ByteType.json(), LegacySQLTypeName.INTEGER)
+                  .put(DataTypes.ShortType.json(), LegacySQLTypeName.INTEGER)
+                  .put(DataTypes.IntegerType.json(), LegacySQLTypeName.INTEGER)
+                  .put(DataTypes.LongType.json(), LegacySQLTypeName.INTEGER)
+                  .put(DataTypes.BooleanType.json(), LegacySQLTypeName.BOOLEAN)
+                  .put(DataTypes.FloatType.json(), LegacySQLTypeName.FLOAT)
+                  .put(DataTypes.DoubleType.json(), LegacySQLTypeName.FLOAT)
+                  .put(DecimalType.SYSTEM_DEFAULT().json(), LegacySQLTypeName.NUMERIC)
+                  .put(DataTypes.StringType.json(), LegacySQLTypeName.STRING)
+                  .put(DataTypes.TimestampType.json(), LegacySQLTypeName.TIMESTAMP)
+                  .put(DataTypes.DateType.json(), LegacySQLTypeName.DATE).build();
+  private static final ImmutableMap<LegacySQLTypeName, DataType> BigQueryToSparkTypes =
+          new ImmutableMap.Builder<LegacySQLTypeName, DataType>()
+                  .put(LegacySQLTypeName.INTEGER, DataTypes.LongType)
+                  .put(LegacySQLTypeName.FLOAT, DataTypes.DoubleType)
+                  .put(LegacySQLTypeName.NUMERIC, NUMERIC_SPARK_TYPE)
+                  .put(LegacySQLTypeName.STRING, DataTypes.StringType)
+                  .put(LegacySQLTypeName.BOOLEAN, DataTypes.BooleanType)
+                  .put(LegacySQLTypeName.BYTES, DataTypes.BinaryType)
+                  .put(LegacySQLTypeName.DATE, DataTypes.DateType)
+                  .put(LegacySQLTypeName.TIMESTAMP, DataTypes.TimestampType)
+                  .put(LegacySQLTypeName.TIME, DataTypes.LongType)
+                  .put(LegacySQLTypeName.DATETIME, DataTypes.StringType)
+                  .put(LegacySQLTypeName.GEOGRAPHY, DataTypes.StringType).build();
 
   /** Convert a BigQuery schema to a Spark schema */
   public static StructType toSpark(Schema schema) {
@@ -292,20 +320,8 @@ public class SchemaConverters {
 
   @VisibleForTesting
   protected static LegacySQLTypeName toBigQueryType(DataType elementType) {
-    if (elementType instanceof BinaryType) {
-      return LegacySQLTypeName.BYTES;
-    }
-    if (elementType instanceof ByteType
-        || elementType instanceof ShortType
-        || elementType instanceof IntegerType
-        || elementType instanceof LongType) {
-      return LegacySQLTypeName.INTEGER;
-    }
-    if (elementType instanceof BooleanType) {
-      return LegacySQLTypeName.BOOLEAN;
-    }
-    if (elementType instanceof FloatType || elementType instanceof DoubleType) {
-      return LegacySQLTypeName.FLOAT;
+    if (elementType instanceof MapType) {
+      throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
     }
     if (elementType instanceof DecimalType) {
       DecimalType decimalType = (DecimalType) elementType;
@@ -316,20 +332,8 @@ public class SchemaConverters {
               "Decimal type is too wide to fit in BigQuery Numeric format"));
       return LegacySQLTypeName.NUMERIC;
     }
-    if (elementType instanceof StringType) {
-      return LegacySQLTypeName.STRING;
-    }
-    if (elementType instanceof TimestampType) {
-      return LegacySQLTypeName.TIMESTAMP;
-    }
-    if (elementType instanceof DateType) {
-      return LegacySQLTypeName.DATE;
-    }
-    if (elementType instanceof MapType) {
-      throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
-    } else {
-      throw new IllegalArgumentException("Data type not expected: " + elementType.simpleString());
-    }
+    return Preconditions.checkNotNull(SparkToBigQueryTypes.get(elementType.json()),
+            new IllegalArgumentException("Data type not expected: " + elementType.simpleString()));
   }
 
   private static Field.Builder createBigQueryFieldBuilder(
