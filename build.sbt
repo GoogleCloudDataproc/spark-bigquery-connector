@@ -42,7 +42,7 @@ lazy val root = (project in file("."))
 lazy val commonTestDependencies = Seq(
   "io.grpc" % "grpc-alts" % grpcVersion exclude("io.grpc", "grpc-netty-shaded"),
   "io.grpc" % "grpc-netty" % grpcVersion,
-  "com.google.api" % "gax-grpc" % "1.57.0" exclude("io.grpc", "grpc-netty-shaded"),
+  "com.google.api" % "gax-grpc" % "1.57.1" exclude("io.grpc", "grpc-netty-shaded"),
   "com.google.guava" % "guava" % "29.0-jre",
 
   "org.scalatest" %% "scalatest" % "3.1.0" % "test",
@@ -82,8 +82,8 @@ lazy val connector = (project in file("connector"))
       "com.google.inject" % "guice" % "4.2.3",
 
       // Keep com.google.cloud dependencies in sync
-      "com.google.cloud" % "google-cloud-bigquery" % "1.116.3",
-      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.0.0"
+      "com.google.cloud" % "google-cloud-bigquery" % "1.116.7",
+      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.2.1"
         exclude("io.grpc", "grpc-netty-shaded"),
       // Keep in sync with com.google.cloud
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.11.0",
