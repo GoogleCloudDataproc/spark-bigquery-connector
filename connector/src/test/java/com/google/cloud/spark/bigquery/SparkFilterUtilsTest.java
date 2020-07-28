@@ -17,8 +17,6 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
-import org.apache.spark.sql.sources.EqualTo;
-import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.sources.*;
 import org.junit.Test;
 
@@ -142,5 +140,30 @@ public class SparkFilterUtilsTest {
         .isEqualTo("`foo` LIKE '%b\\'ar'");
     assertThat(SparkFilterUtils.compileFilter(StringContains.apply("foo", "b'ar")))
         .isEqualTo("`foo` LIKE '%b\\'ar%'");
+  }
+
+  @Test
+  public void testNumericAndNullFilters() {
+
+    assertThat(SparkFilterUtils.compileFilter(EqualTo.apply("foo", 1))).isEqualTo("`foo` = 1");
+    assertThat(SparkFilterUtils.compileFilter(GreaterThan.apply("foo", 2))).isEqualTo("`foo` > 2");
+    assertThat(SparkFilterUtils.compileFilter(GreaterThanOrEqual.apply("foo", 3)))
+        .isEqualTo("`foo` >= 3");
+    assertThat(SparkFilterUtils.compileFilter(LessThan.apply("foo", 4))).isEqualTo("`foo` < 4");
+    assertThat(SparkFilterUtils.compileFilter(LessThanOrEqual.apply("foo", 5)))
+        .isEqualTo("`foo` <= 5");
+    assertThat(SparkFilterUtils.compileFilter(In.apply("foo", new Object[] {6, 7, 8})))
+        .isEqualTo("`foo` IN UNNEST([6, 7, 8])");
+    assertThat(SparkFilterUtils.compileFilter(IsNull.apply("foo"))).isEqualTo("`foo` IS NULL");
+    assertThat(SparkFilterUtils.compileFilter(IsNotNull.apply("foo")))
+        .isEqualTo("`foo` IS NOT NULL");
+    assertThat(
+            SparkFilterUtils.compileFilter(And.apply(IsNull.apply("foo"), IsNotNull.apply("bar"))))
+        .isEqualTo("(`foo` IS NULL) AND (`bar` IS NOT NULL)");
+    assertThat(
+            SparkFilterUtils.compileFilter(Or.apply(IsNull.apply("foo"), IsNotNull.apply("bar"))))
+        .isEqualTo("(`foo` IS NULL) OR (`bar` IS NOT NULL)");
+    assertThat(SparkFilterUtils.compileFilter(Not.apply(IsNull.apply("foo"))))
+        .isEqualTo("(NOT (`foo` IS NULL))");
   }
 }
