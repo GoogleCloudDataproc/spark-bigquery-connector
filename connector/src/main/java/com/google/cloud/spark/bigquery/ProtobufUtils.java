@@ -35,6 +35,7 @@ import org.apache.spark.unsafe.types.UTF8String;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -45,6 +46,8 @@ public class ProtobufUtils {
 
   static final Logger logger = LoggerFactory.getLogger(ProtobufUtils.class);
 
+  private static final int BQ_NUMERIC_PRECISION = 38;
+  private static final int BQ_NUMERIC_SCALE = 9;
   // The maximum nesting depth of a BigQuery RECORD:
   private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
   // For every message, a nested type is name "STRUCT"+i, where i is the
@@ -343,7 +346,7 @@ public class ProtobufUtils {
     }
 
     if (sparkType instanceof DecimalType) {
-      return Base64.getEncoder().encode(sparkValue.toString().getBytes(UTF_8));
+      return convertBigDecimalToNumeric(((Decimal)sparkValue).toJavaBigDecimal());
     }
 
     if (sparkType instanceof BooleanType) {
@@ -424,5 +427,30 @@ public class ProtobufUtils {
     return Preconditions.checkNotNull(
         SparkToProtoType.get(sparkType.json()),
         new IllegalStateException("Unexpected type: " + sparkType));
+  }
+
+  private static byte[] convertBigDecimalToNumeric(BigDecimal decimal) {
+    return Base64.getEncoder().encode(
+            reverse(decimal
+                    .setScale(BQ_NUMERIC_SCALE, BigDecimal.ROUND_UNNECESSARY)
+                    .unscaledValue()
+                    .toByteArray()));
+  }
+
+  private static byte[] reverse(byte[] arr) {
+    if(arr == null || arr.length <= 1) {
+      return arr;
+    }
+    byte tmp;
+    int index = 0;
+    int reversedIndex = arr.length-1;
+    while(reversedIndex > index) {
+      tmp = arr[reversedIndex];
+      arr[reversedIndex] = arr[index];
+      arr[index] = tmp;
+      index++;
+      reversedIndex--;
+    }
+    return arr;
   }
 }
