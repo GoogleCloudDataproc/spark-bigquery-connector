@@ -355,7 +355,7 @@ public class ProtobufUtils {
     }
 
     if (sparkType instanceof DecimalType) {
-      return convertBigDecimalToNumeric(((Decimal)sparkValue).toJavaBigDecimal());
+      return convertBigDecimalToNumeric(((Decimal) sparkValue).toJavaBigDecimal());
     }
 
     if (sparkType instanceof BooleanType) {
@@ -439,21 +439,23 @@ public class ProtobufUtils {
   }
 
   private static byte[] convertBigDecimalToNumeric(BigDecimal decimal) {
-    return Base64.getEncoder().encode(
-            reverse(decimal
+    return Base64.getEncoder()
+        .encode(
+            reverse(
+                decimal
                     .setScale(BQ_NUMERIC_SCALE, BigDecimal.ROUND_UNNECESSARY)
                     .unscaledValue()
                     .toByteArray()));
   }
 
   private static byte[] reverse(byte[] arr) {
-    if(arr == null || arr.length <= 1) {
+    if (arr == null || arr.length <= 1) {
       return arr;
     }
     byte tmp;
     int index = 0;
-    int reversedIndex = arr.length-1;
-    while(reversedIndex > index) {
+    int reversedIndex = arr.length - 1;
+    while (reversedIndex > index) {
       tmp = arr[reversedIndex];
       arr[reversedIndex] = arr[index];
       arr[index] = tmp;
