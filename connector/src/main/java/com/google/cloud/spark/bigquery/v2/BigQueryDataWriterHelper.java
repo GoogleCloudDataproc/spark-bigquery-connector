@@ -1,5 +1,6 @@
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.api.client.util.Sleeper;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
 import com.google.cloud.bigquery.storage.v1alpha2.*;
@@ -12,15 +13,22 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class BigQueryDataWriterHelper {
 
   final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterHelper.class);
   final long APPEND_REQUEST_SIZE = 1000L * 1000L; // 1MB limit for each append
+  final long MILLIS_IN_A_MINUTE = 60000L;
+  final Sleeper sleeper = Sleeper.DEFAULT;
+  final ExecutorService validateThread = Executors.newCachedThreadPool();
 
   private final BigQueryWriteClient writeClient;
   private final String tablePath;
   private final ProtoBufProto.ProtoSchema protoSchema;
+  private final int partitionId;
 
   private Stream.WriteStream writeStream;
   private StreamWriter streamWriter;
@@ -35,17 +43,25 @@ public class BigQueryDataWriterHelper {
   protected BigQueryDataWriterHelper(
       BigQueryWriteClientFactory writeClientFactory,
       String tablePath,
-      StructType sparkSchema,
-      ProtoBufProto.ProtoSchema protoSchema) {
+      ProtoBufProto.ProtoSchema protoSchema,
+      int partitionId) {
     this.writeClient = writeClientFactory.createBigQueryWriteClient();
     this.tablePath = tablePath;
     this.protoSchema = protoSchema;
+    this.partitionId = partitionId;
 
     createWriteStreamAndStreamWriter();
     this.protoRows = ProtoBufProto.ProtoRows.newBuilder();
   }
 
   private void createWriteStreamAndStreamWriter() {
+    long timeout = (long) (Math.random() * MILLIS_IN_A_MINUTE * partitionId / 1000);
+    try {
+      sleeper.sleep(timeout);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(
+          "Timeout was interrupted while waiting to create write-stream.", e);
+    }
     this.writeStream =
         writeClient.createWriteStream(
             Storage.CreateWriteStreamRequest.newBuilder()
@@ -71,37 +87,15 @@ public class BigQueryDataWriterHelper {
       appendRows = 0;
       appendBytes = 0;
     }
-    /*
-           if(writeStreamBytes + messageSize > MAX_STREAM_SIZE) {
-               throw new IOException("Data writer exceeded maximum write-stream size"); // suppress error.
-           }
-    */
 
     protoRows.addSerializedRows(message);
     appendBytes += messageSize;
     appendRows++;
   }
 
-  // from
-  // https://stackoverflow.com/questions/9655181/how-to-convert-a-byte-array-to-a-hex-string-in-java
-  // :
-  public static String bytesToHex(byte[] bytes) {
-    byte[] hexChars = new byte[bytes.length * 2];
-    for (int j = 0; j < bytes.length; j++) {
-      int v = bytes[j] & 0xFF;
-      hexChars[j * 2] = HEX_ARRAY[v >>> 4];
-      hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
-    }
-    return new String(hexChars, StandardCharsets.UTF_8);
-  }
-
-  private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes();
-
   private void appendRequest() throws IOException, IllegalStateException {
     Storage.AppendRowsRequest.Builder requestBuilder =
         Storage.AppendRowsRequest.newBuilder().setOffset(Int64Value.of(writeStreamRows));
-
-    String row = bytesToHex(protoRows.getSerializedRows(0).toByteArray());
 
     Storage.AppendRowsRequest.ProtoData.Builder dataBuilder =
         Storage.AppendRowsRequest.ProtoData.newBuilder();
@@ -112,13 +106,7 @@ public class BigQueryDataWriterHelper {
 
     ApiFuture<Storage.AppendRowsResponse> response = streamWriter.append(requestBuilder.build());
 
-    try {
-      if (this.writeStreamRows != response.get().getOffset()) {
-        throw new IllegalStateException("Append request offset did not match expected offset.");
-      }
-    } catch (InterruptedException | ExecutionException e) {
-      throw new IOException("Could not get offset for append request.", e);
-    }
+    validateThread.submit(new ValidateResponses(response, this.writeStreamRows));
 
     clearProtoRows();
     this.writeStreamRows += appendRows; // add the # of rows appended to writeStreamRows
@@ -128,6 +116,12 @@ public class BigQueryDataWriterHelper {
   protected void finalizeStream() throws IOException {
     if (this.appendRows != 0 || this.appendBytes != 0) {
       appendRequest();
+    }
+
+    try {
+      validateThread.awaitTermination(60, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      throw new RuntimeException("Validation of API responses was interrupted.", e);
     }
 
     Storage.FinalizeWriteStreamResponse finalizeResponse =
@@ -164,6 +158,28 @@ public class BigQueryDataWriterHelper {
     }
     if (writeClient != null && !writeClient.isShutdown()) {
       writeClient.shutdown();
+    }
+  }
+
+  class ValidateResponses implements Runnable {
+
+    final long offset;
+    final ApiFuture<Storage.AppendRowsResponse> response;
+
+    ValidateResponses(ApiFuture<Storage.AppendRowsResponse> response, long offset) {
+      this.offset = offset;
+      this.response = response;
+    }
+
+    @Override
+    public void run() {
+      try {
+        if (this.offset != this.response.get().getOffset()) {
+          throw new RuntimeException("Append request offset did not match expected offset.");
+        }
+      } catch (InterruptedException | ExecutionException e) {
+        throw new RuntimeException("Could not get offset for append request.", e);
+      }
     }
   }
 }
