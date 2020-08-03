@@ -458,7 +458,7 @@ object DirectBigQueryRelation {
     case StringEndsWith(_, _) => true
     case StringContains(_, _) => true
     case _ => false
-  }  // TODO: DONE
+  }
 
   // Mostly copied from JDBCRDD.scala
   def compileFilter(filter: Filter): String = filter match {
@@ -480,11 +480,11 @@ object DirectBigQueryRelation {
     case StringContains(attr, value) =>
       s"${quote(attr)} LIKE '''%${value.replace("'", "\\'")}%'''"
     case _ => throw new IllegalArgumentException(s"Invalid filter: $filter")
-  } // TODO: DONE
+  }
 
   def compileFilters(filters: Iterable[Filter]): String = {
     filters.map(compileFilter).toSeq.sorted.mkString(" AND ")
-  } // TODO: DONE
+  }
 
   /**
    * Converts value to SQL expression.
@@ -496,7 +496,7 @@ object DirectBigQueryRelation {
     case dateValue: Date => "DATE '" + dateValue + "'"
     case arrayValue: Array[Any] => arrayValue.map(compileValue).mkString("[", ", ", "]")
     case _ => value
-  } // TODO: DONE
+  }
 
   private def quote(attr: String): String = {
     s"""`$attr`"""
