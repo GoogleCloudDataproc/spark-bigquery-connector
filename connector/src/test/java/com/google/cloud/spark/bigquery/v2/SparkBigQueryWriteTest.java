@@ -34,7 +34,7 @@ public class SparkBigQueryWriteTest {
     public static final Logger logger = LogManager.getLogger("com.google.cloud");
 
     public static final String PROJECT = ServiceOptions.getDefaultProjectId();
-    public static final String DATASET = "spark_bigquery_vortex_it_"+System.nanoTime();
+    public static final String DATASET = "spark_bigquery_storage_write_it_"+System.nanoTime();
     public static final String OVERWRITE_TABLE = "testTable";
     public static final String DESCRIPTION = "Spark BigQuery connector write session tests.";
 
@@ -336,7 +336,7 @@ public class SparkBigQueryWriteTest {
             .add(new StructField("bool", BooleanType, true, Metadata.empty()))
             .add(new StructField("str", StringType, true, Metadata.empty()))
             .add(new StructField("date", DateType, true, Metadata.empty()))
-            /*.add(new StructField("timestamp", TimestampType, true, Metadata.empty()))*/ // TODO: restore when Vortex adds external TimeStamp support.
+            /*.add(new StructField("timestamp", TimestampType, true, Metadata.empty()))*/ // TODO: restore when BigQuery Storage API adds external TimeStamp support.
             .add(new StructField("binary", BinaryType, true, Metadata.empty()))
             .add(new StructField("float", DoubleType, true, Metadata.empty()))
             /*.add(new StructField("nums", new StructType()
@@ -364,7 +364,7 @@ public class SparkBigQueryWriteTest {
             .add(new StructField("bool", BooleanType, true, Metadata.empty()))
             .add(new StructField("str", StringType, true, Metadata.empty()))
             .add(new StructField("date", DateType, true, Metadata.empty()))
-            /*.add(new StructField("timestamp", TimestampType, true, Metadata.empty()))*/ // TODO: restore when Vortex adds external TimeStamp support.
+            /*.add(new StructField("timestamp", TimestampType, true, Metadata.empty()))*/ // TODO: restore when BigQuery Storage API adds external TimeStamp support.
             .add(new StructField("binary", BinaryType, true, Metadata.empty()))
             .add(new StructField("float", DoubleType, true, Metadata.empty()))
             /*.add(new StructField("nums", new StructType()
@@ -392,7 +392,7 @@ public class SparkBigQueryWriteTest {
                     true,
                     "hello",
                     new Date(1595010664123L),
-                    /*new Timestamp(1595010664123L),*/ // TODO: restore when Vortex adds external TimeStamp support.
+                    /*new Timestamp(1595010664123L),*/ // TODO: restore when BigQuery Storage API adds external TimeStamp support.
                     new byte[]{1, 2, 3, 4},
                     1.2345,
                     /*RowFactory.create(
