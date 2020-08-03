@@ -56,7 +56,7 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
     if (ignoreInputs) return;
 
     this.writerHelper =
-        new BigQueryDataWriterHelper(writeClientFactory, tablePath, sparkSchema, protoSchema);
+        new BigQueryDataWriterHelper(writeClientFactory, tablePath, protoSchema, partitionId);
   }
 
   @Override
