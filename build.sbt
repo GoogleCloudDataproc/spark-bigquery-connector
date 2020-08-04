@@ -74,6 +74,7 @@ lazy val connector = (project in file("connector"))
     libraryDependencies ++= (commonTestDependencies ++ Seq(
       "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
       "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
+      "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
       "org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
       "aopalliance" % "aopalliance" % "1.0" % "provided",
       "org.codehaus.jackson" % "jackson-core-asl" % "1.9.13" % "provided",

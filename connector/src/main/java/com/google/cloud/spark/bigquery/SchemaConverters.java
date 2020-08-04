@@ -16,10 +16,14 @@
 package com.google.cloud.spark.bigquery;
 
 import avro.shaded.com.google.common.base.Preconditions;
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.Schema;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
+import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
@@ -33,6 +37,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class SchemaConverters {
+  public static final String SPARK_ML_VECTOR_TYPE_MARKER = "{spark.type=vector}";
+  public static final String SPARK_ML_MATRIX_TYPE_MARKER = "{spark.type=matrix}";
+
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
   private static final int BQ_NUMERIC_PRECISION = 38;
@@ -80,6 +87,13 @@ public class SchemaConverters {
           valueList.stream().map(v -> convert(nestedField, v)).collect(Collectors.toList()));
     }
 
+    Object datum = convertByBigQueryType(field, value);
+    Optional<Object> customDatum =
+        getCustomDataType(field).map(dt -> ((UserDefinedType) dt).deserialize(datum));
+    return customDatum.orElse(datum);
+  }
+
+  static Object convertByBigQueryType(Field field, Object value) {
     if (LegacySQLTypeName.INTEGER.equals(field.getType())
         || LegacySQLTypeName.FLOAT.equals(field.getType())
         || LegacySQLTypeName.BOOLEAN.equals(field.getType())
@@ -169,7 +183,29 @@ public class SchemaConverters {
   }
 
   private static DataType getDataType(Field field) {
+    return getCustomDataType(field).orElseGet(() -> getStandardDataType(field));
+  }
 
+  @VisibleForTesting
+  static Optional<DataType> getCustomDataType(Field field) {
+    // metadata is kept in the description
+    String description = field.getDescription();
+    if (description != null) {
+      // All supported types are serialized to records
+      if (LegacySQLTypeName.RECORD.equals(field.getType())) {
+        // we don't have many types, so we keep parsing to minimum
+        if (description.endsWith(SPARK_ML_VECTOR_TYPE_MARKER)) {
+          return Optional.of(SQLDataTypes.VectorType());
+        }
+        if (description.endsWith(SPARK_ML_MATRIX_TYPE_MARKER)) {
+          return Optional.of(SQLDataTypes.MatrixType());
+        }
+      }
+    }
+    return Optional.empty();
+  }
+
+  private static DataType getStandardDataType(Field field) {
     if (LegacySQLTypeName.INTEGER.equals(field.getType())) {
       return DataTypes.LongType;
     } else if (LegacySQLTypeName.FLOAT.equals(field.getType())) {
