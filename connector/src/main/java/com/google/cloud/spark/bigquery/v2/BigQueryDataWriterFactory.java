@@ -53,13 +53,6 @@ public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow>
       return new NoOpDataWriter();
     }
     return new BigQueryDataWriter(
-        partitionId,
-        taskId,
-        epochId,
-        writeClientFactory,
-        tablePath,
-        sparkSchema,
-        protoSchema,
-        ignoreInputs);
+        partitionId, taskId, epochId, writeClientFactory, tablePath, sparkSchema, protoSchema);
   }
 }
