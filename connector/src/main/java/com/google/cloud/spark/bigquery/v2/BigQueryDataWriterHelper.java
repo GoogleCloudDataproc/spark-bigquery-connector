@@ -34,7 +34,7 @@ public class BigQueryDataWriterHelper {
 
   final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterHelper.class);
   final long APPEND_REQUEST_SIZE = 1000L * 1000L; // 1MB limit for each append
-  final int WAIT_TIME_FOR_APPEND_RESULTS_MILLIS =
+  final int BACKOFF_TIME_FOR_APPEND_RESPONSE_MILLIS =
       100; // Number of milliseconds to stand by for append request response validation
   final ExecutorService validateThread = Executors.newCachedThreadPool();
 
@@ -42,7 +42,7 @@ public class BigQueryDataWriterHelper {
   private final String tablePath;
   private final ProtoBufProto.ProtoSchema protoSchema;
 
-  private Stream.WriteStream writeStream;
+  private String writeStreamName;
   private StreamWriter streamWriter;
   private ProtoBufProto.ProtoRows.Builder protoRows;
 
@@ -67,7 +67,7 @@ public class BigQueryDataWriterHelper {
   }
 
   private void createWriteStreamAndStreamWriter() {
-    this.writeStream =
+    this.writeStreamName =
         writeClient.createWriteStream(
             Storage.CreateWriteStreamRequest.newBuilder()
                 .setParent(tablePath)
@@ -75,16 +75,15 @@ public class BigQueryDataWriterHelper {
                     Stream.WriteStream.newBuilder()
                         .setType(Stream.WriteStream.Type.PENDING)
                         .build())
-                .build());
-
+                .build()).getName();
     try {
-      this.streamWriter = StreamWriter.newBuilder(writeStream.getName()).build();
+      this.streamWriter = StreamWriter.newBuilder(this.writeStreamName).build();
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException("Could not build stream-writer.", e);
     }
   }
 
-  protected void addRow(ByteString message) throws IOException {
+  protected void addRow(ByteString message) {
     int messageSize = message.size();
 
     if (appendBytes + messageSize > APPEND_REQUEST_SIZE) {
@@ -98,7 +97,7 @@ public class BigQueryDataWriterHelper {
     appendRows++;
   }
 
-  private void appendRequest() throws IllegalStateException {
+  private void appendRequest() {
     long offset = writeStreamRows;
 
     Storage.AppendRowsRequest.Builder requestBuilder =
@@ -109,7 +108,7 @@ public class BigQueryDataWriterHelper {
     dataBuilder.setWriterSchema(protoSchema);
     dataBuilder.setRows(protoRows.build());
 
-    requestBuilder.setProtoRows(dataBuilder.build()).setWriteStream(writeStream.getName());
+    requestBuilder.setProtoRows(dataBuilder.build()).setWriteStream(writeStreamName);
 
     ApiFuture<Storage.AppendRowsResponse> appendRowsResponseApiFuture =
         streamWriter.append(requestBuilder.build());
@@ -133,25 +132,25 @@ public class BigQueryDataWriterHelper {
 
     Storage.FinalizeWriteStreamResponse finalizeResponse =
         writeClient.finalizeWriteStream(
-            Storage.FinalizeWriteStreamRequest.newBuilder().setName(writeStream.getName()).build());
+            Storage.FinalizeWriteStreamRequest.newBuilder().setName(writeStreamName).build());
 
     if (finalizeResponse.getRowCount() != writeStreamRows) {
-      throw new IOException("Finalize response had an unexpected row count.");
+      throw new RuntimeException("Finalize response had an unexpected row count.");
     }
 
     writeClient.shutdown();
 
     logger.debug(
         "Write-stream {} finalized with row-count {}",
-        writeStream.getName(),
+        writeStreamName,
         finalizeResponse.getRowCount());
   }
 
   private void awaitThread(ExecutorService validateThread) throws IOException {
     ExponentialBackOff exponentialBackOff =
         new ExponentialBackOff.Builder()
-            .setInitialIntervalMillis(WAIT_TIME_FOR_APPEND_RESULTS_MILLIS)
-            .setMaxElapsedTimeMillis(appendCount * WAIT_TIME_FOR_APPEND_RESULTS_MILLIS)
+            .setInitialIntervalMillis(BACKOFF_TIME_FOR_APPEND_RESPONSE_MILLIS)
+            .setMaxElapsedTimeMillis(appendCount * BACKOFF_TIME_FOR_APPEND_RESPONSE_MILLIS)
             .build();
     while (true) {
       long nextBackOffMillis = exponentialBackOff.nextBackOffMillis();
@@ -172,7 +171,7 @@ public class BigQueryDataWriterHelper {
   }
 
   protected String getWriteStreamName() {
-    return writeStream.getName();
+    return writeStreamName;
   }
 
   protected long getDataWriterRows() {
@@ -202,13 +201,16 @@ public class BigQueryDataWriterHelper {
     @Override
     public void run() {
       try {
-        Storage.AppendRowsResponse appendRowsResponse = appendRowsResponseApiFuture.get();
+        Storage.AppendRowsResponse appendRowsResponse = this.appendRowsResponseApiFuture.get();
+        long expectedOffset = this.offset;
         if (appendRowsResponse.hasError()) {
           throw new RuntimeException(
               "Append request failed with error: " + appendRowsResponse.getError().getMessage());
         }
-        if (this.offset != this.appendRowsResponseApiFuture.get().getOffset()) {
-          throw new RuntimeException("Append request offset did not match expected offset.");
+        if (expectedOffset != appendRowsResponse.getOffset()) {
+          throw new RuntimeException(
+                  String.format("Append response offset %d did not match expected offset %d.",
+                          appendRowsResponse.getOffset(), expectedOffset));
         }
       } catch (InterruptedException | ExecutionException e) {
         throw new RuntimeException("Could not analyze append response.", e);
