@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.api.client.util.Sleeper;
+import com.google.api.client.util.ExponentialBackOff;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
 import com.google.cloud.bigquery.storage.v1alpha2.*;
@@ -34,14 +34,13 @@ public class BigQueryDataWriterHelper {
 
   final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterHelper.class);
   final long APPEND_REQUEST_SIZE = 1000L * 1000L; // 1MB limit for each append
-  final long MILLIS_IN_A_MINUTE = 60000L;
-  final Sleeper sleeper = Sleeper.DEFAULT;
+  final int WAIT_TIME_FOR_APPEND_RESULTS_MILLIS =
+      100; // Number of milliseconds to stand by for append request response validation
   final ExecutorService validateThread = Executors.newCachedThreadPool();
 
   private final BigQueryWriteClient writeClient;
   private final String tablePath;
   private final ProtoBufProto.ProtoSchema protoSchema;
-  private final int partitionId;
 
   private Stream.WriteStream writeStream;
   private StreamWriter streamWriter;
@@ -50,31 +49,24 @@ public class BigQueryDataWriterHelper {
   private long appendRows = 0; // number of rows waiting for the next append request
   private long appendBytes = 0; // number of bytes waiting for the next append request
 
+  private int appendCount = 0;
+
   private long writeStreamBytes = 0; // total bytes of the current write-stream
   private long writeStreamRows = 0; // total offset / rows of the current write-stream
 
   protected BigQueryDataWriterHelper(
       BigQueryWriteClientFactory writeClientFactory,
       String tablePath,
-      ProtoBufProto.ProtoSchema protoSchema,
-      int partitionId) {
+      ProtoBufProto.ProtoSchema protoSchema) {
     this.writeClient = writeClientFactory.createBigQueryWriteClient();
     this.tablePath = tablePath;
     this.protoSchema = protoSchema;
-    this.partitionId = partitionId;
 
     createWriteStreamAndStreamWriter();
     this.protoRows = ProtoBufProto.ProtoRows.newBuilder();
   }
 
   private void createWriteStreamAndStreamWriter() {
-    long timeout = (long) (Math.random() * MILLIS_IN_A_MINUTE * partitionId / 1000);
-    try {
-      sleeper.sleep(timeout);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(
-          "Timeout was interrupted while waiting to create write-stream.", e);
-    }
     this.writeStream =
         writeClient.createWriteStream(
             Storage.CreateWriteStreamRequest.newBuilder()
@@ -106,9 +98,11 @@ public class BigQueryDataWriterHelper {
     appendRows++;
   }
 
-  private void appendRequest() throws IOException, IllegalStateException {
+  private void appendRequest() throws IllegalStateException {
+    long offset = writeStreamRows;
+
     Storage.AppendRowsRequest.Builder requestBuilder =
-        Storage.AppendRowsRequest.newBuilder().setOffset(Int64Value.of(writeStreamRows));
+        Storage.AppendRowsRequest.newBuilder().setOffset(Int64Value.of(offset));
 
     Storage.AppendRowsRequest.ProtoData.Builder dataBuilder =
         Storage.AppendRowsRequest.ProtoData.newBuilder();
@@ -117,13 +111,15 @@ public class BigQueryDataWriterHelper {
 
     requestBuilder.setProtoRows(dataBuilder.build()).setWriteStream(writeStream.getName());
 
-    ApiFuture<Storage.AppendRowsResponse> response = streamWriter.append(requestBuilder.build());
+    ApiFuture<Storage.AppendRowsResponse> appendRowsResponseApiFuture =
+        streamWriter.append(requestBuilder.build());
 
-    validateThread.submit(new ValidateResponses(response, this.writeStreamRows));
+    validateThread.submit(new AppendResponseObserver(appendRowsResponseApiFuture, offset));
 
     clearProtoRows();
     this.writeStreamRows += appendRows; // add the # of rows appended to writeStreamRows
     this.writeStreamBytes += appendBytes;
+    this.appendCount++;
   }
 
   protected void finalizeStream() throws IOException {
@@ -131,10 +127,8 @@ public class BigQueryDataWriterHelper {
       appendRequest();
     }
 
-    try {
-      validateThread.awaitTermination(60, TimeUnit.SECONDS);
-    } catch (InterruptedException e) {
-      throw new RuntimeException("Validation of API responses was interrupted.", e);
+    if (!validateThread.isTerminated()) {
+      awaitThread(validateThread);
     }
 
     Storage.FinalizeWriteStreamResponse finalizeResponse =
@@ -151,6 +145,26 @@ public class BigQueryDataWriterHelper {
         "Write-stream {} finalized with row-count {}",
         writeStream.getName(),
         finalizeResponse.getRowCount());
+  }
+
+  private void awaitThread(ExecutorService validateThread) throws IOException {
+    ExponentialBackOff exponentialBackOff =
+        new ExponentialBackOff.Builder()
+            .setInitialIntervalMillis(WAIT_TIME_FOR_APPEND_RESULTS_MILLIS)
+            .setMaxElapsedTimeMillis(appendCount * WAIT_TIME_FOR_APPEND_RESULTS_MILLIS)
+            .build();
+    while (true) {
+      long nextBackOffMillis = exponentialBackOff.nextBackOffMillis();
+      if (nextBackOffMillis == ExponentialBackOff.STOP) {
+        throw new RuntimeException("Could not validate append rows responses.");
+      }
+      try {
+        validateThread.awaitTermination(
+            exponentialBackOff.nextBackOffMillis(), TimeUnit.MILLISECONDS);
+        return;
+      } catch (InterruptedException ignored) {
+      }
+    }
   }
 
   private void clearProtoRows() {
@@ -174,24 +188,30 @@ public class BigQueryDataWriterHelper {
     }
   }
 
-  class ValidateResponses implements Runnable {
+  static class AppendResponseObserver implements Runnable {
 
     final long offset;
-    final ApiFuture<Storage.AppendRowsResponse> response;
+    final ApiFuture<Storage.AppendRowsResponse> appendRowsResponseApiFuture;
 
-    ValidateResponses(ApiFuture<Storage.AppendRowsResponse> response, long offset) {
+    AppendResponseObserver(
+        ApiFuture<Storage.AppendRowsResponse> appendRowsResponseApiFuture, long offset) {
       this.offset = offset;
-      this.response = response;
+      this.appendRowsResponseApiFuture = appendRowsResponseApiFuture;
     }
 
     @Override
     public void run() {
       try {
-        if (this.offset != this.response.get().getOffset()) {
+        Storage.AppendRowsResponse appendRowsResponse = appendRowsResponseApiFuture.get();
+        if (appendRowsResponse.hasError()) {
+          throw new RuntimeException(
+              "Append request failed with error: " + appendRowsResponse.getError().getMessage());
+        }
+        if (this.offset != this.appendRowsResponseApiFuture.get().getOffset()) {
           throw new RuntimeException("Append request offset did not match expected offset.");
         }
       } catch (InterruptedException | ExecutionException e) {
-        throw new RuntimeException("Could not get offset for append request.", e);
+        throw new RuntimeException("Could not analyze append response.", e);
       }
     }
   }

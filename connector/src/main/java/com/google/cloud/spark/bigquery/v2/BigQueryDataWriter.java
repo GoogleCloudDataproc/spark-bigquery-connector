@@ -41,8 +41,6 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
   private final String tablePath;
   private final StructType sparkSchema;
   private final Descriptors.Descriptor schemaDescriptor;
-  private final ProtoBufProto.ProtoSchema protoSchema;
-  private final boolean ignoreInputs;
 
   private BigQueryDataWriterHelper writerHelper;
 
@@ -53,8 +51,7 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
       BigQueryWriteClientFactory writeClientFactory,
       String tablePath,
       StructType sparkSchema,
-      ProtoBufProto.ProtoSchema protoSchema,
-      boolean ignoreInputs) {
+      ProtoBufProto.ProtoSchema protoSchema) {
     this.partitionId = partitionId;
     this.taskId = taskId;
     this.epochId = epochId;
@@ -65,19 +62,12 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
     } catch (Descriptors.DescriptorValidationException e) {
       throw new RuntimeException("Could not convert spark-schema to descriptor object.", e);
     }
-    this.protoSchema = protoSchema;
-    this.ignoreInputs = ignoreInputs;
 
-    if (ignoreInputs) return;
-
-    this.writerHelper =
-        new BigQueryDataWriterHelper(writeClientFactory, tablePath, protoSchema, partitionId);
+    this.writerHelper = new BigQueryDataWriterHelper(writeClientFactory, tablePath, protoSchema);
   }
 
   @Override
   public void write(InternalRow record) throws IOException {
-    if (ignoreInputs) return;
-
     // if(partitionId == 3) abort(); FIXME: for debugging purposes.
 
     ByteString message =
@@ -92,17 +82,15 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
     Long finalizedRowCount = null;
     String writeStreamName = null;
 
-    if (!ignoreInputs) {
-      writerHelper.finalizeStream();
+    writerHelper.finalizeStream();
 
-      finalizedRowCount = writerHelper.getDataWriterRows();
-      writeStreamName = writerHelper.getWriteStreamName();
+    finalizedRowCount = writerHelper.getDataWriterRows();
+    writeStreamName = writerHelper.getWriteStreamName();
 
-      logger.debug(
-          "Data Writer {}'s write-stream has finalized with row count: {}",
-          partitionId,
-          finalizedRowCount);
-    }
+    logger.debug(
+        "Data Writer {}'s write-stream has finalized with row count: {}",
+        partitionId,
+        finalizedRowCount);
 
     return new BigQueryWriterCommitMessage(
         writeStreamName, partitionId, taskId, epochId, tablePath, finalizedRowCount);
