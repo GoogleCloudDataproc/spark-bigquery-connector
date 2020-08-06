@@ -24,7 +24,7 @@ public class BigQueryWriterCommitMessage implements WriterCommitMessage {
   private final long taskId;
   private final long epochId;
   private final String tablePath;
-  private final Long rowCount;
+  private final long rowCount;
 
   public BigQueryWriterCommitMessage(
       String writeStreamName /*List<String> writeStreamNames*/,
@@ -32,7 +32,7 @@ public class BigQueryWriterCommitMessage implements WriterCommitMessage {
       long taskId,
       long epochId,
       String tablePath,
-      Long rowCount) {
+      long rowCount) {
     this.writeStreamName = writeStreamName;
     this.partitionId = partitionId;
     this.taskId = taskId;
@@ -41,10 +41,7 @@ public class BigQueryWriterCommitMessage implements WriterCommitMessage {
     this.rowCount = rowCount;
   }
 
-  public String getWriteStreamName() throws NoSuchFieldError {
-    if (writeStreamName == null) {
-      throw new NoSuchFieldError("Data writer did not create a write-stream.");
-    }
+  public String getWriteStreamName() {
     return writeStreamName;
   }
 
@@ -64,33 +61,12 @@ public class BigQueryWriterCommitMessage implements WriterCommitMessage {
     return tablePath;
   }
 
-  public long getRowCount() throws NoSuchFieldError {
-    if (rowCount == null) {
-      throw new NoSuchFieldError(
-          "Data write did not create a write-stream and did not write to BigQuery.");
-    }
+  public long getRowCount() {
     return rowCount;
   }
 
   @Override
   public String toString() {
-    if (writeStreamName != null && rowCount != null) {
-      return "BigQueryWriterCommitMessage{"
-          + ", writeStreamName='"
-          + writeStreamName
-          + "partitionId="
-          + partitionId
-          + ", taskId="
-          + taskId
-          + ", epochId="
-          + epochId
-          + ", tableId='"
-          + tablePath
-          + ", rowCount='"
-          + rowCount
-          + '\''
-          + '}';
-    }
     return "BigQueryWriterCommitMessage{"
         + "partitionId="
         + partitionId
