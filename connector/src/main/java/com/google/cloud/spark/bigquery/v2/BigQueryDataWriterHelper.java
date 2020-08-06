@@ -225,8 +225,10 @@ public class BigQueryDataWriterHelper {
                   "Append response offset %d did not match expected offset %d.",
                   appendRowsResponse.getOffset(), expectedOffset));
         }
-      } catch (InterruptedException | ExecutionException e) {
+      } catch (InterruptedException e) {
         throw new RuntimeException("Could not analyze append response.", e);
+      } catch (ExecutionException e) {
+        throw new IOException("Failed to append.", e.getCause());
       }
       return null;
     }
