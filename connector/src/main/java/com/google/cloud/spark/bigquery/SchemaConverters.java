@@ -21,6 +21,7 @@ import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.spark.ml.linalg.SQLDataTypes;
@@ -37,9 +38,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class SchemaConverters {
-  public static final String SPARK_ML_VECTOR_TYPE_MARKER = "{spark.type=vector}";
-  public static final String SPARK_ML_MATRIX_TYPE_MARKER = "{spark.type=matrix}";
-
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
   private static final int BQ_NUMERIC_PRECISION = 38;
@@ -194,12 +192,8 @@ public class SchemaConverters {
       // All supported types are serialized to records
       if (LegacySQLTypeName.RECORD.equals(field.getType())) {
         // we don't have many types, so we keep parsing to minimum
-        if (description.endsWith(SPARK_ML_VECTOR_TYPE_MARKER)) {
-          return Optional.of(SQLDataTypes.VectorType());
-        }
-        if (description.endsWith(SPARK_ML_MATRIX_TYPE_MARKER)) {
-          return Optional.of(SQLDataTypes.MatrixType());
-        }
+        return SupportedCustomDataType.forDescription(description)
+            .map(SupportedCustomDataType::getSparkDataType);
       }
     }
     return Optional.empty();
