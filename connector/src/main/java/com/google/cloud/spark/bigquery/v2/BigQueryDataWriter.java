@@ -63,13 +63,11 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
       throw new RuntimeException("Could not convert spark-schema to descriptor object.", e);
     }
 
-    this.writerHelper = new BigQueryDataWriterHelper(writeClientFactory, tablePath, protoSchema);
+    this.writerHelper = BigQueryDataWriterHelper.from(writeClientFactory, tablePath, protoSchema);
   }
 
   @Override
   public void write(InternalRow record) throws IOException {
-    // if(partitionId == 3) abort(); FIXME: for debugging purposes.
-
     ByteString message =
         buildSingleRowMessage(sparkSchema, schemaDescriptor, record).toByteString();
     writerHelper.addRow(message);
