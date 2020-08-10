@@ -16,7 +16,10 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.api.core.ApiFuture;
+import com.google.api.core.NanoClock;
+import com.google.api.gax.retrying.*;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
+import com.google.cloud.bigquery.storage.v1.stub.readrows.ApiResultRetryAlgorithm;
 import com.google.cloud.bigquery.storage.v1alpha2.*;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -36,8 +39,10 @@ interface BigQueryDataWriterHelper {
   static BigQueryDataWriterHelper from(
       BigQueryWriteClientFactory writeClientFactory,
       String tablePath,
-      ProtoBufProto.ProtoSchema protoSchema) {
-    return new BigQueryDataWriterHelperDefault(writeClientFactory, tablePath, protoSchema);
+      ProtoBufProto.ProtoSchema protoSchema,
+      RetrySettings createWriteStreamRetrySettings) {
+    return new BigQueryDataWriterHelperDefault(
+        writeClientFactory, tablePath, protoSchema, createWriteStreamRetrySettings);
   }
 
   void addRow(ByteString message);
@@ -56,8 +61,6 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
   final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterHelperDefault.class);
 
   final long APPEND_REQUEST_SIZE = 1000L * 1000L; // 1MB limit for each append
-  final int INITIAL_BACKOFF_MILLIS = 100;
-  final int MAX_ELAPSED_TIME_MILLIS = 60000 * 5; // 5 minute max waiting time.
   static final String OFFSET_ERROR = "Response offset %d did not match expected offset %d.";
 
   private Executor responseObserverExecutor = MoreExecutors.directExecutor();
@@ -77,34 +80,50 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
   private long writeStreamSizeBytes = 0; // total bytes of the current write-stream
   private long writeStreamRowCount = 0; // total offset / rows of the current write-stream
 
-  private boolean awaitingAppendValidations = true;
-
   BigQueryDataWriterHelperDefault(
       BigQueryWriteClientFactory writeClientFactory,
       String tablePath,
-      ProtoBufProto.ProtoSchema protoSchema) {
+      ProtoBufProto.ProtoSchema protoSchema,
+      RetrySettings createWriteStreamRetrySettings) {
     this.writeClient = writeClientFactory.createBigQueryWriteClient();
     this.tablePath = tablePath;
     this.protoSchema = protoSchema;
 
-    createWriteStreamAndStreamWriter();
+    try {
+      this.writeStreamName = createWriteStream(createWriteStreamRetrySettings);
+    } catch (ExecutionException | InterruptedException e) {
+      throw new RuntimeException("Could not create write-stream after multiple retries.", e);
+    }
+    this.streamWriter = createStreamWriter(this.writeStreamName);
     this.protoRows = ProtoBufProto.ProtoRows.newBuilder();
   }
 
-  private void createWriteStreamAndStreamWriter() {
-    this.writeStreamName =
-        writeClient
-            .createWriteStream(
-                Storage.CreateWriteStreamRequest.newBuilder()
-                    .setParent(tablePath)
-                    .setWriteStream(
-                        Stream.WriteStream.newBuilder()
-                            .setType(Stream.WriteStream.Type.PENDING)
+  private String createWriteStream(RetrySettings retrySettings)
+      throws ExecutionException, InterruptedException {
+    DirectRetryingExecutor<String> directRetryingExecutor =
+        new DirectRetryingExecutor<>(
+            new RetryAlgorithm<>(
+                new ApiResultRetryAlgorithm<>(),
+                new ExponentialRetryAlgorithm(retrySettings, NanoClock.getDefaultClock())));
+    RetryingFuture<String> retryingFutureWriteStreamName =
+        directRetryingExecutor.createFuture(
+            () ->
+                this.writeClient
+                    .createWriteStream(
+                        Storage.CreateWriteStreamRequest.newBuilder()
+                            .setParent(this.tablePath)
+                            .setWriteStream(
+                                Stream.WriteStream.newBuilder()
+                                    .setType(Stream.WriteStream.Type.PENDING)
+                                    .build())
                             .build())
-                    .build())
-            .getName(); // Wrap in lambda with gax.Retry .
+                    .getName());
+    return directRetryingExecutor.submit(retryingFutureWriteStreamName).get();
+  }
+
+  private StreamWriter createStreamWriter(String writeStreamName) {
     try {
-      this.streamWriter = StreamWriter.newBuilder(this.writeStreamName).build();
+      return StreamWriter.newBuilder(writeStreamName).build();
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException("Could not build stream-writer.", e);
     }
@@ -200,22 +219,6 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     }
   }
 
-  private void clearProtoRows() {
-    if (this.protoRows != null) {
-      this.protoRows.clear();
-    }
-  }
-
-  @Override
-  public String getWriteStreamName() {
-    return writeStreamName;
-  }
-
-  @Override
-  public long getWriteStreamRowCount() {
-    return writeStreamRowCount;
-  }
-
   @Override
   public void abort() {
     clearProtoRows();
@@ -234,6 +237,22 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     this.writeStreamName = null;
     this.responseObserverExecutor = null;
     this.appendResponseValidations = null;
+  }
+
+  private void clearProtoRows() {
+    if (this.protoRows != null) {
+      this.protoRows.clear();
+    }
+  }
+
+  @Override
+  public String getWriteStreamName() {
+    return writeStreamName;
+  }
+
+  @Override
+  public long getWriteStreamRowCount() {
+    return writeStreamRowCount;
   }
 
   private static IOException createOffsetErrorIoException(

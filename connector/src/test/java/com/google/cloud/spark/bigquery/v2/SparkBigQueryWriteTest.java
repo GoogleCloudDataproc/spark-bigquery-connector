@@ -324,7 +324,7 @@ public class SparkBigQueryWriteTest {
         // TODO: simple num bytes print line
 
         assertThat(bigquery.getTable(TableId.of(PROJECT, DATASET, writeTo)).getNumBytes()
-                == bigquery.getTable(TableId.of(BIGQUERY_PUBLIC_DATA, MB20_DATASET, MB20_TABLE)).getNumBytes());
+                .equals(bigquery.getTable(TableId.of(BIGQUERY_PUBLIC_DATA, MB20_DATASET, MB20_TABLE)).getNumBytes()));
     }
 
     @Test
@@ -339,7 +339,7 @@ public class SparkBigQueryWriteTest {
                 .save();
 
         assertThat(bigquery.getTable(TableId.of(PROJECT, DATASET, writeTo)).getNumBytes()
-                == bigquery.getTable(TableId.of(BIGQUERY_PUBLIC_DATA, MB100_DATASET, MB100_TABLE)).getNumBytes());
+                .equals(bigquery.getTable(TableId.of(BIGQUERY_PUBLIC_DATA, MB100_DATASET, MB100_TABLE)).getNumBytes()));
     }
 
     public static final StructType ALL_TYPES_SCHEMA = new StructType()
@@ -359,7 +359,7 @@ public class SparkBigQueryWriteTest {
                     .add(new StructField("max", new DecimalType(38,9), true, Metadata.empty()))
                     .add(new StructField("pi", new DecimalType(38,9), true, Metadata.empty()))
                     .add(new StructField("big_pi", new DecimalType(38,9), true, Metadata.empty())),
-                    true, Metadata.empty()))*/ // TODO: current known issues with NUMERIC type conversion, waiting for BigQuery team input.
+                    true, Metadata.empty()))*/ // TODO: current known issues with NUMERIC type conversion. Restore this check when they are fixed.
             .add(new StructField("int_arr",
                     new ArrayType(IntegerType,true),
                     true, Metadata.empty()))
@@ -387,7 +387,7 @@ public class SparkBigQueryWriteTest {
                     .add(new StructField("max", new DecimalType(38,9), true, Metadata.empty()))
                     .add(new StructField("pi", new DecimalType(38,9), true, Metadata.empty()))
                     .add(new StructField("big_pi", new DecimalType(38,9), true, Metadata.empty())),
-                    true, Metadata.empty()))*/ // TODO: current known issues with NUMERIC type conversion, waiting for BigQuery team input.
+                    true, Metadata.empty()))*/ // TODO: current known issues with NUMERIC type conversion. Restore this check when they are fixed.
             .add(new StructField("int_arr",
                     new ArrayType(LongType,true),
                     true, Metadata.empty()))
@@ -415,7 +415,7 @@ public class SparkBigQueryWriteTest {
                             Decimal.apply(new BigDecimal("99999999999999999999999999999.999999999")),
                             Decimal.apply(new BigDecimal("3.14")),
                             Decimal.apply(new BigDecimal("31415926535897932384626433832.795028841"))
-                    ),*/ // TODO: current known issues with NUMERIC type conversion, waiting for BigQuery team input.
+                    ),*/ // TODO: current known issues with NUMERIC type conversion. Restore this check when they are fixed.
                     new int[]{1,2,3,4},
                     new Row[]{
                             RowFactory.create(

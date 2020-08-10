@@ -123,6 +123,9 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private int numPrebufferReadRowsResponses = MIN_BUFFERED_RESPONSES_PER_STREAM;
   private int numStreamsPerPartition = MIN_STREAMS_PER_PARTITION;
   private SparkBigQueryProxyAndHttpConfig sparkBigQueryProxyAndHttpConfig;
+  // for V2 write with BigQuery Storage Write API
+  RetrySettings createWriteStreamRetrySettings =
+      RetrySettings.newBuilder().setMaxAttempts(5).build();
 
   @VisibleForTesting
   SparkBigQueryConfig() {
