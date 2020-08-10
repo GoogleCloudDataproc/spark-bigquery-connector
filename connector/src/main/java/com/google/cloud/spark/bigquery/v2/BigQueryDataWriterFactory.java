@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -33,18 +34,21 @@ public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow>
   private final StructType sparkSchema;
   private final ProtoBufProto.ProtoSchema protoSchema;
   private final boolean ignoreInputs;
+  private final RetrySettings createWriteStreamRetrySettings;
 
   public BigQueryDataWriterFactory(
       BigQueryWriteClientFactory writeClientFactory,
       String tablePath,
       StructType sparkSchema,
       ProtoBufProto.ProtoSchema protoSchema,
-      boolean ignoreInputs) {
+      boolean ignoreInputs,
+      RetrySettings createWriteStreamRetrySettings) {
     this.writeClientFactory = writeClientFactory;
     this.tablePath = tablePath;
     this.sparkSchema = sparkSchema;
     this.protoSchema = protoSchema;
     this.ignoreInputs = ignoreInputs;
+    this.createWriteStreamRetrySettings = createWriteStreamRetrySettings;
   }
 
   @Override
@@ -53,6 +57,13 @@ public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow>
       return new NoOpDataWriter();
     }
     return new BigQueryDataWriter(
-        partitionId, taskId, epochId, writeClientFactory, tablePath, sparkSchema, protoSchema);
+        partitionId,
+        taskId,
+        epochId,
+        writeClientFactory,
+        tablePath,
+        sparkSchema,
+        protoSchema,
+        createWriteStreamRetrySettings);
   }
 }
