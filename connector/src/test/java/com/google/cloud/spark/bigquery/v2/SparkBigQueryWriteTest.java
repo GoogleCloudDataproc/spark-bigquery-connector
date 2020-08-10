@@ -411,10 +411,10 @@ public class SparkBigQueryWriteTest {
                     new byte[]{1, 2, 3, 4},
                     1.2345,
                     /*RowFactory.create(
-                            new BigDecimal("-99999999999999999999999999999.999999999"),
-                            new BigDecimal("99999999999999999999999999999.999999999"),
-                            new BigDecimal("3.14"),
-                            new BigDecimal("31415926535897932384626433832.795028841")
+                            Decimal.apply(new BigDecimal("-99999999999999999999999999999.999999999")),
+                            Decimal.apply(new BigDecimal("99999999999999999999999999999.999999999")),
+                            Decimal.apply(new BigDecimal("3.14")),
+                            Decimal.apply(new BigDecimal("31415926535897932384626433832.795028841"))
                     ),*/ // TODO: current known issues with NUMERIC type conversion, waiting for BigQuery team input.
                     new int[]{1,2,3,4},
                     new Row[]{
