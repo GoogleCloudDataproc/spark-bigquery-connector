@@ -33,9 +33,10 @@ import java.util.concurrent.*;
 
 interface BigQueryDataWriterHelper {
 
-  static BigQueryDataWriterHelper from(BigQueryWriteClientFactory writeClientFactory,
-                                        String tablePath,
-                                        ProtoBufProto.ProtoSchema protoSchema) {
+  static BigQueryDataWriterHelper from(
+      BigQueryWriteClientFactory writeClientFactory,
+      String tablePath,
+      ProtoBufProto.ProtoSchema protoSchema) {
     return new BigQueryDataWriterHelperDefault(writeClientFactory, tablePath, protoSchema);
   }
 
@@ -56,7 +57,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
 
   final long APPEND_REQUEST_SIZE = 1000L * 1000L; // 1MB limit for each append
   final int INITIAL_BACKOFF_MILLIS = 100;
-  final int MAX_ELAPSED_TIME_MILLIS = 60000 * 5; // 3 minute max waiting time.
+  final int MAX_ELAPSED_TIME_MILLIS = 60000 * 5; // 5 minute max waiting time.
   static final String OFFSET_ERROR = "Response offset %d did not match expected offset %d.";
 
   private Executor responseObserverExecutor = MoreExecutors.directExecutor();
@@ -101,7 +102,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
                             .setType(Stream.WriteStream.Type.PENDING)
                             .build())
                     .build())
-            .getName();
+            .getName(); // Wrap in lambda with gax.Retry .
     try {
       this.streamWriter = StreamWriter.newBuilder(this.writeStreamName).build();
     } catch (IOException | InterruptedException e) {
@@ -163,7 +164,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
 
   @Override
   public void finalizeStream() throws IOException {
-    if (this.appendRequestRowCount != 0 || this.appendRequestSizeBytes != 0) {
+    if (this.protoRows.getSerializedRowsCount() != 0) {
       appendRequest();
     }
 
@@ -187,7 +188,8 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
         finalizeResponse.getRowCount());
   }
 
-  private void awaitAllValidations(List<ListenableFuture<Void>> appendResponseValidations) throws IOException {
+  private void awaitAllValidations(List<ListenableFuture<Void>> appendResponseValidations)
+      throws IOException {
     Futures.FutureCombiner<Void> allValidations = Futures.whenAllSucceed(appendResponseValidations);
     try {
       allValidations.call(() -> null, responseObserverExecutor).get();
@@ -234,14 +236,13 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     this.appendResponseValidations = null;
   }
 
-  private static IOException createOffsetErrorIoException(long responseOffset, long expectedOffset) {
-    return new IOException(
-            String.format(
-                    OFFSET_ERROR,
-                    responseOffset, expectedOffset));
+  private static IOException createOffsetErrorIoException(
+      long responseOffset, long expectedOffset) {
+    return new IOException(String.format(OFFSET_ERROR, responseOffset, expectedOffset));
   }
 
-  private static RuntimeException appendInterruptedExceptionToRuntimeException(InterruptedException e) {
+  private static RuntimeException appendInterruptedExceptionToRuntimeException(
+      InterruptedException e) {
     return new RuntimeException("Interrupted while waiting for append response validations.", e);
   }
 
