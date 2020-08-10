@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoSchemaConverter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.primitives.Bytes;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
@@ -439,29 +440,12 @@ public class ProtobufUtils {
   }
 
   private static byte[] convertBigDecimalToNumeric(BigDecimal decimal) {
-    return Base64.getEncoder()
-        .encode(
-            reverse(
-                decimal
-                    .setScale(BQ_NUMERIC_SCALE, BigDecimal.ROUND_UNNECESSARY)
-                    .unscaledValue()
-                    .toByteArray()));
-  }
-
-  private static byte[] reverse(byte[] arr) {
-    if (arr == null || arr.length <= 1) {
-      return arr;
-    }
-    byte tmp;
-    int index = 0;
-    int reversedIndex = arr.length - 1;
-    while (reversedIndex > index) {
-      tmp = arr[reversedIndex];
-      arr[reversedIndex] = arr[index];
-      arr[index] = tmp;
-      index++;
-      reversedIndex--;
-    }
-    return arr;
+    byte[] unscaledValue =
+        decimal
+            .setScale(BQ_NUMERIC_SCALE, BigDecimal.ROUND_UNNECESSARY)
+            .unscaledValue()
+            .toByteArray();
+    Bytes.reverse(unscaledValue);
+    return Base64.getEncoder().encode(unscaledValue);
   }
 }
