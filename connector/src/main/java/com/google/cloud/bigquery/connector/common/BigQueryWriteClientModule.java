@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.v2.BigQueryDataSourceWriter;
@@ -47,7 +48,14 @@ public class BigQueryWriteClientModule implements Module {
       BigQueryWriteClientFactory bigQueryWriteClientFactory,
       SparkBigQueryConfig config) {
     TableId tableId = config.getTableId();
+    RetrySettings createWriteStreamRetrySettings = config.getCreateWriteStreamRetrySettings();
     return new BigQueryDataSourceWriter(
-        bigQueryClient, bigQueryWriteClientFactory, tableId, writeUUID, saveMode, sparkSchema);
+        bigQueryClient,
+        bigQueryWriteClientFactory,
+        tableId,
+        writeUUID,
+        saveMode,
+        sparkSchema,
+        createWriteStreamRetrySettings);
   }
 }

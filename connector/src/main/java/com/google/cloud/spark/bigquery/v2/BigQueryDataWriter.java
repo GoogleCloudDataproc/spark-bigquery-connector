@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
 import com.google.cloud.bigquery.storage.v1alpha2.*;
 import com.google.protobuf.ByteString;
@@ -51,7 +52,8 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
       BigQueryWriteClientFactory writeClientFactory,
       String tablePath,
       StructType sparkSchema,
-      ProtoBufProto.ProtoSchema protoSchema) {
+      ProtoBufProto.ProtoSchema protoSchema,
+      RetrySettings createWriteStreamRetrySettings) {
     this.partitionId = partitionId;
     this.taskId = taskId;
     this.epochId = epochId;
@@ -63,7 +65,9 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
       throw new RuntimeException("Could not convert spark-schema to descriptor object.", e);
     }
 
-    this.writerHelper = BigQueryDataWriterHelper.from(writeClientFactory, tablePath, protoSchema);
+    this.writerHelper =
+        BigQueryDataWriterHelper.from(
+            writeClientFactory, tablePath, protoSchema, createWriteStreamRetrySettings);
   }
 
   @Override

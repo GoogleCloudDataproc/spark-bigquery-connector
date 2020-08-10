@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
@@ -48,6 +49,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
   private final ProtoBufProto.ProtoSchema protoSchema;
   private final SaveMode saveMode;
   private final String writeUUID;
+  private final RetrySettings createWriteStreamRetrySettings;
 
   private final TableId temporaryTableId;
   private final String tablePathForBigQueryStorage;
@@ -68,13 +70,15 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
       TableId destinationTableId,
       String writeUUID,
       SaveMode saveMode,
-      StructType sparkSchema) {
+      StructType sparkSchema,
+      RetrySettings createWriteStreamRetrySettings) {
     this.bigQueryClient = bigQueryClient;
     this.writeClientFactory = bigQueryWriteClientFactory;
     this.destinationTableId = destinationTableId;
     this.writeUUID = writeUUID;
     this.saveMode = saveMode;
     this.sparkSchema = sparkSchema;
+    this.createWriteStreamRetrySettings = createWriteStreamRetrySettings;
     this.bigQuerySchema = toBigQuerySchema(sparkSchema);
     try {
       this.protoSchema = toProtoSchema(sparkSchema);
@@ -127,7 +131,8 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
         tablePathForBigQueryStorage,
         sparkSchema,
         protoSchema,
-        writingMode.equals(WritingMode.IGNORE_INPUTS));
+        writingMode.equals(WritingMode.IGNORE_INPUTS),
+        createWriteStreamRetrySettings);
   }
 
   @Override
