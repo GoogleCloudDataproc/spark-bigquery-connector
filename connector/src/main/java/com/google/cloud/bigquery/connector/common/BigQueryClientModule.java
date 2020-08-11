@@ -22,7 +22,7 @@ import com.google.inject.*;
 
 import java.util.Optional;
 
-public class BigQueryClientModule implements Module {
+public class BigQueryClientModule implements com.google.inject.Module {
 
   @Provides
   @Singleton

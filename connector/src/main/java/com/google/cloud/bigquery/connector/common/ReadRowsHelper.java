@@ -15,6 +15,9 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.api.gax.rpc.ServerStream;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
@@ -26,6 +29,8 @@ import java.util.NoSuchElementException;
 import static java.util.Objects.requireNonNull;
 
 public class ReadRowsHelper {
+  private static final Logger logger = LoggerFactory.getLogger(ReadRowsHelper.class);
+
   private BigQueryReadClientFactory bigQueryReadClientFactory;
   private ReadRowsRequest.Builder request;
   private int maxReadRowsRetries;
@@ -109,7 +114,15 @@ public class ReadRowsHelper {
 
   public void close() {
     if (incomingStream != null) {
-      incomingStream.cancel();
+      try {
+        // There appears to be a race when calling cancel for an already
+        // consumed stream can cause an exception to be thrown. Since
+        // this is part of the shutdown process, it should be safe to
+        // ignore the error.
+        incomingStream.cancel();
+      } catch (Exception e) {
+        logger.debug("Error on cancel call", e);
+      }
       incomingStream = null;
     }
     if (!client.isShutdown()) {
