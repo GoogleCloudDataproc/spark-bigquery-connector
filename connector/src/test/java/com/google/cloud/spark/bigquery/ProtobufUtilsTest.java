@@ -97,7 +97,7 @@ public class ProtobufUtilsTest {
                                 .addField(PROTO_DOUBLE_FIELD.clone().setName("Float").setNumber(5))
                                 .addField(PROTO_BOOLEAN_FIELD.clone().setNumber(6))
                                 .addField(PROTO_BYTES_FIELD.clone().setNumber(7))
-                                .addField(PROTO_INTEGER_FIELD.clone().setName("Date").setNumber(8))
+                                .addField(PROTO_DATE_FIELD.clone().setNumber(8))
                                 .addField(
                                     PROTO_INTEGER_FIELD.clone().setName("TimeStamp").setNumber(9))
                                 .setName("Schema")
@@ -327,6 +327,12 @@ public class ProtobufUtilsTest {
           .setNumber(1)
           .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
           .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL);
+  public final DescriptorProtos.FieldDescriptorProto.Builder PROTO_DATE_FIELD =
+          DescriptorProtos.FieldDescriptorProto.newBuilder()
+                  .setName("Date")
+                  .setNumber(1)
+                  .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32)
+                  .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL);
 
   public final DescriptorProtos.DescriptorProto DESCRIPTOR_PROTO_INTEGER =
       DescriptorProtos.DescriptorProto.newBuilder()
@@ -454,7 +460,7 @@ public class ProtobufUtilsTest {
                     .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(5), 3.14)
                     .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(6), true)
                     .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(7), Base64.getEncoder().encode(new byte[]{11, 0x7F}))
-                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(8), 1594080000)
+                    .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(8), 647133184)
                     .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(9), 1594080000000L)
                     /*.setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(10),
                             Base64.getEncoder().encode("-99999999999999999999999999999.999999999".getBytes(UTF_8)))*/ // TODO: current known issues with NUMERIC type conversion, waiting for BigQuery team input.
