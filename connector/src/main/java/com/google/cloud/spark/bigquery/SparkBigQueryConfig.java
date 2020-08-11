@@ -124,7 +124,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private int numStreamsPerPartition = MIN_STREAMS_PER_PARTITION;
   private SparkBigQueryProxyAndHttpConfig sparkBigQueryProxyAndHttpConfig;
   // for V2 write with BigQuery Storage Write API
-  RetrySettings createWriteStreamRetrySettings =
+  RetrySettings bigqueryDataWriteHelperRetrySettings =
       RetrySettings.newBuilder().setMaxAttempts(5).build();
 
   @VisibleForTesting
@@ -597,18 +597,22 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   @Override
   public RetrySettings getBigQueryClientRetrySettings() {
     return RetrySettings.newBuilder()
-        .setMaxAttempts(
-            sparkBigQueryProxyAndHttpConfig
-                .getHttpMaxRetry()
-                .orElse(DEFAULT_BIGQUERY_CLIENT_RETRIES))
-        .setTotalTimeout(Duration.ofMinutes(10))
-        .setInitialRpcTimeout(Duration.ofSeconds(60))
-        .setMaxRpcTimeout(Duration.ofMinutes(5))
-        .setRpcTimeoutMultiplier(1.6)
-        .setRetryDelayMultiplier(1.6)
-        .setInitialRetryDelay(Duration.ofMillis(1250))
-        .setMaxRetryDelay(Duration.ofSeconds(5))
-        .build();
+            .setMaxAttempts(
+                    sparkBigQueryProxyAndHttpConfig
+                            .getHttpMaxRetry()
+                            .orElse(DEFAULT_BIGQUERY_CLIENT_RETRIES))
+            .setTotalTimeout(Duration.ofMinutes(10))
+            .setInitialRpcTimeout(Duration.ofSeconds(60))
+            .setMaxRpcTimeout(Duration.ofMinutes(5))
+            .setRpcTimeoutMultiplier(1.6)
+            .setRetryDelayMultiplier(1.6)
+            .setInitialRetryDelay(Duration.ofMillis(1250))
+            .setMaxRetryDelay(Duration.ofSeconds(5))
+            .build();
+  }
+
+  public RetrySettings getBigqueryDataWriteHelperRetrySettings() {
+    return bigqueryDataWriteHelperRetrySettings;
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
