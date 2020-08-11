@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.api.client.util.Sleeper;
 import com.google.api.core.ApiFuture;
 import com.google.api.core.NanoClock;
 import com.google.api.gax.retrying.*;
@@ -41,14 +42,14 @@ interface BigQueryDataWriterHelper {
       BigQueryWriteClientFactory writeClientFactory,
       String tablePath,
       ProtoBufProto.ProtoSchema protoSchema,
-      RetrySettings createWriteStreamRetrySettings) {
+      RetrySettings bigqueryDataWriterHelperRetrySettings) {
     return new BigQueryDataWriterHelperDefault(
-        writeClientFactory, tablePath, protoSchema, createWriteStreamRetrySettings);
+        writeClientFactory, tablePath, protoSchema, bigqueryDataWriterHelperRetrySettings);
   }
 
   void addRow(ByteString message);
 
-  void finalizeStream() throws IOException;
+  void commit() throws IOException;
 
   String getWriteStreamName();
 
@@ -69,6 +70,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
   private final BigQueryWriteClient writeClient;
   private final String tablePath;
   private final ProtoBufProto.ProtoSchema protoSchema;
+  private final RetrySettings retrySettings;
 
   private String writeStreamName;
   private StreamWriter streamWriter;
@@ -84,13 +86,14 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
       BigQueryWriteClientFactory writeClientFactory,
       String tablePath,
       ProtoBufProto.ProtoSchema protoSchema,
-      RetrySettings createWriteStreamRetrySettings) {
+      RetrySettings bigqueryDataWriterHelperRetrySettings) {
     this.writeClient = writeClientFactory.createBigQueryWriteClient();
     this.tablePath = tablePath;
     this.protoSchema = protoSchema;
+    this.retrySettings = bigqueryDataWriterHelperRetrySettings;
 
     try {
-      this.writeStreamName = createWriteStream(createWriteStreamRetrySettings);
+      this.writeStreamName = retryCreateWriteStream();
     } catch (ExecutionException | InterruptedException e) {
       throw new RuntimeException("Could not create write-stream after multiple retries.", e);
     }
@@ -98,27 +101,30 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     this.protoRows = ProtoBufProto.ProtoRows.newBuilder();
   }
 
-  private String createWriteStream(RetrySettings retrySettings)
+  private String retryCreateWriteStream() throws ExecutionException, InterruptedException {
+    return retryCallable(
+        () ->
+            this.writeClient
+                .createWriteStream(
+                    Storage.CreateWriteStreamRequest.newBuilder()
+                        .setParent(this.tablePath)
+                        .setWriteStream(
+                            Stream.WriteStream.newBuilder()
+                                .setType(Stream.WriteStream.Type.PENDING)
+                                .build())
+                        .build())
+                .getName());
+  }
+
+  private <V> V retryCallable(Callable<V> callable)
       throws ExecutionException, InterruptedException {
-    DirectRetryingExecutor<String> directRetryingExecutor =
+    DirectRetryingExecutor<V> directRetryingExecutor =
         new DirectRetryingExecutor<>(
             new RetryAlgorithm<>(
                 new ApiResultRetryAlgorithm<>(),
-                new ExponentialRetryAlgorithm(retrySettings, NanoClock.getDefaultClock())));
-    RetryingFuture<String> retryingFutureWriteStreamName =
-        directRetryingExecutor.createFuture(
-            () ->
-                this.writeClient
-                    .createWriteStream(
-                        Storage.CreateWriteStreamRequest.newBuilder()
-                            .setParent(this.tablePath)
-                            .setWriteStream(
-                                Stream.WriteStream.newBuilder()
-                                    .setType(Stream.WriteStream.Type.PENDING)
-                                    .build())
-                            .build())
-                    .getName());
-    return directRetryingExecutor.submit(retryingFutureWriteStreamName).get();
+                new ExponentialRetryAlgorithm(this.retrySettings, NanoClock.getDefaultClock())));
+    RetryingFuture<V> retryingFuture = directRetryingExecutor.createFuture(callable);
+    return directRetryingExecutor.submit(retryingFuture).get();
   }
 
   private StreamWriter createStreamWriter(String writeStreamName) {
@@ -134,7 +140,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     int messageSize = message.size();
 
     if (appendRequestSizeBytes + messageSize > APPEND_REQUEST_SIZE) {
-      appendRequest();
+      appendRowsResponseListeners.add(appendRequest());
     }
 
     protoRows.addSerializedRows(message);
@@ -142,7 +148,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     appendRequestRowCount++;
   }
 
-  private void appendRequest() {
+  private ListenableFuture<Void> appendRequest() {
     long offset = writeStreamRowCount;
 
     Storage.AppendRowsRequest appendRowsRequest =
@@ -151,16 +157,15 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     ApiFuture<Storage.AppendRowsResponse> appendRowsResponseApiFuture =
         streamWriter.append(appendRowsRequest);
 
-    appendRowsResponseListeners.add(
-        Futures.submit(
-            new AppendRowsResponseListener(appendRowsResponseApiFuture, offset, writeStreamName),
-            appendRowsResponseListenersExecutor));
-
     clearProtoRows();
     this.writeStreamRowCount += appendRequestRowCount;
     this.writeStreamSizeBytes += appendRequestSizeBytes;
     this.appendRequestRowCount = 0;
     this.appendRequestSizeBytes = 0;
+
+    return Futures.submit(
+        new AppendRowsResponseListener(appendRowsResponseApiFuture, offset, writeStreamName),
+        appendRowsResponseListenersExecutor);
   }
 
   private Storage.AppendRowsRequest createAppendRowsRequest(
@@ -182,16 +187,17 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
   }
 
   @Override
-  public void finalizeStream() throws IOException {
+  public void commit() throws IOException {
     if (this.protoRows.getSerializedRowsCount() != 0) {
-      appendRequest();
+      appendRowsResponseListeners.add(appendRequest());
     }
 
     awaitAllValidations(appendRowsResponseListeners);
 
+    Storage.FinalizeWriteStreamRequest finalizeWriteStreamRequest =
+        Storage.FinalizeWriteStreamRequest.newBuilder().setName(writeStreamName).build();
     Storage.FinalizeWriteStreamResponse finalizeResponse =
-        writeClient.finalizeWriteStream(
-            Storage.FinalizeWriteStreamRequest.newBuilder().setName(writeStreamName).build());
+        retryFinalizeWriteStream(finalizeWriteStreamRequest);
 
     long expectedFinalizedRowCount = writeStreamRowCount;
     long responseFinalizedRowCount = finalizeResponse.getRowCount();
@@ -210,6 +216,16 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
         finalizeResponse.getRowCount());
   }
 
+  private Storage.FinalizeWriteStreamResponse retryFinalizeWriteStream(
+      Storage.FinalizeWriteStreamRequest finalizeWriteStreamRequest) {
+    try {
+      return retryCallable(() -> writeClient.finalizeWriteStream(finalizeWriteStreamRequest));
+    } catch (ExecutionException | InterruptedException e) {
+      throw new RuntimeException(
+          String.format("Could not finalize stream %s.", writeStreamName), e);
+    }
+  }
+
   private void awaitAllValidations(List<ListenableFuture<Void>> appendResponseValidations) {
     Futures.FutureCombiner<Void> allValidations = Futures.whenAllSucceed(appendResponseValidations);
     try {
@@ -220,6 +236,12 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     } catch (ExecutionException e) {
       throw new RuntimeException(
           "Failed to retrieve the combined future of all append response listeners", e);
+    }
+    try {
+      Sleeper.DEFAULT.sleep(500);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(
+          "Interrupted while sleeping after validating all append rows responses", e);
     }
   }
 

@@ -49,7 +49,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
   private final ProtoBufProto.ProtoSchema protoSchema;
   private final SaveMode saveMode;
   private final String writeUUID;
-  private final RetrySettings createWriteStreamRetrySettings;
+  private final RetrySettings bigqueryDataWriterHelperRetrySettings;
 
   private final TableId temporaryTableId;
   private final String tablePathForBigQueryStorage;
@@ -71,14 +71,14 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
       String writeUUID,
       SaveMode saveMode,
       StructType sparkSchema,
-      RetrySettings createWriteStreamRetrySettings) {
+      RetrySettings bigqueryDataWriterHelperRetrySettings) {
     this.bigQueryClient = bigQueryClient;
     this.writeClientFactory = bigQueryWriteClientFactory;
     this.destinationTableId = destinationTableId;
     this.writeUUID = writeUUID;
     this.saveMode = saveMode;
     this.sparkSchema = sparkSchema;
-    this.createWriteStreamRetrySettings = createWriteStreamRetrySettings;
+    this.bigqueryDataWriterHelperRetrySettings = bigqueryDataWriterHelperRetrySettings;
     this.bigQuerySchema = toBigQuerySchema(sparkSchema);
     try {
       this.protoSchema = toProtoSchema(sparkSchema);
@@ -132,7 +132,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
         sparkSchema,
         protoSchema,
         writingMode.equals(WritingMode.IGNORE_INPUTS),
-        createWriteStreamRetrySettings);
+        bigqueryDataWriterHelperRetrySettings);
   }
 
   @Override

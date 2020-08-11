@@ -48,7 +48,8 @@ public class BigQueryWriteClientModule implements Module {
       BigQueryWriteClientFactory bigQueryWriteClientFactory,
       SparkBigQueryConfig config) {
     TableId tableId = config.getTableId();
-    RetrySettings createWriteStreamRetrySettings = config.getCreateWriteStreamRetrySettings();
+    RetrySettings bigqueryDataWriteHelperRetrySettings =
+        config.getBigqueryDataWriteHelperRetrySettings();
     return new BigQueryDataSourceWriter(
         bigQueryClient,
         bigQueryWriteClientFactory,
@@ -56,6 +57,6 @@ public class BigQueryWriteClientModule implements Module {
         writeUUID,
         saveMode,
         sparkSchema,
-        createWriteStreamRetrySettings);
+        bigqueryDataWriteHelperRetrySettings);
   }
 }

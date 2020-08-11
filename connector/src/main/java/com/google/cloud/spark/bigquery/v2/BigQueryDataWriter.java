@@ -53,7 +53,7 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
       String tablePath,
       StructType sparkSchema,
       ProtoBufProto.ProtoSchema protoSchema,
-      RetrySettings createWriteStreamRetrySettings) {
+      RetrySettings bigqueryDataWriterHelperRetrySettings) {
     this.partitionId = partitionId;
     this.taskId = taskId;
     this.epochId = epochId;
@@ -67,7 +67,7 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
 
     this.writerHelper =
         BigQueryDataWriterHelper.from(
-            writeClientFactory, tablePath, protoSchema, createWriteStreamRetrySettings);
+            writeClientFactory, tablePath, protoSchema, bigqueryDataWriterHelperRetrySettings);
   }
 
   @Override
@@ -81,7 +81,7 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
   public WriterCommitMessage commit() throws IOException {
     logger.debug("Data Writer {} commit()", partitionId);
 
-    writerHelper.finalizeStream();
+    writerHelper.commit();
 
     long finalizedRowCount = writerHelper.getWriteStreamRowCount();
     String writeStreamName = writerHelper.getWriteStreamName();

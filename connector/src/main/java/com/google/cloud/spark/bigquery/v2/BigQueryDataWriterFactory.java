@@ -34,7 +34,7 @@ public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow>
   private final StructType sparkSchema;
   private final ProtoBufProto.ProtoSchema protoSchema;
   private final boolean ignoreInputs;
-  private final RetrySettings createWriteStreamRetrySettings;
+  private final RetrySettings bigqueryDataWriterHelperRetrySettings;
 
   public BigQueryDataWriterFactory(
       BigQueryWriteClientFactory writeClientFactory,
@@ -42,13 +42,13 @@ public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow>
       StructType sparkSchema,
       ProtoBufProto.ProtoSchema protoSchema,
       boolean ignoreInputs,
-      RetrySettings createWriteStreamRetrySettings) {
+      RetrySettings bigqueryDataWriterHelperRetrySettings) {
     this.writeClientFactory = writeClientFactory;
     this.tablePath = tablePath;
     this.sparkSchema = sparkSchema;
     this.protoSchema = protoSchema;
     this.ignoreInputs = ignoreInputs;
-    this.createWriteStreamRetrySettings = createWriteStreamRetrySettings;
+    this.bigqueryDataWriterHelperRetrySettings = bigqueryDataWriterHelperRetrySettings;
   }
 
   @Override
@@ -64,6 +64,6 @@ public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow>
         tablePath,
         sparkSchema,
         protoSchema,
-        createWriteStreamRetrySettings);
+        bigqueryDataWriterHelperRetrySettings);
   }
 }

@@ -89,7 +89,7 @@ public class SparkBigQueryConfig implements BigQueryConfig {
   int viewExpirationTimeInHours = 24;
   int maxReadRowsRetries = 3;
   // for V2 write with BigQuery Storage Write API
-  RetrySettings createWriteStreamRetrySettings =
+  RetrySettings bigqueryDataWriteHelperRetrySettings =
       RetrySettings.newBuilder().setMaxAttempts(5).build();
 
   private SparkBigQueryConfig() {
@@ -373,8 +373,8 @@ public class SparkBigQueryConfig implements BigQueryConfig {
     return maxReadRowsRetries;
   }
 
-  public RetrySettings getCreateWriteStreamRetrySettings() {
-    return createWriteStreamRetrySettings;
+  public RetrySettings getBigqueryDataWriteHelperRetrySettings() {
+    return bigqueryDataWriteHelperRetrySettings;
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
