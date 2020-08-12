@@ -189,7 +189,7 @@ private[bigquery] class DirectBigQueryRelation(
       val result = bigQuery.query(QueryJobConfiguration.of(sql))
       result.iterateAll.iterator.next.get(0).getLongValue
     }
-    logDebug(s"Creating a DataFrame of empty roes of size $numberOfRows")
+    logDebug(s"Creating a DataFrame of empty rows with size $numberOfRows")
     sqlContext.sparkContext.range(0, numberOfRows)
       .map(_ => InternalRow.empty)
       .asInstanceOf[RDD[Row]]
