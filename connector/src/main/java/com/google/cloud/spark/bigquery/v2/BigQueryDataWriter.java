@@ -81,18 +81,16 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
   public WriterCommitMessage commit() throws IOException {
     logger.debug("Data Writer {} commit()", partitionId);
 
-    writerHelper.commit();
-
-    long finalizedRowCount = writerHelper.getWriteStreamRowCount();
+    long rowCount = writerHelper.commit();
     String writeStreamName = writerHelper.getWriteStreamName();
 
     logger.debug(
         "Data Writer {}'s write-stream has finalized with row count: {}",
         partitionId,
-        finalizedRowCount);
+        rowCount);
 
     return new BigQueryWriterCommitMessage(
-        writeStreamName, partitionId, taskId, epochId, tablePath, finalizedRowCount);
+        writeStreamName, partitionId, taskId, epochId, tablePath, rowCount);
   }
 
   @Override
