@@ -85,9 +85,7 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
     String writeStreamName = writerHelper.getWriteStreamName();
 
     logger.debug(
-        "Data Writer {}'s write-stream has finalized with row count: {}",
-        partitionId,
-        rowCount);
+        "Data Writer {}'s write-stream has finalized with row count: {}", partitionId, rowCount);
 
     return new BigQueryWriterCommitMessage(
         writeStreamName, partitionId, taskId, epochId, tablePath, rowCount);

@@ -156,15 +156,15 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
   private void initializeAppendRequest() {
     long offset = writeStreamRowCount;
 
-    Storage.AppendRowsRequest appendRowsRequest =
-        createAppendRowsRequest(offset);
+    Storage.AppendRowsRequest appendRowsRequest = createAppendRowsRequest(offset);
 
     ApiFuture<Storage.AppendRowsResponse> appendRowsResponseApiFuture =
         streamWriter.append(appendRowsRequest);
     SettableFuture<Boolean> callbackFuture = SettableFuture.create();
-    ApiFutures.addCallback(appendRowsResponseApiFuture,
-            new AppendRowsResponseCallbackValidator(offset, writeStreamName, callbackFuture),
-            appendRowsResponseListenersExecutor);
+    ApiFutures.addCallback(
+        appendRowsResponseApiFuture,
+        new AppendRowsResponseCallbackValidator(offset, writeStreamName, callbackFuture),
+        appendRowsResponseListenersExecutor);
     appendRowsResponseCallbackFutures.add(callbackFuture);
 
     clearProtoRows();
@@ -191,10 +191,10 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
   @Override
   public long commit() throws IOException {
     if (this.protoRows.getSerializedRowsCount() != 0) {
-      initializeAppendRequest(); // TODO: don't do this.
+      initializeAppendRequest();
     }
 
-    awaitAllValidations(); // TODO: don't need parameter.
+    awaitAllValidations();
 
     Storage.FinalizeWriteStreamRequest finalizeWriteStreamRequest =
         Storage.FinalizeWriteStreamRequest.newBuilder().setName(writeStreamName).build();
@@ -213,9 +213,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     writeClient.shutdown();
 
     logger.debug(
-        "Write-stream {} finalized with row-count {}",
-        writeStreamName,
-        responseFinalizedRowCount);
+        "Write-stream {} finalized with row-count {}", writeStreamName, responseFinalizedRowCount);
 
     return responseFinalizedRowCount;
   }
@@ -231,7 +229,8 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
   }
 
   private void awaitAllValidations() {
-    ListenableFuture<List<Boolean>> allValidationsSuccessFutures = Futures.successfulAsList(appendRowsResponseCallbackFutures);
+    ListenableFuture<List<Boolean>> allValidationsSuccessFutures =
+        Futures.successfulAsList(appendRowsResponseCallbackFutures);
     List<Boolean> allValidationsSuccesses = null;
     try {
       allValidationsSuccesses = allValidationsSuccessFutures.get();
@@ -242,7 +241,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
       throw new RuntimeException(
           "Failed to retrieve the combined future of all append response listeners", e);
     }
-    for(boolean success : allValidationsSuccesses) {
+    for (boolean success : allValidationsSuccesses) {
       Preconditions.checkState(success);
     }
     try {
@@ -279,13 +278,15 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     return writeStreamName;
   }
 
-  static class AppendRowsResponseCallbackValidator implements ApiFutureCallback<Storage.AppendRowsResponse> {
+  static class AppendRowsResponseCallbackValidator
+      implements ApiFutureCallback<Storage.AppendRowsResponse> {
 
     final long offset;
     final String writeStreamName;
     final SettableFuture<Boolean> callbackFuture;
 
-    AppendRowsResponseCallbackValidator(long expectedOffset, String writeStreamName, SettableFuture<Boolean> callbackFuture) {
+    AppendRowsResponseCallbackValidator(
+        long expectedOffset, String writeStreamName, SettableFuture<Boolean> callbackFuture) {
       this.offset = expectedOffset;
       this.writeStreamName = writeStreamName;
       this.callbackFuture = callbackFuture;
@@ -300,18 +301,17 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     public void onSuccess(Storage.AppendRowsResponse appendRowsResponse) {
       if (appendRowsResponse.hasError()) {
         throw new UncheckedIOException(
-                new IOException(
-                        "Append request failed with error: "
-                                + appendRowsResponse.getError().getMessage()));
+            new IOException(
+                "Append request failed with error: " + appendRowsResponse.getError().getMessage()));
       }
       long expectedOffset = this.offset;
       long responseOffset = appendRowsResponse.getOffset();
       if (expectedOffset != responseOffset) {
         throw new UncheckedIOException(
-                new IOException(
-                        String.format(
-                                "On stream %s append-rows response offset %d did not match expected offset %d.",
-                                writeStreamName, responseOffset, expectedOffset)));
+            new IOException(
+                String.format(
+                    "On stream %s append-rows response offset %d did not match expected offset %d.",
+                    writeStreamName, responseOffset, expectedOffset)));
       }
       callbackFuture.set(true);
     }
