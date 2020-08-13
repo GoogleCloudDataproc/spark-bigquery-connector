@@ -74,6 +74,7 @@ public class BigQueryClient {
 
   /**
    * Gets the TableInfo object of the requested table in BigQuery.
+   *
    * @param tableId The TableId of the requested table in BigQuery.
    * @return The TableInfo of the requested table, or {@code null} if it does not exist.
    */
@@ -83,6 +84,7 @@ public class BigQueryClient {
 
   /**
    * Checks whether the requested table exists in BigQuery.
+   *
    * @param tableId The TableId of the requested table in BigQuery
    * @return True if the requested table exists in BigQuery, false otherwise.
    */
@@ -92,6 +94,7 @@ public class BigQueryClient {
 
   /**
    * Creates an empty table in BigQuery.
+   *
    * @param tableId The TableId of the table to be created.
    * @param schema The Schema of the table to be created.
    * @return The {@code Table} object representing the table that was created.
@@ -102,10 +105,13 @@ public class BigQueryClient {
   }
 
   /**
-   * Creates a temporary table with a time-to-live of 1 day, and the same location as the destination table;
-   * the temporary table will have the same name as the destination table, with the current time in milliseconds
-   * appended to it; useful for holding temporary data in order to overwrite the destination table.
-   * @param destinationTableId The TableId of the eventual destination for the data going into the temporary table.
+   * Creates a temporary table with a time-to-live of 1 day, and the same location as the
+   * destination table; the temporary table will have the same name as the destination table, with
+   * the current time in milliseconds appended to it; useful for holding temporary data in order to
+   * overwrite the destination table.
+   *
+   * @param destinationTableId The TableId of the eventual destination for the data going into the
+   *     temporary table.
    * @param schema The Schema of the destination / temporary table.
    * @return The {@code Table} object representing the created temporary table.
    */
@@ -124,6 +130,7 @@ public class BigQueryClient {
 
   /**
    * Deletes this table in BigQuery.
+   *
    * @param tableId The TableId of the table to be deleted.
    * @return True if the operation was successful, false otherwise.
    */
@@ -133,9 +140,11 @@ public class BigQueryClient {
 
   /**
    * Overwrites the given destination table, with all the data from the given temporary table.
+   *
    * @param temporaryTableId The {@code TableId} representing the temporary-table.
    * @param destinationTableId The {@code TableId} representing the destination table.
-   * @return The {@code Job} object representing this operation (which can be tracked to wait until it has finished successfully).
+   * @return The {@code Job} object representing this operation (which can be tracked to wait until
+   *     it has finished successfully).
    */
   public Job overwriteDestinationWithTemporary(
           TableId temporaryTableId, TableId destinationTableId) {
@@ -161,7 +170,9 @@ public class BigQueryClient {
   }
 
   /**
-   * Creates a String appropriately formatted for BigQuery Storage Write API representing the given table.
+   * Creates a String appropriately formatted for BigQuery Storage Write API representing the given
+   * table.
+   *
    * @param tableId The {@code TableId} representing the given object.
    * @return The formatted String.
    */
