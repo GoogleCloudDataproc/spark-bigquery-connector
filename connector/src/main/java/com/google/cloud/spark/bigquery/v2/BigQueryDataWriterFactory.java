@@ -51,6 +51,17 @@ public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow>
     this.bigqueryDataWriterHelperRetrySettings = bigqueryDataWriterHelperRetrySettings;
   }
 
+  /**
+   * If ignoreInputs is true, return a NoOpDataWriter, a stub class that performs no operations upon
+   * the call of its methods; otherwise return BigQueryDataWriter.
+   *
+   * @see NoOpDataWriter
+   * @see BigQueryDataWriter
+   * @param partitionId The partitionId of the DataWriter to be created
+   * @param taskId the taskId
+   * @param epochId the epochId
+   * @return The DataWriter to be used.
+   */
   @Override
   public DataWriter<InternalRow> createDataWriter(int partitionId, long taskId, long epochId) {
     if (ignoreInputs) {
