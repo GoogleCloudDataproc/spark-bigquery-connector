@@ -19,6 +19,7 @@ import com.google.api.client.util.Sleeper;
 import com.google.api.core.ApiFuture;
 import com.google.api.core.NanoClock;
 import com.google.api.gax.retrying.*;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
 import com.google.cloud.bigquery.storage.v1.stub.readrows.ApiResultRetryAlgorithm;
 import com.google.cloud.bigquery.storage.v1alpha2.*;
@@ -93,7 +94,8 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     try {
       this.writeStreamName = retryCreateWriteStream();
     } catch (ExecutionException | InterruptedException e) {
-      throw new RuntimeException("Could not create write-stream after multiple retries.", e);
+      throw new BigQueryConnectorException(
+          "Could not create write-stream after multiple retries.", e);
     }
     this.streamWriter = createStreamWriter(this.writeStreamName);
     this.protoRows = ProtoBufProto.ProtoRows.newBuilder();
@@ -153,7 +155,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     try {
       return StreamWriter.newBuilder(writeStreamName).build();
     } catch (IOException | InterruptedException e) {
-      throw new RuntimeException("Could not build stream-writer.", e);
+      throw new BigQueryConnectorException("Could not build stream-writer.", e);
     }
   }
 
@@ -251,7 +253,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     try {
       appendRowsResponse = appendRowsResponseApiFuture.get();
     } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException("Could not retrieve AppendRowsResponse.", e);
+      throw new BigQueryConnectorException("Could not retrieve AppendRowsResponse.", e);
     }
     if (appendRowsResponse.hasError()) {
       throw new IOException(
@@ -319,7 +321,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     try {
       return retryCallable(() -> writeClient.finalizeWriteStream(finalizeWriteStreamRequest));
     } catch (ExecutionException | InterruptedException e) {
-      throw new RuntimeException(
+      throw new BigQueryConnectorException(
           String.format("Could not finalize stream %s.", writeStreamName), e);
     }
   }
@@ -329,8 +331,10 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     try {
       Sleeper.DEFAULT.sleep(500);
     } catch (InterruptedException e) {
-      throw new RuntimeException(
-          "Interrupted while sleeping after validating all append rows responses", e);
+      throw new BigQueryConnectorException(
+          String.format(
+              "Interrupted while sleeping before finalizing write-stream %s", writeStreamName),
+          e);
     }
   }
 

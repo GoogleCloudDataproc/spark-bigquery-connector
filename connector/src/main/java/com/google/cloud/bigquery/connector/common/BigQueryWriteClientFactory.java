@@ -52,7 +52,7 @@ public class BigQueryWriteClientFactory implements Serializable {
               .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
       return BigQueryWriteClient.create(clientSettings.build());
     } catch (IOException e) {
-      throw new UncheckedIOException("Error creating BigQueryStorageClient", e);
+      throw new BigQueryConnectorException("Error creating BigQueryWriteClient", e);
     }
   }
 }

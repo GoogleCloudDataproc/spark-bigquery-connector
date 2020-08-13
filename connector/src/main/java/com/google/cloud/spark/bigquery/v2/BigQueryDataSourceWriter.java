@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery.v2;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
 import com.google.cloud.bigquery.storage.v1alpha2.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
@@ -80,7 +81,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     try {
       this.protoSchema = toProtoSchema(sparkSchema);
     } catch (IllegalArgumentException e) {
-      throw new RuntimeException("Could not convert Spark schema to protobuf descriptor.", e);
+      throw new InvalidSchemaException("Could not convert Spark schema to protobuf descriptor.", e);
     }
 
     this.temporaryTableId = getOrCreateTable(saveMode, destinationTableId, bigQuerySchema);
@@ -108,6 +109,14 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
   private TableId getOrCreateTable(
       SaveMode saveMode, TableId destinationTableId, Schema bigQuerySchema) {
     if (bigQueryClient.tableExists(destinationTableId)) {
+      Preconditions.checkArgument(
+          bigQueryClient
+              .getTable(destinationTableId)
+              .getDefinition()
+              .getSchema()
+              .equals(bigQuerySchema),
+          new SchemaValidationException(
+              "Destination table's schema is not compatible with dataframe's schema."));
       switch (saveMode) {
         case Append:
           break;
@@ -118,16 +127,8 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
           writingMode = WritingMode.IGNORE_INPUTS;
           break;
         case ErrorIfExists:
-          throw new RuntimeException(
-              "Table already exists in BigQuery."); // TODO: should this be a RuntimeException?
+          throw new BigQueryConnectorException("Table already exists in BigQuery.");
       }
-      Preconditions.checkArgument(
-          bigQueryClient
-              .getTable(destinationTableId)
-              .getDefinition()
-              .getSchema()
-              .equals(bigQuerySchema),
-          new RuntimeException("Destination table's schema is not compatible."));
       return bigQueryClient.getTable(destinationTableId).getTableId();
     } else {
       return bigQueryClient.createTable(destinationTableId, bigQuerySchema).getTableId();
@@ -178,7 +179,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
         writeClient.batchCommitWriteStreams(batchCommitWriteStreamsRequest.build());
 
     if (!batchCommitWriteStreamsResponse.hasCommitTime()) {
-      throw new RuntimeException(
+      throw new BigQueryConnectorException(
           "DataSource writer failed to batch commit its BigQuery write-streams.");
     }
 
@@ -188,6 +189,11 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
 
     if (writingMode.equals(WritingMode.OVERWRITE)) {
       bigQueryClient.overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
+      Preconditions.checkState(
+          bigQueryClient.deleteTable(temporaryTableId),
+          new BigQueryConnectorException(
+              String.format(
+                  "Could not delete temporary table %s from BigQuery.", temporaryTableId)));
     }
 
     writeClient.shutdown();
@@ -205,6 +211,26 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     if (writingMode.equals(WritingMode.IGNORE_INPUTS)) return;
     if (writeClient != null && !writeClient.isShutdown()) {
       writeClient.shutdown();
+    }
+  }
+
+  protected static class InvalidSchemaException extends BigQueryConnectorException {
+    InvalidSchemaException(String message) {
+      super(message);
+    }
+
+    InvalidSchemaException(String message, Throwable t) {
+      super(message, t);
+    }
+  }
+
+  protected static class SchemaValidationException extends InvalidSchemaException {
+    SchemaValidationException(String message) {
+      super(message);
+    }
+
+    SchemaValidationException(String message, Throwable t) {
+      super(message, t);
     }
   }
 }
