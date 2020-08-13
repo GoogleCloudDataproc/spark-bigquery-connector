@@ -23,7 +23,7 @@ import com.google.inject.*;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.StructType;
 
-public class BigQueryWriteClientModule implements Module {
+public class BigQueryWriteClientModule implements com.google.inject.Module {
 
   final String writeUUID;
   final SaveMode saveMode;

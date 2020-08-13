@@ -95,7 +95,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
       this.writeStreamName = retryCreateWriteStream();
     } catch (ExecutionException | InterruptedException e) {
       throw new BigQueryConnectorException(
-          "Could not create write-stream after multiple retries.", e);
+          "Could not create write-stream after multiple retries", e);
     }
     this.streamWriter = createStreamWriter(this.writeStreamName);
     this.protoRows = ProtoBufProto.ProtoRows.newBuilder();
@@ -155,7 +155,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     try {
       return StreamWriter.newBuilder(writeStreamName).build();
     } catch (IOException | InterruptedException e) {
-      throw new BigQueryConnectorException("Could not build stream-writer.", e);
+      throw new BigQueryConnectorException("Could not build stream-writer", e);
     }
   }
 
@@ -180,7 +180,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
         if (messageSize > HARD_LIMIT_APPEND_ROWS_REQUEST_SIZE) {
           throw new IOException(
               String.format(
-                  "A single row of size %d exceeded the hard limit %d for an append request size.",
+                  "A single row of size %d exceeded the hard limit %d for an append request size",
                   messageSize, HARD_LIMIT_APPEND_ROWS_REQUEST_SIZE));
         }
         protoRows.addSerializedRows(message);
@@ -253,7 +253,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     try {
       appendRowsResponse = appendRowsResponseApiFuture.get();
     } catch (InterruptedException | ExecutionException e) {
-      throw new BigQueryConnectorException("Could not retrieve AppendRowsResponse.", e);
+      throw new BigQueryConnectorException("Could not retrieve AppendRowsResponse", e);
     }
     if (appendRowsResponse.hasError()) {
       throw new IOException(
@@ -263,7 +263,7 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     if (expectedOffset != responseOffset) {
       throw new IOException(
           String.format(
-              "On stream %s append-rows response offset %d did not match expected offset %d.",
+              "On stream %s append-rows response, offset %d did not match expected offset %d",
               writeStreamName, responseOffset, expectedOffset));
     }
   }

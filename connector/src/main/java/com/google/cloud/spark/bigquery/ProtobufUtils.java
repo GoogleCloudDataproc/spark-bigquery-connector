@@ -54,7 +54,7 @@ public class ProtobufUtils {
   // For every message, a nested type is name "STRUCT"+i, where i is the
   // number of the corresponding field that is of this type in the containing message.
   private static final String RESERVED_NESTED_TYPE_NAME = "STRUCT";
-  private static final String MAPTYPE_ERROR_MESSAGE = "MapType is unsupported.";
+  private static final String MAPTYPE_ERROR_MESSAGE = "MapType is unsupported";
 
   private static final ImmutableMap<LegacySQLTypeName, DescriptorProtos.FieldDescriptorProto.Type>
       BigQueryToProtoType =
@@ -171,8 +171,7 @@ public class ProtobufUtils {
       if (field.getType() == LegacySQLTypeName.RECORD) {
         String recordTypeName =
             RESERVED_NESTED_TYPE_NAME
-                + messageNumber; // TODO: Change or assert this to be a reserved name. No column can
-        // have this name.
+                + messageNumber; // TODO: Maintain this as a reserved nested-type name, which no column can have.
         DescriptorProtos.DescriptorProto.Builder nestedFieldTypeBuilder =
             descriptorBuilder.addNestedTypeBuilder();
         nestedFieldTypeBuilder.setName(recordTypeName);
@@ -245,7 +244,7 @@ public class ProtobufUtils {
       }
       return protoRows.build();
     } catch (Exception e) {
-      throw new RuntimeException("Could not convert Internal Rows to Proto Rows.", e);
+      throw new RuntimeException("Could not convert Internal Rows to Proto Rows", e);
     }
   }
 
@@ -301,7 +300,7 @@ public class ProtobufUtils {
     // logger.debug("Converting type: {}", sparkType.json());
     if (sparkValue == null) {
       if (!nullable) {
-        throw new IllegalArgumentException("Non-nullable field was null.");
+        throw new IllegalArgumentException("Non-nullable field was null");
       } else {
         return null;
       }
@@ -355,6 +354,7 @@ public class ProtobufUtils {
     }
 
     if (sparkType instanceof BinaryType) {
+      // TODO: when BigQuery Storage Write API remove Byte64 encoding requirement, return the raw sparkValue.
       return Base64.getEncoder().encode((byte[]) sparkValue);
     }
 
@@ -372,7 +372,7 @@ public class ProtobufUtils {
   private static DescriptorProtos.DescriptorProto buildDescriptorProtoWithFields(
       DescriptorProtos.DescriptorProto.Builder descriptorBuilder, StructField[] fields, int depth) {
     Preconditions.checkArgument(
-        depth < MAX_BIGQUERY_NESTED_DEPTH, "Spark Schema exceeds BigQuery maximum nesting depth.");
+        depth < MAX_BIGQUERY_NESTED_DEPTH, "Spark Schema exceeds BigQuery maximum nesting depth");
     int messageNumber = 1;
     for (StructField field : fields) {
       String fieldName = field.name();
@@ -397,8 +397,7 @@ public class ProtobufUtils {
         StructType structType = (StructType) sparkType;
         String nestedName =
             RESERVED_NESTED_TYPE_NAME
-                + messageNumber; // TODO: this should be a reserved name. No column can have this
-        // name.
+                + messageNumber; // TODO: Maintain this as a reserved nested-type name, which no column can have.
         StructField[] subFields = structType.fields();
 
         DescriptorProtos.DescriptorProto.Builder nestedFieldTypeBuilder =
@@ -430,6 +429,7 @@ public class ProtobufUtils {
         new IllegalStateException("Unexpected type: " + sparkType));
   }
 
+  // TODO: current known issues with NUMERIC type. When NUMERIC type support is added to BigQuery Storage Write API, overhaul this method.
   private static byte[] convertBigDecimalToNumeric(BigDecimal decimal) {
     byte[] unscaledValue =
         decimal
