@@ -167,7 +167,7 @@ public class ProtobufUtilsTest {
                   .add(new StructField("String", DataTypes.StringType, false, Metadata.empty())),
               new InternalRow[] {new GenericInternalRow(new Object[] {null})});
       fail("Convert did not assert field's /'Required/' status");
-    } catch (Exception e) {
+    } catch (Exception ignored) {
     }
     try {
       ProtoRows converted =
