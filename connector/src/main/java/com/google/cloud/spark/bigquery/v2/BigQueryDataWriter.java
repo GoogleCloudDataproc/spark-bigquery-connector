@@ -67,7 +67,7 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
       this.schemaDescriptor = toDescriptor(sparkSchema);
     } catch (Descriptors.DescriptorValidationException e) {
       throw new BigQueryDataSourceWriter.InvalidSchemaException(
-          "Could not convert spark-schema to descriptor object.", e);
+          "Could not convert spark-schema to descriptor object", e);
     }
 
     this.writerHelper =

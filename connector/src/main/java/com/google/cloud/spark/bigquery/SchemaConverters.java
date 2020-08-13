@@ -48,7 +48,7 @@ public class SchemaConverters {
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   // The maximum nesting depth of a BigQuery RECORD:
   private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
-  private static final String MAPTYPE_ERROR_MESSAGE = "MapType is unsupported.";
+  private static final String MAPTYPE_ERROR_MESSAGE = "MapType is unsupported";
   private static final ImmutableMap<String, LegacySQLTypeName> SparkToBigQueryTypes =
       new ImmutableMap.Builder<String, LegacySQLTypeName>()
           .put(DataTypes.BinaryType.json(), LegacySQLTypeName.BYTES)
@@ -277,7 +277,7 @@ public class SchemaConverters {
    */
   private static FieldList sparkToBigQueryFields(StructType sparkStruct, int depth) {
     Preconditions.checkArgument(
-        depth < MAX_BIGQUERY_NESTED_DEPTH, "Spark Schema exceeds BigQuery maximum nesting depth.");
+        depth < MAX_BIGQUERY_NESTED_DEPTH, "Spark Schema exceeds BigQuery maximum nesting depth");
     List<Field> bqFields = new ArrayList<>();
     for (StructField field : sparkStruct.fields()) {
       bqFields.add(createBigQueryColumn(field, depth));

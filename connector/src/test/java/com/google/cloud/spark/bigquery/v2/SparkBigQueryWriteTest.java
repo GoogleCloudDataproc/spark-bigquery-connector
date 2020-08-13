@@ -32,6 +32,7 @@ import org.threeten.bp.Duration;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.Arrays;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -351,7 +352,7 @@ public class SparkBigQueryWriteTest {
             .add(new StructField("bool", BooleanType, true, Metadata.empty()))
             .add(new StructField("str", StringType, true, Metadata.empty()))
             .add(new StructField("date", DateType, true, Metadata.empty()))
-            /*.add(new StructField("timestamp", TimestampType, true, Metadata.empty()))*/ // TODO: restore when BigQuery Storage API adds external TimeStamp support.
+            .add(new StructField("timestamp", TimestampType, true, Metadata.empty()))
             .add(new StructField("binary", BinaryType, true, Metadata.empty()))
             .add(new StructField("float", DoubleType, true, Metadata.empty()))
             /*.add(new StructField("nums", new StructType()
@@ -379,7 +380,7 @@ public class SparkBigQueryWriteTest {
             .add(new StructField("bool", BooleanType, true, Metadata.empty()))
             .add(new StructField("str", StringType, true, Metadata.empty()))
             .add(new StructField("date", DateType, true, Metadata.empty()))
-            /*.add(new StructField("timestamp", TimestampType, true, Metadata.empty()))*/ // TODO: restore when BigQuery Storage API adds external TimeStamp support.
+            .add(new StructField("timestamp", TimestampType, true, Metadata.empty()))
             .add(new StructField("binary", BinaryType, true, Metadata.empty()))
             .add(new StructField("float", DoubleType, true, Metadata.empty()))
             /*.add(new StructField("nums", new StructType()
@@ -407,7 +408,7 @@ public class SparkBigQueryWriteTest {
                     true,
                     "hello",
                     new Date(1595010664123L),
-                    /*new Timestamp(1595010664123L),*/ // TODO: restore when BigQuery Storage API adds external TimeStamp support.
+                    new Timestamp(1595010664123L),
                     new byte[]{1, 2, 3, 4},
                     1.2345,
                     /*RowFactory.create(

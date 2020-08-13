@@ -81,7 +81,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     try {
       this.protoSchema = toProtoSchema(sparkSchema);
     } catch (IllegalArgumentException e) {
-      throw new InvalidSchemaException("Could not convert Spark schema to protobuf descriptor.", e);
+      throw new InvalidSchemaException("Could not convert Spark schema to protobuf descriptor", e);
     }
 
     this.temporaryTableId = getOrCreateTable(saveMode, destinationTableId, bigQuerySchema);
@@ -116,7 +116,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
               .getSchema()
               .equals(bigQuerySchema),
           new SchemaValidationException(
-              "Destination table's schema is not compatible with dataframe's schema."));
+              "Destination table's schema is not compatible with dataframe's schema"));
       switch (saveMode) {
         case Append:
           break;
@@ -127,7 +127,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
           writingMode = WritingMode.IGNORE_INPUTS;
           break;
         case ErrorIfExists:
-          throw new BigQueryConnectorException("Table already exists in BigQuery.");
+          throw new BigQueryConnectorException("Table already exists in BigQuery");
       }
       return bigQueryClient.getTable(destinationTableId).getTableId();
     } else {
@@ -180,11 +180,11 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
 
     if (!batchCommitWriteStreamsResponse.hasCommitTime()) {
       throw new BigQueryConnectorException(
-          "DataSource writer failed to batch commit its BigQuery write-streams.");
+          "DataSource writer failed to batch commit its BigQuery write-streams");
     }
 
     logger.info(
-        "BigQuery DataSource writer has committed at time: {}.",
+        "BigQuery DataSource writer has committed at time: {}",
         batchCommitWriteStreamsResponse.getCommitTime());
 
     if (writingMode.equals(WritingMode.OVERWRITE)) {
@@ -193,7 +193,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
           bigQueryClient.deleteTable(temporaryTableId),
           new BigQueryConnectorException(
               String.format(
-                  "Could not delete temporary table %s from BigQuery.", temporaryTableId)));
+                  "Could not delete temporary table %s from BigQuery", temporaryTableId)));
     }
 
     writeClient.shutdown();
@@ -207,7 +207,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
    */
   @Override
   public void abort(WriterCommitMessage[] messages) {
-    logger.warn("BigQuery Data Source writer {} aborted.", writeUUID);
+    logger.warn("BigQuery Data Source writer {} aborted", writeUUID);
     if (writingMode.equals(WritingMode.IGNORE_INPUTS)) return;
     if (writeClient != null && !writeClient.isShutdown()) {
       writeClient.shutdown();

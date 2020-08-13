@@ -39,8 +39,6 @@ public class BigQueryWriteClientFactory implements Serializable {
     this.userAgentHeaderProvider = userAgentHeaderProvider;
   }
 
-  // in order to access this method from com.google.cloud.spark.bigquery this is public. TODO: make
-  // private
   public BigQueryWriteClient createBigQueryWriteClient() {
     try {
       BigQueryWriteSettings.Builder clientSettings =

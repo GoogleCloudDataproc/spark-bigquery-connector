@@ -168,7 +168,7 @@ public class ProtobufUtilsTest {
                   .add(new StructField("String", DataTypes.StringType, true, Metadata.empty())),
               new InternalRow[] {new GenericInternalRow(new Object[] {null})});
     } catch (Exception e) {
-      fail("A nullable field could not be set to null.");
+      fail("A nullable field could not be set to null");
     }
   }
 
