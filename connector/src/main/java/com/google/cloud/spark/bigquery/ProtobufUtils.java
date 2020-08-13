@@ -180,7 +180,8 @@ public class ProtobufUtils {
       if (field.getType() == LegacySQLTypeName.RECORD) {
         String recordTypeName =
             RESERVED_NESTED_TYPE_NAME
-                + messageNumber; // TODO: Maintain this as a reserved nested-type name, which no column can have.
+                + messageNumber; // TODO: Maintain this as a reserved nested-type name, which no
+                                 // column can have.
         DescriptorProtos.DescriptorProto.Builder nestedFieldTypeBuilder =
             descriptorBuilder.addNestedTypeBuilder();
         nestedFieldTypeBuilder.setName(recordTypeName);
@@ -363,7 +364,8 @@ public class ProtobufUtils {
     }
 
     if (sparkType instanceof BinaryType) {
-      // TODO: when BigQuery Storage Write API remove Byte64 encoding requirement, return the raw sparkValue.
+      // TODO: when BigQuery Storage Write API remove Byte64 encoding requirement, return the raw
+      // sparkValue.
       return Base64.getEncoder().encode((byte[]) sparkValue);
     }
 
@@ -406,7 +408,8 @@ public class ProtobufUtils {
         StructType structType = (StructType) sparkType;
         String nestedName =
             RESERVED_NESTED_TYPE_NAME
-                + messageNumber; // TODO: Maintain this as a reserved nested-type name, which no column can have.
+                + messageNumber; // TODO: Maintain this as a reserved nested-type name, which no
+                                 // column can have.
         StructField[] subFields = structType.fields();
 
         DescriptorProtos.DescriptorProto.Builder nestedFieldTypeBuilder =
@@ -438,7 +441,8 @@ public class ProtobufUtils {
         new IllegalStateException("Unexpected type: " + sparkType));
   }
 
-  // TODO: current known issues with NUMERIC type. When NUMERIC type support is added to BigQuery Storage Write API, overhaul this method.
+  // TODO: current known issues with NUMERIC type. When NUMERIC type support is added to BigQuery
+  // Storage Write API, overhaul this method.
   private static byte[] convertBigDecimalToNumeric(BigDecimal decimal) {
     byte[] unscaledValue =
         decimal
