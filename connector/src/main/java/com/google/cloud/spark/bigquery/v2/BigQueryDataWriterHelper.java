@@ -17,29 +17,23 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.api.client.util.Sleeper;
 import com.google.api.core.ApiFuture;
-import com.google.api.core.ApiFutureCallback;
-import com.google.api.core.ApiFutures;
 import com.google.api.core.NanoClock;
 import com.google.api.gax.retrying.*;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
 import com.google.cloud.bigquery.storage.v1.stub.readrows.ApiResultRetryAlgorithm;
 import com.google.cloud.bigquery.storage.v1alpha2.*;
-import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Int64Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.*;
 
+/**
+ * The interface which sketches out the necessary functions in order for a Spark DataWriter to
+ * interact with the BigQuery Storage Write API.
+ */
 interface BigQueryDataWriterHelper {
 
   static BigQueryDataWriterHelper from(
@@ -51,7 +45,7 @@ interface BigQueryDataWriterHelper {
         writeClientFactory, tablePath, protoSchema, bigqueryDataWriterHelperRetrySettings);
   }
 
-  void addRow(ByteString message);
+  void addRow(ByteString message) throws IOException;
 
   long commit() throws IOException;
 
@@ -60,14 +54,12 @@ interface BigQueryDataWriterHelper {
   void abort();
 }
 
+/** The current default implementation of such a helper interface. */
 class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
 
   final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterHelperDefault.class);
 
-  final long APPEND_REQUEST_SIZE = 1000L * 1000L; // 1MB limit for each append
-
-  private Executor appendRowsResponseListenersExecutor = MoreExecutors.directExecutor();
-  private List<SettableFuture<Boolean>> appendRowsResponseCallbackFutures = new ArrayList<>();
+  final long MAX_APPEND_ROWS_REQUEST_SIZE = 1000L * 1000L; // 1MB limit for each append
 
   private final BigQueryWriteClient writeClient;
   private final String tablePath;
@@ -83,9 +75,6 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
 
   private long writeStreamSizeBytes = 0; // total bytes of the current write-stream
   private long writeStreamRowCount = 0; // total offset / rows of the current write-stream
-
-  private boolean finalized = false;
-  private long finalizedWriteStreamRowCount;
 
   BigQueryDataWriterHelperDefault(
       BigQueryWriteClientFactory writeClientFactory,
@@ -106,6 +95,17 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     this.protoRows = ProtoBufProto.ProtoRows.newBuilder();
   }
 
+  /**
+   * Submits a callable that creates a BigQuery Storage Write API write-stream to function
+   * {retryCallable}.
+   *
+   * @see this#retryCallable(Callable createWriteStream)
+   * @return The write-stream name, if it was successfully created.
+   * @throws ExecutionException If retryCallable failed to create the write-stream after multiple
+   *     retries.
+   * @throws InterruptedException If retryCallable was interrupted while creating the write-stream
+   *     during a retry.
+   */
   private String retryCreateWriteStream() throws ExecutionException, InterruptedException {
     return retryCallable(
         () ->
@@ -121,6 +121,19 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
                 .getName());
   }
 
+  /**
+   * A helper method in order to retry certain tasks: currently used for creating a write-stream,
+   * and finalizing a write-stream, if those requests reached a retriable error.
+   *
+   * @param callable The callable to retry.
+   * @param <V> The return value of the callable (currently, either a String (write-stream name) or
+   *     a FinalizeWriteStreamResponse.
+   * @return V.
+   * @throws ExecutionException If retryCallable failed to create the write-stream after multiple
+   *     retries.
+   * @throws InterruptedException If retryCallable was interrupted while creating the write-stream
+   *     during a retry.
+   */
   private <V> V retryCallable(Callable<V> callable)
       throws ExecutionException, InterruptedException {
     DirectRetryingExecutor<V> directRetryingExecutor =
@@ -140,12 +153,21 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     }
   }
 
+  /**
+   * Adds a row to the protoRows, which acts as a buffer; but before, checks if the current message
+   * size in bytes will cause the protoRows buffer to exceed the maximum APPEND_REQUEST_SIZE, and if
+   * it will, sends an append rows request first.
+   *
+   * @see this#sendAppendRowsRequest()
+   * @param message The row, in a ByteString message, to be added to protoRows.
+   * @throws IOException If sendAppendRowsRequest fails.
+   */
   @Override
-  public void addRow(ByteString message) {
+  public void addRow(ByteString message) throws IOException {
     int messageSize = message.size();
 
-    if (appendRequestSizeBytes + messageSize > APPEND_REQUEST_SIZE) {
-      initializeAppendRequest();
+    if (appendRequestSizeBytes + messageSize > MAX_APPEND_ROWS_REQUEST_SIZE) {
+      sendAppendRowsRequest();
     }
 
     protoRows.addSerializedRows(message);
@@ -153,19 +175,20 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     appendRequestRowCount++;
   }
 
-  private void initializeAppendRequest() {
+  /**
+   * Sends an AppendRowsRequest to the BigQuery Storage Write API.
+   *
+   * @throws IOException If the append rows request fails: either by returning the wrong offset
+   *     (deduplication error) or if the response contains an error.
+   */
+  private void sendAppendRowsRequest() throws IOException {
     long offset = writeStreamRowCount;
 
     Storage.AppendRowsRequest appendRowsRequest = createAppendRowsRequest(offset);
 
     ApiFuture<Storage.AppendRowsResponse> appendRowsResponseApiFuture =
         streamWriter.append(appendRowsRequest);
-    SettableFuture<Boolean> callbackFuture = SettableFuture.create();
-    ApiFutures.addCallback(
-        appendRowsResponseApiFuture,
-        new AppendRowsResponseCallbackValidator(offset, writeStreamName, callbackFuture),
-        appendRowsResponseListenersExecutor);
-    appendRowsResponseCallbackFutures.add(callbackFuture);
+    validateAppendRowsResponse(appendRowsResponseApiFuture, offset);
 
     clearProtoRows();
     this.writeStreamRowCount += appendRequestRowCount;
@@ -174,6 +197,14 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     this.appendRequestSizeBytes = 0;
   }
 
+  /**
+   * Helper method to create a BigQuery Storage Write API AppendRowsRequest.
+   *
+   * @param offset The offset to be used in the request: equal to how many rows have already been
+   *     appended.
+   * @return The AppendRowsRequest
+   * @see com.google.cloud.bigquery.storage.v1alpha2.Storage.AppendRowsRequest
+   */
   private Storage.AppendRowsRequest createAppendRowsRequest(long offset) {
     Storage.AppendRowsRequest.Builder requestBuilder =
         Storage.AppendRowsRequest.newBuilder().setOffset(Int64Value.of(offset));
@@ -188,13 +219,53 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     return requestBuilder.build();
   }
 
+  /**
+   * Validates an AppendRowsResponse, after retrieving its future: makes sure the responses' future
+   * matches the expectedOffset, and returned with no errors.
+   *
+   * @param appendRowsResponseApiFuture The future of the AppendRowsResponse
+   * @param expectedOffset The expected offset to be returned by the response.
+   * @throws IOException If the response returned with error, or the offset did not match the
+   *     expected offset.
+   */
+  private void validateAppendRowsResponse(
+      ApiFuture<Storage.AppendRowsResponse> appendRowsResponseApiFuture, long expectedOffset)
+      throws IOException {
+    Storage.AppendRowsResponse appendRowsResponse = null;
+    try {
+      appendRowsResponse = appendRowsResponseApiFuture.get();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException("Could not retrieve AppendRowsResponse.", e);
+    }
+    if (appendRowsResponse.hasError()) {
+      throw new IOException(
+          "Append request failed with error: " + appendRowsResponse.getError().getMessage());
+    }
+    long responseOffset = appendRowsResponse.getOffset();
+    if (expectedOffset != responseOffset) {
+      throw new IOException(
+          String.format(
+              "On stream %s append-rows response offset %d did not match expected offset %d.",
+              writeStreamName, responseOffset, expectedOffset));
+    }
+  }
+
+  /**
+   * Appends any data that remains in the protoRows, waits for 500 milliseconds, and finalizes the
+   * write-stream.
+   *
+   * @return The finalized row-count of the write-stream.
+   * @throws IOException If the row-count returned by the FinalizeWriteStreamResponse does not match
+   *     the expected offset (which is equal to the number of rows appended thus far).
+   * @see this#writeStreamRowCount
+   */
   @Override
   public long commit() throws IOException {
     if (this.protoRows.getSerializedRowsCount() != 0) {
-      initializeAppendRequest();
+      sendAppendRowsRequest();
     }
 
-    awaitAllValidations();
+    waitBeforeFinalization();
 
     Storage.FinalizeWriteStreamRequest finalizeWriteStreamRequest =
         Storage.FinalizeWriteStreamRequest.newBuilder().setName(writeStreamName).build();
@@ -218,6 +289,15 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     return responseFinalizedRowCount;
   }
 
+  /**
+   * A helper method in order to submit for retry (using method retryCallable) a callable that
+   * finalizes the write-stream; useful if finalization encountered a retriable error.
+   *
+   * @param finalizeWriteStreamRequest The request to send to the writeClient in order to finalize
+   *     the write-stream.
+   * @return The FinalizeWriteStreamResponse
+   * @see com.google.cloud.bigquery.storage.v1alpha2.Storage.FinalizeWriteStreamResponse
+   */
   private Storage.FinalizeWriteStreamResponse retryFinalizeWriteStream(
       Storage.FinalizeWriteStreamRequest finalizeWriteStreamRequest) {
     try {
@@ -228,22 +308,8 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     }
   }
 
-  private void awaitAllValidations() {
-    ListenableFuture<List<Boolean>> allValidationsSuccessFutures =
-        Futures.successfulAsList(appendRowsResponseCallbackFutures);
-    List<Boolean> allValidationsSuccesses = null;
-    try {
-      allValidationsSuccesses = allValidationsSuccessFutures.get();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(
-          "Interrupted while waiting for the combined future of all append response listeners.", e);
-    } catch (ExecutionException e) {
-      throw new RuntimeException(
-          "Failed to retrieve the combined future of all append response listeners", e);
-    }
-    for (boolean success : allValidationsSuccesses) {
-      Preconditions.checkState(success);
-    }
+  /** Waits 500 milliseconds. In order to be used as a cushioning period before finalization. */
+  private void waitBeforeFinalization() {
     try {
       Sleeper.DEFAULT.sleep(500);
     } catch (InterruptedException e) {
@@ -252,6 +318,10 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     }
   }
 
+  /**
+   * Deletes the data left over in the protoRows, using method clearProtoRows, closes the
+   * StreamWriter, shuts down the WriteClient, and nulls out the protoRows and write-stream-name.
+   */
   @Override
   public void abort() {
     clearProtoRows();
@@ -263,8 +333,6 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     }
     this.protoRows = null;
     this.writeStreamName = null;
-    this.appendRowsResponseListenersExecutor = null;
-    this.appendRowsResponseCallbackFutures = null;
   }
 
   private void clearProtoRows() {
@@ -276,44 +344,5 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
   @Override
   public String getWriteStreamName() {
     return writeStreamName;
-  }
-
-  static class AppendRowsResponseCallbackValidator
-      implements ApiFutureCallback<Storage.AppendRowsResponse> {
-
-    final long offset;
-    final String writeStreamName;
-    final SettableFuture<Boolean> callbackFuture;
-
-    AppendRowsResponseCallbackValidator(
-        long expectedOffset, String writeStreamName, SettableFuture<Boolean> callbackFuture) {
-      this.offset = expectedOffset;
-      this.writeStreamName = writeStreamName;
-      this.callbackFuture = callbackFuture;
-    }
-
-    @Override
-    public void onFailure(Throwable t) {
-      throw new RuntimeException("Could not retrieve AppendRowsResponse.", t);
-    }
-
-    @Override
-    public void onSuccess(Storage.AppendRowsResponse appendRowsResponse) {
-      if (appendRowsResponse.hasError()) {
-        throw new UncheckedIOException(
-            new IOException(
-                "Append request failed with error: " + appendRowsResponse.getError().getMessage()));
-      }
-      long expectedOffset = this.offset;
-      long responseOffset = appendRowsResponse.getOffset();
-      if (expectedOffset != responseOffset) {
-        throw new UncheckedIOException(
-            new IOException(
-                String.format(
-                    "On stream %s append-rows response offset %d did not match expected offset %d.",
-                    writeStreamName, responseOffset, expectedOffset)));
-      }
-      callbackFuture.set(true);
-    }
   }
 }

@@ -43,6 +43,10 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
   private final StructType sparkSchema;
   private final Descriptors.Descriptor schemaDescriptor;
 
+  /**
+   * A helper object to assist the BigQueryDataWriter with all the writing: essentially does all the
+   * interaction with BigQuery Storage Write API.
+   */
   private BigQueryDataWriterHelper writerHelper;
 
   public BigQueryDataWriter(

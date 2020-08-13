@@ -45,9 +45,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
   private final BigQueryWriteClientFactory writeClientFactory;
   private final TableId destinationTableId;
   private final StructType sparkSchema;
-  private final Schema bigQuerySchema;
   private final ProtoBufProto.ProtoSchema protoSchema;
-  private final SaveMode saveMode;
   private final String writeUUID;
   private final RetrySettings bigqueryDataWriterHelperRetrySettings;
 
@@ -76,10 +74,9 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     this.writeClientFactory = bigQueryWriteClientFactory;
     this.destinationTableId = destinationTableId;
     this.writeUUID = writeUUID;
-    this.saveMode = saveMode;
     this.sparkSchema = sparkSchema;
     this.bigqueryDataWriterHelperRetrySettings = bigqueryDataWriterHelperRetrySettings;
-    this.bigQuerySchema = toBigQuerySchema(sparkSchema);
+    Schema bigQuerySchema = toBigQuerySchema(sparkSchema);
     try {
       this.protoSchema = toProtoSchema(sparkSchema);
     } catch (IllegalArgumentException e) {
@@ -95,6 +92,19 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     }
   }
 
+  /**
+   * This function determines whether the destination table exists: if it doesn't, Spark will do the
+   * writing directly to it; otherwise, if SaveMode = SaveMode.OVERWRITE then a temporary table will
+   * be created, where the writing results will be stored before replacing the destination table
+   * upon commit; this function also validates the destination table's schema matches the expected
+   * schema, if applicable.
+   *
+   * @param saveMode the SaveMode supplied by the user.
+   * @param destinationTableId the TableId, as was supplied by the user
+   * @param bigQuerySchema the bigQuery schema
+   * @return The TableId to which Spark will do the writing: whether that is the destinationTableID
+   *     or the temporaryTableId.
+   */
   private TableId getOrCreateTable(
       SaveMode saveMode, TableId destinationTableId, Schema bigQuerySchema) {
     if (bigQueryClient.tableExists(destinationTableId)) {
@@ -138,6 +148,18 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
   @Override
   public void onDataWriterCommit(WriterCommitMessage message) {}
 
+  /**
+   * This function will determine, based on the WritingMode: if in IGNORE_INPUTS mode, no work is to
+   * be done; otherwise all streams will be batch committed using the BigQuery Storage Write API,
+   * and then: if in OVERWRITE mode, the overwriteDestinationWithTemporary function from
+   * BigQueryClient will be called to replace the destination table with all the data from the
+   * temporary table; if in ALL_ELSE mode no more work needs to be done.
+   *
+   * @see WritingMode
+   * @see BigQueryClient#overwriteDestinationWithTemporary(TableId temporaryTableId, TableId
+   *     destinationTableId)
+   * @param messages the BigQueryWriterCommitMessage array returned by the BigQueryDataWriter's.
+   */
   @Override
   public void commit(WriterCommitMessage[] messages) {
     if (writingMode.equals(WritingMode.IGNORE_INPUTS)) return;
@@ -171,6 +193,12 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     writeClient.shutdown();
   }
 
+  /**
+   * If not in WritingMode IGNORE_INPUTS, the BigQuery Storage Write API WriteClient is shut down.
+   *
+   * @see BigQueryWriteClient
+   * @param messages the BigQueryWriterCommitMessage array returned by the BigQueryDataWriter's.
+   */
   @Override
   public void abort(WriterCommitMessage[] messages) {
     logger.warn("BigQuery Data Source writer {} aborted.", writeUUID);
