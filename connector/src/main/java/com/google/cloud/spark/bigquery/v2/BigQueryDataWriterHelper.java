@@ -60,11 +60,8 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
 
   final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterHelperDefault.class);
 
-  // 1MB soft limit for each append:
-  final long SOFT_LIMIT_APPEND_ROWS_REQUEST_SIZE = 1000L * 1000L;
-  // 2MB hard limit for an append (in the case  a single row exceeds
-  // SOFT_LIMIT_APPEND_ROWS_REQUEST_SIZE):
-  final long HARD_LIMIT_APPEND_ROWS_REQUEST_SIZE = 2 * 1000L * 1000L;
+  // 1MB limit for each append:
+  final long MAX_APPEND_ROWS_REQUEST_SIZE = 1000L * 1000L;
 
   private final BigQueryWriteClient writeClient;
   private final String tablePath;
@@ -172,18 +169,14 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
   public void addRow(ByteString message) throws IOException {
     int messageSize = message.size();
 
-    if (appendRequestSizeBytes + messageSize > SOFT_LIMIT_APPEND_ROWS_REQUEST_SIZE) {
-      // If the protoRows is empty, this means just this row alone has exceeded the soft limit by
-      // itself.
-      if (protoRows.getSerializedRowsCount() < 1) {
-        // We add this single row is it does not exceed the hard limit on append rows request size.
-        if (messageSize > HARD_LIMIT_APPEND_ROWS_REQUEST_SIZE) {
-          throw new IOException(
-              String.format(
-                  "A single row of size %d exceeded the hard limit %d for an append request size",
-                  messageSize, HARD_LIMIT_APPEND_ROWS_REQUEST_SIZE));
-        }
-        protoRows.addSerializedRows(message);
+    if (appendRequestSizeBytes + messageSize > MAX_APPEND_ROWS_REQUEST_SIZE) {
+      // If a single row exceeds the maximum size for an append request, this is a nonrecoverable
+      // error.
+      if (messageSize > MAX_APPEND_ROWS_REQUEST_SIZE) {
+        throw new IOException(
+            String.format(
+                "A single row of size %d bytes exceeded the maximum of %d bytes for an append-rows-request size",
+                messageSize, MAX_APPEND_ROWS_REQUEST_SIZE));
       }
       sendAppendRowsRequest();
     }

@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -139,7 +138,7 @@ public class BigQueryClient {
   }
 
   /**
-   * Overwrites the given destination table, with all the data from the given temporary table.
+   * Overwrites the given destination table, with all the data from the given temporary table, transactionally.
    *
    * @param temporaryTableId The {@code TableId} representing the temporary-table.
    * @param destinationTableId The {@code TableId} representing the destination table.
@@ -155,6 +154,26 @@ public class BigQueryClient {
                     + "WHEN NOT MATCHED THEN INSERT ROW\n"
                     + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
 
+    QueryJobConfiguration queryConfig =
+            QueryJobConfiguration.newBuilder(
+                    sqlFromFormat(queryFormat, destinationTableId, temporaryTableId))
+                    .setUseLegacySql(false)
+                    .build();
+
+    return create(JobInfo.newBuilder(queryConfig).build());
+  }
+
+  /**
+   * Appends the destination table with all the data from the temporary table, transactionally.
+   *
+   * @param temporaryTableId The {@code TableId} representing the temporary-table.
+   * @param destinationTableId The {@code TableId} representing the destination table.
+   * @return The {@code Job} object representing this operation (which can be tracked to wait until
+   *     it has finished successfully).
+   */
+  public Job appendFromTemporaryToDestination(
+      TableId temporaryTableId, TableId destinationTableId) {
+    String queryFormat = "INSERT INTO `%s`\n" + "SELECT * FROM `%s`";
     QueryJobConfiguration queryConfig =
             QueryJobConfiguration.newBuilder(
                     sqlFromFormat(queryFormat, destinationTableId, temporaryTableId))
@@ -191,7 +210,6 @@ public class BigQueryClient {
       String sql = query.get();
       return materializeQueryToTable(sql, options.expirationTimeInMinutes());
     }
-
     TableInfo table = getTable(options.tableId());
     if (table == null) {
       return null;
