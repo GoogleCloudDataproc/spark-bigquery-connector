@@ -188,7 +188,8 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
         batchCommitWriteStreamsResponse.getCommitTime());
 
     if (writingMode.equals(WritingMode.OVERWRITE)) {
-      bigQueryClient.overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
+      Job overwriteJob = bigQueryClient.overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
+      bigQueryClient.waitForJob(overwriteJob);
       Preconditions.checkState(
           bigQueryClient.deleteTable(temporaryTableId),
           new BigQueryConnectorException(
@@ -211,6 +212,10 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     if (writingMode.equals(WritingMode.IGNORE_INPUTS)) return;
     if (writeClient != null && !writeClient.isShutdown()) {
       writeClient.shutdown();
+    }
+    // Deletes the preliminary table we wrote to (if it exists):
+    if (bigQueryClient.tableExists(temporaryTableId)) {
+      bigQueryClient.deleteTable(temporaryTableId);
     }
   }
 
