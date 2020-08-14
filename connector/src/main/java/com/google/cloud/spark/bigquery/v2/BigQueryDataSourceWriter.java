@@ -188,7 +188,8 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
         batchCommitWriteStreamsResponse.getCommitTime());
 
     if (writingMode.equals(WritingMode.OVERWRITE)) {
-      Job overwriteJob = bigQueryClient.overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
+      Job overwriteJob =
+          bigQueryClient.overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
       bigQueryClient.waitForJob(overwriteJob);
       Preconditions.checkState(
           bigQueryClient.deleteTable(temporaryTableId),

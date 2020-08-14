@@ -132,7 +132,8 @@ public class BigQueryClient {
   }
 
   /**
-   * Overwrites the given destination table, with all the data from the given temporary table, transactionally.
+   * Overwrites the given destination table, with all the data from the given temporary table,
+   * transactionally.
    *
    * @param temporaryTableId The {@code TableId} representing the temporary-table.
    * @param destinationTableId The {@code TableId} representing the destination table.
@@ -169,10 +170,10 @@ public class BigQueryClient {
       TableId temporaryTableId, TableId destinationTableId) {
     String queryFormat = "INSERT INTO `%s`\n" + "SELECT * FROM `%s`";
     QueryJobConfiguration queryConfig =
-            QueryJobConfiguration.newBuilder(
-                    sqlFromFormat(queryFormat, destinationTableId, temporaryTableId))
-                    .setUseLegacySql(false)
-                    .build();
+        QueryJobConfiguration.newBuilder(
+                sqlFromFormat(queryFormat, destinationTableId, temporaryTableId))
+            .setUseLegacySql(false)
+            .build();
 
     return create(JobInfo.newBuilder(queryConfig).build());
   }
@@ -197,21 +198,22 @@ public class BigQueryClient {
 
   /**
    * Waits for a BigQuery Job to complete: this is a blocking function.
+   *
    * @param job The {@code Job} to keep track of.
    */
   public void waitForJob(Job job) {
     try {
       Job completedJob =
-              job.waitFor(
-                      RetryOption.initialRetryDelay(Duration.ofSeconds(1)),
-                      RetryOption.totalTimeout(Duration.ofMinutes(3)));
+          job.waitFor(
+              RetryOption.initialRetryDelay(Duration.ofSeconds(1)),
+              RetryOption.totalTimeout(Duration.ofMinutes(3)));
       if (completedJob == null && completedJob.getStatus().getError() != null) {
         throw new UncheckedIOException(
-                new IOException(completedJob.getStatus().getError().toString()));
+            new IOException(completedJob.getStatus().getError().toString()));
       }
     } catch (InterruptedException e) {
       throw new RuntimeException(
-              "Could not copy table from temporary sink to destination table.", e);
+          "Could not copy table from temporary sink to destination table.", e);
     }
   }
 
