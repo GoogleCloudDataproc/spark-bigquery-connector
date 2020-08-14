@@ -138,7 +138,8 @@ public class BigQueryClient {
   }
 
   /**
-   * Overwrites the given destination table, with all the data from the given temporary table, transactionally.
+   * Overwrites the given destination table, with all the data from the given temporary table,
+   * transactionally.
    *
    * @param temporaryTableId The {@code TableId} representing the temporary-table.
    * @param destinationTableId The {@code TableId} representing the destination table.
@@ -175,10 +176,10 @@ public class BigQueryClient {
       TableId temporaryTableId, TableId destinationTableId) {
     String queryFormat = "INSERT INTO `%s`\n" + "SELECT * FROM `%s`";
     QueryJobConfiguration queryConfig =
-            QueryJobConfiguration.newBuilder(
-                    sqlFromFormat(queryFormat, destinationTableId, temporaryTableId))
-                    .setUseLegacySql(false)
-                    .build();
+        QueryJobConfiguration.newBuilder(
+                sqlFromFormat(queryFormat, destinationTableId, temporaryTableId))
+            .setUseLegacySql(false)
+            .build();
 
     return create(JobInfo.newBuilder(queryConfig).build());
   }
@@ -200,7 +201,7 @@ public class BigQueryClient {
             "projects/%s/datasets/%s/tables/%s",
             tableId.getProject(), tableId.getDataset(), tableId.getTable());
   }
-  
+
   public TableInfo getReadTable(ReadTableOptions options) {
     Optional<String> query = options.query();
     // first, let check if this is a query
