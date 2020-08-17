@@ -320,6 +320,21 @@ public class ArrowSchemaConverter extends ColumnVector {
     }
 
     @Override
+    byte getByte(int rowId) {
+      return (byte)getLong(rowId);
+    }
+
+    @Override
+    short getShort(int rowId) {
+      return (short)getLong(rowId);
+    }
+
+    @Override
+    int getInt(int rowId) {
+      return (int)getLong(rowId);
+    }
+
+    @Override
     final long getLong(int rowId) {
       return accessor.get(rowId);
     }

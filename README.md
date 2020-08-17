@@ -76,8 +76,8 @@ repository. It can be used using the `--packages` option or the
 
 | Scala version | Connector Artifact |
 | --- | --- |
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.17.0` |
-| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.17.0` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.17.1` |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.17.1` |
 
 ## Hello World Example
 
@@ -510,6 +510,16 @@ When casting to Timestamp TIME have the same TimeZone issues as DATETIME
   </tr>
 </table>
 
+#### Spark ML Data Types Support
+
+The Spark ML [Vector](https://spark.apache.org/docs/2.4.5/api/python/pyspark.ml.html#pyspark.ml.linalg.Vector) and 
+[Matrix](https://spark.apache.org/docs/2.4.5/api/python/pyspark.ml.html#pyspark.ml.linalg.Matrix) are supported,
+including their dense and sparse versions. The data is saved as a BigQuery RECORD. Notice that a suffix is added to
+the field's description which includes the spark type of the field.
+
+In order to write those types to BigQuery, use the ORC or Avro intermediate format, and have them as column of the
+Row (i.e. not a field in a struct).
+   
 ### Filtering
 
 The connector automatically computes column and pushdown filters the DataFrame's `SELECT` statement e.g.
@@ -585,7 +595,7 @@ using the following code:
 ```python
 from pyspark.sql import SparkSession
 spark = SparkSession.builder\
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.17.0")\
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.17.1")\
   .getOrCreate()
 df = spark.read.format("bigquery")\
   .load("dataset.table")
@@ -594,7 +604,7 @@ df = spark.read.format("bigquery")\
 **Scala:**
 ```python
 val spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.17.0")
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.17.1")
   .getOrCreate()
 val df = spark.read.format("bigquery")
   .load("dataset.table")
@@ -602,7 +612,7 @@ val df = spark.read.format("bigquery")
 
 In case Spark cluster is using Scala 2.12 (it's optional for Spark 2.4.x,
 mandatory in 3.0.x), then the relevant package is
-com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.17.0. In
+com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.17.1. In
 order to know which Scala version is used, please run the following code:
 
 **Python:**
@@ -626,14 +636,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery-with-dependencies_${scala.version}</artifactId>
-  <version>0.17.0</version>
+  <version>0.17.1</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.17.0"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.17.1"
 ```
 
 ## Building the Connector

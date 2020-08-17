@@ -51,7 +51,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
         case None if options.persistentGcsBucket.isDefined =>
           s"gs://${options.persistentGcsBucket.get}/.spark-bigquery-${applicationId}-${UUID.randomUUID()}"
         case _ =>
-          throw new IllegalArgumentException("Temporary ou persistent GCS bucket must be informed.")
+          throw new IllegalArgumentException("Temporary or persistent GCS bucket must be informed.")
       }
 
       gcsPath = new Path(gcsPathOption)
@@ -82,6 +82,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       data.write.format(format).save(gcsPath.toString)
 
       loadDataToBigQuery
+      updateMetadataIfNeeded
     } catch {
       case e: Exception => throw new RuntimeException("Failed to write to BigQuery", e)
     } finally {
@@ -164,6 +165,40 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
   }
 
   def friendlyTableName: String = BigQueryUtil.friendlyTableName(options.tableId)
+
+  def updateMetadataIfNeeded: Unit = {
+    // TODO: Issue #190 should be solved here
+    val fieldsToUpdate = data.schema
+      .map(field => (field.name, SupportedCustomDataType.of(field.dataType)))
+      .filter { case (_, dataType) => dataType.isPresent }
+      .toMap
+    if (!fieldsToUpdate.isEmpty) {
+      logDebug(s"updating schema, found fields to update: ${fieldsToUpdate.keySet}")
+      val originalTableInfo = bigQuery.getTable(options.tableId)
+      val originalTableDefinition = originalTableInfo.getDefinition[TableDefinition]
+      val originalSchema = originalTableDefinition.getSchema
+      val updatedSchema = Schema.of(originalSchema.getFields.asScala.map(field => {
+        fieldsToUpdate.get(field.getName)
+          .map(dataType => updatedField(field, dataType.get.getTypeMarker))
+          .getOrElse(field)
+      }).asJava)
+      val updatedTableInfo = originalTableInfo.toBuilder.setDefinition(
+        originalTableDefinition.toBuilder.setSchema(updatedSchema).build
+      )
+      bigQuery.update(updatedTableInfo.build)
+    }
+  }
+
+  def updatedField(field: Field, marker: String): Field = {
+    val newField = field.toBuilder
+    val description = field.getDescription
+    if(description == null) {
+      newField.setDescription(marker)
+    } else if (!description.endsWith(marker)) {
+      newField.setDescription(s"${description} ${marker}")
+    }
+    newField.build
+  }
 
   def cleanTemporaryGcsPathIfNeeded: Unit = {
     // TODO(davidrab): add flag to disable the deletion?

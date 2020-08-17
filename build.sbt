@@ -24,7 +24,7 @@ lazy val nettyTcnativeVersion = "2.0.29.Final"
 
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
-  version := "0.17.1-SNAPSHOT",
+  version := "0.17.2-SNAPSHOT",
   scalaVersion := scala211Version,
   crossScalaVersions := Seq(scala211Version, scala212Version)
 )
@@ -42,7 +42,7 @@ lazy val root = (project in file("."))
 lazy val commonTestDependencies = Seq(
   "io.grpc" % "grpc-alts" % grpcVersion exclude("io.grpc", "grpc-netty-shaded"),
   "io.grpc" % "grpc-netty" % grpcVersion,
-  "com.google.api" % "gax-grpc" % "1.57.0" exclude("io.grpc", "grpc-netty-shaded"),
+  "com.google.api" % "gax-grpc" % "1.57.1" exclude("io.grpc", "grpc-netty-shaded"),
   "com.google.guava" % "guava" % "29.0-jre",
 
   "org.scalatest" %% "scalatest" % "3.1.0" % "test",
@@ -74,6 +74,7 @@ lazy val connector = (project in file("connector"))
     libraryDependencies ++= (commonTestDependencies ++ Seq(
       "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
       "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
+      "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
       "org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
       "aopalliance" % "aopalliance" % "1.0" % "provided",
       "org.codehaus.jackson" % "jackson-core-asl" % "1.9.13" % "provided",
@@ -82,8 +83,8 @@ lazy val connector = (project in file("connector"))
       "com.google.inject" % "guice" % "4.2.3",
 
       // Keep com.google.cloud dependencies in sync
-      "com.google.cloud" % "google-cloud-bigquery" % "1.116.3",
-      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.0.0"
+      "com.google.cloud" % "google-cloud-bigquery" % "1.116.8",
+      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.3.1"
         exclude("io.grpc", "grpc-netty-shaded"),
       // Keep in sync with com.google.cloud
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.11.0",

@@ -19,6 +19,7 @@ import com.google.cloud.bigquery._
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.it.TestConstants._
 import com.google.cloud.spark.bigquery.{SparkBigQueryOptions, TestUtils}
+import org.apache.spark.ml.linalg.{SQLDataTypes, Vectors}
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.streaming.OutputMode
@@ -677,6 +678,31 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     result.filter(row => row(1).equals("bar")).size shouldBe 1
     result.filter(row => row(1).equals("baz")).size shouldBe 1
 
+  }
+
+  test("support custom data types") {
+    val table = s"$testDataset.$testTable"
+
+    val originalVectorDF = spark.createDataFrame(
+      List(Row("row1", 1, Vectors.dense(1, 2, 3))).asJava,
+      StructType(Seq(
+        StructField("name", DataTypes.StringType),
+        StructField("num", DataTypes.IntegerType),
+        StructField("vector", SQLDataTypes.VectorType))))
+
+    originalVectorDF.write.format("bigquery")
+      // must use avro or orc
+      .option("intermediateFormat", "orc")
+      .option("temporaryGcsBucket", temporaryGcsBucket)
+      .save(table)
+
+    val readVectorDF = spark.read.format("bigquery")
+      .load(table)
+
+    val orig = originalVectorDF.head
+    val read = readVectorDF.head
+
+    read should equal(orig)
   }
 
   def extractWords(df: DataFrame): Set[String] = {

@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.17.1 - 2020-08-xx
+* Issue #216: removed redundant ALPN dependency
+* Issue #219: Fixed the LessThanOrEqual filter SQL compilation in the DataSource v2 implmentation
+* Issue #221: Fixed ProtobufUtilsTest.java with newer BigQuery dependencies
+* PR #229: Adding support for Spark ML Vector and Matrix data types
+* BigQuery API has been upgraded to version 1.116.8
+* BigQuery Storage API has been upgraded to version 1.3.1
+
 ## 0.17.0 - 2020-07-15
 * PR #201: [Structured streaming write](http://spark.apache.org/docs/2.4.5/structured-streaming-programming-guide.html#starting-streaming-queries)
   is now supported (thanks @varundhussa) 
