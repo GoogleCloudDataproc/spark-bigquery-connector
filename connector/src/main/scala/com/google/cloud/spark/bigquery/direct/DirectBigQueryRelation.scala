@@ -91,7 +91,7 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
-    logInfo(
+    logWarning(
       s"""
          |Querying table $tableName, parameters sent from Spark:
          |requiredColumns=[${requiredColumns.mkString(",")}],
@@ -100,7 +100,7 @@ private[bigquery] class DirectBigQueryRelation(
     val filter = getCompiledFilter(filters)
     val actualTable = getActualTable(requiredColumns, filter)
 
-    logInfo(
+    logWarning(
       s"""
          |Going to read from ${BigQueryUtil.friendlyTableName(actualTable.getTableId)}
          |columns=[${requiredColumns.mkString(", ")}],
@@ -111,7 +111,7 @@ private[bigquery] class DirectBigQueryRelation(
       generateEmptyRowRDD(actualTable, filter)
     } else {
       if (requiredColumns.isEmpty) {
-        logDebug(s"Not using optimized empty projection")
+        logWarning(s"Not using optimized empty projection")
       }
       val actualTableDefinition = actualTable.getDefinition[StandardTableDefinition]
       val actualTablePath = DirectBigQueryRelation.toTablePath(actualTable.getTableId)
@@ -189,7 +189,7 @@ private[bigquery] class DirectBigQueryRelation(
       val result = bigQuery.query(QueryJobConfiguration.of(sql))
       result.iterateAll.iterator.next.get(0).getLongValue
     }
-    logDebug(s"Creating a DataFrame of empty roes of size $numberOfRows")
+    logWarning(s"Creating a DataFrame of empty roes of size $numberOfRows")
     sqlContext.sparkContext.range(0, numberOfRows)
       .map(_ => InternalRow.empty)
       .asInstanceOf[RDD[Row]]
@@ -206,7 +206,7 @@ private[bigquery] class DirectBigQueryRelation(
         TableDefinition.Type.MATERIALIZED_VIEW == tableType)) {
       // get it from the view
       val querySql = createSql(tableDefinition.getSchema, requiredColumns, filtersString)
-      logDebug(s"querySql is $querySql")
+      logWarning(s"querySql is $querySql")
       destinationTableCache.get(querySql, DestinationTableBuilder(querySql))
     } else {
       // use the default one
@@ -216,15 +216,15 @@ private[bigquery] class DirectBigQueryRelation(
 
   def createTableFromQuery(querySql: String): TableInfo = {
     val destinationTable = createDestinationTable
-    logDebug(s"destinationTable is $destinationTable")
+    logWarning(s"destinationTable is $destinationTable")
     val jobInfo = JobInfo.of(
       QueryJobConfiguration
         .newBuilder(querySql)
         .setDestinationTable(destinationTable)
         .build())
-    logDebug(s"running query $jobInfo")
+    logWarning(s"running query $jobInfo")
     val job = bigQuery.create(jobInfo).waitFor()
-    logDebug(s"job has finished. $job")
+    logWarning(s"job has finished. $job")
     if(job.getStatus.getError != null) {
       BigQueryUtil.convertAndThrow(job.getStatus.getError)
     }
@@ -327,7 +327,7 @@ private[bigquery] class DirectBigQueryRelation(
     }
 
     val unhandled = filters.filterNot(handledFilters(filters).contains)
-    logDebug(s"unhandledFilters: ${unhandled.mkString(" ")}")
+    logWarning(s"unhandledFilters: ${unhandled.mkString(" ")}")
     unhandled
   }
 }
