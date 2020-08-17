@@ -21,8 +21,6 @@ import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConv
 import com.google.common.collect.ImmutableList;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -34,7 +32,6 @@ class BigQueryInputPartitionReader implements InputPartitionReader<InternalRow> 
   private ReadRowsHelper readRowsHelper;
   private Iterator<InternalRow> rows = ImmutableList.<InternalRow>of().iterator();
   private InternalRow currentRow;
-  private static final Logger logger = LoggerFactory.getLogger(BigQueryDataSourceReader.class);
 
   BigQueryInputPartitionReader(
       Iterator<ReadRowsResponse> readRowsResponses,
@@ -45,30 +42,13 @@ class BigQueryInputPartitionReader implements InputPartitionReader<InternalRow> 
     this.readRowsHelper = readRowsHelper;
   }
 
-  private long lastCallTime = -1;
-
   @Override
   public boolean next() throws IOException {
-
     while (!rows.hasNext()) {
-
-      if (lastCallTime > 0) {
-        logger.warn("Time between hasNext calls : " + (System.currentTimeMillis() - lastCallTime));
-      }
-
-      long startTime = System.currentTimeMillis();
-      boolean hasNext = readRowsResponses.hasNext();
-      long endTime = System.currentTimeMillis();
-      logger.warn("Time of hasNext call : " + (endTime - startTime));
-      if (!hasNext) {
+      if (!readRowsResponses.hasNext()) {
         return false;
       }
-
-      lastCallTime = System.currentTimeMillis();
-
       ReadRowsResponse readRowsResponse = readRowsResponses.next();
-
-      // logWarning(s"read ${response.getSerializedSize} bytes")
       rows = converter.convert(readRowsResponse);
     }
     currentRow = rows.next();

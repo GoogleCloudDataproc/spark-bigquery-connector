@@ -81,10 +81,9 @@ class BigQueryRDD(sc: SparkContext,
  */
 case class ArrowConverter(columnsInOrder: Seq[String],
                           rawArrowSchema : ByteString,
-                          rowResponseIterator : Iterator[ReadRowsResponse]) extends Logging
+                          rowResponseIterator : Iterator[ReadRowsResponse])
 {
   def getIterator(): Iterator[InternalRow] = {
-    logWarning(s"arrow getit")
     rowResponseIterator.flatMap(readRowResponse =>
       new ArrowBinaryIterator(columnsInOrder.asJava,
         rawArrowSchema,
@@ -103,26 +102,20 @@ case class ArrowConverter(columnsInOrder: Seq[String],
 case class AvroConverter (bqSchema: Schema,
                  columnsInOrder: Seq[String],
                  rawAvroSchema: String,
-                 rowResponseIterator : Iterator[ReadRowsResponse]) extends Logging
+                 rowResponseIterator : Iterator[ReadRowsResponse])
 {
   @transient private lazy val avroSchema = new AvroSchema.Parser().parse(rawAvroSchema)
 
   def getIterator(): Iterator[InternalRow] =
   {
-    logWarning(s"avro getit")
     rowResponseIterator.flatMap(toRows)
   }
 
-  def toRows(response: ReadRowsResponse): Iterator[InternalRow] =
-  {
-    logWarning(s"avro torows")
-    new AvroBinaryIterator(
-      bqSchema,
-      columnsInOrder.asJava,
-      avroSchema,
-      response.getAvroRows.getSerializedBinaryRows).asScala
-  }
-
+  def toRows(response: ReadRowsResponse): Iterator[InternalRow] = new AvroBinaryIterator(
+    bqSchema,
+    columnsInOrder.asJava,
+    avroSchema,
+    response.getAvroRows.getSerializedBinaryRows).asScala
 }
 
 case class BigQueryPartition(stream: String, index: Int) extends Partition
@@ -145,37 +138,15 @@ class ReadRowsIterator (val helper: ReadRowsHelper,
   extends Logging with Iterator[ReadRowsResponse] {
   var readRowsCount: Long = 0
   var retries: Int = 0
-  var lastCallTime: Long = -1;
 
-  override def hasNext: Boolean =  {
-    if(lastCallTime > 0) {
-      val currentTime = System.currentTimeMillis()
-      logWarning(
-        s"""
-           |time between hasNext calls:  ${currentTime - lastCallTime}
-           """
-          .stripMargin.replace('\n', ' ').trim)
-    }
-
-    val startTime = System.currentTimeMillis()
-    val hasNextVariable = serverResponses.hasNext
-    val endTime = System.currentTimeMillis()
-    logWarning(
-      s"""
-         |time of hasNext call:  ${endTime - startTime}
-       """
-        .stripMargin.replace('\n', ' ').trim)
-
-    lastCallTime = System.currentTimeMillis()
-    return hasNextVariable;
-  }
+  override def hasNext: Boolean = serverResponses.hasNext
 
   override def next(): ReadRowsResponse = {
     do {
       try {
         val response = serverResponses.next
         readRowsCount += response.getRowCount
-        logWarning(s"read ${response.getSerializedSize} bytes")
+        logDebug(s"read ${response.getSerializedSize} bytes")
         return response
       } catch {
         case e: Exception =>
@@ -198,9 +169,8 @@ case class ReadRowsHelper(
                            client: ReadRowsClient,
                            request: ReadRowsRequest.Builder,
                            maxReadRowsRetries: Int
-                         ) extends Logging {
+                         )  {
   def readRows(): Iterator[ReadRowsResponse] = {
-    logWarning(s"readrowhelper")
     val serverResponses = fetchResponses(request)
     new ReadRowsIterator(this, serverResponses)
   }
@@ -224,7 +194,6 @@ object BigQueryRDD {
                 options: SparkBigQueryOptions,
                 getClient: SparkBigQueryOptions => BigQueryReadClient,
                 bigQueryClient: SparkBigQueryOptions => BigQuery): BigQueryRDD = {
-
     new BigQueryRDD(sqlContext.sparkContext,
       parts,
       session,
