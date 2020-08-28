@@ -16,7 +16,7 @@
 package com.google.cloud.spark.bigquery.it
 
 import com.google.cloud.bigquery._
-import com.google.cloud.spark.bigquery.{LegacySparkBigQueryOptions, TestUtils}
+import com.google.cloud.spark.bigquery.TestUtils
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.it.TestConstants._
 import org.apache.spark.ml.linalg.{SQLDataTypes, Vectors}
@@ -457,7 +457,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       .mode(mode)
       .option("table", fullTableName)
       .option("temporaryGcsBucket", temporaryGcsBucket)
-      .option(LegacySparkBigQueryOptions.IntermediateFormatOption, format)
+      .option("intermediateFormat", format)
       .save()
 
   private def initialDataValuesExist = numberOfRowsWith("Abc") == 1
