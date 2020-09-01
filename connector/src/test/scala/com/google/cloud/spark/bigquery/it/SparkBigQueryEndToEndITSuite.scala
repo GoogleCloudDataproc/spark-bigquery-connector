@@ -600,6 +600,14 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     }
   }
 
+  test("Write empty df to bigquery") {
+    val schema = new StructType()
+    val emptyDf = spark.sqlContext.createDataFrame(spark.sparkContext.emptyRDD[Row], schema)
+    assertThrows[IllegalArgumentException] {
+      writeToBigQuery(emptyDf, SaveMode.Overwrite)
+    }
+  }
+
   test("query materialized view") {
     var df = spark.read.format("bigquery")
       .option("table", "bigquery-public-data:ethereum_blockchain.live_logs")

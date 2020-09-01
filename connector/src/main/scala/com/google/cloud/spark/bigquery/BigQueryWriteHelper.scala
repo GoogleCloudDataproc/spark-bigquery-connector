@@ -74,11 +74,16 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
            |Aborting the insert""".stripMargin.replace('\n', ' '))
     }
 
+    if (data.isEmpty) {
+      throw new IllegalArgumentException("Dataframe cannot be empty")
+    }
+
     try {
       // based on pmkc's suggestion at https://git.io/JeWRt
       createTemporaryPathDeleter.map(Runtime.getRuntime.addShutdownHook(_))
 
       val format = options.intermediateFormat.dataSource
+
       data.write.format(format).save(gcsPath.toString)
 
       loadDataToBigQuery
