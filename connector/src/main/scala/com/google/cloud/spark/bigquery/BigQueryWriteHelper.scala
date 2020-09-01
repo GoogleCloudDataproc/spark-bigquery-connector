@@ -83,7 +83,6 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       createTemporaryPathDeleter.map(Runtime.getRuntime.addShutdownHook(_))
 
       val format = options.intermediateFormat.dataSource
-
       data.write.format(format).save(gcsPath.toString)
 
       loadDataToBigQuery
