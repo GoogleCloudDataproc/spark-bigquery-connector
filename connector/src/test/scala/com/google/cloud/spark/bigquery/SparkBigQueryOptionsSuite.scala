@@ -15,6 +15,8 @@
  */
 package com.google.cloud.spark.bigquery
 
+import java.util.{Optional, OptionalInt}
+
 import com.google.cloud.bigquery.JobInfo
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.internal.SQLConf
@@ -22,100 +24,108 @@ import org.scalatest.FunSuite
 
 import scala.collection.JavaConverters._
 
-class SparkBigQueryOptionsSuite extends FunSuite {
+class SparkBigQueryConfigSuite extends FunSuite {
 
   val hadoopConfiguration = new Configuration
-  hadoopConfiguration.set(SparkBigQueryOptions.GcsConfigCredentialsFileProperty, "hadoop_cfile")
-  hadoopConfiguration.set(SparkBigQueryOptions.GcsConfigProjectIdProperty, "hadoop_project")
+  hadoopConfiguration.set(SparkBigQueryConfig.GCS_CONFIG_CREDENTIALS_FILE_PROPERTY, "hadoop_cfile")
+  hadoopConfiguration.set(SparkBigQueryConfig.GCS_CONFIG_PROJECT_ID_PROPERTY, "hadoop_project")
 
   val parameters = Map("table" -> "dataset.table")
+  val emptyMap = Map.empty[String, String].asJava
   val sparkVersion = "2.4.0"
 
   test("taking credentials file from GCS hadoop config") {
-    assertResult(Some("hadoop_cfile")) {
-      val options = SparkBigQueryOptions(
-        parameters,
-        Map.empty[String, String], // allConf
+    assertResult(Optional.of("hadoop_cfile")) {
+      val options = SparkBigQueryConfig.fromV1(
+        parameters.asJava,
+        emptyMap, // allConf
         hadoopConfiguration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.credentialsFile
+        Optional.empty()) // schema
+      options.getCredentialsFile
     }
   }
 
   test("taking credentials file from the properties") {
-    assertResult(Some("cfile")) {
-      val options = SparkBigQueryOptions(
-        parameters + ("credentialsFile" -> "cfile"),
-        Map.empty[String, String], // allConf
-        hadoopConfiguration,
+    assertResult(Optional.of("cfile")) {
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + ("credentialsFile" -> "cfile")).asJava,
+        emptyMap, // allConf
+        new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.credentialsFile
+        Optional.empty()) // schema
+      options.getCredentialsFile
     }
   }
 
   test("no credentials file is provided") {
-    val options = SparkBigQueryOptions(
-      parameters,
-      Map.empty[String, String], // allConf
+    val options = SparkBigQueryConfig.fromV1(
+      parameters.asJava,
+      emptyMap, // allConf
       new Configuration,
+      1,
       new SQLConf,
       sparkVersion,
-      None) // schema
-    assert(options.credentialsFile.isEmpty)
+      Optional.empty()) // schema
+    assert(!options.getCredentialsFile.isPresent)
   }
 
   test("taking project id from GCS hadoop config") {
     assertResult("hadoop_project") {
-      val options = SparkBigQueryOptions(
-        parameters,
-        Map.empty[String, String], // allConf
+      val options = SparkBigQueryConfig.fromV1(
+        parameters.asJava,
+        emptyMap, // allConf
         hadoopConfiguration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.tableId.getProject
+        Optional.empty()) // schema
+      options.getTableId.getProject
     }
   }
 
   test("taking project id from the properties") {
     assertResult("pid") {
-      val options = SparkBigQueryOptions(
-        parameters + ("project" -> "pid"),
-        Map.empty[String, String], // allConf
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + ("project" -> "pid")).asJava,
+        emptyMap, // allConf
         hadoopConfiguration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.tableId.getProject
+        Optional.empty()) // schema
+      options.getTableId.getProject
     }
   }
 
   test("no project id is provided") {
     assertResult(null) {
-      val options = SparkBigQueryOptions(
-        parameters,
-        Map.empty[String, String], // allConf
+      val options = SparkBigQueryConfig.fromV1(
+        parameters.asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.tableId.getProject
+        Optional.empty()) // schema
+      options.getTableId.getProject
     }
   }
 
   test("Invalid data format") {
       val thrown = intercept[Exception] {
-        SparkBigQueryOptions(
-          parameters + ("readDataFormat" -> "abc"),
-          Map.empty[String, String], // allConf
+        SparkBigQueryConfig.fromV1(
+          (parameters + ("readDataFormat" -> "abc")).asJava,
+          emptyMap, // allConf
           new Configuration,
+          1,
           new SQLConf,
           sparkVersion,
-          None) // schema
+          Optional.empty()) // schema
       }
       assert (thrown.getMessage ==
         "Data read format 'ABC' is not supported. Supported formats are 'ARROW,AVRO'")
@@ -123,157 +133,172 @@ class SparkBigQueryOptionsSuite extends FunSuite {
 
   test("data format - no value set") {
     assertResult("ARROW") {
-      val options = SparkBigQueryOptions(
-        parameters,
-        Map.empty[String, String], // allConf
+      val options = SparkBigQueryConfig.fromV1(
+        parameters.asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.readDataFormat.toString
+        Optional.empty()) // schema
+      options.getReadDataFormat.toString
     }
   }
 
   test("Set Read Data Format as Avro") {
     assertResult("AVRO") {
-      val options = SparkBigQueryOptions(
-        parameters + ("readDataFormat" -> "Avro"),
-        Map.empty[String, String], // allConf
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + ("readDataFormat" -> "Avro")).asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.readDataFormat.toString
+        Optional.empty()) // schema
+      options.getReadDataFormat.toString
     }
   }
 
   test("getAnyOptionWithFallback - only new config exist") {
-    assertResult(Some("foo")) {
-      val options = SparkBigQueryOptions(
-        parameters + ("materializationProject" -> "foo"),
-        Map.empty[String, String], // allConf
+    assertResult(Optional.of("foo")) {
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + ("materializationProject" -> "foo")).asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.materializationProject
+        Optional.empty()) // schema
+      options.getMaterializationProject
     }
   }
 
   test("getAnyOptionWithFallback - both configs exist") {
-    assertResult(Some("foo")) {
-      val options = SparkBigQueryOptions(
-        parameters + ("materializationProject" -> "foo", "viewMaterializationProject" -> "bar"),
-        Map.empty[String, String], // allConf
+    assertResult(Optional.of("foo")) {
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + (
+          "materializationProject" -> "foo",
+          "viewMaterializationProject" -> "bar")
+          ).asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.materializationProject
+        Optional.empty()) // schema
+      options.getMaterializationProject
     }
   }
 
   test("getAnyOptionWithFallback - only old config exist") {
-    assertResult(Some("bar")) {
-      val options = SparkBigQueryOptions(
-        parameters + ("viewMaterializationProject" -> "bar"),
-        Map.empty[String, String], // allConf
+    assertResult(Optional.of("bar")) {
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + ("viewMaterializationProject" -> "bar")).asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.materializationProject
+        Optional.empty()) // schema
+      options.getMaterializationProject
     }
   }
 
   test("getAnyOptionWithFallback - no config exist") {
-    assertResult(None) {
-      val options = SparkBigQueryOptions(
-        parameters,
-        Map.empty[String, String], // allConf
+    assertResult(Optional.empty()) {
+      val options = SparkBigQueryConfig.fromV1(
+        parameters.asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.materializationProject
+        Optional.empty()) // schema
+      options.getMaterializationProject
     }
   }
 
   test("maxParallelism - only new config exist") {
-    assertResult(Some(3)) {
-      val options = SparkBigQueryOptions(
-        parameters + ("maxParallelism" -> "3"),
-        Map.empty[String, String], // allConf
+    assertResult(OptionalInt.of(3)) {
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + ("maxParallelism" -> "3")).asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.maxParallelism
+        Optional.empty()) // schema
+      options.getMaxParallelism
     }
   }
 
   test("maxParallelism - both configs exist") {
-    assertResult(Some(3)) {
-      val options = SparkBigQueryOptions(
-        parameters + ("maxParallelism" -> "3", "parallelism" -> "10"),
-        Map.empty[String, String], // allConf
+    assertResult(OptionalInt.of(3)) {
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + ("maxParallelism" -> "3", "parallelism" -> "10")).asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.maxParallelism
+        Optional.empty()) // schema
+      options.getMaxParallelism
     }
   }
 
   test("maxParallelism - only old config exist") {
-    assertResult(Some(10)) {
-      val options = SparkBigQueryOptions(
-        parameters + ("parallelism" -> "10"),
-        Map.empty[String, String], // allConf
+    assertResult(OptionalInt.of(10)) {
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + ("parallelism" -> "10")).asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.maxParallelism
+        Optional.empty()) // schema
+      options.getMaxParallelism
     }
   }
 
   test("maxParallelism - no config exist") {
-    assertResult(None) {
-      val options = SparkBigQueryOptions(
-        parameters,
-        Map.empty[String, String], // allConf
+    assertResult(OptionalInt.empty()) {
+      val options = SparkBigQueryConfig.fromV1(
+        parameters.asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.maxParallelism
+        Optional.empty()) // schema
+      options.getMaxParallelism
     }
   }
   
   test("loadSchemaUpdateOption - allowFieldAddition") {
     assertResult(Seq(JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION)) {
-      val options = SparkBigQueryOptions(
-        parameters + ("allowFieldAddition" -> "true"),
-        Map.empty[String, String], // allConf
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + ("allowFieldAddition" -> "true")).asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.loadSchemaUpdateOptions.asScala.toSeq
+        Optional.empty()) // schema
+      options.getLoadSchemaUpdateOptions.asScala.toSeq
     }
   }
 
   test("loadSchemaUpdateOption - allowFieldRelaxation") {
     assertResult(Seq(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION)) {
-      val options = SparkBigQueryOptions(
-        parameters + ("allowFieldRelaxation" -> "true"),
-        Map.empty[String, String], // allConf
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + ("allowFieldRelaxation" -> "true")).asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.loadSchemaUpdateOptions.asScala.toSeq
+        Optional.empty()) // schema
+      options.getLoadSchemaUpdateOptions.asScala.toSeq
     }
   }
 
@@ -281,61 +306,70 @@ class SparkBigQueryOptionsSuite extends FunSuite {
     assertResult(Seq(
       JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION,
       JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION)) {
-      val options = SparkBigQueryOptions(
-        parameters + ("allowFieldAddition" -> "true", "allowFieldRelaxation" -> "true"),
-        Map.empty[String, String], // allConf
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + ("allowFieldAddition" -> "true", "allowFieldRelaxation" -> "true")).asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.loadSchemaUpdateOptions.asScala.toSeq
+        Optional.empty()) // schema
+      options.getLoadSchemaUpdateOptions.asScala.toSeq
     }
   }
 
   test("loadSchemaUpdateOption - none") {
     assertResult(true) {
-      val options = SparkBigQueryOptions(
-        parameters,
-        Map.empty[String, String], // allConf
+      val options = SparkBigQueryConfig.fromV1(
+        parameters.asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.loadSchemaUpdateOptions.isEmpty
+        Optional.empty()) // schema
+      options.getLoadSchemaUpdateOptions.isEmpty
     }
   }
 
   test("normalize All Conf") {
-    val originalConf = Map("key1" -> "val1", "spark.datasource.bigquery.key2" -> "val2")
-    val normalizedConf = SparkBigQueryOptions.normalizeAllConf(originalConf)
+    val originalConf = Map(
+      "key1" -> "val1",
+      "spark.datasource.bigquery.key2" -> "val2",
+      "key3" -> "val3",
+      "spark.datasource.bigquery.key3" -> "external val3")
+    val normalizedConf = SparkBigQueryConfig.normalizeConf(originalConf.asJava)
 
-    assert(normalizedConf.get("key1")  == Some("val1"))
-    assert(normalizedConf.get("key2")  == Some("val2"))
+    assert(normalizedConf.get("key1")  == "val1")
+    assert(normalizedConf.get("key2")  == "val2")
+    assert(normalizedConf.get("key3")  == "external val3")
   }
 
   test("Set persistentGcsPath") {
-    assertResult(Some("/persistent/path")) {
-      val options = SparkBigQueryOptions(
-        parameters + ("persistentGcsPath" -> "/persistent/path"),
-        Map.empty[String, String], // allConf
+    assertResult(Optional.of("/persistent/path")) {
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + ("persistentGcsPath" -> "/persistent/path")).asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.persistentGcsPath
+        Optional.empty()) // schema
+      options.getPersistentGcsPath
     }
   }
 
   test("Set persistentGcsBucket") {
-    assertResult(Some("gs://persistentGcsBucket")) {
-      val options = SparkBigQueryOptions(
-        parameters + ("persistentGcsBucket" -> "gs://persistentGcsBucket"),
-        Map.empty[String, String], // allConf
+    assertResult(Optional.of("gs://persistentGcsBucket")) {
+      val options = SparkBigQueryConfig.fromV1(
+        (parameters + ("persistentGcsBucket" -> "gs://persistentGcsBucket")).asJava,
+        emptyMap, // allConf
         new Configuration,
+        1,
         new SQLConf,
         sparkVersion,
-        None) // schema
-      options.persistentGcsBucket
+        Optional.empty()) // schema
+      options.getPersistentGcsBucket
     }
   }
 }

@@ -18,7 +18,7 @@ package com.google.cloud.spark.bigquery.direct
 import com.google.api.gax.rpc.ServerStreamingCallable
 import com.google.cloud.bigquery.storage.v1.{BigQueryReadClient, DataFormat, ReadRowsRequest, ReadRowsResponse, ReadSession, ReadStream}
 import com.google.cloud.bigquery.{BigQuery, Schema}
-import com.google.cloud.spark.bigquery.{ArrowBinaryIterator, AvroBinaryIterator, BigQueryUtil, SparkBigQueryOptions}
+import com.google.cloud.spark.bigquery.{ArrowBinaryIterator, AvroBinaryIterator, BigQueryUtil, SparkBigQueryConfig}
 import com.google.protobuf.ByteString
 import org.apache.avro.{Schema => AvroSchema}
 import org.apache.spark.internal.Logging
@@ -34,9 +34,9 @@ class BigQueryRDD(sc: SparkContext,
                   session: ReadSession,
                   columnsInOrder: Seq[String],
                   bqSchema: Schema,
-                  options: SparkBigQueryOptions,
-                  getClient: SparkBigQueryOptions => BigQueryReadClient,
-                  bigQueryClient: SparkBigQueryOptions => BigQuery)
+                  options: SparkBigQueryConfig,
+                  getClient: SparkBigQueryConfig => BigQueryReadClient,
+                  bigQueryClient: SparkBigQueryConfig => BigQuery)
   extends RDD[InternalRow](sc, Nil) {
 
   override def compute(split: Partition, context: TaskContext): Iterator[InternalRow] = {
@@ -51,10 +51,10 @@ class BigQueryRDD(sc: SparkContext,
     })
 
     val readRowResponses = ReadRowsHelper(
-      ReadRowsClientWrapper(client), request, options.maxReadRowsRetries)
+      ReadRowsClientWrapper(client), request, options.getMaxReadRowsRetries)
       .readRows()
 
-    val it = if (options.readDataFormat.equals(DataFormat.AVRO)) {
+    val it = if (options.getReadDataFormat.equals(DataFormat.AVRO)) {
       AvroConverter(bqSchema,
         columnsInOrder,
         session.getAvroSchema.getSchema,
@@ -191,9 +191,9 @@ object BigQueryRDD {
                 session: ReadSession,
                 bqSchema: Schema,
                 columnsInOrder: Seq[String],
-                options: SparkBigQueryOptions,
-                getClient: SparkBigQueryOptions => BigQueryReadClient,
-                bigQueryClient: SparkBigQueryOptions => BigQuery): BigQueryRDD = {
+                options: SparkBigQueryConfig,
+                getClient: SparkBigQueryConfig => BigQueryReadClient,
+                bigQueryClient: SparkBigQueryConfig => BigQuery): BigQueryRDD = {
     new BigQueryRDD(sqlContext.sparkContext,
       parts,
       session,

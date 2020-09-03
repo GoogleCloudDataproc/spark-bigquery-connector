@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery
 
-import java.io.IOException
+import java.io.{IOException, UncheckedIOException}
 
 import com.google.api.client.util.Base64
 import com.google.cloud.bigquery._
@@ -109,12 +109,12 @@ class BigQueryRelationProviderSuite
     val defaultProvider = new BigQueryRelationProvider()
     val invalidCredentials = Base64.encodeBase64String("{}".getBytes)
 
-    val caught = intercept[IOException] {
+    val caught = intercept[UncheckedIOException] {
       defaultProvider.createRelation(sqlCtx, Map("parentProject" -> ID.getProject,
         "credentials" -> invalidCredentials, "table" -> TABLE_NAME))
     }
 
-    assert(caught.getMessage.startsWith("Error reading credentials"))
+    assert(caught.getMessage.startsWith("Failed to create Credentials from key"))
   }
 
   /*

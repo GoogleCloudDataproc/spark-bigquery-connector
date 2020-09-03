@@ -30,7 +30,7 @@ import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
  */
 case class BigQueryInsertableRelation(val bigQuery: BigQuery,
                                       val sqlContext: SQLContext,
-                                      val options: SparkBigQueryOptions)
+                                      val options: SparkBigQueryConfig)
   extends BaseRelation
     with InsertableRelation with Logging {
 
@@ -63,10 +63,10 @@ case class BigQueryInsertableRelation(val bigQuery: BigQuery,
    */
   private def numberOfRows: Option[BigInteger] = getTable.map(t => t.getNumRows())
 
-  private def getTable = Option(bigQuery.getTable(options.tableId))
+  private def getTable = Option(bigQuery.getTable(options.getTableId))
 
   override def schema: StructType = {
-    val tableInfo = bigQuery.getTable(options.tableId)
+    val tableInfo = bigQuery.getTable(options.getTableId)
     val tableDefinition = tableInfo.getDefinition.asInstanceOf[TableDefinition]
     SchemaConverters.toSpark(tableDefinition.getSchema)
   }

@@ -37,7 +37,7 @@ import scala.collection.JavaConverters._
 import scala.util.Properties
 
 /** Options for defining {@link BigQueryRelation}s */
-  case class SparkBigQueryOptions(
+  case class LegacySparkBigQueryOptions(
     tableId: TableId,
     parentProject: String,
     credentials: Option[String] = None,
@@ -48,8 +48,8 @@ import scala.util.Properties
     temporaryGcsBucket: Option[String] = None,
     persistentGcsBucket: Option[String] = None,
     persistentGcsPath: Option[String] = None,
-    intermediateFormat: IntermediateFormat = SparkBigQueryOptions.DefaultIntermediateFormat,
-    readDataFormat: DataFormat = SparkBigQueryOptions.DefaultReadDataFormat,
+    intermediateFormat: IntermediateFormat = LegacySparkBigQueryOptions.DefaultIntermediateFormat,
+    readDataFormat: DataFormat = LegacySparkBigQueryOptions.DefaultReadDataFormat,
     combinePushedDownFilters: Boolean = true,
     viewsEnabled: Boolean = false,
     materializationProject: Option[String] = None,
@@ -85,7 +85,7 @@ import scala.util.Properties
 }
 
 /** Resolvers for {@link SparkBigQueryOptions} */
-object SparkBigQueryOptions {
+object LegacySparkBigQueryOptions {
 
   val GcsConfigCredentialsFileProperty = "google.cloud.auth.service.account.json.keyfile"
   val GcsConfigProjectIdProperty = "fs.gs.project.id"
@@ -117,7 +117,7 @@ object SparkBigQueryOptions {
              sqlConf: SQLConf,
              sparkVersion: String,
              schema: Option[StructType])
-  : SparkBigQueryOptions = {
+  : LegacySparkBigQueryOptions = {
     val normalizedAllConf = normalizeAllConf(allConf)
 
     val tableParam = getRequiredOption(parameters, "table", () => getOption(parameters, "path"))
@@ -129,7 +129,8 @@ object SparkBigQueryOptions {
       .orElse(Option(hadoopConf.get(GcsConfigCredentialsFileProperty)))
     val datePartitionParam = getOption(parameters, "datePartition")
     datePartitionParam.foreach(validateDateFormat(_, "datePartition"))
-    val tableId = BigQueryUtil.parseTableId(tableParam, datasetParam, projectParam, datePartitionParam)
+    val tableId = BigQueryUtil.parseTableId(
+      tableParam, datasetParam, projectParam, datePartitionParam)
     val parentProject = getRequiredOption(parameters, "parentProject",
       defaultBilledProject)
     val filter = getOption(parameters, "filter")
@@ -191,7 +192,7 @@ object SparkBigQueryOptions {
       loadSchemaUpdateOptions += JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION
     }
 
-    SparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
+    LegacySparkBigQueryOptions(tableId, parentProject, credsParam, credsFileParam,
       filter, schema, maxParallelism, temporaryGcsBucket, persistentGcsBucket,
       persistentGcsPath, intermediateFormat, readDataFormat,
       combinePushedDownFilters, viewsEnabled, materializationProject,

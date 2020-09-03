@@ -25,7 +25,7 @@ public interface BigQueryConfig {
 
   Optional<String> getAccessToken();
 
-  Optional<String> getParentProjectId();
+  String getParentProjectId();
 
   boolean isViewsEnabled();
 

@@ -79,7 +79,10 @@ public class BigQueryUtil {
   }
 
   public static TableId parseTableId(
-      String rawTable, Optional<String> dataset, Optional<String> project) {
+      String rawTable,
+      Optional<String> dataset,
+      Optional<String> project,
+      Optional<String> datePartition) {
     Matcher matcher = QUALIFIED_TABLE_REGEX.matcher(rawTable);
     if (!matcher.matches()) {
       throw new IllegalArgumentException(
@@ -88,12 +91,13 @@ public class BigQueryUtil {
     String table = matcher.group(5);
     Optional<String> parsedDataset = Optional.ofNullable(matcher.group(4));
     Optional<String> parsedProject = Optional.ofNullable(matcher.group(3));
-
+    String tableAndPartition =
+        datePartition.map(date -> String.format("%s$%s", table, date)).orElse(table);
     String actualDataset =
         firstPresent(parsedDataset, dataset)
             .orElseThrow(() -> new IllegalArgumentException("'dataset' not parsed or provided."));
     return firstPresent(parsedProject, project)
-        .map(p -> TableId.of(p, actualDataset, table))
-        .orElse(TableId.of(actualDataset, table));
+        .map(p -> TableId.of(p, actualDataset, tableAndPartition))
+        .orElse(TableId.of(actualDataset, tableAndPartition));
   }
 }
