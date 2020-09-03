@@ -43,7 +43,7 @@ private[bigquery] class DirectBigQueryRelation(
     getClient: SparkBigQueryOptions => BigQueryReadClient =
          DirectBigQueryRelation.createReadClient,
     bigQueryClient: SparkBigQueryOptions => BigQuery =
-         DirectBigQueryRelation.createBigQueryClient)
+         BigQueryUtil.createBigQuery)
     (@transient override val sqlContext: SQLContext)
     extends BigQueryRelation(options, table)(sqlContext)
         with TableScan with PrunedScan with PrunedFilteredScan {
@@ -354,14 +354,6 @@ object DirectBigQueryRelation {
     }
 
     BigQueryReadClient.create(clientSettings.build)
-  }
-
-  def createBigQueryClient(options: SparkBigQueryOptions): BigQuery = {
-    val BigQueryOptionsBuilder = BigQueryOptions.newBuilder()
-      .setHeaderProvider(headerProvider)
-    // set credentials of provided
-    options.createCredentials.foreach(BigQueryOptionsBuilder.setCredentials)
-    BigQueryOptionsBuilder.build.getService
   }
 
   private def headerProvider =
