@@ -17,19 +17,21 @@ package com.google.cloud.spark.bigquery
 
 import java.util.Properties
 
-import com.google.cloud.bigquery.{BigQueryError, BigQueryException, TableId}
+import com.google.cloud.bigquery.{BigQuery, BigQueryError, BigQueryException, BigQueryOptions, TableId}
 import com.google.cloud.http.BaseHttpServiceException.UNKNOWN_CODE
 
 import scala.util.matching.Regex
 import scala.collection.JavaConverters._
 import io.grpc.StatusRuntimeException
 import com.google.api.gax.rpc.StatusCode
+import com.google.auth.Credentials
 import io.grpc.Status
+import org.apache.spark.internal.Logging
 
 /**
  * Static helpers for working with BigQuery.
  */
-object BigQueryUtil {
+object BigQueryUtil extends Logging{
 
   private val PROJECT_PATTERN = """\S+"""
   private val DATASET_PATTERN = """\w+"""
@@ -129,4 +131,19 @@ object BigQueryUtil {
   def toSeq[T](list: java.util.List[T]): Seq[T] = list.asScala.toSeq
 
   def toJavaIterator[T](it: Iterator[T]): java.util.Iterator[T] = it.asJava
+
+  def createBigQuery(options: SparkBigQueryOptions): BigQuery = {
+    val credentials = options.createCredentials
+      .getOrElse(BigQueryOptions.getDefaultInstance.getCredentials)
+    val parentProject = options.parentProject
+    logInfo(
+      s"BigQuery client project id is [$parentProject}], derived from teh parentProject option")
+    BigQueryOptions
+      .newBuilder()
+      .setProjectId(parentProject)
+      .setCredentials(credentials)
+      .build()
+      .getService
+  }
+
 }

@@ -120,7 +120,7 @@ class BigQueryRelationProvider(
   }
 
   private def getOrCreateBigQuery(options: SparkBigQueryOptions) =
-    getBigQuery().getOrElse(BigQueryRelationProvider.createBigQuery(options))
+    getBigQuery().getOrElse(BigQueryUtil.createBigQuery(options))
 
   def createSparkBigQueryOptions(sqlContext: SQLContext,
                                  parameters: Map[String, String],
@@ -134,25 +134,6 @@ class BigQueryRelationProvider(
   }
 
   override def shortName: String = "bigquery"
-}
-
-object BigQueryRelationProvider {
-
-  def createBigQuery(options: SparkBigQueryOptions): BigQuery =
-    options.createCredentials.fold(
-      BigQueryOptions.getDefaultInstance.getService
-    )(bigQueryWithCredentials(options.parentProject, _))
-
-  private def bigQueryWithCredentials(parentProject: String,
-                                      credentials: Credentials): BigQuery = {
-    BigQueryOptions
-      .newBuilder()
-      .setProjectId(parentProject)
-      .setCredentials(credentials)
-      .build()
-      .getService
-  }
-
 }
 
 // DefaultSource is required for spark.read.format("com.google.cloud.spark.bigquery")
