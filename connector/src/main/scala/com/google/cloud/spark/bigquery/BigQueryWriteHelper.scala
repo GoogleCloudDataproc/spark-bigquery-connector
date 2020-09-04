@@ -58,7 +58,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
       gcsPath = new Path(gcsPathOption)
       val fs = gcsPath.getFileSystem(conf)
-      needNewPath = fs.exists(gcsPath) // if teh path exists for some reason, then retry
+      needNewPath = fs.exists(gcsPath) // if the path exists for some reason, then retry
     }
 
     gcsPath
@@ -66,7 +66,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
   def writeDataFrameToBigQuery: Unit = {
     // If the CreateDisposition is CREATE_NEVER, and the table does not exist,
-    // there's no point in writing the data to GCS in teh first place as it going
+    // there's no point in writing the data to GCS in the first place as it going
     // to file on the BigQuery side.
     if (BigQueryUtil.toOption(options.getCreateDisposition)
       .map(cd => !tableExists && cd == CREATE_NEVER)

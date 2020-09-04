@@ -34,6 +34,8 @@ import static com.google.common.truth.Truth.assertThat;
 
 public class SparkBigQueryConfigTest {
 
+  public static final int DEFAULT_PARALLELISM = 10;
+  public static final String SPARK_VERSION = "2.4.0";
   ImmutableMap<String, String> defaultOptions = ImmutableMap.of("table", "dataset.table");
   // "project", "test_project"); // to remove the need for default project
 
@@ -46,9 +48,9 @@ public class SparkBigQueryConfigTest {
             options,
             ImmutableMap.of(),
             hadoopConfiguration,
-            10,
+            DEFAULT_PARALLELISM,
             new SQLConf(),
-            "2.4.0",
+            SPARK_VERSION,
             Optional.empty());
     assertThat(config.getTableId()).isEqualTo(TableId.of("dataset", "table"));
     assertThat(config.getFilter()).isEqualTo(Optional.empty());
@@ -103,9 +105,9 @@ public class SparkBigQueryConfigTest {
             options,
             ImmutableMap.of(),
             hadoopConfiguration,
-            10,
+            DEFAULT_PARALLELISM,
             new SQLConf(),
-            "2.4.0",
+            SPARK_VERSION,
             Optional.empty());
     assertThat(config.getTableId()).isEqualTo(TableId.of("test_p", "test_d", "test_t"));
     assertThat(config.getFilter()).isEqualTo(Optional.of("test > 0"));

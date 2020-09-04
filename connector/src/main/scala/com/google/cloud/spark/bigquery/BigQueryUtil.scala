@@ -137,7 +137,7 @@ object BigQueryUtil extends Logging{
     val credentials = options.createCredentials()
     val parentProjectId = options.getParentProjectId()
     logInfo(
-      s"BigQuery client project id is [$parentProjectId}], derived from teh parentProject option")
+      s"BigQuery client project id is [$parentProjectId}], derived from the parentProject option")
     BigQueryOptions
       .newBuilder()
       .setProjectId(parentProjectId)

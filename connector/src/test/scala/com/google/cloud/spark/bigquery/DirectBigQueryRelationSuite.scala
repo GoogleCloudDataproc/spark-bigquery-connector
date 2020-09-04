@@ -192,22 +192,22 @@ class DirectBigQueryRelationSuite
   }
 
   def checkFilters(
-                    r: DirectBigQueryRelation,
-                    resultWithoutFilters: String,
-                    filters: Array[Filter],
-                    resultWithFilters: String
-                  ): Unit = {
-    val result1 = r.getCompiledFilter(Array())
+        relation: DirectBigQueryRelation,
+        resultWithoutFilters: String,
+        filters: Array[Filter],
+        resultWithFilters: String
+      ): Unit = {
+    val result1 = relation.getCompiledFilter(Array())
     result1 shouldBe resultWithoutFilters
-    val result2 = r.getCompiledFilter(filters)
+    val result2 = relation.getCompiledFilter(filters)
     result2 shouldBe resultWithFilters
   }
 
   private def defaultOptions = {
-    val c = new SparkBigQueryConfig
-    c.tableId = ID
-    c.parentProjectId = PROJECT_ID
-    c
+    val config = new SparkBigQueryConfig
+    config.tableId = ID
+    config.parentProjectId = PROJECT_ID
+    config
   }
 
 

@@ -17,9 +17,8 @@ package com.google.cloud.spark.bigquery
 
 import java.util.Optional
 
-import com.google.auth.Credentials
 import com.google.cloud.bigquery.TableDefinition.Type.{MATERIALIZED_VIEW, TABLE, VIEW}
-import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, TableDefinition}
+import com.google.cloud.bigquery.{BigQuery, TableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.sql.execution.streaming.Sink
 import org.apache.spark.sql.sources._
