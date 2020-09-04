@@ -37,7 +37,7 @@ private[bigquery] object BigQueryStreamWriter extends Logging {
   def writeBatch(data: DataFrame,
                  sqlContext: SQLContext,
                  outputMode: OutputMode,
-                 opts: SparkBigQueryOptions,
+                 opts: SparkBigQueryConfig,
                  client: BigQuery): Unit = {
     val schema: StructType = data.schema
     val expressionEncoder: ExpressionEncoder[Row] = RowEncoder(schema).resolveAndBind()
@@ -48,7 +48,7 @@ private[bigquery] object BigQueryStreamWriter extends Logging {
     )
     // Create fixed dataframe
     val dataFrame: DataFrame = sqlContext.createDataFrame(rowRdd, schema)
-    val table = Option(client.getTable(opts.tableId))
+    val table = Option(client.getTable(opts.getTableId))
 
     val saveMode = getSaveMode(outputMode)
     val helper = BigQueryWriteHelper(client, sqlContext, saveMode, opts, dataFrame, table.isDefined)

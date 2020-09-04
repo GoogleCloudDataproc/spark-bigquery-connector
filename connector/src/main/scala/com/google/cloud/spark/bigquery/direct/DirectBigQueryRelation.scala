@@ -26,7 +26,7 @@ import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions
 import com.google.cloud.bigquery.storage.v1.{BigQueryReadClient, BigQueryReadSettings, CreateReadSessionRequest, DataFormat, ReadSession}
 import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation.{compileFilter, compileValue, quote}
-import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtil, BuildInfo, SchemaConverters, SparkBigQueryConnectorUserAgentProvider, SparkBigQueryOptions}
+import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtil, BuildInfo, SchemaConverters, SparkBigQueryConnectorUserAgentProvider, SparkBigQueryConfig}
 import com.google.common.cache.{Cache, CacheBuilder}
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
@@ -38,11 +38,11 @@ import org.apache.spark.sql.types.{StructField, StructType}
 import scala.collection.JavaConverters._
 
 private[bigquery] class DirectBigQueryRelation(
-    options: SparkBigQueryOptions,
+    options: SparkBigQueryConfig,
     table: TableInfo,
-    getClient: SparkBigQueryOptions => BigQueryReadClient =
+    getClient: SparkBigQueryConfig => BigQueryReadClient =
          DirectBigQueryRelation.createReadClient,
-    bigQueryClient: SparkBigQueryOptions => BigQuery =
+    bigQueryClient: SparkBigQueryConfig => BigQuery =
          BigQueryUtil.createBigQuery)
     (@transient override val sqlContext: SQLContext)
     extends BigQueryRelation(options, table)(sqlContext)
@@ -107,7 +107,7 @@ private[bigquery] class DirectBigQueryRelation(
          |filter='$filter'"""
         .stripMargin.replace('\n', ' ').trim)
 
-    if (options.optimizedEmptyProjection && requiredColumns.isEmpty) {
+    if (options.isOptimizedEmptyProjection && requiredColumns.isEmpty) {
       generateEmptyRowRDD(actualTable, filter)
     } else {
       if (requiredColumns.isEmpty) {
@@ -128,12 +128,12 @@ private[bigquery] class DirectBigQueryRelation(
 
       val maxNumPartitionsRequested = getMaxNumPartitionsRequested(actualTableDefinition)
 
-      val readDataFormat = options.readDataFormat
+      val readDataFormat = options.getReadDataFormat
 
       try {
         val session = client.createReadSession(
           CreateReadSessionRequest.newBuilder()
-            .setParent(s"projects/${options.parentProject}")
+            .setParent(s"projects/${options.getParentProjectId}")
             .setReadSession(ReadSession.newBuilder()
               .setDataFormat(readDataFormat)
               .setReadOptions(readOptions)
@@ -201,7 +201,7 @@ private[bigquery] class DirectBigQueryRelation(
     ): TableInfo = {
     val tableDefinition = table.getDefinition[TableDefinition]
     val tableType = tableDefinition.getType
-    if(options.viewsEnabled &&
+    if(options.isViewsEnabled &&
       (TableDefinition.Type.VIEW == tableType ||
         TableDefinition.Type.MATERIALIZED_VIEW == tableType)) {
       // get it from the view
@@ -231,7 +231,7 @@ private[bigquery] class DirectBigQueryRelation(
     // add expiration time to the table
     val createdTable = bigQuery.getTable(destinationTable)
     val expirationTime = createdTable.getCreationTime +
-      TimeUnit.HOURS.toMillis(options.viewExpirationTimeInHours)
+      TimeUnit.HOURS.toMillis(options.getViewExpirationTimeInHours)
     val updatedTable = bigQuery.update(createdTable.toBuilder
       .setExpirationTime(expirationTime)
       .build())
@@ -259,8 +259,8 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   def createDestinationTable: TableId = {
-    val project = options.materializationProject.getOrElse(tableId.getProject)
-    val dataset = options.materializationDataset.getOrElse(tableId.getDataset)
+    val project = options.getMaterializationProject.orElse(tableId.getProject)
+    val dataset = options.getMaterializationDataset.orElse(tableId.getDataset)
     val uuid = UUID.randomUUID()
     val name =
       s"_sbc_${uuid.getMostSignificantBits.toHexString}${uuid.getLeastSignificantBits.toHexString}"
@@ -278,13 +278,13 @@ private[bigquery] class DirectBigQueryRelation(
     getMaxNumPartitionsRequested(defaultTableDefinition)
 
   def getMaxNumPartitionsRequested(tableDefinition: TableDefinition): Int =
-    options.maxParallelism
-      .getOrElse(Math.max(
+    options.getMaxParallelism
+      .orElse(Math.max(
         (getNumBytes(tableDefinition) / DEFAULT_BYTES_PER_PARTITION).toInt, 1))
 
   def getNumBytes(tableDefinition: TableDefinition): Long = {
     val tableType = tableDefinition.getType
-    if (options.viewsEnabled &&
+    if (options.isViewsEnabled &&
       (TableDefinition.Type.VIEW == tableType ||
         TableDefinition.Type.MATERIALIZED_VIEW == tableType)) {
       sqlContext.sparkSession.sessionState.conf.defaultSizeInBytes
@@ -295,11 +295,11 @@ private[bigquery] class DirectBigQueryRelation(
 
   // VisibleForTesting
   private[bigquery] def getCompiledFilter(filters: Array[Filter]): String = {
-    if (options.combinePushedDownFilters) {
+    if (options.isCombinePushedDownFilters) {
       // new behaviour, fixing
       // https://github.com/GoogleCloudPlatform/spark-bigquery-connector/issues/74
       Seq(
-        options.filter,
+        BigQueryUtil.toOption(options.getFilter),
         BigQueryUtil.noneIfEmpty(DirectBigQueryRelation.compileFilters(handledFilters(filters)))
       )
         .flatten
@@ -308,7 +308,7 @@ private[bigquery] class DirectBigQueryRelation(
     } else {
       // old behaviour, kept for backward compatibility
       // If a manual filter has been specified do not push down anything.
-      options.filter.getOrElse {
+      options.getFilter.orElse {
         // TODO(pclay): Figure out why there are unhandled filters after we already listed them
         DirectBigQueryRelation.compileFilters(handledFilters(filters))
       }
@@ -317,12 +317,12 @@ private[bigquery] class DirectBigQueryRelation(
 
   private def handledFilters(filters: Array[Filter]): Array[Filter] = {
     filters.filter(filter => DirectBigQueryRelation.isTopLevelFieldFilterHandled(
-      filter, options.readDataFormat, topLevelFields))
+      filter, options.getReadDataFormat, topLevelFields))
   }
 
   override def unhandledFilters(filters: Array[Filter]): Array[Filter] = {
     // If a manual filter has been specified tell Spark they are all unhandled
-    if (options.filter.isDefined) {
+    if (options.getFilter.isPresent) {
       return filters
     }
 
@@ -337,7 +337,7 @@ object DirectBigQueryRelation {
   // used for testing
   var emptyRowRDDsCreated = 0;
 
-  def createReadClient(options: SparkBigQueryOptions): BigQueryReadClient = {
+  def createReadClient(options: SparkBigQueryConfig): BigQueryReadClient = {
     // TODO(pmkc): investigate thread pool sizing and log spam matching
     // https://github.com/grpc/grpc-java/issues/4544 in integration tests
     var clientSettings = BigQueryReadSettings.newBuilder()
@@ -345,13 +345,10 @@ object DirectBigQueryRelation {
         BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
           .setHeaderProvider(headerProvider)
           .build())
-    options.createCredentials match {
-      case Some(creds) => clientSettings.setCredentialsProvider(
+     clientSettings.setCredentialsProvider(
         new CredentialsProvider {
-          override def getCredentials: Credentials = creds
+          override def getCredentials: Credentials = options.createCredentials
         })
-      case None =>
-    }
 
     BigQueryReadClient.create(clientSettings.build)
   }

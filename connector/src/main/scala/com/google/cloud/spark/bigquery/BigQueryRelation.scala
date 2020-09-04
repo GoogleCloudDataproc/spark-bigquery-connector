@@ -22,7 +22,7 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 
 /** Base BigQuery relation that uses google-cloud-bigquery to get table metadata */
-private[bigquery] case class BigQueryRelation(options: SparkBigQueryOptions, table: TableInfo)
+private[bigquery] case class BigQueryRelation(options: SparkBigQueryConfig, table: TableInfo)
     (@transient val sqlContext: SQLContext)
     extends BaseRelation with Logging {
 
@@ -33,7 +33,7 @@ private[bigquery] case class BigQueryRelation(options: SparkBigQueryOptions, tab
   private val tableDefinition: TableDefinition = table.getDefinition[TableDefinition]
 
   override val schema: StructType = {
-    options.schema.getOrElse(SchemaConverters.toSpark(tableDefinition.getSchema))
+    options.getSchema.orElse(SchemaConverters.toSpark(tableDefinition.getSchema))
   }
 
 }

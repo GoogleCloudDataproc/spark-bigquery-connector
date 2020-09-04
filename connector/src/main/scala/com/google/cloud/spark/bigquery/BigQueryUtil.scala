@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery
 
-import java.util.Properties
+import java.util.{Optional, Properties}
 
 import com.google.cloud.bigquery.{BigQuery, BigQueryError, BigQueryException, BigQueryOptions, TableId}
 import com.google.cloud.http.BaseHttpServiceException.UNKNOWN_CODE
@@ -132,18 +132,20 @@ object BigQueryUtil extends Logging{
 
   def toJavaIterator[T](it: Iterator[T]): java.util.Iterator[T] = it.asJava
 
-  def createBigQuery(options: SparkBigQueryOptions): BigQuery = {
-    val credentials = options.createCredentials
-      .getOrElse(BigQueryOptions.getDefaultInstance.getCredentials)
-    val parentProject = options.parentProject
+
+  def createBigQuery(options: SparkBigQueryConfig): BigQuery = {
+    val credentials = options.createCredentials()
+    val parentProjectId = options.getParentProjectId()
     logInfo(
-      s"BigQuery client project id is [$parentProject}], derived from teh parentProject option")
+      s"BigQuery client project id is [$parentProjectId}], derived from the parentProject option")
     BigQueryOptions
       .newBuilder()
-      .setProjectId(parentProject)
+      .setProjectId(parentProjectId)
       .setCredentials(credentials)
       .build()
       .getService
   }
 
+  def toOption[T](javaOptional: Optional[T]): Option[T] =
+    if (javaOptional.isPresent) Some(javaOptional.get) else None
 }

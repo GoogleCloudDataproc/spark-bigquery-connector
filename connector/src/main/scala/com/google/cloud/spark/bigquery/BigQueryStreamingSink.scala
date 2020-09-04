@@ -37,7 +37,7 @@ case class BigQueryStreamingSink(
                          parameters: Map[String, String],
                          partitionColumns: Seq[String],
                          outputMode: OutputMode,
-                         opts: SparkBigQueryOptions,
+                         opts: SparkBigQueryConfig,
                          client: BigQuery
                        ) extends Sink with Logging {
 

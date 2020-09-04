@@ -24,23 +24,67 @@ import static com.google.common.truth.Truth.assertThat;
 
 public class BigQueryUtilTest {
 
+  private static final TableId TABLE_ID =
+      TableId.of("test.org:test-project", "test_dataset", "test_table");
+  private static final String FULLY_QUALIFIED_TABLE =
+      "test.org:test-project.test_dataset.test_table";
+
   @Test
   public void testParseTableId() {
-    assertThat(BigQueryUtil.parseTableId("t", Optional.of("D"), Optional.of("P")))
+    assertThat(BigQueryUtil.parseTableId("t", Optional.of("D"), Optional.of("P"), Optional.empty()))
         .isEqualTo(TableId.of("P", "D", "t"));
-    assertThat(BigQueryUtil.parseTableId("d.t", Optional.of("D"), Optional.of("P")))
+    assertThat(
+            BigQueryUtil.parseTableId("d.t", Optional.of("D"), Optional.of("P"), Optional.empty()))
         .isEqualTo(TableId.of("P", "d", "t"));
-    assertThat(BigQueryUtil.parseTableId("d.t", Optional.empty(), Optional.of("P")))
+    assertThat(
+            BigQueryUtil.parseTableId("d.t", Optional.empty(), Optional.of("P"), Optional.empty()))
         .isEqualTo(TableId.of("P", "d", "t"));
-    assertThat(BigQueryUtil.parseTableId("d.t", Optional.empty(), Optional.empty()))
+    assertThat(
+            BigQueryUtil.parseTableId("d.t", Optional.empty(), Optional.empty(), Optional.empty()))
         .isEqualTo(TableId.of("d", "t"));
-    assertThat(BigQueryUtil.parseTableId("p.d.t", Optional.of("D"), Optional.of("P")))
+    assertThat(
+            BigQueryUtil.parseTableId(
+                "p.d.t", Optional.of("D"), Optional.of("P"), Optional.empty()))
         .isEqualTo(TableId.of("p", "d", "t"));
-    assertThat(BigQueryUtil.parseTableId("p.d.t", Optional.empty(), Optional.empty()))
+    assertThat(
+            BigQueryUtil.parseTableId(
+                "p.d.t", Optional.empty(), Optional.empty(), Optional.empty()))
         .isEqualTo(TableId.of("p", "d", "t"));
-    assertThat(BigQueryUtil.parseTableId("p:d.t", Optional.of("D"), Optional.of("P")))
+    assertThat(
+            BigQueryUtil.parseTableId(
+                "p:d.t", Optional.of("D"), Optional.of("P"), Optional.empty()))
         .isEqualTo(TableId.of("p", "d", "t"));
-    assertThat(BigQueryUtil.parseTableId("p:d.t", Optional.empty(), Optional.empty()))
+    assertThat(
+            BigQueryUtil.parseTableId(
+                "p:d.t", Optional.empty(), Optional.empty(), Optional.empty()))
         .isEqualTo(TableId.of("p", "d", "t"));
+  }
+
+  @Test
+  public void testParseFullyQualifiedPartitionedTable() {
+    TableId tableId =
+        BigQueryUtil.parseTableId(
+            FULLY_QUALIFIED_TABLE + "$12345", Optional.empty(), Optional.empty(), Optional.empty());
+    assertThat(tableId)
+        .isEqualTo(TableId.of("test.org:test-project", "test_dataset", "test_table$12345"));
+  }
+
+  @Test
+  public void testParseUnqualifiedPartitionedTable() {
+    TableId tableId =
+        BigQueryUtil.parseTableId(
+            "test_table$12345", Optional.of("default_dataset"), Optional.empty(), Optional.empty());
+    assertThat(tableId).isEqualTo(TableId.of("default_dataset", "test_table$12345"));
+  }
+
+  @Test
+  public void testParseTableWithDatePartition() {
+    TableId tableId =
+        BigQueryUtil.parseTableId(
+            "test_table",
+            Optional.of("default_dataset"),
+            Optional.empty(),
+            Optional.of("20200101"));
+    assertThat(tableId).isEqualTo(TableId.of("default_dataset", "test_table$20200101"));
   }
 }
