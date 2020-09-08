@@ -22,11 +22,11 @@ import java.util.concurrent.{Callable, TimeUnit}
 import com.google.api.gax.core.CredentialsProvider
 import com.google.api.gax.rpc.FixedHeaderProvider
 import com.google.auth.Credentials
+import com.google.cloud.bigquery.connector.common.BigQueryUtil
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions
 import com.google.cloud.bigquery.storage.v1.{BigQueryReadClient, BigQueryReadSettings, CreateReadSessionRequest, DataFormat, ReadSession}
-import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
-import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation.{compileFilter, compileValue, quote}
-import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtil, BuildInfo, SchemaConverters, SparkBigQueryConnectorUserAgentProvider, SparkBigQueryConfig}
+import com.google.cloud.bigquery.{BigQuery, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
+import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtilScala, SchemaConverters, SparkBigQueryConfig, SparkBigQueryConnectorUserAgentProvider}
 import com.google.common.cache.{Cache, CacheBuilder}
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
@@ -43,7 +43,7 @@ private[bigquery] class DirectBigQueryRelation(
     getClient: SparkBigQueryConfig => BigQueryReadClient =
          DirectBigQueryRelation.createReadClient,
     bigQueryClient: SparkBigQueryConfig => BigQuery =
-         BigQueryUtil.createBigQuery)
+         BigQueryUtilScala.createBigQuery)
     (@transient override val sqlContext: SQLContext)
     extends BigQueryRelation(options, table)(sqlContext)
         with TableScan with PrunedScan with PrunedFilteredScan {
@@ -255,7 +255,7 @@ private[bigquery] class DirectBigQueryRelation(
 
   // return empty if no filters are used
   def createWhereClause(filtersString: String): Option[String] = {
-    BigQueryUtil.noneIfEmpty(filtersString)
+    BigQueryUtilScala.noneIfEmpty(filtersString)
   }
 
   def createDestinationTable: TableId = {
@@ -299,8 +299,9 @@ private[bigquery] class DirectBigQueryRelation(
       // new behaviour, fixing
       // https://github.com/GoogleCloudPlatform/spark-bigquery-connector/issues/74
       Seq(
-        BigQueryUtil.toOption(options.getFilter),
-        BigQueryUtil.noneIfEmpty(DirectBigQueryRelation.compileFilters(handledFilters(filters)))
+        BigQueryUtilScala.toOption(options.getFilter),
+        BigQueryUtilScala.noneIfEmpty(DirectBigQueryRelation.compileFilters(
+          handledFilters(filters)))
       )
         .flatten
         .map(f => s"($f)")

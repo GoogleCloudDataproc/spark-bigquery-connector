@@ -20,6 +20,7 @@ import java.util.UUID
 
 import com.google.cloud.bigquery.JobInfo.CreateDisposition.CREATE_NEVER
 import com.google.cloud.bigquery._
+import com.google.cloud.bigquery.connector.common.BigQueryUtil
 import com.google.cloud.http.BaseHttpServiceException
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
@@ -44,7 +45,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     val applicationId = sqlContext.sparkContext.applicationId
 
     while (needNewPath) {
-      val temporaryGcsBucketOption = BigQueryUtil.toOption(options.getTemporaryGcsBucket)
+      val temporaryGcsBucketOption = BigQueryUtilScala.toOption(options.getTemporaryGcsBucket)
       val gcsPathOption = temporaryGcsBucketOption match {
         case Some(bucket) => s"gs://$bucket/.spark-bigquery-${applicationId}-${UUID.randomUUID()}"
         case None if options.getPersistentGcsBucket.isPresent
@@ -68,7 +69,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     // If the CreateDisposition is CREATE_NEVER, and the table does not exist,
     // there's no point in writing the data to GCS in the first place as it going
     // to file on the BigQuery side.
-    if (BigQueryUtil.toOption(options.getCreateDisposition)
+    if (BigQueryUtilScala.toOption(options.getCreateDisposition)
       .map(cd => !tableExists && cd == CREATE_NEVER)
       .getOrElse(false)) {
       throw new IOException(
@@ -211,7 +212,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
   }
 
   private def createTemporaryPathDeleter: scala.Option[IntermediateDataCleaner] =
-    BigQueryUtil.toOption(options.getTemporaryGcsBucket)
+    BigQueryUtilScala.toOption(options.getTemporaryGcsBucket)
       .map(_ => IntermediateDataCleaner(gcsPath, conf))
 
   def verifySaveMode: Unit = {
