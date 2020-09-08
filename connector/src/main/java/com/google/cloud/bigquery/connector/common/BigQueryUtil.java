@@ -78,6 +78,15 @@ public class BigQueryUtil {
     return Stream.of(optionals).flatMap(Streams::stream).findFirst();
   }
 
+  public static TableId parseTableId(String rawTable) {
+    return parseTableId(rawTable, Optional.empty(), Optional.empty(), Optional.empty());
+  }
+
+  public static TableId parseTableId(
+      String rawTable, Optional<String> dataset, Optional<String> project) {
+    return parseTableId(rawTable, dataset, project, Optional.empty());
+  }
+
   public static TableId parseTableId(
       String rawTable,
       Optional<String> dataset,

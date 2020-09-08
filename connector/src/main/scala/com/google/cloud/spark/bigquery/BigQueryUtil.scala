@@ -56,28 +56,6 @@ object BigQueryUtil extends Logging{
     }
   }
 
-  def parseTableId(
-      rawTable: String,
-      dataset: Option[String] = None,
-      project: Option[String] = None,
-      datePartition: Option[String] = None): TableId = {
-    val (parsedProject, parsedDataset, table) = rawTable match {
-      case QUALIFIED_TABLE_REGEX(_, _, p, d, t) => (Option(p), Option(d), t)
-      case _ => throw new IllegalArgumentException(
-        s"Invalid Table ID '$rawTable'. Must match '$QUALIFIED_TABLE_REGEX'")
-    }
-    val actualDataset = parsedDataset.orElse(dataset).getOrElse(
-      throw new IllegalArgumentException("'dataset' not parsed or provided.")
-    )
-    // adding partition if needed
-    val tableAndPartition = datePartition
-      .map(date => s"${table}$$${date}")
-      .getOrElse(table)
-    parsedProject.orElse(project)
-      .map(p => TableId.of(p, actualDataset, tableAndPartition))
-      .getOrElse(TableId.of(actualDataset, tableAndPartition))
-  }
-
   def noneIfEmpty(s: String): Option[String] = Option(s).filterNot(_.trim.isEmpty)
 
   def convertAndThrow(error: BigQueryError) : Unit =

@@ -15,6 +15,8 @@
  */
 package com.google.cloud.spark.bigquery
 
+import java.util.Optional
+
 import com.google.cloud.bigquery.TableId
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{LocatedFileStatus, Path}
@@ -25,64 +27,70 @@ class BigQueryUtilsSuite extends org.scalatest.FunSuite {
   val FULLY_QUALIFIED_TABLE = "test.org:test-project.test_dataset.test_table"
 
   test("parse fully qualified table") {
-    val tableId = BigQueryUtil.parseTableId(FULLY_QUALIFIED_TABLE)
+    val tableId = com.google.cloud.bigquery.connector.common.BigQueryUtil
+      .parseTableId(FULLY_QUALIFIED_TABLE)
     assert(tableId == TABLE_ID)
   }
 
   test("parse fully qualified legacy table") {
-    val tableId = BigQueryUtil.parseTableId("test.org:test-project.test_dataset.test_table")
+    val tableId = com.google.cloud.bigquery.connector.common.BigQueryUtil
+      .parseTableId("test.org:test-project.test_dataset.test_table")
     assert(tableId == TABLE_ID)
   }
 
   test("parse invalid table") {
     assertThrows[IllegalArgumentException] {
-      BigQueryUtil.parseTableId("test-org:test-project.table")
+      com.google.cloud.bigquery.connector.common.BigQueryUtil
+        .parseTableId("test-org:test-project.table")
     }
   }
 
   test("parse fully qualified table with defaults") {
-    val tableId = BigQueryUtil.parseTableId(
-      FULLY_QUALIFIED_TABLE, dataset = Some("other_dataset"), project = Some("other-project"))
+    val tableId = com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId(
+      FULLY_QUALIFIED_TABLE, Optional.of("other_dataset"), Optional.of("other-project"))
     assert(tableId == TABLE_ID)
   }
 
   test("parse partially qualified table") {
-    val tableId = BigQueryUtil.parseTableId("test_dataset.test_table")
+    val tableId = com.google.cloud.bigquery.connector.common.BigQueryUtil
+      .parseTableId("test_dataset.test_table")
     assert(tableId == TableId.of("test_dataset", "test_table"))
   }
 
   test("parse partially qualified table with defaults") {
-    val tableId = BigQueryUtil.parseTableId(
-      "test_dataset.test_table", dataset = Some("other_dataset"), project = Some("default-project"))
+    val tableId = com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId(
+      "test_dataset.test_table", Optional.of("other_dataset"), Optional.of("default-project"))
     assert(tableId == TableId.of("default-project", "test_dataset", "test_table"))
   }
 
   test("parse unqualified table with defaults") {
-    val tableId = BigQueryUtil.parseTableId(
-      "test_table", dataset = Some("default_dataset"), project = Some("default-project"))
+    val tableId = com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId(
+      "test_table", Optional.of("default_dataset"), Optional.of("default-project"))
     assert(tableId == TableId.of("default-project", "default_dataset", "test_table"))
   }
 
   test("parse fully qualified partitioned table") {
-    val tableId = BigQueryUtil.parseTableId(FULLY_QUALIFIED_TABLE + "$12345")
+    val tableId = com.google.cloud.bigquery.connector.common.BigQueryUtil
+      .parseTableId(FULLY_QUALIFIED_TABLE + "$12345")
     assert(tableId == TableId.of("test.org:test-project", "test_dataset", "test_table$12345"))
   }
 
   test("parse unqualified partitioned table") {
-    val tableId = BigQueryUtil.parseTableId(
-      "test_table$12345", dataset = Some("default_dataset"))
+    val tableId = com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId(
+      "test_table$12345", Optional.of("default_dataset"), Optional.empty())
     assert(tableId == TableId.of("default_dataset", "test_table$12345"))
   }
 
   test("parse table with date partition") {
-    val tableId = BigQueryUtil.parseTableId(
-      "test_table", dataset = Some("default_dataset"), datePartition = Some("20200101"))
+    val tableId = com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId(
+      "test_table", Optional.of("default_dataset"), Optional.empty(), Optional.of("20200101"))
     assert(tableId == TableId.of("default_dataset", "test_table$20200101"))
   }
 
   test("unparsable table") {
     assertThrows[IllegalArgumentException] {
-      val tableId = BigQueryUtil.parseTableId("foo:bar:baz")
+      val tableId = com.google.cloud.bigquery.connector.common.BigQueryUtil
+        .parseTableId("foo:bar:baz")
     }
   }
 
