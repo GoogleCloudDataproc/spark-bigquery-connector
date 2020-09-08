@@ -15,7 +15,10 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.spark.bigquery.BigQueryUtilScala;
 import org.junit.Test;
 
 import java.util.Optional;
@@ -122,5 +125,14 @@ public class BigQueryUtilTest {
   public void testShortFriendlyName() {
     String name = BigQueryUtil.friendlyTableName(TableId.of("test_dataset", "test_table"));
     assertThat(name).isEqualTo("test_dataset.test_table");
+  }
+
+  @Test
+  public void testConvertAndThrows() {
+    final BigQueryError bigQueryError = new BigQueryError("reason", "location", "message");
+    BigQueryException bigQueryException =
+        assertThrows(BigQueryException.class, () -> BigQueryUtil.convertAndThrow(bigQueryError));
+    assertThat(bigQueryException).hasMessageThat().isEqualTo("message");
+    assertThat(bigQueryException.getError()).isEqualTo(bigQueryError);
   }
 }

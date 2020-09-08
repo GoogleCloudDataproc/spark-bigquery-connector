@@ -226,7 +226,7 @@ private[bigquery] class DirectBigQueryRelation(
     val job = bigQuery.create(jobInfo).waitFor()
     logDebug(s"job has finished. $job")
     if(job.getStatus.getError != null) {
-      BigQueryUtilScala.convertAndThrow(job.getStatus.getError)
+      BigQueryUtil.convertAndThrow(job.getStatus.getError)
     }
     // add expiration time to the table
     val createdTable = bigQuery.getTable(destinationTable)

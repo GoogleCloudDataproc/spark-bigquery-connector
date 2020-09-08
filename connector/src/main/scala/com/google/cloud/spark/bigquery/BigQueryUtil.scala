@@ -29,56 +29,11 @@ import io.grpc.Status
 import org.apache.spark.internal.Logging
 
 /**
- * Static helpers for working with BigQuery.
+ * Static helpers for working with BigQuery, relevant only to the Scala code
  */
 object BigQueryUtilScala extends Logging{
 
-  private val PROJECT_PATTERN = """\S+"""
-  private val DATASET_PATTERN = """\w+"""
-
-  // Allow all non-whitespace beside ':' and '.'.
-  // These confuse the qualified table parsing.
-  private val TABLE_PATTERN = """[\S&&[^.:]]+"""
-
-  /**
-   * Regex for an optionally fully qualified table.
-   *
-   * Must match 'project.dataset.table' OR the legacy 'project:dataset.table' OR 'dataset.table'
-   * OR 'table'.
-   */
-  val QUALIFIED_TABLE_REGEX: Regex =
-    s"""^((($PROJECT_PATTERN)[:.])?($DATASET_PATTERN)\\.)?($TABLE_PATTERN)$$""".r
-
   def noneIfEmpty(s: String): Option[String] = Option(s).filterNot(_.trim.isEmpty)
-
-  def convertAndThrow(error: BigQueryError) : Unit =
-    throw new BigQueryException(UNKNOWN_CODE, error.getMessage, error)
-
-  def isRetryable(cause: Throwable): Boolean = {
-    var c: Throwable = cause
-    while(c != null) {
-      if (isRetryableInternalError(c)) {
-        return true
-      }
-      c = c.getCause
-    }
-    // failed
-    false
-  }
-
-  val InternalErrorMessages = Seq(
-      "HTTP/2 error code: INTERNAL_ERROR",
-      "Connection closed with unknown cause",
-      "Received unexpected EOS on DATA frame from server")
-
-  def isRetryableInternalError(cause: Throwable) : Boolean = {
-    cause match {
-      case sse: StatusRuntimeException =>
-        sse.getStatus.getCode == Status.Code.INTERNAL &&
-        InternalErrorMessages.exists(errorMsg => cause.getMessage.contains(errorMsg))
-      case _ => false
-    }
-  }
 
   // validating that the connector's scala version and the runtime's scala
   // version are the same

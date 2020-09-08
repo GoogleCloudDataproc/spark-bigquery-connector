@@ -55,7 +55,7 @@ public class BigQueryUtil {
 
   private BigQueryUtil() {}
 
-  static boolean isRetryable(Throwable cause) {
+  public static boolean isRetryable(Throwable cause) {
     return getCausalChain(cause).stream().anyMatch(BigQueryUtil::isRetryableInternalError);
   }
 
@@ -114,5 +114,9 @@ public class BigQueryUtil {
     return tableId.getProject() != null
         ? String.format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable())
         : String.format("%s.%s", tableId.getDataset(), tableId.getTable());
+  }
+
+  public static void convertAndThrow(BigQueryError error) {
+    throw new BigQueryException(UNKNOWN_CODE, error.getMessage(), error);
   }
 }
