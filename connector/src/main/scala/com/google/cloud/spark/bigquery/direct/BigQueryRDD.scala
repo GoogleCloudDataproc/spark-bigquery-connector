@@ -18,7 +18,7 @@ package com.google.cloud.spark.bigquery.direct
 import com.google.api.gax.rpc.ServerStreamingCallable
 import com.google.cloud.bigquery.storage.v1.{BigQueryReadClient, DataFormat, ReadRowsRequest, ReadRowsResponse, ReadSession, ReadStream}
 import com.google.cloud.bigquery.{BigQuery, Schema}
-import com.google.cloud.spark.bigquery.{ArrowBinaryIterator, AvroBinaryIterator, BigQueryUtil, SparkBigQueryConfig}
+import com.google.cloud.spark.bigquery.{ArrowBinaryIterator, AvroBinaryIterator, BigQueryUtilScala, SparkBigQueryConfig}
 import com.google.protobuf.ByteString
 import org.apache.avro.{Schema => AvroSchema}
 import org.apache.spark.internal.Logging
@@ -151,7 +151,7 @@ class ReadRowsIterator (val helper: ReadRowsHelper,
       } catch {
         case e: Exception =>
           // if relevant, retry the read, from the last read position
-          if (BigQueryUtil.isRetryable(e) && retries < helper.maxReadRowsRetries) {
+          if (BigQueryUtilScala.isRetryable(e) && retries < helper.maxReadRowsRetries) {
             serverResponses = helper.fetchResponses(helper.request.setOffset(readRowsCount))
             retries += 1
           } else {

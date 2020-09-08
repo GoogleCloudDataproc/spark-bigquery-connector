@@ -109,4 +109,10 @@ public class BigQueryUtil {
         .map(p -> TableId.of(p, actualDataset, tableAndPartition))
         .orElse(TableId.of(actualDataset, tableAndPartition));
   }
+
+  public static String friendlyTableName(TableId tableId) {
+    return tableId.getProject() != null
+        ? String.format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable())
+        : String.format("%s.%s", tableId.getDataset(), tableId.getTable());
+  }
 }

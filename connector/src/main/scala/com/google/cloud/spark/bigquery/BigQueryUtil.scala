@@ -31,7 +31,7 @@ import org.apache.spark.internal.Logging
 /**
  * Static helpers for working with BigQuery.
  */
-object BigQueryUtil extends Logging{
+object BigQueryUtilScala extends Logging{
 
   private val PROJECT_PATTERN = """\S+"""
   private val DATASET_PATTERN = """\w+"""
@@ -48,13 +48,6 @@ object BigQueryUtil extends Logging{
    */
   val QUALIFIED_TABLE_REGEX: Regex =
     s"""^((($PROJECT_PATTERN)[:.])?($DATASET_PATTERN)\\.)?($TABLE_PATTERN)$$""".r
-
-  def friendlyTableName(tableId: TableId): String = {
-    (Option(tableId.getProject), tableId.getDataset, tableId.getTable) match {
-      case (Some(project), dataset, table) => s"$project.$dataset.$table"
-      case (None, dataset, table) => s"$dataset.$table"
-    }
-  }
 
   def noneIfEmpty(s: String): Option[String] = Option(s).filterNot(_.trim.isEmpty)
 

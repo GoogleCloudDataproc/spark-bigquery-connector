@@ -21,6 +21,7 @@ import org.junit.Test;
 import java.util.Optional;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 public class BigQueryUtilTest {
 
@@ -61,24 +62,75 @@ public class BigQueryUtilTest {
   }
 
   @Test
-  public void testParseFullyQualifiedPartitionedTable() {
+  public void testParseFullyQualifiedTable() throws Exception {
+    TableId tableId = BigQueryUtil.parseTableId(FULLY_QUALIFIED_TABLE);
+    assertThat(tableId).isEqualTo(TABLE_ID);
+  }
+
+  @Test
+  public void testParseFullyQualifiedLegacyTable() throws Exception {
+    TableId tableId = BigQueryUtil.parseTableId("test.org:test-project.test_dataset.test_table");
+    assertThat(tableId).isEqualTo(TABLE_ID);
+  }
+
+  @Test
+  public void testParseInvalidTable() throws Exception {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          BigQueryUtil.parseTableId("test-org:test-project.table");
+        });
+  }
+
+  @Test
+  public void testParseFullyQualifiedTableWithDefaults() throws Exception {
     TableId tableId =
         BigQueryUtil.parseTableId(
-            FULLY_QUALIFIED_TABLE + "$12345", Optional.empty(), Optional.empty(), Optional.empty());
+            FULLY_QUALIFIED_TABLE, Optional.of("other_dataset"), Optional.of("other-project"));
+    assertThat(tableId).isEqualTo(TABLE_ID);
+  }
+
+  @Test
+  public void testParsePartiallyQualifiedTable() throws Exception {
+    TableId tableId = BigQueryUtil.parseTableId("test_dataset.test_table");
+    assertThat(tableId).isEqualTo(TableId.of("test_dataset", "test_table"));
+  }
+
+  @Test
+  public void testParsePartiallyQualifiedTableWithDefaults() throws Exception {
+    TableId tableId =
+        BigQueryUtil.parseTableId(
+            "test_dataset.test_table",
+            Optional.of("other_dataset"),
+            Optional.of("default-project"));
+    assertThat(tableId).isEqualTo(TableId.of("default-project", "test_dataset", "test_table"));
+  }
+
+  @Test
+  public void testParseUnqualifiedTableWithDefaults() throws Exception {
+    TableId tableId =
+        BigQueryUtil.parseTableId(
+            "test_table", Optional.of("default_dataset"), Optional.of("default-project"));
+    assertThat(tableId).isEqualTo(TableId.of("default-project", "default_dataset", "test_table"));
+  }
+
+  @Test
+  public void testParseFullyQualifiedPartitionedTable() throws Exception {
+    TableId tableId = BigQueryUtil.parseTableId(FULLY_QUALIFIED_TABLE + "$12345");
     assertThat(tableId)
         .isEqualTo(TableId.of("test.org:test-project", "test_dataset", "test_table$12345"));
   }
 
   @Test
-  public void testParseUnqualifiedPartitionedTable() {
+  public void testParseUnqualifiedPartitionedTable() throws Exception {
     TableId tableId =
         BigQueryUtil.parseTableId(
-            "test_table$12345", Optional.of("default_dataset"), Optional.empty(), Optional.empty());
+            "test_table$12345", Optional.of("default_dataset"), Optional.empty());
     assertThat(tableId).isEqualTo(TableId.of("default_dataset", "test_table$12345"));
   }
 
   @Test
-  public void testParseTableWithDatePartition() {
+  public void testParseTableWithDatePartition() throws Exception {
     TableId tableId =
         BigQueryUtil.parseTableId(
             "test_table",
@@ -87,4 +139,40 @@ public class BigQueryUtilTest {
             Optional.of("20200101"));
     assertThat(tableId).isEqualTo(TableId.of("default_dataset", "test_table$20200101"));
   }
+
+  @Test
+  public void testUnparsableTable() throws Exception {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          TableId tableId = BigQueryUtil.parseTableId("foo:bar:baz");
+        });
+  }
+
+  @Test
+  public void testFriendlyName() throws Exception {
+    String name = BigQueryUtil.friendlyTableName(TABLE_ID);
+    assertThat(name).isEqualTo(FULLY_QUALIFIED_TABLE);
+  }
+
+  @Test
+  public void testShortFriendlyName() throws Exception {
+    String name = BigQueryUtil.friendlyTableName(TableId.of("test_dataset", "test_table"));
+    assertThat(name).isEqualTo("test_dataset.test_table");
+  }
+
+  //  @Test public void testToIteratorTest() throws Exception {
+  //    val path = new Path("connector/src/test/resources/ToIteratorTest");
+  //    val fs = path.getFileSystem(new Configuration());
+  //    var it = ToIterator(fs.listFiles(path, false));
+  //
+  //    assertThat(it.isInstanceOf[scala.collection.Iterator[LocatedFileStatus]]);
+  //    assertThat(it.size).isEqualTo(2);
+  //
+  //    // fresh instance
+  //    it = ToIterator(fs.listFiles(path, false));
+  //    assertThat(it.filter(f => f.getPath.getName.endsWith(".txt"))
+  //            .next.getPath.getName.endsWith("file1.txt"));
+  //  }
+
 }

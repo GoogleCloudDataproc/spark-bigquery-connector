@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery
 
+import com.google.cloud.bigquery.connector.common.BigQueryUtil
 import com.google.cloud.bigquery.{TableDefinition, TableId, TableInfo}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql._

@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery
 import java.util.Optional
 
 import com.google.cloud.bigquery.TableDefinition.Type.{MATERIALIZED_VIEW, TABLE, VIEW}
+import com.google.cloud.bigquery.connector.common.BigQueryUtil
 import com.google.cloud.bigquery.{BigQuery, TableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.sql.execution.streaming.Sink
@@ -36,7 +37,7 @@ class BigQueryRelationProvider(
     with DataSourceRegister
     with StreamSinkProvider {
 
-  BigQueryUtil.validateScalaVersionCompatibility
+  BigQueryUtilScala.validateScalaVersionCompatibility
 
   override def createRelation(sqlContext: SQLContext,
                               parameters: Map[String, String]): BaseRelation = {
@@ -123,7 +124,7 @@ class BigQueryRelationProvider(
   }
 
   private def getOrCreateBigQuery(options: SparkBigQueryConfig) =
-    getBigQuery().getOrElse(BigQueryUtil.createBigQuery(options))
+    getBigQuery().getOrElse(BigQueryUtilScala.createBigQuery(options))
 
   def createSparkBigQueryConfig(sqlContext: SQLContext,
                                  parameters: Map[String, String],
