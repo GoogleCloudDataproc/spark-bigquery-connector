@@ -17,7 +17,7 @@ package com.google.cloud.spark.bigquery
 
 import java.util.{Optional, OptionalInt}
 
-import com.google.cloud.bigquery.JobInfo
+import com.google.cloud.bigquery.{Field, JobInfo, LegacySQLTypeName, Schema}
 import com.google.common.collect.ImmutableMap
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.internal.SQLConf
@@ -32,11 +32,11 @@ class SparkBigQueryConfigSuite extends FunSuite {
   hadoopConfiguration.set(SparkBigQueryConfig.GCS_CONFIG_PROJECT_ID_PROPERTY, "hadoop_project")
 
   val parameters = Map("table" -> "dataset.table")
-  val emptyMap : ImmutableMap[String, String] = ImmutableMap.of()
+  val emptyMap: ImmutableMap[String, String] = ImmutableMap.of()
   val sparkVersion = "2.4.0"
-  
+
   private def asDataSourceOptionsMap(map: Map[String, String]) = {
-    (map ++ map.map { case (key, value) => (key.toLowerCase, value) } .toMap).asJava
+    (map ++ map.map { case (key, value) => (key.toLowerCase, value) }.toMap).asJava
   }
 
   test("taking credentials file from GCS hadoop config") {
@@ -122,18 +122,18 @@ class SparkBigQueryConfigSuite extends FunSuite {
   }
 
   test("Invalid data format") {
-      val thrown = intercept[Exception] {
-        SparkBigQueryConfig.from(
-          asDataSourceOptionsMap(parameters + ("readDataFormat" -> "abc")),
-          emptyMap, // allConf
-          new Configuration,
-          1,
-          new SQLConf,
-          sparkVersion,
-          Optional.empty()) // schema
-      }
-      assert (thrown.getMessage ==
-        "Data read format 'ABC' is not supported. Supported formats are 'ARROW,AVRO'")
+    val thrown = intercept[Exception] {
+      SparkBigQueryConfig.from(
+        asDataSourceOptionsMap(parameters + ("readDataFormat" -> "abc")),
+        emptyMap, // allConf
+        new Configuration,
+        1,
+        new SQLConf,
+        sparkVersion,
+        Optional.empty()) // schema
+    }
+    assert(thrown.getMessage ==
+      "Data read format 'ABC' is not supported. Supported formats are 'ARROW,AVRO'")
   }
 
   test("data format - no value set") {
@@ -184,7 +184,7 @@ class SparkBigQueryConfigSuite extends FunSuite {
         asDataSourceOptionsMap(parameters + (
           "materializationProject" -> "foo",
           "viewMaterializationProject" -> "bar")
-          ),
+        ),
         emptyMap, // allConf
         new Configuration,
         1,
@@ -278,7 +278,7 @@ class SparkBigQueryConfigSuite extends FunSuite {
       options.getMaxParallelism
     }
   }
-  
+
   test("loadSchemaUpdateOption - allowFieldAddition") {
     assertResult(Seq(JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION)) {
       val options = SparkBigQueryConfig.from(
@@ -346,9 +346,9 @@ class SparkBigQueryConfigSuite extends FunSuite {
       "spark.datasource.bigquery.key3" -> "external val3")
     val normalizedConf = SparkBigQueryConfig.normalizeConf(originalConf.asJava)
 
-    assert(normalizedConf.get("key1")  == "val1")
-    assert(normalizedConf.get("key2")  == "val2")
-    assert(normalizedConf.get("key3")  == "external val3")
+    assert(normalizedConf.get("key1") == "val1")
+    assert(normalizedConf.get("key2") == "val2")
+    assert(normalizedConf.get("key3") == "external val3")
   }
 
   test("Set persistentGcsPath") {
@@ -376,6 +376,166 @@ class SparkBigQueryConfigSuite extends FunSuite {
         sparkVersion,
         Optional.empty()) // schema
       options.getPersistentGcsBucket
+    }
+  }
+
+  test("Set bqSchema") {
+    assertResult(Optional.of(Schema.of(Field.of("column", LegacySQLTypeName.STRING)))) {
+      val options = SparkBigQueryConfig.from(
+        asDataSourceOptionsMap(parameters + ("bqSchema" ->
+          """
+            |{
+            |  "fields": [
+            |    {
+            |      "name": "column",
+            |      "type": "STRING"
+            |    }
+            |  ]
+            |}
+            |""".stripMargin)),
+        emptyMap, // allConf
+        new Configuration,
+        1,
+        new SQLConf,
+        sparkVersion,
+        Optional.empty()) // schema
+
+      options.getBqSchema
+    }
+  }
+
+  test("Set bqSchema - nested") {
+    assertResult(Optional.of(Schema.of(
+      Field.of("column", LegacySQLTypeName.STRING),
+      Field.of("record", LegacySQLTypeName.RECORD,
+        Field.of("nested_1", LegacySQLTypeName.INTEGER)
+      )
+    ))) {
+      val options = SparkBigQueryConfig.from(
+        asDataSourceOptionsMap(
+          parameters + ("bqSchema" ->
+            """
+              |{
+              |  "fields": [
+              |    {
+              |      "name": "column",
+              |      "type": "STRING"
+              |    },
+              |    {
+              |      "name": "record",
+              |      "type": "RECORD",
+              |      "fields": [
+              |        {
+              |          "name": "nested_1",
+              |          "type": "INTEGER"
+              |        }
+              |      ]
+              |    }
+              |  ]
+              |}
+              |""".stripMargin)),
+        emptyMap, // allConf
+        new Configuration,
+        1,
+        new SQLConf,
+        sparkVersion,
+        Optional.empty())
+
+      options.getBqSchema
+    }
+  }
+
+  test("Set bqSchema - with mode") {
+    assertResult(Optional.of(Schema.of(
+      Field
+        .newBuilder("column", LegacySQLTypeName.STRING)
+        .setMode(Field.Mode.NULLABLE)
+        .build(),
+      Field
+        .newBuilder("record", LegacySQLTypeName.RECORD,
+          Field
+            .newBuilder("nested_1", LegacySQLTypeName.INTEGER)
+            .setMode(Field.Mode.REQUIRED)
+            .build())
+        .setMode(Field.Mode.REPEATED)
+        .build()
+    ))) {
+      val options = SparkBigQueryConfig.from(asDataSourceOptionsMap(
+        parameters + ("bqSchema" ->
+          """
+            |{
+            |  "fields": [
+            |    {
+            |      "name": "column",
+            |      "type": "STRING",
+            |      "mode": "NULLABLE"
+            |    },
+            |    {
+            |      "name": "record",
+            |      "type": "RECORD",
+            |      "mode": "REPEATED",
+            |      "fields": [
+            |        {
+            |          "name": "nested_1",
+            |          "type": "INTEGER",
+            |          "mode": "REQUIRED"
+            |        }
+            |      ]
+            |    }
+            |  ]
+            |}
+            |""".stripMargin)),
+        emptyMap, // allConf
+        new Configuration,
+        1,
+        new SQLConf,
+        sparkVersion,
+        Optional.empty())
+
+      options.getBqSchema
+    }
+  }
+
+  test("Set bqSchema - invalid json") {
+    assertResult(Optional.empty()) {
+      val options = SparkBigQueryConfig.from(
+        asDataSourceOptionsMap(
+          parameters + ("bqSchema" ->
+            """
+              |{
+              | "name": "column",
+              | "type": "STRING"
+              |}
+              |""".stripMargin)),
+        emptyMap, // allConf
+        new Configuration,
+        1,
+        new SQLConf,
+        sparkVersion,
+        Optional.empty())
+
+      options.getBqSchema
+    }
+  }
+
+  test("Set bqSchema - corrupted json") {
+    assertResult(Optional.empty()) {
+      val options = SparkBigQueryConfig.from(
+        asDataSourceOptionsMap(
+          parameters + ("bqSchema" ->
+            """
+              | "name": "column",
+              | "type": "STRING"
+              |}
+              |""".stripMargin)),
+        emptyMap, // allConf
+        new Configuration,
+        1,
+        new SQLConf,
+        sparkVersion,
+        Optional.empty())
+
+      options.getBqSchema
     }
   }
 }

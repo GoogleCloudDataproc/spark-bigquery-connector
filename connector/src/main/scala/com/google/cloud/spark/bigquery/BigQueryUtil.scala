@@ -17,21 +17,18 @@ package com.google.cloud.spark.bigquery
 
 import java.util.{Optional, Properties}
 
-import com.google.cloud.bigquery.{BigQuery, BigQueryError, BigQueryException, BigQueryOptions, TableId}
-import com.google.cloud.http.BaseHttpServiceException.UNKNOWN_CODE
-
-import scala.util.matching.Regex
-import scala.collection.JavaConverters._
-import io.grpc.StatusRuntimeException
-import com.google.api.gax.rpc.StatusCode
-import com.google.auth.Credentials
-import io.grpc.Status
+import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.services.bigquery.model.{TableFieldSchema, TableSchema}
+import com.google.cloud.bigquery.{BigQuery, BigQueryOptions, Schema}
 import org.apache.spark.internal.Logging
+
+import scala.collection.JavaConverters._
 
 /**
  * Static helpers for working with BigQuery, relevant only to the Scala code
  */
 object BigQueryUtilScala extends Logging{
+  private val PARSER = new JacksonFactory()
 
   def noneIfEmpty(s: String): Option[String] = Option(s).filterNot(_.trim.isEmpty)
 
@@ -72,6 +69,43 @@ object BigQueryUtilScala extends Logging{
       .getService
   }
 
+  private def dtoTableSchemaToBqSchema(dtoSchema: TableSchema): Schema = {
+    val fromPbMethod =
+      classOf[Schema]
+        .getDeclaredMethods
+        .toIterable
+        .find(method => method.getName == "fromPb")
+        .get
+
+    fromPbMethod.setAccessible(true)
+    fromPbMethod.invoke(null, dtoSchema).asInstanceOf[Schema]
+  }
+
+  def parseSchemaFromJson(jsonSchemaString: String): Option[Schema] = {
+    try {
+      val tableFieldSchema = PARSER
+        .createJsonParser(jsonSchemaString)
+        .parse(classOf[TableFieldSchema])
+
+      if (tableFieldSchema.getFields.isEmpty) {
+        None
+      }
+
+      val schemaDto = new TableSchema()
+        .setFields(tableFieldSchema.getFields)
+
+      Some(dtoTableSchemaToBqSchema(schemaDto))
+    } catch {
+      case e: Exception =>
+        logError(s"BQ json schema couldn't be parsed: $jsonSchemaString", e)
+        None
+    }
+  }
+
+
   def toOption[T](javaOptional: Optional[T]): Option[T] =
     if (javaOptional.isPresent) Some(javaOptional.get) else None
+
+  def toOptional[T](option: Option[T]): Optional[T] =
+    if (option.isDefined) Optional.of(option.get) else Optional.empty()
 }

@@ -144,6 +144,10 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       jobConfigurationBuilder.setSchemaUpdateOptions(options.getLoadSchemaUpdateOptions)
     }
 
+    if (options.getBqSchema.isPresent) {
+      jobConfigurationBuilder.setSchema(options.getBqSchema.get)
+    }
+
     val jobConfiguration = jobConfigurationBuilder.build
 
     val jobInfo = JobInfo.of(jobConfiguration)

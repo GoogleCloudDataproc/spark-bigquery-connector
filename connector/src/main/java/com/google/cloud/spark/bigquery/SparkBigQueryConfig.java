@@ -19,6 +19,7 @@ import com.google.auth.Credentials;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
@@ -43,6 +44,7 @@ import java.util.stream.Stream;
 
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
+import static com.google.cloud.spark.bigquery.BigQueryUtilScala.*;
 import static java.lang.String.format;
 
 // as the config needs to be Serializable, internally it uses
@@ -73,6 +75,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   com.google.common.base.Optional<String> accessToken;
   com.google.common.base.Optional<String> filter = empty();
   com.google.common.base.Optional<StructType> schema = empty();
+  com.google.common.base.Optional<Schema> bqSchema = empty();
   Integer maxParallelism = null;
   int defaultParallelism = 1;
   com.google.common.base.Optional<String> temporaryGcsBucket = empty();
@@ -142,6 +145,13 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     config.accessToken = getAnyOption(globalOptions, options, "gcpAccessToken");
     config.filter = getOption(options, "filter");
     config.schema = fromJavaUtil(schema);
+
+    config.bqSchema = fromJavaUtil(
+       getOption(options, "bqSchema")
+       .toJavaUtil()
+       .flatMap(x -> toOptional(parseSchemaFromJson(x)))
+    );
+
     config.maxParallelism =
         getOptionFromMultipleParams(
                 options, ImmutableList.of("maxParallelism", "parallelism"), DEFAULT_FALLBACK)
@@ -346,6 +356,10 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   public Optional<StructType> getSchema() {
     return schema.toJavaUtil();
+  }
+
+  public Optional<Schema> getBqSchema() {
+    return bqSchema.toJavaUtil();
   }
 
   public OptionalInt getMaxParallelism() {
