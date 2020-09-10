@@ -1,6 +1,9 @@
 # Release Notes
 
-## 0.17.1 - 2020-08-xx
+## 0.17.2 - 2020-09-10
+* PR #239: Ensuring that the BigQuery client will have the proper project id
+
+## 0.17.1 - 2020-08-06
 * Issue #216: removed redundant ALPN dependency
 * Issue #219: Fixed the LessThanOrEqual filter SQL compilation in the DataSource v2 implmentation
 * Issue #221: Fixed ProtobufUtilsTest.java with newer BigQuery dependencies
