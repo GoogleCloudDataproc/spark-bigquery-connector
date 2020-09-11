@@ -63,24 +63,6 @@ public class SparkBigQueryConnectorModule implements Module {
         spark.sparkContext().defaultParallelism(),
         spark.sqlContext().conf(),
         spark.version(),
-        Optional.empty());
-  }
-
-  @Singleton
-  @Provides
-  public BigQueryDataSourceReader provideDataSourceReader(
-      BigQueryClient bigQueryClient,
-      BigQueryReadClientFactory bigQueryReadClientFactory,
-      SparkBigQueryConfig config) {
-    TableInfo tableInfo =
-        bigQueryClient.getSupportedTable(
-            config.getTableId(), config.isViewsEnabled(), SparkBigQueryConfig.VIEWS_ENABLED_OPTION);
-    return new BigQueryDataSourceReader(
-        tableInfo,
-        bigQueryClient,
-        bigQueryReadClientFactory,
-        config.toReadSessionCreatorConfig(),
-        config.getFilter(),
         schema);
   }
 
