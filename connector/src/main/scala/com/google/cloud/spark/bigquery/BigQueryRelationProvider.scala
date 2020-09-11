@@ -21,6 +21,7 @@ import com.google.cloud.bigquery.TableDefinition.Type.{MATERIALIZED_VIEW, TABLE,
 import com.google.cloud.bigquery.connector.common.BigQueryUtil
 import com.google.cloud.bigquery.{BigQuery, TableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
+import com.google.common.collect.ImmutableMap
 import org.apache.spark.sql.execution.streaming.Sink
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.streaming.OutputMode
@@ -129,8 +130,8 @@ class BigQueryRelationProvider(
   def createSparkBigQueryConfig(sqlContext: SQLContext,
                                  parameters: Map[String, String],
                                  schema: Option[StructType] = None): SparkBigQueryConfig = {
-    SparkBigQueryConfig.fromV1(parameters.asJava,
-      sqlContext.getAllConfs.asJava,
+    SparkBigQueryConfig.from(parameters.asJava,
+      ImmutableMap.copyOf(sqlContext.getAllConfs.asJava),
       sqlContext.sparkContext.hadoopConfiguration,
       sqlContext.sparkContext.defaultParallelism,
       sqlContext.sparkSession.sessionState.conf,

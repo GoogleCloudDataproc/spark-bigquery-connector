@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.sql.execution.datasources.DataSource;
 import org.apache.spark.sql.internal.SQLConf;
-import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.Serializable;
@@ -51,6 +50,7 @@ import static java.lang.String.format;
 public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
+  public static final String DATE_PARTITION_PARAM = "datePartition";
   @VisibleForTesting static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.ARROW;
 
   @VisibleForTesting
@@ -63,13 +63,9 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private static final String READ_DATA_FORMAT_OPTION = "readDataFormat";
   private static final ImmutableList<String> PERMITTED_READ_DATA_FORMATS =
       ImmutableList.of(DataFormat.ARROW.toString(), DataFormat.AVRO.toString());
-
   private static final Supplier<com.google.common.base.Optional<String>> DEFAULT_FALLBACK =
       () -> empty();
-
   private static final String CONF_PREFIX = "spark.datasource.bigquery.";
-  public static final String DATE_PARTITION_PARAM = "datePartition";
-
   TableId tableId;
   String parentProjectId;
   com.google.common.base.Optional<String> credentialsKey;
@@ -106,26 +102,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   }
 
   @VisibleForTesting
-  public static SparkBigQueryConfig fromV1(
-      Map<String, String> parameters,
-      Map<String, String> globalOptions,
-      Configuration hadoopConfiguration,
-      int defaultParallelism,
-      SQLConf sqlConf,
-      String sparkVersion,
-      Optional<StructType> schema) {
-    return from(
-        new DataSourceOptions(parameters),
-        ImmutableMap.copyOf(globalOptions),
-        hadoopConfiguration,
-        defaultParallelism,
-        sqlConf,
-        sparkVersion,
-        schema);
-  }
-
   public static SparkBigQueryConfig from(
-      DataSourceOptions options,
+      Map<String, String> options,
       ImmutableMap<String, String> globalOptions,
       Configuration hadoopConfiguration,
       int defaultParallelism,
@@ -245,41 +223,37 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     }
   }
 
-  public Credentials createCredentials() {
-    return new BigQueryCredentialsSupplier(
-            accessToken.toJavaUtil(), credentialsKey.toJavaUtil(), credentialsFile.toJavaUtil())
-        .getCredentials();
-  }
-
   private static com.google.common.base.Supplier<String> defaultBilledProject() {
     return () -> BigQueryOptions.getDefaultInstance().getProjectId();
   }
 
-  private static String getRequiredOption(DataSourceOptions options, String name) {
+  private static String getRequiredOption(Map<String, String> options, String name) {
     return getOption(options, name, DEFAULT_FALLBACK)
         .toJavaUtil()
         .orElseThrow(() -> new IllegalArgumentException(format("Option %s required.", name)));
   }
 
   private static String getRequiredOption(
-      DataSourceOptions options, String name, com.google.common.base.Supplier<String> fallback) {
+      Map<String, String> options, String name, com.google.common.base.Supplier<String> fallback) {
     return getOption(options, name, DEFAULT_FALLBACK).or(fallback);
   }
 
   private static com.google.common.base.Optional<String> getOption(
-      DataSourceOptions options, String name) {
+      Map<String, String> options, String name) {
     return getOption(options, name, DEFAULT_FALLBACK);
   }
 
   private static com.google.common.base.Optional<String> getOption(
-      DataSourceOptions options,
+      Map<String, String> options,
       String name,
       Supplier<com.google.common.base.Optional<String>> fallback) {
-    return fromJavaUtil(firstPresent(options.get(name), fallback.get().toJavaUtil()));
+    return fromJavaUtil(
+        firstPresent(
+            Optional.ofNullable(options.get(name.toLowerCase())), fallback.get().toJavaUtil()));
   }
 
   private static com.google.common.base.Optional<String> getOptionFromMultipleParams(
-      DataSourceOptions options,
+      Map<String, String> options,
       Collection<String> names,
       Supplier<com.google.common.base.Optional<String>> fallback) {
     return names.stream()
@@ -290,16 +264,16 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   }
 
   private static com.google.common.base.Optional<String> getAnyOption(
-      ImmutableMap<String, String> globalOptions, DataSourceOptions options, String name) {
-    return com.google.common.base.Optional.fromNullable(
-        options.get(name).orElse(globalOptions.get(name)));
+      ImmutableMap<String, String> globalOptions, Map<String, String> options, String name) {
+    return com.google.common.base.Optional.fromNullable(options.get(name.toLowerCase()))
+        .or(com.google.common.base.Optional.fromNullable(globalOptions.get(name)));
   }
 
   // gives the option to support old configurations as fallback
   // Used to provide backward compatibility
   private static com.google.common.base.Optional<String> getAnyOption(
       ImmutableMap<String, String> globalOptions,
-      DataSourceOptions options,
+      Map<String, String> options,
       Collection<String> names) {
     return names.stream()
         .map(name -> getAnyOption(globalOptions, options, name))
@@ -310,10 +284,36 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   private static boolean getAnyBooleanOption(
       ImmutableMap<String, String> globalOptions,
-      DataSourceOptions options,
+      Map<String, String> options,
       String name,
       boolean defaultValue) {
     return getAnyOption(globalOptions, options, name).transform(Boolean::valueOf).or(defaultValue);
+  }
+
+  static Map<String, String> normalizeConf(Map<String, String> conf) {
+    Map<String, String> normalizeConf =
+        conf.entrySet().stream()
+            .filter(e -> e.getKey().startsWith(CONF_PREFIX))
+            .collect(
+                Collectors.toMap(
+                    e -> e.getKey().substring(CONF_PREFIX.length()), e -> e.getValue()));
+    Map<String, String> result = new HashMap<>(conf);
+    result.putAll(normalizeConf);
+    return ImmutableMap.copyOf(result);
+  }
+
+  private static com.google.common.base.Optional empty() {
+    return com.google.common.base.Optional.absent();
+  }
+
+  private static com.google.common.base.Optional fromJavaUtil(Optional o) {
+    return com.google.common.base.Optional.fromJavaUtil(o);
+  }
+
+  public Credentials createCredentials() {
+    return new BigQueryCredentialsSupplier(
+            accessToken.toJavaUtil(), credentialsKey.toJavaUtil(), credentialsFile.toJavaUtil())
+        .getCredentials();
   }
 
   public TableId getTableId() {
@@ -449,18 +449,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         defaultParallelism);
   }
 
-  static Map<String, String> normalizeConf(Map<String, String> conf) {
-    Map<String, String> normalizeConf =
-        conf.entrySet().stream()
-            .filter(e -> e.getKey().startsWith(CONF_PREFIX))
-            .collect(
-                Collectors.toMap(
-                    e -> e.getKey().substring(CONF_PREFIX.length()), e -> e.getValue()));
-    Map<String, String> result = new HashMap<>(conf);
-    result.putAll(normalizeConf);
-    return ImmutableMap.copyOf(result);
-  }
-
   enum IntermediateFormat {
     AVRO("avro", FormatOptions.avro()),
     AVRO_2_3("com.databricks.spark.avro", FormatOptions.avro()),
@@ -479,14 +467,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     IntermediateFormat(String dataSource, FormatOptions formatOptions) {
       this.dataSource = dataSource;
       this.formatOptions = formatOptions;
-    }
-
-    public String getDataSource() {
-      return dataSource;
-    }
-
-    public FormatOptions getFormatOptions() {
-      return formatOptions;
     }
 
     public static IntermediateFormat from(String format, String sparkVersion, SQLConf sqlConf) {
@@ -540,13 +520,13 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
       return new IllegalStateException(message, cause);
     }
-  }
 
-  private static com.google.common.base.Optional empty() {
-    return com.google.common.base.Optional.absent();
-  }
+    public String getDataSource() {
+      return dataSource;
+    }
 
-  private static com.google.common.base.Optional fromJavaUtil(Optional o) {
-    return com.google.common.base.Optional.fromJavaUtil(o);
+    public FormatOptions getFormatOptions() {
+      return formatOptions;
+    }
   }
 }
