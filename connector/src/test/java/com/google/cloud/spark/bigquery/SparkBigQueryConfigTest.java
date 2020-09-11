@@ -45,7 +45,7 @@ public class SparkBigQueryConfigTest {
     DataSourceOptions options = new DataSourceOptions(defaultOptions);
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
-            options,
+            options.asMap(),
             ImmutableMap.of(),
             hadoopConfiguration,
             DEFAULT_PARALLELISM,
@@ -102,7 +102,7 @@ public class SparkBigQueryConfigTest {
                 .build());
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
-            options,
+            options.asMap(),
             ImmutableMap.of(),
             hadoopConfiguration,
             DEFAULT_PARALLELISM,
