@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.junit.Test;
 
@@ -33,6 +34,8 @@ import static com.google.common.truth.Truth.assertThat;
 
 public class SparkBigQueryConfigTest {
 
+  public static final int DEFAULT_PARALLELISM = 10;
+  public static final String SPARK_VERSION = "2.4.0";
   ImmutableMap<String, String> defaultOptions = ImmutableMap.of("table", "dataset.table");
   // "project", "test_project"); // to remove the need for default project
 
@@ -41,7 +44,14 @@ public class SparkBigQueryConfigTest {
     Configuration hadoopConfiguration = new Configuration();
     DataSourceOptions options = new DataSourceOptions(defaultOptions);
     SparkBigQueryConfig config =
-        SparkBigQueryConfig.from(options, ImmutableMap.of(), hadoopConfiguration, 10);
+        SparkBigQueryConfig.from(
+            options.asMap(),
+            ImmutableMap.of(),
+            hadoopConfiguration,
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty());
     assertThat(config.getTableId()).isEqualTo(TableId.of("dataset", "table"));
     assertThat(config.getFilter()).isEqualTo(Optional.empty());
     assertThat(config.getSchema()).isEqualTo(Optional.empty());
@@ -91,13 +101,21 @@ public class SparkBigQueryConfigTest {
                 .put("allowFieldRelaxation", "true")
                 .build());
     SparkBigQueryConfig config =
-        SparkBigQueryConfig.from(options, ImmutableMap.of(), hadoopConfiguration, 10);
+        SparkBigQueryConfig.from(
+            options.asMap(),
+            ImmutableMap.of(),
+            hadoopConfiguration,
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty());
     assertThat(config.getTableId()).isEqualTo(TableId.of("test_p", "test_d", "test_t"));
     assertThat(config.getFilter()).isEqualTo(Optional.of("test > 0"));
     assertThat(config.getSchema()).isEqualTo(Optional.empty());
     assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.of(99));
     assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("some_bucket"));
-    assertThat(config.getIntermediateFormat()).isEqualTo(FormatOptions.orc());
+    assertThat(config.getIntermediateFormat())
+        .isEqualTo(SparkBigQueryConfig.IntermediateFormat.ORC);
     assertThat(config.getReadDataFormat()).isEqualTo(DataFormat.ARROW);
     assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("vmp"));
     assertThat(config.getMaterializationDataset()).isEqualTo(Optional.of("vmd"));

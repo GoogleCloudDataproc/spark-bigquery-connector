@@ -15,87 +15,13 @@
  */
 package com.google.cloud.spark.bigquery
 
+import java.util.Optional
+
 import com.google.cloud.bigquery.TableId
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{LocatedFileStatus, Path}
 
-class BigQueryUtilsSuite extends org.scalatest.FunSuite {
-
-  val TABLE_ID = TableId.of("test.org:test-project", "test_dataset", "test_table")
-  val FULLY_QUALIFIED_TABLE = "test.org:test-project.test_dataset.test_table"
-
-  test("parse fully qualified table") {
-    val tableId = BigQueryUtil.parseTableId(FULLY_QUALIFIED_TABLE)
-    assert(tableId == TABLE_ID)
-  }
-
-  test("parse fully qualified legacy table") {
-    val tableId = BigQueryUtil.parseTableId("test.org:test-project.test_dataset.test_table")
-    assert(tableId == TABLE_ID)
-  }
-
-  test("parse invalid table") {
-    assertThrows[IllegalArgumentException] {
-      BigQueryUtil.parseTableId("test-org:test-project.table")
-    }
-  }
-
-  test("parse fully qualified table with defaults") {
-    val tableId = BigQueryUtil.parseTableId(
-      FULLY_QUALIFIED_TABLE, dataset = Some("other_dataset"), project = Some("other-project"))
-    assert(tableId == TABLE_ID)
-  }
-
-  test("parse partially qualified table") {
-    val tableId = BigQueryUtil.parseTableId("test_dataset.test_table")
-    assert(tableId == TableId.of("test_dataset", "test_table"))
-  }
-
-  test("parse partially qualified table with defaults") {
-    val tableId = BigQueryUtil.parseTableId(
-      "test_dataset.test_table", dataset = Some("other_dataset"), project = Some("default-project"))
-    assert(tableId == TableId.of("default-project", "test_dataset", "test_table"))
-  }
-
-  test("parse unqualified table with defaults") {
-    val tableId = BigQueryUtil.parseTableId(
-      "test_table", dataset = Some("default_dataset"), project = Some("default-project"))
-    assert(tableId == TableId.of("default-project", "default_dataset", "test_table"))
-  }
-
-  test("parse fully qualified partitioned table") {
-    val tableId = BigQueryUtil.parseTableId(FULLY_QUALIFIED_TABLE + "$12345")
-    assert(tableId == TableId.of("test.org:test-project", "test_dataset", "test_table$12345"))
-  }
-
-  test("parse unqualified partitioned table") {
-    val tableId = BigQueryUtil.parseTableId(
-      "test_table$12345", dataset = Some("default_dataset"))
-    assert(tableId == TableId.of("default_dataset", "test_table$12345"))
-  }
-
-  test("parse table with date partition") {
-    val tableId = BigQueryUtil.parseTableId(
-      "test_table", dataset = Some("default_dataset"), datePartition = Some("20200101"))
-    assert(tableId == TableId.of("default_dataset", "test_table$20200101"))
-  }
-
-  test("unparsable table") {
-    assertThrows[IllegalArgumentException] {
-      val tableId = BigQueryUtil.parseTableId("foo:bar:baz")
-    }
-  }
-
-  test("friendly name") {
-    val name = BigQueryUtil.friendlyTableName(TABLE_ID)
-    print(name + "\n")
-    assert(name == FULLY_QUALIFIED_TABLE)
-  }
-
-  test("short friendly name") {
-    val name = BigQueryUtil.friendlyTableName(TableId.of("test_dataset", "test_table"))
-    assert(name == "test_dataset.test_table")
-  }
+class BigQueryUtilScalaSuite extends org.scalatest.FunSuite {
 
   test("ToIteratorTest") {
     val path = new Path("connector/src/test/resources/ToIteratorTest")

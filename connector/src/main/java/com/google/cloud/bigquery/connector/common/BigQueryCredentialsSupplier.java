@@ -81,7 +81,7 @@ public class BigQueryCredentialsSupplier {
     }
   }
 
-  Credentials getCredentials() {
+  public Credentials getCredentials() {
     return credentials;
   }
 }

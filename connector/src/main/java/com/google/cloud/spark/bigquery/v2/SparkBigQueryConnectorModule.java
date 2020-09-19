@@ -57,10 +57,13 @@ public class SparkBigQueryConnectorModule implements Module {
   @Provides
   public SparkBigQueryConfig provideSparkBigQueryConfig() {
     return SparkBigQueryConfig.from(
-        options,
+        options.asMap(),
         ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll())),
         spark.sparkContext().hadoopConfiguration(),
-        spark.sparkContext().defaultParallelism());
+        spark.sparkContext().defaultParallelism(),
+        spark.sqlContext().conf(),
+        spark.version(),
+        Optional.empty());
   }
 
   @Singleton

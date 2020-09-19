@@ -13,23 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.bigquery.connector.common;
+package com.google.spark.bigquery.acceptance;
 
-import java.util.Optional;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 
-public interface BigQueryConfig {
+public class DataprocImage20AcceptanceTest extends DataprocAcceptanceTestBase {
 
-  Optional<String> getCredentialsKey();
+  private static AcceptanceTestContext context;
 
-  Optional<String> getCredentialsFile();
+  public DataprocImage20AcceptanceTest() {
+    super(context);
+  }
 
-  Optional<String> getAccessToken();
+  @BeforeClass
+  public static void setup() throws Exception {
+    context = DataprocAcceptanceTestBase.setup("2.12", "preview-debian10");
+  }
 
-  String getParentProjectId();
-
-  boolean isViewsEnabled();
-
-  Optional<String> getMaterializationProject();
-
-  Optional<String> getMaterializationDataset();
+  @AfterClass
+  public static void tearDown() throws Exception {
+    DataprocAcceptanceTestBase.tearDown(context);
+  }
 }

@@ -20,6 +20,7 @@ import java.util.UUID
 
 import com.google.cloud.bigquery.JobInfo.CreateDisposition.CREATE_NEVER
 import com.google.cloud.bigquery._
+import com.google.cloud.bigquery.connector.common.BigQueryUtil
 import com.google.cloud.http.BaseHttpServiceException
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
@@ -31,7 +32,7 @@ import scala.collection.JavaConverters._
 case class BigQueryWriteHelper(bigQuery: BigQuery,
                                sqlContext: SQLContext,
                                saveMode: SaveMode,
-                               options: SparkBigQueryOptions,
+                               options: SparkBigQueryConfig,
                                data: DataFrame,
                                tableExists: Boolean)
   extends Logging {
@@ -44,19 +45,21 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     val applicationId = sqlContext.sparkContext.applicationId
 
     while (needNewPath) {
-      val gcsPathOption = options.temporaryGcsBucket match {
+      val temporaryGcsBucketOption = BigQueryUtilScala.toOption(options.getTemporaryGcsBucket)
+      val gcsPathOption = temporaryGcsBucketOption match {
         case Some(bucket) => s"gs://$bucket/.spark-bigquery-${applicationId}-${UUID.randomUUID()}"
-        case None if options.persistentGcsBucket.isDefined && options.persistentGcsPath.isDefined =>
-          s"gs://${options.persistentGcsBucket.get}/${options.persistentGcsPath.get}"
-        case None if options.persistentGcsBucket.isDefined =>
-          s"gs://${options.persistentGcsBucket.get}/.spark-bigquery-${applicationId}-${UUID.randomUUID()}"
+        case None if options.getPersistentGcsBucket.isPresent
+          && options.getPersistentGcsPath.isPresent =>
+          s"gs://${options.getPersistentGcsBucket.get}/${options.getPersistentGcsPath.get}"
+        case None if options.getPersistentGcsBucket.isPresent =>
+          s"gs://${options.getPersistentGcsBucket.get}/.spark-bigquery-${applicationId}-${UUID.randomUUID()}"
         case _ =>
           throw new IllegalArgumentException("Temporary or persistent GCS bucket must be informed.")
       }
 
       gcsPath = new Path(gcsPathOption)
       val fs = gcsPath.getFileSystem(conf)
-      needNewPath = fs.exists(gcsPath) // if teh path exists for some reason, then retry
+      needNewPath = fs.exists(gcsPath) // if the path exists for some reason, then retry
     }
 
     gcsPath
@@ -64,12 +67,14 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
   def writeDataFrameToBigQuery: Unit = {
     // If the CreateDisposition is CREATE_NEVER, and the table does not exist,
-    // there's no point in writing the data to GCS in teh first place as it going
+    // there's no point in writing the data to GCS in the first place as it going
     // to file on the BigQuery side.
-    if (options.createDisposition.map(cd => !tableExists && cd == CREATE_NEVER).getOrElse(false)) {
+    if (BigQueryUtilScala.toOption(options.getCreateDisposition)
+      .map(cd => !tableExists && cd == CREATE_NEVER)
+      .getOrElse(false)) {
       throw new IOException(
         s"""
-           |For table ${BigQueryUtil.friendlyTableName(options.tableId)}
+           |For table ${BigQueryUtil.friendlyTableName(options.getTableId)}
            |Create Disposition is CREATE_NEVER and the table does not exists.
            |Aborting the insert""".stripMargin.replace('\n', ' '))
     }
@@ -78,7 +83,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       // based on pmkc's suggestion at https://git.io/JeWRt
       createTemporaryPathDeleter.map(Runtime.getRuntime.addShutdownHook(_))
 
-      val format = options.intermediateFormat.dataSource
+      val format = options.getIntermediateFormat.getDataSource
       data.write.format(format).save(gcsPath.toString)
 
       loadDataToBigQuery
@@ -95,48 +100,48 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     val sourceUris = ToIterator(fs.listFiles(gcsPath, false))
       .map(_.getPath.toString)
       .filter(_.toLowerCase.endsWith(
-        s".${options.intermediateFormat.formatOptions.getType.toLowerCase}"))
+        s".${options.getIntermediateFormat.getFormatOptions.getType.toLowerCase}"))
       .toList
       .asJava
 
     val jobConfigurationBuilder = LoadJobConfiguration.newBuilder(
-      options.tableId, sourceUris, options.intermediateFormat.formatOptions)
+      options.getTableId, sourceUris, options.getIntermediateFormat.getFormatOptions)
       .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
       .setWriteDisposition(saveModeToWriteDisposition(saveMode))
       .setAutodetect(true)
 
-    if (options.createDisposition.isDefined) {
-      jobConfigurationBuilder.setCreateDisposition(options.createDisposition.get)
+    if (options.getCreateDisposition.isPresent) {
+      jobConfigurationBuilder.setCreateDisposition(options.getCreateDisposition.get)
     }
 
-    if (options.partitionField.isDefined || options.partitionType.isDefined) {
+    if (options.getPartitionField.isPresent || options.getPartitionType.isPresent) {
       val timePartitionBuilder = TimePartitioning.newBuilder(
-        TimePartitioning.Type.valueOf(options.partitionType.getOrElse("DAY"))
+        TimePartitioning.Type.valueOf(options.getPartitionType.orElse("DAY"))
       )
 
-      if (options.partitionExpirationMs.isDefined) {
-        timePartitionBuilder.setExpirationMs(options.partitionExpirationMs.get)
+      if (options.getPartitionExpirationMs.isPresent) {
+        timePartitionBuilder.setExpirationMs(options.getPartitionExpirationMs.getAsLong)
       }
 
-      if (options.partitionRequireFilter.isDefined) {
-        timePartitionBuilder.setRequirePartitionFilter(options.partitionRequireFilter.get)
+      if (options.getPartitionRequireFilter.isPresent) {
+        timePartitionBuilder.setRequirePartitionFilter(options.getPartitionRequireFilter.get)
       }
 
-      if (options.partitionField.isDefined) {
-        timePartitionBuilder.setField(options.partitionField.get)
+      if (options.getPartitionField.isPresent) {
+        timePartitionBuilder.setField(options.getPartitionField.get)
       }
 
       jobConfigurationBuilder.setTimePartitioning(timePartitionBuilder.build())
 
-      if (options.clusteredFields.isDefined) {
+      if (options.getClusteredFields.isPresent) {
         val clustering =
-          Clustering.newBuilder().setFields(options.clusteredFields.get.toList.asJava).build();
+          Clustering.newBuilder().setFields(options.getClusteredFields.get.toList.asJava).build();
         jobConfigurationBuilder.setClustering(clustering)
       }
     }
 
-    if (!options.loadSchemaUpdateOptions.isEmpty) {
-      jobConfigurationBuilder.setSchemaUpdateOptions(options.loadSchemaUpdateOptions)
+    if (!options.getLoadSchemaUpdateOptions.isEmpty) {
+      jobConfigurationBuilder.setSchemaUpdateOptions(options.getLoadSchemaUpdateOptions)
     }
 
     val jobConfiguration = jobConfigurationBuilder.build
@@ -144,7 +149,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     val jobInfo = JobInfo.of(jobConfiguration)
     val job = bigQuery.create(jobInfo)
 
-    logInfo(s"Submitted load to ${options.tableId}. jobId: ${job.getJobId}")
+    logInfo(s"Submitted load to ${options.getTableId}. jobId: ${job.getJobId}")
     // TODO(davidrab): add retry options
     val finishedJob = job.waitFor()
     if (finishedJob.getStatus.getError != null) {
@@ -161,10 +166,11 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
   def saveModeToWriteDisposition(saveMode: SaveMode): JobInfo.WriteDisposition = saveMode match {
     case SaveMode.Append => JobInfo.WriteDisposition.WRITE_APPEND
     case SaveMode.Overwrite => JobInfo.WriteDisposition.WRITE_TRUNCATE
-    case unsupported => throw new UnsupportedOperationException(s"SaveMode $unsupported is currently not supported.")
+    case unsupported => throw new UnsupportedOperationException(
+      s"SaveMode $unsupported is currently not supported.")
   }
 
-  def friendlyTableName: String = BigQueryUtil.friendlyTableName(options.tableId)
+  def friendlyTableName: String = BigQueryUtil.friendlyTableName(options.getTableId)
 
   def updateMetadataIfNeeded: Unit = {
     // TODO: Issue #190 should be solved here
@@ -174,7 +180,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       .toMap
     if (!fieldsToUpdate.isEmpty) {
       logDebug(s"updating schema, found fields to update: ${fieldsToUpdate.keySet}")
-      val originalTableInfo = bigQuery.getTable(options.tableId)
+      val originalTableInfo = bigQuery.getTable(options.getTableId)
       val originalTableDefinition = originalTableInfo.getDefinition[TableDefinition]
       val originalSchema = originalTableDefinition.getSchema
       val updatedSchema = Schema.of(originalSchema.getFields.asScala.map(field => {
@@ -206,7 +212,8 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
   }
 
   private def createTemporaryPathDeleter: scala.Option[IntermediateDataCleaner] =
-    options.temporaryGcsBucket.map(_ => IntermediateDataCleaner(gcsPath, conf))
+    BigQueryUtilScala.toOption(options.getTemporaryGcsBucket)
+      .map(_ => IntermediateDataCleaner(gcsPath, conf))
 
   def verifySaveMode: Unit = {
     if (saveMode == SaveMode.ErrorIfExists || saveMode == SaveMode.Ignore) {

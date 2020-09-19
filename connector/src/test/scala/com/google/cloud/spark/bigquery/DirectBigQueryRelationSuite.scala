@@ -15,6 +15,8 @@
  */
 package com.google.cloud.spark.bigquery
 
+import java.util.Optional
+
 import com.google.cloud.bigquery._
 import com.google.cloud.bigquery.storage.v1.DataFormat
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
@@ -28,7 +30,7 @@ import org.scalatest.{BeforeAndAfter, Matchers}
 
 
 class DirectBigQueryRelationSuite
-    extends AnyFunSuite with BeforeAndAfter with Matchers {
+  extends AnyFunSuite with BeforeAndAfter with Matchers {
 
   private val PROJECT_ID = "test_project"
   private val ID = TableId.of("test_project", "test_dataset", "test_table")
@@ -39,18 +41,19 @@ class DirectBigQueryRelationSuite
   private val TABLE = TableInfo.of(
     ID,
     StandardTableDefinition.newBuilder()
-        .setSchema(Schema.of(
-          Field.of("foo", LegacySQLTypeName.STRING),
-          Field.of("bar", LegacySQLTypeName.INTEGER))
-        )
-        .setNumBytes(42L * 1000 * 1000 * 1000)  // 42GB
-        .build())
+      .setSchema(Schema.of(
+        Field.of("foo", LegacySQLTypeName.STRING),
+        Field.of("bar", LegacySQLTypeName.INTEGER))
+      )
+      .setNumBytes(42L * 1000 * 1000 * 1000) // 42GB
+      .build())
   private var bigQueryRelation: DirectBigQueryRelation = _
 
   before {
+    val options = defaultOptions
+    options.readDataFormat = DataFormat.AVRO
     MockitoAnnotations.initMocks(this)
-    bigQueryRelation = new DirectBigQueryRelation(
-      SparkBigQueryOptions(ID, PROJECT_ID, readDataFormat = DataFormat.AVRO), TABLE)(sqlCtx)
+    bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
   }
 
   after {
@@ -62,7 +65,7 @@ class DirectBigQueryRelationSuite
   }
 
   test("parallelism") {
-    assert(105  == bigQueryRelation.getMaxNumPartitionsRequested)
+    assert(105 == bigQueryRelation.getMaxNumPartitionsRequested)
   }
 
   test("schema") {
@@ -76,8 +79,9 @@ class DirectBigQueryRelationSuite
   // Long -> Int type changes
   test("user defined schema") {
     val expectedSchema = StructType(Seq(StructField("baz", ShortType)))
-    bigQueryRelation = new DirectBigQueryRelation(
-      SparkBigQueryOptions(ID, PROJECT_ID, schema = Some(expectedSchema)), TABLE)(sqlCtx)
+    val options = defaultOptions
+    options.schema = com.google.common.base.Optional.of(expectedSchema)
+    bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
     val schema = bigQueryRelation.schema
     assert(expectedSchema == schema)
   }
@@ -105,8 +109,9 @@ class DirectBigQueryRelationSuite
   }
 
   test("valid filters for Arrow") {
-    val bigQueryRelation = new DirectBigQueryRelation(
-      SparkBigQueryOptions(ID, PROJECT_ID, readDataFormat = DataFormat.ARROW), TABLE)(sqlCtx)
+    val options = defaultOptions
+    options.readDataFormat = DataFormat.ARROW
+    val bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
 
     val validFilters = Seq(
       EqualTo("foo", "manatee"),
@@ -144,8 +149,9 @@ class DirectBigQueryRelationSuite
   }
 
   test("invalid filters with Arrow") {
-    val bigQueryRelation = new DirectBigQueryRelation(
-      SparkBigQueryOptions(ID, PROJECT_ID, readDataFormat = DataFormat.ARROW), TABLE)(sqlCtx)
+    val options = defaultOptions
+    options.readDataFormat = DataFormat.ARROW
+    val bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
 
     val valid1 = EqualTo("foo", "bar")
     val valid2 = EqualTo("bar", 1)
@@ -158,41 +164,50 @@ class DirectBigQueryRelationSuite
   }
 
   test("old filter behaviour, with filter option") {
-    val r = new DirectBigQueryRelation(
-      SparkBigQueryOptions(
-        ID, PROJECT_ID, combinePushedDownFilters = false, filter = Some("f>1")
-      ), TABLE)(sqlCtx)
+    val options = defaultOptions
+    options.combinePushedDownFilters = false
+    options.filter = com.google.common.base.Optional.of("f>1")
+    val r = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
     checkFilters(r, "f>1", Array(GreaterThan("a", 2)), "f>1")
   }
 
   test("old filter behaviour, no filter option") {
-    val r = new DirectBigQueryRelation(
-      SparkBigQueryOptions(ID, PROJECT_ID, combinePushedDownFilters = false), TABLE)(sqlCtx)
+    val options = defaultOptions
+    options.combinePushedDownFilters = false
+    val r = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
     checkFilters(r, "", Array(GreaterThan("a", 2)), "a > 2")
   }
 
   test("new filter behaviour, with filter option") {
-    val r = new DirectBigQueryRelation(
-      SparkBigQueryOptions(ID, PROJECT_ID, filter = Some("f>1")), TABLE)(sqlCtx)
+    val options = defaultOptions
+    options.filter = com.google.common.base.Optional.of("f>1")
+    val r = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
     checkFilters(r, "(f>1)", Array(GreaterThan("a", 2)), "(f>1) AND (a > 2)")
   }
 
   test("new filter behaviour, no filter option") {
     val r = new DirectBigQueryRelation(
-      SparkBigQueryOptions(ID, PROJECT_ID), TABLE)(sqlCtx)
+      defaultOptions, TABLE)(sqlCtx)
     checkFilters(r, "", Array(GreaterThan("a", 2)), "(a > 2)")
   }
 
   def checkFilters(
-      r: DirectBigQueryRelation,
-      resultWithoutFilters: String,
-      filters: Array[Filter],
-      resultWithFilters: String
+        relation: DirectBigQueryRelation,
+        resultWithoutFilters: String,
+        filters: Array[Filter],
+        resultWithFilters: String
       ): Unit = {
-    val result1 = r.getCompiledFilter(Array())
+    val result1 = relation.getCompiledFilter(Array())
     result1 shouldBe resultWithoutFilters
-    val result2 = r.getCompiledFilter(filters)
+    val result2 = relation.getCompiledFilter(filters)
     result2 shouldBe resultWithFilters
+  }
+
+  private def defaultOptions = {
+    val config = new SparkBigQueryConfig
+    config.tableId = ID
+    config.parentProjectId = PROJECT_ID
+    config
   }
 
 

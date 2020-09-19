@@ -55,7 +55,7 @@ public class BigQueryUtil {
 
   private BigQueryUtil() {}
 
-  static boolean isRetryable(Throwable cause) {
+  public static boolean isRetryable(Throwable cause) {
     return getCausalChain(cause).stream().anyMatch(BigQueryUtil::isRetryableInternalError);
   }
 
@@ -78,8 +78,20 @@ public class BigQueryUtil {
     return Stream.of(optionals).flatMap(Streams::stream).findFirst();
   }
 
+  public static TableId parseTableId(String rawTable) {
+    return parseTableId(rawTable, Optional.empty(), Optional.empty(), Optional.empty());
+  }
+
   public static TableId parseTableId(
       String rawTable, Optional<String> dataset, Optional<String> project) {
+    return parseTableId(rawTable, dataset, project, Optional.empty());
+  }
+
+  public static TableId parseTableId(
+      String rawTable,
+      Optional<String> dataset,
+      Optional<String> project,
+      Optional<String> datePartition) {
     Matcher matcher = QUALIFIED_TABLE_REGEX.matcher(rawTable);
     if (!matcher.matches()) {
       throw new IllegalArgumentException(
@@ -88,12 +100,23 @@ public class BigQueryUtil {
     String table = matcher.group(5);
     Optional<String> parsedDataset = Optional.ofNullable(matcher.group(4));
     Optional<String> parsedProject = Optional.ofNullable(matcher.group(3));
-
+    String tableAndPartition =
+        datePartition.map(date -> String.format("%s$%s", table, date)).orElse(table);
     String actualDataset =
         firstPresent(parsedDataset, dataset)
             .orElseThrow(() -> new IllegalArgumentException("'dataset' not parsed or provided."));
     return firstPresent(parsedProject, project)
-        .map(p -> TableId.of(p, actualDataset, table))
-        .orElse(TableId.of(actualDataset, table));
+        .map(p -> TableId.of(p, actualDataset, tableAndPartition))
+        .orElse(TableId.of(actualDataset, tableAndPartition));
+  }
+
+  public static String friendlyTableName(TableId tableId) {
+    return tableId.getProject() != null
+        ? String.format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable())
+        : String.format("%s.%s", tableId.getDataset(), tableId.getTable());
+  }
+
+  public static void convertAndThrow(BigQueryError error) {
+    throw new BigQueryException(UNKNOWN_CODE, error.getMessage(), error);
   }
 }
