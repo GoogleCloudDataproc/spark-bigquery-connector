@@ -215,7 +215,8 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
                               .orElse(field))
                   .collect(Collectors.toList()));
       TableInfo.Builder updatedTableInfo =
-          originalTableInfo.toBuilder()
+          originalTableInfo
+              .toBuilder()
               .setDefinition(originalTableDefinition.toBuilder().setSchema(updatedSchema).build());
 
       bigQueryClient.update(updatedTableInfo.build());

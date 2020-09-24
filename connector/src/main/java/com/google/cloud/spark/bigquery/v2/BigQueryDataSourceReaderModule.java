@@ -13,27 +13,26 @@ import org.apache.spark.sql.types.StructType;
 import java.util.Optional;
 
 public class BigQueryDataSourceReaderModule implements Module {
-    @Override
-    public void configure(Binder binder) {
-        // empty
-    }
+  @Override
+  public void configure(Binder binder) {
+    // empty
+  }
 
-    @Singleton
-    @Provides
-    public BigQueryDataSourceReader provideDataSourceReader(
-            BigQueryClient bigQueryClient,
-            BigQueryReadClientFactory bigQueryReadClientFactory,
-            SparkBigQueryConfig config) {
-        TableInfo tableInfo =
-                bigQueryClient.getSupportedTable(
-                        config.getTableId(), config.isViewsEnabled(), SparkBigQueryConfig.VIEWS_ENABLED_OPTION);
-        return new BigQueryDataSourceReader(
-                tableInfo,
-                bigQueryClient,
-                bigQueryReadClientFactory,
-                config.toReadSessionCreatorConfig(),
-                config.getFilter(),
-                config.getSchema());
-    }
-
+  @Singleton
+  @Provides
+  public BigQueryDataSourceReader provideDataSourceReader(
+      BigQueryClient bigQueryClient,
+      BigQueryReadClientFactory bigQueryReadClientFactory,
+      SparkBigQueryConfig config) {
+    TableInfo tableInfo =
+        bigQueryClient.getSupportedTable(
+            config.getTableId(), config.isViewsEnabled(), SparkBigQueryConfig.VIEWS_ENABLED_OPTION);
+    return new BigQueryDataSourceReader(
+        tableInfo,
+        bigQueryClient,
+        bigQueryReadClientFactory,
+        config.toReadSessionCreatorConfig(),
+        config.getFilter(),
+        config.getSchema());
+  }
 }

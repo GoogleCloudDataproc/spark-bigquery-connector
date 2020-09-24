@@ -352,51 +352,31 @@ public class ProtobufUtilsTest {
   public Descriptors.Descriptor INTEGER_SCHEMA_DESCRIPTOR = createIntegerSchemaDescriptor();
 
   public Descriptors.Descriptor createIntegerSchemaDescriptor() {
-    try {
-      return toDescriptor(new StructType().add(SPARK_INTEGER_FIELD));
-    } catch (Descriptors.DescriptorValidationException e) {
-      throw new AssumptionViolatedException("Could not create INTEGER_SCHEMA_DESCRIPTOR", e);
-    }
+    return toDescriptor(new StructType().add(SPARK_INTEGER_FIELD));
   }
 
   public Descriptors.Descriptor STRING_SCHEMA_DESCRIPTOR = createStringSchemaDescriptor();
 
   public Descriptors.Descriptor createStringSchemaDescriptor() {
-    try {
-      return toDescriptor(new StructType().add(SPARK_STRING_FIELD));
-    } catch (Descriptors.DescriptorValidationException e) {
-      throw new AssumptionViolatedException("Could not create STRING_SCHEMA_DESCRIPTOR", e);
-    }
+    return toDescriptor(new StructType().add(SPARK_STRING_FIELD));
   }
 
   public Descriptors.Descriptor ARRAY_SCHEMA_DESCRIPTOR = createArraySchemaDescriptor();
 
   public Descriptors.Descriptor createArraySchemaDescriptor() {
-    try {
-      return toDescriptor(new StructType().add(SPARK_ARRAY_FIELD));
-    } catch (Descriptors.DescriptorValidationException e) {
-      throw new AssumptionViolatedException("Could not create ARRAY_SCHEMA_DESCRIPTOR", e);
-    }
+    return toDescriptor(new StructType().add(SPARK_ARRAY_FIELD));
   }
 
   public Descriptors.Descriptor STRUCT_SCHEMA_DESCRIPTOR = createStructSchemaDescriptor();
 
   public Descriptors.Descriptor createStructSchemaDescriptor() {
-    try {
-      return toDescriptor(new StructType().add(SPARK_NESTED_STRUCT_FIELD));
-    } catch (Descriptors.DescriptorValidationException e) {
-      throw new AssumptionViolatedException("Could not create STRUCT_SCHEMA_DESCRIPTOR", e);
-    }
+    return toDescriptor(new StructType().add(SPARK_NESTED_STRUCT_FIELD));
   }
 
   Descriptors.Descriptor STRUCT_DESCRIPTOR = createStructDescriptor();
 
   public Descriptors.Descriptor createStructDescriptor() throws AssumptionViolatedException {
-    try {
-      return toDescriptor(MY_STRUCT);
-    } catch (Descriptors.DescriptorValidationException e) {
-      throw new AssumptionViolatedException("Could not create STRUCT_DESCRIPTOR.", e);
-    }
+    return toDescriptor(MY_STRUCT);
   }
 
   public final DynamicMessage INTEGER_ROW_MESSAGE =
@@ -423,11 +403,7 @@ public class ProtobufUtilsTest {
   public Descriptors.Descriptor BIG_SCHEMA_ROW_DESCRIPTOR = createBigSchemaRowDescriptor();
 
   public Descriptors.Descriptor createBigSchemaRowDescriptor() {
-    try {
-      return toDescriptor(BIG_SPARK_SCHEMA);
-    } catch (Descriptors.DescriptorValidationException e) {
-      throw new AssumptionViolatedException("Could not create BIG_SCHEMA_ROW_DESCRIPTOR", e);
-    }
+    return toDescriptor(BIG_SPARK_SCHEMA);
   }
 
   public ProtoBufProto.ProtoRows MY_PROTO_ROWS =
