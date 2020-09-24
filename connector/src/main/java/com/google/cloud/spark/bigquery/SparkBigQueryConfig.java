@@ -73,8 +73,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   com.google.common.base.Optional<String> accessToken;
   com.google.common.base.Optional<String> filter = empty();
   com.google.common.base.Optional<StructType> schema = empty();
-  Integer maxParallelism = null;
-  int defaultParallelism = 1;
+  int maxParallelism = 1;
   com.google.common.base.Optional<String> temporaryGcsBucket = empty();
   com.google.common.base.Optional<String> persistentGcsBucket = empty();
   com.google.common.base.Optional<String> persistentGcsPath = empty();
@@ -144,10 +143,12 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     config.schema = fromJavaUtil(schema);
     config.maxParallelism =
         getOptionFromMultipleParams(
-                options, ImmutableList.of("maxParallelism", "parallelism"), DEFAULT_FALLBACK)
+                options,
+                ImmutableList.of("maxParallelism", "parallelism"),
+                () -> com.google.common.base.Optional.of(String.valueOf(defaultParallelism)))
             .transform(Integer::valueOf)
-            .orNull();
-    config.defaultParallelism = defaultParallelism;
+            .get()
+            .intValue();
     config.temporaryGcsBucket = getAnyOption(globalOptions, options, "temporaryGcsBucket");
     config.persistentGcsBucket = getAnyOption(globalOptions, options, "persistentGcsBucket");
     config.persistentGcsPath = getOption(options, "persistentGcsPath");
@@ -348,12 +349,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     return schema.toJavaUtil();
   }
 
-  public OptionalInt getMaxParallelism() {
-    return maxParallelism == null ? OptionalInt.empty() : OptionalInt.of(maxParallelism);
-  }
-
-  public int getDefaultParallelism() {
-    return defaultParallelism;
+  public int getMaxParallelism() {
+    return maxParallelism;
   }
 
   public Optional<String> getTemporaryGcsBucket() {
@@ -445,8 +442,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         readDataFormat,
         maxReadRowsRetries,
         VIEWS_ENABLED_OPTION,
-        getMaxParallelism(),
-        defaultParallelism);
+        maxParallelism);
   }
 
   enum IntermediateFormat {
