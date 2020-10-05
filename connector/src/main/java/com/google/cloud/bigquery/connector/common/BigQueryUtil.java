@@ -19,14 +19,12 @@ import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.TableId;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Streams;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import static com.google.cloud.http.BaseHttpServiceException.UNKNOWN_CODE;
 import static com.google.common.base.Throwables.getCausalChain;
@@ -75,7 +73,12 @@ public class BigQueryUtil {
 
   // returns the first present optional, empty if all parameters are empty
   public static <T> Optional<T> firstPresent(Optional<T>... optionals) {
-    return Stream.of(optionals).flatMap(Streams::stream).findFirst();
+    for (Optional<T> o : optionals) {
+      if (o.isPresent()) {
+        return o;
+      }
+    }
+    return Optional.empty();
   }
 
   public static TableId parseTableId(String rawTable) {

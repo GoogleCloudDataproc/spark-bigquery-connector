@@ -18,7 +18,6 @@ package com.google.cloud.bigquery.connector.common;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.TableId;
-import com.google.cloud.spark.bigquery.BigQueryUtilScala;
 import org.junit.Test;
 
 import java.util.Optional;
@@ -134,5 +133,16 @@ public class BigQueryUtilTest {
         assertThrows(BigQueryException.class, () -> BigQueryUtil.convertAndThrow(bigQueryError));
     assertThat(bigQueryException).hasMessageThat().isEqualTo("message");
     assertThat(bigQueryException.getError()).isEqualTo(bigQueryError);
+  }
+
+  @Test
+  public void testFirstPresent() {
+    assertThat(BigQueryUtil.firstPresent(Optional.empty(), Optional.of("a")))
+        .isEqualTo(Optional.of("a"));
+    assertThat(BigQueryUtil.firstPresent(Optional.empty(), Optional.of("a"), Optional.of("b")))
+        .isEqualTo(Optional.of("a"));
+    assertThat(BigQueryUtil.firstPresent(Optional.of("a"), Optional.empty()))
+        .isEqualTo(Optional.of("a"));
+    assertThat(BigQueryUtil.firstPresent(Optional.empty())).isEqualTo(Optional.empty());
   }
 }
