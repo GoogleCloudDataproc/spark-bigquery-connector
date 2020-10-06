@@ -18,5 +18,5 @@ steps:
     env:
       - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
 
-# Tests take around 13 mins in general.
-timeout: 1200s
+# Tests take around 20 mins in general.
+timeout: 1800s
