@@ -3,6 +3,7 @@ package com.google.cloud.bigquery.connector.common;
 import com.google.api.client.json.GenericJson;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.auth.Credentials;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import org.junit.Test;
 
@@ -47,15 +48,26 @@ public class BigQueryCredentialsSupplierTest {
   private static final String QUOTA_PROJECT = "sample-quota-project-id";
 
   @Test
+  public void testCredentialsFromAccessToken() throws Exception {
+    Credentials credentials =
+            new BigQueryCredentialsSupplier(
+                    Optional.of(ACCESS_TOKEN), Optional.empty(), Optional.empty())
+                    .getCredentials();
+    assertThat(credentials).isInstanceOf(GoogleCredentials.class);
+    GoogleCredentials googleCredentials = (GoogleCredentials) credentials;
+    assertThat(googleCredentials.getAccessToken().getTokenValue()).isEqualTo(ACCESS_TOKEN);
+  }
+
+  @Test
   public void testCredentialsFromKey() throws Exception {
     String json = createServiceAccountJson("key");
     String credentialsKey =
-        Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+            Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
 
     Credentials credentials =
-        new BigQueryCredentialsSupplier(
-                Optional.empty(), Optional.of(credentialsKey), Optional.empty())
-            .getCredentials();
+            new BigQueryCredentialsSupplier(
+                    Optional.empty(), Optional.of(credentialsKey), Optional.empty())
+                    .getCredentials();
     assertThat(credentials).isInstanceOf(ServiceAccountCredentials.class);
     ServiceAccountCredentials serviceAccountCredentials = (ServiceAccountCredentials) credentials;
     assertThat(serviceAccountCredentials.getProjectId()).isEqualTo("key");
