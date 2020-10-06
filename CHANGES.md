@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.17.3 - 2020-10-06
+* PR #242, #243: Fixed Spark 3 compatibility, added Spark 3 acceptance test
+* Issue #249: Fixing credentials creation from key
+
 ## 0.17.2 - 2020-09-10
 * PR #239: Ensuring that the BigQuery client will have the proper project id
 
