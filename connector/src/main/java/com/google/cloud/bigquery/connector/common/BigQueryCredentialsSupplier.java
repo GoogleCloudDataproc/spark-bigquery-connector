@@ -26,31 +26,22 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Optional;
 
-import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
-
 public class BigQueryCredentialsSupplier {
-  private final Optional<String> accessToken;
-  private final Optional<String> credentialsKey;
-  private final Optional<String> credentialsFile;
   private final Credentials credentials;
 
   public BigQueryCredentialsSupplier(
       Optional<String> accessToken,
       Optional<String> credentialsKey,
       Optional<String> credentialsFile) {
-    this.accessToken = accessToken;
-    this.credentialsKey = credentialsKey;
-    this.credentialsFile = credentialsFile;
-    // lazy creation, cache once it's created
-    Optional<Credentials> credentialsFromAccessToken =
-        credentialsKey.map(BigQueryCredentialsSupplier::createCredentialsFromAccessToken);
-    Optional<Credentials> credentialsFromKey =
-        credentialsKey.map(BigQueryCredentialsSupplier::createCredentialsFromKey);
-    Optional<Credentials> credentialsFromFile =
-        credentialsFile.map(BigQueryCredentialsSupplier::createCredentialsFromFile);
-    this.credentials =
-        firstPresent(credentialsFromAccessToken, credentialsFromKey, credentialsFromFile)
-            .orElse(createDefaultCredentials());
+    if (accessToken.isPresent()) {
+      this.credentials = createCredentialsFromAccessToken(accessToken.get());
+    } else if (credentialsKey.isPresent()) {
+      this.credentials = createCredentialsFromKey(credentialsKey.get());
+    } else if (credentialsFile.isPresent()) {
+      this.credentials = createCredentialsFromFile(credentialsFile.get());
+    } else {
+      this.credentials = createDefaultCredentials();
+    }
   }
 
   private static Credentials createCredentialsFromAccessToken(String accessToken) {
