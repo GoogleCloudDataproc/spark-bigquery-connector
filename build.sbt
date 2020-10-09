@@ -159,7 +159,8 @@ lazy val published = project
       (packageBin in Compile).value.toString,
       (test in AcceptanceTest).value.toString
     ) },
-    libraryDependencies ++= (commonTestDependencies ++ Seq(
+    libraryDependencies ++= (commonTestDependencies.map(
+      dependency => dependency.withConfigurations(Some("test"))) ++ Seq(
       "com.google.cloud" % "google-cloud-dataproc" % "1.0.0" % "test",
       "com.google.cloud" % "google-cloud-storage" % "1.109.1" % "test"
     ))
