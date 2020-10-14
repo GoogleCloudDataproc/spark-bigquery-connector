@@ -19,8 +19,10 @@ import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.http.BaseHttpServiceException;
+import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
+import com.google.common.collect.ImmutableList;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -31,6 +33,7 @@ import org.apache.spark.sql.sources.v2.writer.DataSourceWriter;
 import org.apache.spark.sql.sources.v2.writer.DataWriterFactory;
 import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.util.SerializableConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +42,6 @@ import java.io.UncheckedIOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
 
@@ -99,14 +101,24 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
 
   @Override
   public DataWriterFactory<InternalRow> createWriterFactory() {
-    return new BigQueryIndirectDataWriterFactory();
+    org.apache.avro.Schema avroSchema = AvroSchemaConverter.sparkSchemaToAvroSchema(sparkSchema);
+    return new BigQueryIndirectDataWriterFactory(
+        new SerializableConfiguration(hadoopConfiguration),
+        gcsPath.toString(),
+        sparkSchema,
+        avroSchema.toString(),
+        config.getIntermediateFormat());
   }
 
   @Override
   public void commit(WriterCommitMessage[] messages) {
+    logger.info(
+        "Data has been successfully written to GCS. Going to load {} files to BigQuery",
+        messages.length);
     try {
       loadDataToBigQuery();
       updateMetadataIfNeeded();
+      logger.info("Data has been successfully loaded to BigQuery");
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     } finally {
@@ -127,20 +139,9 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
   }
 
   void loadDataToBigQuery() throws IOException {
-    FileSystem fs = gcsPath.getFileSystem(hadoopConfiguration);
+    // Solving Issue #248
     List<String> sourceUris =
-        StreamSupport.stream(wrap(fs.listFiles(gcsPath, false)).spliterator(), false)
-            .map(file -> file.getPath().toString())
-            .filter(
-                path ->
-                    path.toLowerCase()
-                        .endsWith(
-                            config
-                                .getIntermediateFormat()
-                                .getFormatOptions()
-                                .toString()
-                                .toLowerCase()))
-            .collect(Collectors.toList());
+        ImmutableList.of(gcsPath + "/*" + config.getIntermediateFormat().getFileSuffix());
 
     LoadJobConfiguration.Builder jobConfiguration =
         LoadJobConfiguration.newBuilder(
@@ -191,6 +192,9 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
   }
 
   JobInfo.WriteDisposition saveModeToWriteDisposition(SaveMode saveMode) {
+    if (saveMode == SaveMode.ErrorIfExists) {
+      return JobInfo.WriteDisposition.WRITE_EMPTY;
+    }
     if (saveMode == SaveMode.Append) {
       return JobInfo.WriteDisposition.WRITE_APPEND;
     }
@@ -230,8 +234,7 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
                               .orElse(field))
                   .collect(Collectors.toList()));
       TableInfo.Builder updatedTableInfo =
-          originalTableInfo
-              .toBuilder()
+          originalTableInfo.toBuilder()
               .setDefinition(originalTableDefinition.toBuilder().setSchema(updatedSchema).build());
 
       bigQueryClient.update(updatedTableInfo.build());

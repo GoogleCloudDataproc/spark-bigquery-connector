@@ -20,25 +20,31 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetWriter;
+import org.apache.parquet.hadoop.ParquetWriter;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 class ParquetIntermediateRecordWriter implements IntermediateRecordWriter {
 
-  private final AvroParquetWriter avroParquetWriter;
+  private final ParquetWriter parquetWriter;
 
   ParquetIntermediateRecordWriter(Schema schema, Path path, Configuration conf) {
-    this.avroParquetWriter =
-        AvroParquetWriter.builder(path).withSchema(schema).withWriteSupport(conf);
+    try {
+      this.parquetWriter =
+          AvroParquetWriter.<GenericRecord>builder(path).withSchema(schema).withConf(conf).build();
+    } catch (IOException e) {
+      throw new UncheckedIOException("Failed to create AvroParquetWriter", e);
+    }
   }
 
   @Override
   public void write(GenericRecord record) throws IOException {
-    avroParquetWriter.write(record);
+    parquetWriter.write(record);
   }
 
   @Override
   public void close() throws IOException {
-    avroParquetWriter.close();
+    parquetWriter.close();
   }
 }

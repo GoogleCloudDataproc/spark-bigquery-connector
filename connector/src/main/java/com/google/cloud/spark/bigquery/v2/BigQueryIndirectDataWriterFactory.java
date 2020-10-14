@@ -17,7 +17,6 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import org.apache.avro.Schema;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -32,18 +31,36 @@ import java.io.UncheckedIOException;
 public class BigQueryIndirectDataWriterFactory implements DataWriterFactory<InternalRow> {
 
   SerializableConfiguration conf;
-  String uriFormat;
+  String gcsDirPath;
   StructType sparkSchema;
-  Schema avroSchema;
+  String avroSchemaJson;
   SparkBigQueryConfig.IntermediateFormat intermediateFormat;
+
+  public BigQueryIndirectDataWriterFactory(
+      SerializableConfiguration conf,
+      String gcsDirPath,
+      StructType sparkSchema,
+      String avroSchemaJson,
+      SparkBigQueryConfig.IntermediateFormat intermediateFormat) {
+    this.conf = conf;
+    this.gcsDirPath = gcsDirPath;
+    this.sparkSchema = sparkSchema;
+    this.avroSchemaJson = avroSchemaJson;
+    this.intermediateFormat = intermediateFormat;
+  }
 
   @Override
   public DataWriter<InternalRow> createDataWriter(int partitionId, long taskId, long epochId) {
     try {
-      String uri = String.format(uriFormat, partitionId);
+      Schema avroSchema = new Schema.Parser().parse(avroSchemaJson);
+      String uri =
+          String.format(
+              "%s/part-%06d.%s",
+              gcsDirPath, partitionId, intermediateFormat.toString().toLowerCase());
       Path path = new Path(uri);
       FileSystem fs = path.getFileSystem(conf.value());
-      IntermediateRecordWriter intermediateRecordWriter = createIntermediateRecordWriter(avroSchema, path, fs);
+      IntermediateRecordWriter intermediateRecordWriter =
+          createIntermediateRecordWriter(avroSchema, path, fs);
       return new BigQueryIndirectDataWriter(
           partitionId, path, fs, sparkSchema, avroSchema, intermediateRecordWriter);
     } catch (IOException e) {

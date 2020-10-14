@@ -15,10 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
-import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryConnectorUserAgentProvider;
@@ -51,6 +48,12 @@ public class SparkBigQueryConnectorModule implements Module {
   @Override
   public void configure(Binder binder) {
     binder.bind(BigQueryConfig.class).toProvider(this::provideSparkBigQueryConfig);
+  }
+
+  @Singleton
+  @Provides
+  public SparkSession provideSparkSession() {
+    return spark;
   }
 
   @Singleton

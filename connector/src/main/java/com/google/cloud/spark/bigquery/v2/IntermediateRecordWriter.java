@@ -25,5 +25,4 @@ public interface IntermediateRecordWriter {
   void write(GenericRecord avroRecord) throws IOException;
 
   void close() throws IOException;
-
 }

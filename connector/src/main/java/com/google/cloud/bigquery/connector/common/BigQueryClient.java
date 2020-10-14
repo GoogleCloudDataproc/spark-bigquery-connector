@@ -138,7 +138,7 @@ public class BigQueryClient {
     JobInfo jobInfo = JobInfo.of(jobConfiguration);
     Job job = bigQuery.create(jobInfo);
 
-    logger.info("Submitted job %s. jobId: %s", jobConfiguration, job.getJobId());
+    logger.info("Submitted job {}. jobId: {}", jobConfiguration, job.getJobId());
     // TODO(davidrab): add retry options
     try {
       return job.waitFor();
