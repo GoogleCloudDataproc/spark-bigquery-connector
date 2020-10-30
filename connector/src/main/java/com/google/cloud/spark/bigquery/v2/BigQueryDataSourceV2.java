@@ -54,7 +54,7 @@ public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport, WriteSup
   }
 
   private SparkSession getDefaultSparkSessionOrCreate() {
-    scala.Option<SparkSession> defaultSpareSession = SparkSession.getDefaultSession();
+    scala.Option<SparkSession> defaultSpareSession = SparkSession.getActiveSession();
     if (defaultSpareSession.isDefined()) {
       return defaultSpareSession.get();
     }

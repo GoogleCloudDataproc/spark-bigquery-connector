@@ -85,11 +85,13 @@ public class BigQueryDataSourceReader
         new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
     this.globalFilter = globalFilter;
     this.schema = schema;
-    this.fields =
+    // We want to keep the key order
+    this.fields = new LinkedHashMap<>();
+    for (StructField field :
         JavaConversions.asJavaCollection(
-                SchemaConverters.toSpark(table.getDefinition().getSchema()))
-            .stream()
-            .collect(Collectors.toMap(field -> field.name(), Function.identity()));
+            SchemaConverters.toSpark(table.getDefinition().getSchema()))) {
+      fields.put(field.name(), field);
+    }
   }
 
   @Override
@@ -141,7 +143,7 @@ public class BigQueryDataSourceReader
     ImmutableList<String> selectedFields =
         schema
             .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-            .orElse(ImmutableList.of());
+            .orElse(ImmutableList.copyOf(fields.keySet()));
     Optional<String> filter =
         emptyIfNeeded(
             SparkFilterUtils.getCompiledFilter(

@@ -257,10 +257,10 @@ public class AvroSchemaConverterTest {
               java.sql.Timestamp.valueOf(LocalDateTime.of(2011, 10, 14, 16, 15, 14, 131211000))
             });
     StructType sparkSchema =
-            DataTypes.createStructType(
-                    ImmutableList.of(
-                            DataTypes.createStructField("date_f", DataTypes.DateType, false),
-                            DataTypes.createStructField("ts_f", DataTypes.TimestampType, false)));
+        DataTypes.createStructType(
+            ImmutableList.of(
+                DataTypes.createStructField("date_f", DataTypes.DateType, false),
+                DataTypes.createStructField("ts_f", DataTypes.TimestampType, false)));
     Schema avroSchema =
         SchemaBuilder.record("root")
             .fields() //

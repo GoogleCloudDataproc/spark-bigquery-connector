@@ -24,7 +24,6 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
 import com.google.common.collect.ImmutableList;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.spark.sql.SaveMode;
@@ -195,7 +194,9 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
     if (saveMode == SaveMode.ErrorIfExists) {
       return JobInfo.WriteDisposition.WRITE_EMPTY;
     }
-    if (saveMode == SaveMode.Append) {
+    // SaveMode.Ignore is handled in the data source level. If it has arrived here it means tha
+    // table does not exist
+    if (saveMode == SaveMode.Append || saveMode == SaveMode.Ignore) {
       return JobInfo.WriteDisposition.WRITE_APPEND;
     }
     if (saveMode == SaveMode.Overwrite) {
@@ -228,13 +229,13 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
               originalSchema.getFields().stream()
                   .map(
                       field ->
-                          fieldsToUpdate
-                              .get(field.getName())
-                              .map(dataType -> updatedField(field, dataType.getTypeMarker()))
+                          Optional.ofNullable(fieldsToUpdate.get(field.getName()))
+                              .map(dataType -> updatedField(field, dataType.get().getTypeMarker()))
                               .orElse(field))
                   .collect(Collectors.toList()));
       TableInfo.Builder updatedTableInfo =
-          originalTableInfo.toBuilder()
+          originalTableInfo
+              .toBuilder()
               .setDefinition(originalTableDefinition.toBuilder().setSchema(updatedSchema).build());
 
       bigQueryClient.update(updatedTableInfo.build());

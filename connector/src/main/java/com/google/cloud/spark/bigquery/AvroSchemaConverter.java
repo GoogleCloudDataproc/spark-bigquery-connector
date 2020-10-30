@@ -28,7 +28,6 @@ import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.*;
 
 import java.nio.ByteBuffer;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -197,18 +196,13 @@ public class AvroSchemaConverter {
     }
 
     if (sparkType instanceof DateType && avroType.getType() == Schema.Type.INT) {
-      return (getter, ordinal) -> {
-        java.sql.Date date = (java.sql.Date) getter.get(ordinal, DataTypes.DateType);
-        return date.toLocalDate().toEpochDay();
-      };
+      return (getter, ordinal) -> (java.lang.Integer) getter.get(ordinal, DataTypes.IntegerType);
     }
 
     if (sparkType instanceof TimestampType && avroType.getType() == Schema.Type.LONG) {
       return (getter, ordinal) -> {
-        java.sql.Timestamp timestamp =
-            (java.sql.Timestamp) getter.get(ordinal, DataTypes.TimestampType);
-        long epochSecondInMicroseconds = timestamp.toLocalDateTime().toEpochSecond(ZoneOffset.UTC);
-        return epochSecondInMicroseconds + timestamp.getNanos() / 1000;
+        Long timestamp = (java.lang.Long) getter.get(ordinal, DataTypes.LongType);
+        return timestamp;
       };
     }
 
@@ -240,6 +234,10 @@ public class AvroSchemaConverter {
       StructConverter structConverter = new StructConverter(sparkStruct, avroType);
       int numFields = sparkStruct.length();
       return (getter, ordinal) -> structConverter.convert(getter.getStruct(ordinal, numFields));
+    }
+    if (sparkType instanceof UserDefinedType) {
+      UserDefinedType userDefinedType = (UserDefinedType) sparkType;
+      return createConverterFor(userDefinedType.sqlType(), avroType);
     }
     throw new IllegalArgumentException(
         String.format("Cannot convert Catalyst type %s to Avro type %s", sparkType, avroType));

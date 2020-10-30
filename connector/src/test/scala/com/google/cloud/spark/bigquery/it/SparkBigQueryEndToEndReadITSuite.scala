@@ -28,11 +28,11 @@ import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparkSession}
 import org.scalatest.concurrent.TimeLimits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.time.SpanSugar._
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Ignore, Matchers}
 
 import scala.collection.JavaConverters._
-
-class SparkBigQueryEndToEndITSuite extends FunSuite
+//@Ignore
+class SparkBigQueryEndToEndReadITSuite extends FunSuite
   with BeforeAndAfter
   with BeforeAndAfterAll
   with Matchers
@@ -176,22 +176,22 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       assert(row(3).isInstanceOf[Long])
     }
 
-    test("cache data frame in DataSource %s. Data Format %s".format(dataSourceFormat, dataFormat)) {
-      val allTypesTable = readAllTypesTable("bigquery")
-      writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro")
-
-      val df = spark.read.format("bigquery")
-        .option("dataset", testDataset)
-        .option("table", testTable)
-        .option("readDataFormat", "arrow")
-        .load().cache()
-
-      assert(df.head() == allTypesTable.head())
-
-      // read from cache
-      assert(df.head() == allTypesTable.head())
-      assert(df.schema == allTypesTable.schema)
-    }
+//    test("cache data frame in DataSource %s. Data Format %s".format(dataSourceFormat, dataFormat)) {
+//      val allTypesTable = readAllTypesTable("bigquery")
+//      writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro")
+//
+//      val df = spark.read.format("bigquery")
+//        .option("dataset", testDataset)
+//        .option("table", testTable)
+//        .option("readDataFormat", "arrow")
+//        .load().cache()
+//
+//      assert(df.head() == allTypesTable.head())
+//
+//      // read from cache
+//      assert(df.head() == allTypesTable.head())
+//      assert(df.schema == allTypesTable.schema)
+//    }
 
     test("number of partitions. DataSource %s. Data Format %s"
       .format(dataSourceFormat, dataFormat)) {
@@ -449,278 +449,6 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
         .as[String].sort("word").take(3)
       firstWords should contain theSameElementsInOrderAs Seq("a", "abaissiez", "abandon")
     }
-  }
-
-  private def initialData = spark.createDataFrame(spark.sparkContext.parallelize(
-    Seq(Person("Abc", Seq(Friend(10, Seq(Link("www.abc.com"))))),
-      Person("Def", Seq(Friend(12, Seq(Link("www.def.com"))))))))
-
-  private def additonalData = spark.createDataFrame(spark.sparkContext.parallelize(
-    Seq(Person("Xyz", Seq(Friend(10, Seq(Link("www.xyz.com"))))),
-      Person("Pqr", Seq(Friend(12, Seq(Link("www.pqr.com"))))))))
-
-  // getNumRows returns BigInteger, and it messes up the matchers
-  private def testTableNumberOfRows = bq.getTable(testDataset, testTable).getNumRows.intValue
-
-  private def testPartitionedTableDefinition = bq.getTable(testDataset, testTable + "_partitioned")
-    .getDefinition[StandardTableDefinition]()
-
-  private def writeToBigQuery(df: DataFrame, mode: SaveMode, format: String = "parquet") =
-    df.write.format("bigquery")
-      .mode(mode)
-      .option("table", fullTableName)
-      .option("temporaryGcsBucket", temporaryGcsBucket)
-      .option("intermediateFormat", format)
-      .save()
-
-  private def initialDataValuesExist = numberOfRowsWith("Abc") == 1
-
-  private def numberOfRowsWith(name: String) =
-    bq.query(QueryJobConfiguration.of(s"select name from $fullTableName where name='$name'"))
-      .getTotalRows
-
-  private def fullTableName = s"$testDataset.$testTable"
-
-  private def fullTableNamePartitioned = s"$testDataset.${
-    testTable
-  }_partitioned"
-
-  private def additionalDataValuesExist = numberOfRowsWith("Xyz") == 1
-
-  test("write to bq - append save mode") {
-    // initial write
-    writeToBigQuery(initialData, SaveMode.Append)
-    testTableNumberOfRows shouldBe 2
-    initialDataValuesExist shouldBe true
-    // second write
-    writeToBigQuery(additonalData, SaveMode.Append)
-    testTableNumberOfRows shouldBe 4
-    additionalDataValuesExist shouldBe true
-  }
-
-  test("write to bq - error if exists save mode") {
-    // initial write
-    writeToBigQuery(initialData, SaveMode.ErrorIfExists)
-    testTableNumberOfRows shouldBe 2
-    initialDataValuesExist shouldBe true
-    // second write
-    assertThrows[IllegalArgumentException] {
-      writeToBigQuery(additonalData, SaveMode.ErrorIfExists)
-    }
-  }
-
-  test("write to bq - ignore save mode") {
-    // initial write
-    writeToBigQuery(initialData, SaveMode.Ignore)
-    testTableNumberOfRows shouldBe 2
-    initialDataValuesExist shouldBe true
-    // second write
-    writeToBigQuery(additonalData, SaveMode.Ignore)
-    testTableNumberOfRows shouldBe 2
-    initialDataValuesExist shouldBe true
-    additionalDataValuesExist shouldBe false
-  }
-
-  test("write to bq - overwrite save mode") {
-    // initial write
-    writeToBigQuery(initialData, SaveMode.Overwrite)
-    testTableNumberOfRows shouldBe 2
-    initialDataValuesExist shouldBe true
-    // second write
-    writeToBigQuery(additonalData, SaveMode.Overwrite)
-    testTableNumberOfRows shouldBe 2
-    initialDataValuesExist shouldBe false
-    additionalDataValuesExist shouldBe true
-  }
-
-  test("write to bq - orc format") {
-    // required by ORC
-    spark.conf.set("spark.sql.orc.impl", "native")
-    writeToBigQuery(initialData, SaveMode.ErrorIfExists, "orc")
-    testTableNumberOfRows shouldBe 2
-    initialDataValuesExist shouldBe true
-  }
-
-  test("write to bq - avro format") {
-    writeToBigQuery(initialData, SaveMode.ErrorIfExists, "avro")
-    testTableNumberOfRows shouldBe 2
-    initialDataValuesExist shouldBe true
-  }
-
-  test("write to bq - parquet format") {
-    writeToBigQuery(initialData, SaveMode.ErrorIfExists, "parquet")
-    testTableNumberOfRows shouldBe 2
-    initialDataValuesExist shouldBe true
-  }
-
-  test("write to bq - simplified api") {
-    initialData.write.format("bigquery")
-      .option("temporaryGcsBucket", temporaryGcsBucket)
-      .save(fullTableName)
-    testTableNumberOfRows shouldBe 2
-    initialDataValuesExist shouldBe true
-  }
-
-  test("write to bq - unsupported format") {
-    assertThrows[IllegalArgumentException] {
-      writeToBigQuery(initialData, SaveMode.ErrorIfExists, "something else")
-    }
-  }
-
-  test("write all types to bq - avro format") {
-    val allTypesTable = readAllTypesTable("bigquery")
-    writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro")
-
-    val df = spark.read.format("bigquery")
-      .option("dataset", testDataset)
-      .option("table", testTable)
-      .load()
-
-    assert(df.head() == allTypesTable.head())
-    assert(df.schema == allTypesTable.schema)
-  }
-
-  test("streaming bq write append") {
-    failAfter(120 seconds) {
-      val schema = initialData.schema
-      val expressionEncoder: ExpressionEncoder[Row] =
-        RowEncoder(schema).resolveAndBind()
-      val stream = MemoryStream[Row](expressionEncoder, spark.sqlContext)
-      var lastBatchId: Long = 0
-      val streamingDF = stream.toDF()
-      val cpLoc: String = "/tmp/%s-%d".
-        format(fullTableName, System.nanoTime())
-      // Start write stream
-      val writeStream = streamingDF.writeStream.
-        format("bigquery").
-        outputMode(OutputMode.Append()).
-        option("checkpointLocation", cpLoc).
-        option("table", fullTableName).
-        option("temporaryGcsBucket", temporaryGcsBucket).
-        start
-
-      // Write to stream
-      stream.addData(initialData.collect())
-      while (writeStream.lastProgress.batchId <= lastBatchId) {
-        Thread.sleep(1000L)
-      }
-      lastBatchId = writeStream.lastProgress.batchId
-      testTableNumberOfRows shouldBe 2
-      initialDataValuesExist shouldBe true
-      // Write to stream
-      stream.addData(additonalData.collect())
-      while (writeStream.lastProgress.batchId <= lastBatchId) {
-        Thread.sleep(1000L)
-      }
-      writeStream.stop()
-      testTableNumberOfRows shouldBe 4
-      additionalDataValuesExist shouldBe true
-    }
-  }
-
-  test("query materialized view") {
-    var df = spark.read.format("bigquery")
-      .option("table", "bigquery-public-data:ethereum_blockchain.live_logs")
-      .option("viewsEnabled", "true")
-      .option("viewMaterializationProject", System.getenv("GOOGLE_CLOUD_PROJECT"))
-      .option("viewMaterializationDataset", testDataset)
-      .load()
-  }
-
-  test("write to bq - adding the settings to spark.conf") {
-    spark.conf.set("temporaryGcsBucket", temporaryGcsBucket)
-    val df = initialData
-    df.write.format("bigquery")
-      .option("table", fullTableName)
-      .save()
-    testTableNumberOfRows shouldBe 2
-    initialDataValuesExist shouldBe true
-  }
-
-  test("write to bq - partitioned and clustered table") {
-    val df = spark.read.format("com.google.cloud.spark.bigquery")
-      .option("table", LIBRARIES_PROJECTS_TABLE)
-      .load()
-      .where("platform = 'Sublime'")
-
-    df.write.format("bigquery")
-      .option("table", fullTableNamePartitioned)
-      .option("temporaryGcsBucket", temporaryGcsBucket)
-      .option("partitionField", "created_timestamp")
-      .option("clusteredFields", "platform")
-      .mode(SaveMode.Overwrite)
-      .save()
-
-    val tableDefinition = testPartitionedTableDefinition
-    tableDefinition.getTimePartitioning.getField shouldBe "created_timestamp"
-    tableDefinition.getClustering.getFields should contain("platform")
-  }
-
-  test("overwrite single partition") {
-    // create partitioned table
-    val tableName = "partitioned_table"
-    val fullTableName = s"$testDataset.$tableName"
-    bq.create(TableInfo.of(
-      TableId.of(testDataset, tableName),
-      StandardTableDefinition.newBuilder()
-        .setSchema(Schema.of(
-          Field.of("the_date", LegacySQLTypeName.DATE),
-          Field.of("some_text", LegacySQLTypeName.STRING)
-        ))
-        .setTimePartitioning(TimePartitioning.newBuilder(TimePartitioning.Type.DAY)
-          .setField("the_date").build()).build()))
-    // entering the data
-    bq.query(QueryJobConfiguration.of(
-      s"""
-         |insert into `$fullTableName` (the_date, some_text) values
-         |('2020-07-01', 'foo'),
-         |('2020-07-02', 'bar')
-         |""".stripMargin.replace('\n', ' ')))
-
-    // overrding a single partition
-    val newDataDF = spark.createDataFrame(
-      List(Row(java.sql.Date.valueOf("2020-07-01"), "baz")).asJava,
-      StructType(Array(
-        StructField("the_date", DateType),
-        StructField("some_text", StringType))))
-
-    newDataDF.write.format("bigquery")
-      .option("temporaryGcsBucket", temporaryGcsBucket)
-      .option("datePartition", "20200701")
-      .mode("overwrite")
-      .save(fullTableName)
-
-    val result = spark.read.format("bigquery").load(fullTableName).collect()
-
-    result.size shouldBe 2
-    result.filter(row => row(1).equals("bar")).size shouldBe 1
-    result.filter(row => row(1).equals("baz")).size shouldBe 1
-
-  }
-
-  test("support custom data types") {
-    val table = s"$testDataset.$testTable"
-
-    val originalVectorDF = spark.createDataFrame(
-      List(Row("row1", 1, Vectors.dense(1, 2, 3))).asJava,
-      StructType(Seq(
-        StructField("name", DataTypes.StringType),
-        StructField("num", DataTypes.IntegerType),
-        StructField("vector", SQLDataTypes.VectorType))))
-
-    originalVectorDF.write.format("bigquery")
-      // must use avro or orc
-      .option("intermediateFormat", "orc")
-      .option("temporaryGcsBucket", temporaryGcsBucket)
-      .save(table)
-
-    val readVectorDF = spark.read.format("bigquery")
-      .load(table)
-
-    val orig = originalVectorDF.head
-    val read = readVectorDF.head
-
-    read should equal(orig)
   }
 
   def extractWords(df: DataFrame): Set[String] = {
