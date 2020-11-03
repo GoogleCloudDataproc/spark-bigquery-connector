@@ -460,8 +460,8 @@ object DirectBigQueryRelation {
   private def compileValue(value: Any): Any = value match {
     case null => "null"
     case stringValue: String => s"'${stringValue.replace("'", "\\'")}'"
-    case timestampValue: Timestamp => "'" + timestampValue + "'"
-    case dateValue: Date => "'" + dateValue + "'"
+    case timestampValue: Timestamp => "TIMESTAMP '" + timestampValue + "'"
+    case dateValue: Date => "DATE '" + dateValue + "'"
     case arrayValue: Array[Any] => arrayValue.map(compileValue).mkString("[", ", ", "]")
     case _ => value
   }

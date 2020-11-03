@@ -20,6 +20,9 @@ import com.google.common.collect.ImmutableList;
 import org.apache.spark.sql.sources.*;
 import org.junit.Test;
 
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.text.ParseException;
 import java.util.Optional;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -165,5 +168,24 @@ public class SparkFilterUtilsTest {
         .isEqualTo("(`foo` IS NULL) OR (`bar` IS NOT NULL)");
     assertThat(SparkFilterUtils.compileFilter(Not.apply(IsNull.apply("foo"))))
         .isEqualTo("(NOT (`foo` IS NULL))");
+  }
+
+  @Test
+  public void testDateFilters() throws ParseException {
+    assertThat(
+            SparkFilterUtils.compileFilter(
+                In.apply(
+                    "datefield",
+                    new Object[] {Date.valueOf("2020-09-01"), Date.valueOf("2020-11-03")})))
+        .isEqualTo("`datefield` IN UNNEST([DATE '2020-09-01', DATE '2020-11-03'])");
+  }
+
+  @Test
+  public void testTimestampFilters() throws ParseException {
+    Timestamp ts1 = Timestamp.valueOf("2008-12-25 15:30:00");
+    Timestamp ts2 = Timestamp.valueOf("2020-01-25 02:10:10");
+    assertThat(SparkFilterUtils.compileFilter(In.apply("tsfield", new Object[] {ts1, ts2})))
+        .isEqualTo(
+            "`tsfield` IN UNNEST([TIMESTAMP '2008-12-25 15:30:00.0', TIMESTAMP '2020-01-25 02:10:10.0'])");
   }
 }
