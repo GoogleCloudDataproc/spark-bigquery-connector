@@ -43,16 +43,17 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     var needNewPath = true
     var gcsPath: Path = null
     val applicationId = sqlContext.sparkContext.applicationId
+    val uuid = UUID.randomUUID()
 
     while (needNewPath) {
       val temporaryGcsBucketOption = BigQueryUtilScala.toOption(options.getTemporaryGcsBucket)
       val gcsPathOption = temporaryGcsBucketOption match {
-        case Some(bucket) => s"gs://$bucket/.spark-bigquery-${applicationId}-${UUID.randomUUID()}"
+        case Some(bucket) => s"gs://$bucket/.spark-bigquery-${applicationId}-${uuid}"
         case None if options.getPersistentGcsBucket.isPresent
           && options.getPersistentGcsPath.isPresent =>
           s"gs://${options.getPersistentGcsBucket.get}/${options.getPersistentGcsPath.get}"
         case None if options.getPersistentGcsBucket.isPresent =>
-          s"gs://${options.getPersistentGcsBucket.get}/.spark-bigquery-${applicationId}-${UUID.randomUUID()}"
+          s"gs://${options.getPersistentGcsBucket.get}/.spark-bigquery-${applicationId}-${uuid}"
         case _ =>
           throw new IllegalArgumentException("Temporary or persistent GCS bucket must be informed.")
       }
@@ -115,9 +116,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     }
 
     if (options.getPartitionField.isPresent || options.getPartitionType.isPresent) {
-      val timePartitionBuilder = TimePartitioning.newBuilder(
-        TimePartitioning.Type.valueOf(options.getPartitionType.orElse("DAY"))
-      )
+      val timePartitionBuilder = TimePartitioning.newBuilder(options.getPartitionTypeOrDefault())
 
       if (options.getPartitionExpirationMs.isPresent) {
         timePartitionBuilder.setExpirationMs(options.getPartitionExpirationMs.getAsLong)
@@ -135,7 +134,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
       if (options.getClusteredFields.isPresent) {
         val clustering =
-          Clustering.newBuilder().setFields(options.getClusteredFields.get.toList.asJava).build();
+          Clustering.newBuilder().setFields(options.getClusteredFields.get).build();
         jobConfigurationBuilder.setClustering(clustering)
       }
     }

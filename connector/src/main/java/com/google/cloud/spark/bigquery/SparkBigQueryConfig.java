@@ -16,10 +16,7 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.auth.Credentials;
-import com.google.cloud.bigquery.BigQueryOptions;
-import com.google.cloud.bigquery.FormatOptions;
-import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
@@ -28,6 +25,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import org.apache.commons.collections.set.MapBackedSet;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.sql.execution.datasources.DataSource;
 import org.apache.spark.sql.internal.SQLConf;
@@ -88,7 +87,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   com.google.common.base.Optional<String> partitionField = empty();
   Long partitionExpirationMs = null;
   com.google.common.base.Optional<Boolean> partitionRequireFilter = empty();
-  com.google.common.base.Optional<String> partitionType = empty();
+  com.google.common.base.Optional<TimePartitioning.Type> partitionType = empty();
   com.google.common.base.Optional<String[]> clusteredFields = empty();
   com.google.common.base.Optional<JobInfo.CreateDisposition> createDisposition = empty();
   boolean optimizedEmptyProjection = true;
@@ -127,8 +126,11 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
             com.google.common.base.Optional.fromNullable(
                     hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY))
                 .toJavaUtil());
+    config.partitionType =
+        getOption(options, "partitionType").transform(TimePartitioning.Type::valueOf);
     Optional<String> datePartitionParam = getOption(options, DATE_PARTITION_PARAM).toJavaUtil();
-    datePartitionParam.ifPresent(date -> validateDateFormat(date, DATE_PARTITION_PARAM));
+    datePartitionParam.ifPresent(
+        date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
     config.tableId = parseTableId(tableParam, datasetParam, projectParam, datePartitionParam);
 
     config.parentProjectId =
@@ -188,7 +190,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         getOption(options, "partitionExpirationMs").transform(Long::valueOf).orNull();
     config.partitionRequireFilter =
         getOption(options, "partitionRequireFilter").transform(Boolean::valueOf);
-    config.partitionType = getOption(options, "partitionType");
     config.clusteredFields = getOption(options, "clusteredFields").transform(s -> s.split(","));
 
     config.createDisposition =
@@ -216,9 +217,17 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     return config;
   }
 
-  private static void validateDateFormat(String date, String optionName) {
+  private static void validateDateFormat(
+      String date, TimePartitioning.Type partitionType, String optionName) {
     try {
-      DateTimeFormatter.BASIC_ISO_DATE.parse(date);
+      Map<TimePartitioning.Type, DateTimeFormatter> formatterMap =
+          ImmutableMap.<TimePartitioning.Type, DateTimeFormatter>of(
+              TimePartitioning.Type.HOUR, DateTimeFormatter.ofPattern("yyyyMMddHH"), //
+              TimePartitioning.Type.DAY, DateTimeFormatter.BASIC_ISO_DATE, //
+              TimePartitioning.Type.MONTH, DateTimeFormatter.ofPattern("yyyyMM"), //
+              TimePartitioning.Type.YEAR, DateTimeFormatter.ofPattern("yyyy"));
+      DateTimeFormatter dateTimeFormatter = formatterMap.get(partitionType);
+      dateTimeFormatter.parse(date);
     } catch (DateTimeParseException e) {
       throw new IllegalArgumentException(
           String.format("Invalid argument for option %s, format is YYYYMMDD", optionName));
@@ -410,12 +419,16 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     return partitionRequireFilter.toJavaUtil();
   }
 
-  public Optional<String> getPartitionType() {
+  public Optional<TimePartitioning.Type> getPartitionType() {
     return partitionType.toJavaUtil();
   }
 
-  public Optional<String[]> getClusteredFields() {
-    return clusteredFields.toJavaUtil();
+  public TimePartitioning.Type getPartitionTypeOrDefault() {
+    return partitionType.or(TimePartitioning.Type.DAY);
+  }
+
+  public Optional<ImmutableList<String>> getClusteredFields() {
+    return clusteredFields.transform(fields -> ImmutableList.copyOf(fields)).toJavaUtil();
   }
 
   public Optional<JobInfo.CreateDisposition> getCreateDisposition() {
@@ -451,7 +464,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         defaultParallelism);
   }
 
-  enum IntermediateFormat {
+  public enum IntermediateFormat {
     AVRO("avro", FormatOptions.avro()),
     AVRO_2_3("com.databricks.spark.avro", FormatOptions.avro()),
     ORC("orc", FormatOptions.orc()),
@@ -529,6 +542,10 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
     public FormatOptions getFormatOptions() {
       return formatOptions;
+    }
+
+    public String getFileSuffix() {
+      return getFormatOptions().getType().toLowerCase();
     }
   }
 }

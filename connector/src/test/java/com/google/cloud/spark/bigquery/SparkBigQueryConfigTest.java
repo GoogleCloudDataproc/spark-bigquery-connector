@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -93,6 +94,7 @@ public class SparkBigQueryConfigTest {
                 .put("temporaryGcsBucket", "some_bucket")
                 .put("intermediateFormat", "ORC")
                 .put("partitionRequireFilter", "true")
+                .put("partitionType", "HOUR")
                 .put("partitionField", "some_field")
                 .put("partitionExpirationMs", "999")
                 .put("clusteredFields", "field1,field2")
@@ -118,10 +120,11 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getReadDataFormat()).isEqualTo(DataFormat.ARROW);
     assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("vmp"));
     assertThat(config.getMaterializationDataset()).isEqualTo(Optional.of("vmd"));
+    assertThat(config.getPartitionType()).isEqualTo(Optional.of(TimePartitioning.Type.HOUR));
     assertThat(config.getPartitionField()).isEqualTo(Optional.of("some_field"));
     assertThat(config.getPartitionExpirationMs()).isEqualTo(OptionalLong.of(999));
     assertThat(config.getPartitionRequireFilter()).isEqualTo(Optional.of(true));
-    assertThat(config.getClusteredFields().get()).isEqualTo(new String[] {"field1", "field2"});
+    assertThat(config.getClusteredFields().get()).isEqualTo(ImmutableList.of("field1", "field2"));
     assertThat(config.getCreateDisposition())
         .isEqualTo(Optional.of(JobInfo.CreateDisposition.CREATE_NEVER));
     assertThat(config.getLoadSchemaUpdateOptions())
