@@ -268,8 +268,11 @@ public class SparkFilterUtils {
     if (value instanceof String) {
       return "'" + escape((String) value) + "'";
     }
-    if (value instanceof Timestamp || value instanceof Date) {
-      return "'" + value + "'";
+    if (value instanceof Date) {
+      return "DATE '" + value + "'";
+    }
+    if (value instanceof Timestamp) {
+      return "TIMESTAMP '" + value + "'";
     }
     if (value instanceof Object[]) {
       return Arrays.stream((Object[]) value)

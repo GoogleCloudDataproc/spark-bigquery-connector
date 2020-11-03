@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery
 
-import java.util.Optional
+import java.sql.{Date, Timestamp}
 
 import com.google.cloud.bigquery._
 import com.google.cloud.bigquery.storage.v1.DataFormat
@@ -27,7 +27,6 @@ import org.mockito.Mockito._
 import org.mockito.{Mock, MockitoAnnotations}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.{BeforeAndAfter, Matchers}
-
 
 class DirectBigQueryRelationSuite
   extends AnyFunSuite with BeforeAndAfter with Matchers {
@@ -189,6 +188,16 @@ class DirectBigQueryRelationSuite
     val r = new DirectBigQueryRelation(
       defaultOptions, TABLE)(sqlCtx)
     checkFilters(r, "", Array(GreaterThan("a", 2)), "(a > 2)")
+  }
+
+  test("filter on date and timestamp fields") {
+    val options = defaultOptions
+    val r = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
+    val inFilter = In("datefield", Array(Date.valueOf("2020-09-01"), Date.valueOf("2020-11-03")))
+    val equalFilter = EqualTo("tsField", Timestamp.valueOf("2020-01-25 02:10:10"))
+    checkFilters(r, "", Array(inFilter, equalFilter),
+      "(`datefield` IN UNNEST([DATE '2020-09-01', DATE '2020-11-03']) AND " +
+        "`tsField` = TIMESTAMP '2020-01-25 02:10:10.0')")
   }
 
   def checkFilters(
