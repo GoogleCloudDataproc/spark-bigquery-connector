@@ -150,15 +150,23 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
     logInfo(s"Submitted load to ${options.getTableId}. jobId: ${job.getJobId}")
     // TODO(davidrab): add retry options
-    val finishedJob = job.waitFor()
-    if (finishedJob.getStatus.getError != null) {
-      throw new BigQueryException(
-        BaseHttpServiceException.UNKNOWN_CODE,
-        s"""Failed to load to ${friendlyTableName} in job ${job.getJobId}. BigQuery error was
-           |${finishedJob.getStatus.getError.getMessage}""".stripMargin.replace('\n', ' '),
-        finishedJob.getStatus.getError)
-    } else {
-      logInfo(s"Done loading to ${friendlyTableName}. jobId: ${job.getJobId}")
+    lazy val finishedJob = job.waitFor()
+    try {
+      if (finishedJob.getStatus.getError != null) {
+        throw new BigQueryException(
+          BaseHttpServiceException.UNKNOWN_CODE,
+          s"""Failed to load to ${friendlyTableName} in job ${job.getJobId}. BigQuery error was
+             |${finishedJob.getStatus.getError.getMessage}""".stripMargin.replace('\n', ' '),
+          finishedJob.getStatus.getError)
+      } else {
+        logInfo(s"Done loading to ${friendlyTableName}. jobId: ${job.getJobId}")
+      }
+    } catch {
+      case e: Exception =>
+        val jobId = job.getJobId
+        logWarning("Failed to load the data into BigQuery, JobId for debug purposes is " +
+          s"[${jobId.getProject}:${jobId.getLocation}.${jobId.getJob}]")
+        throw e
     }
   }
 
@@ -197,7 +205,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
   def updatedField(field: Field, marker: String): Field = {
     val newField = field.toBuilder
     val description = field.getDescription
-    if(description == null) {
+    if (description == null) {
       newField.setDescription(marker)
     } else if (!description.endsWith(marker)) {
       newField.setDescription(s"${description} ${marker}")
