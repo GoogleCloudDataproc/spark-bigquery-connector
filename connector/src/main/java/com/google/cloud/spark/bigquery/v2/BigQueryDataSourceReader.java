@@ -150,6 +150,17 @@ public class BigQueryDataSourceReader
         readSessionCreator.create(
             tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
     ReadSession readSession = readSessionResponse.getReadSession();
+
+    if (selectedFields.isEmpty()) {
+      // means select *
+      Schema tableSchema = readSessionResponse.getReadTableInfo().getDefinition().getSchema();
+      selectedFields =
+          tableSchema.getFields().stream()
+              .map(Field::getName)
+              .collect(ImmutableList.toImmutableList());
+    }
+
+    ImmutableList<String> partitionSelectedFields = selectedFields;
     return readSession.getStreamsList().stream()
         .map(
             stream ->
@@ -157,7 +168,7 @@ public class BigQueryDataSourceReader
                     bigQueryReadClientFactory,
                     stream.getName(),
                     readSessionCreatorConfig.getMaxReadRowsRetries(),
-                    selectedFields,
+                    partitionSelectedFields,
                     readSessionResponse))
         .collect(Collectors.toList());
   }
