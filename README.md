@@ -23,7 +23,7 @@ It has a number of advantages over using the previous export-based read flow tha
 
 ### Direct Streaming
 
-It does not leave any temporary files in Google Cloud Storage. Rows are read directly from BigQuery servers using an Avro wire format.
+It does not leave any temporary files in Google Cloud Storage. Rows are read directly from BigQuery servers using the Arrow or Avro wire formats.
 
 ### Filtering
 
@@ -244,7 +244,7 @@ The API Supports a number of options to configure the read
    <td>Data Format for reading from BigQuery. Options : <code>ARROW</code>, <code>AVRO</code>
 	Unsupported Arrow filters are not pushed down and results are filtered later by Spark.
 	(Currently Arrow does not suport disjunction across columns).
-       <br/>(Optional. Defaults to <code>AVRO</code>)
+       <br/>(Optional. Defaults to <code>ARROW</code>)
    </td>
    <td>Read</td>
   </tr>
