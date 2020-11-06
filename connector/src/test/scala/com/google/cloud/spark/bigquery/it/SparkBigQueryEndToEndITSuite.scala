@@ -163,6 +163,18 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       assert(row(1).isInstanceOf[String])
     }
 
+    test("select all columns from tables. DataSource %s. Data Format %s"
+      .format(dataSourceFormat, dataFormat)) {
+      val row = spark.read.format(dataSourceFormat)
+        .option("table", SHAKESPEARE_TABLE)
+        .option("readDataFormat", dataFormat).load()
+        .select("word_count", "word", "corpus", "corpus_date").head
+      assert(row(0).isInstanceOf[Long])
+      assert(row(1).isInstanceOf[String])
+      assert(row(2).isInstanceOf[String])
+      assert(row(3).isInstanceOf[Long])
+    }
+
     test("cache data frame in DataSource %s. Data Format %s".format(dataSourceFormat, dataFormat)) {
       val allTypesTable = readAllTypesTable("bigquery")
       writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro")
@@ -347,6 +359,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
         .option("table", "bigquery-public-data.samples.shakespeare")
         .option("readDataFormat", "ARROW")
         .load().where("word_count = 1 OR corpus_date = 0")
+        .collect().size
         .collect().size
 
       countResults should equal(countAfterCollect)
