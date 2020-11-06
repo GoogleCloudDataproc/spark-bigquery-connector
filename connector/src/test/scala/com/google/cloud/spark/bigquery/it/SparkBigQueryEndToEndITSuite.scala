@@ -163,7 +163,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       assert(row(1).isInstanceOf[String])
     }
 
-    test("select all columns from tables. DataSource %s. Data Format %s"
+    test("select all columns from a table. DataSource %s. Data Format %s"
       .format(dataSourceFormat, dataFormat)) {
       val row = spark.read.format(dataSourceFormat)
         .option("table", SHAKESPEARE_TABLE)
