@@ -360,7 +360,6 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
         .option("readDataFormat", "ARROW")
         .load().where("word_count = 1 OR corpus_date = 0")
         .collect().size
-        .collect().size
 
       countResults should equal(countAfterCollect)
     }
