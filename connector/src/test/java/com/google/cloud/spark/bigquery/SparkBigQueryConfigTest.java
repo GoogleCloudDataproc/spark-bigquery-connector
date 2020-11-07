@@ -15,7 +15,6 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
@@ -132,5 +131,29 @@ public class SparkBigQueryConfigTest {
                 JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION));
     assertThat(config.getViewExpirationTimeInHours()).isEqualTo(24);
     assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
+  }
+
+  @Test
+  public void testConfigFromGlobalOptions() {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options =
+        new DataSourceOptions(
+            ImmutableMap.<String, String>builder().put("table", "dataset.table").build());
+    ImmutableMap<String, String> globalOptions = ImmutableMap.<String, String>builder()
+            .put("viewsEnabled", "true")
+            .put("spark.datasource.bigquery.temporaryGcsBucket", "bucket")
+            .build();
+    SparkBigQueryConfig config =
+            SparkBigQueryConfig.from(
+                    options.asMap(),
+                    globalOptions,
+                    hadoopConfiguration,
+                    DEFAULT_PARALLELISM,
+                    new SQLConf(),
+                    SPARK_VERSION,
+                    Optional.empty());
+
+    assertThat(config.isViewsEnabled()).isTrue();
+    assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("bucket"));
   }
 }
