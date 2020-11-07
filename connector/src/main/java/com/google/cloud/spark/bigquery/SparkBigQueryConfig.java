@@ -104,13 +104,15 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   @VisibleForTesting
   public static SparkBigQueryConfig from(
       Map<String, String> options,
-      ImmutableMap<String, String> globalOptions,
+      ImmutableMap<String, String> originalGlobalOptions,
       Configuration hadoopConfiguration,
       int defaultParallelism,
       SQLConf sqlConf,
       String sparkVersion,
       Optional<StructType> schema) {
     SparkBigQueryConfig config = new SparkBigQueryConfig();
+
+    ImmutableMap<String, String> globalOptions = normalizeConf(originalGlobalOptions);
 
     String tableParam =
         getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
@@ -290,7 +292,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     return getAnyOption(globalOptions, options, name).transform(Boolean::valueOf).or(defaultValue);
   }
 
-  static Map<String, String> normalizeConf(Map<String, String> conf) {
+  static ImmutableMap<String, String> normalizeConf(Map<String, String> conf) {
     Map<String, String> normalizeConf =
         conf.entrySet().stream()
             .filter(e -> e.getKey().startsWith(CONF_PREFIX))
