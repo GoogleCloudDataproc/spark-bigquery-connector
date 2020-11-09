@@ -163,6 +163,12 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       }
     } catch {
       case e: Exception =>
+        val partitionType = options.getPartitionTypeOrDefault()
+        if (e.getMessage.equals(s"Cannot output $partitionType partitioned data in LegacySQL")) {
+          throw new BigQueryException(0, s"$partitionType time partitioning is not available " +
+            "for load jobs in this project yet. Please contact your account manager to enable this",
+            e)
+        }
         val jobId = job.getJobId
         logWarning("Failed to load the data into BigQuery, JobId for debug purposes is " +
           s"[${jobId.getProject}:${jobId.getLocation}.${jobId.getJob}]")
