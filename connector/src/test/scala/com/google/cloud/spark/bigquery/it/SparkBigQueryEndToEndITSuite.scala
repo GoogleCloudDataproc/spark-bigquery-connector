@@ -126,8 +126,8 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
   }
 
   override def beforeAll: Unit = {
-    spark = TestUtils.getOrCreateSparkSession()
-    testDataset = s"spark_bigquery_it_${System.currentTimeMillis()}"
+    spark = TestUtils.getOrCreateSparkSession(getClass.getSimpleName)
+    testDataset = s"spark_bigquery_${getClass.getSimpleName}_${System.currentTimeMillis()}"
     IntegrationTestUtils.createDataset(testDataset)
     IntegrationTestUtils.runQuery(
       TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE.format(s"$testDataset.$ALL_TYPES_TABLE_NAME"))

@@ -21,11 +21,11 @@ import org.apache.spark.sql.SparkSession
 import org.mockito.Mockito._
 
 object TestUtils {
-  def getOrCreateSparkSession(): SparkSession = {
+  def getOrCreateSparkSession(applicationName : String): SparkSession = {
     SparkSession.builder()
-        .appName("spark-bigquery test")
-        .master("local")
-        .getOrCreate()
+      .appName(applicationName)
+      .master("local")
+      .getOrCreate()
   }
 
   def table(info: TableInfo): Table = {
@@ -34,7 +34,7 @@ object TestUtils {
     when(table.getTableId).thenReturn(info.getTableId)
     // TODO(pmkc): Handle other types
     when(table.getDefinition)
-        .thenReturn(info.getDefinition[StandardTableDefinition])
+      .thenReturn(info.getDefinition[StandardTableDefinition])
     Preconditions.checkNotNull(table.getDefinition[TableDefinition])
     Preconditions.checkNotNull(table.getDefinition[StandardTableDefinition])
     val tableDefinition = table.asInstanceOf[TableInfo].getDefinition[TableDefinition]

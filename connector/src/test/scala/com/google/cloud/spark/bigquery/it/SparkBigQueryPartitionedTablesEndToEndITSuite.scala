@@ -68,8 +68,8 @@ class SparkBigQueryPartitionedTablesEndToEndITSuite extends FunSuite
   private var testTable: String = _
 
   override def beforeAll: Unit = {
-    spark = TestUtils.getOrCreateSparkSession()
-    testDataset = s"spark_bigquery_it_${System.currentTimeMillis()}"
+    spark = TestUtils.getOrCreateSparkSession(getClass.getSimpleName)
+    testDataset = s"spark_bigquery_${getClass.getSimpleName}_${System.currentTimeMillis()}"
     IntegrationTestUtils.createDataset(testDataset)
   }
 
