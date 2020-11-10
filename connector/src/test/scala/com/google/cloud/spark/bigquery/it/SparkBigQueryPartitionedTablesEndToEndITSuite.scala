@@ -108,13 +108,13 @@ class SparkBigQueryPartitionedTablesEndToEndITSuite extends FunSuite
     val table = s"${testDataset}.${testTable}_${partitionType}"
     df.write.format("bigquery")
       .option("temporaryGcsBucket", temporaryGcsBucket)
-      .option("partitionField", "d")
+      .option("partitionField", "t")
       .option("partitionType", partitionType)
       .option("partitionRequireFilter", "true")
       .option("table", table)
       .save()
 
-    val readDF = spark.read.format("bigquery").load("table")
+    val readDF = spark.read.format("bigquery").load(table)
     assert(readDF.count == 3)
   }
  }
