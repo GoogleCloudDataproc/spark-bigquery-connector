@@ -142,19 +142,20 @@ public class SparkBigQueryConfigTest {
     DataSourceOptions options =
         new DataSourceOptions(
             ImmutableMap.<String, String>builder().put("table", "dataset.table").build());
-    ImmutableMap<String, String> globalOptions = ImmutableMap.<String, String>builder()
+    ImmutableMap<String, String> globalOptions =
+        ImmutableMap.<String, String>builder()
             .put("viewsEnabled", "true")
             .put("spark.datasource.bigquery.temporaryGcsBucket", "bucket")
             .build();
     SparkBigQueryConfig config =
-            SparkBigQueryConfig.from(
-                    options.asMap(),
-                    globalOptions,
-                    hadoopConfiguration,
-                    DEFAULT_PARALLELISM,
-                    new SQLConf(),
-                    SPARK_VERSION,
-                    Optional.empty());
+        SparkBigQueryConfig.from(
+            options.asMap(),
+            globalOptions,
+            hadoopConfiguration,
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty());
 
     assertThat(config.isViewsEnabled()).isTrue();
     assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("bucket"));
