@@ -158,9 +158,8 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
           s"""Failed to load to ${friendlyTableName} in job ${job.getJobId}. BigQuery error was
              |${finishedJob.getStatus.getError.getMessage}""".stripMargin.replace('\n', ' '),
           finishedJob.getStatus.getError)
-      } else {
-        logInfo(s"Done loading to ${friendlyTableName}. jobId: ${job.getJobId}")
       }
+      logInfo(s"Done loading to ${friendlyTableName}. jobId: ${job.getJobId}")
     } catch {
       case e: Exception =>
         val partitionType = options.getPartitionTypeOrDefault()

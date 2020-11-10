@@ -78,8 +78,6 @@ class SparkBigQueryPartitionedTablesEndToEndITSuite extends FunSuite
     spark.stop()
   }
 
-
-
   test("hourly partition") {
     testPartition("HOUR")
   }
