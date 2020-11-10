@@ -164,9 +164,12 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     } catch {
       case e: Exception =>
         val partitionType = options.getPartitionTypeOrDefault()
-        if (e.getMessage.equals(s"Cannot output $partitionType partitioned data in LegacySQL")) {
+
+        if (e.getMessage.equals(s"Cannot output $partitionType partitioned data in LegacySQL")
+          && options.getIntermediateFormat == SparkBigQueryConfig.IntermediateFormat.PARQUET) {
           throw new BigQueryException(0, s"$partitionType time partitioning is not available " +
-            "for load jobs in this project yet. Please contact your account manager to enable this",
+            "for load jobs from PARQUET in this project yet. Please replace the intermediate "
+            + "format to AVRO or contact your account manager to enable this.",
             e)
         }
         val jobId = job.getJobId
