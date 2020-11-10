@@ -43,16 +43,17 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     var needNewPath = true
     var gcsPath: Path = null
     val applicationId = sqlContext.sparkContext.applicationId
+    val uuid = UUID.randomUUID()
 
     while (needNewPath) {
       val temporaryGcsBucketOption = BigQueryUtilScala.toOption(options.getTemporaryGcsBucket)
       val gcsPathOption = temporaryGcsBucketOption match {
-        case Some(bucket) => s"gs://$bucket/.spark-bigquery-${applicationId}-${UUID.randomUUID()}"
+        case Some(bucket) => s"gs://$bucket/.spark-bigquery-${applicationId}-${uuid}"
         case None if options.getPersistentGcsBucket.isPresent
           && options.getPersistentGcsPath.isPresent =>
           s"gs://${options.getPersistentGcsBucket.get}/${options.getPersistentGcsPath.get}"
         case None if options.getPersistentGcsBucket.isPresent =>
-          s"gs://${options.getPersistentGcsBucket.get}/.spark-bigquery-${applicationId}-${UUID.randomUUID()}"
+          s"gs://${options.getPersistentGcsBucket.get}/.spark-bigquery-${applicationId}-${uuid}"
         case _ =>
           throw new IllegalArgumentException("Temporary or persistent GCS bucket must be informed.")
       }
@@ -115,9 +116,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
     }
 
     if (options.getPartitionField.isPresent || options.getPartitionType.isPresent) {
-      val timePartitionBuilder = TimePartitioning.newBuilder(
-        TimePartitioning.Type.valueOf(options.getPartitionType.orElse("DAY"))
-      )
+      val timePartitionBuilder = TimePartitioning.newBuilder(options.getPartitionTypeOrDefault())
 
       if (options.getPartitionExpirationMs.isPresent) {
         timePartitionBuilder.setExpirationMs(options.getPartitionExpirationMs.getAsLong)
@@ -135,7 +134,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
       if (options.getClusteredFields.isPresent) {
         val clustering =
-          Clustering.newBuilder().setFields(options.getClusteredFields.get.toList.asJava).build();
+          Clustering.newBuilder().setFields(options.getClusteredFields.get).build();
         jobConfigurationBuilder.setClustering(clustering)
       }
     }
@@ -151,15 +150,31 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
     logInfo(s"Submitted load to ${options.getTableId}. jobId: ${job.getJobId}")
     // TODO(davidrab): add retry options
-    val finishedJob = job.waitFor()
-    if (finishedJob.getStatus.getError != null) {
-      throw new BigQueryException(
-        BaseHttpServiceException.UNKNOWN_CODE,
-        s"""Failed to load to ${friendlyTableName} in job ${job.getJobId}. BigQuery error was
-           |${finishedJob.getStatus.getError.getMessage}""".stripMargin.replace('\n', ' '),
-        finishedJob.getStatus.getError)
-    } else {
+    lazy val finishedJob = job.waitFor()
+    try {
+      if (finishedJob.getStatus.getError != null) {
+        throw new BigQueryException(
+          BaseHttpServiceException.UNKNOWN_CODE,
+          s"""Failed to load to ${friendlyTableName} in job ${job.getJobId}. BigQuery error was
+             |${finishedJob.getStatus.getError.getMessage}""".stripMargin.replace('\n', ' '),
+          finishedJob.getStatus.getError)
+      }
       logInfo(s"Done loading to ${friendlyTableName}. jobId: ${job.getJobId}")
+    } catch {
+      case e: Exception =>
+        val partitionType = options.getPartitionTypeOrDefault()
+
+        if (e.getMessage.equals(s"Cannot output $partitionType partitioned data in LegacySQL")
+          && options.getIntermediateFormat == SparkBigQueryConfig.IntermediateFormat.PARQUET) {
+          throw new BigQueryException(0, s"$partitionType time partitioning is not available " +
+            "for load jobs from PARQUET in this project yet. Please replace the intermediate "
+            + "format to AVRO or contact your account manager to enable this.",
+            e)
+        }
+        val jobId = job.getJobId
+        logWarning("Failed to load the data into BigQuery, JobId for debug purposes is " +
+          s"[${jobId.getProject}:${jobId.getLocation}.${jobId.getJob}]")
+        throw e
     }
   }
 
@@ -198,7 +213,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
   def updatedField(field: Field, marker: String): Field = {
     val newField = field.toBuilder
     val description = field.getDescription
-    if(description == null) {
+    if (description == null) {
       newField.setDescription(marker)
     } else if (!description.endsWith(marker)) {
       newField.setDescription(s"${description} ${marker}")

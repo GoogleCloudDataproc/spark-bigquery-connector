@@ -18,9 +18,9 @@ lazy val scala212Version = "2.12.10"
 lazy val sparkVersion = "2.4.0"
 lazy val grpcVersion = "1.30.2"
 // should match the dependency from grpc-netty
-lazy val nettyVersion = "4.1.48.Final"
+lazy val nettyVersion = "4.1.51.Final"
 // should match the dependency in grpc-netty
-lazy val nettyTcnativeVersion = "2.0.29.Final"
+lazy val nettyTcnativeVersion = "2.0.34.Final"
 
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
@@ -42,8 +42,8 @@ lazy val root = (project in file("."))
 lazy val commonTestDependencies = Seq(
   "io.grpc" % "grpc-alts" % grpcVersion exclude("io.grpc", "grpc-netty-shaded"),
   "io.grpc" % "grpc-netty" % grpcVersion,
-  "com.google.api" % "gax-grpc" % "1.57.1" exclude("io.grpc", "grpc-netty-shaded"),
-  "com.google.guava" % "guava" % "29.0-jre",
+  "com.google.api" % "gax-grpc" % "1.60.0" exclude("io.grpc", "grpc-netty-shaded"),
+  "com.google.guava" % "guava" % "30.0-jre",
 
   "org.scalatest" %% "scalatest" % "3.1.0" % "test",
   "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test",
@@ -83,13 +83,13 @@ lazy val connector = (project in file("connector"))
       "com.google.inject" % "guice" % "4.2.3",
 
       // Keep com.google.cloud dependencies in sync
-      "com.google.cloud" % "google-cloud-bigquery" % "1.116.8",
-      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.3.1"
+      "com.google.cloud" % "google-cloud-bigquery" % "1.123.2",
+      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.6.0"
         exclude("io.grpc", "grpc-netty-shaded"),
       // Keep in sync with com.google.cloud
-      "com.fasterxml.jackson.core" % "jackson-databind" % "2.11.0",
-      "com.fasterxml.jackson.module" % "jackson-module-paranamer" % "2.11.0",
-      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.11.0",
+      "com.fasterxml.jackson.core" % "jackson-databind" % "2.11.3",
+      "com.fasterxml.jackson.module" % "jackson-module-paranamer" % "2.11.3",
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.11.3",
 
       // Netty, with a version supporting Java 11
       "io.netty" % "netty-all" % nettyVersion % "provided",
