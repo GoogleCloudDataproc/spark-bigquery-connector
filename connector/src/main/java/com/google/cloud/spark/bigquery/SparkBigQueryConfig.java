@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
@@ -25,12 +26,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import org.apache.commons.collections.set.MapBackedSet;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.sql.execution.datasources.DataSource;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.types.StructType;
+import org.threeten.bp.Duration;
 
 import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
@@ -65,6 +65,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private static final Supplier<com.google.common.base.Optional<String>> DEFAULT_FALLBACK =
       () -> empty();
   private static final String CONF_PREFIX = "spark.datasource.bigquery.";
+  private static final int DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT = 60 * 1000;
+  private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
   TableId tableId;
   String parentProjectId;
   com.google.common.base.Optional<String> credentialsKey;
@@ -449,6 +451,32 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   public int getMaxReadRowsRetries() {
     return maxReadRowsRetries;
+  }
+
+  // in order to simplify the configuration, the BigQuery client settings are fixed. If needed
+  // we will add configuration properties for them.
+
+  @Override
+  public int getBigQueryClientConnectTimeout() {
+    return DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT;
+  }
+
+  @Override
+  public int getBigQueryClientReadTimeout() {
+    return DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT;
+  }
+
+  @Override
+  public RetrySettings getBigQueryClientRetrySettings() {
+    return RetrySettings.newBuilder()
+        .setTotalTimeout(Duration.ofMinutes(10))
+        .setInitialRpcTimeout(Duration.ofSeconds(60))
+        .setMaxRpcTimeout(Duration.ofMinutes(5))
+        .setRpcTimeoutMultiplier(1.6)
+        .setRetryDelayMultiplier(1.6)
+        .setInitialRetryDelay(Duration.ofMillis(1250))
+        .setMaxRetryDelay(Duration.ofSeconds(5))
+        .build();
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {

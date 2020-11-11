@@ -15,12 +15,12 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import com.google.auth.Credentials;
-import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.bigquery.BigQueryOptions;
-import com.google.inject.*;
-
-import java.util.Optional;
+import com.google.cloud.http.HttpTransportOptions;
+import com.google.inject.Binder;
+import com.google.inject.Provides;
+import com.google.inject.Scopes;
+import com.google.inject.Singleton;
 
 public class BigQueryClientModule implements com.google.inject.Module {
 
@@ -54,7 +54,13 @@ public class BigQueryClientModule implements com.google.inject.Module {
         BigQueryOptions.newBuilder()
             .setHeaderProvider(userAgentHeaderProvider)
             .setProjectId(config.getParentProjectId())
-            .setCredentials(bigQueryCredentialsSupplier.getCredentials());
+            .setCredentials(bigQueryCredentialsSupplier.getCredentials())
+            .setRetrySettings(config.getBigQueryClientRetrySettings())
+            .setTransportOptions(
+                HttpTransportOptions.newBuilder()
+                    .setConnectTimeout(config.getBigQueryClientConnectTimeout())
+                    .setReadTimeout(config.getBigQueryClientReadTimeout())
+                    .build());
     return new BigQueryClient(
         options.build().getService(),
         config.getMaterializationProject(),
