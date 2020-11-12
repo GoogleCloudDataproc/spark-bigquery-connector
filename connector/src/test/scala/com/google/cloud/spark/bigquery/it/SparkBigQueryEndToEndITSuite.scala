@@ -92,6 +92,7 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     // have a fresh table for each test
     testTable = s"test_${System.nanoTime()}"
   }
+
   private var testTable: String = _
 
   testShakespeare("implicit read method") {
@@ -729,6 +730,44 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
       .map(_.getString(0))
       .toSet
   }
+
+  test("hourly partition") {
+    testPartition("HOUR")
+  }
+
+  test("daily partition") {
+    testPartition("DAY")
+  }
+
+  test("monthly partition") {
+    testPartition("MONTH")
+  }
+
+  test("yearly partition") {
+    testPartition("YEAR")
+  }
+
+  def testPartition(partitionType: String): Unit = {
+    val s = spark // cannot import from a var
+    import s.implicits._
+    val df = spark.createDataset(Seq(
+      Data("a", java.sql.Timestamp.valueOf("2020-01-01 01:01:01")),
+      Data("b", java.sql.Timestamp.valueOf("2020-01-02 02:02:02")),
+      Data("c", java.sql.Timestamp.valueOf("2020-01-03 03:03:03"))
+    )).toDF()
+
+    val table = s"${testDataset}.${testTable}_${partitionType}"
+    df.write.format("bigquery")
+      .option("temporaryGcsBucket", temporaryGcsBucket)
+      .option("partitionField", "t")
+      .option("partitionType", partitionType)
+      .option("partitionRequireFilter", "true")
+      .option("table", table)
+      .save()
+
+    val readDF = spark.read.format("bigquery").load(table)
+    assert(readDF.count == 3)
+  }
 }
 
 case class Person(name: String, friends: Seq[Friend])
@@ -736,3 +775,5 @@ case class Person(name: String, friends: Seq[Friend])
 case class Friend(age: Int, links: Seq[Link])
 
 case class Link(uri: String)
+
+case class Data(str: String, t: java.sql.Timestamp)
