@@ -93,7 +93,6 @@ class SparkBigQueryEndToEndITSuite extends FunSuite
     testTable = s"test_${System.nanoTime()}"
   }
 
-
   private var testTable: String = _
 
   testShakespeare("implicit read method") {
