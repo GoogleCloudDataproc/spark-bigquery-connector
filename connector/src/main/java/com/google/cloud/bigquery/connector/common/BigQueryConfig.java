@@ -15,6 +15,8 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.api.gax.retrying.RetrySettings;
+
 import java.util.Optional;
 
 public interface BigQueryConfig {
@@ -32,4 +34,10 @@ public interface BigQueryConfig {
   Optional<String> getMaterializationProject();
 
   Optional<String> getMaterializationDataset();
+
+  int getBigQueryClientConnectTimeout();
+
+  int getBigQueryClientReadTimeout();
+
+  RetrySettings getBigQueryClientRetrySettings();
 }
