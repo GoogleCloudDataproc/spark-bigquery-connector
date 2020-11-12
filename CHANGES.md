@@ -1,5 +1,19 @@
 # Release Notes
 
+## 0.18.0 - 2020-11-12
+* Issue #226: Adding support for HOUR, MONTH, DAY TimePartitions
+* Issue #260: Increasing connection timeout to the BigQuery service, and 
+              configuring the request retry settings.
+* Issue #263: Fixed `select *` error when ColumnarBatch is used (DataSource v2)
+* Issue #266: Fixed the external configuration not working regression bug
+              (Introduced in version 0.17.2)
+* PR #262: Filters on BigQuery DATE and TIMESTAMP now use the right type.  
+* BigQuery API has been upgraded to version 1.123.2
+* BigQuery Storage API has been upgraded to version 1.6.0
+* Guava has been upgraded to version 30.0-jre 
+* Netty has been upgraded to version 4.1.51.Final 
+* netty-tcnative has been upgraded to version 4.1.34.Final (Fixing issue #200) 
+
 ## 0.17.3 - 2020-10-06
 * PR #242, #243: Fixed Spark 3 compatibility, added Spark 3 acceptance test
 * Issue #249: Fixing credentials creation from key
