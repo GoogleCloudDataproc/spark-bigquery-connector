@@ -12,7 +12,7 @@
 * BigQuery Storage API has been upgraded to version 1.6.0
 * Guava has been upgraded to version 30.0-jre 
 * Netty has been upgraded to version 4.1.51.Final 
-* netty-tcnative has been upgraded to version 4.1.34.Final (Fixing issue #200) 
+* netty-tcnative has been upgraded to version 4.1.34.Final
 
 ## 0.17.3 - 2020-10-06
 * PR #242, #243: Fixed Spark 3 compatibility, added Spark 3 acceptance test
