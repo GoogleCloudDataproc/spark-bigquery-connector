@@ -37,6 +37,16 @@ private[bigquery] case class BigQueryRelation(options: SparkBigQueryConfig, tabl
     options.getSchema.orElse(SchemaConverters.toSpark(tableDefinition.getSchema))
   }
 
+  override def toString(): String = {
+    val formatter = java.text.NumberFormat.getIntegerInstance
+    val tableId =
+      s"${table.getTableId.getProject}.${table.getTableId.getDataset}.${table.getTableId.getTable}"
+
+    s"""BigQueryRelation(${tableId}
+       |numRows=${formatter.format(table.getNumRows)}
+       |numBytes=${formatter.format(table.getNumBytes)}
+       |)""".stripMargin
+  }
 }
 
 
