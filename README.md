@@ -101,8 +101,8 @@ The connector uses the cross language [Spark SQL Data Source API](https://spark.
 ### Reading data from BigQuery
 
 ```
-df = spark.read
-  .format("bigquery")
+df = spark.read \
+  .format("bigquery") \
   .load("bigquery-public-data.samples.shakespeare")
 ```
 
