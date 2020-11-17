@@ -71,7 +71,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getLoadSchemaUpdateOptions()).isEqualTo(ImmutableList.of());
     assertThat(config.getViewExpirationTimeInHours()).isEqualTo(24);
     assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
-    assertThat(!config.isUseAvroLogicalTypes());
+    assertThat(config.isUseAvroLogicalTypes()).isFalse();
   }
 
   @Test
@@ -136,7 +136,7 @@ public class SparkBigQueryConfigTest {
                 JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION));
     assertThat(config.getViewExpirationTimeInHours()).isEqualTo(24);
     assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
-    assertThat(config.isUseAvroLogicalTypes());
+    assertThat(config.isUseAvroLogicalTypes()).isTrue();
   }
 
   @Test
