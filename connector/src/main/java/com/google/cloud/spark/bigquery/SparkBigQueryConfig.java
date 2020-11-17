@@ -49,6 +49,7 @@ import static java.lang.String.format;
 public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
+  public static final String USE_AVRO_LOGICAL_TYPES_OPTION = "useAvroLogicalTypes";
   public static final String DATE_PARTITION_PARAM = "datePartition";
   @VisibleForTesting static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.ARROW;
 
@@ -93,6 +94,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   com.google.common.base.Optional<String[]> clusteredFields = empty();
   com.google.common.base.Optional<JobInfo.CreateDisposition> createDisposition = empty();
   boolean optimizedEmptyProjection = true;
+  boolean useAvroLogicalTypes = false;
   ImmutableList<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.of();
   int viewExpirationTimeInHours = 24;
   int maxReadRowsRetries = 3;
@@ -172,6 +174,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
               "Data read format '%s' is not supported. Supported formats are '%s'",
               readDataFormatParam, String.join(",", PERMITTED_READ_DATA_FORMATS)));
     }
+    config.useAvroLogicalTypes = getAnyBooleanOption(globalOptions, options, USE_AVRO_LOGICAL_TYPES_OPTION, false);
     config.readDataFormat = DataFormat.valueOf(readDataFormatParam);
     config.combinePushedDownFilters =
         getAnyBooleanOption(globalOptions, options, "combinePushedDownFilters", true);
@@ -391,6 +394,10 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   public boolean isCombinePushedDownFilters() {
     return combinePushedDownFilters;
+  }
+
+  public boolean isUseAvroLogicalTypes() {
+    return useAvroLogicalTypes;
   }
 
   public boolean isViewsEnabled() {
