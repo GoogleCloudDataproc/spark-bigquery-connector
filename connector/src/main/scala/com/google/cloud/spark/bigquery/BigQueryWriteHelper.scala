@@ -139,6 +139,10 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       }
     }
 
+    if (options.isUseAvroLogicalTypes) {
+      jobConfigurationBuilder.setUseAvroLogicalTypes(true)
+    }
+
     if (!options.getLoadSchemaUpdateOptions.isEmpty) {
       jobConfigurationBuilder.setSchemaUpdateOptions(options.getLoadSchemaUpdateOptions)
     }
