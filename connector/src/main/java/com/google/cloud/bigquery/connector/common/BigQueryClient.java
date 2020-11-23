@@ -22,9 +22,6 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -133,7 +130,11 @@ public class BigQueryClient {
     return bigQuery.create(jobInfo);
   }
 
-  TableResult query(String sql) {
+  public Job dryRunQuery(String sql) {
+    return create(JobInfo.of(QueryJobConfiguration.newBuilder(sql).setDryRun(true).build()));
+  }
+
+  public TableResult query(String sql) {
     try {
       return bigQuery.query(QueryJobConfiguration.of(sql));
     } catch (InterruptedException e) {
@@ -143,7 +144,7 @@ public class BigQueryClient {
     }
   }
 
-  String createSql(TableId table, ImmutableList<String> requiredColumns, String[] filters) {
+  public String createSql(TableId table, ImmutableList<String> requiredColumns, String[] filters) {
     String columns =
         requiredColumns.isEmpty()
             ? "*"
@@ -156,7 +157,7 @@ public class BigQueryClient {
 
   // assuming the SELECT part is properly formatted, can be used to call functions such as COUNT and
   // SUM
-  String createSql(TableId table, String formattedQuery, String[] filters) {
+  public String createSql(TableId table, String formattedQuery, String[] filters) {
     String tableName = fullTableName(table);
 
     String whereClause = createWhereClause(filters).map(clause -> "WHERE " + clause).orElse("");

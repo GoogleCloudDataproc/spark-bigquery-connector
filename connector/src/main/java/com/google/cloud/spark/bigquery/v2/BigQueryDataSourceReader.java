@@ -15,7 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.*;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
@@ -30,6 +33,8 @@ import org.apache.spark.sql.sources.v2.reader.*;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.collection.JavaConversions;
 
 import java.util.*;
@@ -44,19 +49,7 @@ public class BigQueryDataSourceReader
         SupportsReportStatistics,
         SupportsScanColumnarBatch {
 
-  private static Statistics UNKNOWN_STATISTICS =
-      new Statistics() {
-
-        @Override
-        public OptionalLong sizeInBytes() {
-          return OptionalLong.empty();
-        }
-
-        @Override
-        public OptionalLong numRows() {
-          return OptionalLong.empty();
-        }
-      };
+  private static Logger logger = LoggerFactory.getLogger(BigQueryDataSourceReader.class);
 
   private final TableInfo table;
   private final TableId tableId;
@@ -110,14 +103,8 @@ public class BigQueryDataSourceReader
       return createEmptyProjectionPartitions();
     }
 
-    ImmutableList<String> selectedFields =
-        schema
-            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-            .orElse(ImmutableList.of());
-    Optional<String> filter =
-        emptyIfNeeded(
-            SparkFilterUtils.getCompiledFilter(
-                readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
+    ImmutableList<String> selectedFields = getSelectedFields();
+    Optional<String> filter = getCompiledFilter();
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(
             tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
@@ -138,14 +125,8 @@ public class BigQueryDataSourceReader
     if (!enableBatchRead()) {
       throw new IllegalStateException("Batch reads should not be enabled");
     }
-    ImmutableList<String> selectedFields =
-        schema
-            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-            .orElse(ImmutableList.of());
-    Optional<String> filter =
-        emptyIfNeeded(
-            SparkFilterUtils.getCompiledFilter(
-                readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
+    ImmutableList<String> selectedFields = getSelectedFields();
+    Optional<String> filter = getCompiledFilter();
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(
             tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
@@ -171,6 +152,18 @@ public class BigQueryDataSourceReader
                     partitionSelectedFields,
                     readSessionResponse))
         .collect(Collectors.toList());
+  }
+
+  private Optional<String> getCompiledFilter() {
+    return emptyIfNeeded(
+        SparkFilterUtils.getCompiledFilter(
+            readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
+  }
+
+  private ImmutableList<String> getSelectedFields() {
+    return schema
+        .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+        .orElse(ImmutableList.of());
   }
 
   private boolean isEmptySchema() {
@@ -249,27 +242,12 @@ public class BigQueryDataSourceReader
 
   @Override
   public Statistics estimateStatistics() {
-    return table.getDefinition().getType() == TableDefinition.Type.TABLE
-        ? new StandardTableStatistics(table.getDefinition())
-        : UNKNOWN_STATISTICS;
-  }
-}
-
-class StandardTableStatistics implements Statistics {
-
-  private StandardTableDefinition tableDefinition;
-
-  public StandardTableStatistics(StandardTableDefinition tableDefinition) {
-    this.tableDefinition = tableDefinition;
-  }
-
-  @Override
-  public OptionalLong sizeInBytes() {
-    return OptionalLong.of(tableDefinition.getNumBytes());
-  }
-
-  @Override
-  public OptionalLong numRows() {
-    return OptionalLong.of(tableDefinition.getNumRows());
+    logger.debug("estimateStatistics()");
+    Optional<String> filter = getCompiledFilter();
+    Optional<ImmutableList<String>> selectFields = schema.map(ignored -> getSelectedFields());
+    return BigQueryEstimatedTableStatistics.newBuilder(table, bigQueryClient)
+        .setFilter(filter)
+        .setSelectedColumns(selectFields)
+        .build();
   }
 }
