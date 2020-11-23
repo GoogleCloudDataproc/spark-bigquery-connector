@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google Inc. All Rights Reserved.
+ * Copyright 2020 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -113,10 +113,12 @@ public class BigQueryEstimatedTableStatisticsTest {
     Job mockJob = mock(Job.class);
     when(mockJob.getStatistics()).thenReturn(mockQueryStatistics);
     when(mockBigQueryClient.dryRunQuery(any())).thenReturn(mockJob);
-    when(mockBigQueryClient.createSql(any(TableId.class), any(ImmutableList.class), any())).thenReturn("");
+    when(mockBigQueryClient.createSql(any(TableId.class), any(ImmutableList.class), any()))
+        .thenReturn("");
   }
 
   private void prepareCalculateSize(BigQueryClient mockBigQueryClient) {
-    when(mockBigQueryClient.calculateTableSize(any(TableInfo.class), any(Optional.class))).thenReturn(3L);
+    when(mockBigQueryClient.calculateTableSize(any(TableInfo.class), any(Optional.class)))
+        .thenReturn(3L);
   }
 }
