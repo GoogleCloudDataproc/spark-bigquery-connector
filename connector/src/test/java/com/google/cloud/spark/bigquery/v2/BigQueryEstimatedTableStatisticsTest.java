@@ -17,12 +17,14 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.TableStatistics;
 import com.google.common.collect.ImmutableList;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.math.BigInteger;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,19 +46,11 @@ public class BigQueryEstimatedTableStatisticsTest {
   }
 
   @Test
-  public void testNotATable() {
-    TableInfo table =
-        TableInfo.of(TABLE_ID, ViewDefinition.newBuilder("select * from foo.bar").build());
-    BigQueryEstimatedTableStatistics s =
-        BigQueryEstimatedTableStatistics.newBuilder(table, null).build();
-    assertThat(s.numRows().isPresent()).isFalse();
-    assertThat(s.sizeInBytes().isPresent()).isFalse();
-  }
-
-  @Test
   public void testNoFilterNoProjection() {
+    BigQueryClient bigQueryClient = mock(BigQueryClient.class);
+    prepareCalculateSizeNoFilter(bigQueryClient);
     BigQueryEstimatedTableStatistics s =
-        BigQueryEstimatedTableStatistics.newBuilder(TABLE, null).build();
+        BigQueryEstimatedTableStatistics.newBuilder(TABLE, bigQueryClient).build();
     assertThat(s.numRows().isPresent()).isTrue();
     assertThat(s.numRows().getAsLong()).isEqualTo(10L);
     assertThat(s.sizeInBytes().isPresent()).isTrue();
@@ -66,7 +60,7 @@ public class BigQueryEstimatedTableStatisticsTest {
   @Test
   public void testWithFilterNoProjection() {
     BigQueryClient bigQueryClient = mock(BigQueryClient.class);
-    prepareCalculateSize(bigQueryClient);
+    prepareCalculateSizeWithFilter(bigQueryClient);
     BigQueryEstimatedTableStatistics s =
         BigQueryEstimatedTableStatistics.newBuilder(TABLE, bigQueryClient)
             .setFilter(Optional.of("some_filter = 1"))
@@ -80,6 +74,7 @@ public class BigQueryEstimatedTableStatisticsTest {
   @Test
   public void testNoFilterWithProjection() {
     BigQueryClient bigQueryClient = mock(BigQueryClient.class);
+    prepareCalculateSizeNoFilter(bigQueryClient);
     prepareDryRun(bigQueryClient);
     BigQueryEstimatedTableStatistics s =
         BigQueryEstimatedTableStatistics.newBuilder(TABLE, bigQueryClient)
@@ -94,7 +89,7 @@ public class BigQueryEstimatedTableStatisticsTest {
   @Test
   public void testWithFilterWithProjection() {
     BigQueryClient bigQueryClient = mock(BigQueryClient.class);
-    prepareCalculateSize(bigQueryClient);
+    prepareCalculateSizeWithFilter(bigQueryClient);
     prepareDryRun(bigQueryClient);
     BigQueryEstimatedTableStatistics s =
         BigQueryEstimatedTableStatistics.newBuilder(TABLE, bigQueryClient)
@@ -117,8 +112,13 @@ public class BigQueryEstimatedTableStatisticsTest {
         .thenReturn("");
   }
 
-  private void prepareCalculateSize(BigQueryClient mockBigQueryClient) {
+  private void prepareCalculateSizeNoFilter(BigQueryClient mockBigQueryClient) {
     when(mockBigQueryClient.calculateTableSize(any(TableInfo.class), any(Optional.class)))
-        .thenReturn(3L);
+        .thenReturn(new TableStatistics(10, OptionalLong.empty()));
+  }
+
+  private void prepareCalculateSizeWithFilter(BigQueryClient mockBigQueryClient) {
+    when(mockBigQueryClient.calculateTableSize(any(TableInfo.class), any(Optional.class)))
+        .thenReturn(new TableStatistics(10, OptionalLong.of(3L)));
   }
 }

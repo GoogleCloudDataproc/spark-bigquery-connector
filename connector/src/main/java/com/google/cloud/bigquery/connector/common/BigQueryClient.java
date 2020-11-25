@@ -21,8 +21,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -169,32 +171,57 @@ public class BigQueryClient {
     return format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
   }
 
-  public long calculateTableSize(TableId tableId, Optional<String> filter) {
+  public TableStatistics calculateTableSize(TableId tableId, Optional<String> filter) {
     return calculateTableSize(getTable(tableId), filter);
   }
 
-  public long calculateTableSize(TableInfo tableInfo, Optional<String> filter) {
-    try {
-      TableDefinition.Type type = tableInfo.getDefinition().getType();
-      if (type == TableDefinition.Type.TABLE && !filter.isPresent()) {
-        return tableInfo.getNumRows().longValue();
-      } else if (type == TableDefinition.Type.VIEW
-          || type == TableDefinition.Type.MATERIALIZED_VIEW
-          || (type == TableDefinition.Type.TABLE && filter.isPresent())) {
-        // run a query
-        String table = fullTableName(tableInfo.getTableId());
-        String sql = format("SELECT COUNT(*) from `%s` WHERE %s", table, filter.get());
-        TableResult result = bigQuery.query(QueryJobConfiguration.of(sql));
-        return result.iterateAll().iterator().next().get(0).getLongValue();
-      } else {
-        throw new IllegalArgumentException(
-            format(
-                "Unsupported table type %s for table %s",
-                type, fullTableName(tableInfo.getTableId())));
-      }
-    } catch (InterruptedException e) {
-      throw new BigQueryConnectorException(
-          "Querying table size was interrupted on the client side", e);
+  public TableStatistics calculateTableSize(TableInfo tableInfo, Optional<String> filter) {
+    TableDefinition.Type type = tableInfo.getDefinition().getType();
+    if (type == TableDefinition.Type.TABLE) {
+      // if this is a table, there's no need to query the total number of rows
+      OptionalLong numberOfFilteredRows =
+          toOptionalLong(
+              filter
+                  .map(f -> countWithFilter(tableInfo.getTableId(), f))
+                  .map(row -> row.get(0).getLongValue()));
+      return new TableStatistics(tableInfo.getNumRows().longValue(), numberOfFilteredRows);
+    } else if (type == TableDefinition.Type.VIEW
+        || type == TableDefinition.Type.MATERIALIZED_VIEW) {
+      // For views, we need to calculate the number of rows
+      String table = fullTableName(tableInfo.getTableId());
+      String sql =
+          filter
+              .map(
+                  f ->
+                      format(
+                          "SELECT (SELECT COUNT(*) from `%s`), (SELECT COUNT(*) from `%s` WHERE %s)",
+                          table, table, f))
+              .orElse(format("SELECT  COUNT(*) from `%s`", table));
+      FieldValueList row = queryForSingleRow(sql);
+      long numberOfRows = row.get(0).getLongValue();
+      OptionalLong numberOfFilteredRows =
+          toOptionalLong(filter.map(ignored -> row.get(1).getLongValue()));
+      return new TableStatistics(numberOfRows, numberOfFilteredRows);
+    } else {
+      throw new IllegalArgumentException(
+          format(
+              "Unsupported table type %s for table %s",
+              type, fullTableName(tableInfo.getTableId())));
     }
+  }
+
+  private OptionalLong toOptionalLong(Optional<Long> opt) {
+    return opt.map(LongStream::of).orElseGet(LongStream::empty).findFirst();
+  }
+
+  private FieldValueList countWithFilter(TableId tableId, String filter) {
+    String table = fullTableName(tableId);
+    String sql = format("SELECT COUNT(*) from `%s` WHERE %s", table, filter);
+    return queryForSingleRow(sql);
+  }
+
+  private FieldValueList queryForSingleRow(String sql) {
+    TableResult result = query(sql);
+    return result.iterateAll().iterator().next();
   }
 }

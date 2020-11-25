@@ -20,6 +20,7 @@ import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.TableStatistics;
 import com.google.common.collect.ImmutableList;
 import org.apache.spark.sql.sources.v2.reader.Statistics;
 
@@ -75,14 +76,12 @@ class BigQueryEstimatedTableStatistics implements Statistics {
     }
 
     BigQueryEstimatedTableStatistics build() {
-      // step 1 - verify this is a standard table (not view)
-      if (table.getDefinition().getType() != TableDefinition.Type.TABLE) {
-        return UNKNOWN_STATISTICS;
-      }
+      // step 1 - get the statistics
+      TableStatistics tableStatistics = bigQueryClient.calculateTableSize(table, filter);
       // step 2 - if there is a filter, then issue a query to find the number of rows by the query.
       // Otherwise, take it from the tableInfo.
-      long numberOfRowsInTable = table.getNumRows().longValue();
-      long numberOfRows = filter.map(this::getNumberOfRowsWithFilter).orElse(numberOfRowsInTable);
+      long numberOfRows = tableStatistics.getNumberOfRows();
+      long numberOfQueriedRows = tableStatistics.getQueriedNumberOfRows();
       // Step 3 - if there where selected columns, estimate the size of the table for the entire
       // table. Otherwise, take it from the tableInfo.
       long projectedTableSizeInBytes =
@@ -90,16 +89,11 @@ class BigQueryEstimatedTableStatistics implements Statistics {
               .map(this::getProjectedTableSizeInBytesFromColumns)
               .orElse(table.getNumBytes());
       long sizeInBytes =
-          (long) (1.0 * projectedTableSizeInBytes * numberOfRows / numberOfRowsInTable);
+          (long) (1.0 * projectedTableSizeInBytes * numberOfQueriedRows / numberOfRows);
 
       // step 4 - return the statistics
       return new BigQueryEstimatedTableStatistics(
-          OptionalLong.of(numberOfRows), OptionalLong.of(sizeInBytes));
-    }
-
-    private long getNumberOfRowsWithFilter(String actualFilter) {
-      long numberOfRows = bigQueryClient.calculateTableSize(table, Optional.of(actualFilter));
-      return numberOfRows;
+          OptionalLong.of(numberOfQueriedRows), OptionalLong.of(sizeInBytes));
     }
 
     private long getProjectedTableSizeInBytesFromColumns(ImmutableList<String> columns) {
