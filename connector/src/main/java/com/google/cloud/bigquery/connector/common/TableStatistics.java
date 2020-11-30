@@ -1,8 +1,10 @@
 package com.google.cloud.bigquery.connector.common;
 
-import java.util.Optional;
 import java.util.OptionalLong;
 
+/**
+ *
+ */
 public class TableStatistics {
 
   private final long numberOfRows;
@@ -21,7 +23,9 @@ public class TableStatistics {
     return numberOfFilteredRows;
   }
 
-  // If a filter was used, return numberOfFilteredRows, otherwise return numberOfRows
+  /**
+   * If a filter was used, return numberOfFilteredRows, otherwise return numberOfRows
+   */
   public long getQueriedNumberOfRows() {
     return numberOfFilteredRows.orElse(numberOfRows);
   }

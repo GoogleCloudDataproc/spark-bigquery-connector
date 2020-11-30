@@ -98,6 +98,7 @@ public class BigQueryDataSourceReader
 
   @Override
   public List<InputPartition<InternalRow>> planInputPartitions() {
+    logger.debug("planInputPartitions() for {}", tableId);
     if (isEmptySchema()) {
       // create empty projection
       return createEmptyProjectionPartitions();
@@ -122,6 +123,7 @@ public class BigQueryDataSourceReader
 
   @Override
   public List<InputPartition<ColumnarBatch>> planBatchInputPartitions() {
+    logger.debug("planBatchInputPartitions() for {}", tableId);
     if (!enableBatchRead()) {
       throw new IllegalStateException("Batch reads should not be enabled");
     }
@@ -243,12 +245,14 @@ public class BigQueryDataSourceReader
 
   @Override
   public Statistics estimateStatistics() {
-    logger.debug("estimateStatistics()");
+    logger.debug("estimateStatistics() for {}", tableId);
     Optional<String> filter = getCompiledFilter();
     Optional<ImmutableList<String>> selectFields = schema.map(ignored -> getSelectedFields());
-    return BigQueryEstimatedTableStatistics.newBuilder(table, bigQueryClient)
-        .setFilter(filter)
-        .setSelectedColumns(selectFields)
-        .build();
+    BigQueryEstimatedTableStatistics statistics =
+        BigQueryEstimatedTableStatistics.newFactory(table, bigQueryClient)
+            .setFilter(filter)
+            .setSelectedColumns(selectFields)
+            .create();
+    return new BigQueryEstimatedTableStatisticsSparkAdapter(statistics);
   }
 }

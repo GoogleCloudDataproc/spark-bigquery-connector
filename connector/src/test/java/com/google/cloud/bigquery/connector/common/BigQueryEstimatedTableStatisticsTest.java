@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.bigquery.*;
-import com.google.cloud.bigquery.connector.common.BigQueryClient;
-import com.google.cloud.bigquery.connector.common.TableStatistics;
 import com.google.common.collect.ImmutableList;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -26,7 +24,7 @@ import java.math.BigInteger;
 import java.util.Optional;
 import java.util.OptionalLong;
 
-import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth8.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -50,11 +48,9 @@ public class BigQueryEstimatedTableStatisticsTest {
     BigQueryClient bigQueryClient = mock(BigQueryClient.class);
     prepareCalculateSizeNoFilter(bigQueryClient);
     BigQueryEstimatedTableStatistics s =
-        BigQueryEstimatedTableStatistics.newBuilder(TABLE, bigQueryClient).build();
-    assertThat(s.numRows().isPresent()).isTrue();
-    assertThat(s.numRows().getAsLong()).isEqualTo(10L);
-    assertThat(s.sizeInBytes().isPresent()).isTrue();
-    assertThat(s.sizeInBytes().getAsLong()).isEqualTo(1000L);
+        BigQueryEstimatedTableStatistics.newFactory(TABLE, bigQueryClient).create();
+    assertThat(s.numRows()).hasValue(10L);
+    assertThat(s.sizeInBytes()).hasValue(1000L);
   }
 
   @Test
@@ -62,13 +58,14 @@ public class BigQueryEstimatedTableStatisticsTest {
     BigQueryClient bigQueryClient = mock(BigQueryClient.class);
     prepareCalculateSizeWithFilter(bigQueryClient);
     BigQueryEstimatedTableStatistics s =
-        BigQueryEstimatedTableStatistics.newBuilder(TABLE, bigQueryClient)
+        BigQueryEstimatedTableStatistics.newFactory(TABLE, bigQueryClient)
             .setFilter(Optional.of("some_filter = 1"))
-            .build();
-    assertThat(s.numRows().isPresent()).isTrue();
-    assertThat(s.numRows().getAsLong()).isEqualTo(3L);
-    assertThat(s.sizeInBytes().isPresent()).isTrue();
-    assertThat(s.sizeInBytes().getAsLong()).isEqualTo(300L);
+            .create();
+    // Original table has 10 rows and 1000 bytes, each row is 100 bytes
+    // The filter returns just 3 rows.
+    // Hence a size of 3*100=300 bytes is expected.
+    assertThat(s.numRows()).hasValue(3L);
+    assertThat(s.sizeInBytes()).hasValue(300L);
   }
 
   @Test
@@ -77,13 +74,14 @@ public class BigQueryEstimatedTableStatisticsTest {
     prepareCalculateSizeNoFilter(bigQueryClient);
     prepareDryRun(bigQueryClient);
     BigQueryEstimatedTableStatistics s =
-        BigQueryEstimatedTableStatistics.newBuilder(TABLE, bigQueryClient)
+        BigQueryEstimatedTableStatistics.newFactory(TABLE, bigQueryClient)
             .setSelectedColumns(Optional.of(ImmutableList.of("col_a", "col_b")))
-            .build();
-    assertThat(s.numRows().isPresent()).isTrue();
-    assertThat(s.numRows().getAsLong()).isEqualTo(10L);
-    assertThat(s.sizeInBytes().isPresent()).isTrue();
-    assertThat(s.sizeInBytes().getAsLong()).isEqualTo(400L);
+            .create();
+    // Original table has 10 rows and 1000 bytes, each row is 100 bytes.
+    // Field projection return just 40 bytes per row, but does not change the number of rows.
+    // Hence a size of 10*40=400 bytes is expected.
+    assertThat(s.numRows()).hasValue(10L);
+    assertThat(s.sizeInBytes()).hasValue(400L);
   }
 
   @Test
@@ -92,14 +90,13 @@ public class BigQueryEstimatedTableStatisticsTest {
     prepareCalculateSizeWithFilter(bigQueryClient);
     prepareDryRun(bigQueryClient);
     BigQueryEstimatedTableStatistics s =
-        BigQueryEstimatedTableStatistics.newBuilder(TABLE, bigQueryClient)
+        BigQueryEstimatedTableStatistics.newFactory(TABLE, bigQueryClient)
             .setFilter(Optional.of("some_filter = 1"))
             .setSelectedColumns(Optional.of(ImmutableList.of("col_a", "col_b")))
-            .build();
-    assertThat(s.numRows().isPresent()).isTrue();
-    assertThat(s.numRows().getAsLong()).isEqualTo(3L);
-    assertThat(s.sizeInBytes().isPresent()).isTrue();
-    assertThat(s.sizeInBytes().getAsLong()).isEqualTo(120L);
+            .create();
+    // Original table has 10 rows and 1000 bytes, each row is 100 bytes.
+    // Field projection return just 40 bytes per row, the filter return just 3 rows.
+    // Hence a size of 3*40=120 bytes is expected.    assertThat(s.sizeInBytes()).hasValue(120L);
   }
 
   private void prepareDryRun(BigQueryClient mockBigQueryClient) {

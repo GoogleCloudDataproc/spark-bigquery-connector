@@ -18,6 +18,7 @@ package com.google.cloud.bigquery.connector.common;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.http.BaseHttpServiceException;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.Optional;
@@ -133,16 +134,28 @@ public class BigQueryClient {
   }
 
   public Job dryRunQuery(String sql) {
-    return create(JobInfo.of(QueryJobConfiguration.newBuilder(sql).setDryRun(true).build()));
+    return create(JobInfo.of(createQuery(sql).setDryRun(true).build()));
+  }
+
+  public QueryJobConfiguration.Builder createQuery(String sql) {
+    return QueryJobConfiguration.newBuilder(sql)
+        .setLabels(ImmutableMap.<String, String>of("origin", "spark-bigquery-connector"));
   }
 
   public TableResult query(String sql) {
+    return query(createQuery(sql));
+  }
+
+  public TableResult query(QueryJobConfiguration.Builder queryBuilder) {
+    QueryJobConfiguration queryJobConfiguration = queryBuilder.build();
     try {
-      return bigQuery.query(QueryJobConfiguration.of(sql));
+      return bigQuery.query(queryJobConfiguration);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new BigQueryException(
-          BaseHttpServiceException.UNKNOWN_CODE, format("Failed to run the query [%s]", sql), e);
+          BaseHttpServiceException.UNKNOWN_CODE,
+          format("Failed to run the query [%s]", queryJobConfiguration.getQuery()),
+          e);
     }
   }
 
@@ -157,7 +170,7 @@ public class BigQueryClient {
     return createSql(table, columns, filters);
   }
 
-  // assuming the SELECT part is properly formatted, can be used to call functions such as COUNT and
+  // Assuming the SELECT part is properly formatted, can be used to call functions such as COUNT and
   // SUM
   public String createSql(TableId table, String formattedQuery, String[] filters) {
     String tableName = fullTableName(table);
@@ -168,7 +181,9 @@ public class BigQueryClient {
   }
 
   String fullTableName(TableId tableId) {
-    return format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
+    return tableId.getProject() != null
+        ? format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable())
+        : format("%s.%s", tableId.getDataset(), tableId.getTable());
   }
 
   public TableStatistics calculateTableSize(TableId tableId, Optional<String> filter) {
@@ -178,7 +193,8 @@ public class BigQueryClient {
   public TableStatistics calculateTableSize(TableInfo tableInfo, Optional<String> filter) {
     TableDefinition.Type type = tableInfo.getDefinition().getType();
     if (type == TableDefinition.Type.TABLE) {
-      // if this is a table, there's no need to query the total number of rows
+      // If this is a table, there's no need to query the total number of rows as we can take it
+      // from the TableInfo
       OptionalLong numberOfFilteredRows =
           toOptionalLong(
               filter
@@ -191,11 +207,7 @@ public class BigQueryClient {
       String table = fullTableName(tableInfo.getTableId());
       String sql =
           filter
-              .map(
-                  f ->
-                      format(
-                          "SELECT (SELECT COUNT(*) from `%s`), (SELECT COUNT(*) from `%s` WHERE %s)",
-                          table, table, f))
+              .map(f -> format("SELECT COUNT(*), COUNTIF(%s) from `%s`", f, table))
               .orElse(format("SELECT  COUNT(*) from `%s`", table));
       FieldValueList row = queryForSingleRow(sql);
       long numberOfRows = row.get(0).getLongValue();
