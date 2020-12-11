@@ -55,8 +55,6 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testBigQueryRecordToDescriptor() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     DescriptorProtos.DescriptorProto expected = NESTED_STRUCT_DESCRIPTOR.setName("Struct").build();
     DescriptorProtos.DescriptorProto converted =
         buildDescriptorProtoWithFields(
@@ -69,8 +67,6 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testBigQueryToProtoSchema() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     ProtoBufProto.ProtoSchema converted = toProtoSchema(BIG_BIGQUERY_SCHEMA);
     ProtoBufProto.ProtoSchema expected =
         ProtoSchemaConverter.convert(
@@ -107,8 +103,6 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testSparkStructRowToDynamicMessage() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     StructType schema = new StructType().add(SPARK_NESTED_STRUCT_FIELD);
     Descriptors.Descriptor schemaDescriptor = toDescriptor(schema);
     Message converted = buildSingleRowMessage(schema, schemaDescriptor, STRUCT_INTERNAL_ROW);
@@ -119,8 +113,6 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testSparkRowToProtoRow() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     ProtoBufProto.ProtoRows converted =
         toProtoRows(
             BIG_SPARK_SCHEMA,
@@ -147,8 +139,6 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testSettingARequiredFieldAsNull() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     try {
       ProtoBufProto.ProtoRows converted =
           toProtoRows(

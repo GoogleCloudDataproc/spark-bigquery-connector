@@ -15,11 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.it
 
+import java.util.UUID
+
 import com.google.cloud.bigquery._
 import com.google.cloud.spark.bigquery.TestUtils
-import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
-import com.google.cloud.spark.bigquery.it.TestConstants._
-import org.apache.spark.ml.linalg.{SQLDataTypes, Vectors}
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.streaming.OutputMode
@@ -28,7 +27,7 @@ import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparkSession}
 import org.scalatest.concurrent.TimeLimits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.time.SpanSugar._
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Ignore, Matchers}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
 
@@ -64,8 +63,8 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
 
   override def beforeAll: Unit = {
     spark = TestUtils.getOrCreateSparkSession("SparkBigQueryEndToEndWriteITSuite")
-//    spark.conf.set("spark.sql.codegen.factoryMode", "NO_CODEGEN")
-//    System.setProperty("spark.testing", "true")
+    //    spark.conf.set("spark.sql.codegen.factoryMode", "NO_CODEGEN")
+    //    System.setProperty("spark.testing", "true")
     testDataset = s"spark_bigquery_it_${System.currentTimeMillis()}"
     IntegrationTestUtils.createDataset(testDataset)
     IntegrationTestUtils.runQuery(
@@ -79,7 +78,6 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
 
   override def afterAll: Unit = {
     IntegrationTestUtils.deleteDatasetAndTables(testDataset)
-    spark.stop()
   }
 
   private def initialData = spark.createDataFrame(spark.sparkContext.parallelize(
@@ -97,10 +95,10 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
     .getDefinition[StandardTableDefinition]()
 
   private def writeToBigQuery(
-    dataSource: String,
-    df: DataFrame,
-    mode: SaveMode,
-    format: String = "parquet") =
+                               dataSource: String,
+                               df: DataFrame,
+                               mode: SaveMode,
+                               format: String = "parquet") =
     df.write.format(dataSource)
       .mode(mode)
       .option("table", fullTableName)
@@ -127,7 +125,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
       .load()
 
 
-  Seq(/* "bigquery", */ "com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+  Seq("bigquery", "com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
     .foreach(testsWithDataSource)
 
   def testsWithDataSource(dataSourceFormat: String) {
@@ -269,7 +267,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
 
     test("overwrite single partition. DataSource %s".format(dataSourceFormat)) {
       // create partitioned table
-      val tableName = "partitioned_table"
+      val tableName = s"partitioned_table_$randomSuffix"
       val fullTableName = s"$testDataset.$tableName"
       bq.create(TableInfo.of(
         TableId.of(testDataset, tableName),
@@ -309,30 +307,30 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
 
     }
 
-//    test("support custom data types. DataSource %s".format(dataSourceFormat)) {
-//      val table = s"$testDataset.$testTable"
-//
-//      val originalVectorDF = spark.createDataFrame(
-//        List(Row("row1", 1, Vectors.dense(1, 2, 3))).asJava,
-//        StructType(Seq(
-//          StructField("name", DataTypes.StringType),
-//          StructField("num", DataTypes.IntegerType),
-//          StructField("vector", SQLDataTypes.VectorType))))
-//
-//      originalVectorDF.write.format(dataSourceFormat)
-//        // must use avro or orc
-//        .option("intermediateFormat", "avro")
-//        .option("temporaryGcsBucket", temporaryGcsBucket)
-//        .save(table)
-//
-//      val readVectorDF = spark.read.format(dataSourceFormat)
-//        .load(table)
-//
-//      val orig = originalVectorDF.head
-//      val read = readVectorDF.head
-//
-//      read should equal(orig)
-//    }
+    //    test("support custom data types. DataSource %s".format(dataSourceFormat)) {
+    //      val table = s"$testDataset.$testTable"
+    //
+    //      val originalVectorDF = spark.createDataFrame(
+    //        List(Row("row1", 1, Vectors.dense(1, 2, 3))).asJava,
+    //        StructType(Seq(
+    //          StructField("name", DataTypes.StringType),
+    //          StructField("num", DataTypes.IntegerType),
+    //          StructField("vector", SQLDataTypes.VectorType))))
+    //
+    //      originalVectorDF.write.format(dataSourceFormat)
+    //        // must use avro or orc
+    //        .option("intermediateFormat", "avro")
+    //        .option("temporaryGcsBucket", temporaryGcsBucket)
+    //        .save(table)
+    //
+    //      val readVectorDF = spark.read.format(dataSourceFormat)
+    //        .load(table)
+    //
+    //      val orig = originalVectorDF.head
+    //      val read = readVectorDF.head
+    //
+    //      read should equal(orig)
+    //    }
 
     test("compare read formats DataSource %s".format(dataSourceFormat)) {
       val allTypesTable = readAllTypesTable(dataSourceFormat)
@@ -351,6 +349,12 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
       assert(df.schema == allTypesTable.schema)
     }
 
+  }
+
+  private def randomSuffix: String = {
+    val uuid = UUID.randomUUID()
+    java.lang.Long.toHexString(uuid.getMostSignificantBits) +
+      java.lang.Long.toHexString(uuid.getLeastSignificantBits)
   }
 
   test("streaming bq write append") {
@@ -390,4 +394,45 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
       additionalDataValuesExist shouldBe true
     }
   }
+
+  test("hourly partition") {
+    testPartition("HOUR")
+  }
+
+  test("daily partition") {
+    testPartition("DAY")
+  }
+
+  test("monthly partition") {
+    testPartition("MONTH")
+  }
+
+  test("yearly partition") {
+    testPartition("YEAR")
+  }
+
+  def testPartition(partitionType: String): Unit = {
+    val s = spark // cannot import from a var
+    import s.implicits._
+    val df = spark.createDataset(Seq(
+      Data("a", java.sql.Timestamp.valueOf("2020-01-01 01:01:01")),
+      Data("b", java.sql.Timestamp.valueOf("2020-01-02 02:02:02")),
+      Data("c", java.sql.Timestamp.valueOf("2020-01-03 03:03:03"))
+    )).toDF()
+
+    val table = s"${testDataset}.${testTable}_${partitionType}"
+    df.write.format("bigquery")
+      .option("temporaryGcsBucket", temporaryGcsBucket)
+      .option("partitionField", "t")
+      .option("partitionType", partitionType)
+      .option("partitionRequireFilter", "true")
+      .option("table", table)
+      .save()
+
+    val readDF = spark.read.format("bigquery").load(table)
+    assert(readDF.count == 3)
+  }
 }
+
+case class Data(str: String, t: java.sql.Timestamp)
+

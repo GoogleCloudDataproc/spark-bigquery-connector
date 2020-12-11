@@ -21,10 +21,7 @@ import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
-import org.apache.avro.data.TimeConversions;
 import org.apache.avro.generic.GenericData;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.types.DataTypes;
@@ -36,8 +33,6 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -253,8 +248,11 @@ public class AvroSchemaConverterTest {
     InternalRow row =
         new GenericInternalRow(
             new Object[] {
-              java.sql.Date.valueOf(LocalDate.of(2011, 10, 14)),
+              Integer.valueOf(
+                  (int)
+                      java.sql.Date.valueOf(LocalDate.of(2011, 10, 14)).toLocalDate().toEpochDay()),
               java.sql.Timestamp.valueOf(LocalDateTime.of(2011, 10, 14, 16, 15, 14, 131211000))
+                  .getTime()
             });
     StructType sparkSchema =
         DataTypes.createStructType(
@@ -274,8 +272,8 @@ public class AvroSchemaConverterTest {
     GenericData.Record result =
         AvroSchemaConverter.sparkRowToAvroGenericData(row, sparkSchema, avroSchema);
     assertThat(result.getSchema()).isEqualTo(avroSchema);
-    assertThat(result.get(0)).isEqualTo(1);
-    assertThat(result.get(1)).isEqualTo(1);
+    assertThat(result.get(0)).isEqualTo(15261);
+    assertThat(result.get(1)).isEqualTo(1318634114131L);
   }
 
   private void checkField(Schema.Field field, String name, Schema schema) {

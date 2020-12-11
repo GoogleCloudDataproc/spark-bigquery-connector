@@ -23,7 +23,7 @@ import org.scalatest.concurrent.TimeLimits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Ignore, Matchers}
 
-// @Ignore
+@Ignore
 class AdHocITSuite extends FunSuite
   with BeforeAndAfter
   with BeforeAndAfterAll
@@ -95,7 +95,6 @@ class AdHocITSuite extends FunSuite
 
   test("test ad hoc") {
     spark.conf.set("temporaryGcsBucket", "davidrab-sandbox")
-    spark.sparkContext.setLogLevel("DEBUG")
 //    val s = spark
 //    import s.implicits._
 //    val df = spark.createDataset[Foo](Seq(Foo("a", 1, true), Foo("b", 2, false))).toDF()
@@ -107,17 +106,13 @@ class AdHocITSuite extends FunSuite
 //    val outDf = spark.read.format("bigquery").load(table)
 //    outDf.show()
 
-    val df1 = spark.read.format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
-      .load("davidrab.demo")
-    df1.createOrReplaceTempView("df1")
-    val df2 = spark.read.format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
-      .load("davidrab.demo")
-    df2.createOrReplaceTempView("df2")
-
-    val res = spark.sql("select * from df1 join df2 on df1.maker=df2.maker")
-        // val codegen = df.queryExecution.debug.codegenToSeq()
- //       println(df.count())
-        res.show()
+    val df1 = spark.sql("select current_date() as d, current_timestamp() as ts")
+//    val df1 = spark.read.format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+//      .load("davidrab.alltypes")
+    val r1 = df1.head()
+//    df1.write.format("avro").save("/tmp/test/alltypes.avro")
+    df1.write.format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+      .mode("overwrite").save("davidrab.alltypes2")
     //
     //    val bqdf = spark.sql("select * from bigquery.`davidrab.demo`")
     //    bqdf.show()

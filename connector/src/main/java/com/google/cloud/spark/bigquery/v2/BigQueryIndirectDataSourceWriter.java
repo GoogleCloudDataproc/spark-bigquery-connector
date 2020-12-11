@@ -153,8 +153,7 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
 
     if (config.getPartitionField().isPresent() || config.getPartitionType().isPresent()) {
       TimePartitioning.Builder timePartitionBuilder =
-          TimePartitioning.newBuilder(
-              TimePartitioning.Type.valueOf(config.getPartitionType().orElse("DAY")));
+          TimePartitioning.newBuilder(config.getPartitionTypeOrDefault());
       config.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
       config.getPartitionRequireFilter().ifPresent(timePartitionBuilder::setRequirePartitionFilter);
       config.getPartitionField().ifPresent(timePartitionBuilder::setField);

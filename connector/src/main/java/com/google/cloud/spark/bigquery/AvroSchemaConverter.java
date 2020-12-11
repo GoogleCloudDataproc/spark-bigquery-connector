@@ -196,14 +196,11 @@ public class AvroSchemaConverter {
     }
 
     if (sparkType instanceof DateType && avroType.getType() == Schema.Type.INT) {
-      return (getter, ordinal) -> (java.lang.Integer) getter.get(ordinal, DataTypes.IntegerType);
+      return (getter, ordinal) -> getter.getInt(ordinal);
     }
 
     if (sparkType instanceof TimestampType && avroType.getType() == Schema.Type.LONG) {
-      return (getter, ordinal) -> {
-        Long timestamp = (java.lang.Long) getter.get(ordinal, DataTypes.LongType);
-        return timestamp;
-      };
+      return (getter, ordinal) -> getter.getLong(ordinal);
     }
 
     if (sparkType instanceof ArrayType && avroType.getType() == Schema.Type.ARRAY) {
