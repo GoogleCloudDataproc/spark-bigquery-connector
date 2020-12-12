@@ -31,8 +31,6 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -246,14 +244,7 @@ public class AvroSchemaConverterTest {
   @Test
   public void testConvertDateTime() {
     InternalRow row =
-        new GenericInternalRow(
-            new Object[] {
-              Integer.valueOf(
-                  (int)
-                      java.sql.Date.valueOf(LocalDate.of(2011, 10, 14)).toLocalDate().toEpochDay()),
-              java.sql.Timestamp.valueOf(LocalDateTime.of(2011, 10, 14, 16, 15, 14, 131211000))
-                  .getTime()
-            });
+        new GenericInternalRow(new Object[] {Integer.valueOf(15261), Long.valueOf(1318608914000L)});
     StructType sparkSchema =
         DataTypes.createStructType(
             ImmutableList.of(
@@ -273,7 +264,7 @@ public class AvroSchemaConverterTest {
         AvroSchemaConverter.sparkRowToAvroGenericData(row, sparkSchema, avroSchema);
     assertThat(result.getSchema()).isEqualTo(avroSchema);
     assertThat(result.get(0)).isEqualTo(15261);
-    assertThat(result.get(1)).isEqualTo(1318634114131L);
+    assertThat(result.get(1)).isEqualTo(1318608914000L);
   }
 
   private void checkField(Schema.Field field, String name, Schema schema) {
