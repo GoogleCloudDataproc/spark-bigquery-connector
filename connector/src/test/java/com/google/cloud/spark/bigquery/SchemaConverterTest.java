@@ -19,6 +19,10 @@ import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TimePartitioning;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -94,6 +98,34 @@ public class SchemaConverterTest {
 
     StructType result = SchemaConverters.toSpark(bqSchema);
     assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  public void testGetSchemaWithPseudoColumns() throws Exception {
+    Schema result =
+        SchemaConverters.getSchemaWithPseudoColumns(buildTableInfo(BIG_BIGQUERY_SCHEMA2, null));
+    assertThat(result).isEqualTo(BIG_BIGQUERY_SCHEMA2);
+
+    result =
+        SchemaConverters.getSchemaWithPseudoColumns(
+            buildTableInfo(
+                BIG_BIGQUERY_SCHEMA2,
+                TimePartitioning.newBuilder(TimePartitioning.Type.DAY).setField("foo").build()));
+    assertThat(result).isEqualTo(BIG_BIGQUERY_SCHEMA2);
+
+    result =
+        SchemaConverters.getSchemaWithPseudoColumns(
+            buildTableInfo(BIG_BIGQUERY_SCHEMA2, TimePartitioning.of(TimePartitioning.Type.DAY)));
+    assertThat(result).isEqualTo(BIG_BIGQUERY_SCHEMA2_WITH_PSEUDO_COLUMNS);
+  }
+
+  public TableInfo buildTableInfo(Schema schema, TimePartitioning timePartitioning) {
+    return TableInfo.of(
+        TableId.of("project", "dataset", "table"),
+        StandardTableDefinition.newBuilder()
+            .setSchema(schema)
+            .setTimePartitioning(timePartitioning)
+            .build());
   }
 
   /*
@@ -346,6 +378,32 @@ public class SchemaConverterTest {
               Field.of("time", LegacySQLTypeName.TIME),
               Field.of("timestamp", LegacySQLTypeName.TIMESTAMP),
               Field.of("datetime", LegacySQLTypeName.DATETIME)));
+
+  public final Schema BIG_BIGQUERY_SCHEMA2_WITH_PSEUDO_COLUMNS =
+      Schema.of(
+          Field.of("foo", LegacySQLTypeName.STRING),
+          Field.of("bar", LegacySQLTypeName.INTEGER),
+          Field.newBuilder("required", LegacySQLTypeName.BOOLEAN)
+              .setMode(Field.Mode.REQUIRED)
+              .build(),
+          Field.newBuilder("binary_arr", LegacySQLTypeName.BYTES)
+              .setMode(Field.Mode.REPEATED)
+              .build(),
+          Field.of("float", LegacySQLTypeName.FLOAT),
+          Field.of("numeric", LegacySQLTypeName.NUMERIC),
+          Field.of("date", LegacySQLTypeName.DATE),
+          Field.of(
+              "times",
+              LegacySQLTypeName.RECORD,
+              Field.of("time", LegacySQLTypeName.TIME),
+              Field.of("timestamp", LegacySQLTypeName.TIMESTAMP),
+              Field.of("datetime", LegacySQLTypeName.DATETIME)),
+          Field.newBuilder("_PARTITIONTIME", LegacySQLTypeName.TIMESTAMP)
+              .setMode(Field.Mode.NULLABLE)
+              .build(),
+          Field.newBuilder("_PARTITIONDATE", LegacySQLTypeName.DATE)
+              .setMode(Field.Mode.NULLABLE)
+              .build());
 
   /* TODO: translate BigQuery to Spark row conversion tests, from SchemaIteratorSuite.scala
   private final List<String> BIG_SCHEMA_NAMES_INORDER = Arrays.asList(

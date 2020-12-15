@@ -20,6 +20,10 @@ import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.TableDefinition;
+import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TimePartitioning;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
@@ -53,6 +57,37 @@ public class SchemaConverters {
     StructType structType = new StructType(fieldList.toArray(new StructField[0]));
 
     return structType;
+  }
+
+  /**
+   * Retrieves and returns BigQuery Schema from TableInfo. If the table support pseudo columns, they
+   * are added to schema before schema is returned to the caller.
+   */
+  public static Schema getSchemaWithPseudoColumns(TableInfo tableInfo) {
+    TimePartitioning timePartitioning = null;
+    TableDefinition tableDefinition = tableInfo.getDefinition();
+    if (tableDefinition instanceof StandardTableDefinition) {
+      timePartitioning = ((StandardTableDefinition) tableDefinition).getTimePartitioning();
+    }
+    boolean tableSupportsPseudoColumns =
+        timePartitioning != null
+            && timePartitioning.getField() == null
+            && timePartitioning.getType() != null;
+
+    Schema schema = tableDefinition.getSchema();
+    if (tableSupportsPseudoColumns) {
+      ArrayList<Field> fields = new ArrayList<Field>(schema.getFields());
+      fields.add(
+          createBigQueryFieldBuilder(
+                  "_PARTITIONTIME", LegacySQLTypeName.TIMESTAMP, Field.Mode.NULLABLE, null)
+              .build());
+      fields.add(
+          createBigQueryFieldBuilder(
+                  "_PARTITIONDATE", LegacySQLTypeName.DATE, Field.Mode.NULLABLE, null)
+              .build());
+      schema = Schema.of(fields);
+    }
+    return schema;
   }
 
   public static InternalRow convertToInternalRow(

@@ -54,7 +54,7 @@ private[bigquery] class DirectBigQueryRelation(
   lazy val bigQuery = bigQueryClient(options)
 
   val topLevelFields = SchemaConverters
-    .toSpark(table.getDefinition[TableDefinition].getSchema)
+    .toSpark(SchemaConverters.getSchemaWithPseudoColumns(table))
     .fields
     .map(field => (field.name, field))
     .toMap
@@ -121,7 +121,7 @@ private[bigquery] class DirectBigQueryRelation(
         .build()
       val requiredColumnSet = requiredColumns.toSet
       val prunedSchema = Schema.of(
-        actualTableDefinition.getSchema.getFields.asScala
+        SchemaConverters.getSchemaWithPseudoColumns(actualTable).getFields().asScala
           .filter(f => requiredColumnSet.contains(f.getName)).asJava)
 
       val client = getClient(options)
@@ -317,8 +317,7 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   private def handledFilters(filters: Array[Filter]): Array[Filter] = {
-    filters.filter(filter => DirectBigQueryRelation.isTopLevelFieldFilterHandled(
-      filter, options.getReadDataFormat, topLevelFields))
+    filters.filter(filter => DirectBigQueryRelation.isHandled(filter))
   }
 
   override def unhandledFilters(filters: Array[Filter]): Array[Filter] = {
@@ -358,59 +357,9 @@ object DirectBigQueryRelation {
     FixedHeaderProvider.create("user-agent",
       new SparkBigQueryConnectorUserAgentProvider("v1").getUserAgent)
 
-  def isTopLevelFieldFilterHandled(
-      filter: Filter,
-      readDataFormat: DataFormat,
-      fields: Map[String, StructField]): Boolean = filter match {
-    case EqualTo(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case GreaterThan(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case GreaterThanOrEqual(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case LessThan(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case LessThanOrEqual(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case In(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case IsNull(attr) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case IsNotNull(attr) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case And(lhs, rhs) =>
-      isTopLevelFieldFilterHandled(lhs, readDataFormat, fields) &&
-      isTopLevelFieldFilterHandled(rhs, readDataFormat, fields)
-    case Or(lhs, rhs) =>
-      readDataFormat == DataFormat.AVRO &&
-      isTopLevelFieldFilterHandled(lhs, readDataFormat, fields) &&
-      isTopLevelFieldFilterHandled(rhs, readDataFormat, fields)
-    case Not(child) => isTopLevelFieldFilterHandled(child, readDataFormat, fields)
-    case StringStartsWith(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case StringEndsWith(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case StringContains(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case _ => false
-  }
-
-  // BigQuery Storage API does not handle RECORD/STRUCT fields at the moment
-  def isFilterWithNamedFieldHandled(
-      filter: Filter,
-      readDataFormat: DataFormat,
-      fields: Map[String, StructField],
-      fieldName: String): Boolean = {
-    fields.get(fieldName)
-      .filter(_.dataType.isInstanceOf[StructType])
-      .map(_ => false)
-      .getOrElse(isHandled(filter, readDataFormat))
-  }
-
-  def isHandled(filter: Filter, readDataFormat: DataFormat): Boolean = filter match {
+  def isHandled(filter: Filter): Boolean = filter match {
     case EqualTo(_, _) => true
-    // There is no direct equivalent of EqualNullSafe in Google standard SQL.
-    case EqualNullSafe(_, _) => false
+    case EqualNullSafe(_, _) => true
     case GreaterThan(_, _) => true
     case GreaterThanOrEqual(_, _) => true
     case LessThan(_, _) => true
@@ -418,10 +367,9 @@ object DirectBigQueryRelation {
     case In(_, _) => true
     case IsNull(_) => true
     case IsNotNull(_) => true
-    case And(lhs, rhs) => isHandled(lhs, readDataFormat) && isHandled(rhs, readDataFormat)
-    case Or(lhs, rhs) => readDataFormat == DataFormat.AVRO &&
-      isHandled(lhs, readDataFormat) && isHandled(rhs, readDataFormat)
-    case Not(child) => isHandled(child, readDataFormat)
+    case And(lhs, rhs) => isHandled(lhs) && isHandled(rhs)
+    case Or(lhs, rhs) => isHandled(lhs) && isHandled(rhs)
+    case Not(child) => isHandled(child)
     case StringStartsWith(_, _) => true
     case StringEndsWith(_, _) => true
     case StringContains(_, _) => true
@@ -431,6 +379,10 @@ object DirectBigQueryRelation {
   // Mostly copied from JDBCRDD.scala
   def compileFilter(filter: Filter): String = filter match {
     case EqualTo(attr, value) => s"${quote(attr)} = ${compileValue(value)}"
+    case EqualNullSafe(attr, value) =>
+      var lhs = quote(attr)
+      var rhs = compileValue(value)
+      s"($lhs = $rhs) OR (($lhs = $rhs) IS NULL AND ($lhs IS NULL) AND ($rhs IS NULL))"
     case GreaterThan(attr, value) => s"$attr > ${compileValue(value)}"
     case GreaterThanOrEqual(attr, value) => s"${quote(attr)} >= ${compileValue(value)}"
     case LessThan(attr, value) => s"${quote(attr)} < ${compileValue(value)}"

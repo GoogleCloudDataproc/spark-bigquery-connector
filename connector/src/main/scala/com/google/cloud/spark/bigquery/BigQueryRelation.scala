@@ -34,7 +34,7 @@ private[bigquery] case class BigQueryRelation(options: SparkBigQueryConfig, tabl
   private val tableDefinition: TableDefinition = table.getDefinition[TableDefinition]
 
   override val schema: StructType = {
-    options.getSchema.orElse(SchemaConverters.toSpark(tableDefinition.getSchema))
+    options.getSchema.orElse(SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table)))
   }
 
   override def toString(): String = {
@@ -48,6 +48,3 @@ private[bigquery] case class BigQueryRelation(options: SparkBigQueryConfig, tabl
        |)""".stripMargin
   }
 }
-
-
-
