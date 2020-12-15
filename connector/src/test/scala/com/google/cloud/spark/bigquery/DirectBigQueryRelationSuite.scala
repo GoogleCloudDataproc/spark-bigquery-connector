@@ -18,7 +18,6 @@ package com.google.cloud.spark.bigquery
 import java.sql.{Date, Timestamp}
 
 import com.google.cloud.bigquery._
-import com.google.cloud.bigquery.storage.v1.DataFormat
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.sources._
@@ -50,7 +49,6 @@ class DirectBigQueryRelationSuite
 
   before {
     val options = defaultOptions
-    options.readDataFormat = DataFormat.AVRO
     MockitoAnnotations.initMocks(this)
     bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
   }
@@ -85,9 +83,10 @@ class DirectBigQueryRelationSuite
     assert(expectedSchema == schema)
   }
 
-  test("valid filters for Avro") {
+  test("valid filters") {
     val validFilters = Seq(
       EqualTo("foo", "manatee"),
+      EqualNullSafe("foo", "manatee"),
       GreaterThan("foo", "aardvark"),
       GreaterThanOrEqual("bar", 2),
       LessThan("foo", "zebra"),
@@ -107,59 +106,10 @@ class DirectBigQueryRelationSuite
     }
   }
 
-  test("valid filters for Arrow") {
-    val options = defaultOptions
-    options.readDataFormat = DataFormat.ARROW
-    val bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
-
-    val validFilters = Seq(
-      EqualTo("foo", "manatee"),
-      GreaterThan("foo", "aardvark"),
-      GreaterThanOrEqual("bar", 2),
-      LessThan("foo", "zebra"),
-      LessThanOrEqual("bar", 1),
-      In("foo", Array(1, 2, 3)),
-      IsNull("foo"),
-      IsNotNull("foo"),
-      And(IsNull("foo"), IsNotNull("bar")),
-      Not(IsNull("foo")),
-      StringStartsWith("foo", "abc"),
-      StringEndsWith("foo", "def"),
-      StringContains("foo", "abcdef")
-    )
-    validFilters.foreach { f =>
-      assert(bigQueryRelation.unhandledFilters(Array(f)).isEmpty)
-    }
-  }
-
   test("multiple valid filters are handled") {
     val valid1 = EqualTo("foo", "bar")
     val valid2 = EqualTo("bar", 1)
     assert(bigQueryRelation.unhandledFilters(Array(valid1, valid2)).isEmpty)
-  }
-
-  test("invalid filters with Avro") {
-    val valid1 = EqualTo("foo", "bar")
-    val valid2 = EqualTo("bar", 1)
-    val invalid1 = EqualNullSafe("foo", "bar")
-    val invalid2 = And(EqualTo("foo", "bar"), Not(EqualNullSafe("bar", 1)))
-    val unhandled = bigQueryRelation.unhandledFilters(Array(valid1, valid2, invalid1, invalid2))
-    unhandled should contain allElementsOf Array(invalid1, invalid2)
-  }
-
-  test("invalid filters with Arrow") {
-    val options = defaultOptions
-    options.readDataFormat = DataFormat.ARROW
-    val bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
-
-    val valid1 = EqualTo("foo", "bar")
-    val valid2 = EqualTo("bar", 1)
-    val invalid1 = EqualNullSafe("foo", "bar")
-    val invalid2 = And(EqualTo("foo", "bar"), Not(EqualNullSafe("bar", 1)))
-    val invalid3 = Or(IsNull("foo"), IsNotNull("foo"))
-    val unhandled = bigQueryRelation.unhandledFilters(Array(valid1, valid2,
-      invalid1, invalid2, invalid3))
-    unhandled should contain allElementsOf Array(invalid1, invalid2, invalid3)
   }
 
   test("old filter behaviour, with filter option") {
@@ -188,6 +138,11 @@ class DirectBigQueryRelationSuite
     val r = new DirectBigQueryRelation(
       defaultOptions, TABLE)(sqlCtx)
     checkFilters(r, "", Array(GreaterThan("a", 2)), "(a > 2)")
+  }
+
+  test("compile EqualNullSafe filter") {
+    var r = new DirectBigQueryRelation(defaultOptions, TABLE)(sqlCtx)
+    checkFilters(r, "", Array(EqualNullSafe("a", "b")), "((`a` = 'b') OR ((`a` = 'b') IS NULL AND (`a` IS NULL) AND ('b' IS NULL)))")
   }
 
   test("filter on date and timestamp fields") {
@@ -232,9 +187,8 @@ class DirectBigQueryRelationSuite
       .setNumBytes(42L * 1000 * 1000 * 1000) // 42GB
       .build())
 
-  test("[1] filter with nested OR and AND for AVRO") {
+  test("[1] filter with nested OR and AND") {
     val options = defaultOptions
-    options.readDataFormat = DataFormat.AVRO
     val r = new DirectBigQueryRelation(options, TABLE_FOR_AVRO_NESTED_OR_AND)(sqlCtx)
 
     // original query
@@ -254,9 +208,8 @@ class DirectBigQueryRelationSuite
         "(`c3` <= 50)))) AND ((`c1` >= 5000) OR (`c1` <= 701)))")
   }
 
-  test("[2] filter with nested OR and AND for AVRO") {
+  test("[2] filter with nested OR and AND") {
     val options = defaultOptions
-    options.readDataFormat = DataFormat.AVRO
     val r = new DirectBigQueryRelation(options, TABLE_FOR_AVRO_NESTED_OR_AND)(sqlCtx)
 
     // original query
@@ -270,9 +223,8 @@ class DirectBigQueryRelationSuite
         "AND (`c3` >= 230)))))")
   }
 
-  test("[3] filter with nested OR and AND for AVRO") {
+  test("[3] filter with nested OR and AND") {
     val options = defaultOptions
-    options.readDataFormat = DataFormat.AVRO
     val r = new DirectBigQueryRelation(options, TABLE_FOR_AVRO_NESTED_OR_AND)(sqlCtx)
 
     // original query
@@ -299,4 +251,3 @@ class DirectBigQueryRelationSuite
   }
 
 }
-
