@@ -16,13 +16,12 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import org.apache.avro.generic.GenericRecord;
-import org.apache.spark.sql.catalyst.InternalRow;
 
+import java.io.Closeable;
 import java.io.IOException;
 
-public interface IntermediateRecordWriter {
+public interface IntermediateRecordWriter extends Closeable {
 
   void write(GenericRecord avroRecord) throws IOException;
 
-  void close() throws IOException;
 }

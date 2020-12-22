@@ -72,7 +72,7 @@ public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport, WriteSup
     Injector injector =
         createInjector(
             schema, options, new BigQueryDataSourceWriterModule(writeUUID, schema, mode));
-    // first verify if we need to do anything at all, based on the table existence and teh save
+    // first verify if we need to do anything at all, based on the table existence and the save
     // mode.
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);

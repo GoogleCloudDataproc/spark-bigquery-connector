@@ -30,13 +30,11 @@ public class AvroIntermediateRecordWriter implements IntermediateRecordWriter {
 
   private final OutputStream outputStream;
   private final DatumWriter<GenericRecord> writer;
-  // private final BinaryEncoder encoder;
   private final DataFileWriter<GenericRecord> dataFileWriter;
 
   AvroIntermediateRecordWriter(Schema schema, OutputStream outputStream) throws IOException {
     this.outputStream = outputStream;
     this.writer = new GenericDatumWriter<>(schema);
-    // this.encoder = EncoderFactory.get().binaryEncoder(outputStream, null);
     this.dataFileWriter = new DataFileWriter<>(writer);
     this.dataFileWriter.create(schema, outputStream);
   }
@@ -44,17 +42,14 @@ public class AvroIntermediateRecordWriter implements IntermediateRecordWriter {
   @Override
   public void write(GenericRecord record) throws IOException {
     dataFileWriter.append(record);
-    // writer.write(record, encoder);
   }
 
   @Override
   public void close() throws IOException {
     try {
-      // encoder.flush();
       dataFileWriter.flush();
     } finally {
       dataFileWriter.close();
-      // outputStream.close();
     }
   }
 }

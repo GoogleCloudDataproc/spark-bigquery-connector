@@ -267,6 +267,11 @@ public class AvroSchemaConverterTest {
     assertThat(result.get(1)).isEqualTo(1318608914000L);
   }
 
+  @Test
+  public void testComparisonToSparkAvro() {
+
+  }
+
   private void checkField(Schema.Field field, String name, Schema schema) {
     assertThat(field.name()).isEqualTo(name);
     assertThat(field.schema()).isEqualTo(schema);
