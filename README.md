@@ -101,8 +101,8 @@ The connector uses the cross language [Spark SQL Data Source API](https://spark.
 ### Reading data from BigQuery
 
 ```
-df = spark.read
-  .format("bigquery")
+df = spark.read \
+  .format("bigquery") \
   .load("bigquery-public-data.samples.shakespeare")
 ```
 
@@ -120,9 +120,9 @@ See [Shakespeare.scala](src/main/scala/com/google/cloud/spark/bigquery/examples/
 Writing a DataFrame to BigQuery is done in a similar manner. Notice that the process writes the data first to GCS and then loads it to BigQuery, a GCS bucket must be configured to indicate the temporary data location.
 
 ```
-df.write
-  .format("bigquery")
-  .option("temporaryGcsBucket","some-bucket")
+df.write \
+  .format("bigquery") \
+  .option("temporaryGcsBucket","some-bucket") \
   .save("dataset.table")
 ```
 
@@ -131,8 +131,8 @@ The data is temporarily stored using the [Apache parquet](https://parquet.apache
 The GCS bucket and the format can also be set globally using Spark"s RuntimeConfig like this:
 ```
 spark.conf.set("temporaryGcsBucket","some-bucket")
-df.write
-  .format("bigquery")
+df.write \
+  .format("bigquery") \
   .save("dataset.table")
 ```
 
@@ -142,10 +142,10 @@ Note that a HDFS compatible
 (eg: `path/to/HDFS/dir` or `gs://checkpoint-bucket/checkpointDir`) must be specified.
 
 ```
-df.writeStream
-  .format("bigquery")
-  .option("temporaryGcsBucket","some-bucket")
-  .option("checkpointLocation", "some-location")
+df.writeStream \
+  .format("bigquery") \
+  .option("temporaryGcsBucket","some-bucket") \
+  .option("checkpointLocation", "some-location") \
   .option("table", "dataset.table")
 ```
 
