@@ -174,7 +174,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
               "Data read format '%s' is not supported. Supported formats are '%s'",
               readDataFormatParam, String.join(",", PERMITTED_READ_DATA_FORMATS)));
     }
-    config.useAvroLogicalTypes = getAnyBooleanOption(globalOptions, options, USE_AVRO_LOGICAL_TYPES_OPTION, false);
+    config.useAvroLogicalTypes =
+        getAnyBooleanOption(globalOptions, options, USE_AVRO_LOGICAL_TYPES_OPTION, false);
     config.readDataFormat = DataFormat.valueOf(readDataFormatParam);
     config.combinePushedDownFilters =
         getAnyBooleanOption(globalOptions, options, "combinePushedDownFilters", true);

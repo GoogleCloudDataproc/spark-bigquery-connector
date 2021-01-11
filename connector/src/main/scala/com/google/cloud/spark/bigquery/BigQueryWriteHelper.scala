@@ -98,12 +98,13 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
   def loadDataToBigQuery(): Unit = {
     val fs = gcsPath.getFileSystem(conf)
-    val sourceUris = ToIterator(fs.listFiles(gcsPath, false))
+    val sourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(
+      ToIterator(fs.listFiles(gcsPath, false))
       .map(_.getPath.toString)
       .filter(_.toLowerCase.endsWith(
         s".${options.getIntermediateFormat.getFormatOptions.getType.toLowerCase}"))
       .toList
-      .asJava
+      .asJava)
 
     val jobConfigurationBuilder = LoadJobConfiguration.newBuilder(
       options.getTableId, sourceUris, options.getIntermediateFormat.getFormatOptions)

@@ -18,10 +18,16 @@ package com.google.cloud.bigquery.connector.common;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.TableId;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -121,5 +127,46 @@ public class BigQueryUtil {
 
   public static void convertAndThrow(BigQueryError error) {
     throw new BigQueryException(UNKNOWN_CODE, error.getMessage(), error);
+  }
+
+  /**
+   * Solving Issue #248. As the bigquery load API can handle wildcard characters, we replace (a) 10
+   * URIs ending in XXX[0-9].suffix with XXX*.suffix; (b) 10 URIs ending in XXX[0-9]*.suffix with
+   * XXX*.suffix; This reduces the total number of URIs sent to the BigQuery API
+   *
+   * @param uris the list of URIs where the data was written to
+   * @param prefixRegex the regex to catch the part before the file index.
+   * @param suffixRegex the regex to catch the part after the file index.
+   */
+  public static List<String> optimizeLoadUriList(
+      List<String> uris, String prefixRegex, String suffixRegex) {
+    Pattern pattern = Pattern.compile("(" + prefixRegex + "\\d*)\\d\\**(" + suffixRegex + ")");
+    ImmutableList.Builder<String> result = ImmutableList.builder();
+    List<String> workingList = uris;
+    Multimap<String, String> trimmedUriMap = HashMultimap.create();
+    while (!workingList.isEmpty()) {
+      // converting
+      // prefix-1234.suffix to prefix-123*.suffix
+      // prefix-123*.suffix to prefix-12*.suffix
+      for (String uri : workingList) {
+        String trimmedUri = pattern.matcher(uri).replaceFirst("$1*$2");
+        trimmedUriMap.put(trimmedUri, uri);
+      }
+      List<String> nextList = new ArrayList<>();
+      for (String trimmedUri : trimmedUriMap.keySet()) {
+        Collection<String> mappedUris = trimmedUriMap.get(trimmedUri);
+        if (mappedUris.size() == 10) {
+          // All URIs exists, we can replace the last character with '*' in the next iteration
+          nextList.add(trimmedUri);
+        } else {
+          // not all suffixes exist, so we can't optimize further.
+          result.addAll(mappedUris);
+        }
+      }
+      // cleanup and prepare next iteration
+      trimmedUriMap.clear();
+      workingList = nextList;
+    }
+    return result.build();
   }
 }
