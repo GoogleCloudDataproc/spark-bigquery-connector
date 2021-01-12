@@ -23,5 +23,4 @@ import java.io.IOException;
 public interface IntermediateRecordWriter extends Closeable {
 
   void write(GenericRecord avroRecord) throws IOException;
-
 }

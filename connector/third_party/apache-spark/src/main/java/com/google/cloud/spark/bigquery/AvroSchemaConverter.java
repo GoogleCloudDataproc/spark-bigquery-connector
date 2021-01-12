@@ -261,7 +261,6 @@ public class AvroSchemaConverter {
 
   @FunctionalInterface
   interface Converter {
-    // void convert(InternalRow fromRow, GenericData.Record toRecord, int index);
     Object convert(SpecializedGetters getters, int ordinal);
   }
 
