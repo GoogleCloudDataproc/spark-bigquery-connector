@@ -184,7 +184,7 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
           finishedJob.getStatus().getError());
     } else {
       logger.info(
-          "Done loading to %s. jobId: %s",
+          "Done loading to {}. jobId: {}",
           BigQueryUtil.friendlyTableName(config.getTableId()), finishedJob.getJobId());
     }
   }
