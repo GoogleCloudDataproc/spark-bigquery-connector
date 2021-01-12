@@ -83,7 +83,7 @@ public class OptimizeLoadUriListTest {
               "gs://bucket/path/to/part-001*-5ef57800-1b61-4b15-af3c-f766f84d179c-c000.snappy.parquet")
         },
         new Object[] {
-          // input 3
+          // input 4
           IntStream.range(100, 211)
               .mapToObj(
                   i ->
@@ -91,11 +91,25 @@ public class OptimizeLoadUriListTest {
                           "gs://bucket/path/to/part-00%s-2a70634c-f292-46f4-ba71-36a4af58f777-c000.json",
                           i))
               .collect(Collectors.toList()),
-          // output 3
+          // output 4
           Arrays.asList(
               "gs://bucket/path/to/part-001*-2a70634c-f292-46f4-ba71-36a4af58f777-c000.json",
               "gs://bucket/path/to/part-0020*-2a70634c-f292-46f4-ba71-36a4af58f777-c000.json",
               "gs://bucket/path/to/part-00210-2a70634c-f292-46f4-ba71-36a4af58f777-c000.json")
+        },
+        new Object[] { // size of 1
+          // input 5
+          Arrays.asList(
+              "gs://bucket/path/to/part-00000-2a70634c-f292-46f4-ba71-36a4af58f777-c000.avro"),
+          // output 5
+          Arrays.asList(
+              "gs://bucket/path/to/part-00000-2a70634c-f292-46f4-ba71-36a4af58f777-c000.avro")
+        },
+        new Object[] { // empty
+          // input 6
+          Arrays.asList(),
+          // output 6
+          Arrays.asList()
         });
   }
 
