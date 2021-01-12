@@ -143,15 +143,8 @@ public class BigQueryUtil {
     Pattern pattern = Pattern.compile("(" + prefixRegex + "\\d*)\\d\\**(" + suffixRegex + ")");
     ImmutableList.Builder<String> result = ImmutableList.builder();
     List<String> workingList = uris;
-    Multimap<String, String> trimmedUriMap = HashMultimap.create();
     while (!workingList.isEmpty()) {
-      // converting
-      // prefix-1234.suffix to prefix-123*.suffix
-      // prefix-123*.suffix to prefix-12*.suffix
-      for (String uri : workingList) {
-        String trimmedUri = pattern.matcher(uri).replaceFirst("$1*$2");
-        trimmedUriMap.put(trimmedUri, uri);
-      }
+      Multimap<String, String> trimmedUriMap = trimUris(pattern, workingList);
       List<String> nextList = new ArrayList<>();
       for (String trimmedUri : trimmedUriMap.keySet()) {
         Collection<String> mappedUris = trimmedUriMap.get(trimmedUri);
@@ -168,5 +161,17 @@ public class BigQueryUtil {
       workingList = nextList;
     }
     return result.build();
+  }
+
+  private static Multimap<String, String> trimUris(Pattern pattern, List<String> workingList) {
+    Multimap<String, String> trimmedUriMap = HashMultimap.create();
+    // converting
+    // prefix-1234.suffix to prefix-123*.suffix
+    // prefix-123*.suffix to prefix-12*.suffix
+    for (String uri : workingList) {
+      String trimmedUri = pattern.matcher(uri).replaceFirst("$1*$2");
+      trimmedUriMap.put(trimmedUri, uri);
+    }
+    return trimmedUriMap;
   }
 }

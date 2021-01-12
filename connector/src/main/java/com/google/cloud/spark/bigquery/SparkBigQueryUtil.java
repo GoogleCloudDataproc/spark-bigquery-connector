@@ -21,6 +21,13 @@ import java.util.List;
 
 /** Spark related utilities */
 public class SparkBigQueryUtil {
+  /**
+   * Optimizing the URI list for BigQuery load, using the Spark specific file prefix and suffix
+   * patterns, based on <code>BigQueryUtil.optimizeLoadUriList()</code>
+   *
+   * @param uris A list of URIs to be loaded by BigQuery load
+   * @return an optimized list of URIs
+   */
   public static List<String> optimizeLoadUriListForSpark(List<String> uris) {
     return BigQueryUtil.optimizeLoadUriList(uris, ".*/part-", "-[-\\w\\.]+");
   }
