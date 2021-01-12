@@ -15,14 +15,23 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.Clustering;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Job;
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.LoadJobConfiguration;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TableDefinition;
+import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.http.BaseHttpServiceException;
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
-import com.google.common.collect.ImmutableList;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
@@ -38,7 +47,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -115,7 +128,11 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
         "Data has been successfully written to GCS. Going to load {} files to BigQuery",
         messages.length);
     try {
-      loadDataToBigQuery();
+      List<String> sourceUris =
+          Stream.of(messages)
+              .map(msg -> ((BigQueryIndirectWriterCommitMessage) msg).getUri())
+              .collect(Collectors.toList());
+      loadDataToBigQuery(sourceUris);
       updateMetadataIfNeeded();
       logger.info("Data has been successfully loaded to BigQuery");
     } catch (IOException e) {
@@ -137,14 +154,15 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
     }
   }
 
-  void loadDataToBigQuery() throws IOException {
+  void loadDataToBigQuery(List<String> sourceUris) throws IOException {
     // Solving Issue #248
-    List<String> sourceUris =
-        ImmutableList.of(gcsPath + "/*" + config.getIntermediateFormat().getFileSuffix());
+    List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
 
     LoadJobConfiguration.Builder jobConfiguration =
         LoadJobConfiguration.newBuilder(
-                config.getTableId(), sourceUris, config.getIntermediateFormat().getFormatOptions())
+                config.getTableId(),
+                optimizedSourceUris,
+                config.getIntermediateFormat().getFormatOptions())
             .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
             .setWriteDisposition(saveModeToWriteDisposition(saveMode))
             .setAutodetect(true);
@@ -185,7 +203,8 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
     } else {
       logger.info(
           "Done loading to {}. jobId: {}",
-          BigQueryUtil.friendlyTableName(config.getTableId()), finishedJob.getJobId());
+          BigQueryUtil.friendlyTableName(config.getTableId()),
+          finishedJob.getJobId());
     }
   }
 
@@ -233,8 +252,7 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
                               .orElse(field))
                   .collect(Collectors.toList()));
       TableInfo.Builder updatedTableInfo =
-          originalTableInfo
-              .toBuilder()
+          originalTableInfo.toBuilder()
               .setDefinition(originalTableDefinition.toBuilder().setSchema(updatedSchema).build());
 
       bigQueryClient.update(updatedTableInfo.build());
