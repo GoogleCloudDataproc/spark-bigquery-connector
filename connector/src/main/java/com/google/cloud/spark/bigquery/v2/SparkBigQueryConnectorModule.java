@@ -59,8 +59,14 @@ public class SparkBigQueryConnectorModule implements Module {
   @Singleton
   @Provides
   public SparkBigQueryConfig provideSparkBigQueryConfig() {
+    ImmutableMap<String, String> optionsMap =
+        ImmutableMap.<String, String>builder()
+            .putAll(options.asMap())
+            // no need for the spar-avro module, we have an internal copy of avro
+            .put(SparkBigQueryConfig.VALIDATE_SPARK_AVRO_PARAM, "false")
+            .build();
     return SparkBigQueryConfig.from(
-        options.asMap(),
+        optionsMap,
         ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll())),
         spark.sparkContext().hadoopConfiguration(),
         spark.sparkContext().defaultParallelism(),

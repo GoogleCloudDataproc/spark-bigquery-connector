@@ -268,9 +268,7 @@ public class AvroSchemaConverterTest {
   }
 
   @Test
-  public void testComparisonToSparkAvro() {
-
-  }
+  public void testComparisonToSparkAvro() {}
 
   private void checkField(Schema.Field field, String name, Schema schema) {
     assertThat(field.name()).isEqualTo(name);

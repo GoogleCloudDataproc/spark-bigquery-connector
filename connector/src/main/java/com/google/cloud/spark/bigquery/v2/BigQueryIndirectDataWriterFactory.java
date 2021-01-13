@@ -15,7 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import org.apache.avro.Schema;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -27,6 +26,7 @@ import org.apache.spark.util.SerializableConfiguration;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.UUID;
 
 public class BigQueryIndirectDataWriterFactory implements DataWriterFactory<InternalRow> {
 
@@ -34,50 +34,32 @@ public class BigQueryIndirectDataWriterFactory implements DataWriterFactory<Inte
   String gcsDirPath;
   StructType sparkSchema;
   String avroSchemaJson;
-  SparkBigQueryConfig.IntermediateFormat intermediateFormat;
 
   public BigQueryIndirectDataWriterFactory(
       SerializableConfiguration conf,
       String gcsDirPath,
       StructType sparkSchema,
-      String avroSchemaJson,
-      SparkBigQueryConfig.IntermediateFormat intermediateFormat) {
+      String avroSchemaJson) {
     this.conf = conf;
     this.gcsDirPath = gcsDirPath;
     this.sparkSchema = sparkSchema;
     this.avroSchemaJson = avroSchemaJson;
-    this.intermediateFormat = intermediateFormat;
   }
 
   @Override
   public DataWriter<InternalRow> createDataWriter(int partitionId, long taskId, long epochId) {
     try {
       Schema avroSchema = new Schema.Parser().parse(avroSchemaJson);
-      String uri =
-          String.format(
-              "%s/part-%06d.%s",
-              gcsDirPath, partitionId, intermediateFormat.toString().toLowerCase());
+      UUID uuid = new UUID(taskId, epochId);
+      String uri = String.format("%s/part-%06d-%s.avro", gcsDirPath, partitionId, uuid);
       Path path = new Path(uri);
       FileSystem fs = path.getFileSystem(conf.value());
       IntermediateRecordWriter intermediateRecordWriter =
-          createIntermediateRecordWriter(avroSchema, path, fs);
+          new AvroIntermediateRecordWriter(avroSchema, fs.create(path));
       return new BigQueryIndirectDataWriter(
           partitionId, path, fs, sparkSchema, avroSchema, intermediateRecordWriter);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
-    }
-  }
-
-  IntermediateRecordWriter createIntermediateRecordWriter(
-      Schema avroSchema, Path path, FileSystem fs) throws IOException {
-    switch (intermediateFormat) {
-      case AVRO:
-        return new AvroIntermediateRecordWriter(avroSchema, fs.create(path));
-      case PARQUET:
-        return new ParquetIntermediateRecordWriter(avroSchema, path, conf.value());
-      default:
-        throw new IllegalArgumentException(
-            "Only AVRO and PARQUET intermediate formats are supported");
     }
   }
 }

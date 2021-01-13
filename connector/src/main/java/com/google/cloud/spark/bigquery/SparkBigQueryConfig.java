@@ -17,7 +17,11 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
@@ -35,7 +39,13 @@ import org.threeten.bp.Duration;
 import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -51,6 +61,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
   public static final String USE_AVRO_LOGICAL_TYPES_OPTION = "useAvroLogicalTypes";
   public static final String DATE_PARTITION_PARAM = "datePartition";
+  public static final String VALIDATE_SPARK_AVRO_PARAM = "validateSparkAvroInternalParam";
   @VisibleForTesting static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.ARROW;
 
   @VisibleForTesting
@@ -159,10 +170,13 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     config.temporaryGcsBucket = getAnyOption(globalOptions, options, "temporaryGcsBucket");
     config.persistentGcsBucket = getAnyOption(globalOptions, options, "persistentGcsBucket");
     config.persistentGcsPath = getOption(options, "persistentGcsPath");
+    boolean validateSparkAvro =
+        Boolean.valueOf(getRequiredOption(options, VALIDATE_SPARK_AVRO_PARAM, () -> "true"));
     config.intermediateFormat =
         getAnyOption(globalOptions, options, INTERMEDIATE_FORMAT_OPTION)
             .transform(String::toLowerCase)
-            .transform(format -> IntermediateFormat.from(format, sparkVersion, sqlConf))
+            .transform(
+                format -> IntermediateFormat.from(format, sparkVersion, sqlConf, validateSparkAvro))
             .or(DEFAULT_INTERMEDIATE_FORMAT);
     String readDataFormatParam =
         getAnyOption(globalOptions, options, READ_DATA_FORMAT_OPTION)
@@ -520,14 +534,15 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
       this.formatOptions = formatOptions;
     }
 
-    public static IntermediateFormat from(String format, String sparkVersion, SQLConf sqlConf) {
+    public static IntermediateFormat from(
+        String format, String sparkVersion, SQLConf sqlConf, boolean validateSparkAvro) {
       Preconditions.checkArgument(
           PERMITTED_DATA_SOURCES.contains(format.toLowerCase()),
           "Data read format '%s' is not supported. Supported formats are %s",
           format,
           PERMITTED_DATA_SOURCES);
 
-      if (format.equalsIgnoreCase("avro")) {
+      if (validateSparkAvro && format.equalsIgnoreCase("avro")) {
         IntermediateFormat intermediateFormat = isSpark24OrAbove(sparkVersion) ? AVRO : AVRO_2_3;
 
         try {
