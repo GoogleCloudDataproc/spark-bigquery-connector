@@ -28,6 +28,8 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.apache.spark.sql.types.StructType;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import static scala.collection.JavaConversions.mapAsJavaMap;
@@ -59,14 +61,16 @@ public class SparkBigQueryConnectorModule implements Module {
   @Singleton
   @Provides
   public SparkBigQueryConfig provideSparkBigQueryConfig() {
-    ImmutableMap<String, String> optionsMap =
-        ImmutableMap.<String, String>builder()
-            .putAll(options.asMap())
-            // no need for the spar-avro module, we have an internal copy of avro
-            .put(SparkBigQueryConfig.VALIDATE_SPARK_AVRO_PARAM, "false")
-            .build();
+    Map<String, String> optionsMap = new HashMap<>(options.asMap());
+    // no need for the spar-avro module, we have an internal copy of avro
+    optionsMap.put(SparkBigQueryConfig.VALIDATE_SPARK_AVRO_PARAM.toLowerCase(), "false");
+    // DataSource V2 implementation uses Java only
+    optionsMap.put(
+        SparkBigQueryConfig.INTERMEDIATE_FORMAT_OPTION.toLowerCase(),
+        SparkBigQueryConfig.IntermediateFormat.AVRO.toString());
+
     return SparkBigQueryConfig.from(
-        optionsMap,
+        ImmutableMap.copyOf(optionsMap),
         ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll())),
         spark.sparkContext().hadoopConfiguration(),
         spark.sparkContext().defaultParallelism(),

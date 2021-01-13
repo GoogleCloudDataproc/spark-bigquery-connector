@@ -70,7 +70,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   static final String GCS_CONFIG_CREDENTIALS_FILE_PROPERTY =
       "google.cloud.auth.service.account.json.keyfile";
   static final String GCS_CONFIG_PROJECT_ID_PROPERTY = "fs.gs.project.id";
-  private static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
+  public static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
   private static final String READ_DATA_FORMAT_OPTION = "readDataFormat";
   private static final ImmutableList<String> PERMITTED_READ_DATA_FORMATS =
       ImmutableList.of(DataFormat.ARROW.toString(), DataFormat.AVRO.toString());
@@ -538,7 +538,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         String format, String sparkVersion, SQLConf sqlConf, boolean validateSparkAvro) {
       Preconditions.checkArgument(
           PERMITTED_DATA_SOURCES.contains(format.toLowerCase()),
-          "Data read format '%s' is not supported. Supported formats are %s",
+          "Data write format '%s' is not supported. Supported formats are %s",
           format,
           PERMITTED_DATA_SOURCES);
 

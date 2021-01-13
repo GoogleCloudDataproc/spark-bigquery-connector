@@ -194,9 +194,12 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
     }
 
     test("write to bq - parquet format. DataSource %s".format(dataSourceFormat)) {
-      writeToBigQuery(dataSourceFormat, initialData, SaveMode.ErrorIfExists, "parquet")
-      testTableNumberOfRows shouldBe 2
-      initialDataValuesExist shouldBe true
+      // v2 does not support parquet
+      if (dataSourceFormat.equals("bigquery")) {
+        writeToBigQuery(dataSourceFormat, initialData, SaveMode.ErrorIfExists, "parquet")
+        testTableNumberOfRows shouldBe 2
+        initialDataValuesExist shouldBe true
+      }
     }
 
     test("write to bq - simplified api. DataSource %s".format(dataSourceFormat)) {
@@ -208,8 +211,10 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
     }
 
     test("write to bq - unsupported format. DataSource %s".format(dataSourceFormat)) {
-      assertThrows[Exception] {
-        writeToBigQuery(dataSourceFormat, initialData, SaveMode.ErrorIfExists, "something else")
+      if (dataSourceFormat.equals("bigquery")) {
+        assertThrows[Exception] {
+          writeToBigQuery(dataSourceFormat, initialData, SaveMode.ErrorIfExists, "something else")
+        }
       }
     }
 
