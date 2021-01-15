@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.UUID;
 
-public class BigQueryIndirectDataWriterFactory implements DataWriterFactory<InternalRow> {
+class BigQueryIndirectDataWriterFactory implements DataWriterFactory<InternalRow> {
 
   SerializableConfiguration conf;
   String gcsDirPath;

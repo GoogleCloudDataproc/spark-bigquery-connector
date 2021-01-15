@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class BigQueryIndirectDataWriter implements DataWriter<InternalRow> {
+class BigQueryIndirectDataWriter implements DataWriter<InternalRow> {
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryIndirectDataWriter.class);
   Path path;

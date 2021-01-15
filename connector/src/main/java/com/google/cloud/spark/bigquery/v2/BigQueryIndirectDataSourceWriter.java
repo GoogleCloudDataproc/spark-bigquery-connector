@@ -55,6 +55,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * A DataSourceWriter implemented by first writing the DataFrame's data into GCS in an intermediate
+ * format, and then triggering a BigQuery load job on this data. Hence the "indirect" - the data
+ * goes through an intermediate storage.
+ */
 public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
 
   private static final Logger logger =
@@ -251,8 +256,7 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
                               .orElse(field))
                   .collect(Collectors.toList()));
       TableInfo.Builder updatedTableInfo =
-          originalTableInfo
-              .toBuilder()
+          originalTableInfo.toBuilder()
               .setDefinition(originalTableDefinition.toBuilder().setSchema(updatedSchema).build());
 
       bigQueryClient.update(updatedTableInfo.build());

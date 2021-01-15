@@ -36,6 +36,10 @@ import org.apache.spark.sql.types.StructType;
 
 import java.util.Optional;
 
+/**
+ * A DataSourceV2 implementation, providing efficient reader and writer for the Google Cloud
+ * Platform BigQuery.
+ */
 public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport, WriteSupport {
 
   @Override
@@ -66,6 +70,10 @@ public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport, WriteSup
     return createReader(null, options);
   }
 
+  /**
+   * Returning a DataSourceWriter for the specified parameters. In case the table already exist and
+   * the SaveMode is "Ignore", an Optional.empty() is returned.
+   */
   @Override
   public Optional<DataSourceWriter> createWriter(
       String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {

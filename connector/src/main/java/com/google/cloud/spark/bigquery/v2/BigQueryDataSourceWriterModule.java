@@ -34,7 +34,7 @@ import java.io.UncheckedIOException;
 import java.util.Optional;
 import java.util.UUID;
 
-public class BigQueryDataSourceWriterModule implements Module {
+class BigQueryDataSourceWriterModule implements Module {
 
   private final String writeUUID;
   private final StructType sparkSchema;
