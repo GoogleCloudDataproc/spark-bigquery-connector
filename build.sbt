@@ -109,7 +109,8 @@ lazy val connector = (project in file("connector"))
 
       "org.apache.spark" %% "spark-avro" % sparkVersion % "test"
       ))
-      .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
+      .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*)),
+    dependencyOverrides += "org.slf4j" % "slf4j-api" % "1.7.16" % "provided"
   )
 
 lazy val fatJar = project
