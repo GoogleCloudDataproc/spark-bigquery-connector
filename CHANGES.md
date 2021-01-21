@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.18.1 - 2021-01-21
+* Issue #248: Reducing the size of the URI list when writing to BigQuery. This allows larger DataFrames (>10,000 partitions) to be safely written.
+* Issue #296: Removed redundant packaged slf4j-api.
+* PR #276: Added the option to enable `useAvroLogicalTypes` option When writing data to BigQuery.
+
 ## 0.18.0 - 2020-11-12
 * Issue #226: Adding support for HOUR, MONTH, DAY TimePartitions
 * Issue #260: Increasing connection timeout to the BigQuery service, and 
