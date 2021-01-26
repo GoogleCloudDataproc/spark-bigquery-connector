@@ -30,7 +30,6 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -54,7 +53,8 @@ class BigQueryDataSourceWriterModule implements Module {
   @Singleton
   @Provides
   public BigQueryIndirectDataSourceWriter provideDataSourceWriter(
-      BigQueryClient bigQueryClient, SparkBigQueryConfig config, SparkSession spark) {
+      BigQueryClient bigQueryClient, SparkBigQueryConfig config, SparkSession spark)
+      throws IOException {
     Path gcsPath =
         createGcsPath(
             config,
@@ -80,40 +80,36 @@ class BigQueryDataSourceWriterModule implements Module {
         intermediateDataCleaner);
   }
 
-  Path createGcsPath(SparkBigQueryConfig config, Configuration conf, String applicationId) {
+  Path createGcsPath(SparkBigQueryConfig config, Configuration conf, String applicationId)
+      throws IOException {
     Preconditions.checkArgument(
         config.getTemporaryGcsBucket().isPresent() || config.getPersistentGcsBucket().isPresent(),
         "Temporary or persistent GCS bucket must be informed.");
     boolean needNewPath = true;
     Path gcsPath = null;
-    try {
-      while (needNewPath) {
-        String gcsPathOption =
-            config
-                .getTemporaryGcsBucket()
-                .map(
-                    bucket ->
-                        String.format(
-                            "gs://%s/.spark-bigquery-%s-%s",
-                            bucket, applicationId, UUID.randomUUID()))
-                .orElseGet(
-                    () -> {
-                      // if we are here it means that the PersistentGcsBucket is set
-                      String path =
-                          config
-                              .getPersistentGcsPath()
-                              .orElse(
-                                  String.format(
-                                      ".spark-bigquery-%s-%s", applicationId, UUID.randomUUID()));
-                      return String.format(
-                          "gs://%s/%s", config.getPersistentGcsBucket().get(), path);
-                    });
-        gcsPath = new Path(gcsPathOption);
-        FileSystem fs = gcsPath.getFileSystem(conf);
-        needNewPath = fs.exists(gcsPath); // if the path exists for some reason, then retry
-      }
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
+    while (needNewPath) {
+      String gcsPathOption =
+          config
+              .getTemporaryGcsBucket()
+              .map(
+                  bucket ->
+                      String.format(
+                          "gs://%s/.spark-bigquery-%s-%s",
+                          bucket, applicationId, UUID.randomUUID()))
+              .orElseGet(
+                  () -> {
+                    // if we are here it means that the PersistentGcsBucket is set
+                    String path =
+                        config
+                            .getPersistentGcsPath()
+                            .orElse(
+                                String.format(
+                                    ".spark-bigquery-%s-%s", applicationId, UUID.randomUUID()));
+                    return String.format("gs://%s/%s", config.getPersistentGcsBucket().get(), path);
+                  });
+      gcsPath = new Path(gcsPathOption);
+      FileSystem fs = gcsPath.getFileSystem(conf);
+      needNewPath = fs.exists(gcsPath); // if the path exists for some reason, then retry
     }
     return gcsPath;
   }
