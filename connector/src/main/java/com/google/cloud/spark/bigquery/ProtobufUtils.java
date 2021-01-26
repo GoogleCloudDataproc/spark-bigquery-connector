@@ -15,7 +15,6 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.common.base.Preconditions;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
@@ -239,19 +238,16 @@ public class ProtobufUtils {
     return messageBuilder.build();
   }
 
-  public static Descriptors.Descriptor toDescriptor(StructType schema) {
-    try {
-      DescriptorProtos.DescriptorProto.Builder descriptorBuilder =
-          DescriptorProtos.DescriptorProto.newBuilder().setName("Schema");
+  public static Descriptors.Descriptor toDescriptor(StructType schema)
+      throws Descriptors.DescriptorValidationException {
+    DescriptorProtos.DescriptorProto.Builder descriptorBuilder =
+        DescriptorProtos.DescriptorProto.newBuilder().setName("Schema");
 
-      int initialDepth = 0;
-      DescriptorProtos.DescriptorProto descriptorProto =
-          buildDescriptorProtoWithFields(descriptorBuilder, schema.fields(), initialDepth);
+    int initialDepth = 0;
+    DescriptorProtos.DescriptorProto descriptorProto =
+        buildDescriptorProtoWithFields(descriptorBuilder, schema.fields(), initialDepth);
 
-      return createDescriptorFromProto(descriptorProto);
-    } catch (Descriptors.DescriptorValidationException e) {
-      throw new BigQueryConnectorException("Could not convert schema to protobuf descriptor", e);
-    }
+    return createDescriptorFromProto(descriptorProto);
   }
 
   /*

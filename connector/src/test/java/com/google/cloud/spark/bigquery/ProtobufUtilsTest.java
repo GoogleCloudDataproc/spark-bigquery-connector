@@ -55,6 +55,8 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testBigQueryRecordToDescriptor() throws Exception {
+    logger.setLevel(Level.DEBUG);
+
     DescriptorProtos.DescriptorProto expected = NESTED_STRUCT_DESCRIPTOR.setName("Struct").build();
     DescriptorProtos.DescriptorProto converted =
         buildDescriptorProtoWithFields(
@@ -67,6 +69,8 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testBigQueryToProtoSchema() throws Exception {
+    logger.setLevel(Level.DEBUG);
+
     ProtoBufProto.ProtoSchema converted = toProtoSchema(BIG_BIGQUERY_SCHEMA);
     ProtoBufProto.ProtoSchema expected =
         ProtoSchemaConverter.convert(
@@ -103,6 +107,8 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testSparkStructRowToDynamicMessage() throws Exception {
+    logger.setLevel(Level.DEBUG);
+
     StructType schema = new StructType().add(SPARK_NESTED_STRUCT_FIELD);
     Descriptors.Descriptor schemaDescriptor = toDescriptor(schema);
     Message converted = buildSingleRowMessage(schema, schemaDescriptor, STRUCT_INTERNAL_ROW);
@@ -113,6 +119,8 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testSparkRowToProtoRow() throws Exception {
+    logger.setLevel(Level.DEBUG);
+
     ProtoBufProto.ProtoRows converted =
         toProtoRows(
             BIG_SPARK_SCHEMA,
@@ -139,6 +147,8 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testSettingARequiredFieldAsNull() throws Exception {
+    logger.setLevel(Level.DEBUG);
+
     try {
       ProtoBufProto.ProtoRows converted =
           toProtoRows(
@@ -342,31 +352,51 @@ public class ProtobufUtilsTest {
   public Descriptors.Descriptor INTEGER_SCHEMA_DESCRIPTOR = createIntegerSchemaDescriptor();
 
   public Descriptors.Descriptor createIntegerSchemaDescriptor() {
-    return toDescriptor(new StructType().add(SPARK_INTEGER_FIELD));
+    try {
+      return toDescriptor(new StructType().add(SPARK_INTEGER_FIELD));
+    } catch (Descriptors.DescriptorValidationException e) {
+      throw new AssumptionViolatedException("Could not create INTEGER_SCHEMA_DESCRIPTOR", e);
+    }
   }
 
   public Descriptors.Descriptor STRING_SCHEMA_DESCRIPTOR = createStringSchemaDescriptor();
 
   public Descriptors.Descriptor createStringSchemaDescriptor() {
-    return toDescriptor(new StructType().add(SPARK_STRING_FIELD));
+    try {
+      return toDescriptor(new StructType().add(SPARK_STRING_FIELD));
+    } catch (Descriptors.DescriptorValidationException e) {
+      throw new AssumptionViolatedException("Could not create STRING_SCHEMA_DESCRIPTOR", e);
+    }
   }
 
   public Descriptors.Descriptor ARRAY_SCHEMA_DESCRIPTOR = createArraySchemaDescriptor();
 
   public Descriptors.Descriptor createArraySchemaDescriptor() {
-    return toDescriptor(new StructType().add(SPARK_ARRAY_FIELD));
+    try {
+      return toDescriptor(new StructType().add(SPARK_ARRAY_FIELD));
+    } catch (Descriptors.DescriptorValidationException e) {
+      throw new AssumptionViolatedException("Could not create ARRAY_SCHEMA_DESCRIPTOR", e);
+    }
   }
 
   public Descriptors.Descriptor STRUCT_SCHEMA_DESCRIPTOR = createStructSchemaDescriptor();
 
   public Descriptors.Descriptor createStructSchemaDescriptor() {
-    return toDescriptor(new StructType().add(SPARK_NESTED_STRUCT_FIELD));
+    try {
+      return toDescriptor(new StructType().add(SPARK_NESTED_STRUCT_FIELD));
+    } catch (Descriptors.DescriptorValidationException e) {
+      throw new AssumptionViolatedException("Could not create STRUCT_SCHEMA_DESCRIPTOR", e);
+    }
   }
 
   Descriptors.Descriptor STRUCT_DESCRIPTOR = createStructDescriptor();
 
   public Descriptors.Descriptor createStructDescriptor() throws AssumptionViolatedException {
-    return toDescriptor(MY_STRUCT);
+    try {
+      return toDescriptor(MY_STRUCT);
+    } catch (Descriptors.DescriptorValidationException e) {
+      throw new AssumptionViolatedException("Could not create STRUCT_DESCRIPTOR.", e);
+    }
   }
 
   public final DynamicMessage INTEGER_ROW_MESSAGE =
@@ -393,7 +423,11 @@ public class ProtobufUtilsTest {
   public Descriptors.Descriptor BIG_SCHEMA_ROW_DESCRIPTOR = createBigSchemaRowDescriptor();
 
   public Descriptors.Descriptor createBigSchemaRowDescriptor() {
-    return toDescriptor(BIG_SPARK_SCHEMA);
+    try {
+      return toDescriptor(BIG_SPARK_SCHEMA);
+    } catch (Descriptors.DescriptorValidationException e) {
+      throw new AssumptionViolatedException("Could not create BIG_SCHEMA_ROW_DESCRIPTOR", e);
+    }
   }
 
   public ProtoBufProto.ProtoRows MY_PROTO_ROWS =
