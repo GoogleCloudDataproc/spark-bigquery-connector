@@ -101,8 +101,6 @@ public class SchemaConverterTest {
    */
   @Test
   public void testSparkToBQSchema() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     StructType schema = BIG_SPARK_SCHEMA;
     Schema expected = BIG_BIGQUERY_SCHEMA;
 
@@ -116,8 +114,6 @@ public class SchemaConverterTest {
 
   @Test
   public void testSparkMapException() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     try {
       createBigQueryColumn(SPARK_MAP_FIELD, 0);
       fail("Did not throw an error for an unsupported map-type");
@@ -127,8 +123,6 @@ public class SchemaConverterTest {
 
   @Test
   public void testDecimalTypeConversion() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     assertThat(toBigQueryType(NUMERIC_SPARK_TYPE)).isEqualTo(LegacySQLTypeName.NUMERIC);
 
     try {
@@ -141,8 +135,6 @@ public class SchemaConverterTest {
 
   @Test
   public void testTimeTypesConversions() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     // FIXME: restore this check when the Vortex team adds microsecond precision, and Timestamp
     // conversion can be fixed.
     // assertThat(toBigQueryType(DataTypes.TimestampType)).isEqualTo(LegacySQLTypeName.TIMESTAMP);
@@ -151,8 +143,6 @@ public class SchemaConverterTest {
 
   @Test
   public void testDescriptionConversion() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     String description = "I love bananas";
     Field result =
         createBigQueryColumn(
@@ -168,8 +158,6 @@ public class SchemaConverterTest {
 
   @Test
   public void testMaximumNestingDepthError() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     StructType inner = new StructType();
     StructType superRecursiveSchema = inner;
     for (int i = 0; i < MAX_BIGQUERY_NESTED_DEPTH + 1; i++) {

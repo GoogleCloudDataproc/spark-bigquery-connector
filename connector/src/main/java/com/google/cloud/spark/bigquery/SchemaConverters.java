@@ -21,10 +21,8 @@ import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
-import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
@@ -40,13 +38,13 @@ import java.util.stream.Collectors;
 public class SchemaConverters {
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
-  private static final int BQ_NUMERIC_PRECISION = 38;
-  private static final int BQ_NUMERIC_SCALE = 9;
+  static final int BQ_NUMERIC_PRECISION = 38;
+  static final int BQ_NUMERIC_SCALE = 9;
   private static final DecimalType NUMERIC_SPARK_TYPE =
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   // The maximum nesting depth of a BigQuery RECORD:
-  private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
-  private static final String MAPTYPE_ERROR_MESSAGE = "MapType is unsupported.";
+  static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
+  static final String MAPTYPE_ERROR_MESSAGE = "MapType is unsupported.";
 
   /** Convert a BigQuery schema to a Spark schema */
   public static StructType toSpark(Schema schema) {

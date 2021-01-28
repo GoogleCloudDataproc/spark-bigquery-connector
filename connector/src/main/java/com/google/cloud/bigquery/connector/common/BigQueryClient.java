@@ -19,12 +19,11 @@ import com.google.cloud.bigquery.*;
 import com.google.cloud.http.BaseHttpServiceException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -40,6 +39,8 @@ import static java.util.stream.Collectors.joining;
 // presto converts the dataset and table names to lower case, while BigQuery is case sensitive
 // the mappings here keep the mappings
 public class BigQueryClient {
+  private static final Logger logger = LoggerFactory.getLogger(BigQueryClient.class);
+
   private final BigQuery bigQuery;
   private final Optional<String> materializationProject;
   private final Optional<String> materializationDataset;
@@ -125,8 +126,27 @@ public class BigQueryClient {
     return TableId.of(datasetId.getProject(), datasetId.getDataset(), name);
   }
 
-  Table update(TableInfo table) {
+  public Table update(TableInfo table) {
     return bigQuery.update(table);
+  }
+
+  public Job createAndWaitFor(JobConfiguration.Builder jobConfiguration) {
+    return createAndWaitFor(jobConfiguration.build());
+  }
+
+  public Job createAndWaitFor(JobConfiguration jobConfiguration) {
+    JobInfo jobInfo = JobInfo.of(jobConfiguration);
+    Job job = bigQuery.create(jobInfo);
+
+    logger.info("Submitted job {}. jobId: {}", jobConfiguration, job.getJobId());
+    // TODO(davidrab): add retry options
+    try {
+      return job.waitFor();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new BigQueryException(
+          BaseHttpServiceException.UNKNOWN_CODE, format("Failed to run the job [%s]", job), e);
+    }
   }
 
   Job create(JobInfo jobInfo) {

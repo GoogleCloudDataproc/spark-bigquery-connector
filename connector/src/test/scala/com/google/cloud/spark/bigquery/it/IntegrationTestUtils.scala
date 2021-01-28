@@ -41,3 +41,9 @@ object IntegrationTestUtils extends Logging {
     bq.delete(DatasetId.of(dataset), DatasetDeleteOption.deleteContents())
   }
 }
+
+case class Person(name: String, friends: Seq[Friend])
+
+case class Friend(age: Int, links: Seq[Link])
+
+case class Link(uri: String)
