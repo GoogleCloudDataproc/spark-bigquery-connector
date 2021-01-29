@@ -18,12 +18,15 @@ package com.google.cloud.spark.bigquery
 import java.util.Optional
 
 import com.google.cloud.bigquery.TableDefinition.Type.{MATERIALIZED_VIEW, TABLE, VIEW}
-import com.google.cloud.bigquery.connector.common.BigQueryUtil
+import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientModule, BigQueryUtil}
 import com.google.cloud.bigquery.{BigQuery, TableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
+import com.google.cloud.spark.bigquery.v2.SparkBigQueryConnectorModule
 import com.google.common.collect.ImmutableMap
+import com.google.inject.Guice
 import org.apache.spark.sql.execution.streaming.Sink
 import org.apache.spark.sql.sources._
+import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
@@ -68,7 +71,14 @@ class BigQueryRelationProvider(
                                         sqlContext: SQLContext,
                                         parameters: Map[String, String],
                                         schema: Option[StructType] = None): BigQueryRelation = {
+    val dataSourceOptions = new DataSourceOptions(parameters.asJava)
+    val spark = sqlContext.sparkSession
+    val injector = Guice.createInjector(
+      new BigQueryClientModule,
+      new SparkBigQueryConnectorModule(spark, dataSourceOptions, Optional.empty()))
+    val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
     val opts = createSparkBigQueryConfig(sqlContext, parameters, schema)
+
     val bigquery = getOrCreateBigQuery(opts)
     val tableName = BigQueryUtil.friendlyTableName(opts.getTableId)
     // TODO(#7): Support creating non-existent tables with write support.

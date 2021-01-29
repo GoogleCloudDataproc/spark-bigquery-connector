@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
@@ -146,6 +147,21 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     Optional<String> datePartitionParam = getOption(options, DATE_PARTITION_PARAM).toJavaUtil();
     datePartitionParam.ifPresent(
         date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
+    // Issue #247
+    // we need those parameters in case a read from query is issued
+    config.viewsEnabled = getAnyBooleanOption(globalOptions, options, VIEWS_ENABLED_OPTION, false);
+    config.materializationProject =
+        getAnyOption(
+            globalOptions,
+            options,
+            ImmutableList.of("materializationProject", "viewMaterializationProject"));
+    config.materializationDataset =
+        getAnyOption(
+            globalOptions,
+            options,
+            ImmutableList.of("materializationDataset", "viewMaterializationDataset"));
+    // checking for query
+    Optional<String> query = getOption(options, "query").toJavaUtil();
     config.tableId = parseTableId(tableParam, datasetParam, projectParam, datePartitionParam);
 
     config.parentProjectId =
@@ -193,17 +209,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     config.readDataFormat = DataFormat.valueOf(readDataFormatParam);
     config.combinePushedDownFilters =
         getAnyBooleanOption(globalOptions, options, "combinePushedDownFilters", true);
-    config.viewsEnabled = getAnyBooleanOption(globalOptions, options, VIEWS_ENABLED_OPTION, false);
-    config.materializationProject =
-        getAnyOption(
-            globalOptions,
-            options,
-            ImmutableList.of("materializationProject", "viewMaterializationProject"));
-    config.materializationDataset =
-        getAnyOption(
-            globalOptions,
-            options,
-            ImmutableList.of("materializationDataset", "viewMaterializationDataset"));
 
     config.partitionField = getOption(options, "partitionField");
     config.partitionExpirationMs =
@@ -345,6 +350,21 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     return new BigQueryCredentialsSupplier(
             accessToken.toJavaUtil(), credentialsKey.toJavaUtil(), credentialsFile.toJavaUtil())
         .getCredentials();
+  }
+
+  public TableId getTableId(BigQueryClient bigQueryClient) {
+    Optional<String> query = Optional.empty();
+    String tableParam = "";
+    if (query.isPresent() || tableParam.toLowerCase().startsWith("select ")) {
+      // we have a query, let's materialize it and use it as the table
+      String sql = query.orElse(tableParam);
+      return bigQueryClient
+          .materializeQueryToTable(sql, getViewExpirationTimeInHours())
+          .getTableId();
+    } else {
+      // reading from a standard table/view
+      return this.tableId;
+    }
   }
 
   public TableId getTableId() {
