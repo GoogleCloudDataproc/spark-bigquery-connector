@@ -81,6 +81,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private static final int DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT = 60 * 1000;
   private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
   TableId tableId;
+  com.google.common.base.Optional<String> query;
   String parentProjectId;
   com.google.common.base.Optional<String> credentialsKey;
   com.google.common.base.Optional<String> credentialsFile;
@@ -352,25 +353,13 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         .getCredentials();
   }
 
-  public TableId getTableId(BigQueryClient bigQueryClient) {
-    Optional<String> query = Optional.empty();
-    String tableParam = "";
-    if (query.isPresent() || tableParam.toLowerCase().startsWith("select ")) {
-      // we have a query, let's materialize it and use it as the table
-      String sql = query.orElse(tableParam);
-      return bigQueryClient
-          .materializeQueryToTable(sql, getViewExpirationTimeInHours())
-          .getTableId();
-    } else {
-      // reading from a standard table/view
-      return this.tableId;
-    }
-  }
-
   public TableId getTableId() {
     return tableId;
   }
 
+  public Optional<String> getQuery() {
+    return query.toJavaUtil();
+  }
   @Override
   public String getParentProjectId() {
     return parentProjectId;
@@ -532,6 +521,35 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         VIEWS_ENABLED_OPTION,
         getMaxParallelism(),
         defaultParallelism);
+  }
+
+  public BigQueryClient.ReadTableOptions toReadTableOptions() {
+    return new BigQueryClient.ReadTableOptions() {
+      @Override
+      public TableId tableId() {
+        return SparkBigQueryConfig.this.getTableId();
+      }
+
+      @Override
+      public Optional<String> query() {
+        return SparkBigQueryConfig.this.getQuery();
+      }
+
+      @Override
+      public boolean viewsEnabled() {
+        return SparkBigQueryConfig.this.isViewsEnabled();
+      }
+
+      @Override
+      public String viewEnabledParamName() {
+        return SparkBigQueryConfig.VIEWS_ENABLED_OPTION;
+      }
+
+      @Override
+      public int viewExpirationTimeInHours() {
+        return SparkBigQueryConfig.this.getViewExpirationTimeInHours();
+      }
+    };
   }
 
   public enum IntermediateFormat {

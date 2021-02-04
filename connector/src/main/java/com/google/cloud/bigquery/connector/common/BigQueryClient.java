@@ -90,9 +90,18 @@ public class BigQueryClient {
     return bigQuery.getTable(tableId);
   }
 
-  public TableInfo getSupportedTable(
-      TableId tableId, boolean viewsEnabled, String viewEnabledParamName) {
-    TableInfo table = getTable(tableId);
+  public TableInfo getReadTable(ReadTableOptions options) {
+    Optional<String> query = options.query();
+    String tableParam = options.tableId().getTable();
+    // first, let check if this is a query
+    if (query.isPresent() || tableParam.toLowerCase().startsWith("select ")) {
+      // in this case, let's materialize it and use it as the table
+      validateViewsEnabled(options);
+      String sql = query.orElse(tableParam);
+      return materializeQueryToTable(sql, options.viewExpirationTimeInHours());
+    }
+
+    TableInfo table = getTable(options.tableId());
     if (table == null) {
       return null;
     }
@@ -104,15 +113,9 @@ public class BigQueryClient {
     }
     if (TableDefinition.Type.VIEW == tableType
         || TableDefinition.Type.MATERIALIZED_VIEW == tableType) {
-      if (viewsEnabled) {
-        return table;
-      } else {
-        throw new BigQueryConnectorException(
-            UNSUPPORTED,
-            format(
-                "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
-                viewEnabledParamName));
-      }
+      validateViewsEnabled(options);
+      // view materialization is done in a lazy manner, so it can occur only when the data is read
+      return table;
     }
     // not regular table or a view
     throw new BigQueryConnectorException(
@@ -120,6 +123,16 @@ public class BigQueryClient {
         format(
             "Table type '%s' of table '%s.%s' is not supported",
             tableType, table.getTableId().getDataset(), table.getTableId().getTable()));
+  }
+
+  private void validateViewsEnabled(ReadTableOptions options) {
+    if (!options.viewsEnabled()) {
+      throw new BigQueryConnectorException(
+          UNSUPPORTED,
+          format(
+              "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
+              options.viewEnabledParamName()));
+    }
   }
 
   DatasetId toDatasetId(TableId tableId) {
@@ -266,6 +279,18 @@ public class BigQueryClient {
       throw new BigQueryConnectorException(
           BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED, "Error creating destination table", e);
     }
+  }
+
+  public interface ReadTableOptions {
+    TableId tableId();
+
+    Optional<String> query();
+
+    boolean viewsEnabled();
+
+    String viewEnabledParamName();
+
+    int viewExpirationTimeInHours();
   }
 
   static class DestinationTableBuilder implements Callable<TableInfo> {

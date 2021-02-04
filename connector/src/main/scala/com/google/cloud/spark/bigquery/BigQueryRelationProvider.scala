@@ -75,14 +75,13 @@ class BigQueryRelationProvider(
     val spark = sqlContext.sparkSession
     val injector = Guice.createInjector(
       new BigQueryClientModule,
-      new SparkBigQueryConnectorModule(spark, dataSourceOptions, Optional.empty()))
+      new SparkBigQueryConnectorModule(
+        spark, dataSourceOptions, Optional.ofNullable(schema.orNull)))
+    val opts = injector.getInstance(classOf[SparkBigQueryConfig])
     val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
-    val opts = createSparkBigQueryConfig(sqlContext, parameters, schema)
-
-    val bigquery = getOrCreateBigQuery(opts)
-    val tableName = BigQueryUtil.friendlyTableName(opts.getTableId)
-    // TODO(#7): Support creating non-existent tables with write support.
-    val table = Option(bigquery.getTable(opts.getTableId))
+    val tableId = opts.getTableId(bigQueryClient)
+    val tableName = BigQueryUtil.friendlyTableName(tableId)
+    val table = Option(bigQueryClient.getTable(tableId))
       .getOrElse(sys.error(s"Table $tableName not found"))
     table.getDefinition[TableDefinition].getType match {
       case TABLE => new DirectBigQueryRelation(opts, table)(sqlContext)
@@ -106,8 +105,15 @@ class BigQueryRelationProvider(
                                mode: SaveMode,
                                parameters: Map[String, String],
                                data: DataFrame): BaseRelation = {
-    val options = createSparkBigQueryConfig(sqlContext, parameters, Option(data.schema))
-    val bigQuery = getOrCreateBigQuery(options)
+    val dataSourceOptions = new DataSourceOptions(parameters.asJava)
+    val spark = sqlContext.sparkSession
+    val injector = Guice.createInjector(
+      new BigQueryClientModule,
+      new SparkBigQueryConnectorModule(
+        spark, dataSourceOptions, Optional.ofNullable(schema.orNull)))
+    val options = injector.getInstance(classOf[SparkBigQueryConfig])
+    val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
+    val tableId = opts.getTableId(bigQueryClient)
     val relation = BigQueryInsertableRelation(bigQuery, sqlContext, options)
 
     mode match {
@@ -119,7 +125,7 @@ class BigQueryRelationProvider(
         } else {
           throw new IllegalArgumentException(
             s"""SaveMode is set to ErrorIfExists and Table
-               |${BigQueryUtil.friendlyTableName(options.getTableId)}
+               |${BigQueryUtil.friendlyTableName(tableId)}
                |already exists. Did you want to add data to the table by setting
                |the SaveMode to Append? Example:
                |df.write.format.options.mode(SaveMode.Append).save()"""

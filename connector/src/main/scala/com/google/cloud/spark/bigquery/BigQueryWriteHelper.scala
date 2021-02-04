@@ -20,7 +20,7 @@ import java.util.UUID
 
 import com.google.cloud.bigquery.JobInfo.CreateDisposition.CREATE_NEVER
 import com.google.cloud.bigquery._
-import com.google.cloud.bigquery.connector.common.BigQueryUtil
+import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryUtil}
 import com.google.cloud.http.BaseHttpServiceException
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
@@ -29,7 +29,7 @@ import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
 import scala.collection.JavaConverters._
 
-case class BigQueryWriteHelper(bigQuery: BigQuery,
+case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
                                sqlContext: SQLContext,
                                saveMode: SaveMode,
                                options: SparkBigQueryConfig,
@@ -75,9 +75,8 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       .getOrElse(false)) {
       throw new IOException(
         s"""
-           |For table ${BigQueryUtil.friendlyTableName(options.getTableId)}
-           |Create Disposition is CREATE_NEVER and the table does not exists.
-           |Aborting the insert""".stripMargin.replace('\n', ' '))
+           |For table ${friendlyTableName} Create Disposition is CREATE_NEVER and the table does
+           |not exists. Aborting the insert""".stripMargin.replace('\n', ' '))
     }
 
     try {
@@ -150,21 +149,19 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
 
     val jobConfiguration = jobConfigurationBuilder.build
 
-    val jobInfo = JobInfo.of(jobConfiguration)
-    val job = bigQuery.create(jobInfo)
+    lazy val finishedJob = bigQueryClient.createAndWaitFor(jobConfiguration)
 
-    logInfo(s"Submitted load to ${options.getTableId}. jobId: ${job.getJobId}")
+    logInfo(s"Submitted load to ${options.getTableId}. jobId: ${finishedJob.getJobId}")
     // TODO(davidrab): add retry options
-    lazy val finishedJob = job.waitFor()
     try {
       if (finishedJob.getStatus.getError != null) {
         throw new BigQueryException(
           BaseHttpServiceException.UNKNOWN_CODE,
-          s"""Failed to load to ${friendlyTableName} in job ${job.getJobId}. BigQuery error was
-             |${finishedJob.getStatus.getError.getMessage}""".stripMargin.replace('\n', ' '),
+          s"""Failed to load to ${friendlyTableName} in job ${finishedJob.getJobId}. BigQuery error
+             |was ${finishedJob.getStatus.getError.getMessage}""".stripMargin.replace('\n', ' '),
           finishedJob.getStatus.getError)
       }
-      logInfo(s"Done loading to ${friendlyTableName}. jobId: ${job.getJobId}")
+      logInfo(s"Done loading to ${friendlyTableName}. jobId: ${finishedJob.getJobId}")
     } catch {
       case e: Exception =>
         val partitionType = options.getPartitionTypeOrDefault()
@@ -176,7 +173,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
             + "format to AVRO or contact your account manager to enable this.",
             e)
         }
-        val jobId = job.getJobId
+        val jobId = finishedJob.getJobId
         logWarning("Failed to load the data into BigQuery, JobId for debug purposes is " +
           s"[${jobId.getProject}:${jobId.getLocation}.${jobId.getJob}]")
         throw e
@@ -200,7 +197,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       .toMap
     if (!fieldsToUpdate.isEmpty) {
       logDebug(s"updating schema, found fields to update: ${fieldsToUpdate.keySet}")
-      val originalTableInfo = bigQuery.getTable(options.getTableId)
+      val originalTableInfo = bigQueryClient.getTable(options.getTableId)
       val originalTableDefinition = originalTableInfo.getDefinition[TableDefinition]
       val originalSchema = originalTableDefinition.getSchema
       val updatedSchema = Schema.of(originalSchema.getFields.asScala.map(field => {
@@ -211,7 +208,7 @@ case class BigQueryWriteHelper(bigQuery: BigQuery,
       val updatedTableInfo = originalTableInfo.toBuilder.setDefinition(
         originalTableDefinition.toBuilder.setSchema(updatedSchema).build
       )
-      bigQuery.update(updatedTableInfo.build)
+      bigQueryClient.update(updatedTableInfo.build)
     }
   }
 
