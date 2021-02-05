@@ -15,22 +15,22 @@
  */
 package com.google.cloud.spark.bigquery
 
-import java.io.{IOException, UncheckedIOException}
-
 import com.google.api.client.util.Base64
 import com.google.cloud.bigquery._
+import com.google.cloud.bigquery.connector.common.BigQueryClient
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
+import com.google.inject._
 import org.apache.hadoop.conf.Configuration
-import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.sql.internal.{SQLConf, SessionState}
+import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{SQLContext, SparkSession}
+import org.apache.spark.{SparkConf, SparkContext}
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
-import org.mockito.{ArgumentMatchers, Mock, MockitoAnnotations}
+import org.mockito.{Mock, MockitoAnnotations}
 import org.scalatest.{BeforeAndAfter, FunSuite}
 
 class BigQueryRelationProviderSuite
-    extends FunSuite
+  extends FunSuite
     with BeforeAndAfter {
 
   // TODO(#23) Add test case covering 'credentials' and 'credentialsFile' options
@@ -51,7 +51,11 @@ class BigQueryRelationProviderSuite
   private var sc: SparkContext = _
   private var conf: Configuration = _
   @Mock
-  private var bigQuery: BigQuery = _
+  private var config: SparkBigQueryConfig = _
+  @Mock
+  private var readTableOptions: BigQueryClient.ReadTableOptions = _
+  @Mock
+  private var bigQueryClient: BigQueryClient = _
   private var provider: BigQueryRelationProvider = _
 
   @Mock
@@ -60,8 +64,21 @@ class BigQueryRelationProviderSuite
   before {
     MockitoAnnotations.initMocks(this)
     conf = new Configuration(false)
+    when(config.getTableId).thenReturn(ID)
+    when(config.toReadTableOptions).thenReturn(readTableOptions)
+    val injector = Guice.createInjector(new Module {
+      override def configure(binder: Binder): Unit = {
+        binder.bind(classOf[SparkBigQueryConfig]).toInstance(config)
+        binder.bind(classOf[BigQueryClient]).toInstance(bigQueryClient)
+      }
+    })
+    val guiceInjectorCreator = new GuiceInjectorCreator {
+      override def createGuiceInjector(sqlContext: SQLContext,
+                                       parameters: Map[String, String],
+                                       schema: scala.Option[StructType] = None): Injector = injector
+    }
     provider =
-      new BigQueryRelationProvider(() => Some(bigQuery))
+      new BigQueryRelationProvider(() => guiceInjectorCreator)
     table = TestUtils.table(TABLE)
 
     val master = "local[*]"
@@ -85,23 +102,25 @@ class BigQueryRelationProviderSuite
   }
 
   test("table exists") {
-    when(bigQuery.getTable(any(classOf[TableId]))).thenReturn(table)
+    when(bigQueryClient.getReadTable(any(classOf[BigQueryClient.ReadTableOptions])))
+      .thenReturn(table)
 
     val relation = provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
       "parentProject" -> ID.getProject()))
     assert(relation.isInstanceOf[DirectBigQueryRelation])
 
-    verify(bigQuery).getTable(ArgumentMatchers.eq(ID))
+    verify(bigQueryClient).getReadTable(any(classOf[BigQueryClient.ReadTableOptions]))
   }
 
   test("table does not exist") {
-    when(bigQuery.getTable(any(classOf[TableId]))).thenReturn(null)
+    when(bigQueryClient.getReadTable(any(classOf[BigQueryClient.ReadTableOptions])))
+      .thenReturn(null)
 
     assertThrows[RuntimeException] {
       provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
         "parentProject" -> ID.getProject()))
     }
-    verify(bigQuery).getTable(ArgumentMatchers.eq(ID))
+    verify(bigQueryClient).getReadTable(any(classOf[BigQueryClient.ReadTableOptions]))
   }
 
   test("Credentials parameter is used to initialize BigQueryOptions") {
@@ -109,12 +128,12 @@ class BigQueryRelationProviderSuite
     val defaultProvider = new BigQueryRelationProvider()
     val invalidCredentials = Base64.encodeBase64String("{}".getBytes)
 
-    val caught = intercept[UncheckedIOException] {
+    val caught = intercept[ProvisionException] {
       defaultProvider.createRelation(sqlCtx, Map("parentProject" -> ID.getProject,
         "credentials" -> invalidCredentials, "table" -> TABLE_NAME))
     }
 
-    assert(caught.getMessage.startsWith("Failed to create Credentials from key"))
+    assert(caught.getMessage.contains("Failed to create Credentials from key"))
   }
 
   /*

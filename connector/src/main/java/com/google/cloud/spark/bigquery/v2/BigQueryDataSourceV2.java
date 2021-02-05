@@ -20,6 +20,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientModule;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -53,7 +54,8 @@ public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport, WriteSup
     SparkSession spark = getDefaultSparkSessionOrCreate();
     return Guice.createInjector(
         new BigQueryClientModule(),
-        new SparkBigQueryConnectorModule(spark, options, Optional.ofNullable(schema)),
+        new SparkBigQueryConnectorModule(
+            spark, options, Optional.ofNullable(schema), DataSourceVersion.V2),
         module);
   }
 

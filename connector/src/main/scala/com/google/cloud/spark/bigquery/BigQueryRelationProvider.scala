@@ -17,13 +17,13 @@ package com.google.cloud.spark.bigquery
 
 import java.util.Optional
 
+import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableDefinition.Type.{MATERIALIZED_VIEW, TABLE, VIEW}
 import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientModule, BigQueryUtil}
-import com.google.cloud.bigquery.{BigQuery, TableDefinition}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.v2.SparkBigQueryConnectorModule
 import com.google.common.collect.ImmutableMap
-import com.google.inject.Guice
+import com.google.inject.{Guice, Injector}
 import org.apache.spark.sql.execution.streaming.Sink
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.sources.v2.DataSourceOptions
@@ -34,8 +34,8 @@ import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 import scala.collection.JavaConverters._
 
 class BigQueryRelationProvider(
-    getBigQuery: () => Option[BigQuery])
-    extends RelationProvider
+                                getGuiceInjectorCreator: () => GuiceInjectorCreator)
+  extends RelationProvider
     with CreatableRelationProvider
     with SchemaRelationProvider
     with DataSourceRegister
@@ -48,7 +48,7 @@ class BigQueryRelationProvider(
     createRelationInternal(sqlContext, parameters)
   }
 
-  def this() = this(() => None)
+  def this() = this(() => new GuiceInjectorCreator {})
 
   override def createRelation(sqlContext: SQLContext,
                               parameters: Map[String, String],
@@ -62,26 +62,23 @@ class BigQueryRelationProvider(
                            parameters: Map[String, String],
                            partitionColumns: Seq[String],
                            outputMode: OutputMode): Sink = {
-    val opts = createSparkBigQueryConfig(sqlContext, parameters, None)
-    val bigquery: BigQuery = getOrCreateBigQuery(opts)
-    BigQueryStreamingSink(sqlContext, parameters, partitionColumns, outputMode, opts, bigquery)
+    val injector = getGuiceInjectorCreator().createGuiceInjector(sqlContext, parameters)
+    val opts = injector.getInstance(classOf[SparkBigQueryConfig])
+    val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
+    BigQueryStreamingSink(
+      sqlContext, parameters, partitionColumns, outputMode, opts, bigQueryClient)
   }
 
   protected def createRelationInternal(
                                         sqlContext: SQLContext,
                                         parameters: Map[String, String],
                                         schema: Option[StructType] = None): BigQueryRelation = {
-    val dataSourceOptions = new DataSourceOptions(parameters.asJava)
-    val spark = sqlContext.sparkSession
-    val injector = Guice.createInjector(
-      new BigQueryClientModule,
-      new SparkBigQueryConnectorModule(
-        spark, dataSourceOptions, Optional.ofNullable(schema.orNull)))
+    val injector = getGuiceInjectorCreator().createGuiceInjector(sqlContext, parameters, schema)
     val opts = injector.getInstance(classOf[SparkBigQueryConfig])
     val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
-    val tableId = opts.getTableId(bigQueryClient)
-    val tableName = BigQueryUtil.friendlyTableName(tableId)
-    val table = Option(bigQueryClient.getTable(tableId))
+    val tableInfo = bigQueryClient.getReadTable(opts.toReadTableOptions)
+    val tableName = BigQueryUtil.friendlyTableName(opts.getTableId)
+    val table = Option(tableInfo)
       .getOrElse(sys.error(s"Table $tableName not found"))
     table.getDefinition[TableDefinition].getType match {
       case TABLE => new DirectBigQueryRelation(opts, table)(sqlContext)
@@ -105,16 +102,12 @@ class BigQueryRelationProvider(
                                mode: SaveMode,
                                parameters: Map[String, String],
                                data: DataFrame): BaseRelation = {
-    val dataSourceOptions = new DataSourceOptions(parameters.asJava)
-    val spark = sqlContext.sparkSession
-    val injector = Guice.createInjector(
-      new BigQueryClientModule,
-      new SparkBigQueryConnectorModule(
-        spark, dataSourceOptions, Optional.ofNullable(schema.orNull)))
+    val injector = getGuiceInjectorCreator().createGuiceInjector(
+      sqlContext, parameters, Some(data.schema))
     val options = injector.getInstance(classOf[SparkBigQueryConfig])
     val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
-    val tableId = opts.getTableId(bigQueryClient)
-    val relation = BigQueryInsertableRelation(bigQuery, sqlContext, options)
+    val tableId = options.getTableId
+    val relation = BigQueryInsertableRelation(bigQueryClient, sqlContext, options)
 
     mode match {
       case SaveMode.Append => relation.insert(data, overwrite = false)
@@ -140,12 +133,9 @@ class BigQueryRelationProvider(
     relation
   }
 
-  private def getOrCreateBigQuery(options: SparkBigQueryConfig) =
-    getBigQuery().getOrElse(BigQueryUtilScala.createBigQuery(options))
-
   def createSparkBigQueryConfig(sqlContext: SQLContext,
-                                 parameters: Map[String, String],
-                                 schema: Option[StructType] = None): SparkBigQueryConfig = {
+                                parameters: Map[String, String],
+                                schema: Option[StructType] = None): SparkBigQueryConfig = {
     SparkBigQueryConfig.from(parameters.asJava,
       ImmutableMap.copyOf(sqlContext.getAllConfs.asJava),
       sqlContext.sparkContext.hadoopConfiguration,
@@ -156,6 +146,21 @@ class BigQueryRelationProvider(
   }
 
   override def shortName: String = "bigquery"
+}
+
+// externalized to be used by tests
+trait GuiceInjectorCreator {
+  def createGuiceInjector(sqlContext: SQLContext,
+                          parameters: Map[String, String],
+                          schema: Option[StructType] = None): Injector = {
+    val dataSourceOptions = new DataSourceOptions(parameters.asJava)
+    val spark = sqlContext.sparkSession
+    val injector = Guice.createInjector(
+      new BigQueryClientModule,
+      new SparkBigQueryConnectorModule(
+        spark, dataSourceOptions, Optional.ofNullable(schema.orNull), DataSourceVersion.V1))
+    injector
+  }
 }
 
 // DefaultSource is required for spark.read.format("com.google.cloud.spark.bigquery")

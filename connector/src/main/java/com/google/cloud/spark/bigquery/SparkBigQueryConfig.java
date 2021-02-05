@@ -81,7 +81,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private static final int DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT = 60 * 1000;
   private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
   TableId tableId;
-  com.google.common.base.Optional<String> query;
+  com.google.common.base.Optional<String> query = empty();
   String parentProjectId;
   com.google.common.base.Optional<String> credentialsKey;
   com.google.common.base.Optional<String> credentialsFile;
@@ -360,6 +360,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   public Optional<String> getQuery() {
     return query.toJavaUtil();
   }
+
   @Override
   public String getParentProjectId() {
     return parentProjectId;
