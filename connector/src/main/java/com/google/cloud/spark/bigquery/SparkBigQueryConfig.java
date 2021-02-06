@@ -63,6 +63,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   public static final String USE_AVRO_LOGICAL_TYPES_OPTION = "useAvroLogicalTypes";
   public static final String DATE_PARTITION_PARAM = "datePartition";
   public static final String VALIDATE_SPARK_AVRO_PARAM = "validateSparkAvroInternalParam";
+  public static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
   @VisibleForTesting static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.ARROW;
 
   @VisibleForTesting
@@ -71,7 +72,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   static final String GCS_CONFIG_CREDENTIALS_FILE_PROPERTY =
       "google.cloud.auth.service.account.json.keyfile";
   static final String GCS_CONFIG_PROJECT_ID_PROPERTY = "fs.gs.project.id";
-  public static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
   private static final String READ_DATA_FORMAT_OPTION = "readDataFormat";
   private static final ImmutableList<String> PERMITTED_READ_DATA_FORMATS =
       ImmutableList.of(DataFormat.ARROW.toString(), DataFormat.AVRO.toString());
@@ -130,24 +130,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
     ImmutableMap<String, String> globalOptions = normalizeConf(originalGlobalOptions);
 
-    String tableParam =
-        getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
-            .or(
-                () -> {
-                  throw new IllegalArgumentException("No table has been specified");
-                });
-    Optional<String> datasetParam = getOption(options, "dataset").toJavaUtil();
-    Optional<String> projectParam =
-        firstPresent(
-            getOption(options, "project").toJavaUtil(),
-            com.google.common.base.Optional.fromNullable(
-                    hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY))
-                .toJavaUtil());
-    config.partitionType =
-        getOption(options, "partitionType").transform(TimePartitioning.Type::valueOf);
-    Optional<String> datePartitionParam = getOption(options, DATE_PARTITION_PARAM).toJavaUtil();
-    datePartitionParam.ifPresent(
-        date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
     // Issue #247
     // we need those parameters in case a read from query is issued
     config.viewsEnabled = getAnyBooleanOption(globalOptions, options, VIEWS_ENABLED_OPTION, false);
@@ -161,9 +143,35 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
             globalOptions,
             options,
             ImmutableList.of("materializationDataset", "viewMaterializationDataset"));
+    // get the table details
+    String tableParam =
+        getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
+            .or(
+                () -> {
+                  throw new IllegalArgumentException("No table has been specified");
+                });
+    Optional<String> datasetParam =
+        getOption(options, "dataset").or(config.materializationDataset).toJavaUtil();
+    Optional<String> projectParam =
+        firstPresent(
+            getOption(options, "project").toJavaUtil(),
+            com.google.common.base.Optional.fromNullable(
+                    hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY))
+                .toJavaUtil());
+    config.partitionType =
+        getOption(options, "partitionType").transform(TimePartitioning.Type::valueOf);
+    Optional<String> datePartitionParam = getOption(options, DATE_PARTITION_PARAM).toJavaUtil();
+    datePartitionParam.ifPresent(
+        date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
     // checking for query
-    Optional<String> query = getOption(options, "query").toJavaUtil();
-    config.tableId = parseTableId(tableParam, datasetParam, projectParam, datePartitionParam);
+    config.query = getOption(options, "query");
+    if (tableParam.toLowerCase().startsWith("select ")) {
+      // it is a query in practice
+      config.query = com.google.common.base.Optional.of(tableParam);
+      config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
+    } else {
+      config.tableId = parseTableId(tableParam, datasetParam, projectParam, datePartitionParam);
+    }
 
     config.parentProjectId =
         getAnyOption(globalOptions, options, "parentProject").or(defaultBilledProject());

@@ -92,12 +92,11 @@ public class BigQueryClient {
 
   public TableInfo getReadTable(ReadTableOptions options) {
     Optional<String> query = options.query();
-    String tableParam = options.tableId().getTable();
     // first, let check if this is a query
-    if (query.isPresent() || tableParam.toLowerCase().startsWith("select ")) {
+    if (query.isPresent()) {
       // in this case, let's materialize it and use it as the table
       validateViewsEnabled(options);
-      String sql = query.orElse(tableParam);
+      String sql = query.get();
       return materializeQueryToTable(sql, options.viewExpirationTimeInHours());
     }
 
@@ -159,9 +158,8 @@ public class BigQueryClient {
       Optional<String> referenceProject, Optional<String> referenceDataset) {
     String project = materializationProject.orElse(referenceProject.orElse(null));
     String dataset = materializationDataset.orElse(referenceDataset.orElse(null));
-    DatasetId datasetId = DatasetId.of(project, dataset);
     String name = format("_bqc_%s", randomUUID().toString().toLowerCase(ENGLISH).replace("-", ""));
-    return TableId.of(datasetId.getProject(), datasetId.getDataset(), name);
+    return project == null ? TableId.of(dataset, name) : TableId.of(project, dataset, name);
   }
 
   public Table update(TableInfo table) {
