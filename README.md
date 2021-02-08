@@ -64,20 +64,31 @@ gcloud dataproc clusters create "$MY_CLUSTER"
 
 ## Downloading and Using the Connector
 
-The latest version connector of the connector is publicly available in 
-[gs://spark-lib/bigquery/spark-bigquery-latest.jar](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest.jar).
-A Scala 2.12 compiled version exist in
-[gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar).
+The latest version connector of the connector is publicly available in the following links:
 
+| version | Link |
+| --- | --- |
+| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.18.1.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.18.1.jar)) |
+| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.18.1.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.18.1.jar)) |
+ 
 The connector is also available from the
 [Maven Central](https://repo1.maven.org/maven2/com/google/cloud/spark/) 
 repository. It can be used using the `--packages` option or the
 `spark.jars.packages` configuration property. Use the following value
 
-| Scala version | Connector Artifact |
+| version | Connector Artifact |
 | --- | --- |
 | Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.18.1` |
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.18.1` |
+
+If you want to keep with the latest version of the connector the following links can be used. Notice that for production
+environments where the connector version should be pinned, one of the above links should be used.  
+
+| version | Link |
+| --- | --- |
+| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-latest_2.11.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.11.jar)) |
+| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar)) |
+
 
 ## Hello World Example
 
