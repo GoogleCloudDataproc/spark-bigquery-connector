@@ -64,7 +64,7 @@ gcloud dataproc clusters create "$MY_CLUSTER"
 
 ## Downloading and Using the Connector
 
-The latest version connector of the connector is publicly available in the following links:
+The latest version of the connector is publicly available in the following links:
 
 | version | Link |
 | --- | --- |
@@ -81,7 +81,7 @@ repository. It can be used using the `--packages` option or the
 | Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.18.1` |
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.18.1` |
 
-If you want to keep with the latest version of the connector the following links can be used. Notice that for production
+If you want to keep up with the latest version of the connector the following links can be used. Notice that for production
 environments where the connector version should be pinned, one of the above links should be used.  
 
 | version | Link |
