@@ -94,11 +94,19 @@ environments where the connector version should be pinned, one of the above link
 
 You can run a simple PySpark wordcount against the API without compilation by running
 
-<!--- TODO(pmkc): Update jar reference -->
+**Dataproc image 1.5 and above**
 
 ```
 gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
-  --jars gs://spark-lib/bigquery/spark-bigquery-latest.jar \
+  --jars gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar \
+  examples/python/shakespeare.py
+```
+
+**Dataproc image 1.4 and below**
+
+```
+gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
+  --jars gs://spark-lib/bigquery/spark-bigquery-latest_2.11.jar \
   examples/python/shakespeare.py
 ```
 
