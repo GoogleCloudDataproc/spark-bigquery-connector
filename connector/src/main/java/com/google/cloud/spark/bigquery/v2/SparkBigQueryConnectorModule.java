@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
+import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryConnectorUserAgentProvider;
 import com.google.common.collect.ImmutableMap;
@@ -39,12 +40,17 @@ public class SparkBigQueryConnectorModule implements Module {
   private final SparkSession spark;
   private final DataSourceOptions options;
   private final Optional<StructType> schema;
+  private final DataSourceVersion dataSourceVersion;
 
   public SparkBigQueryConnectorModule(
-      SparkSession spark, DataSourceOptions options, Optional<StructType> schema) {
+      SparkSession spark,
+      DataSourceOptions options,
+      Optional<StructType> schema,
+      DataSourceVersion dataSourceVersion) {
     this.spark = spark;
     this.options = options;
     this.schema = schema;
+    this.dataSourceVersion = dataSourceVersion;
   }
 
   @Override
@@ -62,13 +68,7 @@ public class SparkBigQueryConnectorModule implements Module {
   @Provides
   public SparkBigQueryConfig provideSparkBigQueryConfig() {
     Map<String, String> optionsMap = new HashMap<>(options.asMap());
-    // no need for the spar-avro module, we have an internal copy of avro
-    optionsMap.put(SparkBigQueryConfig.VALIDATE_SPARK_AVRO_PARAM.toLowerCase(), "false");
-    // DataSource V2 implementation uses Java only
-    optionsMap.put(
-        SparkBigQueryConfig.INTERMEDIATE_FORMAT_OPTION.toLowerCase(),
-        SparkBigQueryConfig.IntermediateFormat.AVRO.toString());
-
+    dataSourceVersion.updateOptionsMap(optionsMap);
     return SparkBigQueryConfig.from(
         ImmutableMap.copyOf(optionsMap),
         ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll())),

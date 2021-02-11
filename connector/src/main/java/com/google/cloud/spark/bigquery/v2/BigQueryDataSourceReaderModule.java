@@ -23,9 +23,6 @@ import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import org.apache.spark.sql.types.StructType;
-
-import java.util.Optional;
 
 public class BigQueryDataSourceReaderModule implements Module {
   @Override
@@ -39,9 +36,7 @@ public class BigQueryDataSourceReaderModule implements Module {
       BigQueryClient bigQueryClient,
       BigQueryReadClientFactory bigQueryReadClientFactory,
       SparkBigQueryConfig config) {
-    TableInfo tableInfo =
-        bigQueryClient.getSupportedTable(
-            config.getTableId(), config.isViewsEnabled(), SparkBigQueryConfig.VIEWS_ENABLED_OPTION);
+    TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
     return new BigQueryDataSourceReader(
         tableInfo,
         bigQueryClient,

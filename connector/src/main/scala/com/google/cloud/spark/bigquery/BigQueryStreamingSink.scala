@@ -18,7 +18,7 @@ package com.google.cloud.spark.bigquery
 
 import java.io.IOException
 
-import com.google.cloud.bigquery.BigQuery
+import com.google.cloud.bigquery.connector.common.BigQueryClient
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.streaming.Sink
 import org.apache.spark.sql.streaming.OutputMode
@@ -38,7 +38,7 @@ case class BigQueryStreamingSink(
                          partitionColumns: Seq[String],
                          outputMode: OutputMode,
                          opts: SparkBigQueryConfig,
-                         client: BigQuery
+                         bigQueryClient: BigQueryClient
                        ) extends Sink with Logging {
 
   @volatile private var latestBatchId: Long = -1L
@@ -49,7 +49,7 @@ case class BigQueryStreamingSink(
       logWarning("Skipping as already committed batch " + batchId)
     } else {
       logDebug(s"addBatch($batchId)")
-      BigQueryStreamWriter.writeBatch(data, sqlContext, outputMode, opts, client)
+      BigQueryStreamWriter.writeBatch(data, sqlContext, outputMode, opts, bigQueryClient)
     }
     latestBatchId = batchId
   }

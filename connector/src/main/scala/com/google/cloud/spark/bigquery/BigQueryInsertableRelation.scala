@@ -17,7 +17,8 @@ package com.google.cloud.spark.bigquery
 
 import java.math.BigInteger
 
-import com.google.cloud.bigquery.{BigQuery, TableDefinition}
+import com.google.cloud.bigquery.TableDefinition
+import com.google.cloud.bigquery.connector.common.BigQueryClient
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.sources.{BaseRelation, InsertableRelation}
 import org.apache.spark.sql.types.StructType
@@ -28,7 +29,7 @@ import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
  * number of records, size, etc.) is done by API calls without reading existing
  * data
  */
-case class BigQueryInsertableRelation(val bigQuery: BigQuery,
+case class BigQueryInsertableRelation(val bigQueryClient: BigQueryClient,
                                       val sqlContext: SQLContext,
                                       val options: SparkBigQueryConfig)
   extends BaseRelation
@@ -38,7 +39,7 @@ case class BigQueryInsertableRelation(val bigQuery: BigQuery,
     logDebug(s"insert data=${data}, overwrite=$overwrite")
     // the helper also supports the v2 api
     val saveMode = if (overwrite) SaveMode.Overwrite else SaveMode.Append
-    val helper = BigQueryWriteHelper(bigQuery, sqlContext, saveMode, options, data, exists)
+    val helper = BigQueryWriteHelper(bigQueryClient, sqlContext, saveMode, options, data, exists)
     helper.writeDataFrameToBigQuery
   }
 
@@ -63,10 +64,10 @@ case class BigQueryInsertableRelation(val bigQuery: BigQuery,
    */
   private def numberOfRows: Option[BigInteger] = getTable.map(t => t.getNumRows())
 
-  private def getTable = Option(bigQuery.getTable(options.getTableId))
+  lazy val getTable = Option(bigQueryClient.getTable(options.getTableId))
 
   override def schema: StructType = {
-    val tableInfo = bigQuery.getTable(options.getTableId)
+    val tableInfo = getTable.get
     val tableDefinition = tableInfo.getDefinition.asInstanceOf[TableDefinition]
     SchemaConverters.toSpark(tableDefinition.getSchema)
   }

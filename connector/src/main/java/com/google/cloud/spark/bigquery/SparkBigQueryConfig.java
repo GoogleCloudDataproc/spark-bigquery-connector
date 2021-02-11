@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
@@ -62,6 +63,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   public static final String USE_AVRO_LOGICAL_TYPES_OPTION = "useAvroLogicalTypes";
   public static final String DATE_PARTITION_PARAM = "datePartition";
   public static final String VALIDATE_SPARK_AVRO_PARAM = "validateSparkAvroInternalParam";
+  public static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
   @VisibleForTesting static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.ARROW;
 
   @VisibleForTesting
@@ -70,7 +72,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   static final String GCS_CONFIG_CREDENTIALS_FILE_PROPERTY =
       "google.cloud.auth.service.account.json.keyfile";
   static final String GCS_CONFIG_PROJECT_ID_PROPERTY = "fs.gs.project.id";
-  public static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
   private static final String READ_DATA_FORMAT_OPTION = "readDataFormat";
   private static final ImmutableList<String> PERMITTED_READ_DATA_FORMATS =
       ImmutableList.of(DataFormat.ARROW.toString(), DataFormat.AVRO.toString());
@@ -80,6 +81,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private static final int DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT = 60 * 1000;
   private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
   TableId tableId;
+  com.google.common.base.Optional<String> query = empty();
   String parentProjectId;
   com.google.common.base.Optional<String> credentialsKey;
   com.google.common.base.Optional<String> credentialsFile;
@@ -128,13 +130,28 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
     ImmutableMap<String, String> globalOptions = normalizeConf(originalGlobalOptions);
 
+    // Issue #247
+    // we need those parameters in case a read from query is issued
+    config.viewsEnabled = getAnyBooleanOption(globalOptions, options, VIEWS_ENABLED_OPTION, false);
+    config.materializationProject =
+        getAnyOption(
+            globalOptions,
+            options,
+            ImmutableList.of("materializationProject", "viewMaterializationProject"));
+    config.materializationDataset =
+        getAnyOption(
+            globalOptions,
+            options,
+            ImmutableList.of("materializationDataset", "viewMaterializationDataset"));
+    // get the table details
     String tableParam =
         getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
             .or(
                 () -> {
                   throw new IllegalArgumentException("No table has been specified");
                 });
-    Optional<String> datasetParam = getOption(options, "dataset").toJavaUtil();
+    Optional<String> datasetParam =
+        getOption(options, "dataset").or(config.materializationDataset).toJavaUtil();
     Optional<String> projectParam =
         firstPresent(
             getOption(options, "project").toJavaUtil(),
@@ -146,7 +163,15 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     Optional<String> datePartitionParam = getOption(options, DATE_PARTITION_PARAM).toJavaUtil();
     datePartitionParam.ifPresent(
         date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
-    config.tableId = parseTableId(tableParam, datasetParam, projectParam, datePartitionParam);
+    // checking for query
+    config.query = getOption(options, "query");
+    if (tableParam.toLowerCase().startsWith("select ")) {
+      // it is a query in practice
+      config.query = com.google.common.base.Optional.of(tableParam);
+      config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
+    } else {
+      config.tableId = parseTableId(tableParam, datasetParam, projectParam, datePartitionParam);
+    }
 
     config.parentProjectId =
         getAnyOption(globalOptions, options, "parentProject").or(defaultBilledProject());
@@ -193,17 +218,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     config.readDataFormat = DataFormat.valueOf(readDataFormatParam);
     config.combinePushedDownFilters =
         getAnyBooleanOption(globalOptions, options, "combinePushedDownFilters", true);
-    config.viewsEnabled = getAnyBooleanOption(globalOptions, options, VIEWS_ENABLED_OPTION, false);
-    config.materializationProject =
-        getAnyOption(
-            globalOptions,
-            options,
-            ImmutableList.of("materializationProject", "viewMaterializationProject"));
-    config.materializationDataset =
-        getAnyOption(
-            globalOptions,
-            options,
-            ImmutableList.of("materializationDataset", "viewMaterializationDataset"));
 
     config.partitionField = getOption(options, "partitionField");
     config.partitionExpirationMs =
@@ -349,6 +363,10 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   public TableId getTableId() {
     return tableId;
+  }
+
+  public Optional<String> getQuery() {
+    return query.toJavaUtil();
   }
 
   @Override
@@ -512,6 +530,35 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         VIEWS_ENABLED_OPTION,
         getMaxParallelism(),
         defaultParallelism);
+  }
+
+  public BigQueryClient.ReadTableOptions toReadTableOptions() {
+    return new BigQueryClient.ReadTableOptions() {
+      @Override
+      public TableId tableId() {
+        return SparkBigQueryConfig.this.getTableId();
+      }
+
+      @Override
+      public Optional<String> query() {
+        return SparkBigQueryConfig.this.getQuery();
+      }
+
+      @Override
+      public boolean viewsEnabled() {
+        return SparkBigQueryConfig.this.isViewsEnabled();
+      }
+
+      @Override
+      public String viewEnabledParamName() {
+        return SparkBigQueryConfig.VIEWS_ENABLED_OPTION;
+      }
+
+      @Override
+      public int viewExpirationTimeInHours() {
+        return SparkBigQueryConfig.this.getViewExpirationTimeInHours();
+      }
+    };
   }
 
   public enum IntermediateFormat {
