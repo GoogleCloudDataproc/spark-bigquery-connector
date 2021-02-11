@@ -67,6 +67,18 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
     corpuses should equal(expectedCorpuses)
   }
 
+  def testBadQuery(format: String): Unit = {
+    val badSql = "SELECT bogus_column FROM `bigquery-public-data.samples.shakespeare`"
+    // v1 throws BigQueryConnectorException
+    // v2 throws Guice ProviderException, as the table is materialized in teh module
+    intercept[RuntimeException] {
+      spark.read.format(format)
+        .option("viewsEnabled", true)
+        .option("materializationDataset", testDataset)
+        .load(badSql)
+    }
+  }
+
   test("test read from query - v1") {
     testReadFromQuery("bigquery")
   }
@@ -75,6 +87,13 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
     testReadFromQuery("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
   }
 
+  test("test bad query - v1") {
+    testBadQuery("bigquery")
+  }
+
+  test("test bad query - v2") {
+    testBadQuery("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+  }
 
   override def afterAll: Unit = {
     IntegrationTestUtils.deleteDatasetAndTables(testDataset)

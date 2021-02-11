@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -253,11 +252,28 @@ public class BigQueryClient {
     }
   }
 
-  public TableInfo materializeQueryToTable(String querySql, int viewExpirationTimeInHours) {
+  /**
+   * Runs the provided query on BigQuery and saves the result in a temporary table.
+   * @param querySql the query to be run
+   * @param tableExpirationTimeInHours the time in hours until the table is expired and auto-deleted
+   * @return a reference to the table
+   */
+  public TableInfo materializeQueryToTable(String querySql, int tableExpirationTimeInHours) {
     TableId tableId = createDestinationTable(Optional.empty(), Optional.empty());
-    return materializeTable(querySql, tableId, viewExpirationTimeInHours);
+    return materializeTable(querySql, tableId, tableExpirationTimeInHours);
   }
 
+  /**
+   * Runs the provided query on BigQuery and saves the result in a temporary table. This method is
+   * intended to be used to materialize views, so the view location (based on its TableId) is taken
+   * as a location for the temporary table, removing the need to set the materializationProject and
+   * materializationDataset properties
+   *
+   * @param querySql the query to be run
+   * @param viewId the view the query came from
+   * @param viewExpirationTimeInHours the time in hours until the table is expired and auto-deleted
+   * @return a reference to the table
+   */
   public TableInfo materializeViewToTable(
       String querySql, TableId viewId, int viewExpirationTimeInHours) {
     TableId tableId =
@@ -273,9 +289,10 @@ public class BigQueryClient {
           querySql,
           new DestinationTableBuilder(
               this, querySql, destinationTableId, viewExpirationTimeInHours));
-    } catch (ExecutionException e) {
+    } catch (Exception e) {
       throw new BigQueryConnectorException(
-          BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED, "Error creating destination table", e);
+          BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED, String.format(
+                  "Error creating destination table using the following query: [%s]", querySql), e);
     }
   }
 
