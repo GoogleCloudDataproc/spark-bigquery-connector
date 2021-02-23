@@ -232,7 +232,7 @@ public class BigQueryDataSourceReader
 
   List<InputPartition<InternalRow>> createEmptyProjectionPartitions() {
     long rowCount = bigQueryClient.calculateTableSize(tableId, globalFilter);
-    logger.info("Creating a DataFrame of empty rows with size " + rowCount);
+    logger.info("Used optimized BQ count(*) path. Count: " + rowCount);
     int partitionsCount = readSessionCreatorConfig.getDefaultParallelism();
     int partitionSize = (int) (rowCount / partitionsCount);
     InputPartition<InternalRow>[] partitions =
