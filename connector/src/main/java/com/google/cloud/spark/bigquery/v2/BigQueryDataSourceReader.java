@@ -45,6 +45,8 @@ import org.apache.spark.sql.sources.v2.reader.SupportsScanColumnarBatch;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.collection.JavaConversions;
 
 import java.util.ArrayList;
@@ -63,6 +65,8 @@ public class BigQueryDataSourceReader
         SupportsPushDownFilters,
         SupportsReportStatistics,
         SupportsScanColumnarBatch {
+
+  private static final Logger logger = LoggerFactory.getLogger(BigQueryDataSourceReader.class);
 
   private static Statistics UNKNOWN_STATISTICS =
       new Statistics() {
@@ -228,6 +232,7 @@ public class BigQueryDataSourceReader
 
   List<InputPartition<InternalRow>> createEmptyProjectionPartitions() {
     long rowCount = bigQueryClient.calculateTableSize(tableId, globalFilter);
+    logger.info("Creating a DataFrame of empty rows with size " + rowCount);
     int partitionsCount = readSessionCreatorConfig.getDefaultParallelism();
     int partitionSize = (int) (rowCount / partitionsCount);
     InputPartition<InternalRow>[] partitions =
