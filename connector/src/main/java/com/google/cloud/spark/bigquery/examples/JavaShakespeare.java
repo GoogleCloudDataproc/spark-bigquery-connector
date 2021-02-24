@@ -25,41 +25,22 @@ public class JavaShakespeare {
   public static void main(String[] args) {
     SparkSession spark = SparkSession.builder().appName("spark-bigquery-demo").getOrCreate();
 
+    String outputBigqueryTable = "wordcount_dataset.wordcount_output";
+    if (args.length == 1) {
+      outputBigqueryTable = args[0];
+    } else if (args.length > 1) {
+      usage();
+    }
+
     // Use the Cloud Storage bucket for temporary BigQuery export data used
     // by the connector. This assumes the Cloud Storage connector for
     // Hadoop is configured.
     String bucket = spark.sparkContext().hadoopConfiguration().get("fs.gs.system.bucket");
-    String inputBigqueryTable = "bigquery-public-data.samples.shakespeare";
-    String outputBigqueryTable = "wordcount_dataset.wordcount_output";
-
-    for (String arg : args) {
-      if (arg.charAt(0) == '-') {
-        switch (arg.charAt(1)) {
-          case 'b':
-            bucket = arg.substring(2);
-            break;
-          case 'i':
-            inputBigqueryTable = arg.substring(2);
-            break;
-          case 'o':
-            outputBigqueryTable = arg.substring(2);
-            break;
-          default:
-            usage();
-        }
-      }
-    }
-
     spark.conf().set("temporaryGcsBucket", bucket);
 
     // Load data in from BigQuery.
     Dataset<Row> wordsDF =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", inputBigqueryTable)
-            .load()
-            .cache();
+        spark.read().format("bigquery").option("table", "bigquery-public-data.samples.shakespeare").load().cache();
 
     wordsDF.show();
     wordsDF.printSchema();
@@ -73,25 +54,15 @@ public class JavaShakespeare {
     wordCountDF.printSchema();
 
     // Saving the data to BigQuery
-    wordCountDF
-        .write()
-        .format("bigquery")
-        .option("table", outputBigqueryTable)
-        .save();
+    wordCountDF.write().format("bigquery").option("table", outputBigqueryTable).save();
   }
 
   private static void usage() {
     PrintStream out = System.out;
-    out.println("usage: spark [-bGCS_TEMPORARY_BUCKET] [-iINPUT_BIGQUERY_TABLE]");
-    out.println("          [-oOUTPUT_BIGQUERY_TABLE]");
-    out.println("-bB       Cloud Storage bucket for temporary BigQuery export data used is");
-    out.println("          set to B.");
-    out.println("-iI       Set the input bigquery table over which wordcount will execute to I.");
-    out.println("          By default the location is bigquery-public-data.samples.shakespeare.");
-    out.println("          It assumes that the schema contains at least 2 columns word and");
-    out.println("          word_count.");
-    out.println("-oO       Set the output bigquery table to O. By default the location");
-    out.println("          is wordcount_dataset.wordcount_output");
+    out.println("usage: spark [OUTPUT_BIGQUERY_TABLE]");
+    out.println("[OUTPUT_BIGQUERY_TABLE]       Set the output bigquery table to ");
+    out.println("                              OUTPUT_BIGQUERY_TABLE. By default the location");
+    out.println("                              is wordcount_dataset.wordcount_output");
     System.exit(1);
   }
 }
