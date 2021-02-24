@@ -26,10 +26,8 @@ import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.apache.spark.sql.types.StructType;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
