@@ -40,7 +40,12 @@ public class JavaShakespeare {
 
     // Load data in from BigQuery.
     Dataset<Row> wordsDF =
-        spark.read().format("bigquery").option("table", "bigquery-public-data.samples.shakespeare").load().cache();
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .load()
+            .cache();
 
     wordsDF.show();
     wordsDF.printSchema();
@@ -54,7 +59,11 @@ public class JavaShakespeare {
     wordCountDF.printSchema();
 
     // Saving the data to BigQuery
-    wordCountDF.write().format("bigquery").option("table", outputBigqueryTable).save();
+    wordCountDF
+        .write()
+        .format("bigquery")
+        .option("table", outputBigqueryTable)
+        .save();
   }
 
   private static void usage() {
