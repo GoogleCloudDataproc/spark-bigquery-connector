@@ -69,7 +69,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getClusteredFields()).isEqualTo(Optional.empty());
     assertThat(config.getCreateDisposition()).isEqualTo(Optional.empty());
     assertThat(config.getLoadSchemaUpdateOptions()).isEqualTo(ImmutableList.of());
-    assertThat(config.getViewExpirationTimeInHours()).isEqualTo(24);
+    assertThat(config.getMaterializationExpirationTimeInMinutes()).isEqualTo(24 * 60);
     assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
     assertThat(config.isUseAvroLogicalTypes()).isFalse();
   }
@@ -89,6 +89,7 @@ public class SparkBigQueryConfigTest {
                 .put("viewsEnabled", "true")
                 .put("viewMaterializationProject", "vmp")
                 .put("viewMaterializationDataset", "vmd")
+                .put("materializationExpirationTimeInMinutes", "100")
                 .put("readDataFormat", "ARROW")
                 .put("optimizedEmptyProjection", "false")
                 .put("createDisposition", "CREATE_NEVER")
@@ -134,7 +135,7 @@ public class SparkBigQueryConfigTest {
             ImmutableList.of(
                 JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION,
                 JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION));
-    assertThat(config.getViewExpirationTimeInHours()).isEqualTo(24);
+    assertThat(config.getMaterializationExpirationTimeInMinutes()).isEqualTo(100);
     assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
     assertThat(config.isUseAvroLogicalTypes()).isTrue();
   }

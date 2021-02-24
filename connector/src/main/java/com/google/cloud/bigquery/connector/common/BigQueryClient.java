@@ -96,7 +96,7 @@ public class BigQueryClient {
       // in this case, let's materialize it and use it as the table
       validateViewsEnabled(options);
       String sql = query.get();
-      return materializeQueryToTable(sql, options.viewExpirationTimeInHours());
+      return materializeQueryToTable(sql, options.expirationTimeInMinutes());
     }
 
     TableInfo table = getTable(options.tableId());
@@ -254,13 +254,14 @@ public class BigQueryClient {
 
   /**
    * Runs the provided query on BigQuery and saves the result in a temporary table.
+   *
    * @param querySql the query to be run
-   * @param tableExpirationTimeInHours the time in hours until the table is expired and auto-deleted
+   * @param expirationTimeInMinutes the time in minutes until the table is expired and auto-deleted
    * @return a reference to the table
    */
-  public TableInfo materializeQueryToTable(String querySql, int tableExpirationTimeInHours) {
+  public TableInfo materializeQueryToTable(String querySql, int expirationTimeInMinutes) {
     TableId tableId = createDestinationTable(Optional.empty(), Optional.empty());
-    return materializeTable(querySql, tableId, tableExpirationTimeInHours);
+    return materializeTable(querySql, tableId, expirationTimeInMinutes);
   }
 
   /**
@@ -271,28 +272,29 @@ public class BigQueryClient {
    *
    * @param querySql the query to be run
    * @param viewId the view the query came from
-   * @param viewExpirationTimeInHours the time in hours until the table is expired and auto-deleted
+   * @param expirationTimeInMinutes the time in hours until the table is expired and auto-deleted
    * @return a reference to the table
    */
   public TableInfo materializeViewToTable(
-      String querySql, TableId viewId, int viewExpirationTimeInHours) {
+      String querySql, TableId viewId, int expirationTimeInMinutes) {
     TableId tableId =
         createDestinationTable(
             Optional.ofNullable(viewId.getProject()), Optional.ofNullable(viewId.getDataset()));
-    return materializeTable(querySql, tableId, viewExpirationTimeInHours);
+    return materializeTable(querySql, tableId, expirationTimeInMinutes);
   }
 
   private TableInfo materializeTable(
-      String querySql, TableId destinationTableId, int viewExpirationTimeInHours) {
+      String querySql, TableId destinationTableId, int expirationTimeInMinutes) {
     try {
       return destinationTableCache.get(
           querySql,
-          new DestinationTableBuilder(
-              this, querySql, destinationTableId, viewExpirationTimeInHours));
+          new DestinationTableBuilder(this, querySql, destinationTableId, expirationTimeInMinutes));
     } catch (Exception e) {
       throw new BigQueryConnectorException(
-          BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED, String.format(
-                  "Error creating destination table using the following query: [%s]", querySql), e);
+          BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
+          String.format(
+              "Error creating destination table using the following query: [%s]", querySql),
+          e);
     }
   }
 
@@ -305,24 +307,24 @@ public class BigQueryClient {
 
     String viewEnabledParamName();
 
-    int viewExpirationTimeInHours();
+    int expirationTimeInMinutes();
   }
 
   static class DestinationTableBuilder implements Callable<TableInfo> {
     final BigQueryClient bigQueryClient;
     final String querySql;
     final TableId destinationTable;
-    final int viewExpirationTimeInHours;
+    final int expirationTimeInMinutes;
 
     DestinationTableBuilder(
         BigQueryClient bigQueryClient,
         String querySql,
         TableId destinationTable,
-        int viewExpirationTimeInHours) {
+        int expirationTimeInMinutes) {
       this.bigQueryClient = bigQueryClient;
       this.querySql = querySql;
       this.destinationTable = destinationTable;
-      this.viewExpirationTimeInHours = viewExpirationTimeInHours;
+      this.expirationTimeInMinutes = expirationTimeInMinutes;
     }
 
     @Override
@@ -346,7 +348,7 @@ public class BigQueryClient {
       // add expiration time to the table
       TableInfo createdTable = bigQueryClient.getTable(destinationTable);
       long expirationTime =
-          createdTable.getCreationTime() + TimeUnit.HOURS.toMillis(viewExpirationTimeInHours);
+          createdTable.getCreationTime() + TimeUnit.MINUTES.toMillis(expirationTimeInMinutes);
       Table updatedTable =
           bigQueryClient.update(createdTable.toBuilder().setExpirationTime(expirationTime).build());
       return updatedTable;

@@ -231,7 +231,7 @@ private[bigquery] class DirectBigQueryRelation(
     // add expiration time to the table
     val createdTable = bigQuery.getTable(destinationTable)
     val expirationTime = createdTable.getCreationTime +
-      TimeUnit.HOURS.toMillis(options.getViewExpirationTimeInHours)
+      TimeUnit.MINUTES.toMillis(options.getMaterializationExpirationTimeInMinutes)
     val updatedTable = bigQuery.update(createdTable.toBuilder
       .setExpirationTime(expirationTime)
       .build())
