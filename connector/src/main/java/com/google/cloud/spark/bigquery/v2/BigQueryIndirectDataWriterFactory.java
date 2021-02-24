@@ -16,13 +16,13 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import org.apache.avro.Schema;
+import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.writer.DataWriter;
 import org.apache.spark.sql.sources.v2.writer.DataWriterFactory;
 import org.apache.spark.sql.types.StructType;
-import org.apache.spark.util.SerializableConfiguration;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -53,7 +53,7 @@ class BigQueryIndirectDataWriterFactory implements DataWriterFactory<InternalRow
       UUID uuid = new UUID(taskId, epochId);
       String uri = String.format("%s/part-%06d-%s.avro", gcsDirPath, partitionId, uuid);
       Path path = new Path(uri);
-      FileSystem fs = path.getFileSystem(conf.value());
+      FileSystem fs = path.getFileSystem(conf.get());
       IntermediateRecordWriter intermediateRecordWriter =
           new AvroIntermediateRecordWriter(avroSchema, fs.create(path));
       return new BigQueryIndirectDataWriter(
