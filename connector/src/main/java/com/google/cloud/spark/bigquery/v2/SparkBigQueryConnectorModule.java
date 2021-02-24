@@ -38,13 +38,13 @@ import static scala.collection.JavaConversions.mapAsJavaMap;
 public class SparkBigQueryConnectorModule implements Module {
 
   private final SparkSession spark;
-  private final DataSourceOptions options;
+  private final Map<String, String> options;
   private final Optional<StructType> schema;
   private final DataSourceVersion dataSourceVersion;
 
   public SparkBigQueryConnectorModule(
       SparkSession spark,
-      DataSourceOptions options,
+      Map<String, String> options,
       Optional<StructType> schema,
       DataSourceVersion dataSourceVersion) {
     this.spark = spark;
@@ -67,7 +67,7 @@ public class SparkBigQueryConnectorModule implements Module {
   @Singleton
   @Provides
   public SparkBigQueryConfig provideSparkBigQueryConfig() {
-    Map<String, String> optionsMap = new HashMap<>(options.asMap());
+    Map<String, String> optionsMap = options;
     dataSourceVersion.updateOptionsMap(optionsMap);
     return SparkBigQueryConfig.from(
         ImmutableMap.copyOf(optionsMap),

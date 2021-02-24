@@ -55,7 +55,7 @@ public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport, WriteSup
     return Guice.createInjector(
         new BigQueryClientModule(),
         new SparkBigQueryConnectorModule(
-            spark, options, Optional.ofNullable(schema), DataSourceVersion.V2),
+            spark, options.asMap(), Optional.ofNullable(schema), DataSourceVersion.V2),
         module);
   }
 
