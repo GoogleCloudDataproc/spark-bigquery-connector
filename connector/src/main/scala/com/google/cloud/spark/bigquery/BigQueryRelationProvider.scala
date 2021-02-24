@@ -153,12 +153,11 @@ trait GuiceInjectorCreator {
   def createGuiceInjector(sqlContext: SQLContext,
                           parameters: Map[String, String],
                           schema: Option[StructType] = None): Injector = {
-    val dataSourceOptions = new DataSourceOptions(parameters.asJava)
     val spark = sqlContext.sparkSession
     val injector = Guice.createInjector(
       new BigQueryClientModule,
       new SparkBigQueryConnectorModule(
-        spark, dataSourceOptions, Optional.ofNullable(schema.orNull), DataSourceVersion.V1))
+        spark, parameters.asJava, Optional.ofNullable(schema.orNull), DataSourceVersion.V1))
     injector
   }
 }
