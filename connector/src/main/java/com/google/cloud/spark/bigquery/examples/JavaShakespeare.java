@@ -60,10 +60,10 @@ public class JavaShakespeare {
             .option("table", inputBigqueryTable)
             .load()
             .cache();
-    wordsDF.createOrReplaceTempView("words");
 
     wordsDF.show();
     wordsDF.printSchema();
+    wordsDF.createOrReplaceTempView("words");
 
     // Perform word count.
     Dataset<Row> wordCountDF =
