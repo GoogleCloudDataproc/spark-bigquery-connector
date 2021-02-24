@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableMap
 import com.google.inject.{Guice, Injector}
 import org.apache.spark.sql.execution.streaming.Sink
 import org.apache.spark.sql.sources._
-import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
@@ -153,12 +152,11 @@ trait GuiceInjectorCreator {
   def createGuiceInjector(sqlContext: SQLContext,
                           parameters: Map[String, String],
                           schema: Option[StructType] = None): Injector = {
-    val dataSourceOptions = new DataSourceOptions(parameters.asJava)
     val spark = sqlContext.sparkSession
     val injector = Guice.createInjector(
       new BigQueryClientModule,
       new SparkBigQueryConnectorModule(
-        spark, dataSourceOptions, Optional.ofNullable(schema.orNull), DataSourceVersion.V1))
+        spark, parameters.asJava, Optional.ofNullable(schema.orNull), DataSourceVersion.V1))
     injector
   }
 }
