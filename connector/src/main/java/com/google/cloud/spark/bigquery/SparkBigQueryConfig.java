@@ -64,6 +64,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   public static final String DATE_PARTITION_PARAM = "datePartition";
   public static final String VALIDATE_SPARK_AVRO_PARAM = "validateSparkAvroInternalParam";
   public static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
+  public static final int DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES = 24 * 60;
   @VisibleForTesting static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.ARROW;
 
   @VisibleForTesting
@@ -109,7 +110,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   boolean optimizedEmptyProjection = true;
   boolean useAvroLogicalTypes = false;
   ImmutableList<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.of();
-  int viewExpirationTimeInHours = 24;
+  int materializationExpirationTimeInMinutes = DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES;
   int maxReadRowsRetries = 3;
 
   @VisibleForTesting
@@ -143,6 +144,15 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
             globalOptions,
             options,
             ImmutableList.of("materializationDataset", "viewMaterializationDataset"));
+    config.materializationExpirationTimeInMinutes =
+        getAnyOption(globalOptions, options, "materializationExpirationTimeInMinutes")
+            .transform(Integer::parseInt)
+            .or(DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES);
+    if (config.materializationExpirationTimeInMinutes < 1) {
+      throw new IllegalArgumentException(
+          "materializationExpirationTimeInMinutes must have a positive value, the configured value is "
+              + config.materializationExpirationTimeInMinutes);
+    }
     // get the table details
     String tableParam =
         getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
@@ -485,8 +495,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     return loadSchemaUpdateOptions;
   }
 
-  public int getViewExpirationTimeInHours() {
-    return viewExpirationTimeInHours;
+  public int getMaterializationExpirationTimeInMinutes() {
+    return materializationExpirationTimeInMinutes;
   }
 
   public int getMaxReadRowsRetries() {
@@ -524,7 +534,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         viewsEnabled,
         materializationProject.toJavaUtil(),
         materializationDataset.toJavaUtil(),
-        viewExpirationTimeInHours,
+        materializationExpirationTimeInMinutes,
         readDataFormat,
         maxReadRowsRetries,
         VIEWS_ENABLED_OPTION,
@@ -555,8 +565,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
       }
 
       @Override
-      public int viewExpirationTimeInHours() {
-        return SparkBigQueryConfig.this.getViewExpirationTimeInHours();
+      public int expirationTimeInMinutes() {
+        return SparkBigQueryConfig.this.getMaterializationExpirationTimeInMinutes();
       }
     };
   }

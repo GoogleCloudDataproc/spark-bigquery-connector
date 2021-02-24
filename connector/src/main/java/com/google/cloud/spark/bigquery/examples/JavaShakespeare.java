@@ -59,11 +59,7 @@ public class JavaShakespeare {
     wordCountDF.printSchema();
 
     // Saving the data to BigQuery
-    wordCountDF
-        .write()
-        .format("bigquery")
-        .option("table", outputBigqueryTable)
-        .save();
+    wordCountDF.write().format("bigquery").option("table", outputBigqueryTable).save();
   }
 
   private static void usage() {

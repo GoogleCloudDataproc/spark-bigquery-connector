@@ -25,7 +25,7 @@ public class ReadSessionCreatorConfig {
   final Optional<String> materializationProject;
   final Optional<String> materializationDataset;
   final String viewEnabledParamName;
-  final int viewExpirationTimeInHours;
+  final int materializationExpirationTimeInMinutes;
   final DataFormat readDataFormat;
   final int maxReadRowsRetries;
   final OptionalInt maxParallelism;
@@ -35,7 +35,7 @@ public class ReadSessionCreatorConfig {
       boolean viewsEnabled,
       Optional<String> materializationProject,
       Optional<String> materializationDataset,
-      int viewExpirationTimeInHours,
+      int materializationExpirationTimeInMinutes,
       DataFormat readDataFormat,
       int maxReadRowsRetries,
       String viewEnabledParamName,
@@ -45,7 +45,7 @@ public class ReadSessionCreatorConfig {
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
     this.viewEnabledParamName = viewEnabledParamName;
-    this.viewExpirationTimeInHours = viewExpirationTimeInHours;
+    this.materializationExpirationTimeInMinutes = materializationExpirationTimeInMinutes;
     this.readDataFormat = readDataFormat;
     this.maxReadRowsRetries = maxReadRowsRetries;
     this.maxParallelism = maxParallelism;
@@ -68,8 +68,8 @@ public class ReadSessionCreatorConfig {
     return viewEnabledParamName;
   }
 
-  public int getViewExpirationTimeInHours() {
-    return viewExpirationTimeInHours;
+  public int getMaterializationExpirationTimeInMinutes() {
+    return materializationExpirationTimeInMinutes;
   }
 
   public DataFormat getReadDataFormat() {
