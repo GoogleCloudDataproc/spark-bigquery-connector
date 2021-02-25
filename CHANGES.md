@@ -1,5 +1,15 @@
 # Release Notes
 
+## 0.19.0 - 2021-02-24
+* Issue #247: Allowing to load results of any arbitrary SELECT query from BigQuery.
+* Issue #310: Allowing to configure the expiration time of materialized data.
+* PR #283: Implemented Datasource v2 write support.
+* Improved Spark 3 compatibility.
+* BigQuery API has been upgraded to version 1.127.4
+* BigQuery Storage API has been upgraded to version 1.10.0
+* Guava has been upgraded to version 30.1-jre
+* Netty has been upgraded to version 4.1.52.Final
+
 ## 0.18.1 - 2021-01-21
 * Issue #248: Reducing the size of the URI list when writing to BigQuery. This allows larger DataFrames (>10,000 partitions) to be safely written.
 * Issue #296: Removed redundant packaged slf4j-api.
