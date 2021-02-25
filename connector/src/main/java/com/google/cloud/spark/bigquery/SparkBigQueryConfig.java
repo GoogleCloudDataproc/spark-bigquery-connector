@@ -172,17 +172,18 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
     // checking for query
     if (tableParam.isPresent()) {
-      if (tableParam.get().toLowerCase().startsWith("select ")) {
+      String tableParamStr = tableParam.get().trim();
+      if (tableParamStr.toLowerCase().startsWith("select ")) {
         // it is a query in practice
-        config.query = com.google.common.base.Optional.of(tableParam.get());
+        config.query = com.google.common.base.Optional.of(tableParamStr);
         config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
       } else {
         config.tableId =
-            parseTableId(tableParam.get(), datasetParam, projectParam, datePartitionParam);
+            parseTableId(tableParamStr, datasetParam, projectParam, datePartitionParam);
       }
     } else {
       // no table has been provided, it is either a query or an error
-      config.query = getOption(options, "query");
+      config.query = getOption(options, "query").transform(String::trim);
       if (config.query.isPresent()) {
         config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
       } else {
