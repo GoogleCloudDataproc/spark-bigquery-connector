@@ -51,7 +51,7 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
   def testReadFromQuery(format: String) {
     // the query suffix is to make sure that each format will have
     // a different table createddue to the destination table cache
-    val sql = "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` " +
+    val sql = "SELECT corpus, corpus_date FROM `bigquery-public-data.samples.shakespeare` " +
       s"WHERE word='spark' AND '$format'='$format'";
     val df = spark.read.format(format)
       .option("viewsEnabled", true)
@@ -70,7 +70,7 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
   def testQueryOption(format: String) {
     // the query suffix is to make sure that each format will have
     // a different table createddue to the destination table cache
-    val sql = "SELECT corpus, corpus_date FROM `bigquery-public-data.samples.shakespeare` " +
+    val sql = "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` " +
       s"WHERE word='spark' AND '$format'='$format'";
     val df = spark.read.format(format)
       .option("viewsEnabled", true)
