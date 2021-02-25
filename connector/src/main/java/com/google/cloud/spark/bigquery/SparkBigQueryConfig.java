@@ -154,12 +154,9 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
               + config.materializationExpirationTimeInMinutes);
     }
     // get the table details
-    String tableParam =
+    Optional<String> tableParam =
         getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
-            .or(
-                () -> {
-                  throw new IllegalArgumentException("No table has been specified");
-                });
+            .toJavaUtil();
     Optional<String> datasetParam =
         getOption(options, "dataset").or(config.materializationDataset).toJavaUtil();
     Optional<String> projectParam =
@@ -174,13 +171,24 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     datePartitionParam.ifPresent(
         date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
     // checking for query
-    config.query = getOption(options, "query");
-    if (tableParam.toLowerCase().startsWith("select ")) {
-      // it is a query in practice
-      config.query = com.google.common.base.Optional.of(tableParam);
-      config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
+    if (tableParam.isPresent()) {
+      if (tableParam.get().toLowerCase().startsWith("select ")) {
+        // it is a query in practice
+        config.query = com.google.common.base.Optional.of(tableParam.get());
+        config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
+      } else {
+        config.tableId =
+            parseTableId(tableParam.get(), datasetParam, projectParam, datePartitionParam);
+      }
     } else {
-      config.tableId = parseTableId(tableParam, datasetParam, projectParam, datePartitionParam);
+      // no table has been provided, it is either a query or an error
+      config.query = getOption(options, "query");
+      if (config.query.isPresent()) {
+        config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
+      } else {
+        // No table nor query were set. We cannot go further.
+        throw new IllegalArgumentException("No table has been specified");
+      }
     }
 
     config.parentProjectId =

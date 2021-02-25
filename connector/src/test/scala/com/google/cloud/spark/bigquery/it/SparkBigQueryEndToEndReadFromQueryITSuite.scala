@@ -67,6 +67,26 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
     corpuses should equal(expectedCorpuses)
   }
 
+  def testQueryOption(format: String) {
+    // the query suffix is to make sure that each format will have
+    // a different table createddue to the destination table cache
+    val sql = "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` " +
+      s"WHERE word='spark' AND '$format'='$format'";
+    val df = spark.read.format(format)
+      .option("viewsEnabled", true)
+      .option("materializationDataset", testDataset)
+      .option("query", sql)
+      .load()
+
+    val totalRows = df.count
+    totalRows should equal(9)
+
+    val corpuses = df.select("corpus").collect().map(row => row(0).toString).sorted
+    val expectedCorpuses = Array("2kinghenryvi", "3kinghenryvi", "allswellthatendswell", "hamlet",
+      "juliuscaesar", "kinghenryv", "kinglear", "periclesprinceoftyre", "troilusandcressida")
+    corpuses should equal(expectedCorpuses)
+  }
+
   def testBadQuery(format: String): Unit = {
     val badSql = "SELECT bogus_column FROM `bigquery-public-data.samples.shakespeare`"
     // v1 throws BigQueryConnectorException
@@ -85,6 +105,14 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
 
   test("test read from query - v2") {
     testReadFromQuery("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+  }
+
+  test("test query option - v1") {
+    testQueryOption("bigquery")
+  }
+
+  test("test query option - v2") {
+    testQueryOption("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
   }
 
   test("test bad query - v1") {
