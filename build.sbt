@@ -84,9 +84,6 @@ lazy val connector = (project in file("connector"))
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
       "com.google.inject" % "guice" % "4.2.3",
       "org.apache.arrow" % "arrow-vector" % "0.16.0" exclude("org.slf4j", "slf4j-api"),
-      "org.apache.parquet" % "parquet-protobuf" % "1.10.0"
-        exclude("org.apache.thrift", "libthrift")
-        exclude("com.hadoop.gplcompression", "hadoop-lzo"),
 
       // Keep com.google.cloud dependencies in sync
       "com.google.cloud" % "google-cloud-bigquery" % "1.123.2",
