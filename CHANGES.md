@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.19.1 - 2021-03-01
+* PR #324 - Restoring version 0.18.1 dependencies due to networking issues
+* BigQuery API has been upgraded to version 1.123.2
+* BigQuery Storage API has been upgraded to version 1.6.0
+* Guava has been upgraded to version 30.0-jre
+* Netty has been upgraded to version 4.1.51.Final
+
 ## 0.19.0 - 2021-02-24
 * Issue #247: Allowing to load results of any arbitrary SELECT query from BigQuery.
 * Issue #310: Allowing to configure the expiration time of materialized data.
