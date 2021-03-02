@@ -134,6 +134,10 @@ lazy val fatJar = project
       case PathList(ps@_*) if ps.last.endsWith(".proto") => MergeStrategy.discard
       // Relocate netty-tcnative.so. This is necessary even though gRPC shades it, because we shade
       // gRPC.
+      case PathList("META-INF", "native", f) if f.contains("netty_tcnative_windows") =>
+        RelocationMergeStrategy(path =>
+          path.replace("netty_tcnative_windows",
+            s"${relocationPrefix.replace('.', '_')}_netty_tcnative_windows"))
       case PathList("META-INF", "native", f) if f.contains("netty_tcnative") =>
         RelocationMergeStrategy(path =>
           path.replace("native/lib", s"native/lib${relocationPrefix.replace('.', '_')}_"))
