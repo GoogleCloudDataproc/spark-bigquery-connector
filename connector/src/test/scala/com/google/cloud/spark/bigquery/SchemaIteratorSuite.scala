@@ -30,7 +30,7 @@ import scala.collection.JavaConverters._
 
 /**
  * A test for ensuring that Arrow and Avros Schema generate same results for
- * underlying big query source
+ * underlying BigQuery source
  */
 class SchemaIteratorSuite extends FunSuite {
 
