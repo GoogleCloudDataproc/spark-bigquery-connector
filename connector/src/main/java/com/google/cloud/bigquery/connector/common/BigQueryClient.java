@@ -204,8 +204,6 @@ public class BigQueryClient {
             ? "*"
             : requiredColumns.stream().map(column -> format("`%s`", column)).collect(joining(","));
 
-    String whereClause = createWhereClause(filters).map(clause -> "WHERE " + clause).orElse("");
-
     return createSql(table, columns, filters);
   }
 
