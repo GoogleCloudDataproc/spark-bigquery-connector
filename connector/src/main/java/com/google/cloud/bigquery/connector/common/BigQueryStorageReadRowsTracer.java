@@ -9,7 +9,7 @@ package com.google.cloud.bigquery.connector.common;
  *  Paired start/end methods are expected to be called from the same thread.
  *  <p>For internal use only.
  */
-public interface BigqueryStorageReadRowsTracer {
+public interface BigQueryStorageReadRowsTracer {
     /**
      * Record stream initialization time.
      */

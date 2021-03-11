@@ -25,7 +25,7 @@ import java.time.Duration;
  * A call to {@link #start() with a subsequent call to {@link #finish()} will accumulate
  * time between the {@link #start } and {@link #finish()} call.
  */
-final class StartStopTimer implements Serializable {
+final class DurationTimer implements Serializable {
    private long start = Long.MIN_VALUE;
    private long accumulatedNanos = 0;
    private long samples = 0;

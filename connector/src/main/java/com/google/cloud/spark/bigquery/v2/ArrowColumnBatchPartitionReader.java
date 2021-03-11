@@ -16,7 +16,7 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
-import com.google.cloud.bigquery.connector.common.BigqueryStorageReadRowsTracer;
+import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ArrowSchemaConverter;
 import com.google.protobuf.ByteString;
@@ -43,17 +43,17 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
   private final BufferAllocator allocator;
   private final List<String> namesInOrder;
   private ColumnarBatch currentBatch;
-  private final BigqueryStorageReadRowsTracer tracer;
+  private final BigQueryStorageReadRowsTracer tracer;
   private boolean closed = false;
 
   static class ReadRowsResponseInputStreamEnumeration
       implements java.util.Enumeration<InputStream> {
     private final Iterator<ReadRowsResponse> responses;
     private ReadRowsResponse currentResponse;
-    private final BigqueryStorageReadRowsTracer tracer;
+    private final BigQueryStorageReadRowsTracer tracer;
 
     ReadRowsResponseInputStreamEnumeration(Iterator<ReadRowsResponse> responses,
-                                           BigqueryStorageReadRowsTracer tracer) {
+                                           BigQueryStorageReadRowsTracer tracer) {
       this.responses = responses;
       this.tracer = tracer;
       loadNextResponse();
@@ -90,7 +90,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       ByteString schema,
       ReadRowsHelper readRowsHelper,
       List<String> namesInOrder,
-      BigqueryStorageReadRowsTracer tracer) {
+      BigQueryStorageReadRowsTracer tracer) {
     this.allocator =
         (new RootAllocator(maxAllocation))
             .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);

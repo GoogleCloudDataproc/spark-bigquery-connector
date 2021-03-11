@@ -22,10 +22,10 @@ import java.util.concurrent.TimeUnit;
 
 import static com.google.common.truth.Truth.assertThat;
 
-public class StartStopTimerTest {
+public class DurationTimerTest {
     @Test
     public void testStartStopPairedCall() throws Exception {
-       StartStopTimer timer = new StartStopTimer();
+       DurationTimer timer = new DurationTimer();
         assertThat(timer.getSamples()).isEqualTo(0);
 
         timer.start();
@@ -44,7 +44,7 @@ public class StartStopTimerTest {
 
     @Test
     public void testFinishedByItselfCall() throws Exception {
-        StartStopTimer timer = new StartStopTimer();
+        DurationTimer timer = new DurationTimer();
         assertThat(timer.getSamples()).isEqualTo(0);
         timer.finish();
         assertThat(timer.getSamples()).isEqualTo(0);

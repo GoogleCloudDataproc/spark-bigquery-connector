@@ -15,8 +15,6 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import com.google.api.Logging;
-
 public class LoggingBigQueryTracerFactory implements BigQueryTracerFactory {
     private final int logIntervalPowerOf2;
 
@@ -25,7 +23,7 @@ public class LoggingBigQueryTracerFactory implements BigQueryTracerFactory {
     }
 
     @Override
-    public BigqueryStorageReadRowsTracer newReadRowsTracer(String streamName) {
+    public BigQueryStorageReadRowsTracer newReadRowsTracer(String streamName) {
         return new LoggingBigQueryStorageReadRowsTracer(streamName, logIntervalPowerOf2);
     }
 }

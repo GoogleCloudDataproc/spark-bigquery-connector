@@ -17,8 +17,6 @@ package com.google.cloud.bigquery.connector.common;
 
 import org.junit.Test;
 import org.junit.Before;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 
@@ -26,7 +24,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 public class LoggingBigQueryStorageReadRowsTracerTest {
     LoggingBigQueryStorageReadRowsTracer loggingTracer;
-    BigqueryStorageReadRowsTracer tracer;
+    BigQueryStorageReadRowsTracer tracer;
 
     @Before
     public void setup() {

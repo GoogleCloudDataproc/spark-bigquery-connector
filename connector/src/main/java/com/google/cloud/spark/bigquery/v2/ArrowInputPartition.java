@@ -52,7 +52,7 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
 
   @Override
   public InputPartitionReader<ColumnarBatch> createPartitionReader() {
-    BigqueryStorageReadRowsTracer tracer = tracerFactory.newReadRowsTracer(streamName);
+    BigQueryStorageReadRowsTracer tracer = tracerFactory.newReadRowsTracer(streamName);
     ReadRowsRequest.Builder readRowsRequest =
         ReadRowsRequest.newBuilder().setReadStream(streamName);
     ReadRowsHelper readRowsHelper =

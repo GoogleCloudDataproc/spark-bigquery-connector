@@ -22,18 +22,18 @@ import java.time.Duration;
 import java.time.Instant;
 
 /**
- * Implementation of {@link BigqueryStorageReadRowsTracer} that accumulates and logs times periodically.
+ * Implementation of {@link BigQueryStorageReadRowsTracer} that accumulates and logs times periodically.
  */
-public class LoggingBigQueryStorageReadRowsTracer implements BigqueryStorageReadRowsTracer {
+public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageReadRowsTracer {
     private static final Logger log = LoggerFactory.getLogger(LoggingBigQueryStorageReadRowsTracer.class);
 
     private final String streamName;
     private final int logIntervalPowerOf2;
     // Visible for testing.
     Instant startTime;
-    final StartStopTimer parseTime = new StartStopTimer();
-    final StartStopTimer sparkTime = new StartStopTimer();
-    final StartStopTimer serviceTime = new StartStopTimer();
+    final DurationTimer parseTime = new DurationTimer();
+    final DurationTimer sparkTime = new DurationTimer();
+    final DurationTimer serviceTime = new DurationTimer();
     Instant endTime;
     // For confirming data is logged.
     long linesLogged = 0;
@@ -74,12 +74,12 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigqueryStorageRead
       logData();
     }
 
-    private String format(StartStopTimer startStopTimer) {
-        long samples = startStopTimer.getSamples();
+    private String format(DurationTimer durationTimer) {
+        long samples = durationTimer.getSamples();
         if (samples == 0) {
             return "Not enough samples.";
         }
-        Duration average = startStopTimer.getAcumulatedTime().dividedBy(samples);
+        Duration average = durationTimer.getAcumulatedTime().dividedBy(samples);
       return String.format("Average (ns): %s Samples: %d", average.toString(), samples);
     }
 
