@@ -1,5 +1,7 @@
 package com.google.cloud.bigquery.connector.common;
 
+import java.io.Serializable;
+
 /**
  * Interface to capture tracing in information for the BigQuery connector. Modelled after {@link
  * com.google.api.gax.tracing.ApiTracer}
@@ -10,7 +12,7 @@ package com.google.cloud.bigquery.connector.common;
  *
  * <p>For internal use only.
  */
-public interface BigQueryStorageReadRowsTracer {
+public interface BigQueryStorageReadRowsTracer extends Serializable {
   /** Record stream initialization time. */
   void startStream();
   /** Indicates a fully decoded element has been requested by spark (i.e. Arrow RecordBatch). */
