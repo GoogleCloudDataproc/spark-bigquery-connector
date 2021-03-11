@@ -23,68 +23,68 @@ import java.time.Instant;
 import static com.google.common.truth.Truth.assertThat;
 
 public class LoggingBigQueryStorageReadRowsTracerTest {
-    LoggingBigQueryStorageReadRowsTracer loggingTracer;
-    BigQueryStorageReadRowsTracer tracer;
+  LoggingBigQueryStorageReadRowsTracer loggingTracer;
+  BigQueryStorageReadRowsTracer tracer;
 
-    @Before
-    public void setup() {
-        loggingTracer = new LoggingBigQueryStorageReadRowsTracer("streamName", /*powerOfTwoLogging*/3);
-        tracer = loggingTracer;
+  @Before
+  public void setup() {
+    loggingTracer = new LoggingBigQueryStorageReadRowsTracer("streamName", /*powerOfTwoLogging*/ 3);
+    tracer = loggingTracer;
+  }
+
+  @Test
+  public void testStartAndFinish() {
+    assertThat(loggingTracer.startTime).isNull();
+    tracer.startStream();
+    Instant startTime = loggingTracer.startTime;
+    assertThat(startTime).isGreaterThan(Instant.now().minusMillis(20));
+    assertThat(loggingTracer.endTime).isNull();
+
+    assertThat(loggingTracer.linesLogged).isEqualTo(0);
+    tracer.finished();
+    assertThat(loggingTracer.linesLogged).isEqualTo(1);
+    assertThat(loggingTracer.endTime).isAtLeast(startTime);
+    assertThat(loggingTracer.startTime).isSameInstanceAs(startTime);
+    assertThat(loggingTracer.endTime).isNotSameInstanceAs(startTime);
+  }
+
+  @Test
+  public void testWaitingForSpark() {
+    assertThat(loggingTracer.sparkTime.getSamples()).isEqualTo(0);
+
+    tracer.nextBatchNeeded();
+    assertThat(loggingTracer.sparkTime.getSamples()).isEqualTo(0);
+    // Needs to be called a second time to get the first batch.
+    tracer.nextBatchNeeded();
+    assertThat(loggingTracer.sparkTime.getSamples()).isEqualTo(1);
+  }
+
+  @Test
+  public void testWaitingForService() {
+    assertThat(loggingTracer.serviceTime.getSamples()).isEqualTo(0);
+    tracer.readRowsResponseRequested();
+    assertThat(loggingTracer.serviceTime.getSamples()).isEqualTo(0);
+    tracer.readRowsResponseObtained();
+    assertThat(loggingTracer.serviceTime.getSamples()).isEqualTo(1);
+  }
+
+  @Test
+  public void testParseTime() {
+    assertThat(loggingTracer.parseTime.getSamples()).isEqualTo(0);
+    tracer.rowsParseStarted();
+    assertThat(loggingTracer.parseTime.getSamples()).isEqualTo(0);
+    tracer.rowsParseFinished();
+    assertThat(loggingTracer.parseTime.getSamples()).isEqualTo(1);
+  }
+
+  @Test
+  public void testLogsAppropriatelyFinished() {
+    assertThat(loggingTracer.linesLogged).isEqualTo(0);
+    for (int x = 0; x < 8; x++) {
+      tracer.nextBatchNeeded();
     }
-    @Test
-    public void testStartAndFinish() {
-        assertThat(loggingTracer.startTime).isNull();
-        tracer.startStream();
-        Instant startTime = loggingTracer.startTime;
-        assertThat(startTime).isGreaterThan(Instant.now().minusMillis(20));
-        assertThat(loggingTracer.endTime).isNull();
-
-        assertThat(loggingTracer.linesLogged).isEqualTo(0);
-        tracer.finished();
-        assertThat(loggingTracer.linesLogged).isEqualTo(1);
-        assertThat(loggingTracer.endTime).isAtLeast(startTime);
-        assertThat(loggingTracer.startTime).isSameInstanceAs(startTime);
-        assertThat(loggingTracer.endTime).isNotSameInstanceAs(startTime);
-    }
-
-    @Test
-    public void testWaitingForSpark() {
-        assertThat(loggingTracer.sparkTime.getSamples()).isEqualTo(0);
-
-        tracer.nextBatchNeeded();
-        assertThat(loggingTracer.sparkTime.getSamples()).isEqualTo(0);
-        // Needs to be called a second time to get the first batch.
-        tracer.nextBatchNeeded();
-        assertThat(loggingTracer.sparkTime.getSamples()).isEqualTo(0);
-    }
-
-    @Test
-    public void testWaitingForService() {
-        assertThat(loggingTracer.serviceTime.getSamples()).isEqualTo(0);
-       tracer.readRowsResponseRequested();
-       assertThat(loggingTracer.serviceTime.getSamples()).isEqualTo(0);
-       tracer.readRowsResponseObtained();
-       assertThat(loggingTracer.serviceTime.getSamples()).isEqualTo(1);
-    }
-
-    @Test
-    public void testParseTime() {
-        assertThat(loggingTracer.parseTime.getSamples()).isEqualTo(0);
-        tracer.rowsParseStarted();
-        assertThat(loggingTracer.parseTime.getSamples()).isEqualTo(0);
-        tracer.rowsParseFinished();
-        assertThat(loggingTracer.parseTime.getSamples()).isEqualTo(1);
-    }
-
-    @Test
-    public void testLogsAfterFinished() {
-        assertThat(loggingTracer.linesLogged).isEqualTo(0);
-       for (int x = 0; x < 8; x++) {
-         tracer.nextBatchNeeded();
-       }
-       assertThat(loggingTracer.linesLogged).isEqualTo(1);
-       tracer.finished();
-       assertThat(loggingTracer.linesLogged).isEqualTo(2);
-    }
-
+    assertThat(loggingTracer.linesLogged).isEqualTo(1);
+    tracer.finished();
+    assertThat(loggingTracer.linesLogged).isEqualTo(2);
+  }
 }

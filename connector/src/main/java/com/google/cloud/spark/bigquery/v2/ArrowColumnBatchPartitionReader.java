@@ -52,8 +52,8 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     private ReadRowsResponse currentResponse;
     private final BigQueryStorageReadRowsTracer tracer;
 
-    ReadRowsResponseInputStreamEnumeration(Iterator<ReadRowsResponse> responses,
-                                           BigQueryStorageReadRowsTracer tracer) {
+    ReadRowsResponseInputStreamEnumeration(
+        Iterator<ReadRowsResponse> responses, BigQueryStorageReadRowsTracer tracer) {
       this.responses = responses;
       this.tracer = tracer;
       loadNextResponse();
@@ -99,8 +99,8 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     this.tracer = tracer;
 
     InputStream batchStream =
-        new SequenceInputStream(new ReadRowsResponseInputStreamEnumeration(readRowsResponses,
-                tracer));
+        new SequenceInputStream(
+            new ReadRowsResponseInputStreamEnumeration(readRowsResponses, tracer));
     InputStream fullStream = new SequenceInputStream(schema.newInput(), batchStream);
 
     reader = new ArrowStreamReader(fullStream, allocator);
@@ -132,7 +132,6 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       currentBatch = new ColumnarBatch(columns);
     }
     currentBatch.setNumRows(root.getRowCount());
-    tracer.nextBatchReady();
     return true;
   }
 

@@ -26,24 +26,28 @@ import java.time.Duration;
  * time between the {@link #start } and {@link #finish()} call.
  */
 final class DurationTimer implements Serializable {
-   private long start = Long.MIN_VALUE;
-   private long accumulatedNanos = 0;
-   private long samples = 0;
+  private long start = Long.MIN_VALUE;
+  private long accumulatedNanos = 0;
+  private long samples = 0;
 
-   public void start() { start = System.nanoTime(); }
-   public void finish() {
-       long now = System.nanoTime();
-       if (start != Long.MIN_VALUE) {
-           accumulatedNanos += now - start;
-           samples++;
-       }
-       start = now;
-   }
+  public void start() {
+    start = System.nanoTime();
+  }
 
-   public Duration getAcumulatedTime() {
-       return Duration.ofNanos(accumulatedNanos);
-   }
-   public long getSamples() {
-      return samples;
-   }
+  public void finish() {
+    long now = System.nanoTime();
+    if (start != Long.MIN_VALUE) {
+      accumulatedNanos += now - start;
+      samples++;
+    }
+    start = now;
+  }
+
+  public Duration getAcumulatedTime() {
+    return Duration.ofNanos(accumulatedNanos);
+  }
+
+  public long getSamples() {
+    return samples;
+  }
 }

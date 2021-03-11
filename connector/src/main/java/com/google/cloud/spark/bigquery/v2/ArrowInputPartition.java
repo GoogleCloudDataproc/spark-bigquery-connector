@@ -35,12 +35,12 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
   private final ByteString serializedArrowSchema;
 
   public ArrowInputPartition(
-          BigQueryReadClientFactory bigQueryReadClientFactory,
-          BigQueryTracerFactory tracerFactory,
-          String name,
-          int maxReadRowsRetries,
-          ImmutableList<String> selectedFields,
-          ReadSessionResponse readSessionResponse) {
+      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryTracerFactory tracerFactory,
+      String name,
+      int maxReadRowsRetries,
+      ImmutableList<String> selectedFields,
+      ReadSessionResponse readSessionResponse) {
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
     this.streamName = name;
     this.maxReadRowsRetries = maxReadRowsRetries;
@@ -60,7 +60,6 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
     tracer.startStream();
     Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
     return new ArrowColumnBatchPartitionColumnBatchReader(
-        readRowsResponses, serializedArrowSchema, readRowsHelper, selectedFields,
-            tracer);
+        readRowsResponses, serializedArrowSchema, readRowsHelper, selectedFields, tracer);
   }
 }

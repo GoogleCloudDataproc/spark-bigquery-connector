@@ -23,41 +23,41 @@ import java.util.concurrent.TimeUnit;
 import static com.google.common.truth.Truth.assertThat;
 
 public class DurationTimerTest {
-    @Test
-    public void testStartStopPairedCall() throws Exception {
-       DurationTimer timer = new DurationTimer();
-        assertThat(timer.getSamples()).isEqualTo(0);
+  @Test
+  public void testStartStopPairedCall() throws Exception {
+    DurationTimer timer = new DurationTimer();
+    assertThat(timer.getSamples()).isEqualTo(0);
 
-        timer.start();
-        TimeUnit.MILLISECONDS.sleep(2);
-        timer.finish();
-        assertThat(timer.getSamples()).isEqualTo(1);
-        Duration accumulated = timer.getAcumulatedTime();
-        assertThat(accumulated).isAtLeast(Duration.ofMillis(1));
+    timer.start();
+    TimeUnit.MILLISECONDS.sleep(2);
+    timer.finish();
+    assertThat(timer.getSamples()).isEqualTo(1);
+    Duration accumulated = timer.getAcumulatedTime();
+    assertThat(accumulated).isAtLeast(Duration.ofMillis(1));
 
-        timer.start();
-        TimeUnit.MILLISECONDS.sleep(2);
-        timer.finish();
-        assertThat(timer.getSamples()).isEqualTo(2);
-        assertThat(timer.getAcumulatedTime()).isAtLeast(Duration.ofMillis(1).plus(accumulated));
-    }
+    timer.start();
+    TimeUnit.MILLISECONDS.sleep(2);
+    timer.finish();
+    assertThat(timer.getSamples()).isEqualTo(2);
+    assertThat(timer.getAcumulatedTime()).isAtLeast(Duration.ofMillis(1).plus(accumulated));
+  }
 
-    @Test
-    public void testFinishedByItselfCall() throws Exception {
-        DurationTimer timer = new DurationTimer();
-        assertThat(timer.getSamples()).isEqualTo(0);
-        timer.finish();
-        assertThat(timer.getSamples()).isEqualTo(0);
+  @Test
+  public void testFinishedByItselfCall() throws Exception {
+    DurationTimer timer = new DurationTimer();
+    assertThat(timer.getSamples()).isEqualTo(0);
+    timer.finish();
+    assertThat(timer.getSamples()).isEqualTo(0);
 
-        TimeUnit.MILLISECONDS.sleep(2);
-        timer.finish();
-        assertThat(timer.getSamples()).isEqualTo(1);
-        Duration accumulated = timer.getAcumulatedTime();
-        assertThat(accumulated).isAtLeast(Duration.ofMillis(1));
+    TimeUnit.MILLISECONDS.sleep(2);
+    timer.finish();
+    assertThat(timer.getSamples()).isEqualTo(1);
+    Duration accumulated = timer.getAcumulatedTime();
+    assertThat(accumulated).isAtLeast(Duration.ofMillis(1));
 
-        TimeUnit.MILLISECONDS.sleep(2);
-        timer.finish();
-        assertThat(timer.getSamples()).isEqualTo(2);
-        assertThat(timer.getAcumulatedTime()).isAtLeast(Duration.ofMillis(1).plus(accumulated));
-    }
+    TimeUnit.MILLISECONDS.sleep(2);
+    timer.finish();
+    assertThat(timer.getSamples()).isEqualTo(2);
+    assertThat(timer.getAcumulatedTime()).isAtLeast(Duration.ofMillis(1).plus(accumulated));
+  }
 }
