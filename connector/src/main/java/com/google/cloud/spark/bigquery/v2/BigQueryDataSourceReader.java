@@ -21,11 +21,7 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.connector.common.BigQueryClient;
-import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
-import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
-import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
-import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
+import com.google.cloud.bigquery.connector.common.*;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
@@ -87,6 +83,7 @@ public class BigQueryDataSourceReader
   private final ReadSessionCreatorConfig readSessionCreatorConfig;
   private final BigQueryClient bigQueryClient;
   private final BigQueryReadClientFactory bigQueryReadClientFactory;
+  private final BigQueryTracerFactory bigQueryTracerFactory;
   private final ReadSessionCreator readSessionCreator;
   private final Optional<String> globalFilter;
   private Optional<StructType> schema;
@@ -97,6 +94,7 @@ public class BigQueryDataSourceReader
       TableInfo table,
       BigQueryClient bigQueryClient,
       BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryTracerFactory tracerFactory,
       ReadSessionCreatorConfig readSessionCreatorConfig,
       Optional<String> globalFilter,
       Optional<StructType> schema) {
@@ -105,6 +103,7 @@ public class BigQueryDataSourceReader
     this.readSessionCreatorConfig = readSessionCreatorConfig;
     this.bigQueryClient = bigQueryClient;
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+    this.bigQueryTracerFactory = tracerFactory;
     this.readSessionCreator =
         new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
     this.globalFilter = globalFilter;
@@ -192,6 +191,7 @@ public class BigQueryDataSourceReader
             stream ->
                 new ArrowInputPartition(
                     bigQueryReadClientFactory,
+                    bigQueryTracerFactory,
                     stream.getName(),
                     readSessionCreatorConfig.getMaxReadRowsRetries(),
                     partitionSelectedFields,
