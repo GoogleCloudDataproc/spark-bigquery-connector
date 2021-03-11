@@ -81,7 +81,7 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
     if (samples == 0) {
       return "Not enough samples.";
     }
-    Duration average = durationTimer.getAcumulatedTime().dividedBy(samples);
+    Duration average = durationTimer.getAccumulatedTime().dividedBy(samples);
     return String.format("Average (ns): %s Samples: %d", average.toString(), samples);
   }
 

@@ -43,7 +43,7 @@ final class DurationTimer implements Serializable {
     start = now;
   }
 
-  public Duration getAcumulatedTime() {
+  public Duration getAccumulatedTime() {
     return Duration.ofNanos(accumulatedNanos);
   }
 

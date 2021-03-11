@@ -32,14 +32,14 @@ public class DurationTimerTest {
     TimeUnit.MILLISECONDS.sleep(2);
     timer.finish();
     assertThat(timer.getSamples()).isEqualTo(1);
-    Duration accumulated = timer.getAcumulatedTime();
+    Duration accumulated = timer.getAccumulatedTime();
     assertThat(accumulated).isAtLeast(Duration.ofMillis(1));
 
     timer.start();
     TimeUnit.MILLISECONDS.sleep(2);
     timer.finish();
     assertThat(timer.getSamples()).isEqualTo(2);
-    assertThat(timer.getAcumulatedTime()).isAtLeast(Duration.ofMillis(1).plus(accumulated));
+    assertThat(timer.getAccumulatedTime()).isAtLeast(Duration.ofMillis(1).plus(accumulated));
   }
 
   @Test
@@ -52,12 +52,12 @@ public class DurationTimerTest {
     TimeUnit.MILLISECONDS.sleep(2);
     timer.finish();
     assertThat(timer.getSamples()).isEqualTo(1);
-    Duration accumulated = timer.getAcumulatedTime();
+    Duration accumulated = timer.getAccumulatedTime();
     assertThat(accumulated).isAtLeast(Duration.ofMillis(1));
 
     TimeUnit.MILLISECONDS.sleep(2);
     timer.finish();
     assertThat(timer.getSamples()).isEqualTo(2);
-    assertThat(timer.getAcumulatedTime()).isAtLeast(Duration.ofMillis(1).plus(accumulated));
+    assertThat(timer.getAccumulatedTime()).isAtLeast(Duration.ofMillis(1).plus(accumulated));
   }
 }
