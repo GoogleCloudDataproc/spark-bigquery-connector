@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
+import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ArrowSchemaConverter;
 import com.google.protobuf.ByteString;
@@ -42,15 +43,19 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
   private final BufferAllocator allocator;
   private final List<String> namesInOrder;
   private ColumnarBatch currentBatch;
+  private final BigQueryStorageReadRowsTracer tracer;
   private boolean closed = false;
 
   static class ReadRowsResponseInputStreamEnumeration
       implements java.util.Enumeration<InputStream> {
-    private Iterator<ReadRowsResponse> responses;
+    private final Iterator<ReadRowsResponse> responses;
     private ReadRowsResponse currentResponse;
+    private final BigQueryStorageReadRowsTracer tracer;
 
-    ReadRowsResponseInputStreamEnumeration(Iterator<ReadRowsResponse> responses) {
+    ReadRowsResponseInputStreamEnumeration(
+        Iterator<ReadRowsResponse> responses, BigQueryStorageReadRowsTracer tracer) {
       this.responses = responses;
+      this.tracer = tracer;
       loadNextResponse();
     }
 
@@ -68,11 +73,15 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     }
 
     void loadNextResponse() {
+      // hasNext is actually the blocking call, so call  readRowsResponseRequested
+      // here.
+      tracer.readRowsResponseRequested();
       if (responses.hasNext()) {
         currentResponse = responses.next();
       } else {
         currentResponse = null;
       }
+      tracer.readRowsResponseObtained();
     }
   }
 
@@ -80,15 +89,18 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       Iterator<ReadRowsResponse> readRowsResponses,
       ByteString schema,
       ReadRowsHelper readRowsHelper,
-      List<String> namesInOrder) {
+      List<String> namesInOrder,
+      BigQueryStorageReadRowsTracer tracer) {
     this.allocator =
         (new RootAllocator(maxAllocation))
             .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);
     this.readRowsHelper = readRowsHelper;
     this.namesInOrder = namesInOrder;
+    this.tracer = tracer;
 
     InputStream batchStream =
-        new SequenceInputStream(new ReadRowsResponseInputStreamEnumeration(readRowsResponses));
+        new SequenceInputStream(
+            new ReadRowsResponseInputStreamEnumeration(readRowsResponses, tracer));
     InputStream fullStream = new SequenceInputStream(schema.newInput(), batchStream);
 
     reader = new ArrowStreamReader(fullStream, allocator);
@@ -96,10 +108,13 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
 
   @Override
   public boolean next() throws IOException {
+    tracer.nextBatchNeeded();
     if (closed) {
       return false;
     }
+    tracer.rowsParseStarted();
     closed = !reader.loadNextBatch();
+    tracer.rowsParseFinished();
     if (closed) {
       return false;
     }
@@ -129,6 +144,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
   public void close() throws IOException {
     closed = true;
     try {
+      tracer.finished();
       readRowsHelper.close();
     } catch (Exception e) {
       throw new IOException("Failure closing stream: " + readRowsHelper, e);
