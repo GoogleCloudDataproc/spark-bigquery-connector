@@ -15,26 +15,32 @@
  */
 package com.google.cloud.spark.bigquery
 
-import java.util.Optional
-
-import com.google.cloud.bigquery.TableId
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{LocatedFileStatus, Path}
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.funsuite.AnyFunSuite
 
-class BigQueryUtilScalaSuite extends org.scalatest.FunSuite {
+import scala.collection.Iterator
+
+class BigQueryUtilScalaSuite extends AnyFunSuite with Matchers with OptionValues {
 
   test("ToIteratorTest") {
-    val path = new Path("connector/src/test/resources/ToIteratorTest")
+    val resourceFolder = this.getClass.getClassLoader.getResource("ToIteratorTest")
+
+    val path = new Path(resourceFolder.toString)
     val fs = path.getFileSystem(new Configuration())
-    var it = ToIterator(fs.listFiles(path, false))
 
-    assert(it.isInstanceOf[scala.collection.Iterator[LocatedFileStatus]])
-    assert(it.size == 2)
+    val mkIterator = () => ToIterator(fs.listFiles(path, false))
 
-    // fresh instance
-    it = ToIterator(fs.listFiles(path, false))
-    assert(it.filter(f => f.getPath.getName.endsWith(".txt"))
-      .next.getPath.getName.endsWith("file1.txt"))
+    val it = mkIterator()
+
+    it shouldBe an [Iterator[_]]
+    it.size should be (2)
+
+    // fresh iterator instance. The previous one is consumed already.
+    val txtEntry = mkIterator().find(f => f.getPath.getName.endsWith(".txt"))
+    txtEntry.value.getPath.getName should endWith("file1.txt")
   }
 
 }

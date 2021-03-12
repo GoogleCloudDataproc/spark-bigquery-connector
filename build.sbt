@@ -44,7 +44,6 @@ lazy val commonTestDependencies = Seq(
   "io.grpc" % "grpc-netty" % grpcVersion,
   "com.google.api" % "gax-grpc" % "1.60.0" exclude("io.grpc", "grpc-netty-shaded"),
   "com.google.guava" % "guava" % "30.0-jre",
-
   "org.scalatest" %% "scalatest" % "3.1.0" % "test",
   "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test",
   "junit" % "junit" % "4.13" % "test",
@@ -66,6 +65,8 @@ lazy val connector = (project in file("connector"))
     testOptions in ITest := Seq(Tests.Filter(itFilter)),
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
     buildInfoPackage := "com.google.cloud.spark.bigquery",
+    fork := true,
+    javaOptions ++= Seq("-Dio.netty.tryReflectionSetAccessible=true"),
     resourceGenerators in Compile += Def.task {
       val file = (resourceManaged in Compile).value / "spark-bigquery-connector.properties"
       IO.write(file, s"scala.version=${scalaVersion.value}\n")
