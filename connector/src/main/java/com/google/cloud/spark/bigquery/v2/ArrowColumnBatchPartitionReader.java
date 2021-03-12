@@ -81,7 +81,10 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       } else {
         currentResponse = null;
       }
-      tracer.readRowsResponseObtained();
+      tracer.readRowsResponseObtained(
+          currentResponse == null
+              ? 0
+              : currentResponse.getArrowRecordBatch().getSerializedRecordBatch().size());
     }
   }
 
@@ -114,11 +117,12 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     }
     tracer.rowsParseStarted();
     closed = !reader.loadNextBatch();
-    tracer.rowsParseFinished();
+    VectorSchemaRoot root = reader.getVectorSchemaRoot();
+    tracer.rowsParseFinished(root.getRowCount());
     if (closed) {
       return false;
     }
-    VectorSchemaRoot root = reader.getVectorSchemaRoot();
+
     if (currentBatch == null) {
       // trying to verify from dev@spark but this object
       // should only need to get created once.  The underlying

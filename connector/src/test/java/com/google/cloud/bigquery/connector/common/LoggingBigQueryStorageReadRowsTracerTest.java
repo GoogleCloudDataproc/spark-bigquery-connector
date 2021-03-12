@@ -64,8 +64,14 @@ public class LoggingBigQueryStorageReadRowsTracerTest {
     assertThat(loggingTracer.serviceTime.getSamples()).isEqualTo(0);
     tracer.readRowsResponseRequested();
     assertThat(loggingTracer.serviceTime.getSamples()).isEqualTo(0);
-    tracer.readRowsResponseObtained();
+    tracer.readRowsResponseObtained(10000);
     assertThat(loggingTracer.serviceTime.getSamples()).isEqualTo(1);
+    assertThat(loggingTracer.bytes).isEqualTo(10000);
+
+    tracer.readRowsResponseRequested();
+    tracer.readRowsResponseObtained(5000);
+    assertThat(loggingTracer.bytes).isEqualTo(15000);
+    assertThat(loggingTracer.serviceTime.getSamples()).isEqualTo(2);
   }
 
   @Test
@@ -73,8 +79,14 @@ public class LoggingBigQueryStorageReadRowsTracerTest {
     assertThat(loggingTracer.parseTime.getSamples()).isEqualTo(0);
     tracer.rowsParseStarted();
     assertThat(loggingTracer.parseTime.getSamples()).isEqualTo(0);
-    tracer.rowsParseFinished();
+    tracer.rowsParseFinished(500);
     assertThat(loggingTracer.parseTime.getSamples()).isEqualTo(1);
+    assertThat(loggingTracer.rows).isEqualTo(500);
+
+    tracer.rowsParseStarted();
+    tracer.rowsParseFinished(1000);
+    assertThat(loggingTracer.parseTime.getSamples()).isEqualTo(2);
+    assertThat(loggingTracer.rows).isEqualTo(1500);
   }
 
   @Test
