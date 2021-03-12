@@ -15,15 +15,21 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.connector.common.*;
+
+import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
+import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
+import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
+import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
-import java.util.Iterator;
 import org.apache.spark.sql.sources.v2.reader.InputPartition;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
+
+import java.util.Iterator;
 
 public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
 
