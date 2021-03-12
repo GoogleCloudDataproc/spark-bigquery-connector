@@ -16,7 +16,7 @@
 package com.google.cloud.spark.bigquery
 
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{LocatedFileStatus, Path}
+import org.apache.hadoop.fs.Path
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funsuite.AnyFunSuite
