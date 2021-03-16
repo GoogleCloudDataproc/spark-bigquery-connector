@@ -97,7 +97,7 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
     if (time.isZero()) {
       return 0;
     }
-    return metric / time.toSeconds();
+    return metric / (time.toMillis() / 1000);
   }
 
   private void logData() {
