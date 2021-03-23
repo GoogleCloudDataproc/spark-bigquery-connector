@@ -94,10 +94,11 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
       return 0;
     }
     Duration time = timer.getAccumulatedTime();
-    if (time.isZero()) {
-      return 0;
+    double seconds =  (time.toMillis() / 1000.0);
+    if (seconds != 0) {
+      return (long) (metric / seconds);
     }
-    return (long)(metric / (time.toMillis() / 1000.0));
+    return 0;
   }
 
   private void logData() {
