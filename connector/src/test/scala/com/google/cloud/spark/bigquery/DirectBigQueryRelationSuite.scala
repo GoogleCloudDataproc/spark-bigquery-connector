@@ -219,6 +219,84 @@ class DirectBigQueryRelationSuite
     config
   }
 
+  // tests for DirectBigQueryRelation.getCompiledFilter
+
+  val TABLE_FOR_AVRO_NESTED_OR_AND = TableInfo.of(
+    ID,
+    StandardTableDefinition.newBuilder()
+      .setSchema(Schema.of(
+        Field.of("c1", LegacySQLTypeName.INTEGER),
+        Field.of("c2", LegacySQLTypeName.INTEGER),
+        Field.of("c3", LegacySQLTypeName.INTEGER))
+      )
+      .setNumBytes(42L * 1000 * 1000 * 1000) // 42GB
+      .build())
+
+  test("[1] filter with nested OR and AND for AVRO") {
+    val options = defaultOptions
+    options.readDataFormat = DataFormat.AVRO
+    val r = new DirectBigQueryRelation(options, TABLE_FOR_AVRO_NESTED_OR_AND)(sqlCtx)
+
+    // original query
+    // (c1 >= 500 or c1 <= 70 or c1 >=900 or c3 <= 50) and
+    // (c1 >= 100 or c1 <= 700  or c2 <=900) and
+    // (c1 >= 5000 or c1 <= 701)
+
+    val part1 = Or(Or(GreaterThanOrEqual("c1",500),LessThanOrEqual("c1",70)),
+      Or(GreaterThanOrEqual("c1",900),LessThanOrEqual("c3",50)))
+    val part2 = Or(Or(GreaterThanOrEqual("c1",100),LessThanOrEqual("c1",700)),
+      LessThanOrEqual("c2",900))
+    val part3 = Or(GreaterThanOrEqual("c1",5000),LessThanOrEqual("c1",701))
+
+    checkFilters(r, "", Array(part1, part2, part3),
+      "(((((`c1` >= 100) OR (`c1` <= 700))) OR (`c2` <= 900)) " +
+        "AND ((((`c1` >= 500) OR (`c1` <= 70))) OR (((`c1` >= 900) OR " +
+        "(`c3` <= 50)))) AND ((`c1` >= 5000) OR (`c1` <= 701)))")
+  }
+
+  test("[2] filter with nested OR and AND for AVRO") {
+    val options = defaultOptions
+    options.readDataFormat = DataFormat.AVRO
+    val r = new DirectBigQueryRelation(options, TABLE_FOR_AVRO_NESTED_OR_AND)(sqlCtx)
+
+    // original query
+    // (c1 >= 500 and c2 <=300) or (c1 <= 800 and c3 >= 230)
+
+    val part1 = Or(And(GreaterThanOrEqual("c1",500),LessThanOrEqual("c2",300)),
+      And(LessThanOrEqual("c1",800),GreaterThanOrEqual("c3",230)))
+
+    checkFilters(r, "", Array(part1),
+      "(((((`c1` >= 500) AND (`c2` <= 300))) OR (((`c1` <= 800) " +
+        "AND (`c3` >= 230)))))")
+  }
+
+  test("[3] filter with nested OR and AND for AVRO") {
+    val options = defaultOptions
+    options.readDataFormat = DataFormat.AVRO
+    val r = new DirectBigQueryRelation(options, TABLE_FOR_AVRO_NESTED_OR_AND)(sqlCtx)
+
+    // original query
+    // (((c1 >= 500 or c1 <= 70) and
+    // (c1 >=900 or (c3 <= 50 and (c2 >= 20 or c3 > 200))))) and
+    // (((c1 >= 5000 or c1 <= 701) and (c2>=150 or c3 >=100)) or
+    // ((c1 >= 50 or c1 <= 71) and (c2>=15 or c3 >=10)))
+
+    val part1 = Or(GreaterThanOrEqual("c1",500),LessThanOrEqual("c1",70))
+    val part2 = Or(GreaterThanOrEqual("c1",900),And(LessThanOrEqual("c3",50),
+      Or(GreaterThanOrEqual("c2",20),GreaterThan("c3",200))))
+    val part3 = Or(
+      And(Or(GreaterThanOrEqual("c1",5000),LessThanOrEqual("c1",701)),
+        Or(GreaterThanOrEqual("c2",150),GreaterThanOrEqual("c3",100))),
+      And(Or(GreaterThanOrEqual("c1",50),LessThanOrEqual("c1",71)),
+        Or(GreaterThanOrEqual("c2",15),GreaterThanOrEqual("c3",10))))
+
+    checkFilters(r, "", Array(part1, part2, part3),
+      "(((((((`c1` >= 5000) OR (`c1` <= 701))) AND " +
+        "(((`c2` >= 150) OR (`c3` >= 100))))) OR (((((`c1` >= 50) OR " +
+        "(`c1` <= 71))) AND (((`c2` >= 15) OR (`c3` >= 10)))))) AND " +
+        "((`c1` >= 500) OR (`c1` <= 70)) AND ((`c1` >= 900) OR " +
+        "(((`c3` <= 50) AND (((`c2` >= 20) OR (c3 > 200)))))))")
+  }
 
 }
 

@@ -438,8 +438,8 @@ object DirectBigQueryRelation {
     case In(attr, values) => s"${quote(attr)} IN UNNEST(${compileValue(values)})"
     case IsNull(attr) => s"${quote(attr)} IS NULL"
     case IsNotNull(attr) => s"${quote(attr)} IS NOT NULL"
-    case And(lhs, rhs) => Seq(lhs, rhs).map(compileFilter).map(p => s"($p)").mkString(" AND ")
-    case Or(lhs, rhs) => Seq(lhs, rhs).map(compileFilter).map(p => s"($p)").mkString(" OR ")
+    case And(lhs, rhs) => Seq(lhs, rhs).map(compileFilter).map(p => s"($p)").mkString("(", " AND ", ")")
+    case Or(lhs, rhs) => Seq(lhs, rhs).map(compileFilter).map(p => s"($p)").mkString("(", " OR ", ")")
     case Not(child) => Seq(child).map(compileFilter).map(p => s"(NOT ($p))").mkString
     case StringStartsWith(attr, value) =>
       s"${quote(attr)} LIKE '''${value.replace("'", "\\'")}%'''"

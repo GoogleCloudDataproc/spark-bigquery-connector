@@ -162,10 +162,10 @@ public class SparkFilterUtilsTest {
         .isEqualTo("`foo` IS NOT NULL");
     assertThat(
             SparkFilterUtils.compileFilter(And.apply(IsNull.apply("foo"), IsNotNull.apply("bar"))))
-        .isEqualTo("(`foo` IS NULL) AND (`bar` IS NOT NULL)");
+        .isEqualTo("((`foo` IS NULL) AND (`bar` IS NOT NULL))");
     assertThat(
             SparkFilterUtils.compileFilter(Or.apply(IsNull.apply("foo"), IsNotNull.apply("bar"))))
-        .isEqualTo("(`foo` IS NULL) OR (`bar` IS NOT NULL)");
+        .isEqualTo("((`foo` IS NULL) OR (`bar` IS NOT NULL))");
     assertThat(SparkFilterUtils.compileFilter(Not.apply(IsNull.apply("foo"))))
         .isEqualTo("(NOT (`foo` IS NULL))");
   }
@@ -187,5 +187,94 @@ public class SparkFilterUtilsTest {
     assertThat(SparkFilterUtils.compileFilter(In.apply("tsfield", new Object[] {ts1, ts2})))
         .isEqualTo(
             "`tsfield` IN UNNEST([TIMESTAMP '2008-12-25 15:30:00.0', TIMESTAMP '2020-01-25 02:10:10.0'])");
+  }
+
+  @Test
+  public void testFiltersWithNestedOrAndForAVRO_1() {
+    // original query
+    // (c1 >= 500 or c1 <= 70 or c1 >=900 or c3 <= 50) and
+    // (c1 >= 100 or c1 <= 700  or c2 <=900) and
+    // (c1 >= 5000 or c1 <= 701)
+
+    Filter part1 =
+        Or.apply(
+            Or.apply(GreaterThanOrEqual.apply("c1", 500), LessThanOrEqual.apply("c1", 70)),
+            Or.apply(GreaterThanOrEqual.apply("c1", 900), LessThanOrEqual.apply("c3", 50)));
+
+    Filter part2 =
+        Or.apply(
+            Or.apply(GreaterThanOrEqual.apply("c1", 100), LessThanOrEqual.apply("c1", 700)),
+            LessThanOrEqual.apply("c2", 900));
+
+    Filter part3 = Or.apply(GreaterThanOrEqual.apply("c1", 5000), LessThanOrEqual.apply("c1", 701));
+
+    checkFilters(
+        AVRO,
+        "",
+        "(((((`c1` >= 100) OR (`c1` <= 700))) OR (`c2` <= 900)) "
+            + "AND ((((`c1` >= 500) OR (`c1` <= 70))) OR (((`c1` >= 900) OR "
+            + "(`c3` <= 50)))) AND ((`c1` >= 5000) OR (`c1` <= 701)))",
+        Optional.empty(),
+        part1,
+        part2,
+        part3);
+  }
+
+  @Test
+  public void testFiltersWithNestedOrAndForAVRO_2() {
+    // original query
+    // (c1 >= 500 and c2 <=300) or (c1 <= 800 and c3 >= 230)
+
+    Filter filter =
+        Or.apply(
+            And.apply(GreaterThanOrEqual.apply("c1", 500), LessThanOrEqual.apply("c2", 300)),
+            And.apply(LessThanOrEqual.apply("c1", 800), GreaterThanOrEqual.apply("c3", 230)));
+
+    checkFilters(
+        AVRO,
+        "",
+        "(((((`c1` >= 500) AND (`c2` <= 300))) OR (((`c1` <= 800) " + "AND (`c3` >= 230)))))",
+        Optional.empty(),
+        filter);
+  }
+
+  @Test
+  public void testFiltersWithNestedOrAndForAVRO_3() {
+    // original query
+    // (((c1 >= 500 or c1 <= 70) and
+    // (c1 >=900 or (c3 <= 50 and (c2 >= 20 or c3 > 200))))) and
+    // (((c1 >= 5000 or c1 <= 701) and (c2>=150 or c3 >=100)) or
+    // ((c1 >= 50 or c1 <= 71) and (c2>=15 or c3 >=10)))
+
+    Filter part1 = Or.apply(GreaterThanOrEqual.apply("c1", 500), LessThanOrEqual.apply("c1", 70));
+
+    Filter part2 =
+        Or.apply(
+            GreaterThanOrEqual.apply("c1", 900),
+            And.apply(
+                LessThanOrEqual.apply("c3", 50),
+                Or.apply(GreaterThanOrEqual.apply("c2", 20), GreaterThan.apply("c3", 200))));
+
+    Filter part3 =
+        Or.apply(
+            And.apply(
+                Or.apply(GreaterThanOrEqual.apply("c1", 5000), LessThanOrEqual.apply("c1", 701)),
+                Or.apply(GreaterThanOrEqual.apply("c2", 150), GreaterThanOrEqual.apply("c3", 100))),
+            And.apply(
+                Or.apply(GreaterThanOrEqual.apply("c1", 50), LessThanOrEqual.apply("c1", 71)),
+                Or.apply(GreaterThanOrEqual.apply("c2", 15), GreaterThanOrEqual.apply("c3", 10))));
+
+    checkFilters(
+        AVRO,
+        "",
+        "(((((((`c1` >= 5000) OR (`c1` <= 701))) AND "
+            + "(((`c2` >= 150) OR (`c3` >= 100))))) OR (((((`c1` >= 50) OR "
+            + "(`c1` <= 71))) AND (((`c2` >= 15) OR (`c3` >= 10)))))) AND "
+            + "((`c1` >= 500) OR (`c1` <= 70)) AND ((`c1` >= 900) OR "
+            + "(((`c3` <= 50) AND (((`c2` >= 20) OR (`c3` > 200)))))))",
+        Optional.empty(),
+        part1,
+        part2,
+        part3);
   }
 }
