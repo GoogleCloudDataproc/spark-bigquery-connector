@@ -117,12 +117,12 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     }
     tracer.rowsParseStarted();
     closed = !reader.loadNextBatch();
-    VectorSchemaRoot root = reader.getVectorSchemaRoot();
-    tracer.rowsParseFinished(root.getRowCount());
+
     if (closed) {
       return false;
     }
 
+    VectorSchemaRoot root = reader.getVectorSchemaRoot();
     if (currentBatch == null) {
       // trying to verify from dev@spark but this object
       // should only need to get created once.  The underlying
@@ -136,6 +136,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       currentBatch = new ColumnarBatch(columns);
     }
     currentBatch.setNumRows(root.getRowCount());
+    tracer.rowsParseFinished(currentBatch.numRows());
     return true;
   }
 
