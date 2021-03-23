@@ -99,4 +99,10 @@ public class LoggingBigQueryStorageReadRowsTracerTest {
     tracer.finished();
     assertThat(loggingTracer.linesLogged).isEqualTo(2);
   }
+
+  @Test
+  public void testFinishedNoLogs() {
+    tracer.finished();
+    assertThat(loggingTracer.linesLogged).isEqualTo(1);
+  }
 }
