@@ -238,8 +238,8 @@ class DirectBigQueryRelationSuite
     val r = new DirectBigQueryRelation(options, TABLE_FOR_AVRO_NESTED_OR_AND)(sqlCtx)
 
     // original query
-    // (c1 >= 500 or c1 <= 70 or c1 >=900 or c3 <= 50) and
-    // (c1 >= 100 or c1 <= 700  or c2 <=900) and
+    // (c1 >= 500 or c1 <= 70 or c1 >= 900 or c3 <= 50) and
+    // (c1 >= 100 or c1 <= 700  or c2 <= 900) and
     // (c1 >= 5000 or c1 <= 701)
 
     val part1 = Or(Or(GreaterThanOrEqual("c1",500),LessThanOrEqual("c1",70)),
@@ -260,7 +260,7 @@ class DirectBigQueryRelationSuite
     val r = new DirectBigQueryRelation(options, TABLE_FOR_AVRO_NESTED_OR_AND)(sqlCtx)
 
     // original query
-    // (c1 >= 500 and c2 <=300) or (c1 <= 800 and c3 >= 230)
+    // (c1 >= 500 and c2 <= 300) or (c1 <= 800 and c3 >= 230)
 
     val part1 = Or(And(GreaterThanOrEqual("c1",500),LessThanOrEqual("c2",300)),
       And(LessThanOrEqual("c1",800),GreaterThanOrEqual("c3",230)))
@@ -277,9 +277,9 @@ class DirectBigQueryRelationSuite
 
     // original query
     // (((c1 >= 500 or c1 <= 70) and
-    // (c1 >=900 or (c3 <= 50 and (c2 >= 20 or c3 > 200))))) and
-    // (((c1 >= 5000 or c1 <= 701) and (c2>=150 or c3 >=100)) or
-    // ((c1 >= 50 or c1 <= 71) and (c2>=15 or c3 >=10)))
+    // (c1 >= 900 or (c3 <= 50 and (c2 >= 20 or c3 > 200))))) and
+    // (((c1 >= 5000 or c1 <= 701) and (c2 >= 150 or c3 >= 100)) or
+    // ((c1 >= 50 or c1 <= 71) and (c2 >= 15 or c3 >= 10)))
 
     val part1 = Or(GreaterThanOrEqual("c1",500),LessThanOrEqual("c1",70))
     val part2 = Or(GreaterThanOrEqual("c1",900),And(LessThanOrEqual("c3",50),

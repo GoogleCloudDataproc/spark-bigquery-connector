@@ -192,9 +192,10 @@ public class SparkFilterUtilsTest {
   @Test
   public void testFiltersWithNestedOrAndForAVRO_1() {
     // original query
-    // (c1 >= 500 or c1 <= 70 or c1 >=900 or c3 <= 50) and
-    // (c1 >= 100 or c1 <= 700  or c2 <=900) and
+    // (c1 >= 500 or c1 <= 70 or c1 >= 900 or c3 <= 50) and
+    // (c1 >= 100 or c1 <= 700  or c2 <= 900) and
     // (c1 >= 5000 or c1 <= 701)
+
 
     Filter part1 =
         Or.apply(
@@ -223,7 +224,7 @@ public class SparkFilterUtilsTest {
   @Test
   public void testFiltersWithNestedOrAndForAVRO_2() {
     // original query
-    // (c1 >= 500 and c2 <=300) or (c1 <= 800 and c3 >= 230)
+    // (c1 >= 500 and c2 <= 300) or (c1 <= 800 and c3 >= 230)
 
     Filter filter =
         Or.apply(
@@ -233,7 +234,7 @@ public class SparkFilterUtilsTest {
     checkFilters(
         AVRO,
         "",
-        "(((((`c1` >= 500) AND (`c2` <= 300))) OR (((`c1` <= 800) " + "AND (`c3` >= 230)))))",
+        "(((((`c1` >= 500) AND (`c2` <= 300))) OR (((`c1` <= 800) AND (`c3` >= 230)))))",
         Optional.empty(),
         filter);
   }
@@ -242,9 +243,9 @@ public class SparkFilterUtilsTest {
   public void testFiltersWithNestedOrAndForAVRO_3() {
     // original query
     // (((c1 >= 500 or c1 <= 70) and
-    // (c1 >=900 or (c3 <= 50 and (c2 >= 20 or c3 > 200))))) and
-    // (((c1 >= 5000 or c1 <= 701) and (c2>=150 or c3 >=100)) or
-    // ((c1 >= 50 or c1 <= 71) and (c2>=15 or c3 >=10)))
+    // (c1 >= 900 or (c3 <= 50 and (c2 >= 20 or c3 > 200))))) and
+    // (((c1 >= 5000 or c1 <= 701) and (c2 >= 150 or c3 >= 100)) or
+    // ((c1 >= 50 or c1 <= 71) and (c2 >= 15 or c3 >= 10)))
 
     Filter part1 = Or.apply(GreaterThanOrEqual.apply("c1", 500), LessThanOrEqual.apply("c1", 70));
 
