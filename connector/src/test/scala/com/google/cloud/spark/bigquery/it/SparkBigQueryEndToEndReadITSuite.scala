@@ -204,7 +204,7 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
         .option("table", LARGE_TABLE)
         .option("readDataFormat", dataFormat)
         .load()
-      assert(df.rdd.getNumPartitions == 35)
+      assert(df.rdd.getNumPartitions >= 35)
     }
 
     test("balanced partitions. DataSource %s. Data Format %s"

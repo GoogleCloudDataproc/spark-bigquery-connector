@@ -15,7 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-
 import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
