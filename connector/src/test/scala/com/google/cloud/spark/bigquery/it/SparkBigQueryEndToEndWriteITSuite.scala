@@ -19,6 +19,7 @@ import java.util.UUID
 
 import com.google.cloud.bigquery._
 import com.google.cloud.spark.bigquery.TestUtils
+import com.google.common.base.Preconditions
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.streaming.OutputMode
@@ -38,7 +39,12 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
   with TimeLimits
   with TableDrivenPropertyChecks {
 
-  val temporaryGcsBucket = "davidrab-sandbox"
+  val TemporaryGcsBucketEnvVariable = "TEMPORARY_GCS_BUCKET"
+
+  val temporaryGcsBucket = Preconditions.checkNotNull(
+    System.getenv(TemporaryGcsBucketEnvVariable),
+    "Please set the %s env variable to point to a write enabled GCS bucket",
+    TemporaryGcsBucketEnvVariable)
   val bq = BigQueryOptions.getDefaultInstance.getService
   private val LIBRARIES_PROJECTS_TABLE = "bigquery-public-data.libraries_io.projects"
   private val ALL_TYPES_TABLE_NAME = "all_types"
