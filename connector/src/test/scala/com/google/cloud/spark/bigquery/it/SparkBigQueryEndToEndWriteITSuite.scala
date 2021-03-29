@@ -360,6 +360,40 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
       assert(df.schema == allTypesTable.schema)
     }
 
+    test("write to bq with description. DataSource %s".format(dataSourceFormat)) {
+      val testDescription = "test description"
+      val metadatas =  Seq(
+        Metadata.fromJson("{\"description\": \"" + testDescription + "\"}"),
+        Metadata.empty)
+
+      metadatas.foreach(metadata => {
+        val schema = StructType(List(
+          StructField(
+            "c1",
+            IntegerType,
+            true,
+            metadata)
+        ))
+
+        val data = Seq(Row(100), Row(200))
+        val descriptionDF =
+          spark.createDataFrame(spark.sparkContext.parallelize(data), schema)
+
+        writeToBigQuery(dataSourceFormat, descriptionDF, SaveMode.Overwrite)
+
+        val readDF = spark.read.format(dataSourceFormat)
+          .option("dataset", testDataset)
+          .option("table", testTable)
+          .load()
+
+        if(metadata.contains("description")){
+          assert(readDF.schema(0).metadata
+            .getString("description").equals(testDescription))
+        } else {
+          assert(!readDF.schema(0).metadata.contains("description"))
+        }
+      })
+    }
   }
 
   private def randomSuffix: String = {
