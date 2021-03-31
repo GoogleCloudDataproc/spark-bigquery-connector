@@ -19,13 +19,13 @@ public interface BigQueryStorageReadRowsTracer extends Serializable {
   void rowsParseStarted();
 
   /** Indicates when a decoded item was delivered. */
-  void rowsParseFinished();
+  void rowsParseFinished(long rowsParsed);
 
   /** Indicates the next ReadRowsResponse was requested from the server. */
   void readRowsResponseRequested();
 
   /** Indicates the next ReadRowsResponse was requested from the server. */
-  void readRowsResponseObtained();
+  void readRowsResponseObtained(long bytesReceived);
 
   /** The ReadRows stream has finished. */
   void finished();

@@ -37,6 +37,8 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
   final DurationTimer sparkTime = new DurationTimer();
   final DurationTimer serviceTime = new DurationTimer();
   Instant endTime;
+  long rows = 0;
+  long bytes = 0;
   // For confirming data is logged.
   long linesLogged = 0;
 
@@ -56,7 +58,8 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
   }
 
   @Override
-  public void rowsParseFinished() {
+  public void rowsParseFinished(long rows) {
+    this.rows += rows;
     parseTime.finish();
   }
 
@@ -66,7 +69,8 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
   }
 
   @Override
-  public void readRowsResponseObtained() {
+  public void readRowsResponseObtained(long bytes) {
+    this.bytes += bytes;
     serviceTime.finish();
   }
 
@@ -76,24 +80,38 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
     logData();
   }
 
-  private String format(DurationTimer durationTimer) {
+  private static String format(DurationTimer durationTimer) {
     long samples = durationTimer.getSamples();
     if (samples == 0) {
       return "Not enough samples.";
     }
     Duration average = durationTimer.getAccumulatedTime().dividedBy(samples);
-    return String.format("Average (ns): %s Samples: %d", average.toString(), samples);
+    return String.format("Average: %s Samples: %d", average.toString(), samples);
+  }
+
+  private static long perSecond(DurationTimer timer, long metric) {
+    if (timer.getSamples() == 0) {
+      return 0;
+    }
+    Duration time = timer.getAccumulatedTime();
+    double seconds =  (time.toMillis() / 1000.0);
+    if (seconds != 0) {
+      return (long) (metric / seconds);
+    }
+    return 0;
   }
 
   private void logData() {
     log.info(
-        "{}: Started: {} Ended: {} Parse Timings: {}  Time in Spark: {} Time waiting for service: {} ",
+        "{}: Started: {} Ended: {} Parse Timings: {}  Time in Spark: {} Time waiting for service: {} Rows/s {} Bytes/s {}",
         streamName,
         startTime,
         endTime == null ? "" : endTime.toString(),
         format(parseTime),
         format(sparkTime),
-        format(serviceTime));
+        format(serviceTime),
+        perSecond(serviceTime, bytes),
+        perSecond(parseTime, rows));
     linesLogged++;
   }
 

@@ -200,11 +200,12 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
 
     test("default number of partitions. DataSource %s. Data Format %s"
       .format(dataSourceFormat, dataFormat)) {
-      val df = spark.read.format("com.google.cloud.spark.bigquery")
+      val df = spark.read.format(dataSourceFormat)
         .option("table", LARGE_TABLE)
         .option("readDataFormat", dataFormat)
         .load()
-      assert(df.rdd.getNumPartitions == 35)
+
+      assert(df.rdd.getNumPartitions == 58)
     }
 
     test("balanced partitions. DataSource %s. Data Format %s"

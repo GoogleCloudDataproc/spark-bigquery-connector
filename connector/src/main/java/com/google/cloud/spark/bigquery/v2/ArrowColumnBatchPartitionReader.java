@@ -81,7 +81,10 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       } else {
         currentResponse = null;
       }
-      tracer.readRowsResponseObtained();
+      tracer.readRowsResponseObtained(
+          currentResponse == null
+              ? 0
+              : currentResponse.getArrowRecordBatch().getSerializedRecordBatch().size());
     }
   }
 
@@ -114,10 +117,11 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     }
     tracer.rowsParseStarted();
     closed = !reader.loadNextBatch();
-    tracer.rowsParseFinished();
+
     if (closed) {
       return false;
     }
+
     VectorSchemaRoot root = reader.getVectorSchemaRoot();
     if (currentBatch == null) {
       // trying to verify from dev@spark but this object
@@ -132,6 +136,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       currentBatch = new ColumnarBatch(columns);
     }
     currentBatch.setNumRows(root.getRowCount());
+    tracer.rowsParseFinished(currentBatch.numRows());
     return true;
   }
 

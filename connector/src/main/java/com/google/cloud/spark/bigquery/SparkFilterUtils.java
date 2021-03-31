@@ -224,11 +224,11 @@ public class SparkFilterUtils {
     }
     if (filter instanceof And) {
       And and = (And) filter;
-      return format("(%s) AND (%s)", compileFilter(and.left()), compileFilter(and.right()));
+      return format("((%s) AND (%s))", compileFilter(and.left()), compileFilter(and.right()));
     }
     if (filter instanceof Or) {
       Or or = (Or) filter;
-      return format("(%s) OR (%s)", compileFilter(or.left()), compileFilter(or.right()));
+      return format("((%s) OR (%s))", compileFilter(or.left()), compileFilter(or.right()));
     }
     if (filter instanceof Not) {
       Not not = (Not) filter;
