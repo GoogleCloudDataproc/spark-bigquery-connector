@@ -46,8 +46,8 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
 
   public ArrowBinaryIterator(
       List<String> columnsInOrder, ByteString schema, ByteString rowsInBytes) {
-    BufferAllocator allocator = ArrowUtil.newRootAllocator(maxAllocation);
-        (new RootAllocator(maxAllocation))
+    BufferAllocator allocator =
+        ArrowUtil.newRootAllocator(maxAllocation)
             .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);
 
     SequenceInputStream bytesWithSchemaStream =

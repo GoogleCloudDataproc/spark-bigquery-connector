@@ -95,7 +95,8 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       ReadRowsHelper readRowsHelper,
       List<String> namesInOrder,
       BigQueryStorageReadRowsTracer tracer) {
-    this.allocator = ArrowUtil.newRootAllocator(maxAllocation)
+    this.allocator =
+        ArrowUtil.newRootAllocator(maxAllocation)
             .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);
     this.readRowsHelper = readRowsHelper;
     this.namesInOrder = namesInOrder;

@@ -9,9 +9,9 @@ public class ArrowUtil {
 
   public static RootAllocator newRootAllocator(long maxAllocation) {
 
-    return RootAllocator(
+    return new RootAllocator(
         RootAllocator.configBuilder()
-            .allocationManagerFactory(new NettyAllocationManager())
+            .allocationManagerFactory(NettyAllocationManager.FACTORY)
             .maxAllocation(maxAllocation)
             .build());
   }
