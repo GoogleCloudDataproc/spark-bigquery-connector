@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import io.netty.buffer.ArrowBuf;
+import org.apache.arrow.memory.ArrowBuf;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import org.apache.arrow.vector.*;

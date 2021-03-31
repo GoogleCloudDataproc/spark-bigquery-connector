@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.connector.common.ArrowUtil;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
@@ -95,7 +96,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       List<String> namesInOrder,
       BigQueryStorageReadRowsTracer tracer) {
     this.allocator =
-        (new RootAllocator(maxAllocation))
+        ArrowUtil.newRootAllocator(maxAllocation)
             .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);
     this.readRowsHelper = readRowsHelper;
     this.namesInOrder = namesInOrder;

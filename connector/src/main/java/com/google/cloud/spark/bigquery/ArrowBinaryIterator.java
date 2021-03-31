@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.connector.common.ArrowUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 import org.apache.arrow.memory.BufferAllocator;
@@ -46,7 +47,7 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
   public ArrowBinaryIterator(
       List<String> columnsInOrder, ByteString schema, ByteString rowsInBytes) {
     BufferAllocator allocator =
-        (new RootAllocator(maxAllocation))
+        ArrowUtil.newRootAllocator(maxAllocation)
             .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);
 
     SequenceInputStream bytesWithSchemaStream =
