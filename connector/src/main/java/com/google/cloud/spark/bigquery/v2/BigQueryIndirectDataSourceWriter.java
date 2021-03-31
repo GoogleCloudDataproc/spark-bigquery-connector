@@ -29,6 +29,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.http.BaseHttpServiceException;
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
+import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
@@ -236,7 +237,7 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
             .filter(
                 field ->
                     SupportedCustomDataType.of(field.dataType()).isPresent()
-                        || doesFieldContainsDescription(field))
+                        || SchemaConverters.getDescriptionOrCommentOfField(field).isPresent())
             .collect(Collectors.toMap(StructField::name, Function.identity()));
 
     if (!fieldsToUpdate.isEmpty()) {
@@ -264,9 +265,11 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
 
   Field updatedField(Field field, StructField sparkSchemaField) {
     Field.Builder newField = field.toBuilder();
+    Optional<String> bqDescription =
+        SchemaConverters.getDescriptionOrCommentOfField(sparkSchemaField);
 
-    if (doesFieldContainsDescription(sparkSchemaField)) {
-      newField.setDescription(sparkSchemaField.metadata().getString("description"));
+    if (bqDescription.isPresent()) {
+      newField.setDescription(bqDescription.get());
     } else {
       String description = field.getDescription();
       String marker = SupportedCustomDataType.of(sparkSchemaField.dataType()).get().getTypeMarker();
@@ -278,11 +281,6 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
       }
     }
     return newField.build();
-  }
-
-  private boolean doesFieldContainsDescription(StructField field) {
-    return (field.metadata().contains("description")
-        && field.metadata().getString("description") != null);
   }
 
   void cleanTemporaryGcsPathIfNeeded() {

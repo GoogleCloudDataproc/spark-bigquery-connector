@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.JobInfo.CreateDisposition.CREATE_NEVER
 import com.google.cloud.bigquery._
 import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryUtil}
 import com.google.cloud.http.BaseHttpServiceException
+import com.google.cloud.spark.bigquery.SchemaConverters.getDescriptionOrCommentOfField
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
 import org.apache.spark.internal.Logging
@@ -193,7 +194,7 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
   def updateMetadataIfNeeded: Unit = {
     val fieldsToUpdate = data.schema
       .filter {field => SupportedCustomDataType.of(field.dataType).isPresent ||
-        doesFieldContainsDescription(field)}
+        getDescriptionOrCommentOfField(field).isPresent}
       .map (field => (field.name, field))
       .toMap
 
@@ -216,9 +217,10 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
 
   def updatedField(field: Field, dataField: StructField): Field = {
     val newField = field.toBuilder
+    val bqDescription = getDescriptionOrCommentOfField(dataField)
 
-    if(doesFieldContainsDescription(dataField)){
-      newField.setDescription(dataField.metadata.getString("description"))
+    if(bqDescription.isPresent){
+      newField.setDescription(bqDescription.get)
     } else {
       val marker = SupportedCustomDataType.of(dataField.dataType).get.getTypeMarker
       val description = field.getDescription
@@ -230,11 +232,6 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
     }
 
     newField.build
-  }
-
-  private def doesFieldContainsDescription(field: StructField): Boolean = {
-    (field.metadata.contains("description") &&
-      field.metadata.getString("description") != null)
   }
 
   def cleanTemporaryGcsPathIfNeeded: Unit = {
