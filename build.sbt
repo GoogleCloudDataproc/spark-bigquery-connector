@@ -85,10 +85,8 @@ lazy val connector = (project in file("connector"))
       "com.google.inject" % "guice" % "4.2.3",
       "org.apache.arrow" % "arrow-vector" % "3.0.0" excludeAll(ExclusionRule(organization="org.slf4j"),
 																															 ExclusionRule(organization ="com.fasterxml.jackson.core"),
-																															ExclusionRule(organization="io.netty")),
+																															 ExclusionRule(organization="io.netty")),
       "org.apache.arrow" % "arrow-memory-netty" % "3.0.0" 
-			   exclude("org.apache.arrow", "arrow-memory-core")
-         exclude("org.apache.arrow", "arrow-format")
 			   excludeAll(ExclusionRule(organization="org.slf4j"),
 			              ExclusionRule(organization="io.netty"),
 		 ExclusionRule(organization ="com.fasterxml.jackson.core")),
