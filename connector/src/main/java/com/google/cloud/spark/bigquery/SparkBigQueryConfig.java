@@ -57,7 +57,6 @@ import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPrese
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
 import static java.lang.String.format;
 
-
 public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
@@ -116,8 +115,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   int materializationExpirationTimeInMinutes = DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES;
   int maxReadRowsRetries = 3;
   private CompressionCodec compression;
-  private Optional<String> encodedCreateReadSessionRequest = Optional.empty();
-  private Optional<String> storageReadEndpoint = Optional.empty();
+  private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
+  private com.google.common.base.Optional<String> storageReadEndpoint = empty();
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -276,6 +275,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     config.encodedCreateReadSessionRequest =
         getAnyOption(globalOptions, options, "bqEncodedCreateReadSessionRequest");
     getAnyOption(globalOptions, options, "bqStorageReadArrowCompression")
+        .toJavaUtil()
         .ifPresent(c -> config.compression = CompressionCodec.valueOf(c));
 
     return config;
@@ -565,17 +565,17 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
     return new ReadSessionCreatorConfigBuilder()
         .setViewsEnabled(viewsEnabled)
-        .setMaterializationProject(materializationProject)
-        .setMaterializationDataset(materializationDataset)
+        .setMaterializationProject(materializationProject.toJavaUtil())
+        .setMaterializationDataset(materializationDataset.toJavaUtil())
         .setMaterializationExpirationTimeInMinutes(materializationExpirationTimeInMinutes)
         .setReadDataFormat(readDataFormat)
         .setMaxReadRowsRetries(maxReadRowsRetries)
         .setViewEnabledParamName(VIEWS_ENABLED_OPTION)
         .setDefaultParallelism(defaultParallelism)
-        .setMaxParallelism(maxParallelism)
+        .setMaxParallelism(getMaxParallelism())
         .setCompression(compression)
-        .setRequestEncodedBase(encodedCreateReadSessionRequest)
-        .setEndpoint(storageReadEndpoint)
+        .setRequestEncodedBase(encodedCreateReadSessionRequest.toJavaUtil())
+        .setEndpoint(storageReadEndpoint.toJavaUtil())
         .build();
   }
 

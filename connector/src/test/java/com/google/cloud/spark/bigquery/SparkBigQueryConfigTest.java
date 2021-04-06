@@ -22,6 +22,9 @@ import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.Compressio
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.sources.v2.DataSourceOptions;
@@ -39,6 +42,23 @@ public class SparkBigQueryConfigTest {
   public static final String SPARK_VERSION = "2.4.0";
   ImmutableMap<String, String> defaultOptions = ImmutableMap.of("table", "dataset.table");
   // "project", "test_project"); // to remove the need for default project
+
+  @Test
+  public void testSerializability() throws IOException {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options = new DataSourceOptions(defaultOptions);
+    // test to make sure all members can be serialized.
+    new ObjectOutputStream(new ByteArrayOutputStream())
+        .writeObject(
+            SparkBigQueryConfig.from(
+                options.asMap(),
+                ImmutableMap.of(),
+                hadoopConfiguration,
+                DEFAULT_PARALLELISM,
+                new SQLConf(),
+                SPARK_VERSION,
+                Optional.empty()));
+  }
 
   @Test
   public void testDefaults() {

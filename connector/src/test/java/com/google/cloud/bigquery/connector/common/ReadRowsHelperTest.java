@@ -20,6 +20,10 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.collect.ImmutableList;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -39,6 +43,11 @@ public class ReadRowsHelperTest {
   private ReadRowsRequest.Builder request = ReadRowsRequest.newBuilder().setReadStream("test");
   private ReadSessionCreatorConfig defaultConfig =
       new ReadSessionCreatorConfigBuilder().setMaxReadRowsRetries(3).build();
+
+  @Test
+  public void testConfigSerializable() throws IOException {
+    new ObjectOutputStream(new ByteArrayOutputStream()).writeObject(defaultConfig);
+  }
 
   @Test
   public void testNoFailures() {
