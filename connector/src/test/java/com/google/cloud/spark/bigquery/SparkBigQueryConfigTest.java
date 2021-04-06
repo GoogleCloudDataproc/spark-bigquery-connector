@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -150,6 +151,9 @@ public class SparkBigQueryConfigTest {
         ImmutableMap.<String, String>builder()
             .put("viewsEnabled", "true")
             .put("spark.datasource.bigquery.temporaryGcsBucket", "bucket")
+            .put("bqStorageReadEndpoint", "ep")
+            .put("bqEncodedCreateReadSessionRequest", "ec")
+            .put("bqStorageReadArrowCompression", "LZ4_FRAME")
             .build();
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -163,6 +167,10 @@ public class SparkBigQueryConfigTest {
 
     assertThat(config.isViewsEnabled()).isTrue();
     assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("bucket"));
+    assertThat(config.toReadSessionCreatorConfig().endpoint().get()).isEqualTo("ep");
+    assertThat(config.toReadSessionCreatorConfig().getRequestEncodedBase().get()).isEqualTo("ec");
+    assertThat(config.toReadSessionCreatorConfig().getCompression())
+        .isEqualTo(CompressionCodec.LZ4_FRAME);
   }
 
   @Test

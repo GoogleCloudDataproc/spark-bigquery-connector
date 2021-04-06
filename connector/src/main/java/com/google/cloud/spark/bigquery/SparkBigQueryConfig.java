@@ -57,8 +57,7 @@ import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPrese
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
 import static java.lang.String.format;
 
-// as the config needs to be Serializable, internally it uses
-// com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
+
 public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
@@ -84,6 +83,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private static final int DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT = 60 * 1000;
   private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
   TableId tableId;
+  // as the config needs to be Serializable, internally it uses
+  // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
   com.google.common.base.Optional<String> query = empty();
   String parentProjectId;
   com.google.common.base.Optional<String> credentialsKey;

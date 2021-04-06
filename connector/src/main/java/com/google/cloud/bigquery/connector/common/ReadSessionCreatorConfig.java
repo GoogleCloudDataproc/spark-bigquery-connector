@@ -15,23 +15,29 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.cloud.bigquery.connector.common.ReadRowsHelper.Options;
+import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 
 import java.util.Optional;
 import java.util.OptionalInt;
+import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions;
 
 public class ReadSessionCreatorConfig {
-  final boolean viewsEnabled;
-  final Optional<String> materializationProject;
-  final Optional<String> materializationDataset;
-  final String viewEnabledParamName;
-  final int materializationExpirationTimeInMinutes;
-  final DataFormat readDataFormat;
-  final int maxReadRowsRetries;
-  final OptionalInt maxParallelism;
-  final int defaultParallelism;
+  private final boolean viewsEnabled;
+  private final Optional<String> materializationProject;
+  private final Optional<String> materializationDataset;
+  private final String viewEnabledParamName;
+  private final int materializationExpirationTimeInMinutes;
+  private final DataFormat readDataFormat;
+  private final int maxReadRowsRetries;
+  private final OptionalInt maxParallelism;
+  private final int defaultParallelism;
+  private final Optional<String> requestEncodedBase;
+  private final ArrowSerializationOptions.CompressionCodec compression;
+  private final Optional<String> endpoint;
 
-  public ReadSessionCreatorConfig(
+  ReadSessionCreatorConfig(
       boolean viewsEnabled,
       Optional<String> materializationProject,
       Optional<String> materializationDataset,
@@ -40,7 +46,10 @@ public class ReadSessionCreatorConfig {
       int maxReadRowsRetries,
       String viewEnabledParamName,
       OptionalInt maxParallelism,
-      int defaultParallelism) {
+      int defaultParallelism,
+      Optional<String> requestEncodedBase,
+      CompressionCodec compression,
+      Optional<String> endpoint) {
     this.viewsEnabled = viewsEnabled;
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
@@ -50,6 +59,9 @@ public class ReadSessionCreatorConfig {
     this.maxReadRowsRetries = maxReadRowsRetries;
     this.maxParallelism = maxParallelism;
     this.defaultParallelism = defaultParallelism;
+    this.requestEncodedBase = requestEncodedBase;
+    this.compression = compression;
+    this.endpoint = endpoint;
   }
 
   public boolean isViewsEnabled() {
@@ -86,5 +98,21 @@ public class ReadSessionCreatorConfig {
 
   public int getDefaultParallelism() {
     return defaultParallelism;
+  }
+
+  public Optional<String> getRequestEncodedBase() {
+    return this.requestEncodedBase;
+  }
+
+  public ArrowSerializationOptions.CompressionCodec getCompression() {
+    return this.compression;
+  }
+
+  public Optional<String> endpoint() {
+    return this.endpoint;
+  }
+
+  public ReadRowsHelper.Options toReadRowsHelperOptions() {
+    return new ReadRowsHelper.Options(getMaxReadRowsRetries(), endpoint());
   }
 }

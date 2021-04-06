@@ -105,10 +105,9 @@ lazy val connector = (project in file("connector"))
 			     ExclusionRule(organization="io.netty"),
 		       ExclusionRule(organization ="com.fasterxml.jackson.core")),
 
-
       // Keep com.google.cloud dependencies in sync
       "com.google.cloud" % "google-cloud-bigquery" % "1.123.2",
-      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.6.0"
+      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.17.0"
         exclude("io.grpc", "grpc-netty-shaded"),
       // Keep in sync with com.google.cloud
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.11.3",

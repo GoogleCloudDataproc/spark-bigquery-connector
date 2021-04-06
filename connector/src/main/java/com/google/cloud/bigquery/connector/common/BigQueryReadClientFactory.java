@@ -15,15 +15,20 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.esotericsoftware.minlog.Log;
 import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.auth.Credentials;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadSettings;
 
+import java.util.Optional;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Since Guice recommends to avoid injecting closeable resources (see
@@ -31,6 +36,8 @@ import java.io.UncheckedIOException;
  * short lived clients that can be closed independently.
  */
 public class BigQueryReadClientFactory implements Serializable {
+  private static final Logger log = LoggerFactory.getLogger(BigQueryReadClientFactory.class);
+
   private final Credentials credentials;
   // using the user agent as HeaderProvider is not serializable
   private final UserAgentHeaderProvider userAgentHeaderProvider;
@@ -44,14 +51,19 @@ public class BigQueryReadClientFactory implements Serializable {
     this.userAgentHeaderProvider = userAgentHeaderProvider;
   }
 
-  BigQueryReadClient createBigQueryReadClient() {
+  BigQueryReadClient createBigQueryReadClient(Optional<String> endpoint) {
     try {
+      InstantiatingGrpcChannelProvider.Builder transportBuilder =
+          BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
+              .setHeaderProvider(userAgentHeaderProvider);
+      endpoint.ifPresent(
+          e -> {
+            log.info("Overriding endpoint to: ", e);
+            transportBuilder.setEndpoint(e);
+          });
       BigQueryReadSettings.Builder clientSettings =
           BigQueryReadSettings.newBuilder()
-              .setTransportChannelProvider(
-                  BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
-                      .setHeaderProvider(userAgentHeaderProvider)
-                      .build())
+              .setTransportChannelProvider(transportBuilder.build())
               .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
       return BigQueryReadClient.create(clientSettings.build());
     } catch (IOException e) {

@@ -20,17 +20,25 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.collect.ImmutableList;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import java.util.Optional;
 import org.junit.Test;
 
 import java.util.Iterator;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mockito;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 
 public class ReadRowsHelperTest {
+
   // it is not used, we just need the reference
   BigQueryReadClientFactory clientFactory = mock(BigQueryReadClientFactory.class);
   private ReadRowsRequest.Builder request = ReadRowsRequest.newBuilder().setReadStream("test");
+  private ReadSessionCreatorConfig defaultConfig =
+      new ReadSessionCreatorConfigBuilder().setMaxReadRowsRetries(3).build();
 
   @Test
   public void testNoFailures() {
@@ -41,10 +49,27 @@ public class ReadRowsHelperTest {
     // so we can run multiple tests
     ImmutableList<ReadRowsResponse> responses =
         ImmutableList.copyOf(
-            new MockReadRowsHelper(clientFactory, request, 3, ImmutableList.of(batch1)).readRows());
+            new MockReadRowsHelper(clientFactory, request, defaultConfig, ImmutableList.of(batch1))
+                .readRows());
 
     assertThat(responses.size()).isEqualTo(2);
     assertThat(responses.stream().mapToLong(ReadRowsResponse::getRowCount).sum()).isEqualTo(21);
+  }
+
+  @Test
+  public void endpontIsPropagated() {
+    ArgumentCaptor<Optional<String>> endpointCaptor = ArgumentCaptor.forClass(Optional.class);
+    ReadSessionCreatorConfig config =
+        new ReadSessionCreatorConfigBuilder()
+            .setMaxReadRowsRetries(3)
+            .setEndpoint(Optional.of("customEndpoint"))
+            .build();
+    MockReadRowsHelper helper =
+        new MockReadRowsHelper(clientFactory, request, config, ImmutableList.of());
+    helper.fetchResponses(request);
+
+    Mockito.verify(clientFactory, times(1)).createBigQueryReadClient(endpointCaptor.capture());
+    assertThat(endpointCaptor.getValue().get()).isEqualTo("customEndpoint");
   }
 
   @Test
@@ -59,7 +84,8 @@ public class ReadRowsHelperTest {
 
     ImmutableList<ReadRowsResponse> responses =
         ImmutableList.copyOf(
-            new MockReadRowsHelper(clientFactory, request, 3, ImmutableList.of(batch1, batch2))
+            new MockReadRowsHelper(
+                    clientFactory, request, defaultConfig, ImmutableList.of(batch1, batch2))
                 .readRows());
 
     assertThat(responses.size()).isEqualTo(2);
@@ -72,9 +98,9 @@ public class ReadRowsHelperTest {
     MockReadRowsHelper(
         BigQueryReadClientFactory clientFactory,
         ReadRowsRequest.Builder request,
-        int maxReadRowsRetries,
+        ReadSessionCreatorConfig config,
         Iterable<MockResponsesBatch> responses) {
-      super(clientFactory, request, maxReadRowsRetries);
+      super(clientFactory, request, config.toReadRowsHelperOptions());
       this.responses = responses.iterator();
     }
 

@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery
 
 import java.sql.{Date, Timestamp}
+import java.util.Optional
 
 import com.google.cloud.bigquery._
 import com.google.cloud.bigquery.storage.v1.DataFormat
@@ -79,7 +80,7 @@ class DirectBigQueryRelationSuite
   test("user defined schema") {
     val expectedSchema = StructType(Seq(StructField("baz", ShortType)))
     val options = defaultOptions
-    options.schema = com.google.common.base.Optional.of(expectedSchema)
+    options.schema = Optional.of(expectedSchema)
     bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
     val schema = bigQueryRelation.schema
     assert(expectedSchema == schema)
@@ -165,7 +166,7 @@ class DirectBigQueryRelationSuite
   test("old filter behaviour, with filter option") {
     val options = defaultOptions
     options.combinePushedDownFilters = false
-    options.filter = com.google.common.base.Optional.of("f>1")
+    options.filter = Optional.of("f>1")
     val r = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
     checkFilters(r, "f>1", Array(GreaterThan("a", 2)), "f>1")
   }
@@ -179,7 +180,7 @@ class DirectBigQueryRelationSuite
 
   test("new filter behaviour, with filter option") {
     val options = defaultOptions
-    options.filter = com.google.common.base.Optional.of("f>1")
+    options.filter = Optional.of("f>1")
     val r = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
     checkFilters(r, "(f>1)", Array(GreaterThan("a", 2)), "(f>1) AND (a > 2)")
   }

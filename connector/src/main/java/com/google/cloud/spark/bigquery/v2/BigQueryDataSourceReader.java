@@ -157,8 +157,7 @@ public class BigQueryDataSourceReader
             SparkFilterUtils.getCompiledFilter(
                 readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
     ReadSessionResponse readSessionResponse =
-        readSessionCreator.create(
-            tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
+        readSessionCreator.create(tableId, selectedFields, filter);
     ReadSession readSession = readSessionResponse.getReadSession();
     return readSession.getStreamsList().stream()
         .map(
@@ -166,7 +165,7 @@ public class BigQueryDataSourceReader
                 new BigQueryInputPartition(
                     bigQueryReadClientFactory,
                     stream.getName(),
-                    readSessionCreatorConfig.getMaxReadRowsRetries(),
+                    readSessionCreatorConfig.toReadRowsHelperOptions(),
                     createConverter(selectedFields, readSessionResponse, userProvidedSchema)))
         .collect(Collectors.toList());
   }
@@ -185,8 +184,7 @@ public class BigQueryDataSourceReader
             SparkFilterUtils.getCompiledFilter(
                 readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
     ReadSessionResponse readSessionResponse =
-        readSessionCreator.create(
-            tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
+        readSessionCreator.create(tableId, selectedFields, filter);
     ReadSession readSession = readSessionResponse.getReadSession();
 
     if (selectedFields.isEmpty()) {
@@ -194,9 +192,8 @@ public class BigQueryDataSourceReader
       Schema tableSchema =
           SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
       selectedFields =
-          tableSchema.getFields().stream()
-              .map(Field::getName)
-              .collect(ImmutableList.toImmutableList());
+          ImmutableList.copyOf(
+              tableSchema.getFields().stream().map(Field::getName).collect(Collectors.toList()));
     }
 
     ImmutableList<String> partitionSelectedFields = selectedFields;
@@ -207,7 +204,7 @@ public class BigQueryDataSourceReader
                     bigQueryReadClientFactory,
                     bigQueryTracerFactory,
                     stream.getName(),
-                    readSessionCreatorConfig.getMaxReadRowsRetries(),
+                    readSessionCreatorConfig.toReadRowsHelperOptions(),
                     partitionSelectedFields,
                     readSessionResponse,
                     userProvidedSchema))
@@ -230,9 +227,8 @@ public class BigQueryDataSourceReader
       if (selectedFields.isEmpty()) {
         // means select *
         selectedFields =
-            schema.getFields().stream()
-                .map(Field::getName)
-                .collect(ImmutableList.toImmutableList());
+            ImmutableList.copyOf(
+                schema.getFields().stream().map(Field::getName).collect(Collectors.toList()));
       } else {
         Set<String> requiredColumnSet = ImmutableSet.copyOf(selectedFields);
         schema =

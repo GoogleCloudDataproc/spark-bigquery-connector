@@ -30,17 +30,17 @@ public class BigQueryInputPartition implements InputPartition<InternalRow> {
 
   private final BigQueryReadClientFactory bigQueryReadClientFactory;
   private final String streamName;
-  private final int maxReadRowsRetries;
+  private final ReadRowsHelper.Options options;
   private final ReadRowsResponseToInternalRowIteratorConverter converter;
 
   public BigQueryInputPartition(
       BigQueryReadClientFactory bigQueryReadClientFactory,
       String streamName,
-      int maxReadRowsRetries,
+      ReadRowsHelper.Options options,
       ReadRowsResponseToInternalRowIteratorConverter converter) {
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
     this.streamName = streamName;
-    this.maxReadRowsRetries = maxReadRowsRetries;
+    this.options = options;
     this.converter = converter;
   }
 
@@ -49,7 +49,7 @@ public class BigQueryInputPartition implements InputPartition<InternalRow> {
     ReadRowsRequest.Builder readRowsRequest =
         ReadRowsRequest.newBuilder().setReadStream(streamName);
     ReadRowsHelper readRowsHelper =
-        new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequest, maxReadRowsRetries);
+        new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequest, options);
     Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
     return new BigQueryInputPartitionReader(readRowsResponses, converter, readRowsHelper);
   }

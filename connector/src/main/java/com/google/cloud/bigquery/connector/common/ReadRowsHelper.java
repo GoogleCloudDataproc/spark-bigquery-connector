@@ -15,6 +15,8 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import java.io.Serializable;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,28 +32,46 @@ import static java.util.Objects.requireNonNull;
 
 public class ReadRowsHelper {
   private static final Logger logger = LoggerFactory.getLogger(ReadRowsHelper.class);
+  private final Options options;
 
-  private BigQueryReadClientFactory bigQueryReadClientFactory;
-  private ReadRowsRequest.Builder request;
-  private int maxReadRowsRetries;
+  public static final class Options implements Serializable {
+    private final int maxReadRowsRetries;
+    private final Optional<String> endpoint;
+
+    Options(int maxReadRowsRetries, Optional<String> endpoint) {
+      this.maxReadRowsRetries = maxReadRowsRetries;
+      this.endpoint = endpoint;
+    }
+
+    public int getMaxReadRowsRetries() {
+      return maxReadRowsRetries;
+    }
+
+    public Optional<String> getEndpoint() {
+      return endpoint;
+    }
+  }
+
+  private final BigQueryReadClientFactory bigQueryReadClientFactory;
+  private final ReadRowsRequest.Builder request;
   private BigQueryReadClient client;
   private ServerStream<ReadRowsResponse> incomingStream;
 
   public ReadRowsHelper(
       BigQueryReadClientFactory bigQueryReadClientFactory,
       ReadRowsRequest.Builder request,
-      int maxReadRowsRetries) {
+      Options options) {
     this.bigQueryReadClientFactory =
         requireNonNull(bigQueryReadClientFactory, "bigQueryReadClientFactory cannot be null");
     this.request = requireNonNull(request, "request cannot be null");
-    this.maxReadRowsRetries = maxReadRowsRetries;
+    this.options = options;
   }
 
   public Iterator<ReadRowsResponse> readRows() {
     if (client != null) {
       client.close();
     }
-    client = bigQueryReadClientFactory.createBigQueryReadClient();
+    client = bigQueryReadClientFactory.createBigQueryReadClient(options.endpoint);
     Iterator<ReadRowsResponse> serverResponses = fetchResponses(request);
     return new ReadRowsIterator(this, serverResponses);
   }
@@ -98,7 +118,7 @@ public class ReadRowsHelper {
           return response;
         } catch (Exception e) {
           // if relevant, retry the read, from the last read position
-          if (BigQueryUtil.isRetryable(e) && retries < helper.maxReadRowsRetries) {
+          if (BigQueryUtil.isRetryable(e) && retries < helper.options.getMaxReadRowsRetries()) {
             serverResponses = helper.fetchResponses(helper.request.setOffset(readRowsCount));
             retries++;
           } else {

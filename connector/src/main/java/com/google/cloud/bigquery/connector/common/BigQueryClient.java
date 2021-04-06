@@ -48,7 +48,6 @@ import java.util.stream.StreamSupport;
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED;
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.convertToBigQueryException;
-import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.lang.String.format;
 import static java.util.Locale.ENGLISH;
 import static java.util.UUID.randomUUID;
@@ -58,7 +57,6 @@ import static java.util.stream.Collectors.joining;
 // presto converts the dataset and table names to lower case, while BigQuery is case sensitive
 // the mappings here keep the mappings
 public class BigQueryClient {
-  private static final Logger logger = LoggerFactory.getLogger(BigQueryClient.class);
   private static final Logger log = LoggerFactory.getLogger(BigQueryClient.class);
 
   private static Cache<String, TableInfo> destinationTableCache =
@@ -148,9 +146,10 @@ public class BigQueryClient {
   Iterable<Table> listTables(DatasetId datasetId, TableDefinition.Type... types) {
     Set<TableDefinition.Type> allowedTypes = ImmutableSet.copyOf(types);
     Iterable<Table> allTables = bigQuery.listTables(datasetId).iterateAll();
-    return StreamSupport.stream(allTables.spliterator(), false)
-        .filter(table -> allowedTypes.contains(table.getDefinition().getType()))
-        .collect(toImmutableList());
+    return ImmutableList.copyOf(
+        StreamSupport.stream(allTables.spliterator(), false)
+            .filter(table -> allowedTypes.contains(table.getDefinition().getType()))
+            .collect(Collectors.toList()));
   }
 
   TableId createDestinationTable(
@@ -173,7 +172,7 @@ public class BigQueryClient {
     JobInfo jobInfo = JobInfo.of(jobConfiguration);
     Job job = bigQuery.create(jobInfo);
 
-    logger.info("Submitted job {}. jobId: {}", jobConfiguration, job.getJobId());
+    log.info("Submitted job {}. jobId: {}", jobConfiguration, job.getJobId());
     // TODO(davidrab): add retry options
     try {
       return job.waitFor();

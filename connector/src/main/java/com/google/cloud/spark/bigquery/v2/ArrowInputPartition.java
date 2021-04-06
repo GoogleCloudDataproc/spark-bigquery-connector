@@ -38,7 +38,7 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
   private final BigQueryReadClientFactory bigQueryReadClientFactory;
   private final BigQueryTracerFactory tracerFactory;
   private final String streamName;
-  private final int maxReadRowsRetries;
+  private final ReadRowsHelper.Options options;
   private final ImmutableList<String> selectedFields;
   private final ByteString serializedArrowSchema;
   private final com.google.common.base.Optional<StructType> userProvidedSchema;
@@ -47,13 +47,13 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
       BigQueryReadClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory tracerFactory,
       String name,
-      int maxReadRowsRetries,
+      ReadRowsHelper.Options options,
       ImmutableList<String> selectedFields,
       ReadSessionResponse readSessionResponse,
       Optional<StructType> userProvidedSchema) {
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
     this.streamName = name;
-    this.maxReadRowsRetries = maxReadRowsRetries;
+    this.options = options;
     this.selectedFields = selectedFields;
     this.serializedArrowSchema =
         readSessionResponse.getReadSession().getArrowSchema().getSerializedSchema();
@@ -67,7 +67,7 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
     ReadRowsRequest.Builder readRowsRequest =
         ReadRowsRequest.newBuilder().setReadStream(streamName);
     ReadRowsHelper readRowsHelper =
-        new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequest, maxReadRowsRetries);
+        new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequest, options);
     tracer.startStream();
     Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
     return new ArrowColumnBatchPartitionColumnBatchReader(
