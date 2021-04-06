@@ -90,7 +90,7 @@ public class SchemaConverterTest {
                     "name",
                     DataTypes.StringType,
                     true,
-                    (new MetadataBuilder())
+                    new MetadataBuilder()
                         .putString("description", "foo")
                         .putString("comment", "foo")
                         .build()));

@@ -280,17 +280,22 @@ public class SchemaConverters {
         createBigQueryFieldBuilder(fieldName, fieldType, fieldMode, subFields);
     Optional<String> description = getDescriptionOrCommentOfField(sparkField);
 
-    if (description.isPresent()) fieldBuilder.setDescription(description.get());
+    if (description.isPresent()) {
+      fieldBuilder.setDescription(description.get());
+    }
 
     return fieldBuilder.build();
   }
 
   public static Optional<String> getDescriptionOrCommentOfField(StructField field) {
-    if (!field.getComment().isEmpty()) return Optional.of(field.getComment().get());
-    else if (field.metadata().contains("description")
-        && field.metadata().getString("description") != null)
+    if (!field.getComment().isEmpty()) {
+      return Optional.of(field.getComment().get());
+    }
+    if (field.metadata().contains("description")
+        && field.metadata().getString("description") != null) {
       return Optional.of(field.metadata().getString("description"));
-    else return Optional.empty();
+    }
+    return Optional.empty();
   }
 
   @VisibleForTesting

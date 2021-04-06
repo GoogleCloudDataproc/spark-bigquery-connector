@@ -67,11 +67,13 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
       "The year in which this corpus was published."))))
 
   private val SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT = StructType(
-    SHAKESPEARE_TABLE_SCHEMA.fields.map(field => {
-        val metadata = new MetadataBuilder()
-          .withMetadata(field.metadata)
-          .putString("comment", field.metadata.getString("description"))
-          .build()
+    SHAKESPEARE_TABLE_SCHEMA.fields.map(
+      field => {
+        val metadata =
+          new MetadataBuilder()
+            .withMetadata(field.metadata)
+            .putString("comment", field.metadata.getString("description"))
+            .build()
         StructField(field.name, field.dataType, field.nullable, metadata)
       }
     )

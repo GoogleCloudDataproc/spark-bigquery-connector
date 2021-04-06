@@ -76,8 +76,10 @@ class SchemaConvertersSuite extends org.scalatest.FunSuite {
         .build)
     val expected = StructType(Seq(
       StructField("name", StringType, true,
-        (new MetadataBuilder).putString("description", "foo")
-          .putString("comment", "foo").build)
+        new MetadataBuilder()
+          .putString("description", "foo")
+          .putString("comment", "foo")
+          .build)
     ))
     val result = SchemaConverters.toSpark(bqSchema)
     assert(expected == result)

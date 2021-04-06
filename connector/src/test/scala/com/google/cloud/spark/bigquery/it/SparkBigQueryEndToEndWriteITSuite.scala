@@ -364,17 +364,19 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
       val testDescription = "test description"
       val testComment = "test comment"
 
-      val metadata = Metadata
-        .fromJson("{\"description\": \"" + testDescription + "\"}")
+      val metadata =
+        Metadata.fromJson("{\"description\": \"" + testDescription + "\"}")
 
-      val schemas = Seq(
-        StructType(List(StructField("c1", IntegerType, true, metadata))),
-        StructType(List(StructField("c1", IntegerType, true, Metadata.empty)
-          .withComment(testComment))),
-        StructType(List(StructField("c1", IntegerType, true, metadata)
-          .withComment(testComment))),
-        StructType(List(StructField("c1", IntegerType, true, Metadata.empty)))
-      )
+      val schemas =
+        Seq(
+          StructType(List(StructField("c1", IntegerType, true, metadata))),
+          StructType(List(
+            StructField("c1", IntegerType, true, Metadata.empty)
+              .withComment(testComment))),
+          StructType(List(
+            StructField("c1", IntegerType, true, metadata)
+              .withComment(testComment))),
+          StructType(List(StructField("c1", IntegerType, true, Metadata.empty))))
 
       val readValues = Seq(testDescription, testComment, testComment, null)
 
@@ -391,14 +393,15 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
           .option("table", testTable)
           .load()
 
-        val description = SchemaConverters
-          .getDescriptionOrCommentOfField(readDF.schema(0))
+        val description =
+          SchemaConverters.getDescriptionOrCommentOfField(readDF.schema(0))
 
         if(i <= schemas.length-2) {
           assert(description.isPresent)
           assert(description.orElse("").equals(readValues(i)))
-        } else
+        } else {
           assert(!description.isPresent)
+        }
       }
     }
   }

@@ -193,8 +193,10 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
 
   def updateMetadataIfNeeded: Unit = {
     val fieldsToUpdate = data.schema
-      .filter {field => SupportedCustomDataType.of(field.dataType).isPresent ||
-        getDescriptionOrCommentOfField(field).isPresent}
+      .filter {
+        field =>
+          SupportedCustomDataType.of(field.dataType).isPresent ||
+            getDescriptionOrCommentOfField(field).isPresent}
       .map (field => (field.name, field))
       .toMap
 
