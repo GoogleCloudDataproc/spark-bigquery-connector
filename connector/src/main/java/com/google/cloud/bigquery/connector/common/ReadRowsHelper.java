@@ -17,7 +17,6 @@ package com.google.cloud.bigquery.connector.common;
 
 import java.io.Serializable;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,12 +36,11 @@ public class ReadRowsHelper {
 
   public static final class Options implements Serializable {
     private final int maxReadRowsRetries;
-    @Nullable
-    private final String endpoint;
+    private final String nullableEndpoint;
 
     public Options(int maxReadRowsRetries, Optional<String> endpoint) {
       this.maxReadRowsRetries = maxReadRowsRetries;
-      this.endpoint = endpoint.orElse(null);
+      this.nullableEndpoint = endpoint.orElse(null);
     }
 
     public int getMaxReadRowsRetries() {
@@ -50,7 +48,7 @@ public class ReadRowsHelper {
     }
 
     public Optional<String> getEndpoint() {
-      return Optional.ofNullable(endpoint);
+      return Optional.ofNullable(nullableEndpoint);
     }
   }
 

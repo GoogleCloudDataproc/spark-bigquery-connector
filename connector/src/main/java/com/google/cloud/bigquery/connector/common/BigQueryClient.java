@@ -48,6 +48,7 @@ import java.util.stream.StreamSupport;
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED;
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.convertToBigQueryException;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.lang.String.format;
 import static java.util.Locale.ENGLISH;
 import static java.util.UUID.randomUUID;
@@ -146,10 +147,9 @@ public class BigQueryClient {
   Iterable<Table> listTables(DatasetId datasetId, TableDefinition.Type... types) {
     Set<TableDefinition.Type> allowedTypes = ImmutableSet.copyOf(types);
     Iterable<Table> allTables = bigQuery.listTables(datasetId).iterateAll();
-    return ImmutableList.copyOf(
-        StreamSupport.stream(allTables.spliterator(), false)
+    return StreamSupport.stream(allTables.spliterator(), false)
             .filter(table -> allowedTypes.contains(table.getDefinition().getType()))
-            .collect(Collectors.toList()));
+            .collect(toImmutableList());
   }
 
   TableId createDestinationTable(

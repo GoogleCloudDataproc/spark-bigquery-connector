@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery
 
 import java.sql.{Date, Timestamp}
-import java.util.Optional
 
 import com.google.cloud.bigquery._
 import com.google.cloud.bigquery.storage.v1.DataFormat

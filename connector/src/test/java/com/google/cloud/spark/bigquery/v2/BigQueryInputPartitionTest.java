@@ -13,11 +13,14 @@ import org.junit.Test;
 public class BigQueryInputPartitionTest {
   @Test
   public void testSerializability() throws IOException {
-    new ObjectOutputStream(new ByteArrayOutputStream()).writeObject(new ArrowInputPartition(
-        /*bigQueryClientFactory=*/null, /*tracerFactory=*/null, "streamName", new ReadRowsHelper.Options(/*maxRetries=*/5,
-        Optional.of("endpoint")), null,
-        new ReadSessionResponse(ReadSession.getDefaultInstance(), null)
-    ));
+    new ObjectOutputStream(new ByteArrayOutputStream())
+        .writeObject(
+            new ArrowInputPartition(
+                /*bigQueryClientFactory=*/ null,
+                /*tracerFactory=*/ null,
+                "streamName",
+                new ReadRowsHelper.Options(/*maxRetries=*/ 5, Optional.of("endpoint")),
+                null,
+                new ReadSessionResponse(ReadSession.getDefaultInstance(), null)));
   }
-
 }

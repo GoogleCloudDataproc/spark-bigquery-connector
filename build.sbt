@@ -52,7 +52,6 @@ lazy val commonTestDependencies = Seq(
   "io.grpc" % "grpc-alts" % grpcVersion exclude("io.grpc", "grpc-netty-shaded"),
   "io.grpc" % "grpc-netty" % grpcVersion,
   "com.google.api" % "gax-grpc" % "1.60.0" exclude("io.grpc", "grpc-netty-shaded"),
-  "com.google.guava" % "guava" % "30.0-jre",
 
   "org.scalatest" %% "scalatest" % "3.1.0" % "test",
   "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test",
@@ -91,6 +90,7 @@ lazy val connector = (project in file("connector"))
       "aopalliance" % "aopalliance" % "1.0" % "provided",
       "org.codehaus.jackson" % "jackson-core-asl" % "1.9.13" % "provided",
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
+      "com.google.guava" % "guava" % "30.1.1-jre",
       "com.google.inject" % "guice" % "4.2.3",
       "org.apache.arrow" % "arrow-vector" % "4.0.0"
 			  excludeAll(ExclusionRule(organization="org.slf4j"),
@@ -129,11 +129,11 @@ lazy val connector = (project in file("connector"))
         exclude("com.google.cloud.bigdataoss", "util-hadoop"),
       // scalastyle:on
       // test
-
       "org.apache.spark" %% "spark-avro" % sparkVersion % "test"
       ))
       .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*)),
-    dependencyOverrides += "org.slf4j" % "slf4j-api" % "1.7.16" % "provided"
+    dependencyOverrides ++= Set("org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
+                                "com.google.guava" % "guava" % "30.1.1-jre")
   )
 
 lazy val fatJar = project

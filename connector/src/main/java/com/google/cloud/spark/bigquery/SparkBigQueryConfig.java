@@ -114,7 +114,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   ImmutableList<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.of();
   int materializationExpirationTimeInMinutes = DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES;
   int maxReadRowsRetries = 3;
-  private CompressionCodec compression;
+  private CompressionCodec compression = CompressionCodec.COMPRESSION_UNSPECIFIED;
   private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
   private com.google.common.base.Optional<String> storageReadEndpoint = empty();
 
