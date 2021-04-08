@@ -15,10 +15,12 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import org.apache.spark.sql.sources.*;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.types.ArrayType;
 
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -35,9 +37,90 @@ public class SparkFilterUtils {
 
   private SparkFilterUtils() {}
 
-  public static boolean isHandled(Filter filter) {
+  // Structs are not handled
+  public static boolean isTopLevelFieldHandled(
+      Filter filter, DataFormat readDataFormat, Map<String, StructField> fields) {
+    if (filter instanceof EqualTo) {
+      EqualTo equalTo = (EqualTo) filter;
+      return isFilterWithNamedFieldHandled(filter, readDataFormat, fields, equalTo.attribute());
+    }
+    if (filter instanceof GreaterThan) {
+      GreaterThan greaterThan = (GreaterThan) filter;
+      return isFilterWithNamedFieldHandled(filter, readDataFormat, fields, greaterThan.attribute());
+    }
+    if (filter instanceof GreaterThanOrEqual) {
+      GreaterThanOrEqual greaterThanOrEqual = (GreaterThanOrEqual) filter;
+      return isFilterWithNamedFieldHandled(
+          filter, readDataFormat, fields, greaterThanOrEqual.attribute());
+    }
+    if (filter instanceof LessThan) {
+      LessThan lessThan = (LessThan) filter;
+      return isFilterWithNamedFieldHandled(filter, readDataFormat, fields, lessThan.attribute());
+    }
+    if (filter instanceof LessThanOrEqual) {
+      LessThanOrEqual lessThanOrEqual = (LessThanOrEqual) filter;
+      return isFilterWithNamedFieldHandled(
+          filter, readDataFormat, fields, lessThanOrEqual.attribute());
+    }
+    if (filter instanceof In) {
+      In in = (In) filter;
+      return isFilterWithNamedFieldHandled(filter, readDataFormat, fields, in.attribute());
+    }
+    if (filter instanceof IsNull) {
+      IsNull isNull = (IsNull) filter;
+      return isFilterWithNamedFieldHandled(filter, readDataFormat, fields, isNull.attribute());
+    }
+    if (filter instanceof IsNotNull) {
+      IsNotNull isNotNull = (IsNotNull) filter;
+      return isFilterWithNamedFieldHandled(filter, readDataFormat, fields, isNotNull.attribute());
+    }
+    if (filter instanceof And) {
+      And and = (And) filter;
+      return isTopLevelFieldHandled(and.left(), readDataFormat, fields)
+          && isTopLevelFieldHandled(and.right(), readDataFormat, fields);
+    }
+    if (filter instanceof Or) {
+      Or or = (Or) filter;
+      return readDataFormat == DataFormat.AVRO
+          && isTopLevelFieldHandled(or.left(), readDataFormat, fields)
+          && isTopLevelFieldHandled(or.right(), readDataFormat, fields);
+    }
+    if (filter instanceof Not) {
+      Not not = (Not) filter;
+      return isTopLevelFieldHandled(not.child(), readDataFormat, fields);
+    }
+    if (filter instanceof StringStartsWith) {
+      StringStartsWith stringStartsWith = (StringStartsWith) filter;
+      return isFilterWithNamedFieldHandled(
+          filter, readDataFormat, fields, stringStartsWith.attribute());
+    }
+    if (filter instanceof StringEndsWith) {
+      StringEndsWith stringEndsWith = (StringEndsWith) filter;
+      return isFilterWithNamedFieldHandled(
+          filter, readDataFormat, fields, stringEndsWith.attribute());
+    }
+    if (filter instanceof StringContains) {
+      StringContains stringContains = (StringContains) filter;
+      return isFilterWithNamedFieldHandled(
+          filter, readDataFormat, fields, stringContains.attribute());
+    }
+
+    throw new IllegalArgumentException(format("Invalid filter: %s", filter));
+  }
+
+  static boolean isFilterWithNamedFieldHandled(
+      Filter filter, DataFormat readDataFormat, Map<String, StructField> fields, String fieldName) {
+    return Optional.ofNullable(fields.get(fieldName))
+        .filter(
+            field ->
+                ((field.dataType() instanceof StructType)
+                    || (field.dataType() instanceof ArrayType)))
+        .map(field -> false)
+        .orElse(isHandled(filter, readDataFormat));
+  }
+
+  public static boolean isHandled(Filter filter, DataFormat readDataFormat) {
     if (filter instanceof EqualTo
-        || filter instanceof EqualNullSafe
         || filter instanceof GreaterThan
         || filter instanceof GreaterThanOrEqual
         || filter instanceof LessThan
@@ -50,43 +133,52 @@ public class SparkFilterUtils {
         || filter instanceof StringContains) {
       return true;
     }
+    // There is no direct equivalent of EqualNullSafe in Google standard SQL.
+    if (filter instanceof EqualNullSafe) {
+      return false;
+    }
     if (filter instanceof And) {
       And and = (And) filter;
-      return isHandled(and.left()) && isHandled(and.right());
+      return isHandled(and.left(), readDataFormat) && isHandled(and.right(), readDataFormat);
     }
     if (filter instanceof Or) {
       Or or = (Or) filter;
-      return isHandled(or.left()) && isHandled(or.right());
+      return readDataFormat == DataFormat.AVRO
+          && isHandled(or.left(), readDataFormat)
+          && isHandled(or.right(), readDataFormat);
     }
     if (filter instanceof Not) {
-      return isHandled(((Not) filter).child());
+      return isHandled(((Not) filter).child(), readDataFormat);
     }
     return false;
   }
 
-  public static Iterable<Filter> handledFilters(Filter... filters) {
-    return handledFilters(ImmutableList.copyOf(filters));
+  public static Iterable<Filter> handledFilters(DataFormat readDataFormat, Filter... filters) {
+    return handledFilters(readDataFormat, ImmutableList.copyOf(filters));
   }
 
-  public static Iterable<Filter> handledFilters(Iterable<Filter> filters) {
+  public static Iterable<Filter> handledFilters(
+      DataFormat readDataFormat, Iterable<Filter> filters) {
     return StreamSupport.stream(filters.spliterator(), false)
-        .filter(f -> isHandled(f))
+        .filter(f -> isHandled(f, readDataFormat))
         .collect(Collectors.toList());
   }
 
-  public static Iterable<Filter> unhandledFilters(Filter... filters) {
-    return unhandledFilters(ImmutableList.copyOf(filters));
+  public static Iterable<Filter> unhandledFilters(DataFormat readDataFormat, Filter... filters) {
+    return unhandledFilters(readDataFormat, ImmutableList.copyOf(filters));
   }
 
-  public static Iterable<Filter> unhandledFilters(Iterable<Filter> filters) {
+  public static Iterable<Filter> unhandledFilters(
+      DataFormat readDataFormat, Iterable<Filter> filters) {
     return StreamSupport.stream(filters.spliterator(), false)
-        .filter(f -> !isHandled(f))
+        .filter(f -> !isHandled(f, readDataFormat))
         .collect(Collectors.toList());
   }
 
-  public static String getCompiledFilter(Optional<String> configFilter, Filter... pushedFilters) {
+  public static String getCompiledFilter(
+      DataFormat readDataFormat, Optional<String> configFilter, Filter... pushedFilters) {
     String compiledPushedFilter =
-        compileFilters(handledFilters(ImmutableList.copyOf(pushedFilters)));
+        compileFilters(handledFilters(readDataFormat, ImmutableList.copyOf(pushedFilters)));
     return Stream.of(
             configFilter,
             compiledPushedFilter.length() == 0
@@ -102,14 +194,6 @@ public class SparkFilterUtils {
     if (filter instanceof EqualTo) {
       EqualTo equalTo = (EqualTo) filter;
       return format("%s = %s", quote(equalTo.attribute()), compileValue(equalTo.value()));
-    }
-    if (filter instanceof EqualNullSafe) {
-      EqualNullSafe equalNullSafe = (EqualNullSafe) filter;
-      String lhs = quote(equalNullSafe.attribute());
-      String rhs = compileValue(equalNullSafe.value());
-      return format(
-          "(%s = %s) OR ((%s = %s) IS NULL AND (%s IS NULL) AND (%s IS NULL))",
-          lhs, rhs, lhs, rhs, lhs, rhs);
     }
     if (filter instanceof GreaterThan) {
       GreaterThan greaterThan = (GreaterThan) filter;

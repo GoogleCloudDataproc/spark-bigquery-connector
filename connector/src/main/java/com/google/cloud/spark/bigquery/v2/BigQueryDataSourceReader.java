@@ -150,7 +150,9 @@ public class BigQueryDataSourceReader
             .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
             .orElse(ImmutableList.of());
     Optional<String> filter =
-        emptyIfNeeded(SparkFilterUtils.getCompiledFilter(globalFilter, pushedFilters));
+        emptyIfNeeded(
+            SparkFilterUtils.getCompiledFilter(
+                readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(
             tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
@@ -176,7 +178,9 @@ public class BigQueryDataSourceReader
             .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
             .orElse(ImmutableList.copyOf(fields.keySet()));
     Optional<String> filter =
-        emptyIfNeeded(SparkFilterUtils.getCompiledFilter(globalFilter, pushedFilters));
+        emptyIfNeeded(
+            SparkFilterUtils.getCompiledFilter(
+                readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(
             tableId, selectedFields, filter, readSessionCreatorConfig.getMaxParallelism());
@@ -257,7 +261,8 @@ public class BigQueryDataSourceReader
     List<Filter> handledFilters = new ArrayList<>();
     List<Filter> unhandledFilters = new ArrayList<>();
     for (Filter filter : filters) {
-      if (SparkFilterUtils.isHandled(filter)) {
+      if (SparkFilterUtils.isTopLevelFieldHandled(
+          filter, readSessionCreatorConfig.getReadDataFormat(), fields)) {
         handledFilters.add(filter);
       } else {
         unhandledFilters.add(filter);
