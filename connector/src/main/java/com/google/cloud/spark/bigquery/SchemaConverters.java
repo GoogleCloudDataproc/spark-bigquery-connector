@@ -173,6 +173,7 @@ public class SchemaConverters {
     MetadataBuilder metadata = new MetadataBuilder();
     if (field.getDescription() != null) {
       metadata.putString("description", field.getDescription());
+      metadata.putString("comment", field.getDescription());
     }
 
     return new StructField(field.getName(), dataType, nullable, metadata.build());
@@ -258,7 +259,6 @@ public class SchemaConverters {
     DataType sparkType = sparkField.dataType();
     String fieldName = sparkField.name();
     Field.Mode fieldMode = (sparkField.nullable()) ? Field.Mode.NULLABLE : Field.Mode.REQUIRED;
-    String description;
     FieldList subFields = null;
     LegacySQLTypeName fieldType;
 
@@ -276,15 +276,26 @@ public class SchemaConverters {
       fieldType = toBigQueryType(sparkType);
     }
 
-    try {
-      description = sparkField.metadata().getString("description");
-    } catch (NoSuchElementException e) {
-      return createBigQueryFieldBuilder(fieldName, fieldType, fieldMode, subFields).build();
+    Field.Builder fieldBuilder =
+        createBigQueryFieldBuilder(fieldName, fieldType, fieldMode, subFields);
+    Optional<String> description = getDescriptionOrCommentOfField(sparkField);
+
+    if (description.isPresent()) {
+      fieldBuilder.setDescription(description.get());
     }
 
-    return createBigQueryFieldBuilder(fieldName, fieldType, fieldMode, subFields)
-        .setDescription(description)
-        .build();
+    return fieldBuilder.build();
+  }
+
+  public static Optional<String> getDescriptionOrCommentOfField(StructField field) {
+    if (!field.getComment().isEmpty()) {
+      return Optional.of(field.getComment().get());
+    }
+    if (field.metadata().contains("description")
+        && field.metadata().getString("description") != null) {
+      return Optional.of(field.metadata().getString("description"));
+    }
+    return Optional.empty();
   }
 
   @VisibleForTesting

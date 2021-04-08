@@ -196,7 +196,6 @@ public class SparkFilterUtilsTest {
     // (c1 >= 100 or c1 <= 700  or c2 <= 900) and
     // (c1 >= 5000 or c1 <= 701)
 
-
     Filter part1 =
         Or.apply(
             Or.apply(GreaterThanOrEqual.apply("c1", 500), LessThanOrEqual.apply("c1", 70)),

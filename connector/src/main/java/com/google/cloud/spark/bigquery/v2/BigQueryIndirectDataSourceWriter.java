@@ -29,9 +29,11 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.http.BaseHttpServiceException;
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
+import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
+import java.util.function.Function;
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -41,6 +43,7 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.writer.DataSourceWriter;
 import org.apache.spark.sql.sources.v2.writer.DataWriterFactory;
 import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -229,18 +232,14 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
   }
 
   void updateMetadataIfNeeded() {
-    // TODO: Issue #190 should be solved here
-    Map<String, Optional<SupportedCustomDataType>> fieldsToUpdate =
+    Map<String, StructField> fieldsToUpdate =
         Stream.of(sparkSchema.fields())
-            .map(
+            .filter(
                 field ->
-                    new AbstractMap.SimpleImmutableEntry<String, Optional<SupportedCustomDataType>>(
-                        field.name(), SupportedCustomDataType.of(field.dataType())))
-            .filter(nameAndType -> nameAndType.getValue().isPresent())
-            .collect(
-                Collectors.toMap(
-                    AbstractMap.SimpleImmutableEntry::getKey,
-                    AbstractMap.SimpleImmutableEntry::getValue));
+                    SupportedCustomDataType.of(field.dataType()).isPresent()
+                        || SchemaConverters.getDescriptionOrCommentOfField(field).isPresent())
+            .collect(Collectors.toMap(StructField::name, Function.identity()));
+
     if (!fieldsToUpdate.isEmpty()) {
       logger.debug("updating schema, found fields to update: {}", fieldsToUpdate.keySet());
       TableInfo originalTableInfo = bigQueryClient.getTable(config.getTableId());
@@ -252,7 +251,7 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
                   .map(
                       field ->
                           Optional.ofNullable(fieldsToUpdate.get(field.getName()))
-                              .map(dataType -> updatedField(field, dataType.get().getTypeMarker()))
+                              .map(sparkSchemaField -> updatedField(field, sparkSchemaField))
                               .orElse(field))
                   .collect(Collectors.toList()));
       TableInfo.Builder updatedTableInfo =
@@ -264,13 +263,22 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
     }
   }
 
-  Field updatedField(Field field, String marker) {
+  Field updatedField(Field field, StructField sparkSchemaField) {
     Field.Builder newField = field.toBuilder();
-    String description = field.getDescription();
-    if (description == null) {
-      newField.setDescription(marker);
-    } else if (!description.endsWith(marker)) {
-      newField.setDescription(description + " " + marker);
+    Optional<String> bqDescription =
+        SchemaConverters.getDescriptionOrCommentOfField(sparkSchemaField);
+
+    if (bqDescription.isPresent()) {
+      newField.setDescription(bqDescription.get());
+    } else {
+      String description = field.getDescription();
+      String marker = SupportedCustomDataType.of(sparkSchemaField.dataType()).get().getTypeMarker();
+
+      if (description == null) {
+        newField.setDescription(marker);
+      } else if (!description.endsWith(marker)) {
+        newField.setDescription(description + " " + marker);
+      }
     }
     return newField.build();
   }

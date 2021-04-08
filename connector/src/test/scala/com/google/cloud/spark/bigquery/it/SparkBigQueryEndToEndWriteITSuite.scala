@@ -18,7 +18,7 @@ package com.google.cloud.spark.bigquery.it
 import java.util.UUID
 
 import com.google.cloud.bigquery._
-import com.google.cloud.spark.bigquery.TestUtils
+import com.google.cloud.spark.bigquery.{SchemaConverters, TestUtils}
 import com.google.common.base.Preconditions
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.execution.streaming.MemoryStream
@@ -360,6 +360,50 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
       assert(df.schema == allTypesTable.schema)
     }
 
+    test("write to bq with description/comment. DataSource %s".format(dataSourceFormat)) {
+      val testDescription = "test description"
+      val testComment = "test comment"
+
+      val metadata =
+        Metadata.fromJson("{\"description\": \"" + testDescription + "\"}")
+
+      val schemas =
+        Seq(
+          StructType(List(StructField("c1", IntegerType, true, metadata))),
+          StructType(List(
+            StructField("c1", IntegerType, true, Metadata.empty)
+              .withComment(testComment))),
+          StructType(List(
+            StructField("c1", IntegerType, true, metadata)
+              .withComment(testComment))),
+          StructType(List(StructField("c1", IntegerType, true, Metadata.empty))))
+
+      val readValues = Seq(testDescription, testComment, testComment, null)
+
+      for(i <- 0 until schemas.length){
+        val data = Seq(Row(100), Row(200))
+
+        val descriptionDF =
+          spark.createDataFrame(spark.sparkContext.parallelize(data), schemas(i))
+
+        writeToBigQuery(dataSourceFormat, descriptionDF, SaveMode.Overwrite)
+
+        val readDF = spark.read.format(dataSourceFormat)
+          .option("dataset", testDataset)
+          .option("table", testTable)
+          .load()
+
+        val description =
+          SchemaConverters.getDescriptionOrCommentOfField(readDF.schema(0))
+
+        if(i <= schemas.length-2) {
+          assert(description.isPresent)
+          assert(description.orElse("").equals(readValues(i)))
+        } else {
+          assert(!description.isPresent)
+        }
+      }
+    }
   }
 
   private def randomSuffix: String = {

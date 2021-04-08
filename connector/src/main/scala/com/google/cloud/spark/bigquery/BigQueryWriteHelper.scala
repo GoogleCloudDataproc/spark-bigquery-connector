@@ -22,9 +22,11 @@ import com.google.cloud.bigquery.JobInfo.CreateDisposition.CREATE_NEVER
 import com.google.cloud.bigquery._
 import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryUtil}
 import com.google.cloud.http.BaseHttpServiceException
+import com.google.cloud.spark.bigquery.SchemaConverters.getDescriptionOrCommentOfField
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
 import scala.collection.JavaConverters._
@@ -190,11 +192,14 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
   def friendlyTableName: String = BigQueryUtil.friendlyTableName(options.getTableId)
 
   def updateMetadataIfNeeded: Unit = {
-    // TODO: Issue #190 should be solved here
     val fieldsToUpdate = data.schema
-      .map(field => (field.name, SupportedCustomDataType.of(field.dataType)))
-      .filter { case (_, dataType) => dataType.isPresent }
+      .filter {
+        field =>
+          SupportedCustomDataType.of(field.dataType).isPresent ||
+            getDescriptionOrCommentOfField(field).isPresent}
+      .map (field => (field.name, field))
       .toMap
+
     if (!fieldsToUpdate.isEmpty) {
       logDebug(s"updating schema, found fields to update: ${fieldsToUpdate.keySet}")
       val originalTableInfo = bigQueryClient.getTable(options.getTableId)
@@ -202,7 +207,7 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
       val originalSchema = originalTableDefinition.getSchema
       val updatedSchema = Schema.of(originalSchema.getFields.asScala.map(field => {
         fieldsToUpdate.get(field.getName)
-          .map(dataType => updatedField(field, dataType.get.getTypeMarker))
+          .map(dataField => updatedField(field, dataField))
           .getOrElse(field)
       }).asJava)
       val updatedTableInfo = originalTableInfo.toBuilder.setDefinition(
@@ -212,14 +217,22 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
     }
   }
 
-  def updatedField(field: Field, marker: String): Field = {
+  def updatedField(field: Field, dataField: StructField): Field = {
     val newField = field.toBuilder
-    val description = field.getDescription
-    if (description == null) {
-      newField.setDescription(marker)
-    } else if (!description.endsWith(marker)) {
-      newField.setDescription(s"${description} ${marker}")
+    val bqDescription = getDescriptionOrCommentOfField(dataField)
+
+    if(bqDescription.isPresent){
+      newField.setDescription(bqDescription.get)
+    } else {
+      val marker = SupportedCustomDataType.of(dataField.dataType).get.getTypeMarker
+      val description = field.getDescription
+      if (description == null) {
+        newField.setDescription(marker)
+      } else if (!description.endsWith(marker)) {
+        newField.setDescription(s"${description} ${marker}")
+      }
     }
+
     newField.build
   }
 

@@ -20,7 +20,7 @@ import com.google.cloud.spark.bigquery.TestUtils
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.it.TestConstants._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparkSession}
 import org.scalatest.concurrent.TimeLimits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.time.SpanSugar._
@@ -65,6 +65,20 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
       "The work from which this word was extracted.")),
     StructField("corpus_date", LongType, nullable = false, metadata("description",
       "The year in which this corpus was published."))))
+
+  private val SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT = StructType(
+    SHAKESPEARE_TABLE_SCHEMA.fields.map(
+      field => {
+        val metadata =
+          new MetadataBuilder()
+            .withMetadata(field.metadata)
+            .putString("comment", field.metadata.getString("description"))
+            .build()
+        StructField(field.name, field.dataType, field.nullable, metadata)
+      }
+    )
+  )
+
   private val LARGE_TABLE = "bigquery-public-data.samples.natality"
   private val LARGE_TABLE_FIELD = "is_male"
   private val LARGE_TABLE_NUM_ROWS = 33271914L
@@ -135,7 +149,7 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
     import sparkImportVal.implicits._
     forAll(filterData) { (condition, expectedElements) =>
       val df = spark.read.bigquery(SHAKESPEARE_TABLE)
-      assert(SHAKESPEARE_TABLE_SCHEMA == df.schema)
+      assert(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT == df.schema)
       assert(SHAKESPEARE_TABLE_NUM_ROWS == df.count)
       val firstWords = df.select("word")
         .where(condition)
@@ -436,7 +450,7 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
     test(s"read using $description") {
       val youCannotImportVars = spark
       import youCannotImportVars.implicits._
-      assert(SHAKESPEARE_TABLE_SCHEMA == df.schema)
+      assert(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT == df.schema)
       assert(SHAKESPEARE_TABLE_NUM_ROWS == df.count())
       val firstWords = df.select("word")
         .where("word >= 'a' AND word not like '%\\'%'")

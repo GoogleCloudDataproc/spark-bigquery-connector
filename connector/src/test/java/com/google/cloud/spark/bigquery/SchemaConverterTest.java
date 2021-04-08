@@ -90,7 +90,10 @@ public class SchemaConverterTest {
                     "name",
                     DataTypes.StringType,
                     true,
-                    (new MetadataBuilder()).putString("description", "foo").build()));
+                    new MetadataBuilder()
+                        .putString("description", "foo")
+                        .putString("comment", "foo")
+                        .build()));
 
     StructType result = SchemaConverters.toSpark(bqSchema);
     assertThat(result).isEqualTo(expected);
