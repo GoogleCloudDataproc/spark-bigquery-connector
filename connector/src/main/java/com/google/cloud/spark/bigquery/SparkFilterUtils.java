@@ -212,7 +212,9 @@ public class SparkFilterUtils {
     }
     if (filter instanceof In) {
       In in = (In) filter;
-      return format("%s IN UNNEST(%s)", quote(in.attribute()), compileValue(in.values()));
+      return format(
+          "%s IN %s",
+          quote(in.attribute()), compileValue(in.values(), /*arrayStart=*/ '(', /*arrayEnd=*/ ')'));
     }
     if (filter instanceof IsNull) {
       IsNull isNull = (IsNull) filter;
@@ -262,6 +264,11 @@ public class SparkFilterUtils {
 
   /** Converts value to SQL expression. */
   static String compileValue(Object value) {
+    return compileValue(value, /*arrayStart=*/ '[', /*arrayEnd=*/ ']');
+  }
+
+  /** Converts value to SQL expression customizing array start/end values. */
+  static String compileValue(Object value, char arrayStart, char arrayEnd) {
     if (value == null) {
       return null;
     }

@@ -156,7 +156,7 @@ public class SparkFilterUtilsTest {
     assertThat(SparkFilterUtils.compileFilter(LessThanOrEqual.apply("foo", 5)))
         .isEqualTo("`foo` <= 5");
     assertThat(SparkFilterUtils.compileFilter(In.apply("foo", new Object[] {6, 7, 8})))
-        .isEqualTo("`foo` IN UNNEST([6, 7, 8])");
+        .isEqualTo("`foo` IN (6, 7, 8)");
     assertThat(SparkFilterUtils.compileFilter(IsNull.apply("foo"))).isEqualTo("`foo` IS NULL");
     assertThat(SparkFilterUtils.compileFilter(IsNotNull.apply("foo")))
         .isEqualTo("`foo` IS NOT NULL");
@@ -177,7 +177,7 @@ public class SparkFilterUtilsTest {
                 In.apply(
                     "datefield",
                     new Object[] {Date.valueOf("2020-09-01"), Date.valueOf("2020-11-03")})))
-        .isEqualTo("`datefield` IN UNNEST([DATE '2020-09-01', DATE '2020-11-03'])");
+        .isEqualTo("`datefield` IN (DATE '2020-09-01', DATE '2020-11-03')");
   }
 
   @Test
@@ -186,7 +186,7 @@ public class SparkFilterUtilsTest {
     Timestamp ts2 = Timestamp.valueOf("2020-01-25 02:10:10");
     assertThat(SparkFilterUtils.compileFilter(In.apply("tsfield", new Object[] {ts1, ts2})))
         .isEqualTo(
-            "`tsfield` IN UNNEST([TIMESTAMP '2008-12-25 15:30:00.0', TIMESTAMP '2020-01-25 02:10:10.0'])");
+            "`tsfield` IN (TIMESTAMP '2008-12-25 15:30:00.0', TIMESTAMP '2020-01-25 02:10:10.0')");
   }
 
   @Test
