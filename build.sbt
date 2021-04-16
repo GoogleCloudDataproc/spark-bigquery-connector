@@ -51,7 +51,7 @@ lazy val root = (project in file("."))
 lazy val commonTestDependencies = Seq(
   "io.grpc" % "grpc-alts" % grpcVersion exclude("io.grpc", "grpc-netty-shaded"),
   "io.grpc" % "grpc-netty" % grpcVersion,
-  "com.google.api" % "gax-grpc" % "1.60.0" exclude("io.grpc", "grpc-netty-shaded"),
+  "com.google.api" % "gax-grpc" % "1.61.0" exclude("io.grpc", "grpc-netty-shaded"),
 
   "org.scalatest" %% "scalatest" % "3.1.0" % "test",
   "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test",
