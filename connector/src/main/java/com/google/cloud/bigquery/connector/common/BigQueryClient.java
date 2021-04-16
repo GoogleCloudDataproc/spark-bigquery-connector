@@ -148,8 +148,8 @@ public class BigQueryClient {
     Set<TableDefinition.Type> allowedTypes = ImmutableSet.copyOf(types);
     Iterable<Table> allTables = bigQuery.listTables(datasetId).iterateAll();
     return StreamSupport.stream(allTables.spliterator(), false)
-            .filter(table -> allowedTypes.contains(table.getDefinition().getType()))
-            .collect(toImmutableList());
+        .filter(table -> allowedTypes.contains(table.getDefinition().getType()))
+        .collect(toImmutableList());
   }
 
   TableId createDestinationTable(
