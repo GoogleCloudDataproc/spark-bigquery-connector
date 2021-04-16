@@ -46,7 +46,8 @@ public class ReadRowsHelperTest {
 
   @Test
   public void testConfigSerializable() throws IOException {
-    new ObjectOutputStream(new ByteArrayOutputStream()).writeObject(defaultConfig);
+    new ObjectOutputStream(new ByteArrayOutputStream())
+        .writeObject(defaultConfig.toReadRowsHelperOptions());
   }
 
   @Test
@@ -66,7 +67,7 @@ public class ReadRowsHelperTest {
   }
 
   @Test
-  public void endpontIsPropagated() {
+  public void endpointIsPropagated() {
     ArgumentCaptor<Optional<String>> endpointCaptor = ArgumentCaptor.forClass(Optional.class);
     ReadSessionCreatorConfig config =
         new ReadSessionCreatorConfigBuilder()
