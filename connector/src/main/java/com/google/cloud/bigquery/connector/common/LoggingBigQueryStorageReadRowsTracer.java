@@ -80,13 +80,28 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
     logData();
   }
 
+  private static Duration average(DurationTimer durationTimer) {
+    long samples = durationTimer.getSamples();
+    if (samples == 0) {
+      return null;
+    }
+    return durationTimer.getAccumulatedTime().dividedBy(samples);
+  }
+
   private static String format(DurationTimer durationTimer) {
     long samples = durationTimer.getSamples();
     if (samples == 0) {
       return "Not enough samples.";
     }
-    Duration average = durationTimer.getAccumulatedTime().dividedBy(samples);
+    Duration average = average(durationTimer);
     return String.format("Average: %s Samples: %d", average.toString(), samples);
+  }
+
+  private static String difference(DurationTimer d1, DurationTimer d2) {
+    if (d1.getSamples() == 0 || d2.getSamples() == 0) {
+      return "Not enough samples.";
+    }
+    return String.format("Average: %s", average(d1).minus(average(d2)).toString());
   }
 
   private static long perSecond(DurationTimer timer, long metric) {
@@ -108,7 +123,7 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
         startTime,
         endTime == null ? "" : endTime.toString(),
         format(parseTime),
-        format(sparkTime),
+        difference(sparkTime, parseTime),
         format(serviceTime),
         perSecond(serviceTime, bytes),
         perSecond(parseTime, rows));
