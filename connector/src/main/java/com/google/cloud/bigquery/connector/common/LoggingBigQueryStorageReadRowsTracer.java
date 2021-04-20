@@ -118,7 +118,7 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
 
   private void logData() {
     log.info(
-        "{}: Started: {} Ended: {} Parse Timings: {}  Time in Spark: {} Time waiting for service: {} Rows/s {} Bytes/s {}",
+        "{}: Started: {} Ended: {} Parse Timings: {}  Time in Spark: {} Time waiting for service: {} Bytes/s: {} Rows/s: {}",
         streamName,
         startTime,
         endTime == null ? "" : endTime.toString(),
