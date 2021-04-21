@@ -284,7 +284,9 @@ public class SparkFilterUtils {
     if (value instanceof Object[]) {
       return Arrays.stream((Object[]) value)
           .map(SparkFilterUtils::compileValue)
-          .collect(Collectors.joining(", ", "[", "]"));
+          .collect(
+              Collectors.joining(
+                  ", ", Character.toString(arrayStart), Character.toString(arrayEnd)));
     }
     return value.toString();
   }
