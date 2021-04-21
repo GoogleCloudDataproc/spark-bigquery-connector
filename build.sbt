@@ -16,7 +16,7 @@
 lazy val scala211Version = "2.11.12"
 lazy val scala212Version = "2.12.10"
 lazy val sparkVersion = "2.4.0"
-lazy val grpcVersion = "1.30.2"
+lazy val grpcVersion = "1.35.0"
 // should match the dependency from grpc-netty
 lazy val nettyVersion = "4.1.51.Final"
 // should match the dependency in grpc-netty
@@ -54,7 +54,7 @@ lazy val commonTestDependencies = Seq(
   "com.google.api" % "gax-grpc" % "1.61.0" exclude("io.grpc", "grpc-netty-shaded"),
 
   "org.scalatest" %% "scalatest" % "3.1.0" % "test",
-  "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test",
+  "org.mockito" %% "mockito-scala-scalatest" % "1.10.6" % "test",
   "junit" % "junit" % "4.13" % "test",
   "com.novocode" % "junit-interface" % "0.11" % "test",
   "com.google.truth" % "truth" % "1.0.1" % "test"

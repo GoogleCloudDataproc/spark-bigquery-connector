@@ -30,7 +30,6 @@ import com.google.cloud.bigquery.storage.v1.stub.EnhancedBigQueryReadStub;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.OptionalInt;
-import org.apache.zookeeper.Op.Create;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 

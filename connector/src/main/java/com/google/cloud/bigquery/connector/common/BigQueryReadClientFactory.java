@@ -51,7 +51,7 @@ public class BigQueryReadClientFactory implements Serializable {
     this.userAgentHeaderProvider = userAgentHeaderProvider;
   }
 
-  BigQueryReadClient createBigQueryReadClient(Optional<String> endpoint) {
+  public BigQueryReadClient createBigQueryReadClient(Optional<String> endpoint) {
     try {
       InstantiatingGrpcChannelProvider.Builder transportBuilder =
           BigQueryReadSettings.defaultGrpcTransportProviderBuilder()

@@ -136,7 +136,7 @@ public class BigQueryClient {
     return DatasetId.of(tableId.getProject(), tableId.getDataset());
   }
 
-  String getProjectId() {
+  public String getProjectId() {
     return bigQuery.getOptions().getProjectId();
   }
 
