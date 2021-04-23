@@ -203,7 +203,7 @@ public class ParallelArrowReader implements AutoCloseable {
     executor.shutdownNow();
 
     try {
-      executor.awaitTermination(POLL_TIME, TimeUnit.MILLISECONDS);
+      executor.awaitTermination(10, TimeUnit.SECONDS);
     } catch (InterruptedException e) {
       // Nothing to do here.
     }
@@ -211,8 +211,10 @@ public class ParallelArrowReader implements AutoCloseable {
     while (!queue.isEmpty()) {
       Future<ArrowRecordBatch> batch = queue.poll();
       try {
-        if (dataReady(batch)) {
-          batch.get().close();
+        if (batch != null) {
+          if (batch.isDone() && batch.get() != null) {
+            batch.get().close();
+          }
         }
       } catch (Exception e) {
         log.info("Error closing left over batch", e);
