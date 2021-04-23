@@ -66,11 +66,10 @@ public class ParallelArrowReaderTest {
     IntVector vector = new IntVector("vector_name", allocator);
     try (VectorSchemaRoot root = VectorSchemaRoot.of(vector)) {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      ArrowStreamWriter writer = new ArrowStreamWriter(root, /*dictionaryProvider=*/null,
-          baos);
+      ArrowStreamWriter writer = new ArrowStreamWriter(root, /*dictionaryProvider=*/ null, baos);
       for (int x = 0; x < values.length; x++) {
         vector.allocateNew(1);
-        vector.set(/*index=*/0, values[x]);
+        vector.set(/*index=*/ 0, values[x]);
         vector.setValueCount(1);
         root.setRowCount(1);
         writer.writeBatch();
@@ -79,7 +78,6 @@ public class ParallelArrowReaderTest {
       return new ArrowStreamReader(new ByteArrayInputStream(baos.toByteArray()), allocator);
     }
   }
-
 
   @Test
   public void testReadsAllBatchesInRoundRobin() throws Exception {
@@ -93,12 +91,11 @@ public class ParallelArrowReaderTest {
     ArrowReader r3 = getReaderWithSequence(2, 4, 5);
     ExecutorService executor = Executors.newFixedThreadPool(3);
     List<Integer> read = new ArrayList<>();
-    try (VectorSchemaRoot root = VectorSchemaRoot
-        .create(r1.getVectorSchemaRoot().getSchema(), allocator)) {
+    try (VectorSchemaRoot root =
+        VectorSchemaRoot.create(r1.getVectorSchemaRoot().getSchema(), allocator)) {
       VectorLoader loader = new VectorLoader(root);
       ParallelArrowReader reader =
-          new ParallelArrowReader(ImmutableList.of(r1, r2, r3), executor,
-              loader);
+          new ParallelArrowReader(ImmutableList.of(r1, r2, r3), executor, loader);
 
       while (reader.next()) {
         read.add(((IntVector) root.getVector(0)).get(0));
@@ -156,8 +153,7 @@ public class ParallelArrowReaderTest {
           oneOff.submit(
               () -> {
                 try {
-                  while (reader.next()) {
-                  }
+                  while (reader.next()) {}
                 } catch (Exception e) {
                   if (e.getCause() == null || !(e.getCause() instanceof InterruptedException)) {
                     return Instant.ofEpochMilli(0);
@@ -175,7 +171,6 @@ public class ParallelArrowReaderTest {
       assertThat(endTime.get()).isGreaterThan(start);
       assertThat(Duration.between(start, endTime.get()))
           .isLessThan(Duration.ofMillis(ParallelArrowReader.POLL_TIME * 2));
-
     }
   }
 }

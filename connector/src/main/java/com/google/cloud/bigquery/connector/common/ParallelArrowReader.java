@@ -51,7 +51,7 @@ public class ParallelArrowReader implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ParallelArrowReader.class);
 
   // Visible for testing.
-  final static int POLL_TIME = 100;
+  static final int POLL_TIME = 100;
   private final BlockingQueue<Future<ArrowRecordBatch>> queue;
   private final List<ArrowReader> readers;
   private final ExecutorService executor;
@@ -67,11 +67,10 @@ public class ParallelArrowReader implements AutoCloseable {
   /**
    * @param readers The readers to read from in a round robin order.
    * @param executor An ExecutorService to process the get method on the delegates. The service will
-   * be shutdown when this object is closed.
+   *     be shutdown when this object is closed.
    */
   public ParallelArrowReader(
-      List<ArrowReader> readers, ExecutorService executor,
-      VectorLoader loader) {
+      List<ArrowReader> readers, ExecutorService executor, VectorLoader loader) {
     this.readers = readers;
     queue = new ArrayBlockingQueue<>(readers.size());
     this.executor = executor;
@@ -114,8 +113,7 @@ public class ParallelArrowReader implements AutoCloseable {
 
   private boolean dataReady(Future<ArrowRecordBatch> currentBatch)
       throws InterruptedException, ExecutionException {
-    return currentBatch != null
-        && currentBatch.get() != null;
+    return currentBatch != null && currentBatch.get() != null;
   }
 
   private boolean hasMoreElements() {
@@ -141,8 +139,8 @@ public class ParallelArrowReader implements AutoCloseable {
         hasData[x] = new AtomicBoolean();
         hasData[x].set(true);
         roots[x] = readers.get(x).getVectorSchemaRoot();
-        unloader[x] = new VectorUnloader(roots[x],
-            /*includeNullCount=*/true, /*alignBuffers=*/false);
+        unloader[x] =
+            new VectorUnloader(roots[x], /*includeNullCount=*/ true, /*alignBuffers=*/ false);
       }
 
       while (!done) {
@@ -158,29 +156,30 @@ public class ParallelArrowReader implements AutoCloseable {
           readerLocks[readerIdx] = new CountDownLatch(1);
 
           final int idx = readerIdx;
-          queue.put(executor.submit(() -> {
-            try {
-              hasData[idx].set(reader.loadNextBatch());
-            } catch (IOException e) {
-              readException = e;
-              return null;
-            } catch (Exception e) {
-              readException = new IOException(e);
-              return null;
-            }
-            ArrowRecordBatch batch = null;
-            if (hasData[idx].get()) {
-              batch = unloader[idx].getRecordBatch();
-            } else {
-              int result = readersReady.addAndGet(-1);
-              if (result <= 0) {
-                done = true;
-              }
-            }
-            readerLocks[idx].countDown();
-            return batch;
-          }));
-
+          queue.put(
+              executor.submit(
+                  () -> {
+                    try {
+                      hasData[idx].set(reader.loadNextBatch());
+                    } catch (IOException e) {
+                      readException = e;
+                      return null;
+                    } catch (Exception e) {
+                      readException = new IOException(e);
+                      return null;
+                    }
+                    ArrowRecordBatch batch = null;
+                    if (hasData[idx].get()) {
+                      batch = unloader[idx].getRecordBatch();
+                    } else {
+                      int result = readersReady.addAndGet(-1);
+                      if (result <= 0) {
+                        done = true;
+                      }
+                    }
+                    readerLocks[idx].countDown();
+                    return batch;
+                  }));
         }
       }
     } catch (IOException e) {
