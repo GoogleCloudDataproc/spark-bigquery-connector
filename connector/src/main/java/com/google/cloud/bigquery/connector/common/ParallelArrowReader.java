@@ -32,6 +32,8 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.VectorUnloader;
 import org.apache.arrow.vector.ipc.ArrowReader;
 import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  * A utility class for taking up to N {@link ArrowReader} objects and reading data from them
@@ -46,6 +48,7 @@ import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
  *
  */
 public class ParallelArrowReader implements AutoCloseable {
+  private static final Logger log = LoggerFactory.getLogger(ParallelArrowReader.class);
 
   // Visible for testing.
   final static int POLL_TIME = 100;
@@ -203,6 +206,17 @@ public class ParallelArrowReader implements AutoCloseable {
       executor.awaitTermination(POLL_TIME, TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
       // Nothing to do here.
+    }
+
+    while (!queue.isEmpty()) {
+      Future<ArrowRecordBatch> batch = queue.poll();
+      try {
+        if (dataReady(batch)) {
+          batch.get().close();
+        }
+      } catch (Exception e) {
+        log.info("Error closing left over batch", e);
+      }
     }
 
     try {
