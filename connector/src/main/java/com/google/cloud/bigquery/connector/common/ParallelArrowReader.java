@@ -147,15 +147,14 @@ public class ParallelArrowReader implements AutoCloseable {
 
       while (!done) {
         for (int readerIdx = 0; readerIdx < readers.size(); readerIdx++) {
+          // Ensure that we don't submit another task for the same reader
+          // until the last one completed. This is necessary when some readers run out of
+          // tasks.
           readerLocks[readerIdx].await();
           if (!hasData[readerIdx].get()) {
             continue;
           }
           ArrowReader reader = readers.get(readerIdx);
-          // Ensure that we don't submit another task for the same reader
-          // until the last one completed. This is necessary when some readers run out of
-          // tasks.
-
           readerLocks[readerIdx] = new CountDownLatch(1);
 
           final int idx = readerIdx;
