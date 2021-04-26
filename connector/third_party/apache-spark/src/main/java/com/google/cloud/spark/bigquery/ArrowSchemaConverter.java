@@ -454,9 +454,9 @@ public class ArrowSchemaConverter extends ColumnVector {
   private static class TimestampMicroVectorAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
 
     private final TimeStampMicroVector accessor;
+    private static final int ONE_THOUSAND = 1_000;
     private static final int ONE_MILLION = 1_000_000;
     private static final int ONE_BILLION = 1_000_000_000;
-    private static final int ONE_THOUSAND = 1_000;
 
     TimestampMicroVectorAccessor(TimeStampMicroVector vector) {
       super(vector);
