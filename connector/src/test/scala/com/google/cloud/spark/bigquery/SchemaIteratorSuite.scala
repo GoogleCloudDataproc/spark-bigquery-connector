@@ -135,4 +135,36 @@ class SchemaIteratorSuite extends FunSuite {
     assert(arrowBinaryIterator.hasNext == false)
     assert(avroBinaryIterator.hasNext == false)
   }
+
+  test("Validating DateTime conversion for Arrow for time prior to 1970-01-01"){
+    val actualDateTimeIterator =
+      Iterator(
+        "1289-12-01T01:12:45.575123",
+        "0889-12-03T01:17:25.975",
+        "1970-01-01T00:00",
+        "2001-12-01T01:01:01")
+
+    val arrowByteString =
+      ByteString.copyFrom(
+        toByteArray(getClass.getResourceAsStream("/arrowDateTimeRowsInBytes")))
+
+    val arrowSchema =
+      ByteString.copyFrom(
+        toByteArray(getClass.getResourceAsStream("/arrowDateTimeSchema")))
+
+    val columnsInOrder = Seq("col_date_time")
+
+    val arrowBinaryIterator =
+      new ArrowBinaryIterator(
+        columnsInOrder.asJava, arrowSchema, arrowByteString).asScala
+
+    while (arrowBinaryIterator.hasNext) {
+      val arrowSparkRow = arrowBinaryIterator.next()
+      val readDateTime = arrowSparkRow.get(0, StringType).toString
+      val actualDateTime = actualDateTimeIterator.next
+      assert(readDateTime.equals(actualDateTime))
+    }
+  }
+
+
 }

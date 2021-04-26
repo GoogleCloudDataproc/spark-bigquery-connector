@@ -454,6 +454,9 @@ public class ArrowSchemaConverter extends ColumnVector {
   private static class TimestampMicroVectorAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
 
     private final TimeStampMicroVector accessor;
+    private static final int ONE_THOUSAND = 1_000;
+    private static final int ONE_MILLION = 1_000_000;
+    private static final int ONE_BILLION = 1_000_000_000;
 
     TimestampMicroVectorAccessor(TimeStampMicroVector vector) {
       super(vector);
@@ -468,11 +471,21 @@ public class ArrowSchemaConverter extends ColumnVector {
     @Override
     final UTF8String getUTF8String(int rowId) {
       long epoch = accessor.get(rowId);
+      long seconds = epoch / ONE_MILLION;
+      int nanoOfSeconds = (int)(epoch % ONE_MILLION) * ONE_THOUSAND;
 
-      LocalDateTime dateTime = LocalDateTime.ofEpochSecond(epoch / 1000000,
-          (int)(epoch % 1_000_000) * 1000,
-          ZoneOffset.UTC);
+      // The method LocalDateTime.ofEpochSecond expects
+      // seconds as the number of seconds from the epoch of 1970-01-01T00:00:00Z and
+      // the nanosecond within the second, from 0 to 999,999,999.
+      // For time prior to 1970-01-01, seconds and nanoseconds both could be negative, but
+      // negative nanoseconds is not allowed, hence for such cases adding 1_000_000_000 to
+      // nanosecond's value and subtracting 1 from the second's value.
+      if(nanoOfSeconds < 0) {
+        seconds--;
+        nanoOfSeconds += ONE_BILLION;
+      }
 
+      LocalDateTime dateTime = LocalDateTime.ofEpochSecond(seconds, nanoOfSeconds, ZoneOffset.UTC);
       return UTF8String.fromString(dateTime.toString());
     }
   }
