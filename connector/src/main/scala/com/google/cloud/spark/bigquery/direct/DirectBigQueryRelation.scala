@@ -33,7 +33,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources._
-import org.apache.spark.sql.types.{StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
 
 import scala.collection.JavaConverters._
 
@@ -54,7 +54,7 @@ private[bigquery] class DirectBigQueryRelation(
   lazy val bigQuery = bigQueryClient(options)
 
   val topLevelFields = SchemaConverters
-    .toSpark(table.getDefinition[TableDefinition].getSchema)
+    .toSpark(SchemaConverters.getSchemaWithPseudoColumns(table))
     .fields
     .map(field => (field.name, field))
     .toMap
@@ -121,7 +121,7 @@ private[bigquery] class DirectBigQueryRelation(
         .build()
       val requiredColumnSet = requiredColumns.toSet
       val prunedSchema = Schema.of(
-        actualTableDefinition.getSchema.getFields.asScala
+	SchemaConverters.getSchemaWithPseudoColumns(actualTable).getFields().asScala
           .filter(f => requiredColumnSet.contains(f.getName)).asJava)
 
       val client = getClient(options)
@@ -402,7 +402,7 @@ object DirectBigQueryRelation {
       fields: Map[String, StructField],
       fieldName: String): Boolean = {
     fields.get(fieldName)
-      .filter(_.dataType.isInstanceOf[StructType])
+      .filter(f => (f.dataType.isInstanceOf[StructType] || f.dataType.isInstanceOf[ArrayType]))
       .map(_ => false)
       .getOrElse(isHandled(filter, readDataFormat))
   }

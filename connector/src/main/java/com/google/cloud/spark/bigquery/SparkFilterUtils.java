@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import org.apache.spark.sql.sources.*;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.types.ArrayType;
 
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -110,7 +111,10 @@ public class SparkFilterUtils {
   static boolean isFilterWithNamedFieldHandled(
       Filter filter, DataFormat readDataFormat, Map<String, StructField> fields, String fieldName) {
     return Optional.ofNullable(fields.get(fieldName))
-        .filter(field -> field.dataType() instanceof StructType)
+        .filter(
+            field ->
+                ((field.dataType() instanceof StructType)
+                    || (field.dataType() instanceof ArrayType)))
         .map(field -> false)
         .orElse(isHandled(filter, readDataFormat));
   }

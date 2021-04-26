@@ -112,12 +112,16 @@ public class BigQueryDataSourceReader
     this.readSessionCreator =
         new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
     this.globalFilter = globalFilter;
-    this.schema = schema;
+    StructType convertedSchema =
+        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table));
+    if (schema.isPresent()) {
+      this.schema = schema;
+    } else {
+      this.schema = Optional.of(convertedSchema);
+    }
     // We want to keep the key order
     this.fields = new LinkedHashMap<>();
-    for (StructField field :
-        JavaConversions.seqAsJavaList(
-            SchemaConverters.toSpark(table.getDefinition().getSchema()))) {
+    for (StructField field : JavaConversions.seqAsJavaList(convertedSchema)) {
       fields.put(field.name(), field);
     }
   }
@@ -125,7 +129,8 @@ public class BigQueryDataSourceReader
   @Override
   public StructType readSchema() {
     // TODO: rely on Java code
-    return schema.orElse(SchemaConverters.toSpark(table.getDefinition().getSchema()));
+    return schema.orElse(
+        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table)));
   }
 
   @Override
@@ -183,7 +188,8 @@ public class BigQueryDataSourceReader
 
     if (selectedFields.isEmpty()) {
       // means select *
-      Schema tableSchema = readSessionResponse.getReadTableInfo().getDefinition().getSchema();
+      Schema tableSchema =
+          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
       selectedFields =
           tableSchema.getFields().stream()
               .map(Field::getName)
@@ -213,7 +219,8 @@ public class BigQueryDataSourceReader
     ReadRowsResponseToInternalRowIteratorConverter converter;
     DataFormat format = readSessionCreatorConfig.getReadDataFormat();
     if (format == DataFormat.AVRO) {
-      Schema schema = readSessionResponse.getReadTableInfo().getDefinition().getSchema();
+      Schema schema =
+          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
       if (selectedFields.isEmpty()) {
         // means select *
         selectedFields =
