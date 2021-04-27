@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery;
 import com.google.cloud.bigquery.connector.common.ArrowUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
+import org.apache.arrow.compression.CommonsCompressionFactory;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -55,7 +56,8 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
             new ByteArrayInputStream(schema.toByteArray()),
             new ByteArrayInputStream(rowsInBytes.toByteArray()));
 
-    ArrowStreamReader arrowStreamReader = new ArrowStreamReader(bytesWithSchemaStream, allocator);
+    ArrowStreamReader arrowStreamReader =
+        new ArrowStreamReader(bytesWithSchemaStream, allocator, CommonsCompressionFactory.INSTANCE);
     arrowReaderIterator = new ArrowReaderIterator(arrowStreamReader);
     currentIterator = ImmutableList.<InternalRow>of().iterator();
     this.columnsInOrder = columnsInOrder;
