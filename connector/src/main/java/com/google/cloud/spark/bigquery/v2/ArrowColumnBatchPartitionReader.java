@@ -27,6 +27,7 @@ import java.io.SequenceInputStream;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import org.apache.arrow.compression.CommonsCompressionFactory;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.util.AutoCloseables;
@@ -107,7 +108,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
             new ReadRowsResponseInputStreamEnumeration(readRowsResponses, tracer));
     InputStream fullStream = new SequenceInputStream(schema.newInput(), batchStream);
 
-    reader = new ArrowStreamReader(fullStream, allocator);
+    reader = new ArrowStreamReader(fullStream, allocator, CommonsCompressionFactory.INSTANCE);
   }
 
   @Override
