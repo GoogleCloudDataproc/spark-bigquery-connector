@@ -4,7 +4,7 @@ import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.arrow.util.Preconditions;
+import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,7 +130,7 @@ public class IteratorMultiplexer<T> implements AutoCloseable {
 
     @Override
     public T next() {
-      Preconditions.checkState(t != null);
+      Preconditions.checkState(t != null, "next element cannot be null");
       return t;
     }
   }
