@@ -16,7 +16,7 @@
 lazy val scala211Version = "2.11.12"
 lazy val scala212Version = "2.12.10"
 lazy val sparkVersion = "2.4.0"
-lazy val grpcVersion = "1.35.0"
+lazy val grpcVersion = "1.30.2"
 // should match the dependency from grpc-netty
 lazy val nettyVersion = "4.1.51.Final"
 // should match the dependency in grpc-netty
@@ -51,7 +51,7 @@ lazy val root = (project in file("."))
 lazy val commonTestDependencies = Seq(
   "io.grpc" % "grpc-alts" % grpcVersion exclude("io.grpc", "grpc-netty-shaded"),
   "io.grpc" % "grpc-netty" % grpcVersion,
-  "com.google.api" % "gax-grpc" % "1.61.0" exclude("io.grpc", "grpc-netty-shaded"),
+  "com.google.api" % "gax-grpc" % "1.60.0" exclude("io.grpc", "grpc-netty-shaded"),
 
   "org.scalatest" %% "scalatest" % "3.1.0" % "test",
   "org.mockito" %% "mockito-scala-scalatest" % "1.10.6" % "test",
@@ -107,7 +107,7 @@ lazy val connector = (project in file("connector"))
 
       // Keep com.google.cloud dependencies in sync
       "com.google.cloud" % "google-cloud-bigquery" % "1.123.2",
-      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.17.0"
+      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.6.0"
         exclude("io.grpc", "grpc-netty-shaded"),
       // Keep in sync with com.google.cloud
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.11.3",

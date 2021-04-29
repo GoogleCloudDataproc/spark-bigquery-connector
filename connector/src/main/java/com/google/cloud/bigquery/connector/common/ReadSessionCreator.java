@@ -19,8 +19,6 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions;
-import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
@@ -112,11 +110,6 @@ public class ReadSessionCreator {
 
       ReadSession.Builder requestedSession = request.getReadSession().toBuilder();
       TableReadOptions.Builder readOptions = requestedSession.getReadOptionsBuilder();
-      if (config.getCompression() != CompressionCodec.COMPRESSION_UNSPECIFIED) {
-        ArrowSerializationOptions.Builder arrowOptions =
-            readOptions.getArrowSerializationOptionsBuilder();
-        arrowOptions.setBufferCompression(config.getCompression()).build();
-      }
       filter.ifPresent(readOptions::setRowRestriction);
       ReadSession readSession =
           bigQueryReadClient.createReadSession(

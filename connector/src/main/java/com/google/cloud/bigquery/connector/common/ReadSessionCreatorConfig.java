@@ -16,12 +16,10 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper.Options;
-import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 
 import java.util.Optional;
 import java.util.OptionalInt;
-import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions;
 
 public class ReadSessionCreatorConfig {
   private final boolean viewsEnabled;
@@ -34,7 +32,6 @@ public class ReadSessionCreatorConfig {
   private final OptionalInt maxParallelism;
   private final int defaultParallelism;
   private final Optional<String> requestEncodedBase;
-  private final ArrowSerializationOptions.CompressionCodec compression;
   private final Optional<String> endpoint;
 
   ReadSessionCreatorConfig(
@@ -48,7 +45,6 @@ public class ReadSessionCreatorConfig {
       OptionalInt maxParallelism,
       int defaultParallelism,
       Optional<String> requestEncodedBase,
-      CompressionCodec compression,
       Optional<String> endpoint) {
     this.viewsEnabled = viewsEnabled;
     this.materializationProject = materializationProject;
@@ -60,7 +56,6 @@ public class ReadSessionCreatorConfig {
     this.maxParallelism = maxParallelism;
     this.defaultParallelism = defaultParallelism;
     this.requestEncodedBase = requestEncodedBase;
-    this.compression = compression;
     this.endpoint = endpoint;
   }
 
@@ -102,10 +97,6 @@ public class ReadSessionCreatorConfig {
 
   public Optional<String> getRequestEncodedBase() {
     return this.requestEncodedBase;
-  }
-
-  public ArrowSerializationOptions.CompressionCodec getCompression() {
-    return this.compression;
   }
 
   public Optional<String> endpoint() {

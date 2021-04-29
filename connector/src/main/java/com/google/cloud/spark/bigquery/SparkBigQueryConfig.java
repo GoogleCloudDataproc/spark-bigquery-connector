@@ -27,7 +27,6 @@ import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
-import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -114,7 +113,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   ImmutableList<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.of();
   int materializationExpirationTimeInMinutes = DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES;
   int maxReadRowsRetries = 3;
-  private CompressionCodec compression = CompressionCodec.COMPRESSION_UNSPECIFIED;
   private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
   private com.google.common.base.Optional<String> storageReadEndpoint = empty();
 
@@ -274,9 +272,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     config.storageReadEndpoint = getAnyOption(globalOptions, options, "bqStorageReadEndpoint");
     config.encodedCreateReadSessionRequest =
         getAnyOption(globalOptions, options, "bqEncodedCreateReadSessionRequest");
-    getAnyOption(globalOptions, options, "bqStorageReadArrowCompression")
-        .toJavaUtil()
-        .ifPresent(c -> config.compression = CompressionCodec.valueOf(c));
 
     return config;
   }
@@ -573,7 +568,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         .setViewEnabledParamName(VIEWS_ENABLED_OPTION)
         .setDefaultParallelism(defaultParallelism)
         .setMaxParallelism(getMaxParallelism())
-        .setCompression(compression)
         .setRequestEncodedBase(encodedCreateReadSessionRequest.toJavaUtil())
         .setEndpoint(storageReadEndpoint.toJavaUtil())
         .build();

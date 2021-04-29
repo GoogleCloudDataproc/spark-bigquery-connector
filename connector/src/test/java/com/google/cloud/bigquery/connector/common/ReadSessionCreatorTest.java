@@ -20,8 +20,6 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions;
-import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
@@ -50,40 +48,8 @@ public class ReadSessionCreatorTest {
           .build();
 
   @Test
-  public void testCompressionIsPropagated() {
-    ReadSessionCreatorConfig config =
-        new ReadSessionCreatorConfigBuilder()
-            .setCompression(CompressionCodec.LZ4_FRAME)
-            .setMaxParallelism(OptionalInt.of(1))
-            .build();
-    ReadSessionCreator creator =
-        new ReadSessionCreator(config, bigQueryClient, bigQueryReadClientFactory);
-    when(bigQueryReadClientFactory.createBigQueryReadClient(any())).thenReturn(readClient);
-    when(bigQueryClient.getTable(any())).thenReturn(table);
-    when(stub.createReadSessionCallable()).thenReturn(createReadSessionCall);
-
-    creator
-        .create(TableId.of("dataset", "table"), ImmutableList.of(), Optional.empty())
-        .getReadSession();
-
-    ArgumentCaptor<CreateReadSessionRequest> requestCaptor =
-        ArgumentCaptor.forClass(CreateReadSessionRequest.class);
-    verify(createReadSessionCall, times(1)).call(requestCaptor.capture());
-    ReadSession session = requestCaptor.getValue().getReadSession();
-    assertThat(session.getReadOptions().getArrowSerializationOptions().getBufferCompression())
-        .isEqualTo(CompressionCodec.LZ4_FRAME);
-  }
-
-  @Test
   public void testSerializedInstanceIsPropagated() throws Exception {
-    TableReadOptions tableReadOptions =
-        TableReadOptions.newBuilder()
-            .setArrowSerializationOptions(
-                ArrowSerializationOptions.newBuilder()
-                    .setBufferCompression(CompressionCodec.LZ4_FRAME))
-            .build();
-    ReadSession readSession =
-        ReadSession.newBuilder().setName("abc").setReadOptions(tableReadOptions).build();
+    ReadSession readSession = ReadSession.newBuilder().setName("abc").build();
     CreateReadSessionRequest request =
         CreateReadSessionRequest.newBuilder().setReadSession(readSession).build();
     Optional<String> encodedBase =
@@ -107,7 +73,5 @@ public class ReadSessionCreatorTest {
 
     ReadSession actual = requestCaptor.getValue().getReadSession();
     assertThat(actual.getName()).isEqualTo("abc");
-    assertThat(actual.getReadOptions().getArrowSerializationOptions().getBufferCompression())
-        .isEqualTo(CompressionCodec.LZ4_FRAME);
   }
 }
