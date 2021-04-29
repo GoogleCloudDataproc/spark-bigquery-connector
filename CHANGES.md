@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.20.0 - 2021-03-29
+* PR #375: Added support for pseudo column support - time partitioned table now supoort the _PARTITIONTIME and _PARTITIONDATE fields 
+* Issue# 190: Writing data to BigQuery properly populate the field description
+* Issue #265: Fixed nested conjunctions/disjunctions when using the AVRO read format
+* Issue #326: Fixing netty_tcnative_windows.dll shading
+* Arrow has een upgraded to version 4.0.0
+
 ## 0.19.1 - 2021-03-01
 * PR #324 - Restoring version 0.18.1 dependencies due to networking issues
 * BigQuery API has been upgraded to version 1.123.2
