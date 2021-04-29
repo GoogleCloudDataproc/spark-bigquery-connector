@@ -165,7 +165,7 @@ public class ParallelArrowReader implements AutoCloseable {
                       readException = e;
                       return null;
                     } catch (Exception e) {
-                      readException = new IOException(e);
+                      readException = new IOException("failed to consume readers", e);
                       return null;
                     }
                     ArrowRecordBatch batch = null;
