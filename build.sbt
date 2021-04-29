@@ -24,7 +24,7 @@ lazy val nettyTcnativeVersion = "2.0.34.Final"
 
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
-  version := "0.20.0",
+  version := "0.20.1-SNAPSHOT",
   scalaVersion := scala211Version,
   crossScalaVersions := Seq(scala211Version, scala212Version)
 )
