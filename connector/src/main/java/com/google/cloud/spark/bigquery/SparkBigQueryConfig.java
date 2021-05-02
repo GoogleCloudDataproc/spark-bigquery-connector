@@ -384,6 +384,19 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     return tableId;
   }
 
+  /** Returns the table id, without the added partition id if it exists. */
+  public TableId getTableIdWithoutThePartition() {
+    String tableAndPartition = tableId.getTable();
+    if (!tableAndPartition.contains("$")) {
+      // there is no partition id
+      return tableId;
+    }
+    String table = tableAndPartition.substring(0, tableAndPartition.indexOf('$'));
+    return tableId.getProject() != null
+        ? TableId.of(tableId.getProject(), tableId.getDataset(), table)
+        : TableId.of(tableId.getDataset(), table);
+  }
+
   public Optional<String> getQuery() {
     return query.toJavaUtil();
   }

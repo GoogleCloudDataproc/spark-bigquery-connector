@@ -242,7 +242,7 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
 
     if (!fieldsToUpdate.isEmpty()) {
       logger.debug("updating schema, found fields to update: {}", fieldsToUpdate.keySet());
-      TableInfo originalTableInfo = bigQueryClient.getTable(config.getTableId());
+      TableInfo originalTableInfo = bigQueryClient.getTable(config.getTableIdWithoutThePartition());
       TableDefinition originalTableDefinition = originalTableInfo.getDefinition();
       Schema originalSchema = originalTableDefinition.getSchema();
       Schema updatedSchema =
