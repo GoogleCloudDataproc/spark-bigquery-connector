@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import java.math.BigDecimal;
 import org.apache.arrow.memory.ArrowBuf;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -24,6 +25,7 @@ import org.apache.arrow.vector.holders.NullableVarCharHolder;
 
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.ArrowType.ArrowTypeID;
+import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.types.*;
 
 import org.apache.spark.sql.vectorized.ColumnVector;
@@ -152,7 +154,7 @@ public class ArrowSchemaConverter extends ColumnVector {
       case Date: return DataTypes.DateType;
       case Time:
       case Timestamp: return DataTypes.TimestampType;
-      case Decimal: return DataTypes.createDecimalType();
+      case Decimal: return BigQueryDataTypes.BigNumericType();
     }
 
     throw new UnsupportedOperationException("Unsupported data type " + arrowType.toString());
@@ -200,6 +202,8 @@ public class ArrowSchemaConverter extends ColumnVector {
       accessor = new ArrowSchemaConverter.DoubleAccessor((Float8Vector) vector);
     } else if (vector instanceof DecimalVector) {
       accessor = new ArrowSchemaConverter.DecimalAccessor((DecimalVector) vector);
+    }else if (vector instanceof Decimal256Vector) {
+      accessor = new ArrowSchemaConverter.Decimal256Accessor((Decimal256Vector) vector);
     } else if (vector instanceof VarCharVector) {
       accessor = new ArrowSchemaConverter.StringAccessor((VarCharVector) vector);
     } else if (vector instanceof VarBinaryVector) {
@@ -369,6 +373,25 @@ public class ArrowSchemaConverter extends ColumnVector {
       return Decimal.apply(accessor.getObject(rowId), precision, scale);
     }
   }
+
+  private static class Decimal256Accessor extends ArrowSchemaConverter.ArrowVectorAccessor {
+
+    private final Decimal256Vector accessor;
+
+    Decimal256Accessor(Decimal256Vector vector) {
+      super(vector);
+      this.accessor = vector;
+    }
+
+    UTF8String getUTF8String(int rowId){
+      if (isNullAt(rowId)) return null;
+      BigDecimal bd = accessor.getObject(rowId);
+      UTF8String utf8String  = UTF8String.fromString(bd.toPlainString());
+      System.out.println("ARROW => " + utf8String.toString());
+      return utf8String;
+    }
+  }
+
 
   private static class StringAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
 

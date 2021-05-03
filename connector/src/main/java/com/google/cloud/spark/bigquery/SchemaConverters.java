@@ -27,6 +27,7 @@ import com.google.cloud.bigquery.TimePartitioning;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
+import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
@@ -148,8 +149,15 @@ public class SchemaConverters {
       byte[] bytes = getBytes((ByteBuffer) value);
       BigDecimal b = new BigDecimal(new BigInteger(bytes), BQ_NUMERIC_SCALE);
       Decimal d = Decimal.apply(b, BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
-
       return d;
+    }
+
+    if(LegacySQLTypeName.BIGNUMERIC.equals(field.getType())){
+      byte[] bytes = getBytes( (ByteBuffer) value);
+      BigDecimal b = new BigDecimal(new BigInteger(bytes), 38);
+      UTF8String str = UTF8String.fromString(b.toString());
+      System.out.println("AVRO:   " +  str);
+      return str;
     }
 
     if (LegacySQLTypeName.RECORD.equals(field.getType())) {
@@ -240,6 +248,8 @@ public class SchemaConverters {
       return DataTypes.DoubleType;
     } else if (LegacySQLTypeName.NUMERIC.equals(field.getType())) {
       return NUMERIC_SPARK_TYPE;
+    }else if (LegacySQLTypeName.BIGNUMERIC.equals(field.getType())) {
+      return BigQueryDataTypes.BigNumericType();
     } else if (LegacySQLTypeName.STRING.equals(field.getType())) {
       return DataTypes.StringType;
     } else if (LegacySQLTypeName.BOOLEAN.equals(field.getType())) {

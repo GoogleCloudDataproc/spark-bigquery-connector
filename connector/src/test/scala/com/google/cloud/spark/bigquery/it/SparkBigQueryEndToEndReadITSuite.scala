@@ -19,6 +19,7 @@ import com.google.cloud.bigquery._
 import com.google.cloud.spark.bigquery.TestUtils
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.it.TestConstants._
+import org.apache.spark.bigquery.{BigNumeric, BigQueryDataTypes}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparkSession}
 import org.scalatest.concurrent.TimeLimits
@@ -144,21 +145,26 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
   }
 
   test("test filters") {
-    import com.google.cloud.spark.bigquery._
-    val sparkImportVal = spark
-    import sparkImportVal.implicits._
-    forAll(filterData) { (condition, expectedElements) =>
-      val df = spark.read.bigquery(SHAKESPEARE_TABLE)
-      assert(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT == df.schema)
-      assert(SHAKESPEARE_TABLE_NUM_ROWS == df.count)
-      val firstWords = df.select("word")
-        .where(condition)
-        .distinct
-        .as[String]
-        .sort("word")
-        .take(3)
-      firstWords should contain theSameElementsInOrderAs expectedElements
-    }
+    val df = spark.read.format("bigquery")
+      //.option("readDataFormat", "AVRO")
+      .load("kohli_test.bn_test")
+
+    //df.show(false)
+
+    /*df.collect()
+      .filter(row => {
+        System.out.println("collect : " + row.get(1).asInstanceOf[BigNumeric].number);
+        true
+      })*/
+
+    df.write.format("bigquery")
+      .mode(SaveMode.Append)
+      .option("parentProject", "google.com:hadoop-cloud-dev")
+      .option("table", "kohli_test.bn_write_mon_3")
+      .option("temporaryGcsBucket", "kohli_desc")
+      .option("intermediateFormat", "ORC")
+      .save()
+
   }
 
   def testsWithReadInFormat(dataSourceFormat: String, dataFormat: String): Unit = {
