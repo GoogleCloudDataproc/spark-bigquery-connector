@@ -137,4 +137,14 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
       logData();
     }
   }
+
+  @Override
+  public BigQueryStorageReadRowsTracer forkWithPrefix(String id) {
+    return new LoggingBigQueryStorageReadRowsTracer(
+        "id-" + id + "-" + streamName, logIntervalPowerOf2);
+  }
+
+  String getStreamName() {
+    return streamName;
+  }
 }

@@ -105,4 +105,12 @@ public class LoggingBigQueryStorageReadRowsTracerTest {
     tracer.finished();
     assertThat(loggingTracer.linesLogged).isEqualTo(1);
   }
+
+  @Test
+  public void testForkWithPrefix() {
+    loggingTracer = new LoggingBigQueryStorageReadRowsTracer("streamName", /*powerOfTwoLogging*/ 3);
+    LoggingBigQueryStorageReadRowsTracer newTracer =
+        (LoggingBigQueryStorageReadRowsTracer) tracer.forkWithPrefix("newPrefix");
+    assertThat(newTracer.getStreamName()).isEqualTo("id-newPrefix-streamName");
+  }
 }
