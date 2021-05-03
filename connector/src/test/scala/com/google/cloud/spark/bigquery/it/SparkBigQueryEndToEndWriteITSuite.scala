@@ -276,7 +276,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
       tableDefinition.getClustering.getFields should contain("platform")
     }
 
-    test("overwrite single partition. DataSource %s".format(dataSourceFormat)) {
+    def overwriteSinglePartition(dateField: StructField): DataFrame = {
       // create partitioned table
       val tableName = s"partitioned_table_$randomSuffix"
       val fullTableName = s"$testDataset.$tableName"
@@ -301,7 +301,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
       val newDataDF = spark.createDataFrame(
         List(Row(java.sql.Date.valueOf("2020-07-01"), "baz")).asJava,
         StructType(Array(
-          StructField("the_date", DateType),
+          dateField,
           StructField("some_text", StringType))))
 
       newDataDF.write.format(dataSourceFormat)
@@ -310,53 +310,25 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
         .mode("overwrite")
         .save(fullTableName)
 
-      val result = spark.read.format(dataSourceFormat).load(fullTableName).collect()
+      val resultDF = spark.read.format(dataSourceFormat).load(fullTableName)
+      val result = resultDF.collect()
 
       result.size shouldBe 2
       result.filter(row => row(1).equals("bar")).size shouldBe 1
       result.filter(row => row(1).equals("baz")).size shouldBe 1
 
+      resultDF
+    }
+
+    test("overwrite single partition. DataSource %s".format(dataSourceFormat)) {
+      overwriteSinglePartition(StructField("the_date", DateType))
     }
 
     test("overwrite single partition with comment. DataSource  %s".format(dataSourceFormat)) {
-      // create partitioned table
-      val tableName = s"partitioned_table_$randomSuffix"
-      val fullTableName = s"$testDataset.$tableName"
-      bq.create(TableInfo.of(
-        TableId.of(testDataset, tableName),
-        StandardTableDefinition.newBuilder()
-          .setSchema(Schema.of(
-            Field.of("the_date", LegacySQLTypeName.DATE),
-            Field.of("some_text", LegacySQLTypeName.STRING)
-          ))
-          .setTimePartitioning(TimePartitioning.newBuilder(TimePartitioning.Type.DAY)
-            .setField("the_date").build()).build()))
-      // entering the data
-      bq.query(QueryJobConfiguration.of(
-        s"""
-           |insert into `$fullTableName` (the_date, some_text) values
-           |('2020-07-01', 'foo'),
-           |('2020-07-02', 'bar')
-           |""".stripMargin.replace('\n', ' ')))
-
-      // overrding a single partition
-      val newDataDF = spark.createDataFrame(
-        List(Row(java.sql.Date.valueOf("2020-07-01"), "baz")).asJava,
-        StructType(Array(
-          StructField("the_date", DateType).withComment("the partition field"),
-          StructField("some_text", StringType))))
-
-      newDataDF.write.format(dataSourceFormat)
-        .option("temporaryGcsBucket", temporaryGcsBucket)
-        .option("datePartition", "20200701")
-        .mode("overwrite")
-        .save(fullTableName)
-
-      val result = spark.read.format(dataSourceFormat).load(fullTableName).collect()
-
-      result.size shouldBe 2
-      result.filter(row => row(1).equals("bar")).size shouldBe 1
-      result.filter(row => row(1).equals("baz")).size shouldBe 1
+      val comment = "the partition field"
+      val resultDF = overwriteSinglePartition(
+        StructField("the_date", DateType).withComment(comment))
+      resultDF.schema.fields.head.getComment() shouldBe Some(comment)
     }
 
     //    test("support custom data types. DataSource %s".format(dataSourceFormat)) {
@@ -421,7 +393,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
 
       val readValues = Seq(testDescription, testComment, testComment, null)
 
-      for(i <- 0 until schemas.length){
+      for (i <- 0 until schemas.length) {
         val data = Seq(Row(100), Row(200))
 
         val descriptionDF =
@@ -437,7 +409,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
         val description =
           SchemaConverters.getDescriptionOrCommentOfField(readDF.schema(0))
 
-        if(i <= schemas.length-2) {
+        if (i <= schemas.length - 2) {
           assert(description.isPresent)
           assert(description.orElse("").equals(readValues(i)))
         } else {
