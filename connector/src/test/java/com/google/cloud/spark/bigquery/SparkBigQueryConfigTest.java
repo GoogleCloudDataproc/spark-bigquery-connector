@@ -164,4 +164,50 @@ public class SparkBigQueryConfigTest {
     assertThat(config.isViewsEnabled()).isTrue();
     assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("bucket"));
   }
+
+  @Test
+  public void testGetTableIdWithoutThePartition_PartitionExists() {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options =
+        new DataSourceOptions(
+            ImmutableMap.of("table", "dataset.table", "datePartition", "20201010"));
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            options.asMap(),
+            ImmutableMap.of(),
+            hadoopConfiguration,
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty());
+
+    assertThat(config.getTableId().getTable()).isEqualTo("table$20201010");
+    assertThat(config.getTableIdWithoutThePartition().getTable()).isEqualTo("table");
+    assertThat(config.getTableIdWithoutThePartition().getDataset())
+        .isEqualTo(config.getTableId().getDataset());
+    assertThat(config.getTableIdWithoutThePartition().getProject())
+        .isEqualTo(config.getTableId().getProject());
+  }
+
+  @Test
+  public void testGetTableIdWithoutThePartition_PartitionMissing() {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options = new DataSourceOptions(defaultOptions);
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            options.asMap(),
+            ImmutableMap.of(),
+            hadoopConfiguration,
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty());
+
+    assertThat(config.getTableIdWithoutThePartition().getTable())
+        .isEqualTo(config.getTableId().getTable());
+    assertThat(config.getTableIdWithoutThePartition().getDataset())
+        .isEqualTo(config.getTableId().getDataset());
+    assertThat(config.getTableIdWithoutThePartition().getProject())
+        .isEqualTo(config.getTableId().getProject());
+  }
 }

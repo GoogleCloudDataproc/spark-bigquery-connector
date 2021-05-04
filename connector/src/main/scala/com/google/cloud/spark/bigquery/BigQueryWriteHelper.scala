@@ -202,7 +202,7 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
 
     if (!fieldsToUpdate.isEmpty) {
       logDebug(s"updating schema, found fields to update: ${fieldsToUpdate.keySet}")
-      val originalTableInfo = bigQueryClient.getTable(options.getTableId)
+      val originalTableInfo = bigQueryClient.getTable(options.getTableIdWithoutThePartition)
       val originalTableDefinition = originalTableInfo.getDefinition[TableDefinition]
       val originalSchema = originalTableDefinition.getSchema
       val updatedSchema = Schema.of(originalSchema.getFields.asScala.map(field => {
