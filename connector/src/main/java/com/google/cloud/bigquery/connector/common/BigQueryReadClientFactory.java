@@ -15,7 +15,6 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import com.esotericsoftware.minlog.Log;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.auth.Credentials;
