@@ -108,7 +108,7 @@ private[bigquery] class DirectBigQueryRelation(
         .stripMargin.replace('\n', ' ').trim)
 
     if (options.isOptimizedEmptyProjection && requiredColumns.isEmpty) {
-      generateEmptyRowRDD(actualTable, filter)
+      generateEmptyRowRDD(actualTable, getActualFilter(filter))
     } else {
       if (requiredColumns.isEmpty) {
         logDebug(s"Not using optimized empty projection")
@@ -117,7 +117,7 @@ private[bigquery] class DirectBigQueryRelation(
       val actualTablePath = DirectBigQueryRelation.toTablePath(actualTable.getTableId)
       val readOptions = TableReadOptions.newBuilder()
         .addAllSelectedFields(requiredColumns.toList.asJava)
-        .setRowRestriction(filter)
+        .setRowRestriction(getActualFilter(filter))
         .build()
       val requiredColumnSet = requiredColumns.toSet
       val prunedSchema = Schema.of(
@@ -200,10 +200,7 @@ private[bigquery] class DirectBigQueryRelation(
       filtersString: String
     ): TableInfo = {
     val tableDefinition = table.getDefinition[TableDefinition]
-    val tableType = tableDefinition.getType
-    if(options.isViewsEnabled &&
-      (TableDefinition.Type.VIEW == tableType ||
-        TableDefinition.Type.MATERIALIZED_VIEW == tableType)) {
+    if(isInputTableAView) {
       // get it from the view
       val querySql = createSql(tableDefinition.getSchema, requiredColumns, filtersString)
       logDebug(s"querySql is $querySql")
@@ -212,6 +209,25 @@ private[bigquery] class DirectBigQueryRelation(
       // use the default one
       table
     }
+  }
+
+  def getActualFilter(filter: String): String = {
+    if(isInputTableAView){
+      ""
+    } else {
+      filter
+    }
+  }
+
+  def isInputTableAView: Boolean = {
+    val tableDefinition = table.getDefinition[TableDefinition]
+    val tableType = tableDefinition.getType
+
+    val isView = options.isViewsEnabled &&
+      (TableDefinition.Type.VIEW == tableType ||
+        TableDefinition.Type.MATERIALIZED_VIEW == tableType)
+
+    isView
   }
 
   def createTableFromQuery(querySql: String): TableInfo = {
