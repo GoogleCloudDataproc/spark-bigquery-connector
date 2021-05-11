@@ -67,6 +67,28 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
     corpuses should equal(expectedCorpuses)
   }
 
+  def testReadFromQueryWithNewLine(format: String) {
+    // the query suffix is to make sure that each format will have
+    // a different table createddue to the destination table cache
+    val sql =
+    """SELECT
+      |corpus, corpus_date
+      |FROM `bigquery-public-data.samples.shakespeare` """.stripMargin +
+      s"WHERE word='spark' AND '$format'='$format'";
+    val df = spark.read.format(format)
+      .option("viewsEnabled", true)
+      .option("materializationDataset", testDataset)
+      .load(sql)
+
+    val totalRows = df.count
+    totalRows should equal(9)
+
+    val corpuses = df.select("corpus").collect().map(row => row(0).toString).sorted
+    val expectedCorpuses = Array("2kinghenryvi", "3kinghenryvi", "allswellthatendswell", "hamlet",
+      "juliuscaesar", "kinghenryv", "kinglear", "periclesprinceoftyre", "troilusandcressida")
+    corpuses should equal(expectedCorpuses)
+  }
+
   def testQueryOption(format: String) {
     // the query suffix is to make sure that each format will have
     // a different table createddue to the destination table cache
@@ -105,6 +127,14 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
 
   test("test read from query - v2") {
     testReadFromQuery("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+  }
+
+  test("test read from query with newline - v1") {
+    testReadFromQueryWithNewLine("bigquery")
+  }
+
+  test("test read from query with newline - v2") {
+    testReadFromQueryWithNewLine("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
   }
 
   test("test query option - v1") {
