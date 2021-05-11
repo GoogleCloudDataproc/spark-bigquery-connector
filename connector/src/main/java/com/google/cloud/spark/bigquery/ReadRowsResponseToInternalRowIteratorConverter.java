@@ -19,23 +19,28 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.protobuf.ByteString;
 import org.apache.spark.sql.catalyst.InternalRow;
-
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
+import org.apache.spark.sql.types.StructType;
+import static com.google.common.base.Optional.fromJavaUtil;
 
 public interface ReadRowsResponseToInternalRowIteratorConverter {
 
   static ReadRowsResponseToInternalRowIteratorConverter avro(
       final com.google.cloud.bigquery.Schema bqSchema,
       final List<String> columnsInOrder,
-      final String rawAvroSchema) {
-    return new Avro(bqSchema, columnsInOrder, rawAvroSchema);
+      final String rawAvroSchema,
+      final Optional<StructType> userProvidedSchema) {
+    return new Avro(bqSchema, columnsInOrder, rawAvroSchema, fromJavaUtil(userProvidedSchema));
   }
 
   static ReadRowsResponseToInternalRowIteratorConverter arrow(
-      final List<String> columnsInOrder, final ByteString arrowSchema) {
-    return new Arrow(columnsInOrder, arrowSchema);
+      final List<String> columnsInOrder,
+      final ByteString arrowSchema,
+      final Optional<StructType> userProvidedSchema) {
+    return new Arrow(columnsInOrder, arrowSchema, fromJavaUtil(userProvidedSchema));
   }
 
   Iterator<InternalRow> convert(ReadRowsResponse response);
@@ -45,11 +50,17 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
     private final com.google.cloud.bigquery.Schema bqSchema;
     private final List<String> columnsInOrder;
     private final String rawAvroSchema;
+    private final com.google.common.base.Optional<StructType> userProvidedSchema;
 
-    public Avro(Schema bqSchema, List<String> columnsInOrder, String rawAvroSchema) {
+    public Avro(
+        Schema bqSchema,
+        List<String> columnsInOrder,
+        String rawAvroSchema,
+        com.google.common.base.Optional<StructType> userProvidedSchema) {
       this.bqSchema = bqSchema;
       this.columnsInOrder = columnsInOrder;
       this.rawAvroSchema = rawAvroSchema;
+      this.userProvidedSchema = userProvidedSchema;
     }
 
     @Override
@@ -58,7 +69,8 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
           bqSchema,
           columnsInOrder,
           new org.apache.avro.Schema.Parser().parse(rawAvroSchema),
-          response.getAvroRows().getSerializedBinaryRows());
+          response.getAvroRows().getSerializedBinaryRows(),
+          userProvidedSchema.toJavaUtil());
     }
   }
 
@@ -66,16 +78,24 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
 
     private final List<String> columnsInOrder;
     private final ByteString arrowSchema;
+    private final com.google.common.base.Optional<StructType> userProvidedSchema;
 
-    public Arrow(List<String> columnsInOrder, ByteString arrowSchema) {
+    public Arrow(
+        List<String> columnsInOrder,
+        ByteString arrowSchema,
+        com.google.common.base.Optional<StructType> userProvidedSchema) {
       this.columnsInOrder = columnsInOrder;
       this.arrowSchema = arrowSchema;
+      this.userProvidedSchema = userProvidedSchema;
     }
 
     @Override
     public Iterator<InternalRow> convert(ReadRowsResponse response) {
       return new ArrowBinaryIterator(
-          columnsInOrder, arrowSchema, response.getArrowRecordBatch().getSerializedRecordBatch());
+          columnsInOrder,
+          arrowSchema,
+          response.getArrowRecordBatch().getSerializedRecordBatch(),
+          userProvidedSchema.toJavaUtil());
     }
   }
 }

@@ -15,6 +15,10 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.arrow.memory.ArrowBuf;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -188,7 +192,7 @@ public class ArrowSchemaConverter extends ColumnVector {
   }
 
 
-  public ArrowSchemaConverter(ValueVector vector) {
+  public ArrowSchemaConverter(ValueVector vector, StructField userProvidedField) {
 
     super(fromArrowField(vector.getField()));
 
@@ -214,14 +218,36 @@ public class ArrowSchemaConverter extends ColumnVector {
       accessor = new ArrowSchemaConverter.TimestampMicroTZVectorAccessor((TimeStampMicroTZVector) vector);
     } else if (vector instanceof ListVector) {
       ListVector listVector = (ListVector) vector;
-      accessor = new ArrowSchemaConverter.ArrayAccessor(listVector);
+      accessor = new ArrowSchemaConverter.ArrayAccessor(listVector, userProvidedField);
     } else if (vector instanceof StructVector) {
       StructVector structVector = (StructVector) vector;
       accessor = new ArrowSchemaConverter.StructAccessor(structVector);
 
-      childColumns = new ArrowSchemaConverter[structVector.size()];
-      for (int i = 0; i < childColumns.length; ++i) {
-        childColumns[i] = new ArrowSchemaConverter(structVector.getVectorById(i));
+      if(userProvidedField != null) {
+        List<StructField> structList =
+            Arrays
+                .stream(((StructType)userProvidedField.dataType()).fields())
+                .collect(Collectors.toList());
+
+        childColumns = new ArrowSchemaConverter[structList.size()];
+
+        Map<String, ValueVector> valueVectorMap =
+            structVector
+                .getChildrenFromFields()
+                .stream()
+                .collect(Collectors.toMap(ValueVector::getName, valueVector -> valueVector));
+
+        for (int i = 0; i < childColumns.length; ++i) {
+          StructField structField = structList.get(i);
+          childColumns[i] =
+              new ArrowSchemaConverter(valueVectorMap.get(structField.name()), structField);
+        }
+
+      } else {
+        childColumns = new ArrowSchemaConverter[structVector.size()];
+        for (int i = 0; i < childColumns.length; ++i) {
+          childColumns[i] = new ArrowSchemaConverter(structVector.getVectorById(i), null);
+        }
       }
     } else {
       throw new UnsupportedOperationException();
@@ -510,10 +536,23 @@ public class ArrowSchemaConverter extends ColumnVector {
     private final ListVector accessor;
     private final ArrowSchemaConverter arrayData;
 
-    ArrayAccessor(ListVector vector) {
+    ArrayAccessor(ListVector vector, StructField userProvidedField) {
       super(vector);
       this.accessor = vector;
-      this.arrayData = new ArrowSchemaConverter(vector.getDataVector());
+      StructField structField = null;
+
+      // this is to support Array of StructType/StructVector
+      if(userProvidedField != null) {
+        ArrayType arrayType = ((ArrayType)userProvidedField.dataType());
+        structField =
+            new StructField(
+                vector.getDataVector().getName(),
+                arrayType.elementType(),
+                arrayType.containsNull(),
+                Metadata.empty());// safe to pass empty metadata as it is not used anywhere
+      }
+
+      this.arrayData = new ArrowSchemaConverter(vector.getDataVector(), structField);
     }
 
     @Override

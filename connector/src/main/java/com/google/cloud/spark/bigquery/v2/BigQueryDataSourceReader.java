@@ -92,6 +92,7 @@ public class BigQueryDataSourceReader
   private final ReadSessionCreator readSessionCreator;
   private final Optional<String> globalFilter;
   private Optional<StructType> schema;
+  private Optional<StructType> userProvidedSchema;
   private Filter[] pushedFilters = new Filter[] {};
   private Map<String, StructField> fields;
 
@@ -116,8 +117,10 @@ public class BigQueryDataSourceReader
         SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table));
     if (schema.isPresent()) {
       this.schema = schema;
+      this.userProvidedSchema = schema;
     } else {
       this.schema = Optional.of(convertedSchema);
+      this.userProvidedSchema = Optional.empty();
     }
     // We want to keep the key order
     this.fields = new LinkedHashMap<>();
@@ -164,7 +167,7 @@ public class BigQueryDataSourceReader
                     bigQueryReadClientFactory,
                     stream.getName(),
                     readSessionCreatorConfig.getMaxReadRowsRetries(),
-                    createConverter(selectedFields, readSessionResponse)))
+                    createConverter(selectedFields, readSessionResponse, userProvidedSchema)))
         .collect(Collectors.toList());
   }
 
@@ -206,7 +209,8 @@ public class BigQueryDataSourceReader
                     stream.getName(),
                     readSessionCreatorConfig.getMaxReadRowsRetries(),
                     partitionSelectedFields,
-                    readSessionResponse))
+                    readSessionResponse,
+                    userProvidedSchema))
         .collect(Collectors.toList());
   }
 
@@ -215,7 +219,9 @@ public class BigQueryDataSourceReader
   }
 
   private ReadRowsResponseToInternalRowIteratorConverter createConverter(
-      ImmutableList<String> selectedFields, ReadSessionResponse readSessionResponse) {
+      ImmutableList<String> selectedFields,
+      ReadSessionResponse readSessionResponse,
+      Optional<StructType> userProvidedSchema) {
     ReadRowsResponseToInternalRowIteratorConverter converter;
     DataFormat format = readSessionCreatorConfig.getReadDataFormat();
     if (format == DataFormat.AVRO) {
@@ -236,7 +242,10 @@ public class BigQueryDataSourceReader
                     .collect(Collectors.toList()));
       }
       return ReadRowsResponseToInternalRowIteratorConverter.avro(
-          schema, selectedFields, readSessionResponse.getReadSession().getAvroSchema().getSchema());
+          schema,
+          selectedFields,
+          readSessionResponse.getReadSession().getAvroSchema().getSchema(),
+          userProvidedSchema);
     }
     throw new IllegalArgumentException(
         "No known converted for " + readSessionCreatorConfig.getReadDataFormat());

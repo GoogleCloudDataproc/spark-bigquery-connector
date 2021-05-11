@@ -24,15 +24,20 @@ import com.google.protobuf.ByteString;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.arrow.compression.CommonsCompressionFactory;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.util.AutoCloseables;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
@@ -47,6 +52,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
   private ColumnarBatch currentBatch;
   private final BigQueryStorageReadRowsTracer tracer;
   private boolean closed = false;
+  private final Map<String, StructField> userProvidedFieldMap;
 
   static class ReadRowsResponseInputStreamEnumeration
       implements java.util.Enumeration<InputStream> {
@@ -95,13 +101,22 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       ByteString schema,
       ReadRowsHelper readRowsHelper,
       List<String> namesInOrder,
-      BigQueryStorageReadRowsTracer tracer) {
+      BigQueryStorageReadRowsTracer tracer,
+      Optional<StructType> userProvidedSchema) {
     this.allocator =
         ArrowUtil.newRootAllocator(maxAllocation)
             .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);
     this.readRowsHelper = readRowsHelper;
     this.namesInOrder = namesInOrder;
     this.tracer = tracer;
+
+    List<StructField> userProvidedFieldList =
+        Arrays
+            .stream(userProvidedSchema.orElse(new StructType()).fields())
+            .collect(Collectors.toList());
+
+    this.userProvidedFieldMap =
+        userProvidedFieldList.stream().collect(Collectors.toMap(StructField::name, field -> field));
 
     InputStream batchStream =
         new SequenceInputStream(
@@ -132,7 +147,9 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       ColumnVector[] columns =
           namesInOrder.stream()
               .map(root::getVector)
-              .map(ArrowSchemaConverter::new)
+              .map(
+                  vector ->
+                      new ArrowSchemaConverter(vector, userProvidedFieldMap.get(vector.getName())))
               .toArray(ColumnVector[]::new);
 
       currentBatch = new ColumnarBatch(columns);

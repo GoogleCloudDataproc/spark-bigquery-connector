@@ -15,9 +15,11 @@
  */
 package com.google.cloud.spark.bigquery.direct
 
+import java.util.Optional
+
 import com.google.api.gax.rpc.ServerStreamingCallable
 import com.google.cloud.bigquery.connector.common.BigQueryUtil
-import com.google.cloud.bigquery.storage.v1.{BigQueryReadClient, DataFormat, ReadRowsRequest, ReadRowsResponse, ReadSession, ReadStream}
+import com.google.cloud.bigquery.storage.v1.{BigQueryReadClient, DataFormat, ReadRowsRequest, ReadRowsResponse, ReadSession}
 import com.google.cloud.bigquery.{BigQuery, Schema}
 import com.google.cloud.spark.bigquery.{ArrowBinaryIterator, AvroBinaryIterator, SparkBigQueryConfig}
 import com.google.protobuf.ByteString
@@ -26,6 +28,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.types.StructType
 import org.apache.spark.{InterruptibleIterator, Partition, SparkContext, TaskContext}
 
 import scala.collection.JavaConverters._
@@ -59,12 +62,14 @@ class BigQueryRDD(sc: SparkContext,
       AvroConverter(bqSchema,
         columnsInOrder,
         session.getAvroSchema.getSchema,
-        readRowResponses).getIterator()
+        readRowResponses,
+        options.getSchema).getIterator()
     }
     else {
       ArrowConverter(columnsInOrder,
         session.getArrowSchema.getSerializedSchema,
-        readRowResponses).getIterator()
+        readRowResponses,
+        options.getSchema).getIterator()
     }
 
     new InterruptibleIterator(context, it)
@@ -82,13 +87,15 @@ class BigQueryRDD(sc: SparkContext,
  */
 case class ArrowConverter(columnsInOrder: Seq[String],
                           rawArrowSchema : ByteString,
-                          rowResponseIterator : Iterator[ReadRowsResponse])
+                          rowResponseIterator : Iterator[ReadRowsResponse],
+                          userProvidedSchema: Optional[StructType])
 {
   def getIterator(): Iterator[InternalRow] = {
     rowResponseIterator.flatMap(readRowResponse =>
       new ArrowBinaryIterator(columnsInOrder.asJava,
         rawArrowSchema,
-        readRowResponse.getArrowRecordBatch.getSerializedRecordBatch).asScala);
+        readRowResponse.getArrowRecordBatch.getSerializedRecordBatch,
+        userProvidedSchema).asScala);
   }
 }
 
@@ -103,7 +110,8 @@ case class ArrowConverter(columnsInOrder: Seq[String],
 case class AvroConverter (bqSchema: Schema,
                  columnsInOrder: Seq[String],
                  rawAvroSchema: String,
-                 rowResponseIterator : Iterator[ReadRowsResponse])
+                 rowResponseIterator : Iterator[ReadRowsResponse],
+                 userProvidedSchema: Optional[StructType])
 {
   @transient private lazy val avroSchema = new AvroSchema.Parser().parse(rawAvroSchema)
 
@@ -116,7 +124,8 @@ case class AvroConverter (bqSchema: Schema,
     bqSchema,
     columnsInOrder.asJava,
     avroSchema,
-    response.getAvroRows.getSerializedBinaryRows).asScala
+    response.getAvroRows.getSerializedBinaryRows,
+    userProvidedSchema).asScala
 }
 
 case class BigQueryPartition(stream: String, index: Int) extends Partition

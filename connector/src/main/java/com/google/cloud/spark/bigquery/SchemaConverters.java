@@ -25,6 +25,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import java.util.function.Function;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -91,11 +92,19 @@ public class SchemaConverters {
   }
 
   public static InternalRow convertToInternalRow(
-      Schema schema, List<String> namesInOrder, GenericRecord record) {
-    return convertAll(schema.getFields(), record, namesInOrder);
+      Schema schema,
+      List<String> namesInOrder,
+      GenericRecord record,
+      Optional<StructType> userProvidedSchema) {
+    List<StructField> userProvidedFieldList =
+        Arrays
+            .stream(userProvidedSchema.orElse(new StructType()).fields())
+            .collect(Collectors.toList());
+
+    return convertAll(schema.getFields(), record, namesInOrder, userProvidedFieldList);
   }
 
-  static Object convert(Field field, Object value) {
+  static Object convert(Field field, Object value, StructField userProvidedField) {
     if (value == null) {
       return null;
     }
@@ -113,38 +122,55 @@ public class SchemaConverters {
               .build();
 
       List<Object> valueList = (List<Object>) value;
-
       return new GenericArrayData(
-          valueList.stream().map(v -> convert(nestedField, v)).collect(Collectors.toList()));
+          valueList
+              .stream()
+              .map(v -> convert(nestedField, v, getStructFieldForRepeatedMode(userProvidedField)))
+              .collect(Collectors.toList()));
     }
 
-    Object datum = convertByBigQueryType(field, value);
+    Object datum = convertByBigQueryType(field, value, userProvidedField);
     Optional<Object> customDatum =
         getCustomDataType(field).map(dt -> ((UserDefinedType) dt).deserialize(datum));
     return customDatum.orElse(datum);
   }
 
-  static Object convertByBigQueryType(Field field, Object value) {
-    if (LegacySQLTypeName.INTEGER.equals(field.getType())
-        || LegacySQLTypeName.FLOAT.equals(field.getType())
-        || LegacySQLTypeName.BOOLEAN.equals(field.getType())
-        || LegacySQLTypeName.DATE.equals(field.getType())
-        || LegacySQLTypeName.TIME.equals(field.getType())
-        || LegacySQLTypeName.TIMESTAMP.equals(field.getType())) {
+  private static StructField getStructFieldForRepeatedMode(StructField field) {
+    StructField nestedField = null;
+
+    if (field != null) {
+      ArrayType arrayType = ((ArrayType) field.dataType());
+      nestedField =
+          new StructField(
+              field.name(),
+              arrayType.elementType(),
+              arrayType.containsNull(),
+              Metadata.empty()); // safe to pass empty metadata as it is not used anywhere
+    }
+    return nestedField;
+  }
+
+  static Object convertByBigQueryType(Field bqField, Object value, StructField userProvidedField) {
+    if (LegacySQLTypeName.INTEGER.equals(bqField.getType())
+        || LegacySQLTypeName.FLOAT.equals(bqField.getType())
+        || LegacySQLTypeName.BOOLEAN.equals(bqField.getType())
+        || LegacySQLTypeName.DATE.equals(bqField.getType())
+        || LegacySQLTypeName.TIME.equals(bqField.getType())
+        || LegacySQLTypeName.TIMESTAMP.equals(bqField.getType())) {
       return value;
     }
 
-    if (LegacySQLTypeName.STRING.equals(field.getType())
-        || LegacySQLTypeName.DATETIME.equals(field.getType())
-        || LegacySQLTypeName.GEOGRAPHY.equals(field.getType())) {
+    if (LegacySQLTypeName.STRING.equals(bqField.getType())
+        || LegacySQLTypeName.DATETIME.equals(bqField.getType())
+        || LegacySQLTypeName.GEOGRAPHY.equals(bqField.getType())) {
       return UTF8String.fromBytes(((Utf8) value).getBytes());
     }
 
-    if (LegacySQLTypeName.BYTES.equals(field.getType())) {
+    if (LegacySQLTypeName.BYTES.equals(bqField.getType())) {
       return getBytes((ByteBuffer) value);
     }
 
-    if (LegacySQLTypeName.NUMERIC.equals(field.getType())) {
+    if (LegacySQLTypeName.NUMERIC.equals(bqField.getType())) {
       byte[] bytes = getBytes((ByteBuffer) value);
       BigDecimal b = new BigDecimal(new BigInteger(bytes), BQ_NUMERIC_SCALE);
       Decimal d = Decimal.apply(b, BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
@@ -152,14 +178,26 @@ public class SchemaConverters {
       return d;
     }
 
-    if (LegacySQLTypeName.RECORD.equals(field.getType())) {
-      return convertAll(
-          field.getSubFields(),
-          (GenericRecord) value,
-          field.getSubFields().stream().map(f -> f.getName()).collect(Collectors.toList()));
+    if (LegacySQLTypeName.RECORD.equals(bqField.getType())) {
+      List<String> namesInOrder = null;
+      List<StructField> structList = null;
+
+      if (userProvidedField != null) {
+        structList =
+            Arrays
+                .stream(((StructType)userProvidedField.dataType()).fields())
+                .collect(Collectors.toList());
+
+        namesInOrder = structList.stream().map(StructField::name).collect(Collectors.toList());
+      } else {
+        namesInOrder =
+            bqField.getSubFields().stream().map(Field::getName).collect(Collectors.toList());
+      }
+
+      return convertAll(bqField.getSubFields(), (GenericRecord) value, namesInOrder, structList);
     }
 
-    throw new IllegalStateException("Unexpected type: " + field.getType());
+    throw new IllegalStateException("Unexpected type: " + bqField.getType());
   }
 
   private static byte[] getBytes(ByteBuffer buf) {
@@ -171,13 +209,28 @@ public class SchemaConverters {
 
   // Schema is not recursive so add helper for sequence of fields
   static GenericInternalRow convertAll(
-      FieldList fieldList, GenericRecord record, List<String> namesInOrder) {
-
+      FieldList fieldList,
+      GenericRecord record,
+      List<String> namesInOrder,
+      List<StructField> userProvidedFieldList) {
     Map<String, Object> fieldMap = new HashMap<>();
+
+    Map<String, StructField> userProvidedFieldMap =
+        userProvidedFieldList == null
+            ? new HashMap<>()
+            : userProvidedFieldList
+                .stream()
+                .collect(Collectors.toMap(StructField::name, Function.identity()));
 
     fieldList.stream()
         .forEach(
-            field -> fieldMap.put(field.getName(), convert(field, record.get(field.getName()))));
+            field ->
+                fieldMap.put(
+                    field.getName(),
+                    convert(
+                        field,
+                        record.get(field.getName()),
+                        userProvidedFieldMap.get(field.getName()))));
 
     Object[] values = new Object[namesInOrder.size()];
     for (int i = 0; i < namesInOrder.size(); i++) {

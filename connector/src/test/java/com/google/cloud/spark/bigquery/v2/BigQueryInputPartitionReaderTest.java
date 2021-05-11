@@ -21,6 +21,7 @@ import com.google.cloud.bigquery.storage.v1.StreamStats;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.TextFormat;
+import java.util.Optional;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.junit.Test;
@@ -100,7 +101,8 @@ public class BigQueryInputPartitionReaderTest {
         ReadRowsResponseToInternalRowIteratorConverter.avro(
             ALL_TYPES_TABLE_BIGQUERY_SCHEMA,
             ALL_TYPES_TABLE_FIELDS,
-            ALL_TYPES_TABLE_AVRO_RAW_SCHEMA);
+            ALL_TYPES_TABLE_AVRO_RAW_SCHEMA,
+            Optional.empty());
 
     BigQueryInputPartitionReader reader =
         new BigQueryInputPartitionReader(readRowsResponses, converter, null);
