@@ -48,7 +48,7 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
     IntegrationTestUtils.createDataset(testDataset)
   }
 
-  def testReadFromQuery(format: String) {
+  private def testReadFromQueryInternal(format: String, query: String) {
     // the query suffix is to make sure that each format will have
     // a different table createddue to the destination table cache
     val sql = "SELECT corpus, corpus_date FROM `bigquery-public-data.samples.shakespeare` " +
@@ -56,7 +56,7 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
     val df = spark.read.format(format)
       .option("viewsEnabled", true)
       .option("materializationDataset", testDataset)
-      .load(sql)
+      .load(query)
 
     val totalRows = df.count
     totalRows should equal(9)
@@ -65,28 +65,21 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
     val expectedCorpuses = Array("2kinghenryvi", "3kinghenryvi", "allswellthatendswell", "hamlet",
       "juliuscaesar", "kinghenryv", "kinglear", "periclesprinceoftyre", "troilusandcressida")
     corpuses should equal(expectedCorpuses)
+
   }
 
-  def testReadFromQueryWithNewLine(format: String) {
-    // the query suffix is to make sure that each format will have
-    // a different table createddue to the destination table cache
-    val sql =
-    """SELECT
-      |corpus, corpus_date
-      |FROM `bigquery-public-data.samples.shakespeare` """.stripMargin +
-      s"WHERE word='spark' AND '$format'='$format'";
-    val df = spark.read.format(format)
-      .option("viewsEnabled", true)
-      .option("materializationDataset", testDataset)
-      .load(sql)
+  private def testReadFromQuery(format: String): Unit = {
+    testReadFromQueryInternal(format,
+      "SELECT corpus, corpus_date FROM `bigquery-public-data.samples.shakespeare` " +
+        s"WHERE word='spark' AND '$format'='$format'")
+  }
 
-    val totalRows = df.count
-    totalRows should equal(9)
-
-    val corpuses = df.select("corpus").collect().map(row => row(0).toString).sorted
-    val expectedCorpuses = Array("2kinghenryvi", "3kinghenryvi", "allswellthatendswell", "hamlet",
-      "juliuscaesar", "kinghenryv", "kinglear", "periclesprinceoftyre", "troilusandcressida")
-    corpuses should equal(expectedCorpuses)
+  private def testReadFromQueryWithNewLine(format: String) {
+    testReadFromQueryInternal(format,
+      """SELECT
+        |corpus, corpus_date
+        |FROM `bigquery-public-data.samples.shakespeare` """.stripMargin +
+        s"WHERE word='spark' AND '$format'='$format'")
   }
 
   def testQueryOption(format: String) {
