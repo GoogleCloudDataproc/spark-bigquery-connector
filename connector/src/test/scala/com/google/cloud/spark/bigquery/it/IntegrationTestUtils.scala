@@ -30,6 +30,15 @@ object IntegrationTestUtils extends Logging {
     bq.create(DatasetInfo.of(datasetId))
   }
 
+  def createView(dataset: String, table: String, view: String): Unit ={
+    val bq = getBigquery
+    val query = String.format("SELECT * FROM %s.%s", dataset, table)
+    val tableId = TableId.of(dataset, view)
+    val viewDefinition =
+      ViewDefinition.newBuilder(query).setUseLegacySql(false).build
+    bq.create(TableInfo.of(tableId, viewDefinition))
+  }
+
   def runQuery(query: String): Unit = {
     log.warn(s"Running query '$query'")
     getBigquery.query(QueryJobConfiguration.of(query))

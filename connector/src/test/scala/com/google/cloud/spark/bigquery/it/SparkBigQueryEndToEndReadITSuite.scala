@@ -84,6 +84,7 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
   private val LARGE_TABLE_NUM_ROWS = 33271914L
   private val NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent"
   private val ALL_TYPES_TABLE_NAME = "all_types"
+  private val ALL_TYPES_VIEW_NAME = "all_types_view"
   private var spark: SparkSession = _
   private var testDataset: String = _
 
@@ -141,6 +142,7 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
     IntegrationTestUtils.createDataset(testDataset)
     IntegrationTestUtils.runQuery(
       TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE.format(s"$testDataset.$ALL_TYPES_TABLE_NAME"))
+    IntegrationTestUtils.createView(testDataset, ALL_TYPES_TABLE_NAME, ALL_TYPES_VIEW_NAME)
   }
 
   test("test filters") {
@@ -162,6 +164,37 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
   }
 
   def testsWithReadInFormat(dataSourceFormat: String, dataFormat: String): Unit = {
+
+    test(("testing view with different columns for select and filter. " +
+      "DataSource %s. Data Format %s").format(dataSourceFormat, dataFormat)) {
+
+      val df = getViewDataFrame(dataSourceFormat, dataFormat)
+
+      // filer and select are pushed down to BQ
+      val result = df
+        .select("int_req")
+        .filter("str = 'string'")
+        .collect()
+
+      result.size shouldBe 1
+      result.filter(row => row(0) == 42).size shouldBe 1
+    }
+
+    test(("testing cached view with different columns for select and filter. " +
+      "DataSource %s. Data Format %s").format(dataSourceFormat, dataFormat)) {
+
+      val df = getViewDataFrame(dataSourceFormat, dataFormat)
+      val cachedDF = df.cache()
+
+      // filter and select are run on the spark side as the view was cached
+      val result = cachedDF
+        .select("int_req")
+        .filter("str = 'string'")
+        .collect()
+
+      result.size shouldBe 1
+      result.filter(row => row(0) == 42).size shouldBe 1
+    }
 
     test("out of order columns. DataSource %s. Data Format %s"
       .format(dataSourceFormat, dataFormat)) {
@@ -325,6 +358,15 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
       newBehaviourWords should equal(oldBehaviourWords)
     }
   }
+
+  def getViewDataFrame(dataSourceFormat: String, dataFormat: String): DataFrame =
+    spark.read.format(dataSourceFormat)
+      .option("table", ALL_TYPES_VIEW_NAME)
+      .option("viewsEnabled", "true")
+      .option("viewMaterializationProject", System.getenv("GOOGLE_CLOUD_PROJECT"))
+      .option("viewMaterializationDataset", testDataset)
+      .option("readDataFormat", dataFormat)
+      .load()
 
   def readAllTypesTable(dataSourceFormat: String): DataFrame =
     spark.read.format(dataSourceFormat)

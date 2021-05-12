@@ -77,7 +77,10 @@ public class ReadSessionCreator {
         bigQueryReadClientFactory.createBigQueryReadClient()) {
       ReadSession.TableReadOptions.Builder readOptions =
           ReadSession.TableReadOptions.newBuilder().addAllSelectedFields(selectedFields);
-      filter.ifPresent(readOptions::setRowRestriction);
+
+      if (!isInputTableAView(tableDetails)) {
+        filter.ifPresent(readOptions::setRowRestriction);
+      }
 
       String tablePath = toTablePath(actualTable.getTableId());
 
@@ -116,15 +119,7 @@ public class ReadSessionCreator {
     if (TableDefinition.Type.TABLE == tableType) {
       return table;
     }
-    if (TableDefinition.Type.VIEW == tableType
-        || TableDefinition.Type.MATERIALIZED_VIEW == tableType) {
-      if (!config.viewsEnabled) {
-        throw new BigQueryConnectorException(
-            UNSUPPORTED,
-            format(
-                "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
-                config.viewEnabledParamName));
-      }
+    if (isInputTableAView(table)) {
       // get it from the view
       String querySql = bigQueryClient.createSql(table.getTableId(), requiredColumns, filters);
       log.debug("querySql is %s", querySql);
@@ -138,5 +133,23 @@ public class ReadSessionCreator {
               "Table type '%s' of table '%s.%s' is not supported",
               tableType, table.getTableId().getDataset(), table.getTableId().getTable()));
     }
+  }
+
+  private boolean isInputTableAView(TableInfo table) {
+    TableDefinition tableDefinition = table.getDefinition();
+    TableDefinition.Type tableType = tableDefinition.getType();
+
+    if (TableDefinition.Type.VIEW == tableType
+        || TableDefinition.Type.MATERIALIZED_VIEW == tableType) {
+      if (!config.viewsEnabled) {
+        throw new BigQueryConnectorException(
+            UNSUPPORTED,
+            format(
+                "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
+                config.viewEnabledParamName));
+      }
+      return true;
+    }
+    return false;
   }
 }
