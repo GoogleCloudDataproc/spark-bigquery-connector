@@ -172,7 +172,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
     // checking for query
     if (tableParam.isPresent()) {
-      String tableParamStr = tableParam.get().trim();
+      String tableParamStr = tableParam.get().trim().replaceAll("\\s+", " ");
       if (tableParamStr.toLowerCase().startsWith("select ")) {
         // it is a query in practice
         config.query = com.google.common.base.Optional.of(tableParamStr);

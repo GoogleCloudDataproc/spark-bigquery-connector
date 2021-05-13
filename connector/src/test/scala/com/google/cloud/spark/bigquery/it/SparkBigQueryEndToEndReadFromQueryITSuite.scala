@@ -48,15 +48,11 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
     IntegrationTestUtils.createDataset(testDataset)
   }
 
-  def testReadFromQuery(format: String) {
-    // the query suffix is to make sure that each format will have
-    // a different table createddue to the destination table cache
-    val sql = "SELECT corpus, corpus_date FROM `bigquery-public-data.samples.shakespeare` " +
-      s"WHERE word='spark' AND '$format'='$format'";
+  private def testReadFromQueryInternal(format: String, query: String) {
     val df = spark.read.format(format)
       .option("viewsEnabled", true)
       .option("materializationDataset", testDataset)
-      .load(sql)
+      .load(query)
 
     val totalRows = df.count
     totalRows should equal(9)
@@ -65,11 +61,30 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
     val expectedCorpuses = Array("2kinghenryvi", "3kinghenryvi", "allswellthatendswell", "hamlet",
       "juliuscaesar", "kinghenryv", "kinglear", "periclesprinceoftyre", "troilusandcressida")
     corpuses should equal(expectedCorpuses)
+
+  }
+
+  private def testReadFromQuery(format: String): Unit = {
+    // the query suffix is to make sure that each format will have
+    // a different table created due to the destination table cache
+    testReadFromQueryInternal(format,
+      "SELECT corpus, corpus_date FROM `bigquery-public-data.samples.shakespeare` " +
+        s"WHERE word='spark' AND '$format'='$format'")
+  }
+
+  private def testReadFromQueryWithNewLine(format: String) {
+    // the query suffix is to make sure that each format will have
+    // a different table created due to the destination table cache
+    testReadFromQueryInternal(format,
+      """SELECT
+        |corpus, corpus_date
+        |FROM `bigquery-public-data.samples.shakespeare` """.stripMargin +
+        s"WHERE word='spark' AND '$format'='$format'")
   }
 
   def testQueryOption(format: String) {
     // the query suffix is to make sure that each format will have
-    // a different table createddue to the destination table cache
+    // a different table created due to the destination table cache
     val sql = "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` " +
       s"WHERE word='spark' AND '$format'='$format'";
     val df = spark.read.format(format)
@@ -105,6 +120,14 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
 
   test("test read from query - v2") {
     testReadFromQuery("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+  }
+
+  test("test read from query with newline - v1") {
+    testReadFromQueryWithNewLine("bigquery")
+  }
+
+  test("test read from query with newline - v2") {
+    testReadFromQueryWithNewLine("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
   }
 
   test("test query option - v1") {
