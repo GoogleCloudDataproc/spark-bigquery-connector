@@ -18,13 +18,18 @@ package com.google.cloud.spark.bigquery;
 import com.google.cloud.bigquery.connector.common.ArrowUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 import org.apache.arrow.compression.CommonsCompressionFactory;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowReader;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 import org.slf4j.Logger;
@@ -44,9 +49,13 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
   ArrowReaderIterator arrowReaderIterator;
   Iterator<InternalRow> currentIterator;
   List<String> columnsInOrder;
+  Map<String, StructField> userProvidedFieldMap;
 
   public ArrowBinaryIterator(
-      List<String> columnsInOrder, ByteString schema, ByteString rowsInBytes) {
+      List<String> columnsInOrder,
+      ByteString schema,
+      ByteString rowsInBytes,
+      Optional<StructType> userProvidedSchema) {
     BufferAllocator allocator =
         ArrowUtil.newRootAllocator(maxAllocation)
             .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);
@@ -61,6 +70,16 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
     arrowReaderIterator = new ArrowReaderIterator(arrowStreamReader);
     currentIterator = ImmutableList.<InternalRow>of().iterator();
     this.columnsInOrder = columnsInOrder;
+
+    List<StructField> userProvidedFieldList =
+        Arrays
+            .stream(userProvidedSchema.orElse(new StructType()).fields())
+            .collect(Collectors.toList());
+
+    this.userProvidedFieldMap =
+        userProvidedFieldList
+            .stream()
+            .collect(Collectors.toMap(StructField::name, Function.identity()));
   }
 
   @Override
@@ -84,7 +103,9 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
     ColumnVector[] columns =
         namesInOrder.stream()
             .map(name -> root.getVector(name))
-            .map(vector -> new ArrowSchemaConverter(vector))
+            .map(
+                vector ->
+                    new ArrowSchemaConverter(vector, userProvidedFieldMap.get(vector.getName())))
             .collect(Collectors.toList())
             .toArray(new ColumnVector[0]);
 

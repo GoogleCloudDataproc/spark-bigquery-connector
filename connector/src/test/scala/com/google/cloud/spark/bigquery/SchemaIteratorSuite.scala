@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery
 
+import java.util.Optional
 import com.google.cloud.bigquery.Field.Mode
 import com.google.cloud.bigquery.LegacySQLTypeName.{BOOLEAN, BYTES, DATE, DATETIME, FLOAT, INTEGER, NUMERIC, RECORD, STRING, TIME, TIMESTAMP}
 import com.google.cloud.bigquery.{Field, Schema}
@@ -76,14 +77,15 @@ class SchemaIteratorSuite extends FunSuite {
 
     val arrowBinaryIterator = new ArrowBinaryIterator(columnsInOrder.asJava,
       arrowSchema,
-      arrowByteString).asScala
+      arrowByteString,
+      Optional.empty()).asScala
 
     if (arrowBinaryIterator.hasNext) {
        arrowSparkRow = arrowBinaryIterator.next();
     }
 
     val avroBinaryIterator = new AvroBinaryIterator(bqSchema,
-      columnsInOrder.asJava, avroSchema, avroByteString)
+      columnsInOrder.asJava, avroSchema, avroByteString, Optional.empty())
 
     if (avroBinaryIterator.hasNext) {
       avroSparkRow = avroBinaryIterator.next()
@@ -156,7 +158,7 @@ class SchemaIteratorSuite extends FunSuite {
 
     val arrowBinaryIterator =
       new ArrowBinaryIterator(
-        columnsInOrder.asJava, arrowSchema, arrowByteString).asScala
+        columnsInOrder.asJava, arrowSchema, arrowByteString, Optional.empty()).asScala
 
     while (arrowBinaryIterator.hasNext) {
       val arrowSparkRow = arrowBinaryIterator.next()

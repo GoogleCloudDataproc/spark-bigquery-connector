@@ -17,11 +17,13 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.Schema;
 import com.google.protobuf.ByteString;
+import java.util.Optional;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +39,7 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
   List<String> columnsInOrder;
   BinaryDecoder in;
   Schema bqSchema;
+  Optional<StructType> userProvidedSchema;
 
   /**
    * An iterator for scanning over rows serialized in Avro format
@@ -50,11 +53,13 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
       Schema bqSchema,
       List<String> columnsInOrder,
       org.apache.avro.Schema schema,
-      ByteString rowsInBytes) {
+      ByteString rowsInBytes,
+      Optional<StructType> userProvidedSchema) {
     reader = new GenericDatumReader<GenericRecord>(schema);
     this.bqSchema = bqSchema;
     this.columnsInOrder = columnsInOrder;
     in = new DecoderFactory().binaryDecoder(rowsInBytes.toByteArray(), null);
+    this.userProvidedSchema = userProvidedSchema;
   }
 
   @Override
@@ -70,7 +75,7 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
   public InternalRow next() {
     try {
       return SchemaConverters.convertToInternalRow(
-          bqSchema, columnsInOrder, (GenericRecord) reader.read(null, in));
+          bqSchema, columnsInOrder, (GenericRecord) reader.read(null, in), userProvidedSchema);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }

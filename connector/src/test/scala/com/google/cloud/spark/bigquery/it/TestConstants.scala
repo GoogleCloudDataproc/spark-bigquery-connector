@@ -108,4 +108,45 @@ object TestConstants {
     array(lit(1), lit(2), lit(3)),
     array(struct(lit(1)))
   )
+
+  val STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE =
+    """
+      |create table %s (
+      |str string,
+      |nums struct <
+      |  num1 int64,
+      |  num2 int64,
+      |  num3 int64,
+      |  string_struct_arr array <struct<str1 string, str2 string, str3 string>>
+      | >
+      |)
+      |as
+      |select
+      |"outer_string" as str,
+      |struct(
+      | 1 as num1,
+      | 2 as num2,
+      | 3 as num3,
+      | [
+      |   struct("0:str1" as str1, "0:str2" as str2, "0:str3" as str3),
+      |   struct("1:str1" as str1, "1:str2" as str2, "1:str3" as str3)
+      | ] as string_struct_arr
+      |) as nums
+      """.stripMargin
+
+  val STRUCT_COLUMN_ORDER_TEST_TABLE_COLS =
+    ColumnOrderTestClass(
+      NumStruct(
+        3,
+        2,
+        1,
+        List(
+          StringStruct("0:str3", "0:str1", "0:str2"),
+          StringStruct("1:str3", "1:str1", "1:str2")
+        )),
+      "outer_string")
+
+  case class StringStruct(str3: String, str1: String, str2: String)
+  case class NumStruct(num3: Long, num2: Long, num1: Long, string_struct_arr: List[StringStruct])
+  case class ColumnOrderTestClass(nums: NumStruct, str: String)
 }

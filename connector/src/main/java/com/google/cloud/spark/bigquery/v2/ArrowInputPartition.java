@@ -24,9 +24,12 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
+import java.util.Optional;
 import org.apache.spark.sql.sources.v2.reader.InputPartition;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
+import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
+import static com.google.common.base.Optional.fromJavaUtil;
 
 import java.util.Iterator;
 
@@ -38,6 +41,7 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
   private final int maxReadRowsRetries;
   private final ImmutableList<String> selectedFields;
   private final ByteString serializedArrowSchema;
+  private final com.google.common.base.Optional<StructType> userProvidedSchema;
 
   public ArrowInputPartition(
       BigQueryReadClientFactory bigQueryReadClientFactory,
@@ -45,7 +49,8 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
       String name,
       int maxReadRowsRetries,
       ImmutableList<String> selectedFields,
-      ReadSessionResponse readSessionResponse) {
+      ReadSessionResponse readSessionResponse,
+      Optional<StructType> userProvidedSchema) {
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
     this.streamName = name;
     this.maxReadRowsRetries = maxReadRowsRetries;
@@ -53,6 +58,7 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
     this.serializedArrowSchema =
         readSessionResponse.getReadSession().getArrowSchema().getSerializedSchema();
     this.tracerFactory = tracerFactory;
+    this.userProvidedSchema = fromJavaUtil(userProvidedSchema);
   }
 
   @Override
@@ -65,6 +71,11 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
     tracer.startStream();
     Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
     return new ArrowColumnBatchPartitionColumnBatchReader(
-        readRowsResponses, serializedArrowSchema, readRowsHelper, selectedFields, tracer);
+        readRowsResponses,
+        serializedArrowSchema,
+        readRowsHelper,
+        selectedFields,
+        tracer,
+        userProvidedSchema.toJavaUtil());
   }
 }

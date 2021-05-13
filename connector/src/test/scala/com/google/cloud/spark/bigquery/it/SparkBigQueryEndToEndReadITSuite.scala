@@ -20,7 +20,7 @@ import com.google.cloud.spark.bigquery.TestUtils
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.it.TestConstants._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparkSession}
+import org.apache.spark.sql.{DataFrame, Encoders, SparkSession}
 import org.scalatest.concurrent.TimeLimits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.time.SpanSugar._
@@ -83,6 +83,7 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
   private val LARGE_TABLE_FIELD = "is_male"
   private val LARGE_TABLE_NUM_ROWS = 33271914L
   private val NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent"
+  private val STRUCT_COLUMN_ORDER_TEST_TABLE_NAME = "struct_column_order"
   private val ALL_TYPES_TABLE_NAME = "all_types"
   private val ALL_TYPES_VIEW_NAME = "all_types_view"
   private var spark: SparkSession = _
@@ -143,6 +144,10 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
     IntegrationTestUtils.runQuery(
       TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE.format(s"$testDataset.$ALL_TYPES_TABLE_NAME"))
     IntegrationTestUtils.createView(testDataset, ALL_TYPES_TABLE_NAME, ALL_TYPES_VIEW_NAME)
+    IntegrationTestUtils.runQuery(
+      TestConstants
+        .STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE
+        .format(s"$testDataset.$STRUCT_COLUMN_ORDER_TEST_TABLE_NAME"))
   }
 
   test("test filters") {
@@ -356,6 +361,25 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
           .load())
 
       newBehaviourWords should equal(oldBehaviourWords)
+    }
+
+    test("column order of struct. DataSource %s. Data Format %s"
+      .format(dataSourceFormat, dataFormat)) {
+      val sqlContext = spark.sqlContext
+      import sqlContext.implicits._
+      val schema = Encoders.product[ColumnOrderTestClass].schema
+
+      val dataset = spark.read
+        .schema(schema)
+        .option("dataset", testDataset)
+        .option("table", STRUCT_COLUMN_ORDER_TEST_TABLE_NAME)
+        .format(dataSourceFormat)
+        .option("readDataFormat", dataFormat)
+        .load()
+        .as[ColumnOrderTestClass]
+
+      val row = Seq(dataset.head())(0)
+      assert(row == STRUCT_COLUMN_ORDER_TEST_TABLE_COLS)
     }
   }
 
