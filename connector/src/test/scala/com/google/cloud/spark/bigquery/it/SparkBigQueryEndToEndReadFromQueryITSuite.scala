@@ -49,10 +49,6 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
   }
 
   private def testReadFromQueryInternal(format: String, query: String) {
-    // the query suffix is to make sure that each format will have
-    // a different table createddue to the destination table cache
-    val sql = "SELECT corpus, corpus_date FROM `bigquery-public-data.samples.shakespeare` " +
-      s"WHERE word='spark' AND '$format'='$format'";
     val df = spark.read.format(format)
       .option("viewsEnabled", true)
       .option("materializationDataset", testDataset)
@@ -69,12 +65,16 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
   }
 
   private def testReadFromQuery(format: String): Unit = {
+    // the query suffix is to make sure that each format will have
+    // a different table created due to the destination table cache
     testReadFromQueryInternal(format,
       "SELECT corpus, corpus_date FROM `bigquery-public-data.samples.shakespeare` " +
         s"WHERE word='spark' AND '$format'='$format'")
   }
 
   private def testReadFromQueryWithNewLine(format: String) {
+    // the query suffix is to make sure that each format will have
+    // a different table created due to the destination table cache
     testReadFromQueryInternal(format,
       """SELECT
         |corpus, corpus_date
@@ -84,7 +84,7 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
 
   def testQueryOption(format: String) {
     // the query suffix is to make sure that each format will have
-    // a different table createddue to the destination table cache
+    // a different table created due to the destination table cache
     val sql = "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` " +
       s"WHERE word='spark' AND '$format'='$format'";
     val df = spark.read.format(format)
