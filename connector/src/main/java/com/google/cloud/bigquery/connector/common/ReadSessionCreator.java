@@ -86,12 +86,6 @@ public class ReadSessionCreator {
 
     try (BigQueryReadClient bigQueryReadClient =
         bigQueryReadClientFactory.createBigQueryReadClient(config.endpoint())) {
-      ReadSession.TableReadOptions.Builder readOptions =
-          ReadSession.TableReadOptions.newBuilder().addAllSelectedFields(selectedFields);
-
-      if (!isInputTableAView(tableDetails)) {
-        filter.ifPresent(readOptions::setRowRestriction);
-      }
 
       String tablePath = toTablePath(actualTable.getTableId());
       CreateReadSessionRequest request =
@@ -107,10 +101,12 @@ public class ReadSessionCreator {
                     }
                   })
               .orElse(CreateReadSessionRequest.newBuilder().build());
-
       ReadSession.Builder requestedSession = request.getReadSession().toBuilder();
       TableReadOptions.Builder readOptions = requestedSession.getReadOptionsBuilder();
-      filter.ifPresent(readOptions::setRowRestriction);
+      if (!isInputTableAView(tableDetails)) {
+        filter.ifPresent(readOptions::setRowRestriction);
+      }
+
       ReadSession readSession =
           bigQueryReadClient.createReadSession(
               request
@@ -149,19 +145,7 @@ public class ReadSessionCreator {
     if (TableDefinition.Type.TABLE == tableType) {
       return table;
     }
-<<<<<<< HEAD
     if (isInputTableAView(table)) {
-=======
-    if (TableDefinition.Type.VIEW == tableType
-        || TableDefinition.Type.MATERIALIZED_VIEW == tableType) {
-      if (!config.isViewsEnabled()) {
-        throw new BigQueryConnectorException(
-            UNSUPPORTED,
-            format(
-                "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
-                config.getViewEnabledParamName()));
-      }
->>>>>>> 6c20d76 (wip)
       // get it from the view
       String querySql = bigQueryClient.createSql(table.getTableId(), requiredColumns, filters);
       log.debug("querySql is %s", querySql);
@@ -183,12 +167,12 @@ public class ReadSessionCreator {
 
     if (TableDefinition.Type.VIEW == tableType
         || TableDefinition.Type.MATERIALIZED_VIEW == tableType) {
-      if (!config.viewsEnabled) {
+      if (!config.isViewsEnabled()) {
         throw new BigQueryConnectorException(
             UNSUPPORTED,
             format(
                 "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
-                config.viewEnabledParamName));
+                config.getViewEnabledParamName()));
       }
       return true;
     }

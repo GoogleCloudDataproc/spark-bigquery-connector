@@ -72,13 +72,11 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
     this.columnsInOrder = columnsInOrder;
 
     List<StructField> userProvidedFieldList =
-        Arrays
-            .stream(userProvidedSchema.orElse(new StructType()).fields())
+        Arrays.stream(userProvidedSchema.orElse(new StructType()).fields())
             .collect(Collectors.toList());
 
     this.userProvidedFieldMap =
-        userProvidedFieldList
-            .stream()
+        userProvidedFieldList.stream()
             .collect(Collectors.toMap(StructField::name, Function.identity()));
   }
 

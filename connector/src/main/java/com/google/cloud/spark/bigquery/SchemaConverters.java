@@ -97,8 +97,7 @@ public class SchemaConverters {
       GenericRecord record,
       Optional<StructType> userProvidedSchema) {
     List<StructField> userProvidedFieldList =
-        Arrays
-            .stream(userProvidedSchema.orElse(new StructType()).fields())
+        Arrays.stream(userProvidedSchema.orElse(new StructType()).fields())
             .collect(Collectors.toList());
 
     return convertAll(schema.getFields(), record, namesInOrder, userProvidedFieldList);
@@ -123,8 +122,7 @@ public class SchemaConverters {
 
       List<Object> valueList = (List<Object>) value;
       return new GenericArrayData(
-          valueList
-              .stream()
+          valueList.stream()
               .map(v -> convert(nestedField, v, getStructFieldForRepeatedMode(userProvidedField)))
               .collect(Collectors.toList()));
     }
@@ -184,8 +182,7 @@ public class SchemaConverters {
 
       if (userProvidedField != null) {
         structList =
-            Arrays
-                .stream(((StructType)userProvidedField.dataType()).fields())
+            Arrays.stream(((StructType) userProvidedField.dataType()).fields())
                 .collect(Collectors.toList());
 
         namesInOrder = structList.stream().map(StructField::name).collect(Collectors.toList());
@@ -218,8 +215,7 @@ public class SchemaConverters {
     Map<String, StructField> userProvidedFieldMap =
         userProvidedFieldList == null
             ? new HashMap<>()
-            : userProvidedFieldList
-                .stream()
+            : userProvidedFieldList.stream()
                 .collect(Collectors.toMap(StructField::name, Function.identity()));
 
     fieldList.stream()

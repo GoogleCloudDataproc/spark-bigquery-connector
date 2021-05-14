@@ -21,6 +21,7 @@ public class BigQueryInputPartitionTest {
                 "streamName",
                 new ReadRowsHelper.Options(/*maxRetries=*/ 5, Optional.of("endpoint")),
                 null,
-                new ReadSessionResponse(ReadSession.getDefaultInstance(), null)));
+                new ReadSessionResponse(ReadSession.getDefaultInstance(), null),
+                null));
   }
 }
