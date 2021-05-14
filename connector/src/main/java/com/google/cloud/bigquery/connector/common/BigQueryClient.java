@@ -58,7 +58,6 @@ import static java.util.stream.Collectors.joining;
 // presto converts the dataset and table names to lower case, while BigQuery is case sensitive
 // the mappings here keep the mappings
 public class BigQueryClient {
-  private static final Logger logger = LoggerFactory.getLogger(BigQueryClient.class);
   private static final Logger log = LoggerFactory.getLogger(BigQueryClient.class);
 
   private static Cache<String, TableInfo> destinationTableCache =
@@ -137,7 +136,7 @@ public class BigQueryClient {
     return DatasetId.of(tableId.getProject(), tableId.getDataset());
   }
 
-  String getProjectId() {
+  public String getProjectId() {
     return bigQuery.getOptions().getProjectId();
   }
 
@@ -173,7 +172,7 @@ public class BigQueryClient {
     JobInfo jobInfo = JobInfo.of(jobConfiguration);
     Job job = bigQuery.create(jobInfo);
 
-    logger.info("Submitted job {}. jobId: {}", jobConfiguration, job.getJobId());
+    log.info("Submitted job {}. jobId: {}", jobConfiguration, job.getJobId());
     // TODO(davidrab): add retry options
     try {
       return job.waitFor();

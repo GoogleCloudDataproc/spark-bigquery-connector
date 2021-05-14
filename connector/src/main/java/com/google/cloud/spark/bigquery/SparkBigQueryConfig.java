@@ -26,6 +26,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
+import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -55,8 +56,6 @@ import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPrese
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
 import static java.lang.String.format;
 
-// as the config needs to be Serializable, internally it uses
-// com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
 public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
@@ -82,6 +81,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private static final int DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT = 60 * 1000;
   private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
   TableId tableId;
+  // as the config needs to be Serializable, internally it uses
+  // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
   com.google.common.base.Optional<String> query = empty();
   String parentProjectId;
   com.google.common.base.Optional<String> credentialsKey;
@@ -112,6 +113,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   ImmutableList<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.of();
   int materializationExpirationTimeInMinutes = DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES;
   int maxReadRowsRetries = 3;
+  private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
+  private com.google.common.base.Optional<String> storageReadEndpoint = empty();
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -266,6 +269,9 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
       loadSchemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION);
     }
     config.loadSchemaUpdateOptions = loadSchemaUpdateOptions.build();
+    config.storageReadEndpoint = getAnyOption(globalOptions, options, "bqStorageReadEndpoint");
+    config.encodedCreateReadSessionRequest =
+        getAnyOption(globalOptions, options, "bqEncodedCreateReadSessionRequest");
 
     return config;
   }
@@ -552,16 +558,19 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
-    return new ReadSessionCreatorConfig(
-        viewsEnabled,
-        materializationProject.toJavaUtil(),
-        materializationDataset.toJavaUtil(),
-        materializationExpirationTimeInMinutes,
-        readDataFormat,
-        maxReadRowsRetries,
-        VIEWS_ENABLED_OPTION,
-        getMaxParallelism(),
-        defaultParallelism);
+    return new ReadSessionCreatorConfigBuilder()
+        .setViewsEnabled(viewsEnabled)
+        .setMaterializationProject(materializationProject.toJavaUtil())
+        .setMaterializationDataset(materializationDataset.toJavaUtil())
+        .setMaterializationExpirationTimeInMinutes(materializationExpirationTimeInMinutes)
+        .setReadDataFormat(readDataFormat)
+        .setMaxReadRowsRetries(maxReadRowsRetries)
+        .setViewEnabledParamName(VIEWS_ENABLED_OPTION)
+        .setDefaultParallelism(defaultParallelism)
+        .setMaxParallelism(getMaxParallelism())
+        .setRequestEncodedBase(encodedCreateReadSessionRequest.toJavaUtil())
+        .setEndpoint(storageReadEndpoint.toJavaUtil())
+        .build();
   }
 
   public BigQueryClient.ReadTableOptions toReadTableOptions() {

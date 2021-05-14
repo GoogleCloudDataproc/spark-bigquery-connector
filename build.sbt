@@ -52,10 +52,11 @@ lazy val commonTestDependencies = Seq(
   "io.grpc" % "grpc-alts" % grpcVersion exclude("io.grpc", "grpc-netty-shaded"),
   "io.grpc" % "grpc-netty" % grpcVersion,
   "com.google.api" % "gax-grpc" % "1.60.0" exclude("io.grpc", "grpc-netty-shaded"),
-  "com.google.guava" % "guava" % "30.0-jre",
+  "com.google.guava" % "guava" % "30.1.1-jre",
 
   "org.scalatest" %% "scalatest" % "3.1.0" % "test",
-  "org.mockito" %% "mockito-scala-scalatest" % "1.10.0" % "test",
+  "org.mockito" %% "mockito-scala-scalatest" % "1.10.6" % "test",
+
   "junit" % "junit" % "4.13" % "test",
   "com.novocode" % "junit-interface" % "0.11" % "test",
   "com.google.truth" % "truth" % "1.0.1" % "test"
@@ -105,7 +106,6 @@ lazy val connector = (project in file("connector"))
 			     ExclusionRule(organization="io.netty"),
 		       ExclusionRule(organization ="com.fasterxml.jackson.core")),
 
-
       // Keep com.google.cloud dependencies in sync
       "com.google.cloud" % "google-cloud-bigquery" % "1.123.2",
       "com.google.cloud" % "google-cloud-bigquerystorage" % "1.6.0"
@@ -130,11 +130,11 @@ lazy val connector = (project in file("connector"))
         exclude("com.google.cloud.bigdataoss", "util-hadoop"),
       // scalastyle:on
       // test
-
       "org.apache.spark" %% "spark-avro" % sparkVersion % "test"
       ))
       .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*)),
-    dependencyOverrides += "org.slf4j" % "slf4j-api" % "1.7.16" % "provided"
+    dependencyOverrides ++= Set("org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
+                                "com.google.guava" % "guava" % "30.1.1-jre")
   )
 
 lazy val fatJar = project

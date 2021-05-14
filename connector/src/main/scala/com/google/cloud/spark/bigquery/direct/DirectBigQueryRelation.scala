@@ -357,11 +357,14 @@ object DirectBigQueryRelation {
   def createReadClient(options: SparkBigQueryConfig): BigQueryReadClient = {
     // TODO(pmkc): investigate thread pool sizing and log spam matching
     // https://github.com/grpc/grpc-java/issues/4544 in integration tests
+    val settingsBuilder = BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
+      .setHeaderProvider(headerProvider);
+    val readSessionConfig = options.toReadSessionCreatorConfig()
+    if (readSessionConfig.endpoint().isPresent()) {
+      settingsBuilder.setEndpoint(readSessionConfig.endpoint().get())
+    }
     var clientSettings = BigQueryReadSettings.newBuilder()
-      .setTransportChannelProvider(
-        BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
-          .setHeaderProvider(headerProvider)
-          .build())
+      .setTransportChannelProvider(settingsBuilder.build())
      clientSettings.setCredentialsProvider(
         new CredentialsProvider {
           override def getCredentials: Credentials = options.createCredentials

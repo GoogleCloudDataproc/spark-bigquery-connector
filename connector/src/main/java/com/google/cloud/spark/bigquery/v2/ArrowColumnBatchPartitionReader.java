@@ -111,8 +111,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     this.tracer = tracer;
 
     List<StructField> userProvidedFieldList =
-        Arrays
-            .stream(userProvidedSchema.orElse(new StructType()).fields())
+        Arrays.stream(userProvidedSchema.orElse(new StructType()).fields())
             .collect(Collectors.toList());
 
     this.userProvidedFieldMap =
