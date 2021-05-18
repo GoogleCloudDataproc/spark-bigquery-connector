@@ -9,7 +9,7 @@
     <relativePath>../spark-bigquery-parent</relativePath>
   </parent>
 
-  <artifactId>spark-bigquery-dsv1-reactor</artifactId>
+  <artifactId>spark-bigquery-dsv1</artifactId>
   <name>BigQuery DataSource v1 implementation</name>
   <packaging>pom</packaging>
   <modules>
