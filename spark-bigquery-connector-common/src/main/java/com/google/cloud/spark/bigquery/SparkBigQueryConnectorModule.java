@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
@@ -80,6 +80,6 @@ public class SparkBigQueryConnectorModule implements Module {
   @Singleton
   @Provides
   public UserAgentProvider provideUserAgentProvider() {
-    return new SparkBigQueryConnectorUserAgentProvider("v2");
+    return new SparkBigQueryConnectorUserAgentProvider(dataSourceVersion.toString().toLowerCase());
   }
 }

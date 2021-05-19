@@ -31,10 +31,11 @@ import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparkSession}
 import org.scalatest.concurrent.TimeLimits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.time.SpanSugar._
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Ignore, Matchers}
 
 import scala.collection.JavaConverters._
 
+@Ignore
 class SparkBigQueryEndToEndWriteITSuite extends FunSuite
   with BeforeAndAfter
   with BeforeAndAfterAll

@@ -16,7 +16,7 @@
 package com.google.cloud.spark.bigquery.it
 
 import com.google.cloud.bigquery._
-import com.google.cloud.spark.bigquery.TestUtils
+import com.google.cloud.spark.bigquery.{TestConstants, TestUtils}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.it.TestConstants._
 import org.apache.spark.bigquery.BigNumeric
@@ -26,9 +26,9 @@ import org.apache.spark.sql.{DataFrame, Encoders, SparkSession}
 import org.scalatest.concurrent.TimeLimits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.time.SpanSugar._
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Ignore, Matchers}
 
-
+@Ignore
 class SparkBigQueryEndToEndReadITSuite extends FunSuite
   with BeforeAndAfter
   with BeforeAndAfterAll
@@ -259,7 +259,8 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
       assert(row(3).isInstanceOf[Long])
     }
 
-//    test("cache data frame in DataSource %s. Data Format %s".format(dataSourceFormat, dataFormat)) {
+//    test("cache data frame in DataSource %s. Data Format %s"
+    //    .format(dataSourceFormat, dataFormat)) {
 //      val allTypesTable = readAllTypesTable("bigquery")
 //      writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro")
 //
@@ -402,8 +403,7 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
     test("column order of struct. DataSource %s. Data Format %s"
       .format(dataSourceFormat, dataFormat)) {
       val sqlContext = spark.sqlContext
-      import sqlContext.implicits._
-      val schema = Encoders.product[ColumnOrderTestClass].schema
+      val schema = Encoders.bean(classOf[TestConstants.ColumnOrderTestClass]).schema
 
       val dataset = spark.read
         .schema(schema)
@@ -412,10 +412,10 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
         .format(dataSourceFormat)
         .option("readDataFormat", dataFormat)
         .load()
-        .as[ColumnOrderTestClass]
+        .as(Encoders.bean(classOf[TestConstants.ColumnOrderTestClass]))
 
       val row = Seq(dataset.head())(0)
-      assert(row == STRUCT_COLUMN_ORDER_TEST_TABLE_COLS)
+      assert(row == TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_COLS)
     }
   }
 
@@ -512,12 +512,12 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
     test("known size in bytes. DataSource %s".format(dataSourceFormat)) {
       val allTypesTable = readAllTypesTable(dataSourceFormat)
       val actualTableSize = allTypesTable.queryExecution.analyzed.stats.sizeInBytes
-      assert(actualTableSize == ALL_TYPES_TABLE_SIZE)
+      assert(actualTableSize == TestConstants.ALL_TYPES_TABLE_SIZE)
     }
 
     test("known schema. DataSource %s".format(dataSourceFormat)) {
       val allTypesTable = readAllTypesTable(dataSourceFormat)
-      assert(allTypesTable.schema == ALL_TYPES_TABLE_SCHEMA)
+      assert(allTypesTable.schema == TestConstants.ALL_TYPES_TABLE_SCHEMA)
     }
 
     test("user defined schema. DataSource %s".format(dataSourceFormat)) {

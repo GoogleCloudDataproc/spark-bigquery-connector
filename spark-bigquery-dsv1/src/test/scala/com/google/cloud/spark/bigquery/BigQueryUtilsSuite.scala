@@ -15,16 +15,27 @@
  */
 package com.google.cloud.spark.bigquery
 
-import java.util.Optional
+import java.nio.file.Files
 
-import com.google.cloud.bigquery.TableId
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{LocatedFileStatus, Path}
+import org.scalatest.BeforeAndAfterAll
 
-class BigQueryUtilScalaSuite extends org.scalatest.FunSuite {
+class BigQueryUtilScalaSuite extends org.scalatest.FunSuite with BeforeAndAfterAll {
+
+  var testDir: java.nio.file.Path = _
+
+  override def beforeAll: Unit = {
+    testDir = Files.createTempDirectory("ToIteratorTest")
+    testDir.toFile.deleteOnExit()
+    Files.copy(getClass.getResourceAsStream("/ToIteratorTest/file1.txt"),
+      testDir.resolve("file1.txt"))
+    Files.copy(getClass.getResourceAsStream("/ToIteratorTest/file2.csv"),
+      testDir.resolve("file2.csv"))
+  }
 
   test("ToIteratorTest") {
-    val path = new Path("connector/src/test/resources/ToIteratorTest")
+    val path = new Path(testDir.toFile.getAbsolutePath)
     val fs = path.getFileSystem(new Configuration())
     var it = ToIterator(fs.listFiles(path, false))
 
