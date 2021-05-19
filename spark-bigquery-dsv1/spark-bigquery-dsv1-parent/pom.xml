@@ -13,6 +13,7 @@
   <name>BigQuery DataSource v1 implementation common settings</name>
   <packaging>pom</packaging>
   <properties>
+    <scala.binary.version>2.11</scala.binary.version>
     <spark.version>2.3.0</spark.version>
   </properties>
   <licenses>
@@ -133,87 +134,4 @@
       </plugin>
     </plugins>
   </build>
-  <profiles>
-    <profile>
-      <id>scala-2.11</id>
-      <properties>
-        <scala.version>2.11.12</scala.version>
-        <scala.binary.version>2.11</scala.binary.version>
-      </properties>
-      <activation>
-        <property>
-          <name>!scala-2.12</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <!-- make sure we don't have any _2.10 or _2.12 dependencies when building
-          for Scala 2.11 -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-enforcer-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>enforce-versions</id>
-                <goals>
-                  <goal>enforce</goal>
-                </goals>
-                <configuration>
-                  <rules>
-                    <bannedDependencies>
-                      <excludes combine.children="append">
-                        <exclude>*:*_2.12</exclude>
-                        <exclude>*:*_2.10</exclude>
-                      </excludes>
-                    </bannedDependencies>
-                  </rules>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-    <profile>
-      <id>scala-2.12</id>
-      <properties>
-        <scala.version>2.12.11</scala.version>
-        <scala.binary.version>2.12</scala.binary.version>
-      </properties>
-      <activation>
-        <property>
-          <name>scala-2.12</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <!-- make sure we don't have any _2.10 or _2.11 dependencies when building
-          for Scala 2.12 -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-enforcer-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>enforce-versions</id>
-                <goals>
-                  <goal>enforce</goal>
-                </goals>
-                <configuration>
-                  <rules>
-                    <bannedDependencies>
-                      <excludes combine.children="append">
-                        <exclude>*:*_2.11</exclude>
-                        <exclude>*:*_2.10</exclude>
-                      </excludes>
-                    </bannedDependencies>
-                  </rules>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>
