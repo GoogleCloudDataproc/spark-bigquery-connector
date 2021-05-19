@@ -12,7 +12,7 @@
   <name>BigQuery DataSource v1 for Scala 2.11</name>
   <properties>
     <scala.binary.version>2.11</scala.binary.version>
-    <scala.version>2.11.12</scala.version>
+    <scala.version>2.11.8</scala.version>
     <spark.version>2.3.0</spark.version>
   </properties>
   <licenses>
@@ -22,4 +22,32 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
+  <build>
+    <plugins>
+      <!-- make sure we don't have any _2.10 or _2.12 dependencies when building
+      for Scala 2.11 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-versions</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <excludes combine.children="append">
+                    <exclude>*:*_2.12</exclude>
+                    <exclude>*:*_2.10</exclude>
+                  </excludes>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>
