@@ -15,23 +15,22 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.io.CharStreams;
 import com.google.common.io.Closeables;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Optional;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import scala.util.Properties;
-
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.Optional;
-
-import static java.lang.String.format;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /** Provides the versions of the client environment in an anonymous way. */
 public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvider {

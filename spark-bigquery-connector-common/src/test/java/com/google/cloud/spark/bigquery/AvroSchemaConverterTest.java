@@ -15,7 +15,6 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.cloud.spark.bigquery.it.TestConstants;
 import com.google.common.collect.ImmutableList;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
@@ -38,7 +37,7 @@ public class AvroSchemaConverterTest {
 
   @Test
   public void testSchemaConversion() {
-    StructType sparkSchema = TestConstants.ALL_TYPES_TABLE_SCHEMA();
+    StructType sparkSchema = TestConstants.ALL_TYPES_TABLE_SCHEMA;
     Schema avroSchema = AvroSchemaConverter.sparkSchemaToAvroSchema(sparkSchema);
     Schema.Field[] fields =
         avroSchema.getFields().toArray(new Schema.Field[avroSchema.getFields().size()]);

@@ -15,6 +15,7 @@
     </license>
   </licenses>
   <properties>
+    <avro.version>1.8.2</avro.version>
     <arrow.version>4.0.0</arrow.version>
     <gax.version>1.60.0</gax.version>
     <google-cloud-bom.version>0.143.0</google-cloud-bom.version>
@@ -75,6 +76,21 @@
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro</artifactId>
+        <version>${avro.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro-ipc</artifactId>
+        <version>${avro.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro-mapred</artifactId>
+        <version>${avro.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.arrow</groupId>
         <artifactId>arrow-compression</artifactId>
         <version>${arrow.version}</version>
@@ -126,6 +142,18 @@
         <configuration>
           <source>1.8</source>
           <target>1.8</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+            </manifest>
+          </archive>
         </configuration>
       </plugin>
       <!--
