@@ -21,7 +21,6 @@ import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableDefinition.Type.{MATERIALIZED_VIEW, TABLE, VIEW}
 import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientModule, BigQueryUtil}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
-import com.google.cloud.spark.bigquery.v2.SparkBigQueryConnectorModule
 import com.google.common.collect.ImmutableMap
 import com.google.inject.{Guice, Injector}
 import org.apache.spark.sql.execution.streaming.Sink

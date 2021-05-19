@@ -55,7 +55,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>bigquery-connector-common</artifactId>
+      <artifactId>spark-bigquery-connector-common</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
       <classifier>tests</classifier>
@@ -121,7 +121,7 @@
         <configuration>
           <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
           <junitxml>.</junitxml>
-          <filereports>WDF TestSuite.txt</filereports>
+          <filereports>TestSuite.txt</filereports>
         </configuration>
         <executions>
           <execution>

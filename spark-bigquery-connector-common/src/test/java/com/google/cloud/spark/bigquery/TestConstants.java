@@ -146,25 +146,26 @@ public class TestConstants {
                       true),
                   true,
                   Metadata.empty())));
-  public static List<Column> ALL_TYPES_TABLE_COLS =
-      Arrays.asList(
-          lit(42L),
-          lit(null),
-          lit(true),
-          lit("string"),
-          to_date(lit("2019-03-18")),
-          from_utc_timestamp(lit("2019-03-18T01:23:45.678901"), TimeZone.getDefault().getID()),
-          lit("2019-03-18T01:23:45.678901"),
-          lit(5025678901L),
-          lit("bytes").cast("BINARY"),
-          lit(4.2),
-          struct(
-              lit("-99999999999999999999999999999.999999999").cast(BQ_NUMERIC),
-              lit("99999999999999999999999999999.999999999").cast(BQ_NUMERIC),
-              lit(3.14).cast(BQ_NUMERIC),
-              lit("31415926535897932384626433832.795028841").cast(BQ_NUMERIC)),
-          array(lit(1), lit(2), lit(3)),
-          array(struct(lit(1))));
+  public static Column[] ALL_TYPES_TABLE_COLS =
+      new Column[] {
+        lit(42L),
+        lit(null),
+        lit(true),
+        lit("string"),
+        to_date(lit("2019-03-18")),
+        from_utc_timestamp(lit("2019-03-18T01:23:45.678901"), TimeZone.getDefault().getID()),
+        lit("2019-03-18T01:23:45.678901"),
+        lit(5025678901L),
+        lit("bytes").cast("BINARY"),
+        lit(4.2),
+        struct(
+            lit("-99999999999999999999999999999.999999999").cast(BQ_NUMERIC),
+            lit("99999999999999999999999999999.999999999").cast(BQ_NUMERIC),
+            lit(3.14).cast(BQ_NUMERIC),
+            lit("31415926535897932384626433832.795028841").cast(BQ_NUMERIC)),
+        array(lit(1), lit(2), lit(3)),
+        array(struct(lit(1)))
+      };
 
   private TestConstants() {}
 

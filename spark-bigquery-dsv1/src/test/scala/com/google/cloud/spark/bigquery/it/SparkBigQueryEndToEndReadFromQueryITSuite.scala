@@ -20,9 +20,9 @@ import com.google.cloud.spark.bigquery.TestUtils
 import org.apache.spark.sql.SparkSession
 import org.scalatest.concurrent.TimeLimits
 import org.scalatest.prop.TableDrivenPropertyChecks
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Ignore, Matchers}
 
-
+@Ignore
 class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
   with BeforeAndAfter
   with BeforeAndAfterAll
