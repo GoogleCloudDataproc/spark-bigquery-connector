@@ -52,7 +52,7 @@ initialize := {
 lazy val root = (project in file("."))
   .disablePlugins(AssemblyPlugin)
   .settings(commonSettings, skip in publish := true)
-  .aggregate(connector, fatJar, published)
+  .aggregate(connector, spark3, fatJar, published)
 
 lazy val commonTestDependencies = Seq(
   "io.grpc" % "grpc-alts" % grpcVersion exclude("io.grpc", "grpc-netty-shaded"),
@@ -72,8 +72,19 @@ val sparkBigquerySupportZipFile = IO.zip(
   allSubpaths(new File("pythonlib")),
   new File("fatJar/spark-bigquery-support-" + artifactVersion +".zip"))
 
+lazy val spark3 = (project in file("spark-3"))
+  .enablePlugins(BuildInfoPlugin)
+  .settings(
+    commonSettings,
+    name := "spark-3",
+    libraryDependencies ++= Seq(
+      "org.apache.spark" % "spark-core_2.12" % "3.0.0" % "provided",
+      "org.apache.spark" % "spark-sql_2.12" % "3.0.0" % "provided")
+  )
+
 lazy val connector = (project in file("connector"))
   .configs(ITest)
+  .dependsOn(spark3)
   .settings(
     commonSettings,
     publishSettings,
