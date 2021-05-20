@@ -44,7 +44,7 @@ private[bigquery] object BigQueryStreamWriter extends Logging {
     val sparkVersion = sqlContext.sparkSession.version
 
     val rowRdd: RDD[Row] =
-      dataFrameToRDDConvertorFactory(sparkVersion).convertToRDD(data)
+      dataFrameToRDDConverterFactory(sparkVersion).convertToRDD(data)
 
     // Create fixed dataframe
     val dataFrame: DataFrame = sqlContext.createDataFrame(rowRdd, schema)
@@ -91,7 +91,7 @@ private[bigquery] object BigQueryStreamWriter extends Logging {
     }
   }
 
-  def dataFrameToRDDConvertorFactory(sparkVersion: String): DataFrameToRDDConverter = {
+  def dataFrameToRDDConverterFactory(sparkVersion: String): DataFrameToRDDConverter = {
     val version = sparkVersion.charAt(0) - '0'
     if (version < 3) {
       new Spark2DataFrameToRDDConverter
