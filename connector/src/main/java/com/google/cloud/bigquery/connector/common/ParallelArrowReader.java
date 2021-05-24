@@ -57,6 +57,7 @@ public class ParallelArrowReader implements AutoCloseable {
   private final ExecutorService executor;
   private final VectorLoader loader;
   private final BigQueryStorageReadRowsTracer rootTracer;
+  BigQueryStorageReadRowsTracer tracers[];
 
   // Whether processing of delegates is finished.
   private volatile boolean done = false;
@@ -80,6 +81,10 @@ public class ParallelArrowReader implements AutoCloseable {
     this.executor = executor;
     this.loader = loader;
     this.rootTracer = tracer;
+    tracers = new BigQueryStorageReadRowsTracer[readers.size()];
+    for (int x = 0; x < readers.size(); x++) {
+      tracers[x] = rootTracer.forkWithPrefix("reader-thread-" + x);
+    }
   }
 
   public boolean next() throws IOException {
@@ -139,7 +144,6 @@ public class ParallelArrowReader implements AutoCloseable {
   }
 
   private void consumeReaders() {
-    BigQueryStorageReadRowsTracer tracers[] = new BigQueryStorageReadRowsTracer[readers.size()];
     try {
       // Tracks which readers have exhausted all of there elements
       AtomicBoolean[] hasData = new AtomicBoolean[readers.size()];
@@ -157,7 +161,6 @@ public class ParallelArrowReader implements AutoCloseable {
         roots[x] = readers.get(x).getVectorSchemaRoot();
         unloader[x] =
             new VectorUnloader(roots[x], /*includeNullCount=*/ true, /*alignBuffers=*/ false);
-        tracers[x] = rootTracer.forkWithPrefix("reader-thread-" + x);
         tracers[x].startStream();
       }
 
@@ -186,9 +189,11 @@ public class ParallelArrowReader implements AutoCloseable {
                       lastBytesRead[idx] = reader.bytesRead();
                     } catch (IOException e) {
                       readException = e;
+                      hasData[idx].set(false);
                       return null;
                     } catch (Exception e) {
                       readException = new IOException("failed to consume readers", e);
+                      hasData[idx].set(false);
                       return null;
                     }
                     ArrowRecordBatch batch = null;
@@ -212,10 +217,7 @@ public class ParallelArrowReader implements AutoCloseable {
     } catch (IOException e) {
       readException = e;
     } catch (InterruptedException e) {
-      // This should only happen on shutdown.
-    }
-    for (BigQueryStorageReadRowsTracer tracer : tracers) {
-      tracer.finished();
+      log.info("Reader thread interrupted.");
     }
     done = true;
   }
@@ -227,27 +229,50 @@ public class ParallelArrowReader implements AutoCloseable {
     // Try to force reader thread to stop.
     if (readerThread != null) {
       readerThread.interrupt();
+      try {
+        readerThread.join(10000);
+      } catch (InterruptedException e) {
+        log.info("Interrupted while waiting for reader thread to finish.");
+      }
+      if (readerThread.isAlive()) {
+        log.warn("Reader thread did not shutdown in 10 second.");
+      }
     }
     // Stop any queued tasks from processing.
     executor.shutdownNow();
 
     try {
-      executor.awaitTermination(10, TimeUnit.SECONDS);
+      if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+        log.warn("executor did not terminate after 10 seconds");
+      }
     } catch (InterruptedException e) {
       // Nothing to do here.
     }
 
+    int inProgress = 0;
     while (!queue.isEmpty()) {
       Future<ArrowRecordBatch> batch = queue.poll();
-      try {
-        if (batch != null) {
-          if (batch.isDone() && batch.get() != null) {
-            batch.get().close();
+      if (batch != null) {
+        if (batch.isDone()) {
+
+          try {
+            if (batch.get() != null) {
+              batch.get().close();
+            }
+          } catch (Exception e) {
+            log.info("Error closing left over batch", e);
           }
+
+        } else {
+          inProgress++;
         }
-      } catch (Exception e) {
-        log.info("Error closing left over batch", e);
       }
+    }
+    if (inProgress > 0) {
+      log.warn("Left over tasks in progress %s", inProgress);
+    }
+    for (BigQueryStorageReadRowsTracer tracer : tracers) {
+      tracer.finished();
     }
 
     try {

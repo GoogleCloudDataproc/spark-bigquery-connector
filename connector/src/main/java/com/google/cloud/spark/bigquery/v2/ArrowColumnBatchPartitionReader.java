@@ -103,21 +103,24 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
         ExecutorService executor,
         BigQueryStorageReadRowsTracer tracer,
         AutoCloseable closeable) {
-      if (closeable != null) {
-        closeables.add(closeable);
-      }
       Schema schema = null;
       try {
         schema = readers.get(0).getVectorSchemaRoot().getSchema();
       } catch (IOException e) {
         initialException = e;
         closeables.addAll(readers);
+        closeables.add(closeable);
+        this.reader = null;
+        this.loader = null;
+        this.root = null;
+        return;
       }
       root = VectorSchemaRoot.create(schema, allocator);
       closeables.add(root);
       loader = new VectorLoader(root);
       this.reader = new ParallelArrowReader(readers, executor, loader, tracer);
       closeables.add(reader);
+      closeables.add(closeable);
     }
 
     @Override
