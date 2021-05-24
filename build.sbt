@@ -31,13 +31,6 @@ lazy val commonSettings = Seq(
 
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
 
-initialize := {
-  val _ = initialize.value
-  val javaVersion = sys.props("java.specification.version")
-  if (javaVersion != "1.8")
-    sys.error("Java 1.8 is required for this project. Found " + javaVersion + " instead")
-}
-
 // scalastyle:off
 // For https://github.com/GoogleCloudPlatform/spark-bigquery-connector/issues/72
 // Based on

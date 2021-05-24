@@ -49,7 +49,9 @@ public class ReadSessionCreatorTest {
 
   @Test
   public void testSerializedInstanceIsPropagated() throws Exception {
-    ReadSession readSession = ReadSession.newBuilder().setName("abc").build();
+    TableReadOptions tableReadOptions = TableReadOptions.newBuilder().build();
+    ReadSession readSession =
+        ReadSession.newBuilder().setName("abc").setReadOptions(tableReadOptions).build();
     CreateReadSessionRequest request =
         CreateReadSessionRequest.newBuilder().setReadSession(readSession).build();
     Optional<String> encodedBase =

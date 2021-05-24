@@ -103,7 +103,12 @@ public class ReadSessionCreatorConfig {
     return this.endpoint;
   }
 
+  public int backgroundParsingThreads() {
+    return this.backgroundParsingThreads;
+  }
+
   public ReadRowsHelper.Options toReadRowsHelperOptions() {
-    return new ReadRowsHelper.Options(getMaxReadRowsRetries(), endpoint());
+    return new ReadRowsHelper.Options(
+        getMaxReadRowsRetries(), endpoint(), backgroundParsingThreads());
   }
 }

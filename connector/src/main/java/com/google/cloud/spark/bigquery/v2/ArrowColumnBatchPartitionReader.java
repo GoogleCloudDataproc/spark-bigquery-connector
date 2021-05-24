@@ -116,6 +116,21 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
 
     this.userProvidedFieldMap =
         userProvidedFieldList.stream().collect(Collectors.toMap(StructField::name, field -> field));
+    // There is a background thread created by ParallelArrowReader that serves
+    // as a thread to do parsing on.
+    if (numBackgroundThreads == 1) {
+      backgroundParsingService = MoreExecutors.newDirectExecutorService();
+    } else if (numBackgroundThreads > 1) {
+      int threads = numBackgroundThreads - 1;
+      backgroundParsingService =
+          new ThreadPoolExecutor(
+              /*corePoolSize=*/ 1,
+              /*maximumPoolSize=*/ threads,
+              /*keepAliveTime=*/ 2,
+              /*keepAlivetimeUnit=*/ TimeUnit.SECONDS,
+              new SynchronousQueue<>(),
+              new ThreadPoolExecutor.CallerRunsPolicy());
+    }
 
     InputStream batchStream =
         new SequenceInputStream(

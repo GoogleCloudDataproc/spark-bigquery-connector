@@ -19,7 +19,8 @@ public class BigQueryInputPartitionTest {
                 /*bigQueryClientFactory=*/ null,
                 /*tracerFactory=*/ null,
                 "streamName",
-                new ReadRowsHelper.Options(/*maxRetries=*/ 5, Optional.of("endpoint")),
+                new ReadRowsHelper.Options(
+                    /*maxRetries=*/ 5, Optional.of("endpoint"), /*backgroundParsingThreads=*/ 5),
                 null,
                 new ReadSessionResponse(ReadSession.getDefaultInstance(), null),
                 null));

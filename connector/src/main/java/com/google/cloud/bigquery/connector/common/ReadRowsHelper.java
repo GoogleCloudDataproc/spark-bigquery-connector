@@ -38,9 +38,11 @@ public class ReadRowsHelper {
     private final int maxReadRowsRetries;
     private final String nullableEndpoint;
 
-    public Options(int maxReadRowsRetries, Optional<String> endpoint) {
+    public Options(int maxReadRowsRetries, Optional<String> endpoint,
+        int backgroundParsingThreads) {
       this.maxReadRowsRetries = maxReadRowsRetries;
       this.nullableEndpoint = endpoint.orElse(null);
+      this.backgroundParsingThreads = backgroundParsingThreads;
     }
 
     public int getMaxReadRowsRetries() {
