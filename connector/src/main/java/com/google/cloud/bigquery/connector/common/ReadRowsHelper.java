@@ -37,9 +37,10 @@ public class ReadRowsHelper {
   public static final class Options implements Serializable {
     private final int maxReadRowsRetries;
     private final String nullableEndpoint;
+    private final int backgroundParsingThreads;
 
-    public Options(int maxReadRowsRetries, Optional<String> endpoint,
-        int backgroundParsingThreads) {
+    public Options(
+        int maxReadRowsRetries, Optional<String> endpoint, int backgroundParsingThreads) {
       this.maxReadRowsRetries = maxReadRowsRetries;
       this.nullableEndpoint = endpoint.orElse(null);
       this.backgroundParsingThreads = backgroundParsingThreads;
@@ -51,6 +52,10 @@ public class ReadRowsHelper {
 
     public Optional<String> getEndpoint() {
       return Optional.ofNullable(nullableEndpoint);
+    }
+
+    public int numBackgroundThreads() {
+      return numBackgroundThreads();
     }
   }
 

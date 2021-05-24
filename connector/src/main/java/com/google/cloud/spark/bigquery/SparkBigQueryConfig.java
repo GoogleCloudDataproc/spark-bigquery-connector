@@ -115,6 +115,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   int maxReadRowsRetries = 3;
   private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
   private com.google.common.base.Optional<String> storageReadEndpoint = empty();
+  private int numBackgroundThreadsPerStream = 0;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -272,6 +273,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     config.storageReadEndpoint = getAnyOption(globalOptions, options, "bqStorageReadEndpoint");
     config.encodedCreateReadSessionRequest =
         getAnyOption(globalOptions, options, "bqEncodedCreateReadSessionRequest");
+    config.numBackgroundThreadsPerStream =
+        getAnyOption(globalOptions, options, "bqBackgroundThreadsPerStream").transform(Integer::parseInt).or(0);
 
     return config;
   }
@@ -570,6 +573,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         .setMaxParallelism(getMaxParallelism())
         .setRequestEncodedBase(encodedCreateReadSessionRequest.toJavaUtil())
         .setEndpoint(storageReadEndpoint.toJavaUtil())
+        .setBackgroundParsingThreads(numBackgroundThreadsPerStream)
         .build();
   }
 

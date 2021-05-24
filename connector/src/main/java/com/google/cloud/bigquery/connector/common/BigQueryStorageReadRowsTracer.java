@@ -34,11 +34,9 @@ public interface BigQueryStorageReadRowsTracer extends Serializable {
   void nextBatchNeeded();
 
   /**
-   *
-   * <p>Must only be called before any calls are made to the tracer. This is intended for cases when
-   * multiple threads might be used for processing one stream.
-   * tracer that is distinguished between IDs.
-   *
+   * Must only be called before any calls are made to the tracer. This is intended for cases when
+   * multiple threads might be used for processing one stream. tracer that is distinguished between
+   * IDs.
    *
    * @param id A distinguisher to use.
    * @return A new tracer with the ID>

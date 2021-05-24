@@ -56,6 +56,7 @@ public class ParallelArrowReader implements AutoCloseable {
   private final List<ArrowReader> readers;
   private final ExecutorService executor;
   private final VectorLoader loader;
+  private final BigQueryStorageReadRowsTracer rootTracer;
 
   // Whether processing of delegates is finished.
   private volatile boolean done = false;
@@ -70,19 +71,25 @@ public class ParallelArrowReader implements AutoCloseable {
    *     be shutdown when this object is closed.
    */
   public ParallelArrowReader(
-      List<ArrowReader> readers, ExecutorService executor, VectorLoader loader) {
+      List<ArrowReader> readers,
+      ExecutorService executor,
+      VectorLoader loader,
+      BigQueryStorageReadRowsTracer tracer) {
     this.readers = readers;
     queue = new ArrayBlockingQueue<>(readers.size());
     this.executor = executor;
     this.loader = loader;
+    this.rootTracer = tracer;
   }
 
   public boolean next() throws IOException {
     if (readerThread == null) {
       start();
     }
+    rootTracer.nextBatchNeeded();
 
     Future<ArrowRecordBatch> currentBatch = null;
+    rootTracer.readRowsResponseRequested();
     try {
       while (hasMoreElements() && !dataReady(currentBatch) && readException == null) {
         try {
@@ -94,9 +101,13 @@ public class ParallelArrowReader implements AutoCloseable {
       if (readException != null) {
         throw readException;
       }
+      // We don't have access to bytes here.
+      rootTracer.readRowsResponseObtained(/*bytes=*/ 0);
 
       if (dataReady(currentBatch)) {
+        rootTracer.rowsParseStarted();
         loader.load(currentBatch.get());
+        rootTracer.rowsParseFinished(currentBatch.get().getLength());
         currentBatch.get().close();
         return true;
       }
@@ -124,23 +135,30 @@ public class ParallelArrowReader implements AutoCloseable {
     readerThread = new Thread(this::consumeReaders);
     readerThread.setDaemon(true);
     readerThread.start();
+    rootTracer.startStream();
   }
 
   private void consumeReaders() {
+    BigQueryStorageReadRowsTracer tracers[] = new BigQueryStorageReadRowsTracer[readers.size()];
     try {
       // Tracks which readers have exhausted all of there elements
       AtomicBoolean[] hasData = new AtomicBoolean[readers.size()];
+      long lastBytesRead[] = new long[readers.size()];
       AtomicInteger readersReady = new AtomicInteger(readers.size());
       CountDownLatch[] readerLocks = new CountDownLatch[readers.size()];
       VectorUnloader[] unloader = new VectorUnloader[readers.size()];
       VectorSchemaRoot[] roots = new VectorSchemaRoot[readers.size()];
+
       for (int x = 0; x < readerLocks.length; x++) {
         readerLocks[x] = new CountDownLatch(0);
         hasData[x] = new AtomicBoolean();
         hasData[x].set(true);
+        lastBytesRead[x] = 0;
         roots[x] = readers.get(x).getVectorSchemaRoot();
         unloader[x] =
             new VectorUnloader(roots[x], /*includeNullCount=*/ true, /*alignBuffers=*/ false);
+        tracers[x] = rootTracer.forkWithPrefix("reader-thread-" + x);
+        tracers[x].startStream();
       }
 
       while (!done) {
@@ -160,7 +178,12 @@ public class ParallelArrowReader implements AutoCloseable {
               executor.submit(
                   () -> {
                     try {
+                      tracers[idx].readRowsResponseRequested();
                       hasData[idx].set(reader.loadNextBatch());
+                      long incrementalBytesRead = reader.bytesRead() - lastBytesRead[idx];
+                      tracers[idx].readRowsResponseObtained(
+                          /*bytesReceived=*/ incrementalBytesRead);
+                      lastBytesRead[idx] = reader.bytesRead();
                     } catch (IOException e) {
                       readException = e;
                       return null;
@@ -170,7 +193,11 @@ public class ParallelArrowReader implements AutoCloseable {
                     }
                     ArrowRecordBatch batch = null;
                     if (hasData[idx].get()) {
+                      int rows = reader.getVectorSchemaRoot().getRowCount();
+                      // Not quite parsing but re-use it here.
+                      tracers[idx].rowsParseStarted();
                       batch = unloader[idx].getRecordBatch();
+                      tracers[idx].rowsParseFinished(rows);
                     } else {
                       int result = readersReady.addAndGet(-1);
                       if (result <= 0) {
@@ -187,11 +214,15 @@ public class ParallelArrowReader implements AutoCloseable {
     } catch (InterruptedException e) {
       // This should only happen on shutdown.
     }
+    for (BigQueryStorageReadRowsTracer tracer : tracers) {
+      tracer.finished();
+    }
     done = true;
   }
 
   @Override
   public void close() {
+    rootTracer.finished();
     done = true;
     // Try to force reader thread to stop.
     if (readerThread != null) {
