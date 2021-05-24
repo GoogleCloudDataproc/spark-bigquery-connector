@@ -55,7 +55,6 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
-import spire.macros.Auto;
 
 class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader<ColumnarBatch> {
   private static final long maxAllocation = 500 * 1024 * 1024;
@@ -202,7 +201,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
             new SequenceInputStream(
                 new ReadRowsResponseInputStreamEnumeration(
                     multiplexer.getSplit(x), tracer.forkWithPrefix("multiplexed-" + x)));
-        InputStream schemaAndBatches = new SequenceInputStream(schema.newInput(), batchStream);
+        InputStream schemaAndBatches = new SequenceInputStream(schema.newInput(), responseStream);
         readers.add(newArrowStreamReader(schemaAndBatches));
       }
       reader =
