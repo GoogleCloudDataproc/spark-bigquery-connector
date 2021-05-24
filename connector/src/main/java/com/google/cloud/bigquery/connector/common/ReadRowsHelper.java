@@ -30,7 +30,7 @@ import java.util.NoSuchElementException;
 
 import static java.util.Objects.requireNonNull;
 
-public class ReadRowsHelper {
+public class ReadRowsHelper implements AutoCloseable {
   private static final Logger logger = LoggerFactory.getLogger(ReadRowsHelper.class);
   private final Options options;
 
@@ -55,7 +55,7 @@ public class ReadRowsHelper {
     }
 
     public int numBackgroundThreads() {
-      return numBackgroundThreads();
+      return backgroundParsingThreads;
     }
   }
 
@@ -139,6 +139,7 @@ public class ReadRowsHelper {
     }
   }
 
+  @Override
   public void close() {
     if (incomingStream != null) {
       try {

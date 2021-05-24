@@ -55,6 +55,8 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader<ColumnarBatch> {
   private static final long maxAllocation = 500 * 1024 * 1024;

@@ -253,7 +253,7 @@ public class ParallelArrowReader implements AutoCloseable {
     try {
       AutoCloseables.close(readers);
     } catch (Exception e) {
-      throw new RuntimeException("Trouble closing delegate readers", e);
+      log.info("Trouble closing delegate readers", e);
     }
   }
 }

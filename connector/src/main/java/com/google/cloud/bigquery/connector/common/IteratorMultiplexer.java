@@ -52,7 +52,7 @@ public class IteratorMultiplexer<T> implements AutoCloseable {
       }
       worker = null;
       if (rethrow != null) {
-        throw new RuntimeException("Error while closing.", rethrow);
+        log.info("Error occurred while closing.", rethrow);
       }
     } else {
       for (int x = 0; x < splits; x++) {
@@ -132,6 +132,9 @@ public class IteratorMultiplexer<T> implements AutoCloseable {
     @Override
     public T next() {
       Preconditions.checkState(t != null, "next element cannot be null");
+      if (rethrow != null) {
+        throw rethrow;
+      }
       return t;
     }
   }

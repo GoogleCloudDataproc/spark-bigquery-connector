@@ -274,7 +274,9 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     config.encodedCreateReadSessionRequest =
         getAnyOption(globalOptions, options, "bqEncodedCreateReadSessionRequest");
     config.numBackgroundThreadsPerStream =
-        getAnyOption(globalOptions, options, "bqBackgroundThreadsPerStream").transform(Integer::parseInt).or(0);
+        getAnyOption(globalOptions, options, "bqBackgroundThreadsPerStream")
+            .transform(Integer::parseInt)
+            .or(0);
 
     return config;
   }
