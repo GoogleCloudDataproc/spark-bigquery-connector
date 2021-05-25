@@ -76,6 +76,7 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
         readRowsHelper,
         selectedFields,
         tracer,
-        userProvidedSchema.toJavaUtil());
+        userProvidedSchema.toJavaUtil(),
+        options.numBackgroundThreads());
   }
 }

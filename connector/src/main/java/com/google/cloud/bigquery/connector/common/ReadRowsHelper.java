@@ -30,17 +30,20 @@ import java.util.NoSuchElementException;
 
 import static java.util.Objects.requireNonNull;
 
-public class ReadRowsHelper {
+public class ReadRowsHelper implements AutoCloseable {
   private static final Logger logger = LoggerFactory.getLogger(ReadRowsHelper.class);
   private final Options options;
 
   public static final class Options implements Serializable {
     private final int maxReadRowsRetries;
     private final String nullableEndpoint;
+    private final int backgroundParsingThreads;
 
-    public Options(int maxReadRowsRetries, Optional<String> endpoint) {
+    public Options(
+        int maxReadRowsRetries, Optional<String> endpoint, int backgroundParsingThreads) {
       this.maxReadRowsRetries = maxReadRowsRetries;
       this.nullableEndpoint = endpoint.orElse(null);
+      this.backgroundParsingThreads = backgroundParsingThreads;
     }
 
     public int getMaxReadRowsRetries() {
@@ -49,6 +52,10 @@ public class ReadRowsHelper {
 
     public Optional<String> getEndpoint() {
       return Optional.ofNullable(nullableEndpoint);
+    }
+
+    public int numBackgroundThreads() {
+      return backgroundParsingThreads;
     }
   }
 
@@ -132,6 +139,7 @@ public class ReadRowsHelper {
     }
   }
 
+  @Override
   public void close() {
     if (incomingStream != null) {
       try {

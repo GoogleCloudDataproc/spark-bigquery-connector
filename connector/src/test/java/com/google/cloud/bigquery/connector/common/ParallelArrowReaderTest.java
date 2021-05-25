@@ -95,7 +95,11 @@ public class ParallelArrowReaderTest {
         VectorSchemaRoot.create(r1.getVectorSchemaRoot().getSchema(), allocator)) {
       VectorLoader loader = new VectorLoader(root);
       ParallelArrowReader reader =
-          new ParallelArrowReader(ImmutableList.of(r1, r2, r3), executor, loader);
+          new ParallelArrowReader(
+              ImmutableList.of(r1, r2, r3),
+              executor,
+              loader,
+              new LoggingBigQueryStorageReadRowsTracer("stream_name", 2));
 
       while (reader.next()) {
         read.add(((IntVector) root.getVector(0)).get(0));
@@ -118,7 +122,11 @@ public class ParallelArrowReaderTest {
     ExecutorService executor = MoreExecutors.newDirectExecutorService();
     try (VectorSchemaRoot root = new VectorSchemaRoot(ImmutableList.of())) {
       ParallelArrowReader reader =
-          new ParallelArrowReader(ImmutableList.of(r1), executor, new VectorLoader(root));
+          new ParallelArrowReader(
+              ImmutableList.of(r1),
+              executor,
+              new VectorLoader(root),
+              new LoggingBigQueryStorageReadRowsTracer("stream_name", 2));
       IOException e = Assert.assertThrows(IOException.class, reader::next);
       assertThat(e).isSameInstanceAs(exception);
     }
@@ -144,7 +152,11 @@ public class ParallelArrowReaderTest {
 
       ExecutorService executor = Executors.newSingleThreadExecutor();
       ParallelArrowReader reader =
-          new ParallelArrowReader(ImmutableList.of(r1, r2), executor, loader);
+          new ParallelArrowReader(
+              ImmutableList.of(r1, r2),
+              executor,
+              loader,
+              new LoggingBigQueryStorageReadRowsTracer("stream_name", 2));
 
       ExecutorService oneOff = Executors.newSingleThreadExecutor();
       Instant start = Instant.now();

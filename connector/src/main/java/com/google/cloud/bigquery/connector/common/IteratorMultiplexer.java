@@ -30,9 +30,10 @@ public class IteratorMultiplexer<T> implements AutoCloseable {
    * @param iterator The Iterator to read from.
    * @param splits The number of output iterators that will read from iterator.
    */
-  IteratorMultiplexer(Iterator<T> iterator, int splits) {
+  public IteratorMultiplexer(Iterator<T> iterator, int splits) {
     this.iterator = iterator;
     this.splits = splits;
+
     // Filled in when initializing iterators.
     iterators = new QueueIterator[splits];
     for (int x = 0; x < splits; x++) {
@@ -51,7 +52,7 @@ public class IteratorMultiplexer<T> implements AutoCloseable {
       }
       worker = null;
       if (rethrow != null) {
-        throw new RuntimeException("Error while closing.", rethrow);
+        log.info("Error occurred while closing.", rethrow);
       }
     } else {
       for (int x = 0; x < splits; x++) {
@@ -131,6 +132,9 @@ public class IteratorMultiplexer<T> implements AutoCloseable {
     @Override
     public T next() {
       Preconditions.checkState(t != null, "next element cannot be null");
+      if (rethrow != null) {
+        throw rethrow;
+      }
       return t;
     }
   }

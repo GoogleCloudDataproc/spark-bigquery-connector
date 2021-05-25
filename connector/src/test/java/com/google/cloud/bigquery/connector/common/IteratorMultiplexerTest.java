@@ -79,7 +79,7 @@ public class IteratorMultiplexerTest {
       executorService.shutdownNow();
       assertThat(executorService.awaitTermination(100, TimeUnit.MILLISECONDS)).isTrue();
       assertThat(executorService.isTerminated());
-      assertThrows(RuntimeException.class, multiplexer::close);
+      multiplexer.close();
     }
   }
 
@@ -120,7 +120,7 @@ public class IteratorMultiplexerTest {
               exited.countDown();
             });
       }
-      Exception thrown = assertThrows(Exception.class, multiplexer::close);
+      multiplexer.close();
 
       assertThat(exited.await(3, TimeUnit.SECONDS)).isTrue();
       executorService.shutdown();

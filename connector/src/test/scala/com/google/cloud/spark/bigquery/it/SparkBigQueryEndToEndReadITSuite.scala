@@ -130,6 +130,40 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
       .option("table", SHAKESPEARE_TABLE).load()
   }
 
+  testShakespeare("DataSource v2 - compressed") {
+    val df = spark.read.format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+      .option("table", SHAKESPEARE_TABLE)
+      .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
+      .load()
+    // Test early termination succeeds
+    df.head
+    df
+  }
+
+
+  testShakespeare("DataSource v2 - compressed 1 background threads") {
+    val df = spark.read.format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+      .option("table", SHAKESPEARE_TABLE)
+      .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
+      .option("bqBackgroundThreadsPerStream", "1")
+      .load()
+    // Test early termination succeeds
+    df.head
+    df
+  }
+
+  testShakespeare("DataSource v2 - compressed 4 background threads") {
+    val df = spark.read.format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+      .option("table", SHAKESPEARE_TABLE)
+      .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
+      .option("bqBackgroundThreadsPerStream", "4")
+      .load()
+    // Test early termination succeeds
+    df.head
+    df
+
+  }
+
   for (
     dataFormat <- Seq("avro", "arrow");
     dataSourceFormat <- Seq("bigquery", "com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
