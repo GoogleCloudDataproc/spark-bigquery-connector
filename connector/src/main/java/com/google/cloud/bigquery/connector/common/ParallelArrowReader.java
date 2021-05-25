@@ -183,7 +183,7 @@ public class ParallelArrowReader implements AutoCloseable {
           readerLocks[readerIdx] = new CountDownLatch(1);
 
           final int idx = readerIdx;
-          Future<ArrowRecordBatch> future =
+          currentFuture =
               executor.submit(
                   () -> {
                     try {
