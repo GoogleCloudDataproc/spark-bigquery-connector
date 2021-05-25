@@ -152,11 +152,11 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
     df
   }
 
-  testShakespeare("DataSource v2 - compressed 2 background threads") {
+  testShakespeare("DataSource v2 - compressed 4 background threads") {
     val df = spark.read.format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
       .option("table", SHAKESPEARE_TABLE)
       .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
-      .option("bqBackgroundThreadsPerStream", "2")
+      .option("bqBackgroundThreadsPerStream", "4")
       .load()
     // Test early termination succeeds
     df.head

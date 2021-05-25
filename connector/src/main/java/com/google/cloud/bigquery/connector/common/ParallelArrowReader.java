@@ -37,7 +37,9 @@ import org.slf4j.LoggerFactory;
 
 /*
  * A utility class for taking up to N {@link ArrowReader} objects and reading data from them
- * asynchronously.
+ * asynchronously. This tries to round robin between all readers given to it to maintain
+ * a consistent order. It does not appear spark actually cares about this though
+ * so it could be relaxed in the future.
  *
  * This is useful in a few contexts:
  * * For InputPartitionReaders that have expensive synchronous CPU operations
@@ -53,6 +55,7 @@ public class ParallelArrowReader implements AutoCloseable {
   // Visible for testing.
   static final int POLL_TIME = 100;
   private final BlockingQueue<Future<ArrowRecordBatch>> queue;
+  Future<ArrowRecordBatch> currentFuture;
   private final List<ArrowReader> readers;
   private final ExecutorService executor;
   private final VectorLoader loader;
@@ -104,6 +107,9 @@ public class ParallelArrowReader implements AutoCloseable {
         }
       }
       if (readException != null) {
+        if (dataReady(currentBatch)) {
+          currentBatch.get().close();
+        }
         throw readException;
       }
       // We don't have access to bytes here.
@@ -177,7 +183,7 @@ public class ParallelArrowReader implements AutoCloseable {
           readerLocks[readerIdx] = new CountDownLatch(1);
 
           final int idx = readerIdx;
-          queue.put(
+          Future<ArrowRecordBatch> future =
               executor.submit(
                   () -> {
                     try {
@@ -190,11 +196,9 @@ public class ParallelArrowReader implements AutoCloseable {
                     } catch (IOException e) {
                       readException = e;
                       hasData[idx].set(false);
-                      return null;
                     } catch (Exception e) {
                       readException = new IOException("failed to consume readers", e);
                       hasData[idx].set(false);
-                      return null;
                     }
                     ArrowRecordBatch batch = null;
                     if (hasData[idx].get()) {
@@ -211,19 +215,24 @@ public class ParallelArrowReader implements AutoCloseable {
                     }
                     readerLocks[idx].countDown();
                     return batch;
-                  }));
+                  });
+          queue.put(currentFuture);
+          currentFuture = null;
         }
       }
     } catch (IOException e) {
       readException = e;
     } catch (InterruptedException e) {
-      log.info("Reader thread interrupted.");
+      log.debug("Reader thread interrupted.");
     }
     done = true;
   }
 
   @Override
   public void close() {
+    if (readException != null) {
+      log.info("Read exception", readException);
+    }
     rootTracer.finished();
     done = true;
     // Try to force reader thread to stop.
@@ -235,41 +244,46 @@ public class ParallelArrowReader implements AutoCloseable {
         log.info("Interrupted while waiting for reader thread to finish.");
       }
       if (readerThread.isAlive()) {
-        log.warn("Reader thread did not shutdown in 10 second.");
+        log.warn("Reader thread did not shutdown in 10 seconds.");
+      } else {
+        log.info("Reader thread stopped.  Queue size: {}", queue.size());
       }
     }
     // Stop any queued tasks from processing.
-    executor.shutdownNow();
+    executor.shutdown();
 
     try {
       if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
         log.warn("executor did not terminate after 10 seconds");
       }
     } catch (InterruptedException e) {
+      log.info("Interrupted when awaiting executor termination");
       // Nothing to do here.
     }
 
     int inProgress = 0;
-    while (!queue.isEmpty()) {
-      Future<ArrowRecordBatch> batch = queue.poll();
+    List<Future<ArrowRecordBatch>> leftOverWork = new java.util.ArrayList<>();
+    if (currentFuture != null) {
+      leftOverWork.add(currentFuture);
+    }
+    leftOverWork.addAll(queue);
+    for (Future<ArrowRecordBatch> batch : leftOverWork) {
       if (batch != null) {
         if (batch.isDone()) {
-
           try {
             if (batch.get() != null) {
               batch.get().close();
             }
           } catch (Exception e) {
-            log.info("Error closing left over batch", e);
+            log.warn("Error closing left over batch", e);
           }
-
         } else {
           inProgress++;
         }
       }
     }
     if (inProgress > 0) {
-      log.warn("Left over tasks in progress %s", inProgress);
+      log.warn("Left over tasks in progress {}", inProgress);
     }
     for (BigQueryStorageReadRowsTracer tracer : tracers) {
       tracer.finished();

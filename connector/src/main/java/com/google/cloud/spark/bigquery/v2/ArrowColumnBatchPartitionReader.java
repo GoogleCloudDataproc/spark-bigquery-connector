@@ -104,23 +104,25 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
         BigQueryStorageReadRowsTracer tracer,
         AutoCloseable closeable) {
       Schema schema = null;
+      closeables.add(closeable);
       try {
         schema = readers.get(0).getVectorSchemaRoot().getSchema();
       } catch (IOException e) {
         initialException = e;
         closeables.addAll(readers);
-        closeables.add(closeable);
         this.reader = null;
         this.loader = null;
         this.root = null;
         return;
       }
-      root = VectorSchemaRoot.create(schema, allocator);
+      BufferAllocator readerAllocator =
+          allocator.newChildAllocator("ParallelReaderAllocator", 0, maxAllocation);
+      root = VectorSchemaRoot.create(schema, readerAllocator);
       closeables.add(root);
       loader = new VectorLoader(root);
       this.reader = new ParallelArrowReader(readers, executor, loader, tracer);
       closeables.add(reader);
-      closeables.add(closeable);
+      closeables.add(readerAllocator);
     }
 
     @Override
@@ -150,6 +152,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
   private final BigQueryStorageReadRowsTracer tracer;
   private boolean closed = false;
   private final Map<String, StructField> userProvidedFieldMap;
+  private final List<AutoCloseable> closeables = new ArrayList<>();
 
   ArrowColumnBatchPartitionColumnBatchReader(
       Iterator<ReadRowsResponse> readRowsResponses,
@@ -159,12 +162,12 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       BigQueryStorageReadRowsTracer tracer,
       Optional<StructType> userProvidedSchema,
       int numBackgroundThreads) {
-    this.allocator =
-        ArrowUtil.newRootAllocator(maxAllocation)
-            .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);
+    this.allocator = ArrowUtil.newRootAllocator(maxAllocation);
     this.readRowsHelper = readRowsHelper;
     this.namesInOrder = namesInOrder;
     this.tracer = tracer;
+    // place holder for reader.
+    closeables.add(null);
 
     List<StructField> userProvidedFieldList =
         Arrays.stream(userProvidedSchema.orElse(new StructType()).fields())
@@ -189,6 +192,8 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
               tracer.forkWithPrefix("BackgroundReader"),
               /*closeable=*/ null);
     } else if (numBackgroundThreads > 1) {
+      // Subtract one because current excess tasks will be executed
+      // on round robin thread.
       int threads = numBackgroundThreads - 1;
       ExecutorService backgroundParsingService =
           new ThreadPoolExecutor(
@@ -214,7 +219,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
               allocator,
               readers,
               backgroundParsingService,
-              tracer.forkWithPrefix("BackgroundReader"),
+              tracer.forkWithPrefix("MultithreadReader"),
               multiplexer);
     } else {
       // Zero background threads.
@@ -270,7 +275,9 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       throw new IOException("Failure closing stream: " + readRowsHelper, e);
     } finally {
       try {
-        AutoCloseables.close(reader, allocator);
+        closeables.set(0, reader);
+        closeables.add(allocator);
+        AutoCloseables.close(closeables);
       } catch (Exception e) {
         throw new IOException("Failure closing arrow components. stream: " + readRowsHelper, e);
       }
@@ -278,6 +285,9 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
   }
 
   private ArrowStreamReader newArrowStreamReader(InputStream fullStream) {
-    return new ArrowStreamReader(fullStream, allocator, CommonsCompressionFactory.INSTANCE);
+    BufferAllocator childAllocator =
+        allocator.newChildAllocator("readerAllocator" + (closeables.size() - 1), 0, maxAllocation);
+    closeables.add(childAllocator);
+    return new ArrowStreamReader(fullStream, childAllocator, CommonsCompressionFactory.INSTANCE);
   }
 }
