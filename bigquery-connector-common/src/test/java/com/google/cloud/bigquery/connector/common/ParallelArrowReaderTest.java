@@ -43,8 +43,6 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowReader;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.arrow.vector.ipc.ArrowStreamWriter;
-//import org.apache.spark.sql.vectorized.ColumnVector;
-//import org.apache.spark.sql.vectorized.ColumnarBatch;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -86,22 +84,10 @@ public class ParallelArrowReaderTest {
 
 //  @Test
 //  public void testReadsAllBatchesInRoundRobin() throws Exception {
-//
-//    ColumnarBatch[] batches = new ColumnarBatch[6];
-//    for (int x = 0; x < batches.length; x++) {
-//      batches[x] = new ColumnarBatch(new ColumnVector[0]);
-//    }
 //    ArrowReader r1 = getReaderWithSequence(0);
 //    ArrowReader r2 = getReaderWithSequence(1, 3);
 //    ArrowReader r3 = getReaderWithSequence(2, 4, 5);
-//    ExecutorService executor =
-//        new ThreadPoolExecutor(
-//            /*corePoolSize=*/ 1,
-//            /*maximumPoolSize=*/ 2,
-//            /*keepAliveTime=*/ 2,
-//            /*keepAlivetimeUnit=*/ TimeUnit.SECONDS,
-//            new SynchronousQueue<>(),
-//            new ThreadPoolExecutor.CallerRunsPolicy());
+//    ExecutorService executor = Executors.newFixedThreadPool(3);
 //    List<Integer> read = new ArrayList<>();
 //    try (VectorSchemaRoot root =
 //        VectorSchemaRoot.create(r1.getVectorSchemaRoot().getSchema(), allocator)) {
@@ -119,7 +105,7 @@ public class ParallelArrowReaderTest {
 //      reader.close();
 //    }
 //
-//    assertThat(read).containsExactlyElementsIn(ImmutableList.of(0, 1, 2, 3, 4, 5));
+//    assertThat(read).containsExactlyElementsIn(ImmutableList.of(0, 1, 2, 3, 4, 5)).inOrder();
 //    assertThat(executor.isShutdown()).isTrue();
 //  }
 
