@@ -55,12 +55,13 @@ public class ParallelArrowReader implements AutoCloseable {
   // Visible for testing.
   static final int POLL_TIME = 100;
   private final BlockingQueue<Future<ArrowRecordBatch>> queue;
-  Future<ArrowRecordBatch> currentFuture;
   private final List<ArrowReader> readers;
   private final ExecutorService executor;
   private final VectorLoader loader;
   private final BigQueryStorageReadRowsTracer rootTracer;
-  BigQueryStorageReadRowsTracer tracers[];
+  private final BigQueryStorageReadRowsTracer tracers[];
+
+  private volatile Future<ArrowRecordBatch> currentFuture;
 
   // Whether processing of delegates is finished.
   private volatile boolean done = false;
