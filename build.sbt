@@ -16,11 +16,11 @@
 lazy val scala211Version = "2.11.12"
 lazy val scala212Version = "2.12.10"
 lazy val sparkVersion = "2.4.0"
-lazy val grpcVersion = "1.30.2"
+lazy val grpcVersion = "1.37.1"
 // should match the dependency from grpc-netty
-lazy val nettyVersion = "4.1.51.Final"
+lazy val nettyVersion = "4.1.65.Final"
 // should match the dependency in grpc-netty
-lazy val nettyTcnativeVersion = "2.0.34.Final"
+lazy val nettyTcnativeVersion = "2.0.39.Final"
 
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
@@ -34,8 +34,9 @@ javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
 initialize := {
   val _ = initialize.value
   val javaVersion = sys.props("java.specification.version")
-  if (javaVersion != "1.8")
+  if (javaVersion != "1.8") {
     sys.error("Java 1.8 is required for this project. Found " + javaVersion + " instead")
+  }
 }
 
 // scalastyle:off
@@ -51,7 +52,7 @@ lazy val root = (project in file("."))
 lazy val commonTestDependencies = Seq(
   "io.grpc" % "grpc-alts" % grpcVersion exclude("io.grpc", "grpc-netty-shaded"),
   "io.grpc" % "grpc-netty" % grpcVersion,
-  "com.google.api" % "gax-grpc" % "1.60.0" exclude("io.grpc", "grpc-netty-shaded"),
+  "com.google.api" % "gax-grpc" % "1.64.0" exclude("io.grpc", "grpc-netty-shaded"),
   "com.google.guava" % "guava" % "30.1.1-jre",
 
   "org.scalatest" %% "scalatest" % "3.1.0" % "test",
@@ -94,21 +95,21 @@ lazy val connector = (project in file("connector"))
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
       "com.google.inject" % "guice" % "4.2.3",
       "org.apache.arrow" % "arrow-vector" % "4.0.0"
-			  excludeAll(ExclusionRule(organization="org.slf4j"),
-			   ExclusionRule(organization ="com.fasterxml.jackson.core"),
-				 ExclusionRule(organization="io.netty")),
+			  excludeAll(ExclusionRule(organization = "org.slf4j"),
+			   ExclusionRule(organization = "com.fasterxml.jackson.core"),
+				 ExclusionRule(organization = "io.netty")),
       "org.apache.arrow" % "arrow-memory-netty" % "4.0.0"
-			   excludeAll(ExclusionRule(organization="org.slf4j"),
-			     ExclusionRule(organization="io.netty"),
-		       ExclusionRule(organization ="com.fasterxml.jackson.core")),
+			   excludeAll(ExclusionRule(organization = "org.slf4j"),
+			     ExclusionRule(organization = "io.netty"),
+		       ExclusionRule(organization = "com.fasterxml.jackson.core")),
       "org.apache.arrow" % "arrow-compression" % "4.0.0"
-			   excludeAll(ExclusionRule(organization="org.slf4j"),
-			     ExclusionRule(organization="io.netty"),
-		       ExclusionRule(organization ="com.fasterxml.jackson.core")),
+			   excludeAll(ExclusionRule(organization = "org.slf4j"),
+			     ExclusionRule(organization = "io.netty"),
+		       ExclusionRule(organization = "com.fasterxml.jackson.core")),
 
       // Keep com.google.cloud dependencies in sync
-      "com.google.cloud" % "google-cloud-bigquery" % "1.123.2",
-      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.6.0"
+      "com.google.cloud" % "google-cloud-bigquery" % "1.131.1",
+      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.21.1"
         exclude("io.grpc", "grpc-netty-shaded"),
       // Keep in sync with com.google.cloud
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.11.3",
@@ -190,8 +191,8 @@ lazy val published = project
     ) },
     libraryDependencies ++= (commonTestDependencies.map(
       dependency => dependency.withConfigurations(Some("test"))) ++ Seq(
-      "com.google.cloud" % "google-cloud-dataproc" % "1.2.0" % "test",
-      "com.google.cloud" % "google-cloud-storage" % "1.113.11" % "test"
+      "com.google.cloud" % "google-cloud-dataproc" % "1.4.3" % "test",
+      "com.google.cloud" % "google-cloud-storage" % "1.114.0" % "test"
     ))
       .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
 
