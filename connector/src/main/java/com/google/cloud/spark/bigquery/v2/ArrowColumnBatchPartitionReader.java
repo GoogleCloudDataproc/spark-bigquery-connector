@@ -86,7 +86,11 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
 
     @Override
     public void close() throws Exception {
-      reader.close();
+      // Don't close the stream here since it will be taken care
+      // of by closing the ReadRowsHelper below and the way the stream
+      // is setup closing it here will cause it to be drained before
+      // returning.
+      reader.close(/*close stream*/ false);
     }
   }
 
@@ -269,16 +273,16 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     closed = true;
     try {
       tracer.finished();
-      readRowsHelper.close();
+      closeables.set(0, reader);
+      closeables.add(allocator);
+      AutoCloseables.close(closeables);
     } catch (Exception e) {
-      throw new IOException("Failure closing stream: " + readRowsHelper, e);
+      throw new IOException("Failure closing arrow components. stream: " + readRowsHelper, e);
     } finally {
       try {
-        closeables.set(0, reader);
-        closeables.add(allocator);
-        AutoCloseables.close(closeables);
+        readRowsHelper.close();
       } catch (Exception e) {
-        throw new IOException("Failure closing arrow components. stream: " + readRowsHelper, e);
+        throw new IOException("Failure closing stream: " + readRowsHelper, e);
       }
     }
   }
