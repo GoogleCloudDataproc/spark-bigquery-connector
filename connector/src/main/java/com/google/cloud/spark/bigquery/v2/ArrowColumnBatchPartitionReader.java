@@ -125,7 +125,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       closeables.add(root);
       loader = new VectorLoader(root);
       this.reader = new ParallelArrowReader(readers, executor, loader, tracer);
-      closeables.add(reader);
+      closeables.add(0, reader);
       closeables.add(readerAllocator);
     }
 
