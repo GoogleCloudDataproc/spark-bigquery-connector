@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter.Arrow;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -91,47 +92,68 @@ public class ParallelArrowReader implements AutoCloseable {
     }
   }
 
-  public boolean next() throws IOException {
-    if (readerThread == null) {
-      start();
-    }
-    rootTracer.nextBatchNeeded();
-
-    Future<ArrowRecordBatch> currentBatch = null;
-    rootTracer.readRowsResponseRequested();
+  ArrowRecordBatch resolveBatch(Future<ArrowRecordBatch> futureBatch)
+      throws IOException, InterruptedException {
     try {
-      while (hasMoreElements() && !dataReady(currentBatch) && readException == null) {
-        try {
-          currentBatch = queue.poll(POLL_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-          break;
-        }
-      }
-      if (readException != null) {
-        if (dataReady(currentBatch)) {
-          currentBatch.get().close();
-        }
-        throw readException;
-      }
-      // We don't have access to bytes here.
-      rootTracer.readRowsResponseObtained(/*bytes=*/ 0);
-
-      if (dataReady(currentBatch)) {
-        rootTracer.rowsParseStarted();
-        loader.load(currentBatch.get());
-        rootTracer.rowsParseFinished(currentBatch.get().getLength());
-        currentBatch.get().close();
-        return true;
-      }
-      return false;
+      return futureBatch.get();
     } catch (InterruptedException e) {
-      throw new IOException(e);
+      log.info("Interrupted while waiting for next batch.");
+      ArrowRecordBatch resolvedBatch = null;
+      try {
+        resolvedBatch = futureBatch.get(10, TimeUnit.SECONDS);
+      } catch (Exception se) {
+        log.warn("Exception caught when waiting for batch on second try.  Giving up.");
+        throw new IOException(se);
+      }
+      resolvedBatch.close();
+      throw e;
     } catch (ExecutionException e) {
       if (e.getCause() instanceof IOException) {
         throw (IOException) e.getCause();
       }
       throw new IOException(e);
     }
+  }
+
+  public boolean next() throws IOException {
+    if (readerThread == null) {
+      start();
+    }
+    rootTracer.nextBatchNeeded();
+    rootTracer.readRowsResponseRequested();
+    ArrowRecordBatch resolvedBatch = null;
+    try {
+      while (hasMoreElements() && readException == null && resolvedBatch == null) {
+        Future<ArrowRecordBatch> futureBatch = null;
+        while (hasMoreElements() && readException == null && futureBatch == null) {
+          futureBatch = queue.poll(POLL_TIME, TimeUnit.MILLISECONDS);
+        }
+        if (futureBatch != null) {
+          resolvedBatch = resolveBatch(futureBatch);
+        }
+      }
+    } catch (InterruptedException e) {
+      log.info("Interrupted when waiting for next batch.");
+      return false;
+    }
+
+    if (readException != null) {
+      if (resolvedBatch != null) {
+        resolvedBatch.close();
+      }
+      throw readException;
+    }
+    // We don't have access to bytes here.
+    rootTracer.readRowsResponseObtained(/*bytes=*/ 0);
+
+    if (resolvedBatch != null) {
+      rootTracer.rowsParseStarted();
+      loader.load(resolvedBatch);
+      rootTracer.rowsParseFinished(resolvedBatch.getLength());
+      resolvedBatch.close();
+      return true;
+    }
+    return false;
   }
 
   private boolean dataReady(Future<ArrowRecordBatch> currentBatch)

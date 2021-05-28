@@ -177,8 +177,8 @@ public class ParallelArrowReaderTest {
       // Wait until next gets called.
       latch.await();
       // Should interrupt blocking operations.
+      oneOff.shutdownNow();
       reader.close();
-      oneOff.shutdown();
 
       assertThat(endTime.get()).isGreaterThan(start);
       assertThat(Duration.between(start, endTime.get()))
