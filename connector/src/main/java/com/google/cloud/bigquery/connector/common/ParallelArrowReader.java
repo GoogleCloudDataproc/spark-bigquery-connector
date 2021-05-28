@@ -205,20 +205,25 @@ public class ParallelArrowReader implements AutoCloseable {
           readerLocks[readerIdx] = new CountDownLatch(1);
 
           final int idx = readerIdx;
+          log.info("Before submit");
           currentFuture =
               executor.submit(
                   () -> {
                     try {
                       tracers[idx].readRowsResponseRequested();
+                      log.info("loading batch");
                       hasData[idx].set(reader.loadNextBatch());
+                      log.info("batch loaded");
                       long incrementalBytesRead = reader.bytesRead() - lastBytesRead[idx];
                       tracers[idx].readRowsResponseObtained(
                           /*bytesReceived=*/ incrementalBytesRead);
                       lastBytesRead[idx] = reader.bytesRead();
                     } catch (IOException e) {
+                      log.info("io exception");
                       readException = e;
                       hasData[idx].set(false);
                     } catch (Exception e) {
+                      log.info("general exception");
                       readException = new IOException("failed to consume readers", e);
                       hasData[idx].set(false);
                     }
@@ -227,7 +232,9 @@ public class ParallelArrowReader implements AutoCloseable {
                       int rows = reader.getVectorSchemaRoot().getRowCount();
                       // Not quite parsing but re-use it here.
                       tracers[idx].rowsParseStarted();
+                      log.info("batch unloading");
                       batch = unloader[idx].getRecordBatch();
+                      log.info("batch unloaded");
                       tracers[idx].rowsParseFinished(rows);
                     } else {
                       int result = readersReady.addAndGet(-1);
@@ -238,14 +245,18 @@ public class ParallelArrowReader implements AutoCloseable {
                     readerLocks[idx].countDown();
                     return batch;
                   });
+          log.info("After submit");
           queue.put(currentFuture);
+          log.info("Enqueued");
           currentFuture = null;
+          log.info("cleared");
         }
       }
     } catch (IOException e) {
+      log.info("io exception caught.");
       readException = e;
     } catch (InterruptedException e) {
-      log.debug("Reader thread interrupted.");
+      log.info("Reader thread interrupted.");
     }
     done = true;
   }
@@ -289,6 +300,7 @@ public class ParallelArrowReader implements AutoCloseable {
       leftOverWork.add(currentFuture);
     }
     leftOverWork.addAll(queue);
+    log.info("Left over work: {}", leftOverWork.size());
     for (Future<ArrowRecordBatch> batch : leftOverWork) {
       if (batch != null) {
         if (batch.isDone()) {
