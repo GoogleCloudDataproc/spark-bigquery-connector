@@ -27,7 +27,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.arrow.util.AutoCloseables;
 import org.apache.arrow.vector.VectorLoader;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.VectorUnloader;
@@ -312,10 +311,14 @@ public class ParallelArrowReader implements AutoCloseable {
       tracer.finished();
     }
 
-    try {
-      AutoCloseables.close(readers);
-    } catch (Exception e) {
-      log.info("Trouble closing delegate readers", e);
+    for (ArrowReader reader : readers) {
+      try {
+        // Don't close the stream here because it will consume all of it.
+        // We let other components worry about stream closure.
+        reader.close(/*close underlying channel*/ false);
+      } catch (Exception e) {
+        log.info("Trouble closing delegate readers", e);
+      }
     }
   }
 }
