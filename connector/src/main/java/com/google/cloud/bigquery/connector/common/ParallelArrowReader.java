@@ -272,7 +272,7 @@ public class ParallelArrowReader implements AutoCloseable {
       }
     }
     // Stop any queued tasks from processing.
-    executor.shutdown();
+    executor.shutdownNow();
 
     try {
       if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
