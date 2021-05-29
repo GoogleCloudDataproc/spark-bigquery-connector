@@ -6,14 +6,13 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 
 /**
- * Some JDKs implement the ReadableByteChannel that wraps an input stream with a channel that
- * will intercept and reraise interrupted exception.  Normally, this is a good thing, however
- * with the connector use-case this triggers a memory leak in the Arrow library (present as of 4.0).
+ * Some JDKs implement the ReadableByteChannel that wraps an input stream with a channel that will
+ * intercept and reraise interrupted exception. Normally, this is a good thing, however with the
+ * connector use-case this triggers a memory leak in the Arrow library (present as of 4.0).
  *
- * So this is a temporary hack to ensure non-blocking behavior to avoid the memory leak.  This should
- * be fine because the underlying stream will be interrupted appropriately and only along full message
- * boundaries, which should be sufficient for our use-cases.
- *
+ * <p>So this is a temporary hack to ensure non-blocking behavior to avoid the memory leak. This
+ * should be fine because the underlying stream will be interrupted appropriately and only along
+ * full message boundaries, which should be sufficient for our use-cases.
  */
 public class NonInterruptibleBlockingBytesChannel implements ReadableByteChannel {
   private final InputStream is;
@@ -31,25 +30,19 @@ public class NonInterruptibleBlockingBytesChannel implements ReadableByteChannel
     int totalRead = 0;
     int bytesRead = 0;
 
-      while (totalRead < len) {
-        int bytesToRead = Math.min((len - totalRead),
-            TRANSFER_SIZE);
-        if (transfer_buffer.length < bytesToRead)
-          transfer_buffer = new byte[bytesToRead];
+    while (totalRead < len) {
+      int bytesToRead = Math.min((len - totalRead), TRANSFER_SIZE);
+      if (transfer_buffer.length < bytesToRead) transfer_buffer = new byte[bytesToRead];
 
-        bytesRead = is.read(transfer_buffer, 0, bytesToRead);
-        if (bytesRead < 0)
-          break;
-        else
-          totalRead += bytesRead;
-        dst.put(transfer_buffer, 0, bytesRead);
-      }
-      if ((bytesRead < 0) && (totalRead == 0))
-        return -1;
-
-      return totalRead;
+      bytesRead = is.read(transfer_buffer, 0, bytesToRead);
+      if (bytesRead < 0) break;
+      else totalRead += bytesRead;
+      dst.put(transfer_buffer, 0, bytesRead);
     }
+    if ((bytesRead < 0) && (totalRead == 0)) return -1;
 
+    return totalRead;
+  }
 
   @Override
   public boolean isOpen() {

@@ -292,6 +292,9 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     BufferAllocator childAllocator =
         allocator.newChildAllocator("readerAllocator" + (closeables.size() - 1), 0, maxAllocation);
     closeables.add(childAllocator);
-    return new ArrowStreamReader(new NonInterruptibleBlockingBytesChannel(fullStream), childAllocator, CommonsCompressionFactory.INSTANCE);
+    return new ArrowStreamReader(
+        new NonInterruptibleBlockingBytesChannel(fullStream),
+        childAllocator,
+        CommonsCompressionFactory.INSTANCE);
   }
 }
