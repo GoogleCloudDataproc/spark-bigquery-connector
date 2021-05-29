@@ -216,10 +216,11 @@ public class ParallelArrowReader implements AutoCloseable {
                           /*bytesReceived=*/ incrementalBytesRead);
                       lastBytesRead[idx] = reader.bytesRead();
                     } catch (IOException e) {
+                      log.info("IOException while consuming reader.", e);
                       readException = e;
                       hasData[idx].set(false);
                     } catch (Exception e) {
-                      readException = new IOException("failed to consume readers", e);
+                      readException = new IOException("Failed to consume readers", e);
                       hasData[idx].set(false);
                     }
                     ArrowRecordBatch batch = null;
@@ -243,9 +244,10 @@ public class ParallelArrowReader implements AutoCloseable {
         }
       }
     } catch (IOException e) {
+      log.info("Error while reading in streams", e);
       readException = e;
     } catch (InterruptedException e) {
-      log.debug("Reader thread interrupted.");
+      log.info("Reader thread interrupted.");
     }
     done = true;
   }
@@ -280,7 +282,6 @@ public class ParallelArrowReader implements AutoCloseable {
       }
     } catch (InterruptedException e) {
       log.info("Interrupted when awaiting executor termination");
-      // Nothing to do here.
     }
 
     int inProgress = 0;
