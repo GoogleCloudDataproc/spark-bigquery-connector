@@ -33,7 +33,7 @@ public class NonInterruptibleBlockingBytesChannel implements ReadableByteChannel
   private static final int TRANSFER_SIZE = 4096;
   private final InputStream is;
   private boolean closed = false;
-  private byte[] transferBuffer = new byte[512];
+  private byte[] transferBuffer = new byte[TRANSFER_SIZE];
 
   public NonInterruptibleBlockingBytesChannel(InputStream is) {
     this.is = is;
@@ -47,10 +47,6 @@ public class NonInterruptibleBlockingBytesChannel implements ReadableByteChannel
 
     while (totalRead < len) {
       int bytesToRead = Math.min((len - totalRead), TRANSFER_SIZE);
-      if (transferBuffer.length < bytesToRead) {
-        transferBuffer = new byte[bytesToRead];
-      }
-
       bytesRead = is.read(transferBuffer, 0, bytesToRead);
       if (bytesRead < 0) {
         break;
@@ -59,7 +55,9 @@ public class NonInterruptibleBlockingBytesChannel implements ReadableByteChannel
       }
       dst.put(transferBuffer, 0, bytesRead);
     }
-    if ((bytesRead < 0) && (totalRead == 0)) return -1;
+    if ((bytesRead < 0) && (totalRead == 0)) {
+      return -1;
+    }
 
     return totalRead;
   }
