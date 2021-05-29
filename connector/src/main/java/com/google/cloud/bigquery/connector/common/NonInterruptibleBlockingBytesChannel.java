@@ -1,0 +1,64 @@
+package com.google.cloud.bigquery.connector.common;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
+
+/**
+ * Some JDKs implement the ReadableByteChannel that wraps an input stream with a channel that
+ * will intercept and reraise interrupted exception.  Normally, this is a good thing, however
+ * with the connector use-case this triggers a memory leak in the Arrow library (present as of 4.0).
+ *
+ * So this is a temporary hack to ensure non-blocking behavior to avoid the memory leak.  This should
+ * be fine because the underlying stream will be interrupted appropriately and only along full message
+ * boundaries, which should be sufficient for our use-cases.
+ *
+ */
+public class NonInterruptibleBlockingBytesChannel implements ReadableByteChannel {
+  private final InputStream is;
+  private boolean closed = false;
+  private static final int TRANSFER_SIZE = 4096;
+  byte[] transfer_buffer = new byte[512];
+
+  public NonInterruptibleBlockingBytesChannel(InputStream is) {
+    this.is = is;
+  }
+
+  @Override
+  public int read(ByteBuffer dst) throws IOException {
+    int len = dst.remaining();
+    int totalRead = 0;
+    int bytesRead = 0;
+
+      while (totalRead < len) {
+        int bytesToRead = Math.min((len - totalRead),
+            TRANSFER_SIZE);
+        if (transfer_buffer.length < bytesToRead)
+          transfer_buffer = new byte[bytesToRead];
+
+        bytesRead = is.read(transfer_buffer, 0, bytesToRead);
+        if (bytesRead < 0)
+          break;
+        else
+          totalRead += bytesRead;
+        dst.put(transfer_buffer, 0, bytesRead);
+      }
+      if ((bytesRead < 0) && (totalRead == 0))
+        return -1;
+
+      return totalRead;
+    }
+
+
+  @Override
+  public boolean isOpen() {
+    return !closed;
+  }
+
+  @Override
+  public void close() throws IOException {
+    closed = true;
+    is.close();
+  }
+}

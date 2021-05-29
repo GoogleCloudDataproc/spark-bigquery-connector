@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.ArrowUtil;
 import com.google.cloud.bigquery.connector.common.IteratorMultiplexer;
+import com.google.cloud.bigquery.connector.common.NonInterruptibleBlockingBytesChannel;
 import com.google.cloud.bigquery.connector.common.ParallelArrowReader;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
@@ -291,6 +292,6 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     BufferAllocator childAllocator =
         allocator.newChildAllocator("readerAllocator" + (closeables.size() - 1), 0, maxAllocation);
     closeables.add(childAllocator);
-    return new ArrowStreamReader(fullStream, childAllocator, CommonsCompressionFactory.INSTANCE);
+    return new ArrowStreamReader(new NonInterruptibleBlockingBytesChannel(fullStream), childAllocator, CommonsCompressionFactory.INSTANCE);
   }
 }
