@@ -104,7 +104,9 @@ public class ParallelArrowReader implements AutoCloseable {
         log.warn("Exception caught when waiting for batch on second try.  Giving up.");
         throw new IOException(se);
       }
-      resolvedBatch.close();
+      if (resolvedBatch != null) {
+        resolvedBatch.close();
+      }
       throw e;
     } catch (ExecutionException e) {
       if (e.getCause() instanceof IOException) {
