@@ -30,10 +30,10 @@ import java.nio.channels.ReadableByteChannel;
  * full message boundaries, which should be sufficient for our use-cases.
  */
 public class NonInterruptibleBlockingBytesChannel implements ReadableByteChannel {
+  private static final int TRANSFER_SIZE = 4096;
   private final InputStream is;
   private boolean closed = false;
-  private static final int TRANSFER_SIZE = 4096;
-  byte[] transfer_buffer = new byte[512];
+  private byte[] transferBuffer = new byte[512];
 
   public NonInterruptibleBlockingBytesChannel(InputStream is) {
     this.is = is;
@@ -47,12 +47,17 @@ public class NonInterruptibleBlockingBytesChannel implements ReadableByteChannel
 
     while (totalRead < len) {
       int bytesToRead = Math.min((len - totalRead), TRANSFER_SIZE);
-      if (transfer_buffer.length < bytesToRead) transfer_buffer = new byte[bytesToRead];
+      if (transferBuffer.length < bytesToRead) {
+        transferBuffer = new byte[bytesToRead];
+      }
 
-      bytesRead = is.read(transfer_buffer, 0, bytesToRead);
-      if (bytesRead < 0) break;
-      else totalRead += bytesRead;
-      dst.put(transfer_buffer, 0, bytesRead);
+      bytesRead = is.read(transferBuffer, 0, bytesToRead);
+      if (bytesRead < 0) {
+        break;
+      } else {
+        totalRead += bytesRead;
+      }
+      dst.put(transferBuffer, 0, bytesRead);
     }
     if ((bytesRead < 0) && (totalRead == 0)) return -1;
 
