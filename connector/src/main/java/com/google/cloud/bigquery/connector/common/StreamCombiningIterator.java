@@ -65,12 +65,11 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       }
 
       try {
-        completeStream(/*addEos=*/false);
+        completeStream(/*addEos=*/ false);
       } finally {
         Preconditions.checkState(
             responses.add(error), "Responses should always have capacity to add element");
       }
-
     }
   }
 
@@ -144,7 +143,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       if (cancelled) {
         return;
       }
-      completeStream(/*addEos=*/true);
+      completeStream(/*addEos=*/ true);
     }
   }
 
@@ -156,7 +155,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       if (hasActiveObservers()) {
         return;
       }
-      completeStream(/*addEos=*/true);
+      completeStream(/*addEos=*/ true);
     }
     for (Observer observer : observers) {
       observer.cancel();

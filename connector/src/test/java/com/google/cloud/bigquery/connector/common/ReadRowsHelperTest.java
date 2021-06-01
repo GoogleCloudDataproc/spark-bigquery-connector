@@ -152,13 +152,16 @@ public class ReadRowsHelperTest {
     batch2.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
     ReadRowsRequest.Builder request2 = ReadRowsRequest.newBuilder().setReadStream("abc");
 
-    fakeService.reset(ImmutableMap.of(request.getReadStream(), batch1,
-                      request2.getReadStream(), batch2));
+    fakeService.reset(
+        ImmutableMap.of(request.getReadStream(), batch1, request2.getReadStream(), batch2));
 
     when(clientFactory.createBigQueryReadClient(any())).thenReturn(fakeServerClient());
 
-    helper = new ReadRowsHelper(clientFactory,
-        ImmutableList.of(request, request2), defaultConfig.toReadRowsHelperOptions());
+    helper =
+        new ReadRowsHelper(
+            clientFactory,
+            ImmutableList.of(request, request2),
+            defaultConfig.toReadRowsHelperOptions());
 
     Iterator<ReadRowsResponse> responses = helper.readRows();
     // Try to make sure both requests are active.
