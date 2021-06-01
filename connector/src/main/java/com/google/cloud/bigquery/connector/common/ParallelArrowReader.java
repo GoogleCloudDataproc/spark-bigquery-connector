@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter.Arrow;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -26,7 +27,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.arrow.util.AutoCloseables;
 import org.apache.arrow.vector.VectorLoader;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.VectorUnloader;
@@ -91,47 +91,70 @@ public class ParallelArrowReader implements AutoCloseable {
     }
   }
 
-  public boolean next() throws IOException {
-    if (readerThread == null) {
-      start();
-    }
-    rootTracer.nextBatchNeeded();
-
-    Future<ArrowRecordBatch> currentBatch = null;
-    rootTracer.readRowsResponseRequested();
+  ArrowRecordBatch resolveBatch(Future<ArrowRecordBatch> futureBatch)
+      throws IOException, InterruptedException {
     try {
-      while (hasMoreElements() && !dataReady(currentBatch) && readException == null) {
-        try {
-          currentBatch = queue.poll(POLL_TIME, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-          break;
-        }
-      }
-      if (readException != null) {
-        if (dataReady(currentBatch)) {
-          currentBatch.get().close();
-        }
-        throw readException;
-      }
-      // We don't have access to bytes here.
-      rootTracer.readRowsResponseObtained(/*bytes=*/ 0);
-
-      if (dataReady(currentBatch)) {
-        rootTracer.rowsParseStarted();
-        loader.load(currentBatch.get());
-        rootTracer.rowsParseFinished(currentBatch.get().getLength());
-        currentBatch.get().close();
-        return true;
-      }
-      return false;
+      return futureBatch.get();
     } catch (InterruptedException e) {
-      throw new IOException(e);
+      log.info("Interrupted while waiting for next batch.");
+      ArrowRecordBatch resolvedBatch = null;
+      try {
+        resolvedBatch = futureBatch.get(10, TimeUnit.SECONDS);
+      } catch (Exception se) {
+        log.warn("Exception caught when waiting for batch on second try.  Giving up.");
+        throw new IOException(se);
+      }
+      if (resolvedBatch != null) {
+        resolvedBatch.close();
+      }
+      throw e;
     } catch (ExecutionException e) {
       if (e.getCause() instanceof IOException) {
         throw (IOException) e.getCause();
       }
       throw new IOException(e);
     }
+  }
+
+  public boolean next() throws IOException {
+    if (readerThread == null) {
+      start();
+    }
+    rootTracer.nextBatchNeeded();
+    rootTracer.readRowsResponseRequested();
+    ArrowRecordBatch resolvedBatch = null;
+    try {
+      while (hasMoreElements() && readException == null && resolvedBatch == null) {
+        Future<ArrowRecordBatch> futureBatch = null;
+        while (hasMoreElements() && readException == null && futureBatch == null) {
+          futureBatch = queue.poll(POLL_TIME, TimeUnit.MILLISECONDS);
+        }
+        if (futureBatch != null) {
+          resolvedBatch = resolveBatch(futureBatch);
+        }
+      }
+    } catch (InterruptedException e) {
+      log.info("Interrupted when waiting for next batch.");
+      return false;
+    }
+
+    if (readException != null) {
+      if (resolvedBatch != null) {
+        resolvedBatch.close();
+      }
+      throw readException;
+    }
+    // We don't have access to bytes here.
+    rootTracer.readRowsResponseObtained(/*bytes=*/ 0);
+
+    if (resolvedBatch != null) {
+      rootTracer.rowsParseStarted();
+      loader.load(resolvedBatch);
+      rootTracer.rowsParseFinished(resolvedBatch.getLength());
+      resolvedBatch.close();
+      return true;
+    }
+    return false;
   }
 
   private boolean dataReady(Future<ArrowRecordBatch> currentBatch)
@@ -195,10 +218,11 @@ public class ParallelArrowReader implements AutoCloseable {
                           /*bytesReceived=*/ incrementalBytesRead);
                       lastBytesRead[idx] = reader.bytesRead();
                     } catch (IOException e) {
+                      log.info("IOException while consuming reader.", e);
                       readException = e;
                       hasData[idx].set(false);
                     } catch (Exception e) {
-                      readException = new IOException("failed to consume readers", e);
+                      readException = new IOException("Failed to consume readers", e);
                       hasData[idx].set(false);
                     }
                     ArrowRecordBatch batch = null;
@@ -222,9 +246,10 @@ public class ParallelArrowReader implements AutoCloseable {
         }
       }
     } catch (IOException e) {
+      log.info("Error while reading in streams", e);
       readException = e;
     } catch (InterruptedException e) {
-      log.debug("Reader thread interrupted.");
+      log.info("Reader thread interrupted.");
     }
     done = true;
   }
@@ -251,7 +276,7 @@ public class ParallelArrowReader implements AutoCloseable {
       }
     }
     // Stop any queued tasks from processing.
-    executor.shutdown();
+    executor.shutdownNow();
 
     try {
       if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
@@ -259,7 +284,6 @@ public class ParallelArrowReader implements AutoCloseable {
       }
     } catch (InterruptedException e) {
       log.info("Interrupted when awaiting executor termination");
-      // Nothing to do here.
     }
 
     int inProgress = 0;
@@ -290,10 +314,14 @@ public class ParallelArrowReader implements AutoCloseable {
       tracer.finished();
     }
 
-    try {
-      AutoCloseables.close(readers);
-    } catch (Exception e) {
-      log.info("Trouble closing delegate readers", e);
+    for (ArrowReader reader : readers) {
+      try {
+        // Don't close the stream here because it will consume all of it.
+        // We let other components worry about stream closure.
+        reader.close(/*close underlying channel*/ false);
+      } catch (Exception e) {
+        log.info("Trouble closing delegate readers", e);
+      }
     }
   }
 }

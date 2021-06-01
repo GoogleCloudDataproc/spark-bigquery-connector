@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.ArrowUtil;
 import com.google.cloud.bigquery.connector.common.IteratorMultiplexer;
+import com.google.cloud.bigquery.connector.common.NonInterruptibleBlockingBytesChannel;
 import com.google.cloud.bigquery.connector.common.ParallelArrowReader;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
@@ -86,7 +87,11 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
 
     @Override
     public void close() throws Exception {
-      reader.close();
+      // Don't close the stream here since it will be taken care
+      // of by closing the ReadRowsHelper below and the way the stream
+      // is setup closing it here will cause it to be drained before
+      // returning.
+      reader.close(/*close stream*/ false);
     }
   }
 
@@ -121,7 +126,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
       closeables.add(root);
       loader = new VectorLoader(root);
       this.reader = new ParallelArrowReader(readers, executor, loader, tracer);
-      closeables.add(reader);
+      closeables.add(0, reader);
       closeables.add(readerAllocator);
     }
 
@@ -269,16 +274,16 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     closed = true;
     try {
       tracer.finished();
-      readRowsHelper.close();
+      closeables.set(0, reader);
+      closeables.add(allocator);
+      AutoCloseables.close(closeables);
     } catch (Exception e) {
-      throw new IOException("Failure closing stream: " + readRowsHelper, e);
+      throw new IOException("Failure closing arrow components. stream: " + readRowsHelper, e);
     } finally {
       try {
-        closeables.set(0, reader);
-        closeables.add(allocator);
-        AutoCloseables.close(closeables);
+        readRowsHelper.close();
       } catch (Exception e) {
-        throw new IOException("Failure closing arrow components. stream: " + readRowsHelper, e);
+        throw new IOException("Failure closing stream: " + readRowsHelper, e);
       }
     }
   }
@@ -287,6 +292,9 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     BufferAllocator childAllocator =
         allocator.newChildAllocator("readerAllocator" + (closeables.size() - 1), 0, maxAllocation);
     closeables.add(childAllocator);
-    return new ArrowStreamReader(fullStream, childAllocator, CommonsCompressionFactory.INSTANCE);
+    return new ArrowStreamReader(
+        new NonInterruptibleBlockingBytesChannel(fullStream),
+        childAllocator,
+        CommonsCompressionFactory.INSTANCE);
   }
 }
