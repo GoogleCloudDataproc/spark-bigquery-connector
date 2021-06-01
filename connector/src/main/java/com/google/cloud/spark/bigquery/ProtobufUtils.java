@@ -15,14 +15,15 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.common.base.Preconditions;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
-import com.google.cloud.bigquery.storage.v1alpha2.ProtoSchemaConverter;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoRows;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoSchemaConverter;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
@@ -48,11 +49,10 @@ public class ProtobufUtils {
   private static final String MAPTYPE_ERROR_MESSAGE = "MapType is unsupported.";
 
   /** BigQuery Schema ==> ProtoSchema converter utils: */
-  public static ProtoBufProto.ProtoSchema toProtoSchema(Schema schema)
-      throws IllegalArgumentException {
+  public static ProtoSchema toProtoSchema(Schema schema) throws IllegalArgumentException {
     try {
       Descriptors.Descriptor descriptor = toDescriptor(schema);
-      ProtoBufProto.ProtoSchema protoSchema = ProtoSchemaConverter.convert(descriptor);
+      ProtoSchema protoSchema = ProtoSchemaConverter.convert(descriptor);
       return protoSchema;
     } catch (Descriptors.DescriptorValidationException e) {
       throw new IllegalArgumentException("Could not build Proto-Schema from Spark schema.", e);
@@ -195,10 +195,10 @@ public class ProtobufUtils {
    * Spark Row --> ProtoRows converter utils: To be used by the DataWriters facing the BigQuery
    * Storage Write API
    */
-  public static ProtoBufProto.ProtoRows toProtoRows(StructType sparkSchema, InternalRow[] rows) {
+  public static ProtoRows toProtoRows(StructType sparkSchema, InternalRow[] rows) {
     try {
       Descriptors.Descriptor schemaDescriptor = toDescriptor(sparkSchema);
-      ProtoBufProto.ProtoRows.Builder protoRows = ProtoBufProto.ProtoRows.newBuilder();
+      ProtoRows.Builder protoRows = ProtoRows.newBuilder();
       for (InternalRow row : rows) {
         DynamicMessage rowMessage = buildSingleRowMessage(sparkSchema, schemaDescriptor, row);
         protoRows.addSerializedRows(rowMessage.toByteString());

@@ -19,8 +19,9 @@ import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
-import com.google.cloud.bigquery.storage.v1alpha2.ProtoSchemaConverter;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoRows;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoSchemaConverter;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
@@ -31,12 +32,20 @@ import org.apache.log4j.Logger;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
-import org.apache.spark.sql.types.*;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.DecimalType;
+import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.junit.AssumptionViolatedException;
 import org.junit.Test;
 
-import static com.google.cloud.spark.bigquery.ProtobufUtils.*;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.buildDescriptorProtoWithFields;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessage;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoRows;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
@@ -71,8 +80,8 @@ public class ProtobufUtilsTest {
   public void testBigQueryToProtoSchema() throws Exception {
     logger.setLevel(Level.DEBUG);
 
-    ProtoBufProto.ProtoSchema converted = toProtoSchema(BIG_BIGQUERY_SCHEMA);
-    ProtoBufProto.ProtoSchema expected =
+    ProtoSchema converted = toProtoSchema(BIG_BIGQUERY_SCHEMA);
+    ProtoSchema expected =
         ProtoSchemaConverter.convert(
             Descriptors.FileDescriptor.buildFrom(
                     DescriptorProtos.FileDescriptorProto.newBuilder()
@@ -121,7 +130,7 @@ public class ProtobufUtilsTest {
   public void testSparkRowToProtoRow() throws Exception {
     logger.setLevel(Level.DEBUG);
 
-    ProtoBufProto.ProtoRows converted =
+    ProtoRows converted =
         toProtoRows(
             BIG_SPARK_SCHEMA,
             new InternalRow[] {
@@ -139,7 +148,7 @@ public class ProtobufUtilsTest {
                   })
             });
 
-    ProtoBufProto.ProtoRows expected = MY_PROTO_ROWS;
+    ProtoRows expected = MY_PROTO_ROWS;
 
     assertThat(converted.getSerializedRows(0).toByteArray())
         .isEqualTo(expected.getSerializedRows(0).toByteArray());
@@ -150,7 +159,7 @@ public class ProtobufUtilsTest {
     logger.setLevel(Level.DEBUG);
 
     try {
-      ProtoBufProto.ProtoRows converted =
+      ProtoRows converted =
           toProtoRows(
               new StructType()
                   .add(new StructField("String", DataTypes.StringType, false, Metadata.empty())),
@@ -159,7 +168,7 @@ public class ProtobufUtilsTest {
     } catch (Exception e) {
     }
     try {
-      ProtoBufProto.ProtoRows converted =
+      ProtoRows converted =
           toProtoRows(
               new StructType()
                   .add(new StructField("String", DataTypes.StringType, true, Metadata.empty())),
@@ -430,8 +439,8 @@ public class ProtobufUtilsTest {
     }
   }
 
-  public ProtoBufProto.ProtoRows MY_PROTO_ROWS =
-      ProtoBufProto.ProtoRows.newBuilder()
+  public ProtoRows MY_PROTO_ROWS =
+      ProtoRows.newBuilder()
           .addSerializedRows(
               DynamicMessage.newBuilder(BIG_SCHEMA_ROW_DESCRIPTOR)
                   .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(1), 1L)
