@@ -22,9 +22,13 @@ import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.spark.sql.sources.v2.reader.InputPartition;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 import org.apache.spark.sql.types.StructType;
@@ -37,7 +41,7 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
 
   private final BigQueryReadClientFactory bigQueryReadClientFactory;
   private final BigQueryTracerFactory tracerFactory;
-  private final String streamName;
+  private final List<String> streamNames;
   private final ReadRowsHelper.Options options;
   private final ImmutableList<String> selectedFields;
   private final ByteString serializedArrowSchema;
@@ -46,13 +50,13 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
   public ArrowInputPartition(
       BigQueryReadClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory tracerFactory,
-      String name,
+      List<String> names,
       ReadRowsHelper.Options options,
       ImmutableList<String> selectedFields,
       ReadSessionResponse readSessionResponse,
       Optional<StructType> userProvidedSchema) {
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
-    this.streamName = name;
+    this.streamNames = names;
     this.options = options;
     this.selectedFields = selectedFields;
     this.serializedArrowSchema =
@@ -63,11 +67,15 @@ public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
 
   @Override
   public InputPartitionReader<ColumnarBatch> createPartitionReader() {
-    BigQueryStorageReadRowsTracer tracer = tracerFactory.newReadRowsTracer(streamName);
-    ReadRowsRequest.Builder readRowsRequest =
-        ReadRowsRequest.newBuilder().setReadStream(streamName);
+    BigQueryStorageReadRowsTracer tracer =
+        tracerFactory.newReadRowsTracer(Joiner.on(",").join(streamNames));
+    List<ReadRowsRequest.Builder> readRowsRequests =
+        streamNames.stream()
+            .map(name -> ReadRowsRequest.newBuilder().setReadStream(name))
+            .collect(Collectors.toList());
+
     ReadRowsHelper readRowsHelper =
-        new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequest, options);
+        new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequests, options);
     tracer.startStream();
     Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
     return new ArrowColumnBatchPartitionColumnBatchReader(

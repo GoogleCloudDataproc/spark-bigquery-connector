@@ -119,6 +119,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
   private com.google.common.base.Optional<String> storageReadEndpoint = empty();
   private int numBackgroundThreadsPerStream = 0;
+  private int numPrebufferReadRowsResponses = 1;
+  private int numStreamsPerPartition = 1;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -281,6 +283,14 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
             .transform(Integer::parseInt)
             .or(0);
     config.pushAllFilters = getAnyBooleanOption(globalOptions, options, "pushAllFilters", true);
+    config.numPrebufferReadRowsResponses =
+        getAnyOption(globalOptions, options, "bqPrebufferResponsesPerStream")
+            .transform(Integer::parseInt)
+            .or(1);
+    config.numStreamsPerPartition =
+        getAnyOption(globalOptions, options, "bqNumStreamsPerPartition")
+            .transform(Integer::parseInt)
+            .or(1);
 
     return config;
   }
@@ -591,6 +601,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         .setEndpoint(storageReadEndpoint.toJavaUtil())
         .setBackgroundParsingThreads(numBackgroundThreadsPerStream)
         .setPushAllFilters(pushAllFilters)
+        .setPrebufferReadRowsResponses(numPrebufferReadRowsResponses)
+        .setStreamsPerPartition(numStreamsPerPartition)
         .build();
   }
 

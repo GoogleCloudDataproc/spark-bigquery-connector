@@ -29,11 +29,14 @@ import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
+import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.sources.v2.reader.DataSourceReader;
@@ -204,13 +207,17 @@ public class BigQueryDataSourceReader
     }
 
     ImmutableList<String> partitionSelectedFields = selectedFields;
-    return readSession.getStreamsList().stream()
+    return Streams.stream(
+            Iterables.partition(
+                readSession.getStreamsList(), readSessionCreatorConfig.streamsPerPartition()))
         .map(
-            stream ->
+            streams ->
                 new ArrowInputPartition(
                     bigQueryReadClientFactory,
                     bigQueryTracerFactory,
-                    stream.getName(),
+                    streams.stream()
+                        .map(ReadStream::getName)
+                        .collect(Collectors.toCollection(ArrayList::new)),
                     readSessionCreatorConfig.toReadRowsHelperOptions(),
                     partitionSelectedFields,
                     readSessionResponse,

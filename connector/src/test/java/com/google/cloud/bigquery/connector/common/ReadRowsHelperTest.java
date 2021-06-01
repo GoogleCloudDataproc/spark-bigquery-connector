@@ -15,24 +15,48 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.api.gax.rpc.TransportChannelProvider;
+import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
+import com.google.cloud.bigquery.storage.v1.BigQueryReadGrpc.BigQueryReadImplBase;
+import com.google.cloud.bigquery.storage.v1.BigQueryReadSettings;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.bigquery.storage.v1.stub.EnhancedBigQueryReadStubSettings;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimaps;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import io.grpc.netty.NettyServerBuilder;
+import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
-import java.util.Optional;
-import org.junit.Test;
-
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.concurrent.TimeUnit;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mockito;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -44,7 +68,34 @@ public class ReadRowsHelperTest {
   BigQueryReadClientFactory clientFactory = mock(BigQueryReadClientFactory.class);
   private ReadRowsRequest.Builder request = ReadRowsRequest.newBuilder().setReadStream("test");
   private ReadSessionCreatorConfig defaultConfig =
-      new ReadSessionCreatorConfigBuilder().setMaxReadRowsRetries(3).build();
+      new ReadSessionCreatorConfigBuilder().setMaxReadRowsRetries(1).build();
+
+  private static FakeStorageService fakeService = new FakeStorageService();
+  private static FakeStorageServer fakeServer;
+
+  ReadRowsHelper helper;
+
+  @BeforeClass
+  public static void setupServer() throws IOException {
+    fakeServer = new FakeStorageServer(fakeService);
+  }
+
+  @Before
+  public void resetService() {
+    fakeService.reset(ImmutableMap.of());
+  }
+
+  @After
+  public void closeHelper() {
+    if (helper != null) {
+      helper.close();
+    }
+  }
+
+  @AfterClass
+  public static void teardownServer() throws InterruptedException {
+    fakeServer.stop();
+  }
 
   @Test
   public void testConfigSerializable() throws IOException {
@@ -52,78 +103,198 @@ public class ReadRowsHelperTest {
         .writeObject(defaultConfig.toReadRowsHelperOptions());
   }
 
+  BigQueryReadClient fakeServerClient() throws IOException {
+    TransportChannelProvider transportationProvider =
+        EnhancedBigQueryReadStubSettings.defaultGrpcTransportProviderBuilder()
+            .setChannelConfigurator(
+                (ManagedChannelBuilder a) -> {
+                  a.usePlaintext();
+                  return a;
+                })
+            .build();
+    return BigQueryReadClient.create(
+        BigQueryReadSettings.newBuilder()
+            .setTransportChannelProvider(transportationProvider)
+            .setCredentialsProvider(() -> null)
+            .setEndpoint("127.0.0.1:" + fakeServer.port())
+            .build());
+  }
+
   @Test
-  public void testNoFailures() {
+  public void testNoFailures() throws IOException {
     MockResponsesBatch batch1 = new MockResponsesBatch();
     batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(10).build());
     batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
-    when(clientFactory.createBigQueryReadClient(any())).thenCallRealMethod();
+    fakeService.reset(ImmutableMap.of(request.getReadStream(), batch1));
+
+    when(clientFactory.createBigQueryReadClient(any())).thenReturn(fakeServerClient());
 
     // so we can run multiple tests
-    ImmutableList<ReadRowsResponse> responses =
-        ImmutableList.copyOf(
-            new MockReadRowsHelper(clientFactory, request, defaultConfig, ImmutableList.of(batch1))
-                .readRows());
+    helper = new ReadRowsHelper(clientFactory, request, defaultConfig.toReadRowsHelperOptions());
+    ImmutableList<ReadRowsResponse> responses = ImmutableList.copyOf(helper.readRows());
 
     assertThat(responses.size()).isEqualTo(2);
     assertThat(responses.stream().mapToLong(ReadRowsResponse::getRowCount).sum()).isEqualTo(21);
   }
 
   @Test
-  public void endpointIsPropagated() {
+  public void testCancel() throws IOException {
     MockResponsesBatch batch1 = new MockResponsesBatch();
     batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(10).build());
+    batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
+    batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
+    batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
+    fakeService.reset(ImmutableMap.of(request.getReadStream(), batch1));
 
-    ReadSessionCreatorConfig config =
-        new ReadSessionCreatorConfigBuilder()
-            .setMaxReadRowsRetries(3)
-            .setEndpoint(Optional.of("customEndpoint"))
-            .build();
-    MockReadRowsHelper helper =
-        new MockReadRowsHelper(clientFactory, request, config, ImmutableList.of(batch1));
-    helper.readRows();
+    when(clientFactory.createBigQueryReadClient(any())).thenReturn(fakeServerClient());
 
-    ArgumentCaptor<Optional<String>> endpointCaptor = ArgumentCaptor.forClass(Optional.class);
-    Mockito.verify(clientFactory, times(1)).createBigQueryReadClient(endpointCaptor.capture());
-    assertThat(endpointCaptor.getValue().get()).isEqualTo("customEndpoint");
+    helper = new ReadRowsHelper(clientFactory, request, defaultConfig.toReadRowsHelperOptions());
+    Iterator<ReadRowsResponse> responses = helper.readRows();
+    responses.next();
+    helper.close();
+    ImmutableList<ReadRowsResponse> remainingResponses = ImmutableList.copyOf(responses);
+
+    assertThat(remainingResponses.size()).isLessThan(3);
   }
 
   @Test
-  public void testRetryOfSingleFailure() {
+  public void endpointIsPropagated() throws Exception {
+    MockResponsesBatch batch1 = new MockResponsesBatch();
+    batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(10).build());
+    when(clientFactory.createBigQueryReadClient(any())).thenReturn(fakeServerClient());
+    fakeService.reset(ImmutableMap.of(request.getReadStream(), batch1));
+    ReadSessionCreatorConfig config =
+        new ReadSessionCreatorConfigBuilder().setEndpoint(Optional.of("127.0.0.1:" + 123)).build();
+    helper = new ReadRowsHelper(clientFactory, request, config.toReadRowsHelperOptions());
+    assertThat(Iterators.getOnlyElement(helper.readRows()).getRowCount()).isEqualTo(10);
+    ArgumentCaptor<Optional<String>> endpointCaptor = ArgumentCaptor.forClass(Optional.class);
+    Mockito.verify(clientFactory, times(1)).createBigQueryReadClient(endpointCaptor.capture());
+  }
+
+  @Test
+  public void testRetryOfSingleFailure() throws IOException {
     MockResponsesBatch batch1 = new MockResponsesBatch();
     batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(10).build());
     batch1.addException(
         new StatusRuntimeException(
-            Status.INTERNAL.withDescription("Received unexpected EOS on DATA frame from server.")));
-    MockResponsesBatch batch2 = new MockResponsesBatch();
-    batch2.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
-    when(clientFactory.createBigQueryReadClient(any())).thenCallRealMethod();
+            Status.INTERNAL.withDescription("HTTP/2 error code: INTERNAL_ERROR")));
+    batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
+    fakeService.reset(ImmutableMap.of(request.getReadStream(), batch1));
+    when(clientFactory.createBigQueryReadClient(any())).thenReturn(fakeServerClient());
 
-    ImmutableList<ReadRowsResponse> responses =
-        ImmutableList.copyOf(
-            new MockReadRowsHelper(
-                    clientFactory, request, defaultConfig, ImmutableList.of(batch1, batch2))
-                .readRows());
+    helper = new ReadRowsHelper(clientFactory, request, defaultConfig.toReadRowsHelperOptions());
+    ImmutableList<ReadRowsResponse> responses = ImmutableList.copyOf(helper.readRows());
 
     assertThat(responses.size()).isEqualTo(2);
     assertThat(responses.stream().mapToLong(ReadRowsResponse::getRowCount).sum()).isEqualTo(21);
+
+    List<ReadRowsRequest> requests = fakeService.requestsByStreamName.get(request.getReadStream());
+    assertThat(requests)
+        .containsExactly(request.setOffset(0).build(), request.setOffset(10).build())
+        .inOrder();
   }
 
-  private static final class MockReadRowsHelper extends ReadRowsHelper {
-    Iterator<MockResponsesBatch> responses;
+  @Test
+  public void testCombinesStreamsTogether() throws IOException {
+    MockResponsesBatch batch1 = new MockResponsesBatch();
+    batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(10).build());
+    batch1.addException(
+        new StatusRuntimeException(
+            Status.INTERNAL.withDescription("HTTP/2 error code: INTERNAL_ERROR")));
+    batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
+    ReadRowsRequest.Builder request1 = ReadRowsRequest.newBuilder().setReadStream("r1");
 
-    MockReadRowsHelper(
-        BigQueryReadClientFactory clientFactory,
-        ReadRowsRequest.Builder request,
-        ReadSessionCreatorConfig config,
-        Iterable<MockResponsesBatch> responses) {
-      super(clientFactory, request, config.toReadRowsHelperOptions());
-      this.responses = responses.iterator();
+    MockResponsesBatch batch2 = new MockResponsesBatch();
+    batch2.addResponse(ReadRowsResponse.newBuilder().setRowCount(30).build());
+    batch2.addException(
+        new StatusRuntimeException(
+            Status.INTERNAL.withDescription("HTTP/2 error code: INTERNAL_ERROR")));
+    batch2.addResponse(ReadRowsResponse.newBuilder().setRowCount(45).build());
+    ReadRowsRequest.Builder request2 = ReadRowsRequest.newBuilder().setReadStream("r2");
+    fakeService.reset(
+        ImmutableMap.of(
+            request1.getReadStream(), batch1,
+            request2.getReadStream(), batch2));
+    when(clientFactory.createBigQueryReadClient(any())).thenReturn(fakeServerClient());
+
+    helper =
+        new ReadRowsHelper(
+            clientFactory,
+            ImmutableList.of(request1, request2),
+            defaultConfig.toReadRowsHelperOptions());
+    ImmutableList<ReadRowsResponse> responses = ImmutableList.copyOf(helper.readRows());
+
+    assertThat(responses.size()).isEqualTo(4);
+    assertThat(responses.stream().mapToLong(ReadRowsResponse::getRowCount).sum()).isEqualTo(96);
+
+    List<ReadRowsRequest> requests1 =
+        fakeService.requestsByStreamName.get(request1.getReadStream());
+    assertThat(requests1)
+        .containsExactly(request1.setOffset(0).build(), request1.setOffset(10).build())
+        .inOrder();
+
+    List<ReadRowsRequest> requests2 =
+        fakeService.requestsByStreamName.get(request2.getReadStream());
+    assertThat(requests2)
+        .containsExactly(request2.setOffset(0).build(), request2.setOffset(30).build())
+        .inOrder();
+  }
+
+  private static class FakeStorageService extends BigQueryReadImplBase {
+    private Map<String, MockResponsesBatch> responsesByStreamName;
+    private final ListMultimap<String, ReadRowsRequest> requestsByStreamName =
+        Multimaps.synchronizedListMultimap(ArrayListMultimap.create());
+
+    void reset(Map<String, MockResponsesBatch> responsesByStreamName) {
+      this.responsesByStreamName = responsesByStreamName;
+      requestsByStreamName.clear();
     }
 
     @Override
-    protected Iterator<ReadRowsResponse> fetchResponses(ReadRowsRequest.Builder readRowsRequest) {
-      return responses.next();
+    public void readRows(
+        ReadRowsRequest request, StreamObserver<ReadRowsResponse> responseObserver) {
+      String name = request.getReadStream();
+      requestsByStreamName.put(name, request);
+      MockResponsesBatch responses = responsesByStreamName.get(name);
+
+      if (responses == null) {
+        responseObserver.onError(new RuntimeException("No responses for stream: " + name));
+      }
+
+      while (responses.hasNext()) {
+        try {
+          ReadRowsResponse next = responses.next();
+          if (next == null) {
+            responseObserver.onError(new RuntimeException("Null element found: " + name));
+            return;
+          }
+          responseObserver.onNext(next);
+        } catch (Exception e) {
+          responseObserver.onError(e);
+          return;
+        }
+      }
+      responseObserver.onCompleted();
+    }
+  }
+
+  private static class FakeStorageServer {
+    private final Server server;
+
+    FakeStorageServer(FakeStorageService service) throws IOException {
+      // Zero should pick a random port.
+      ServerBuilder<?> serverBuilder = NettyServerBuilder.forPort(0);
+      server = serverBuilder.addService(service).build();
+      server.start();
+    }
+
+    int port() {
+      return server.getPort();
+    }
+
+    void stop() throws InterruptedException {
+      server.shutdownNow();
+      server.awaitTermination(10, TimeUnit.SECONDS);
     }
   }
 }

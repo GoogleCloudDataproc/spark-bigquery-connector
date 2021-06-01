@@ -15,18 +15,18 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.api.gax.rpc.ServerStream;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 import static java.util.Objects.requireNonNull;
 
@@ -38,12 +38,17 @@ public class ReadRowsHelper implements AutoCloseable {
     private final int maxReadRowsRetries;
     private final String nullableEndpoint;
     private final int backgroundParsingThreads;
+    private final int prebufferResponses;
 
     public Options(
-        int maxReadRowsRetries, Optional<String> endpoint, int backgroundParsingThreads) {
+        int maxReadRowsRetries,
+        Optional<String> endpoint,
+        int backgroundParsingThreads,
+        int prebufferResponses) {
       this.maxReadRowsRetries = maxReadRowsRetries;
       this.nullableEndpoint = endpoint.orElse(null);
       this.backgroundParsingThreads = backgroundParsingThreads;
+      this.prebufferResponses = prebufferResponses;
     }
 
     public int getMaxReadRowsRetries() {
@@ -57,12 +62,16 @@ public class ReadRowsHelper implements AutoCloseable {
     public int numBackgroundThreads() {
       return backgroundParsingThreads;
     }
+
+    public int numPrebufferResponses() {
+      return prebufferResponses;
+    }
   }
 
   private final BigQueryReadClientFactory bigQueryReadClientFactory;
-  private final ReadRowsRequest.Builder request;
+  private final List<ReadRowsRequest.Builder> requests;
   private BigQueryReadClient client;
-  private ServerStream<ReadRowsResponse> incomingStream;
+  private StreamCombiningIterator incomingStream;
 
   public ReadRowsHelper(
       BigQueryReadClientFactory bigQueryReadClientFactory,
@@ -70,7 +79,17 @@ public class ReadRowsHelper implements AutoCloseable {
       Options options) {
     this.bigQueryReadClientFactory =
         requireNonNull(bigQueryReadClientFactory, "bigQueryReadClientFactory cannot be null");
-    this.request = requireNonNull(request, "request cannot be null");
+    this.requests = ImmutableList.of(requireNonNull(request, "request cannot be null"));
+    this.options = options;
+  }
+
+  public ReadRowsHelper(
+      BigQueryReadClientFactory bigQueryReadClientFactory,
+      List<ReadRowsRequest.Builder> requests,
+      Options options) {
+    this.bigQueryReadClientFactory =
+        requireNonNull(bigQueryReadClientFactory, "bigQueryReadClientFactory cannot be null");
+    this.requests = requireNonNull(requests, "request cannot be null");
     this.options = options;
   }
 
@@ -79,64 +98,15 @@ public class ReadRowsHelper implements AutoCloseable {
       client.close();
     }
     client = bigQueryReadClientFactory.createBigQueryReadClient(options.getEndpoint());
-    Iterator<ReadRowsResponse> serverResponses = fetchResponses(request);
-    return new ReadRowsIterator(this, serverResponses);
-  }
-
-  // In order to enable testing
-  protected Iterator<ReadRowsResponse> fetchResponses(ReadRowsRequest.Builder readRowsRequest) {
-    incomingStream = client.readRowsCallable().call(readRowsRequest.build());
-    return incomingStream.iterator();
+    incomingStream =
+        new StreamCombiningIterator(
+            client, requests, options.prebufferResponses, options.getMaxReadRowsRetries());
+    return incomingStream;
   }
 
   @Override
   public String toString() {
-    return request.toString();
-  }
-
-  // Ported from https://github.com/GoogleCloudDataproc/spark-bigquery-connector/pull/150
-  static class ReadRowsIterator implements Iterator<ReadRowsResponse> {
-    ReadRowsHelper helper;
-    Iterator<ReadRowsResponse> serverResponses;
-    long readRowsCount;
-    int retries;
-
-    public ReadRowsIterator(ReadRowsHelper helper, Iterator<ReadRowsResponse> serverResponses) {
-      this.helper = helper;
-      this.serverResponses = serverResponses;
-    }
-
-    @Override
-    public boolean hasNext() {
-      boolean hasNext = serverResponses.hasNext();
-      if (!hasNext && !helper.client.isShutdown()) {
-        helper.client.close();
-      }
-      return hasNext;
-    }
-
-    @Override
-    public ReadRowsResponse next() {
-      do {
-        try {
-          ReadRowsResponse response = serverResponses.next();
-          readRowsCount += response.getRowCount();
-          // logDebug(s"read ${response.getSerializedSize} bytes");
-          return response;
-        } catch (Exception e) {
-          // if relevant, retry the read, from the last read position
-          if (BigQueryUtil.isRetryable(e) && retries < helper.options.getMaxReadRowsRetries()) {
-            serverResponses = helper.fetchResponses(helper.request.setOffset(readRowsCount));
-            retries++;
-          } else {
-            helper.close();
-            throw e;
-          }
-        }
-      } while (serverResponses.hasNext());
-
-      throw new NoSuchElementException("No more server responses");
-    }
+    return requests.toString();
   }
 
   @Override
