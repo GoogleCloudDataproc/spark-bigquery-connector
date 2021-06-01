@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import java.util.function.Function;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
+import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
@@ -45,6 +46,7 @@ public class SchemaConverters {
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
   static final int BQ_NUMERIC_PRECISION = 38;
   static final int BQ_NUMERIC_SCALE = 9;
+  static final int BQ_BIG_NUMERIC_SCALE = 38;
   private static final DecimalType NUMERIC_SPARK_TYPE =
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   // The maximum nesting depth of a BigQuery RECORD:
@@ -176,6 +178,12 @@ public class SchemaConverters {
       return d;
     }
 
+    if (LegacySQLTypeName.BIGNUMERIC.equals(bqField.getType())) {
+      byte[] bytes = getBytes((ByteBuffer) value);
+      BigDecimal bigDecimal = new BigDecimal(new BigInteger(bytes), BQ_BIG_NUMERIC_SCALE);
+      return UTF8String.fromString(bigDecimal.toString());
+    }
+
     if (LegacySQLTypeName.RECORD.equals(bqField.getType())) {
       List<String> namesInOrder = null;
       List<StructField> structList = null;
@@ -289,6 +297,8 @@ public class SchemaConverters {
       return DataTypes.DoubleType;
     } else if (LegacySQLTypeName.NUMERIC.equals(field.getType())) {
       return NUMERIC_SPARK_TYPE;
+    } else if (LegacySQLTypeName.BIGNUMERIC.equals(field.getType())) {
+      return BigQueryDataTypes.BigNumericType();
     } else if (LegacySQLTypeName.STRING.equals(field.getType())) {
       return DataTypes.StringType;
     } else if (LegacySQLTypeName.BOOLEAN.equals(field.getType())) {
