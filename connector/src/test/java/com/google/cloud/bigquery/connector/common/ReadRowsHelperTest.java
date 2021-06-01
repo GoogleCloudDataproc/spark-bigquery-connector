@@ -144,17 +144,31 @@ public class ReadRowsHelperTest {
     batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
     batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
     batch1.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
-    fakeService.reset(ImmutableMap.of(request.getReadStream(), batch1));
+
+    MockResponsesBatch batch2 = new MockResponsesBatch();
+    batch2.addResponse(ReadRowsResponse.newBuilder().setRowCount(10).build());
+    batch2.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
+    batch2.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
+    batch2.addResponse(ReadRowsResponse.newBuilder().setRowCount(11).build());
+    ReadRowsRequest.Builder request2 = ReadRowsRequest.newBuilder().setReadStream("abc");
+
+    fakeService.reset(ImmutableMap.of(request.getReadStream(), batch1,
+                      request2.getReadStream(), batch2));
 
     when(clientFactory.createBigQueryReadClient(any())).thenReturn(fakeServerClient());
 
-    helper = new ReadRowsHelper(clientFactory, request, defaultConfig.toReadRowsHelperOptions());
+    helper = new ReadRowsHelper(clientFactory,
+        ImmutableList.of(request, request2), defaultConfig.toReadRowsHelperOptions());
+
     Iterator<ReadRowsResponse> responses = helper.readRows();
+    // Try to make sure both requests are active.
+    responses.next();
+    responses.next();
     responses.next();
     helper.close();
     ImmutableList<ReadRowsResponse> remainingResponses = ImmutableList.copyOf(responses);
 
-    assertThat(remainingResponses.size()).isLessThan(3);
+    assertThat(remainingResponses.size()).isLessThan(5);
   }
 
   @Test

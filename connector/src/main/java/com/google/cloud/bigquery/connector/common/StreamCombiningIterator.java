@@ -63,10 +63,14 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       if (cancelled) {
         return;
       }
-      cancelled = true;
-      observersLeft.set(0);
-      Preconditions.checkState(
-          responses.add(error), "Responses should always have capacity to add element");
+
+      try {
+        completeStream(/*addEos=*/false);
+      } finally {
+        Preconditions.checkState(
+            responses.add(error), "Responses should always have capacity to add element");
+      }
+
     }
   }
 
@@ -140,7 +144,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       if (cancelled) {
         return;
       }
-      completeStream();
+      completeStream(/*addEos=*/true);
     }
   }
 
@@ -152,17 +156,25 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       if (hasActiveObservers()) {
         return;
       }
-      completeStream();
+      completeStream(/*addEos=*/true);
     }
     for (Observer observer : observers) {
       observer.cancel();
     }
   }
 
-  private void completeStream() {
+  private void completeStream(boolean addEos) {
     cancelled = true;
-    responses.add(EOS);
     observersLeft.set(0);
+    try {
+      for (Observer observer : observers) {
+        observer.cancel();
+      }
+    } finally {
+      if (addEos) {
+        responses.add(EOS);
+      }
+    }
   }
 
   private void newConnection(Observer observer, ReadRowsRequest.Builder request) {
@@ -284,7 +296,12 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
     public void cancel() {
       synchronized (controllerLock) {
         if (controller != null) {
-          controller.cancel();
+          try {
+            controller.cancel();
+          } catch (RuntimeException e) {
+            // There could be edge cases here where controller is already cancelled or not yet
+            // read or something else is happening.  We don't want this to be fatal.
+          }
         }
       }
     }
