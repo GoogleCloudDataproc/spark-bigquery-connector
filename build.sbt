@@ -79,7 +79,10 @@ lazy val spark3 = (project in file("spark-3"))
     name := "spark-3",
     libraryDependencies ++= Seq(
       "org.apache.spark" % "spark-core_2.12" % "3.0.0" % "provided",
-      "org.apache.spark" % "spark-sql_2.12" % "3.0.0" % "provided")
+      "org.apache.spark" % "spark-sql_2.12" % "3.0.0" % "provided",
+      "org.scalatest" % "scalatest_2.12" % "3.1.0" % "test",
+      "org.mockito" % "mockito-scala-scalatest_2.12" % "1.10.6" % "test",
+      "com.google.cloud" % "google-cloud-bigquery" % "1.123.2" % "test")
   )
 
 lazy val connector = (project in file("connector"))
