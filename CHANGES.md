@@ -1,11 +1,24 @@
 # Release Notes
 
+## 0.21.0 - 2021-06-01
+* Issue #354: users can query a view with different columns in select() and filter()
+* Issue #367: Struct column order is fixed
+* Issue #383: Fixed table metadata update when writing to a partitioned table
+* Issue #390: Allowing additional white-space types in the query
+* Issue #393: replacing avro.shaded dependency with guava
+* PR #360: Removed redundant `UNNEST` when compiling `IN` condition
+* BigQuery API has been upgraded to version 1.131.1
+* BigQuery Storage API has been upgraded to version 1.22.0
+* Guava has been upgraded to version 30.1.1-jre
+* gRPC has been upgraded to version 1.37.1
+* Netty has been upgraded to version 4.1.65.Final
+
 ## 0.20.0 - 2021-03-29
 * PR #375: Added support for pseudo column support - time partitioned table now supoort the _PARTITIONTIME and _PARTITIONDATE fields 
 * Issue# 190: Writing data to BigQuery properly populate the field description
 * Issue #265: Fixed nested conjunctions/disjunctions when using the AVRO read format
 * Issue #326: Fixing netty_tcnative_windows.dll shading
-* Arrow has een upgraded to version 4.0.0
+* Arrow has been upgraded to version 4.0.0
 
 ## 0.19.1 - 2021-03-01
 * PR #324 - Restoring version 0.18.1 dependencies due to networking issues
