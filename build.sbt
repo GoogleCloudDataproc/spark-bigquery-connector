@@ -26,7 +26,11 @@ lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
   version := "0.20.1-SNAPSHOT",
   scalaVersion := scala211Version,
-  crossScalaVersions := Seq(scala211Version, scala212Version)
+  crossScalaVersions := Seq(scala211Version, scala212Version),
+  dependencyOverrides ++= Set("org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
+    "com.google.guava" % "guava" % "30.1.1-jre",
+    "io.netty" % "netty-codec-http2" % nettyVersion,
+    "io.netty" % "netty-handler-proxy" % nettyVersion)
 )
 
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
@@ -118,8 +122,6 @@ lazy val connector = (project in file("connector"))
 
       // Netty, with a version supporting Java 11
       "io.netty" % "netty-all" % nettyVersion % "provided",
-      "io.netty" % "netty-buffer" % nettyVersion,
-      "io.netty" % "netty-common" % nettyVersion,
       // scalastyle:off
       // See https://github.com/grpc/grpc-java/blob/master/SECURITY.md#tls-with-netty-tcnative-on-boringssl
       // scalastyle:on
@@ -133,9 +135,7 @@ lazy val connector = (project in file("connector"))
       // test
       "org.apache.spark" %% "spark-avro" % sparkVersion % "test"
       ))
-      .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*)),
-    dependencyOverrides ++= Set("org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
-                                "com.google.guava" % "guava" % "30.1.1-jre")
+      .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
   )
 
 lazy val fatJar = project
