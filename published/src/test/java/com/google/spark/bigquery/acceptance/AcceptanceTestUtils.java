@@ -16,6 +16,12 @@
 package com.google.spark.bigquery.acceptance;
 
 import com.google.cloud.WriteChannel;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQuery.DatasetDeleteOption;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.DatasetId;
+import com.google.cloud.bigquery.DatasetInfo;
+import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.storage.*;
 import com.google.common.io.ByteStreams;
 
@@ -27,9 +33,13 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.stream.StreamSupport;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class AcceptanceTestUtils {
 
@@ -91,7 +101,7 @@ public class AcceptanceTestUtils {
   public static BlobId uploadToGcs(ByteBuffer content, String destinationUri, String contentType)
       throws Exception {
     URI uri = new URI(destinationUri);
-    BlobId blobId = BlobId.of(uri.getHost(), uri.getPath().substring(1));
+    BlobId blobId = BlobId.of(uri.getAuthority(), uri.getPath().substring(1));
     BlobInfo blobInfo = BlobInfo.newBuilder(blobId).setContentType(contentType).build();
     try (WriteChannel writer = storage.writer(blobInfo)) {
       writer.write(content);
@@ -110,7 +120,9 @@ public class AcceptanceTestUtils {
     Blob csvBlob =
         StreamSupport.stream(
                 storage
-                    .list(uri.getHost(), Storage.BlobListOption.prefix(uri.getPath().substring(1)))
+                    .list(
+                        uri.getAuthority(),
+                        Storage.BlobListOption.prefix(uri.getPath().substring(1)))
                     .iterateAll()
                     .spliterator(),
                 false)
@@ -125,7 +137,9 @@ public class AcceptanceTestUtils {
     BlobId[] blobIds =
         StreamSupport.stream(
                 storage
-                    .list(uri.getHost(), Storage.BlobListOption.prefix(uri.getPath().substring(1)))
+                    .list(
+                        uri.getAuthority(),
+                        Storage.BlobListOption.prefix(uri.getPath().substring(1)))
                     .iterateAll()
                     .spliterator(),
                 false)
@@ -133,4 +147,55 @@ public class AcceptanceTestUtils {
             .toArray(BlobId[]::new);
     storage.delete(blobIds);
   }
+
+  public static void createBqDataset(String dataset) {
+    DatasetId datasetId = DatasetId.of(dataset);
+    BigQueryOptions.getDefaultInstance().getService().create(DatasetInfo.of(datasetId));
+  }
+
+  public static void runBqQuery(String query) throws Exception {
+    BigQueryOptions.getDefaultInstance().getService().query(QueryJobConfiguration.of(query));
+  }
+
+  public static void deleteBqDatasetAndTables(String dataset) {
+    BigQuery bq = BigQueryOptions.getDefaultInstance().getService();
+    bq.delete(DatasetId.of(dataset), DatasetDeleteOption.deleteContents());
+  }
+
+  public static void createZipFile(String sourceDir, String zipFileLocation) throws IOException {
+    if(Files.exists(Paths.get(zipFileLocation))) {
+      Files.delete(Paths.get(zipFileLocation));
+    }
+
+    Path zipFilePath = Files.createFile(Paths.get(zipFileLocation));
+    Path sourceDirPath = Paths.get(sourceDir);
+
+    try (ZipOutputStream stream = new ZipOutputStream(Files.newOutputStream(zipFilePath))) {
+      ArrayList<String> filesToZip = new ArrayList<>();
+
+      File folder = new File(sourceDir);
+
+      for (File file : folder.listFiles()) {
+        if (!file.isDirectory()
+            && !file.getAbsolutePath().endsWith(".zip")
+            && !file.getAbsolutePath().endsWith(".DS_Store")) {
+          filesToZip.add(file.getAbsolutePath());
+        }
+      }
+
+      filesToZip.stream().forEach(adr -> {
+        Path path = Paths.get(adr);
+        ZipEntry zipEntry = new ZipEntry(sourceDirPath.relativize(path).toString());
+        try {
+          stream.putNextEntry(zipEntry);
+          Files.copy(path, stream);
+          stream.closeEntry();
+        } catch (IOException exception) {
+          System.err.println(exception);
+        }
+      });
+
+    }
+  }
+
 }

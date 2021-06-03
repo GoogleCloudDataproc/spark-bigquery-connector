@@ -197,7 +197,8 @@ lazy val published = project
     libraryDependencies ++= (commonTestDependencies.map(
       dependency => dependency.withConfigurations(Some("test"))) ++ Seq(
       "com.google.cloud" % "google-cloud-dataproc" % "1.4.3" % "test",
-      "com.google.cloud" % "google-cloud-storage" % "1.114.0" % "test"
+      "com.google.cloud" % "google-cloud-storage" % "1.114.0" % "test",
+      "com.google.cloud" % "google-cloud-bigquery" % "1.125.2" % "test"
     ))
       .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
 
