@@ -163,7 +163,7 @@ public class AcceptanceTestUtils {
   }
 
   public static void createZipFile(String sourceDir, String zipFileLocation) throws IOException {
-    if(Files.exists(Paths.get(zipFileLocation))) {
+    if (Files.exists(Paths.get(zipFileLocation))) {
       Files.delete(Paths.get(zipFileLocation));
     }
 
@@ -183,19 +183,19 @@ public class AcceptanceTestUtils {
         }
       }
 
-      filesToZip.stream().forEach(adr -> {
-        Path path = Paths.get(adr);
-        ZipEntry zipEntry = new ZipEntry(sourceDirPath.relativize(path).toString());
-        try {
-          stream.putNextEntry(zipEntry);
-          Files.copy(path, stream);
-          stream.closeEntry();
-        } catch (IOException exception) {
-          System.err.println(exception);
-        }
-      });
-
+      filesToZip.stream()
+          .forEach(
+              adr -> {
+                Path path = Paths.get(adr);
+                ZipEntry zipEntry = new ZipEntry(sourceDirPath.relativize(path).toString());
+                try {
+                  stream.putNextEntry(zipEntry);
+                  Files.copy(path, stream);
+                  stream.closeEntry();
+                } catch (IOException exception) {
+                  System.err.println(exception);
+                }
+              });
     }
   }
-
 }

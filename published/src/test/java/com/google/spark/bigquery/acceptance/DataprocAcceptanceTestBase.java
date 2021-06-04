@@ -169,22 +169,21 @@ public class DataprocAcceptanceTestBase {
   }
 
   @Test
-  public void testBigNumeric() throws Exception{
+  public void testBigNumeric() throws Exception {
     String testName = "test-big-numeric";
-    String baseDir = "pythonlib";
-    String zipFileLocation = baseDir + "/big_numeric_acceptance_test.zip";
-    String zipFileUri = context.testBaseGcsDir + "/" + testName + "/big_numeric_acceptance_test.zip";
+    String pyBaseDir = Paths.get("pythonlib").toAbsolutePath().toString();
+    String zipFileLocation = pyBaseDir + "/big_numeric_acceptance_test.zip";
+    String zipFileUri =
+        context.testBaseGcsDir + "/" + testName + "/big_numeric_acceptance_test.zip";
 
-    createZipFile(baseDir, zipFileLocation);
+    createZipFile(pyBaseDir, zipFileLocation);
 
     AcceptanceTestUtils.uploadToGcs(
         getClass().getResourceAsStream("/acceptance/big_numeric.py"),
         context.getScriptUri(testName),
         "text/x-python");
     AcceptanceTestUtils.uploadToGcs(
-        new FileInputStream(zipFileLocation),
-        zipFileUri,
-        "text");
+        new FileInputStream(zipFileLocation), zipFileUri, "application/zip");
 
     createBqDataset(context.testBigNumericDataset);
 
@@ -212,7 +211,6 @@ public class DataprocAcceptanceTestBase {
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
     assertThat(output.trim()).isEqualTo(MIN_BIG_NUMERIC + "," + MAX_BIG_NUMERIC);
   }
-
 
   private Job runAndWait(Job job, Duration timeout) throws Exception {
     try (JobControllerClient jobControllerClient =
