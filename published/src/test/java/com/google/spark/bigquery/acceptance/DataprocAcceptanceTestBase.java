@@ -72,7 +72,7 @@ public class DataprocAcceptanceTestBase {
     if (context != null) {
       terminateCluster(context.clusterId);
       AcceptanceTestUtils.deleteGcsDir(context.testBaseGcsDir);
-      deleteBqDatasetAndTables(context.testBigNumericDataset);
+      deleteBqDatasetAndTables(context.bqDataset);
     }
   }
 
@@ -185,13 +185,13 @@ public class DataprocAcceptanceTestBase {
     AcceptanceTestUtils.uploadToGcs(
         new FileInputStream(zipFileLocation), zipFileUri, "application/zip");
 
-    createBqDataset(context.testBigNumericDataset);
+    createBqDataset(context.bqDataset);
 
     runBqQuery(
         String.format(
             AcceptanceTestConstants.BIGNUMERIC_TABLE_QUERY_TEMPLATE,
-            context.testBigNumericDataset,
-            context.testBigNumericTable));
+            context.bqDataset,
+            context.bqTable));
 
     Job job =
         Job.newBuilder()
@@ -202,7 +202,7 @@ public class DataprocAcceptanceTestBase {
                     .addJarFileUris(context.connectorJarUri)
                     .addPythonFileUris(zipFileUri)
                     .addFileUris(zipFileUri)
-                    .addArgs(context.testBigNumericDataset + "." + context.testBigNumericTable)
+                    .addArgs(context.bqDataset + "." + context.bqTable)
                     .addArgs(context.getResultsDirUri(testName)))
             .build();
 
