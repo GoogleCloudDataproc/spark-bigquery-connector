@@ -171,19 +171,10 @@ public class AcceptanceTestUtils {
     Path sourceDirPath = Paths.get(sourceDir);
 
     try (ZipOutputStream stream = new ZipOutputStream(Files.newOutputStream(zipFilePath))) {
-      ArrayList<String> filesToZip = new ArrayList<>();
+      ArrayList<String> files = new ArrayList<>();
+      filesToZip(new File(sourceDir), files);
 
-      File folder = new File(sourceDir);
-
-      for (File file : folder.listFiles()) {
-        if (!file.isDirectory()
-            && !file.getAbsolutePath().endsWith(".zip")
-            && !file.getAbsolutePath().endsWith(".DS_Store")) {
-          filesToZip.add(file.getAbsolutePath());
-        }
-      }
-
-      filesToZip.stream()
+      files.stream()
           .forEach(
               adr -> {
                 Path path = Paths.get(adr);
@@ -196,6 +187,17 @@ public class AcceptanceTestUtils {
                   System.err.println(exception);
                 }
               });
+    }
+  }
+
+  private static void filesToZip(File folder, ArrayList<String> filesList) {
+    for (File file : folder.listFiles()) {
+      if (file.isDirectory()) {
+        filesToZip(file, filesList);
+      } else if (!file.getAbsolutePath().endsWith(".zip")
+          && !file.getAbsolutePath().endsWith(".DS_Store")) {
+        filesList.add(file.getAbsolutePath());
+      }
     }
   }
 }
