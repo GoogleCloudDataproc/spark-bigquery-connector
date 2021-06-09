@@ -30,7 +30,7 @@ private[spark] class BigNumericUDT extends UserDefinedType[BigNumeric]{
   override def userClass: Class[BigNumeric] = classOf[BigNumeric]
 
   override def pyUDT: String =
-    "com.google.cloud.spark.bigquery.big_numeric_support.BigNumericUDT"
+    "google.cloud.spark.bigquery.big_numeric_support.BigNumericUDT"
 }
 
 @SQLUserDefinedType(udt = classOf[BigNumericUDT])

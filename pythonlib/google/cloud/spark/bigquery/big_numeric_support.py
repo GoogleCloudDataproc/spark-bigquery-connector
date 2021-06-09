@@ -12,7 +12,7 @@ class BigNumericUDT(UserDefinedType):
 
     @classmethod
     def module(cls):
-        return "com.google.cloud.spark.bigquery.big_numeric_support"
+        return "google.cloud.spark.bigquery.big_numeric_support"
 
     @classmethod
     def scalaUDT(cls):
