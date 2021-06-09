@@ -49,6 +49,7 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -80,6 +81,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private static final String CONF_PREFIX = "spark.datasource.bigquery.";
   private static final int DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT = 60 * 1000;
   private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
+  private static final Pattern LOWERCASE_QUERY_PATTERN = Pattern.compile("^select\\s+.*$");
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
   // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
@@ -177,7 +179,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     // checking for query
     if (tableParam.isPresent()) {
       String tableParamStr = tableParam.get().trim().replaceAll("\\s+", " ");
-      if (tableParamStr.toLowerCase().startsWith("select ")) {
+      if (isQuery(tableParamStr)) {
         // it is a query in practice
         config.query = com.google.common.base.Optional.of(tableParamStr);
         config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
@@ -279,6 +281,12 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
             .or(0);
 
     return config;
+  }
+
+  @VisibleForTesting
+  static boolean isQuery(String tableParamStr) {
+    String potentialQuery = tableParamStr.toLowerCase().replace('\n', ' ');
+    return LOWERCASE_QUERY_PATTERN.matcher(potentialQuery).matches();
   }
 
   private static void validateDateFormat(
