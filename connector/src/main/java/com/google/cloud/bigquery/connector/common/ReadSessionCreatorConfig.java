@@ -34,6 +34,7 @@ public class ReadSessionCreatorConfig {
   private final Optional<String> requestEncodedBase;
   private final Optional<String> endpoint;
   private final int backgroundParsingThreads;
+  private final boolean pushAllFilters;
 
   ReadSessionCreatorConfig(
       boolean viewsEnabled,
@@ -47,7 +48,8 @@ public class ReadSessionCreatorConfig {
       int defaultParallelism,
       Optional<String> requestEncodedBase,
       Optional<String> endpoint,
-      int backgroundParsingThreads) {
+      int backgroundParsingThreads,
+      boolean pushAllFilters) {
     this.viewsEnabled = viewsEnabled;
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
@@ -60,6 +62,7 @@ public class ReadSessionCreatorConfig {
     this.requestEncodedBase = requestEncodedBase;
     this.endpoint = endpoint;
     this.backgroundParsingThreads = backgroundParsingThreads;
+    this.pushAllFilters = pushAllFilters;
   }
 
   public boolean isViewsEnabled() {
@@ -108,6 +111,10 @@ public class ReadSessionCreatorConfig {
 
   public int backgroundParsingThreads() {
     return this.backgroundParsingThreads;
+  }
+
+  public boolean getPushAllFilters() {
+    return this.pushAllFilters;
   }
 
   public ReadRowsHelper.Options toReadRowsHelperOptions() {

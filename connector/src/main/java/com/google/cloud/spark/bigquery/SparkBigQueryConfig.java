@@ -118,6 +118,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
   private com.google.common.base.Optional<String> storageReadEndpoint = empty();
   private int numBackgroundThreadsPerStream = 0;
+  private boolean pushAllFilters = true;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -279,6 +280,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         getAnyOption(globalOptions, options, "bqBackgroundThreadsPerStream")
             .transform(Integer::parseInt)
             .or(0);
+    config.pushAllFilters = getAnyBooleanOption(globalOptions, options, "pushAllFilters", true);
 
     return config;
   }
@@ -544,6 +546,14 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     return maxReadRowsRetries;
   }
 
+  public boolean getPushAllFilters() {
+    return pushAllFilters;
+  }
+
+  public void setPushAllFilters(boolean pushAllFilters) {
+    this.pushAllFilters = pushAllFilters;
+  }
+
   // in order to simplify the configuration, the BigQuery client settings are fixed. If needed
   // we will add configuration properties for them.
 
@@ -584,6 +594,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         .setRequestEncodedBase(encodedCreateReadSessionRequest.toJavaUtil())
         .setEndpoint(storageReadEndpoint.toJavaUtil())
         .setBackgroundParsingThreads(numBackgroundThreadsPerStream)
+        .setPushAllFilters(pushAllFilters)
         .build();
   }
 

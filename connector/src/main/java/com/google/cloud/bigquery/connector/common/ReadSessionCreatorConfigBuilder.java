@@ -18,6 +18,7 @@ public class ReadSessionCreatorConfigBuilder {
   private Optional<String> requestEncodedBase = Optional.empty();
   private Optional<String> endpoint = Optional.empty();
   private int backgroundParsingThreads = 0;
+  private boolean pushAllFilters = true;
 
   public ReadSessionCreatorConfigBuilder setViewsEnabled(boolean viewsEnabled) {
     this.viewsEnabled = viewsEnabled;
@@ -83,6 +84,11 @@ public class ReadSessionCreatorConfigBuilder {
     return this;
   }
 
+  public ReadSessionCreatorConfigBuilder setPushAllFilters(boolean pushAllFilters) {
+    this.pushAllFilters = pushAllFilters;
+    return this;
+  }
+
   public ReadSessionCreatorConfig build() {
     return new ReadSessionCreatorConfig(
         viewsEnabled,
@@ -96,6 +102,7 @@ public class ReadSessionCreatorConfigBuilder {
         defaultParallelism,
         requestEncodedBase,
         endpoint,
-        backgroundParsingThreads);
+        backgroundParsingThreads,
+        pushAllFilters);
   }
 }

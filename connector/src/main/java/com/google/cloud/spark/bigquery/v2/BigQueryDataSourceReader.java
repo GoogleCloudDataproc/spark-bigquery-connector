@@ -155,7 +155,10 @@ public class BigQueryDataSourceReader
     Optional<String> filter =
         emptyIfNeeded(
             SparkFilterUtils.getCompiledFilter(
-                readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
+                readSessionCreatorConfig.getPushAllFilters(),
+                readSessionCreatorConfig.getReadDataFormat(),
+                globalFilter,
+                pushedFilters));
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(tableId, selectedFields, filter);
     ReadSession readSession = readSessionResponse.getReadSession();
@@ -182,7 +185,10 @@ public class BigQueryDataSourceReader
     Optional<String> filter =
         emptyIfNeeded(
             SparkFilterUtils.getCompiledFilter(
-                readSessionCreatorConfig.getReadDataFormat(), globalFilter, pushedFilters));
+                readSessionCreatorConfig.getPushAllFilters(),
+                readSessionCreatorConfig.getReadDataFormat(),
+                globalFilter,
+                pushedFilters));
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(tableId, selectedFields, filter);
     ReadSession readSession = readSessionResponse.getReadSession();
@@ -269,7 +275,10 @@ public class BigQueryDataSourceReader
     List<Filter> unhandledFilters = new ArrayList<>();
     for (Filter filter : filters) {
       if (SparkFilterUtils.isTopLevelFieldHandled(
-          filter, readSessionCreatorConfig.getReadDataFormat(), fields)) {
+          readSessionCreatorConfig.getPushAllFilters(),
+          filter,
+          readSessionCreatorConfig.getReadDataFormat(),
+          fields)) {
         handledFilters.add(filter);
       } else {
         unhandledFilters.add(filter);
