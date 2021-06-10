@@ -65,6 +65,7 @@ public class DataprocAcceptanceTestBase {
     String clusterName = createClusterIfNeeded(dataprocImageVersion, testId);
     AcceptanceTestContext acceptanceTestContext = new AcceptanceTestContext(testId, clusterName);
     uploadConnectorJar(scalaVersion, acceptanceTestContext.connectorJarUri);
+    createBqDataset(acceptanceTestContext.bqDataset);
     return acceptanceTestContext;
   }
 
@@ -184,8 +185,6 @@ public class DataprocAcceptanceTestBase {
         "text/x-python");
     AcceptanceTestUtils.uploadToGcs(
         new FileInputStream(zipFileLocation), zipFileUri, "application/zip");
-
-    createBqDataset(context.bqDataset);
 
     runBqQuery(
         String.format(

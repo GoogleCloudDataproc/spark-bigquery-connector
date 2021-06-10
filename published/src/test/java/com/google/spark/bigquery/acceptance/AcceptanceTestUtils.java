@@ -45,6 +45,7 @@ public class AcceptanceTestUtils {
 
   // must be set in order to run the acceptance test
   private static final String BUCKET = System.getenv("ACCEPTANCE_TEST_BUCKET");
+  private static final BigQuery bq = BigQueryOptions.getDefaultInstance().getService();
 
   static Storage storage =
       new StorageOptions.DefaultStorageFactory().create(StorageOptions.getDefaultInstance());
@@ -150,15 +151,14 @@ public class AcceptanceTestUtils {
 
   public static void createBqDataset(String dataset) {
     DatasetId datasetId = DatasetId.of(dataset);
-    BigQueryOptions.getDefaultInstance().getService().create(DatasetInfo.of(datasetId));
+    bq.create(DatasetInfo.of(datasetId));
   }
 
   public static void runBqQuery(String query) throws Exception {
-    BigQueryOptions.getDefaultInstance().getService().query(QueryJobConfiguration.of(query));
+    bq.query(QueryJobConfiguration.of(query));
   }
 
   public static void deleteBqDatasetAndTables(String dataset) {
-    BigQuery bq = BigQueryOptions.getDefaultInstance().getService();
     bq.delete(DatasetId.of(dataset), DatasetDeleteOption.deleteContents());
   }
 
