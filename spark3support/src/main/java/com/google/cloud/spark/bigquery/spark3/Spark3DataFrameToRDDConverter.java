@@ -1,7 +1,5 @@
 package com.google.cloud.spark.bigquery.spark3;
 
-import java.util.List;
-import java.util.stream.Collectors;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -12,13 +10,17 @@ import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder.Deserializer;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.catalyst.expressions.Attribute;
 import org.apache.spark.sql.types.StructType;
-import scala.Function1;
 import scala.collection.Iterator;
 import scala.collection.JavaConversions;
 import scala.collection.JavaConverters;
 import scala.reflect.ClassTag;
 import scala.reflect.ClassTag$;
 import scala.runtime.AbstractFunction1;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class Spark3DataFrameToRDDConverter implements DataFrameToRDDConverter {
 
@@ -27,15 +29,12 @@ public class Spark3DataFrameToRDDConverter implements DataFrameToRDDConverter {
     StructType schema = data.schema();
 
     List<Attribute> attributes =
-        JavaConversions
-            .asJavaCollection(schema.toAttributes())
-            .stream()
+        JavaConversions.asJavaCollection(schema.toAttributes()).stream()
             .map(Attribute::toAttribute)
             .collect(Collectors.toList());
 
-    ExpressionEncoder<Row> expressionEncoder =
-        RowEncoder
-            .apply(schema)
+    final ExpressionEncoder<Row> expressionEncoder =
+        RowEncoder.apply(schema)
             .resolveAndBind(
                 JavaConverters.asScalaIteratorConverter(attributes.iterator()).asScala().toSeq(),
                 SimpleAnalyzer$.MODULE$);
@@ -44,33 +43,26 @@ public class Spark3DataFrameToRDDConverter implements DataFrameToRDDConverter {
     ClassTag<Row> classTag = ClassTag$.MODULE$.apply(Row.class);
 
     RDD<Row> rowRdd =
-        data.queryExecution().toRdd().mapPartitions(
-            getIteratorMapper(deserializer),
-            false,
-            classTag);
+        data.queryExecution()
+            .toRdd()
+            .mapPartitions(getIteratorMapper(deserializer), false, classTag);
 
     return rowRdd;
   }
 
-  private Function1<Iterator<InternalRow>, Iterator<Row>> getIteratorMapper(
+  private AbstractFunction1<Iterator<InternalRow>, Iterator<Row>> getIteratorMapper(
       final Deserializer<Row> deserializer) {
 
-    Function1<InternalRow, Row> internalRowMapper =
-        new AbstractFunction1<InternalRow, Row>() {
-          public Row apply(InternalRow internalRow) {
-            return deserializer.apply(internalRow);
-          }
-        };
+    final AbstractFunction1<InternalRow, Row> internalRowMapper =
+        new SerializableAbstractFunction1(
+            (Function<InternalRow, Row> & Serializable)
+                internalRow -> deserializer.apply(internalRow));
 
-    Function1<Iterator<InternalRow>, Iterator<Row>> iteratorMapper =
-        new AbstractFunction1<Iterator<InternalRow>, Iterator<Row>>() {
-          public Iterator<Row> apply(Iterator<InternalRow> iterator) {
-            return iterator.map(internalRowMapper);
-          }
-        };
+    final AbstractFunction1<Iterator<InternalRow>, Iterator<Row>> iteratorMapper =
+        new SerializableAbstractFunction1(
+            (Function<Iterator<InternalRow>, Iterator<Row>> & Serializable)
+                iterator -> iterator.map(internalRowMapper));
 
     return iteratorMapper;
   }
 }
-
-
