@@ -629,6 +629,79 @@ the field's description which includes the spark type of the field.
 In order to write those types to BigQuery, use the ORC or Avro intermediate format, and have them as column of the
 Row (i.e. not a field in a struct).
 
+#### BigNumeric support
+BigQuery's BigNumeric has a precision of 76.76 (the 77th digit is partial) and scale of 38. Since this much precision
+and scale is beyond the supported 38 scale and 38 precision of spark's DecimalType, the BigNumeric DataType is
+converted into spark's [UserDefinedType](https://spark.apache.org/docs/1.4.0/api/java/org/apache/spark/sql/types/UserDefinedType.html).
+The BigNumeric data can be accessed via BigNumericUDT DataType which internally uses [java.math.BigDecimal](https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html) 
+to hold the BigNumeric data. The data can be read in either AVRO or ARROW formats.
+
+In order to write BigNumericUDT to BigQuery, use either ORC or PARQUET intermediate formats. Notice that the data gets
+written to BigQuery as String.
+
+Code examples:
+
+**Scala:**
+
+```
+val df = spark.read
+  .format("bigquery")
+  .option("readDataFormat", "AVRO")
+  .load({project}.{dataset}.{table_name})
+
+val rows: Array[java.math.BigDecimal] = df
+  .collect()
+  .map(row => row.get({columnPositionOfBignumeric}).asInstanceOf[BigNumeric].number)
+
+rows.foreach(value => System.out.println("BigNumeric value  " + value.toPlainString))
+```
+
+**Python:** For spark's [UserDefinedType](https://spark.apache.org/docs/1.4.0/api/java/org/apache/spark/sql/types/UserDefinedType.html)
+we need separate implementation for Python as well, so we need to provide the corresponding python class(s) in config params while
+creating the job or need to add them during runtime, see below for examples:
+
+1) Adding python files while launching pyspark
+```
+# spark-bigquery-latest_2.11.jar or spark-bigquery-latest_2.12.jar depending on scala version
+pyspark --jars gs://spark-lib/bigquery/spark-bigquery-latest_2.11.jar
+  --py-files gs://spark-lib/bigquery/bignumeric_support.zip
+  --files gs://spark-lib/bigquery/bignumeric_support.zip
+```
+
+2) Adding python files in Jupyter Notebook
+```
+from pyspark.sql import SparkSession
+spark = SparkSession.builder\
+  .appName('BigNumeric')\
+  # spark-bigquery-latest_2.11.jar or spark-bigquery-latest_2.12.jar depending on scala version
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-latest_2.11.jar')\
+  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/bignumeric_support.zip')\
+  .config('spark.files', 'gs://spark-lib/bigquery/bignumeric_support.zip')\
+  .getOrCreate()
+```
+
+3) Adding Python files during runtime
+```
+spark = SparkSession.builder\
+  .appName('BigNumeric')\
+  # spark-bigquery-latest_2.11.jar or spark-bigquery-latest_2.12.jar depending on scala version
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-latest_2.11.jar')\
+  .getOrCreate()
+
+spark.sparkContext.addPyfile("gs://spark-lib/bigquery/bignumeric_support.zip")
+```
+
+Usage Example:
+```
+df = spark.read.format("bigquery").load({project}.{dataset}.{table_name})
+data = df.select({big_numeric_column_name}).collect()
+
+for row in data:
+  bigNumeric = row[{big_numeric_column_name}]
+  # bigNumeric.number is instance of python's Decimal class
+  print(str(bigNumeric.number))
+```
+
 ### Filtering
 
 The connector automatically computes column and pushdown filters the DataFrame's `SELECT` statement e.g.
