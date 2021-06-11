@@ -244,5 +244,7 @@ public class SparkBigQueryConfigTest {
     assertThat(SparkBigQueryConfig.isQuery("select a,b from table")).isTrue();
     assertThat(SparkBigQueryConfig.isQuery("SELECT\n a,b\nfrom table")).isTrue();
     assertThat(SparkBigQueryConfig.isQuery("SELECT\ta,b from table")).isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("WITH bar AS (SELECT * FROM foo)\nSELECT * FROM bar"))
+        .isTrue();
   }
 }
