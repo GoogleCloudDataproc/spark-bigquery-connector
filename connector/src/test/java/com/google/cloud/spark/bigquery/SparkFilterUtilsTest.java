@@ -19,145 +19,119 @@ import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import org.apache.spark.sql.sources.*;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.text.ParseException;
+import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Optional;
 
 import static com.google.common.truth.Truth.assertThat;
 
+@RunWith(Parameterized.class)
 public class SparkFilterUtilsTest {
 
   private static final DataFormat ARROW = DataFormat.ARROW;
   private static final DataFormat AVRO = DataFormat.AVRO;
-  private static boolean pushAllFiltersArgs[] = {false, true};
-  private static DataFormat dataFormatArgs[] = {DataFormat.AVRO, DataFormat.ARROW};
 
-  @Test
-  public void testValidFiltersForAvro() {
-    ImmutableList<Filter> validFilters =
-        ImmutableList.of(
-            EqualTo.apply("foo", "manatee"),
-            GreaterThan.apply("foo", "aardvark"),
-            GreaterThanOrEqual.apply("bar", 2),
-            LessThan.apply("foo", "zebra"),
-            LessThanOrEqual.apply("bar", 1),
-            In.apply("foo", new Object[] {1, 2, 3}),
-            IsNull.apply("foo"),
-            IsNotNull.apply("foo"),
-            And.apply(IsNull.apply("foo"), IsNotNull.apply("bar")),
-            Or.apply(IsNull.apply("foo"), IsNotNull.apply("foo")),
-            Not.apply(IsNull.apply("foo")),
-            StringStartsWith.apply("foo", "abc"),
-            StringEndsWith.apply("foo", "def"),
-            StringContains.apply("foo", "abcdef"));
-    for (boolean pushAllFilters : pushAllFiltersArgs) {
-      validFilters.forEach(
-          f -> assertThat(SparkFilterUtils.unhandledFilters(pushAllFilters, AVRO, f)).isEmpty());
-    }
+  @Parameterized.Parameters(name = "{index}: dataFormat={0}, pushAllFilters={1}")
+  public static Iterable<Object[]> data() {
+    return Arrays.asList(
+        new Object[] {AVRO, false},
+        new Object[] {AVRO, true},
+        new Object[] {ARROW, false},
+        new Object[] {ARROW, true});
+  }
+
+  private DataFormat dataFormat;
+  private boolean pushAllFilters;
+
+  public SparkFilterUtilsTest(DataFormat dataFormat, boolean pushAllFilters) {
+    this.dataFormat = dataFormat;
+    this.pushAllFilters = pushAllFilters;
   }
 
   @Test
-  public void testValidFiltersForArrow() {
-    ImmutableList<Filter> validFilters =
-        ImmutableList.of(
-            EqualTo.apply("foo", "manatee"),
-            GreaterThan.apply("foo", "aardvark"),
-            GreaterThanOrEqual.apply("bar", 2),
-            LessThan.apply("foo", "zebra"),
-            LessThanOrEqual.apply("bar", 1),
-            In.apply("foo", new Object[] {1, 2, 3}),
-            IsNull.apply("foo"),
-            IsNotNull.apply("foo"),
-            And.apply(IsNull.apply("foo"), IsNotNull.apply("bar")),
-            Not.apply(IsNull.apply("foo")),
-            StringStartsWith.apply("foo", "abc"),
-            StringEndsWith.apply("foo", "def"),
-            StringContains.apply("foo", "abcdef"));
-    for (boolean pushAllFilters : pushAllFiltersArgs) {
-      validFilters.forEach(
-          f -> assertThat(SparkFilterUtils.unhandledFilters(pushAllFilters, ARROW, f)).isEmpty());
+  public void testValidFilters() {
+    ArrayList<Filter> validFilters =
+        new ArrayList(
+            Arrays.asList(
+                EqualTo.apply("foo", "manatee"),
+                GreaterThan.apply("foo", "aardvark"),
+                GreaterThanOrEqual.apply("bar", 2),
+                LessThan.apply("foo", "zebra"),
+                LessThanOrEqual.apply("bar", 1),
+                In.apply("foo", new Object[] {1, 2, 3}),
+                IsNull.apply("foo"),
+                IsNotNull.apply("foo"),
+                And.apply(IsNull.apply("foo"), IsNotNull.apply("bar")),
+                Not.apply(IsNull.apply("foo")),
+                StringStartsWith.apply("foo", "abc"),
+                StringEndsWith.apply("foo", "def"),
+                StringContains.apply("foo", "abcdef")));
+    if (dataFormat != ARROW || pushAllFilters) {
+      // If pushAllFilters isn't true, the following filter can't be handled for ARROW.
+      validFilters.add(Or.apply(IsNull.apply("foo"), IsNotNull.apply("foo")));
     }
+    validFilters.forEach(
+        f ->
+            assertThat(SparkFilterUtils.unhandledFilters(pushAllFilters, dataFormat, f)).isEmpty());
   }
 
   @Test
   public void testMultipleValidFiltersAreHandled() {
     Filter valid1 = EqualTo.apply("foo", "bar");
     Filter valid2 = EqualTo.apply("bar", 1);
-    for (boolean pushAllFilters : pushAllFiltersArgs) {
-      assertThat(SparkFilterUtils.unhandledFilters(pushAllFilters, AVRO, valid1, valid2)).isEmpty();
+    assertThat(SparkFilterUtils.unhandledFilters(pushAllFilters, dataFormat, valid1, valid2))
+        .isEmpty();
+  }
+
+  @Test
+  public void testInvalidFilters() {
+    Filter valid1 = EqualTo.apply("foo", "bar");
+    Filter valid2 = EqualTo.apply("bar", 1);
+    Filter invalid1 = EqualNullSafe.apply("foo", "bar");
+    Filter invalid2 =
+        And.apply(EqualTo.apply("foo", "bar"), Not.apply(EqualNullSafe.apply("bar", 1)));
+    Filter avroValid = Or.apply(IsNull.apply("foo"), IsNotNull.apply("foo"));
+    Iterable<Filter> unhandled =
+        SparkFilterUtils.unhandledFilters(
+            pushAllFilters, dataFormat, valid1, valid2, invalid1, invalid2, avroValid);
+    if (pushAllFilters) {
+      assertThat(unhandled).isEmpty();
+    } else if (dataFormat == AVRO) {
+      assertThat(unhandled).containsExactly(invalid1, invalid2);
+    } else {
+      assertThat(unhandled).containsExactly(invalid1, invalid2, avroValid);
     }
-  }
-
-  @Test
-  public void testInvalidFiltersWithAvro() {
-    Filter valid1 = EqualTo.apply("foo", "bar");
-    Filter valid2 = EqualTo.apply("bar", 1);
-    Filter invalid1 = EqualNullSafe.apply("foo", "bar");
-    Filter invalid2 =
-        And.apply(EqualTo.apply("foo", "bar"), Not.apply(EqualNullSafe.apply("bar", 1)));
-    Iterable<Filter> unhandled =
-        SparkFilterUtils.unhandledFilters(false, AVRO, valid1, valid2, invalid1, invalid2);
-    assertThat(unhandled).containsExactly(invalid1, invalid2);
-
-    unhandled = SparkFilterUtils.unhandledFilters(true, AVRO, valid1, valid2, invalid1, invalid2);
-    assertThat(unhandled).isEmpty();
-  }
-
-  @Test
-  public void testInvalidFiltersWithArrow() {
-    Filter valid1 = EqualTo.apply("foo", "bar");
-    Filter valid2 = EqualTo.apply("bar", 1);
-    Filter invalid1 = EqualNullSafe.apply("foo", "bar");
-    Filter invalid2 =
-        And.apply(EqualTo.apply("foo", "bar"), Not.apply(EqualNullSafe.apply("bar", 1)));
-    Filter invalid3 = Or.apply(IsNull.apply("foo"), IsNotNull.apply("foo"));
-    Iterable<Filter> unhandled =
-        SparkFilterUtils.unhandledFilters(
-            false, ARROW, valid1, valid2, invalid1, invalid2, invalid3);
-    assertThat(unhandled).containsExactly(invalid1, invalid2, invalid3);
-
-    unhandled =
-        SparkFilterUtils.unhandledFilters(
-            true, ARROW, valid1, valid2, invalid1, invalid2, invalid3);
-    assertThat(unhandled).isEmpty();
   }
 
   @Test
   public void testNewFilterBehaviourWithFilterOption() {
-    for (boolean pushAllFilters : pushAllFiltersArgs) {
-      for (DataFormat dataFormat : dataFormatArgs) {
-        if (dataFormat == ARROW && !pushAllFilters) {
-          continue;
-        }
-        checkFilters(
-            pushAllFilters,
-            dataFormat,
-            "(f>1)",
-            "(f>1) AND (`a` > 2)",
-            Optional.of("f>1"),
-            GreaterThan.apply("a", 2));
-      }
+    if (dataFormat == ARROW && !pushAllFilters) {
+      // If pushAllFilters isn't true, the following test won't pass for ARROW.
+      return;
     }
+    checkFilters(
+        pushAllFilters,
+        dataFormat,
+        "(f>1)",
+        "(f>1) AND (`a` > 2)",
+        Optional.of("f>1"),
+        GreaterThan.apply("a", 2));
   }
 
   @Test
   public void testNewFilterBehaviourNoFilterOption() {
-    for (boolean pushAllFilters : pushAllFiltersArgs) {
-      for (DataFormat dataFormat : dataFormatArgs) {
-        if (dataFormat == ARROW && !pushAllFilters) {
-          continue;
-        }
-        checkFilters(
-            pushAllFilters,
-            dataFormat,
-            "",
-            "(`a` > 2)",
-            Optional.empty(),
-            GreaterThan.apply("a", 2));
-      }
+    if (dataFormat == ARROW && !pushAllFilters) {
+      // If pushAllFilters isn't true, the following test won't pass for ARROW.
+      return;
     }
+    checkFilters(
+        pushAllFilters, dataFormat, "", "(`a` > 2)", Optional.empty(), GreaterThan.apply("a", 2));
   }
 
   private void checkFilters(
@@ -237,7 +211,12 @@ public class SparkFilterUtilsTest {
   }
 
   @Test
-  public void testFiltersWithNestedOrAndForAVRO_1() {
+  public void testFiltersWithNestedOrAnd_1() {
+    if (dataFormat == ARROW && !pushAllFilters) {
+      // If pushAllFilters isn't true, the following test won't pass for ARROW.
+      return;
+    }
+
     // original query
     // (c1 >= 500 or c1 <= 70 or c1 >= 900 or c3 <= 50) and
     // (c1 >= 100 or c1 <= 700  or c2 <= 900) and
@@ -255,28 +234,26 @@ public class SparkFilterUtilsTest {
 
     Filter part3 = Or.apply(GreaterThanOrEqual.apply("c1", 5000), LessThanOrEqual.apply("c1", 701));
 
-    for (boolean pushAllFilters : pushAllFiltersArgs) {
-      for (DataFormat dataFormat : dataFormatArgs) {
-        if (dataFormat == ARROW && !pushAllFilters) {
-          continue;
-        }
-        checkFilters(
-            pushAllFilters,
-            dataFormat,
-            "",
-            "(((((`c1` >= 100) OR (`c1` <= 700))) OR (`c2` <= 900)) "
-                + "AND ((((`c1` >= 500) OR (`c1` <= 70))) OR (((`c1` >= 900) OR "
-                + "(`c3` <= 50)))) AND ((`c1` >= 5000) OR (`c1` <= 701)))",
-            Optional.empty(),
-            part1,
-            part2,
-            part3);
-      }
-    }
+    checkFilters(
+        pushAllFilters,
+        dataFormat,
+        "",
+        "(((((`c1` >= 100) OR (`c1` <= 700))) OR (`c2` <= 900)) "
+            + "AND ((((`c1` >= 500) OR (`c1` <= 70))) OR (((`c1` >= 900) OR "
+            + "(`c3` <= 50)))) AND ((`c1` >= 5000) OR (`c1` <= 701)))",
+        Optional.empty(),
+        part1,
+        part2,
+        part3);
   }
 
   @Test
-  public void testFiltersWithNestedOrAndForAVRO_2() {
+  public void testFiltersWithNestedOrAnd_2() {
+    if (dataFormat == ARROW && !pushAllFilters) {
+      // If pushAllFilters isn't true, the following test won't pass for ARROW.
+      return;
+    }
+
     // original query
     // (c1 >= 500 and c2 <= 300) or (c1 <= 800 and c3 >= 230)
 
@@ -285,24 +262,22 @@ public class SparkFilterUtilsTest {
             And.apply(GreaterThanOrEqual.apply("c1", 500), LessThanOrEqual.apply("c2", 300)),
             And.apply(LessThanOrEqual.apply("c1", 800), GreaterThanOrEqual.apply("c3", 230)));
 
-    for (boolean pushAllFilters : pushAllFiltersArgs) {
-      for (DataFormat dataFormat : dataFormatArgs) {
-        if (dataFormat == ARROW && !pushAllFilters) {
-          continue;
-        }
-        checkFilters(
-            pushAllFilters,
-            dataFormat,
-            "",
-            "(((((`c1` >= 500) AND (`c2` <= 300))) OR (((`c1` <= 800) AND (`c3` >= 230)))))",
-            Optional.empty(),
-            filter);
-      }
-    }
+    checkFilters(
+        pushAllFilters,
+        dataFormat,
+        "",
+        "(((((`c1` >= 500) AND (`c2` <= 300))) OR (((`c1` <= 800) AND (`c3` >= 230)))))",
+        Optional.empty(),
+        filter);
   }
 
   @Test
-  public void testFiltersWithNestedOrAndForAVRO_3() {
+  public void testFiltersWithNestedOrAnd_3() {
+    if (dataFormat == ARROW && !pushAllFilters) {
+      // If pushAllFilters isn't true, the following test won't pass for ARROW.
+      return;
+    }
+
     // original query
     // (((c1 >= 500 or c1 <= 70) and
     // (c1 >= 900 or (c3 <= 50 and (c2 >= 20 or c3 > 200))))) and
@@ -327,25 +302,18 @@ public class SparkFilterUtilsTest {
                 Or.apply(GreaterThanOrEqual.apply("c1", 50), LessThanOrEqual.apply("c1", 71)),
                 Or.apply(GreaterThanOrEqual.apply("c2", 15), GreaterThanOrEqual.apply("c3", 10))));
 
-    for (boolean pushAllFilters : pushAllFiltersArgs) {
-      for (DataFormat dataFormat : dataFormatArgs) {
-        if (dataFormat == ARROW && !pushAllFilters) {
-          continue;
-        }
-        checkFilters(
-            pushAllFilters,
-            dataFormat,
-            "",
-            "(((((((`c1` >= 5000) OR (`c1` <= 701))) AND "
-                + "(((`c2` >= 150) OR (`c3` >= 100))))) OR (((((`c1` >= 50) OR "
-                + "(`c1` <= 71))) AND (((`c2` >= 15) OR (`c3` >= 10)))))) AND "
-                + "((`c1` >= 500) OR (`c1` <= 70)) AND ((`c1` >= 900) OR "
-                + "(((`c3` <= 50) AND (((`c2` >= 20) OR (`c3` > 200)))))))",
-            Optional.empty(),
-            part1,
-            part2,
-            part3);
-      }
-    }
+    checkFilters(
+        pushAllFilters,
+        dataFormat,
+        "",
+        "(((((((`c1` >= 5000) OR (`c1` <= 701))) AND "
+            + "(((`c2` >= 150) OR (`c3` >= 100))))) OR (((((`c1` >= 50) OR "
+            + "(`c1` <= 71))) AND (((`c2` >= 15) OR (`c3` >= 10)))))) AND "
+            + "((`c1` >= 500) OR (`c1` <= 70)) AND ((`c1` >= 900) OR "
+            + "(((`c3` <= 50) AND (((`c2` >= 20) OR (`c3` > 200)))))))",
+        Optional.empty(),
+        part1,
+        part2,
+        part3);
   }
 }

@@ -141,7 +141,7 @@ class DirectBigQueryRelationSuite
   test("invalid filters with Avro when pushAllFilters is false") {
     val options = defaultOptions
     options.readDataFormat = DataFormat.AVRO
-    options.setPushAllFilters(false)
+    options.pushAllFilters = false
     val bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
 
     val valid1 = EqualTo("foo", "bar")
@@ -155,7 +155,7 @@ class DirectBigQueryRelationSuite
   test("no invalid filters with Avro when pushAllFilters is true") {
     val options = defaultOptions
     options.readDataFormat = DataFormat.AVRO
-    options.setPushAllFilters(true)
+    options.pushAllFilters = true
     val bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
 
     val valid1 = EqualTo("foo", "bar")
@@ -169,7 +169,7 @@ class DirectBigQueryRelationSuite
   test("invalid filters with Arrow when pushAllFilters is false") {
     val options = defaultOptions
     options.readDataFormat = DataFormat.ARROW
-    options.setPushAllFilters(false)
+    options.pushAllFilters = false
     val bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
 
     val valid1 = EqualTo("foo", "bar")
@@ -185,7 +185,7 @@ class DirectBigQueryRelationSuite
   test("invalid filters with Arrow when pushAllFilters is true") {
     val options = defaultOptions
     options.readDataFormat = DataFormat.ARROW
-    options.setPushAllFilters(true)
+    options.pushAllFilters = true
     val bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
 
     val valid1 = EqualTo("foo", "bar")

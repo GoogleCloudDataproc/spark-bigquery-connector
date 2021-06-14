@@ -333,8 +333,8 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   private def handledFilters(filters: Array[Filter]): Array[Filter] = {
-    filters.filter(filter => DirectBigQueryRelation.isTopLevelFieldFilterHandled(options.getPushAllFilters,
-      filter, options.getReadDataFormat, topLevelFields))
+    filters.filter(filter => DirectBigQueryRelation.isTopLevelFieldFilterHandled(
+      options.getPushAllFilters, filter, options.getReadDataFormat, topLevelFields))
   }
 
   override def unhandledFilters(filters: Array[Filter]): Array[Filter] = {

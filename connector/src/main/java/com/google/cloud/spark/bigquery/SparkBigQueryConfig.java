@@ -115,10 +115,10 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   ImmutableList<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.of();
   int materializationExpirationTimeInMinutes = DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES;
   int maxReadRowsRetries = 3;
+  boolean pushAllFilters = true;
   private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
   private com.google.common.base.Optional<String> storageReadEndpoint = empty();
   private int numBackgroundThreadsPerStream = 0;
-  private boolean pushAllFilters = true;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -548,10 +548,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   public boolean getPushAllFilters() {
     return pushAllFilters;
-  }
-
-  public void setPushAllFilters(boolean pushAllFilters) {
-    this.pushAllFilters = pushAllFilters;
   }
 
   // in order to simplify the configuration, the BigQuery client settings are fixed. If needed
