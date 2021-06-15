@@ -95,9 +95,12 @@ lazy val connector = (project in file("connector"))
         exclude("org.checkerframework", "checker-qual"),
       "org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
       "aopalliance" % "aopalliance" % "1.0" % "provided",
+      "javax.inject" % "javax.inject" % "1" % "provided",
       "org.codehaus.jackson" % "jackson-core-asl" % "1.9.13" % "provided",
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
-      "com.google.inject" % "guice" % "4.2.3",
+      "com.google.inject" % "guice" % "4.2.3"
+        exclude("aopalliance", "aopalliance")
+        exclude("javax.inject", "javax.inject"),
       "org.apache.arrow" % "arrow-vector" % "4.0.0"
 			  excludeAll(ExclusionRule(organization = "org.slf4j"),
 			   ExclusionRule(organization = "com.fasterxml.jackson.core"),
@@ -221,7 +224,9 @@ val excludedOrgs = Seq(
 lazy val renamed = Seq(
   "avro.shaded",
   "com.fasterxml",
+  "com.github.luben",
   "com.google",
+  "com.google.android",
   "com.thoughtworks.paranamer",
   "com.typesafe",
   "io.grpc",
@@ -229,6 +234,7 @@ lazy val renamed = Seq(
   "io.opencensus",
   "org.apache.arrow",
   "io.perfmark",
+  "org.apache.beam",
   "org.apache.commons",
   "org.apache.http",
   "org.checkerframework",
