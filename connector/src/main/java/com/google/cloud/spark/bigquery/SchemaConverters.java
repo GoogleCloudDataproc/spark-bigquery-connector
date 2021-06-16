@@ -298,7 +298,7 @@ public class SchemaConverters {
     } else if (LegacySQLTypeName.NUMERIC.equals(field.getType())) {
       return NUMERIC_SPARK_TYPE;
     } else if (LegacySQLTypeName.BIGNUMERIC.equals(field.getType())) {
-      return BigQueryDataTypes.BigNumericType();
+      return BigQueryDataTypes.BigNumericType;
     } else if (LegacySQLTypeName.STRING.equals(field.getType())) {
       return DataTypes.StringType;
     } else if (LegacySQLTypeName.BOOLEAN.equals(field.getType())) {

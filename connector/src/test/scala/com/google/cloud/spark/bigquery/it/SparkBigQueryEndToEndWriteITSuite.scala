@@ -526,7 +526,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
             expected.get(i).asInstanceOf[GenericRowWithSchema].get(j).asInstanceOf[BigNumeric]
 
           val expectedBigNumericString =
-            expectedBigNumericValue.number.toPlainString
+            expectedBigNumericValue.getNumber.toPlainString
 
           assert(actualBigNumericString === expectedBigNumericString)
         }

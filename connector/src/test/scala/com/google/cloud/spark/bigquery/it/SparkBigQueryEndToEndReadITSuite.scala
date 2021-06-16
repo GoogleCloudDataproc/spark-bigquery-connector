@@ -492,7 +492,7 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
               val bigNumericValue =
                 row.asInstanceOf[GenericRowWithSchema].get(j).asInstanceOf[BigNumeric]
 
-              val bigNumericString = bigNumericValue.number.toPlainString
+              val bigNumericString = bigNumericValue.getNumber.toPlainString
 
               val expectedBigNumericString =
                 expectedRow(i).asInstanceOf[GenericRowWithSchema].get(j)

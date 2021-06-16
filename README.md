@@ -630,14 +630,15 @@ In order to write those types to BigQuery, use the ORC or Avro intermediate form
 Row (i.e. not a field in a struct).
 
 #### BigNumeric support
-BigQuery's BigNumeric has a precision of 76.76 (the 77th digit is partial) and scale of 38. Since this much precision
-and scale is beyond the supported 38 scale and 38 precision of spark's DecimalType, the BigNumeric DataType is
-converted into spark's [UserDefinedType](https://spark.apache.org/docs/1.4.0/api/java/org/apache/spark/sql/types/UserDefinedType.html).
-The BigNumeric data can be accessed via BigNumericUDT DataType which internally uses [java.math.BigDecimal](https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html) 
+BigQuery's BigNumeric has a precision of 76.76 (the 77th digit is partial) and scale of 38. Since this precision and
+scale is beyond spark's DecimalType (38 scale and 38 precision) support, the BigNumeric DataType is converted
+into spark's [UserDefinedType](https://spark.apache.org/docs/1.4.0/api/java/org/apache/spark/sql/types/UserDefinedType.html).
+The BigNumeric data can be accessed via BigNumericUDT DataType which internally uses
+[java.math.BigDecimal](https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html)
 to hold the BigNumeric data. The data can be read in either AVRO or ARROW formats.
 
-In order to write BigNumericUDT to BigQuery, use either ORC or PARQUET intermediate formats. Notice that the data gets
-written to BigQuery as String.
+In order to write BigNumericUDT to BigQuery, use either ORC or PARQUET intermediate formats (currently we do not support
+AVRO). Notice that the data gets written to BigQuery as String.
 
 Code examples:
 
@@ -646,49 +647,49 @@ Code examples:
 ```
 val df = spark.read
   .format("bigquery")
-  .option("readDataFormat", "AVRO")
+  .option("readDataFormat", "AVRO") // can pass "ARROW" format as well
   .load({project}.{dataset}.{table_name})
 
 val rows: Array[java.math.BigDecimal] = df
   .collect()
-  .map(row => row.get({columnPositionOfBignumeric}).asInstanceOf[BigNumeric].number)
+  .map(row => row.get({columnPositionOfBignumeric}).asInstanceOf[BigNumeric].getNumber)
 
 rows.foreach(value => System.out.println("BigNumeric value  " + value.toPlainString))
 ```
 
-**Python:** For spark's [UserDefinedType](https://spark.apache.org/docs/1.4.0/api/java/org/apache/spark/sql/types/UserDefinedType.html)
-we need separate implementation for Python as well, so we need to provide the corresponding python class(s) in config params while
-creating the job or need to add them during runtime, see below for examples:
+**Python:** Spark's [UserDefinedType](https://spark.apache.org/docs/1.4.0/api/java/org/apache/spark/sql/types/UserDefinedType.html)
+needs a separate implementation for Python. Corresponding python class(s) should be provided as config params while
+creating the job or added during runtime. See examples below:
 
 1) Adding python files while launching pyspark
 ```
-# spark-bigquery-latest_2.11.jar or spark-bigquery-latest_2.12.jar depending on scala version
-pyspark --jars gs://spark-lib/bigquery/spark-bigquery-latest_2.11.jar
-  --py-files gs://spark-lib/bigquery/bignumeric_support.zip
-  --files gs://spark-lib/bigquery/bignumeric_support.zip
+# use appropriate version for jar depending on the scala version
+pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.0.jar
+  --py-files gs://spark-lib/bigquery/spark-bigquery-support_1.0.zip
+  --files gs://spark-lib/bigquery/spark-bigquery-support_1.0.zip
 ```
 
 2) Adding python files in Jupyter Notebook
 ```
 from pyspark.sql import SparkSession
+# use appropriate version for jar depending on the scala version
 spark = SparkSession.builder\
   .appName('BigNumeric')\
-  # spark-bigquery-latest_2.11.jar or spark-bigquery-latest_2.12.jar depending on scala version
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-latest_2.11.jar')\
-  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/bignumeric_support.zip')\
-  .config('spark.files', 'gs://spark-lib/bigquery/bignumeric_support.zip')\
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.0.jar')\
+  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support_1.0.zip')\
+  .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support_1.0.zip')\
   .getOrCreate()
 ```
 
 3) Adding Python files during runtime
 ```
+# use appropriate version for jar depending on the scala version
 spark = SparkSession.builder\
   .appName('BigNumeric')\
-  # spark-bigquery-latest_2.11.jar or spark-bigquery-latest_2.12.jar depending on scala version
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-latest_2.11.jar')\
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.0.jar')\
   .getOrCreate()
 
-spark.sparkContext.addPyfile("gs://spark-lib/bigquery/bignumeric_support.zip")
+spark.sparkContext.addPyfile("gs://spark-lib/bigquery/spark-bigquery-support_1.0.zip")
 ```
 
 Usage Example:
