@@ -94,6 +94,7 @@ lazy val connector = (project in file("connector"))
         exclude("org.checkerframework", "checker-qual"),
       "org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
       "aopalliance" % "aopalliance" % "1.0" % "provided",
+      "com.github.luben" % "zstd-jni" % "1.4.9-1" % "provided",
       "javax.inject" % "javax.inject" % "1" % "provided",
       "org.codehaus.jackson" % "jackson-core-asl" % "1.9.13" % "provided",
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
@@ -109,9 +110,11 @@ lazy val connector = (project in file("connector"))
 			     ExclusionRule(organization = "io.netty"),
 		       ExclusionRule(organization = "com.fasterxml.jackson.core")),
       "org.apache.arrow" % "arrow-compression" % "4.0.0"
+         exclude("com.github.luben", "zstd-jni")
 			   excludeAll(ExclusionRule(organization = "org.slf4j"),
 			     ExclusionRule(organization = "io.netty"),
 		       ExclusionRule(organization = "com.fasterxml.jackson.core")),
+
 
       // Keep com.google.cloud dependencies in sync
       "com.google.cloud" % "google-cloud-bigquery" % "1.131.1",
