@@ -33,7 +33,7 @@ public class SparkBigQueryConnectorVersionProvider implements VersionProvider {
   public String getVersion() {
     return format(
         "spark-bigquery-connector/%s spark/%s java/%s scala/%s",
-        BuildInfo.version(),
+        SparkBigQueryUtil.CONNECTOR_VERSION,
         sparkContext.version(),
         System.getProperty("java.runtime.version"),
         Properties.versionNumberString());

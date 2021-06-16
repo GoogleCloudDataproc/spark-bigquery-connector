@@ -68,7 +68,6 @@ lazy val commonTestDependencies = Seq(
 )
 
 lazy val connector = (project in file("connector"))
-  .enablePlugins(BuildInfoPlugin)
   .configs(ITest)
   .settings(
     commonSettings,
@@ -83,7 +82,7 @@ lazy val connector = (project in file("connector"))
     buildInfoPackage := "com.google.cloud.spark.bigquery",
     resourceGenerators in Compile += Def.task {
       val file = (resourceManaged in Compile).value / "spark-bigquery-connector.properties"
-      IO.write(file, s"scala.version=${scalaVersion.value}\n")
+      IO.write(file, s"scala.version=${scalaVersion.value}\nconnector.version=${version.value}\n")
       Seq(file)
     }.taskValue,
     libraryDependencies ++= (commonTestDependencies ++ Seq(
@@ -224,7 +223,7 @@ val excludedOrgs = Seq(
 lazy val renamed = Seq(
   "avro.shaded",
   "com.fasterxml",
-  "com.github.luben",
+  // "com.github.luben",
   "com.google",
   "com.google.android",
   "com.thoughtworks.paranamer",
