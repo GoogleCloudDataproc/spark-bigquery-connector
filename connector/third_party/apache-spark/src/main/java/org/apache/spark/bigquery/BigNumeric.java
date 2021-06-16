@@ -1,7 +1,6 @@
 package org.apache.spark.bigquery;
 
 import org.apache.spark.sql.types.SQLUserDefinedType;
-
 import java.math.BigDecimal;
 
 @SQLUserDefinedType(udt = BigNumericUDT.class)
