@@ -106,6 +106,7 @@ public class ReadSessionCreator {
       if (!isInputTableAView(tableDetails)) {
         filter.ifPresent(readOptions::setRowRestriction);
       }
+      readOptions.addAllSelectedFields(selectedFields);
 
       ReadSession readSession =
           bigQueryReadClient.createReadSession(
