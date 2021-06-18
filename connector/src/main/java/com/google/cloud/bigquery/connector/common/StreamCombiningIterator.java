@@ -48,8 +48,10 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
     this.client = client;
     observersLeft = new AtomicInteger(requests.size());
     this.bufferEntriesPerStream = bufferEntriesPerStream;
-    Preconditions.checkArgument(this.bufferEntriesPerStream > 0,
-        "bufferEntriesPerstream must be positive.  Received: %s", this.bufferEntriesPerStream);
+    Preconditions.checkArgument(
+        this.bufferEntriesPerStream > 0,
+        "bufferEntriesPerstream must be positive.  Received: %s",
+        this.bufferEntriesPerStream);
     // + 1 to leave space for terminal object.
     responses = new ArrayBlockingQueue<>((requests.size() * this.bufferEntriesPerStream) + 1);
     observersQueue = new ArrayBlockingQueue<>(requests.size() * this.bufferEntriesPerStream);
