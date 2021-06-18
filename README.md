@@ -647,7 +647,6 @@ Code examples:
 ```
 val df = spark.read
   .format("bigquery")
-  .option("readDataFormat", "AVRO") // can pass "ARROW" format as well
   .load({project}.{dataset}.{table_name})
 
 val rows: Array[java.math.BigDecimal] = df
@@ -665,8 +664,8 @@ creating the job or added during runtime. See examples below:
 ```
 # use appropriate version for jar depending on the scala version
 pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.0.jar
-  --py-files gs://spark-lib/bigquery/spark-bigquery-support_1.0.zip
-  --files gs://spark-lib/bigquery/spark-bigquery-support_1.0.zip
+  --py-files gs://spark-lib/bigquery/spark-bigquery-support_0.21.0.zip
+  --files gs://spark-lib/bigquery/spark-bigquery-support_0.21.0.zip
 ```
 
 2) Adding python files in Jupyter Notebook
@@ -676,8 +675,8 @@ from pyspark.sql import SparkSession
 spark = SparkSession.builder\
   .appName('BigNumeric')\
   .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.0.jar')\
-  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support_1.0.zip')\
-  .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support_1.0.zip')\
+  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support_0.21.0.zip')\
+  .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support_0.21.0.zip')\
   .getOrCreate()
 ```
 
@@ -689,7 +688,7 @@ spark = SparkSession.builder\
   .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.0.jar')\
   .getOrCreate()
 
-spark.sparkContext.addPyfile("gs://spark-lib/bigquery/spark-bigquery-support_1.0.zip")
+spark.sparkContext.addPyfile("gs://spark-lib/bigquery/spark-bigquery-support_0.21.0.zip")
 ```
 
 Usage Example:

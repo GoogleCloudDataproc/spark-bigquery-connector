@@ -27,7 +27,8 @@ public class BigNumericUDT extends UserDefinedType<BigNumeric>{
     public BigNumeric deserialize(Object datum) {
         if(!(datum instanceof UTF8String)) {
             throw new IllegalArgumentException(
-                    "Not able to deserialize, was expecting an instance of UTF8String");
+                    "Failed to deserialize, was expecting an instance of UTF8String, " +
+                            "instead got an instance of " + datum.getClass());
         }
 
         UTF8String utf8str = (UTF8String)datum;
