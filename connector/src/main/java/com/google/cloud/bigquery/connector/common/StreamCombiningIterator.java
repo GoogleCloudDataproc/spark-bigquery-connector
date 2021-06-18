@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  * An iterator that combines one or more ReadRows requests into a single iterator. Ordering of
  * messages is not guaranteed from the streams.
  *
- * <p>This is adapated fro ServerStream in gax. In comparison toServerStream, this implementation
+ * <p>This is adapted from ServerStream in gax. In comparison toServerStream, this implementation
  * also buffers more a configured number of responses instead of a single one. For connections with
  * high latency between client and server this can processing costs. It also allows combining one or
  * more ReadRows calls into single iterator to potentially increase perceived client throughput if
@@ -32,7 +32,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
   private final ArrayBlockingQueue<Object> responses;
   private final ArrayBlockingQueue<Observer> observersQueue;
   private final AtomicInteger observersLeft;
-  private final int bufferPerStream;
+  private final int bufferEntriesPerStream;
   private final int numRetries;
   private final Object lock = new Object();
   private final BigQueryReadClient client;
@@ -43,17 +43,16 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
   StreamCombiningIterator(
       BigQueryReadClient client,
       Collection<ReadRowsRequest.Builder> requests,
-      int bufferPerStream,
+      int bufferEntriesPerStream,
       int numRetries) {
     this.client = client;
     observersLeft = new AtomicInteger(requests.size());
-    this.bufferPerStream = bufferPerStream;
+    this.bufferEntriesPerStream = bufferEntriesPerStream;
+    Preconditions.checkArgument(this.bufferEntriesPerStream > 0,
+        "bufferEntriesPerstream must be positive.  Received: %s", this.bufferEntriesPerStream);
     // + 1 to leave space for terminal object.
-    if (bufferPerStream < 1) {
-      bufferPerStream = 1;
-    }
-    responses = new ArrayBlockingQueue<>((requests.size() * bufferPerStream) + 1);
-    observersQueue = new ArrayBlockingQueue<>(requests.size() * bufferPerStream);
+    responses = new ArrayBlockingQueue<>((requests.size() * this.bufferEntriesPerStream) + 1);
+    observersQueue = new ArrayBlockingQueue<>(requests.size() * this.bufferEntriesPerStream);
     this.numRetries = numRetries;
     observers = requests.stream().map(Observer::new).collect(Collectors.toList());
   }
@@ -230,7 +229,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
           this.controller = controller;
 
           controller.disableAutoInboundFlowControl();
-          int requestCount = bufferPerStream - enqueuedCount.get();
+          int requestCount = bufferEntriesPerStream - enqueuedCount.get();
           if (requestCount > 0) {
             controller.request(requestCount);
           }

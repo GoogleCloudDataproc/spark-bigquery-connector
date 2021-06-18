@@ -82,6 +82,10 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private static final int DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT = 60 * 1000;
   private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
   private static final Pattern LOWERCASE_QUERY_PATTERN = Pattern.compile("^(select|with)\\s+.*$");
+  // Both MIN values correspond to the lower possible value that will actually make the code work.
+  // 0 or less would make code hang or other bad side effects.
+  public static final int MIN_BUFFERED_RESPONSES_PER_STREAM = 1;
+  public static final int MIN_STREAMS_PER_PARTITION = 1;
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
   // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
@@ -119,8 +123,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
   private com.google.common.base.Optional<String> storageReadEndpoint = empty();
   private int numBackgroundThreadsPerStream = 0;
-  private int numPrebufferReadRowsResponses = 1;
-  private int numStreamsPerPartition = 1;
+  private int numPrebufferReadRowsResponses = MIN_BUFFERED_RESPONSES_PER_STREAM;
+  private int numStreamsPerPartition = MIN_STREAMS_PER_PARTITION;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -286,11 +290,11 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     config.numPrebufferReadRowsResponses =
         getAnyOption(globalOptions, options, "bqPrebufferResponsesPerStream")
             .transform(Integer::parseInt)
-            .or(1);
+            .or(MIN_BUFFERED_RESPONSES_PER_STREAM);
     config.numStreamsPerPartition =
         getAnyOption(globalOptions, options, "bqNumStreamsPerPartition")
             .transform(Integer::parseInt)
-            .or(1);
+            .or(MIN_STREAMS_PER_PARTITION);
 
     return config;
   }

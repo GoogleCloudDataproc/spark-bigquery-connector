@@ -217,6 +217,7 @@ public class BigQueryDataSourceReader
                     bigQueryTracerFactory,
                     streams.stream()
                         .map(ReadStream::getName)
+                        // This formulation is used to guarantee a serializable list.
                         .collect(Collectors.toCollection(ArrayList::new)),
                     readSessionCreatorConfig.toReadRowsHelperOptions(),
                     partitionSelectedFields,
