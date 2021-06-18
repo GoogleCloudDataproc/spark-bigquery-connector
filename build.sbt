@@ -226,7 +226,6 @@ val excludedOrgs = Seq(
 lazy val renamed = Seq(
   "avro.shaded",
   "com.fasterxml",
-  // "com.github.luben",
   "com.google",
   "com.google.android",
   "com.thoughtworks.paranamer",
