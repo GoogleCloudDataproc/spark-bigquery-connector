@@ -49,15 +49,11 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowReader;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.arrow.vector.types.pojo.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericData.Array;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader<ColumnarBatch> {
   private static final long maxAllocation = 500 * 1024 * 1024;
@@ -181,13 +177,10 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     this.userProvidedFieldMap =
         userProvidedFieldList.stream().collect(Collectors.toMap(StructField::name, field -> field));
 
-    InputStream batchStream =
-        new SequenceInputStream(
-            new ReadRowsResponseInputStreamEnumeration(readRowsResponses, tracer));
-    InputStream fullStream = new SequenceInputStream(schema.newInput(), batchStream);
     if (numBackgroundThreads == 1) {
       // There is a background thread created by ParallelArrowReader that serves
       // as a thread to do parsing on.
+      InputStream fullStream = makeSingleInputStream(readRowsResponses, schema, tracer);
       reader =
           new ParallelReaderAdapter(
               allocator,
@@ -198,11 +191,10 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     } else if (numBackgroundThreads > 1) {
       // Subtract one because current excess tasks will be executed
       // on round robin thread in ParallelArrowReader.
-      int threads = numBackgroundThreads - 1;
       ExecutorService backgroundParsingService =
           new ThreadPoolExecutor(
               /*corePoolSize=*/ 1,
-              /*maximumPoolSize=*/ threads,
+              /*maximumPoolSize=*/ numBackgroundThreads - 1,
               /*keepAliveTime=*/ 2,
               /*keepAlivetimeUnit=*/ TimeUnit.SECONDS,
               new SynchronousQueue<>(),
@@ -227,8 +219,20 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
               multiplexer);
     } else {
       // Zero background threads.
+      InputStream fullStream = makeSingleInputStream(readRowsResponses, schema, tracer);
       reader = new SimpleAdapter(newArrowStreamReader(fullStream));
     }
+  }
+
+  // Note this method consumes inputs.
+  private InputStream makeSingleInputStream(
+      Iterator<ReadRowsResponse> readRowsResponses,
+      ByteString schema,
+      BigQueryStorageReadRowsTracer tracer) {
+    InputStream batchStream =
+        new SequenceInputStream(
+            new ReadRowsResponseInputStreamEnumeration(readRowsResponses, tracer));
+    return new SequenceInputStream(schema.newInput(), batchStream);
   }
 
   @Override
