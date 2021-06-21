@@ -66,7 +66,7 @@ public class ReadSessionCreatorTest {
     when(stub.createReadSessionCallable()).thenReturn(createReadSessionCall);
 
     creator
-        .create(TableId.of("dataset", "table"), ImmutableList.of(), Optional.empty())
+        .create(TableId.of("dataset", "table"), ImmutableList.of("col1", "col2"), Optional.empty())
         .getReadSession();
 
     ArgumentCaptor<CreateReadSessionRequest> requestCaptor =
@@ -75,5 +75,6 @@ public class ReadSessionCreatorTest {
 
     ReadSession actual = requestCaptor.getValue().getReadSession();
     assertThat(actual.getName()).isEqualTo("abc");
+    assertThat(actual.getReadOptions().getSelectedFieldsList()).containsExactly("col1", "col2");
   }
 }
