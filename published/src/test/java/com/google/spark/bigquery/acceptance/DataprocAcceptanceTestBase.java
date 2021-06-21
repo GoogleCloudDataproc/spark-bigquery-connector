@@ -173,7 +173,8 @@ public class DataprocAcceptanceTestBase {
   public void testBigNumeric() throws Exception {
     String testName = "test-big-numeric";
     String pyBaseDir = Paths.get("pythonlib").toAbsolutePath().toString();
-    String zipFileLocation = pyBaseDir + "/big_numeric_acceptance_test.zip";
+    String zipFileLocation =
+        Paths.get("fatJar").toAbsolutePath().toString() + "/big_numeric_acceptance_test.zip";
     String zipFileUri =
         context.testBaseGcsDir + "/" + testName + "/big_numeric_acceptance_test.zip";
 
