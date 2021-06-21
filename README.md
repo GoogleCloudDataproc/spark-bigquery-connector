@@ -360,6 +360,16 @@ The API Supports a number of options to configure the read
    <td>Read</td>
   </tr>
   <tr valign="top">
+   <td><code>pushAllFilters</code>
+   </td>
+   <td>If set to <code>true</code>, the connector pushes all the filters Spark can delegate
+       to BigQuery Storage API. This reduces amount of data that needs to be sent from
+       BigQuery Storage API servers to Spark clients.
+       <br/>(Optional, defaults to <code>true</code>)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr valign="top">
      <td><code>createDisposition</code>
       </td>
       <td>Specifies whether the job is allowed to create new tables. The permitted
@@ -802,4 +812,3 @@ or
 ```
 spark.conf.set("gcpAccessToken", "<access-token>")
 ```
-

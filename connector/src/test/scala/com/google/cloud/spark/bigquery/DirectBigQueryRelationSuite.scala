@@ -138,7 +138,12 @@ class DirectBigQueryRelationSuite
     assert(bigQueryRelation.unhandledFilters(Array(valid1, valid2)).isEmpty)
   }
 
-  test("invalid filters with Avro") {
+  test("invalid filters with Avro when pushAllFilters is false") {
+    val options = defaultOptions
+    options.readDataFormat = DataFormat.AVRO
+    options.pushAllFilters = false
+    val bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
+
     val valid1 = EqualTo("foo", "bar")
     val valid2 = EqualTo("bar", 1)
     val invalid1 = EqualNullSafe("foo", "bar")
@@ -147,9 +152,24 @@ class DirectBigQueryRelationSuite
     unhandled should contain allElementsOf Array(invalid1, invalid2)
   }
 
-  test("invalid filters with Arrow") {
+  test("no invalid filters with Avro when pushAllFilters is true") {
+    val options = defaultOptions
+    options.readDataFormat = DataFormat.AVRO
+    options.pushAllFilters = true
+    val bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
+
+    val valid1 = EqualTo("foo", "bar")
+    val valid2 = EqualTo("bar", 1)
+    val invalid1 = EqualNullSafe("foo", "bar")
+    val invalid2 = And(EqualTo("foo", "bar"), Not(EqualNullSafe("bar", 1)))
+    val unhandled = bigQueryRelation.unhandledFilters(Array(valid1, valid2, invalid1, invalid2))
+    assert(unhandled.isEmpty)
+  }
+
+  test("invalid filters with Arrow when pushAllFilters is false") {
     val options = defaultOptions
     options.readDataFormat = DataFormat.ARROW
+    options.pushAllFilters = false
     val bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
 
     val valid1 = EqualTo("foo", "bar")
@@ -160,6 +180,22 @@ class DirectBigQueryRelationSuite
     val unhandled = bigQueryRelation.unhandledFilters(Array(valid1, valid2,
       invalid1, invalid2, invalid3))
     unhandled should contain allElementsOf Array(invalid1, invalid2, invalid3)
+  }
+
+  test("invalid filters with Arrow when pushAllFilters is true") {
+    val options = defaultOptions
+    options.readDataFormat = DataFormat.ARROW
+    options.pushAllFilters = true
+    val bigQueryRelation = new DirectBigQueryRelation(options, TABLE)(sqlCtx)
+
+    val valid1 = EqualTo("foo", "bar")
+    val valid2 = EqualTo("bar", 1)
+    val invalid1 = EqualNullSafe("foo", "bar")
+    val invalid2 = And(EqualTo("foo", "bar"), Not(EqualNullSafe("bar", 1)))
+    val invalid3 = Or(IsNull("foo"), IsNotNull("foo"))
+    val unhandled = bigQueryRelation.unhandledFilters(Array(valid1, valid2,
+      invalid1, invalid2, invalid3))
+    assert(unhandled.isEmpty)
   }
 
   test("old filter behaviour, with filter option") {
@@ -299,4 +335,3 @@ class DirectBigQueryRelationSuite
   }
 
 }
-

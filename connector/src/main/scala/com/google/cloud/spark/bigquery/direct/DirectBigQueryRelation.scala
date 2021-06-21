@@ -334,7 +334,7 @@ private[bigquery] class DirectBigQueryRelation(
 
   private def handledFilters(filters: Array[Filter]): Array[Filter] = {
     filters.filter(filter => DirectBigQueryRelation.isTopLevelFieldFilterHandled(
-      filter, options.getReadDataFormat, topLevelFields))
+      options.getPushAllFilters, filter, options.getReadDataFormat, topLevelFields))
   }
 
   override def unhandledFilters(filters: Array[Filter]): Array[Filter] = {
@@ -378,40 +378,46 @@ object DirectBigQueryRelation {
       new SparkBigQueryConnectorUserAgentProvider("v1").getUserAgent)
 
   def isTopLevelFieldFilterHandled(
+      pushAllFilters: Boolean,
       filter: Filter,
       readDataFormat: DataFormat,
-      fields: Map[String, StructField]): Boolean = filter match {
-    case EqualTo(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case GreaterThan(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case GreaterThanOrEqual(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case LessThan(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case LessThanOrEqual(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case In(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case IsNull(attr) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case IsNotNull(attr) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case And(lhs, rhs) =>
-      isTopLevelFieldFilterHandled(lhs, readDataFormat, fields) &&
-      isTopLevelFieldFilterHandled(rhs, readDataFormat, fields)
-    case Or(lhs, rhs) =>
-      readDataFormat == DataFormat.AVRO &&
-      isTopLevelFieldFilterHandled(lhs, readDataFormat, fields) &&
-      isTopLevelFieldFilterHandled(rhs, readDataFormat, fields)
-    case Not(child) => isTopLevelFieldFilterHandled(child, readDataFormat, fields)
-    case StringStartsWith(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case StringEndsWith(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case StringContains(attr, _) =>
-      isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-    case _ => false
+      fields: Map[String, StructField]): Boolean = {
+    if (pushAllFilters) {
+      return true
+    }
+    filter match {
+      case EqualTo(attr, _) =>
+        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+      case GreaterThan(attr, _) =>
+        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+      case GreaterThanOrEqual(attr, _) =>
+        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+      case LessThan(attr, _) =>
+        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+      case LessThanOrEqual(attr, _) =>
+        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+      case In(attr, _) =>
+        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+      case IsNull(attr) =>
+        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+      case IsNotNull(attr) =>
+        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+      case And(lhs, rhs) =>
+        isTopLevelFieldFilterHandled(pushAllFilters, lhs, readDataFormat, fields) &&
+        isTopLevelFieldFilterHandled(pushAllFilters, rhs, readDataFormat, fields)
+      case Or(lhs, rhs) =>
+        readDataFormat == DataFormat.AVRO &&
+        isTopLevelFieldFilterHandled(pushAllFilters, lhs, readDataFormat, fields) &&
+        isTopLevelFieldFilterHandled(pushAllFilters, rhs, readDataFormat, fields)
+      case Not(child) => isTopLevelFieldFilterHandled(pushAllFilters, child, readDataFormat, fields)
+      case StringStartsWith(attr, _) =>
+        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+      case StringEndsWith(attr, _) =>
+        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+      case StringContains(attr, _) =>
+        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
+      case _ => false
+    }
   }
 
   // BigQuery Storage API does not handle RECORD/STRUCT fields at the moment
