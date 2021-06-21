@@ -68,7 +68,6 @@ lazy val commonTestDependencies = Seq(
 )
 
 lazy val connector = (project in file("connector"))
-  .enablePlugins(BuildInfoPlugin)
   .configs(ITest)
   .settings(
     commonSettings,
@@ -83,7 +82,7 @@ lazy val connector = (project in file("connector"))
     buildInfoPackage := "com.google.cloud.spark.bigquery",
     resourceGenerators in Compile += Def.task {
       val file = (resourceManaged in Compile).value / "spark-bigquery-connector.properties"
-      IO.write(file, s"scala.version=${scalaVersion.value}\n")
+      IO.write(file, s"scala.version=${scalaVersion.value}\nconnector.version=${version.value}\n")
       Seq(file)
     }.taskValue,
     libraryDependencies ++= (commonTestDependencies ++ Seq(
@@ -95,9 +94,13 @@ lazy val connector = (project in file("connector"))
         exclude("org.checkerframework", "checker-qual"),
       "org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
       "aopalliance" % "aopalliance" % "1.0" % "provided",
+      "com.github.luben" % "zstd-jni" % "1.4.9-1" % "provided",
+      "javax.inject" % "javax.inject" % "1" % "provided",
       "org.codehaus.jackson" % "jackson-core-asl" % "1.9.13" % "provided",
       "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.13" % "provided",
-      "com.google.inject" % "guice" % "4.2.3",
+      "com.google.inject" % "guice" % "4.2.3"
+        exclude("aopalliance", "aopalliance")
+        exclude("javax.inject", "javax.inject"),
       "org.apache.arrow" % "arrow-vector" % "4.0.0"
 			  excludeAll(ExclusionRule(organization = "org.slf4j"),
 			   ExclusionRule(organization = "com.fasterxml.jackson.core"),
@@ -107,9 +110,11 @@ lazy val connector = (project in file("connector"))
 			     ExclusionRule(organization = "io.netty"),
 		       ExclusionRule(organization = "com.fasterxml.jackson.core")),
       "org.apache.arrow" % "arrow-compression" % "4.0.0"
+         exclude("com.github.luben", "zstd-jni")
 			   excludeAll(ExclusionRule(organization = "org.slf4j"),
 			     ExclusionRule(organization = "io.netty"),
 		       ExclusionRule(organization = "com.fasterxml.jackson.core")),
+
 
       // Keep com.google.cloud dependencies in sync
       "com.google.cloud" % "google-cloud-bigquery" % "1.131.1",
@@ -222,6 +227,7 @@ lazy val renamed = Seq(
   "avro.shaded",
   "com.fasterxml",
   "com.google",
+  "com.google.android",
   "com.thoughtworks.paranamer",
   "com.typesafe",
   "io.grpc",
@@ -229,6 +235,7 @@ lazy val renamed = Seq(
   "io.opencensus",
   "org.apache.arrow",
   "io.perfmark",
+  "org.apache.beam",
   "org.apache.commons",
   "org.apache.http",
   "org.checkerframework",

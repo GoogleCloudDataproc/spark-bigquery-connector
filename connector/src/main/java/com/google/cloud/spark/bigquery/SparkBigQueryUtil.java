@@ -17,10 +17,28 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
+import java.util.Properties;
 
 /** Spark related utilities */
 public class SparkBigQueryUtil {
+
+  static final Properties BUILD_PROPERTIES = loadBuildProperties();
+
+  static final String CONNECTOR_VERSION = BUILD_PROPERTIES.getProperty("connector.version");
+
+  private static Properties loadBuildProperties() {
+    try {
+      Properties buildProperties = new Properties();
+      buildProperties.load(
+          SparkBigQueryUtil.class.getResourceAsStream("/spark-bigquery-connector.properties"));
+      return buildProperties;
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
   /**
    * Optimizing the URI list for BigQuery load, using the Spark specific file prefix and suffix
    * patterns, based on <code>BigQueryUtil.optimizeLoadUriList()</code>
