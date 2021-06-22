@@ -120,7 +120,7 @@ public class IteratorMultiplexer<T> implements AutoCloseable {
 
     @Override
     public T next() {
-      Preconditions.checkState(t != TERMINAL_SENTINEL, "next element cannot be terminal");
+      Preconditions.checkState(t != TERMINAL_SENTINEL, "No next message");
       if (t instanceof RuntimeException) {
         throw (RuntimeException) t;
       }
