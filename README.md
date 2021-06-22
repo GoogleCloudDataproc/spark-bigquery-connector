@@ -68,8 +68,8 @@ The latest version of the connector is publicly available in the following links
 
 | version | Link |
 | --- | --- |
-| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.0.jar)) |
-| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.21.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.21.0.jar)) |
+| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.1.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.1.jar)) |
+| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.21.1.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.21.1.jar)) |
 
 The connector is also available from the
 [Maven Central](https://repo1.maven.org/maven2/com/google/cloud/spark/)
@@ -78,8 +78,8 @@ repository. It can be used using the `--packages` option or the
 
 | version | Connector Artifact |
 | --- | --- |
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.21.0` |
-| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.21.0` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.21.1` |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.21.1` |
 
 If you want to keep up with the latest version of the connector the following links can be used. Notice that for production
 environments where the connector version should be pinned, one of the above links should be used.
@@ -704,7 +704,7 @@ using the following code:
 ```python
 from pyspark.sql import SparkSession
 spark = SparkSession.builder\
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.21.0")\
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.21.1")\
   .getOrCreate()
 df = spark.read.format("bigquery")\
   .load("dataset.table")
@@ -713,7 +713,7 @@ df = spark.read.format("bigquery")\
 **Scala:**
 ```python
 val spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.21.0")
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.21.1")
   .getOrCreate()
 val df = spark.read.format("bigquery")
   .load("dataset.table")
@@ -721,7 +721,7 @@ val df = spark.read.format("bigquery")
 
 In case Spark cluster is using Scala 2.12 (it's optional for Spark 2.4.x,
 mandatory in 3.0.x), then the relevant package is
-com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.21.0. In
+com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.21.1. In
 order to know which Scala version is used, please run the following code:
 
 **Python:**
@@ -745,14 +745,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery-with-dependencies_${scala.version}</artifactId>
-  <version>0.21.0</version>
+  <version>0.21.1</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.21.0"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.21.1"
 ```
 
 ## Building the Connector

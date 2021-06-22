@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.21.1 - 2021-06-22
+* PR #413: Pushing all filters to BigQuery Storage API
+* Issue #412: Supporting WITH queries
+* Issue #409: Allowing all whitespaces after the select
+* PR #419: Fix a bug where background threads > 2 cases would miss pages (DSv2)
+* PR #416: Moved zstd-jni library to be provided in order to solve Spark 2.4 compatibility (DSv2)
+* PR #417: Added back column projection to DSv2
+
 ## 0.21.0 - 2021-06-01
 * Issue #354: users can query a view with different columns in select() and filter()
 * Issue #367: Struct column order is fixed
