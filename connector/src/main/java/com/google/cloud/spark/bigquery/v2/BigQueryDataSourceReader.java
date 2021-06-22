@@ -34,6 +34,7 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.apache.spark.SparkContext;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.sources.v2.reader.DataSourceReader;
@@ -162,6 +163,11 @@ public class BigQueryDataSourceReader
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(tableId, selectedFields, filter);
     ReadSession readSession = readSessionResponse.getReadSession();
+    logger.info(
+        "Created read session for {}: {} for application id: {}",
+        tableId.toString(),
+        readSession.getName(),
+        SparkContext.getOrCreate().applicationId());
     return readSession.getStreamsList().stream()
         .map(
             stream ->
@@ -192,6 +198,11 @@ public class BigQueryDataSourceReader
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(tableId, selectedFields, filter);
     ReadSession readSession = readSessionResponse.getReadSession();
+    logger.info(
+        "Created read session for {}: {} for application id: {}",
+        tableId.toString(),
+        readSession.getName(),
+        SparkContext.getOrCreate().applicationId());
 
     if (selectedFields.isEmpty()) {
       // means select *
