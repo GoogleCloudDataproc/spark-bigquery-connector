@@ -17,6 +17,9 @@ package com.google.cloud.bigquery.connector.common;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -75,7 +78,9 @@ public class ParallelArrowReaderTest {
         writer.writeBatch();
       }
       writer.close();
-      return new ArrowStreamReader(new ByteArrayInputStream(baos.toByteArray()), allocator);
+      return new ArrowStreamReader(
+          new NonInterruptibleBlockingBytesChannel(new ByteArrayInputStream(baos.toByteArray())),
+          allocator);
     }
   }
 
@@ -89,6 +94,45 @@ public class ParallelArrowReaderTest {
     ArrowReader r1 = getReaderWithSequence(0);
     ArrowReader r2 = getReaderWithSequence(1, 3);
     ArrowReader r3 = getReaderWithSequence(2, 4, 5);
+    ExecutorService executor =
+        new ThreadPoolExecutor(
+            /*corePoolSize=*/ 1,
+            /*maximumPoolSize=*/ 2,
+            /*keepAliveTime=*/ 2,
+            /*keepAlivetimeUnit=*/ TimeUnit.SECONDS,
+            new SynchronousQueue<>(),
+            new ThreadPoolExecutor.CallerRunsPolicy());
+    List<Integer> read = new ArrayList<>();
+    try (VectorSchemaRoot root =
+        VectorSchemaRoot.create(r1.getVectorSchemaRoot().getSchema(), allocator)) {
+      VectorLoader loader = new VectorLoader(root);
+      ParallelArrowReader reader =
+          new ParallelArrowReader(
+              ImmutableList.of(r1, r2, r3),
+              executor,
+              loader,
+              new LoggingBigQueryStorageReadRowsTracer("stream_name", 2));
+
+      while (reader.next()) {
+        read.add(((IntVector) root.getVector(0)).get(0));
+      }
+      reader.close();
+    }
+
+    assertThat(read).containsExactlyElementsIn(ImmutableList.of(0, 1, 2, 3, 4, 5));
+    assertThat(executor.isShutdown()).isTrue();
+  }
+
+  @Test
+  public void testReadsAllBatchesInRoundRobinOneelement() throws Exception {
+
+    ColumnarBatch[] batches = new ColumnarBatch[6];
+    for (int x = 0; x < batches.length; x++) {
+      batches[x] = new ColumnarBatch(new ColumnVector[0]);
+    }
+    ArrowReader r1 = getReaderWithSequence();
+    ArrowReader r2 = getReaderWithSequence(0);
+    ArrowReader r3 = getReaderWithSequence();
     ExecutorService executor = Executors.newFixedThreadPool(3);
     List<Integer> read = new ArrayList<>();
     try (VectorSchemaRoot root =
@@ -107,7 +151,7 @@ public class ParallelArrowReaderTest {
       reader.close();
     }
 
-    assertThat(read).containsExactlyElementsIn(ImmutableList.of(0, 1, 2, 3, 4, 5)).inOrder();
+    assertThat(read).containsExactlyElementsIn(ImmutableList.of(0)).inOrder();
     assertThat(executor.isShutdown()).isTrue();
   }
 
@@ -116,11 +160,13 @@ public class ParallelArrowReaderTest {
 
     IOException exception = new IOException("an exception");
     ArrowReader r1 = mock(ArrowReader.class);
-    when(r1.getVectorSchemaRoot()).thenReturn(null);
+
     when(r1.loadNextBatch()).thenThrow(exception);
 
     ExecutorService executor = MoreExecutors.newDirectExecutorService();
-    try (VectorSchemaRoot root = new VectorSchemaRoot(ImmutableList.of())) {
+    try (VectorSchemaRoot root = new VectorSchemaRoot(ImmutableList.of());
+        VectorSchemaRoot root2 = new VectorSchemaRoot(ImmutableList.of())) {
+      when(r1.getVectorSchemaRoot()).thenReturn(root2);
       ParallelArrowReader reader =
           new ParallelArrowReader(
               ImmutableList.of(r1),
@@ -144,7 +190,7 @@ public class ParallelArrowReaderTest {
           .thenAnswer(
               (InvocationOnMock invocation) -> {
                 latch.countDown();
-                MILLISECONDS.sleep(ParallelArrowReader.POLL_TIME);
+                MILLISECONDS.sleep(100);
                 return true;
               });
       when(r2.getVectorSchemaRoot()).thenReturn(root);
@@ -181,8 +227,7 @@ public class ParallelArrowReaderTest {
       reader.close();
 
       assertThat(endTime.get()).isGreaterThan(start);
-      assertThat(Duration.between(start, endTime.get()))
-          .isLessThan(Duration.ofMillis(ParallelArrowReader.POLL_TIME * 2));
+      assertThat(Duration.between(start, endTime.get())).isLessThan(Duration.ofMillis(100));
     }
   }
 }

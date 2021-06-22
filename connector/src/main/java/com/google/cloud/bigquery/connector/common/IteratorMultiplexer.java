@@ -2,6 +2,7 @@ package com.google.cloud.bigquery.connector.common;
 
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import com.google.common.base.Preconditions;
@@ -18,11 +19,11 @@ import org.slf4j.LoggerFactory;
  */
 public class IteratorMultiplexer<T> implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(IteratorMultiplexer.class);
+  private static final Object TERMINAL_SENTINEL = new Object();
   private final Iterator<T> iterator;
   private final int splits;
   private final QueueIterator<T>[] iterators;
   private Thread worker;
-  private volatile RuntimeException rethrow;
 
   /**
    * Construct a new instance.
@@ -51,23 +52,21 @@ public class IteratorMultiplexer<T> implements AutoCloseable {
         throw new RuntimeException("Interrupted while waiting on worker thread shutdown.", e);
       }
       worker = null;
-      if (rethrow != null) {
-        log.info("Error occurred while closing.", rethrow);
-      }
-    } else {
-      for (int x = 0; x < splits; x++) {
-        iterators[x].done.set(true);
-      }
+    }
+    for (int x = 0; x < splits; x++) {
+      iterators[x].markDone(/*exception=*/ null);
     }
   }
 
   void readAhead() {
+    RuntimeException e = null;
     try {
       boolean hasMore = true;
       while (hasMore) {
         for (int x = 0; x < splits; x++) {
           if (iterator.hasNext()) {
             T value = iterator.next();
+            iterators[x].sem.acquire();
             iterators[x].queue.put(value);
           } else {
             hasMore = false;
@@ -75,18 +74,19 @@ public class IteratorMultiplexer<T> implements AutoCloseable {
           }
         }
       }
-    } catch (InterruptedException e) {
-      log.info("Worker thread had error. Ending all iterators");
-      rethrow = new RuntimeException("Worker thread interrupted");
-    } catch (RuntimeException e) {
-      rethrow = e;
+    } catch (InterruptedException ex) {
+      log.info("Worker was interrupted. Ending all iterators");
+      e = new RuntimeException(ex);
+    } catch (RuntimeException ex) {
+      log.info("Worker had exception. Ending all iterators");
+      e = ex;
     }
     for (int x = 0; x < splits; x++) {
-      iterators[x].done.set(true);
+      iterators[x].markDone(e);
     }
   }
 
-  public Iterator<T> getSplit(int split) {
+  public synchronized Iterator<T> getSplit(int split) {
     if (worker == null) {
       worker = new Thread(this::readAhead, "readahead-worker");
       worker.setDaemon(true);
@@ -96,46 +96,50 @@ public class IteratorMultiplexer<T> implements AutoCloseable {
   }
 
   private class QueueIterator<T> implements Iterator<T> {
-    private final ArrayBlockingQueue<T> queue = new ArrayBlockingQueue<>(/*capacity=*/ 1);
-    private final AtomicBoolean done = new AtomicBoolean(false);
+    private final ArrayBlockingQueue<Object> queue = new ArrayBlockingQueue<>(/*capacity=*/ 2);
+    private final Semaphore sem = new Semaphore(1);
 
-    private T t = null;
+    private Object t = null;
 
     @Override
     public boolean hasNext() {
-      if (!mightHaveNext()) {
+      if (t == TERMINAL_SENTINEL) {
         return false;
       }
-      t = null;
       try {
-        while (t == null && mightHaveNext()) {
-          t = queue.poll(10, TimeUnit.MILLISECONDS);
-        }
+        t = queue.take();
+        sem.release();
       } catch (InterruptedException e) {
-        done.set(true);
         // We expect all iterators to either make progress together or finish.
         // This starts the cleanup process to halt all workers.
         worker.interrupt();
-        throw new RuntimeException(e);
+        t = TERMINAL_SENTINEL;
       }
-      if (t == null) {
-        done.set(true);
-        return false;
-      }
-      return true;
-    }
-
-    private boolean mightHaveNext() {
-      return !done.get() || !queue.isEmpty();
+      return t != TERMINAL_SENTINEL;
     }
 
     @Override
     public T next() {
-      Preconditions.checkState(t != null, "next element cannot be null");
-      if (rethrow != null) {
-        throw rethrow;
+      Preconditions.checkState(t != TERMINAL_SENTINEL, "No next message");
+      if (t instanceof RuntimeException) {
+        throw (RuntimeException) t;
       }
-      return t;
+      T ret = (T) t;
+      t = null;
+      return ret;
+    }
+
+    public synchronized void markDone(RuntimeException e) {
+      if (t == TERMINAL_SENTINEL || t instanceof Exception) {
+        return;
+      }
+      if (queue.remainingCapacity() > 0) {
+        if (e != null) {
+          Preconditions.checkState(queue.offer(e), "Expected room for exception");
+        } else {
+          Preconditions.checkState(queue.offer(TERMINAL_SENTINEL), "Expected room for sentinel");
+        }
+      }
     }
   }
 }

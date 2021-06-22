@@ -15,7 +15,6 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter.Arrow;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -23,15 +22,17 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import org.apache.arrow.vector.VectorLoader;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.VectorUnloader;
 import org.apache.arrow.vector.ipc.ArrowReader;
 import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
+import org.apache.parquet.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,24 +52,20 @@ import org.slf4j.LoggerFactory;
  */
 public class ParallelArrowReader implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ParallelArrowReader.class);
+  private static final Object DONE_SENTINEL = new Object();
 
   // Visible for testing.
-  static final int POLL_TIME = 100;
-  private final BlockingQueue<Future<ArrowRecordBatch>> queue;
+  private final BlockingQueue<Object> queue;
+  private final Semaphore queueSemaphore;
   private final List<ArrowReader> readers;
   private final ExecutorService executor;
   private final VectorLoader loader;
   private final BigQueryStorageReadRowsTracer rootTracer;
   private final BigQueryStorageReadRowsTracer tracers[];
+  private final AtomicInteger readersReady;
 
-  private volatile Future<ArrowRecordBatch> currentFuture;
-
-  // Whether processing of delegates is finished.
-  private volatile boolean done = false;
   // Background thread for reading from delegates.
   private Thread readerThread;
-  // Holder for exceptions encountered while working with delegates.
-  private volatile IOException readException;
 
   /**
    * @param readers The readers to read from in a round robin order.
@@ -81,69 +78,43 @@ public class ParallelArrowReader implements AutoCloseable {
       VectorLoader loader,
       BigQueryStorageReadRowsTracer tracer) {
     this.readers = readers;
-    queue = new ArrayBlockingQueue<>(readers.size());
+    // Reserve extra space for sentinel and one extra element processing.
+    queue = new ArrayBlockingQueue<>(readers.size() + 2);
     this.executor = executor;
     this.loader = loader;
     this.rootTracer = tracer;
+    this.queueSemaphore = new Semaphore(readers.size());
+    this.readersReady = new AtomicInteger(readers.size());
     tracers = new BigQueryStorageReadRowsTracer[readers.size()];
     for (int x = 0; x < readers.size(); x++) {
       tracers[x] = rootTracer.forkWithPrefix("reader-thread-" + x);
     }
-  }
-
-  ArrowRecordBatch resolveBatch(Future<ArrowRecordBatch> futureBatch)
-      throws IOException, InterruptedException {
-    try {
-      return futureBatch.get();
-    } catch (InterruptedException e) {
-      log.info("Interrupted while waiting for next batch.");
-      ArrowRecordBatch resolvedBatch = null;
-      try {
-        resolvedBatch = futureBatch.get(10, TimeUnit.SECONDS);
-      } catch (Exception se) {
-        log.warn("Exception caught when waiting for batch on second try.  Giving up.");
-        throw new IOException(se);
-      }
-      if (resolvedBatch != null) {
-        resolvedBatch.close();
-      }
-      throw e;
-    } catch (ExecutionException e) {
-      if (e.getCause() instanceof IOException) {
-        throw (IOException) e.getCause();
-      }
-      throw new IOException(e);
-    }
+    start();
   }
 
   public boolean next() throws IOException {
-    if (readerThread == null) {
-      start();
-    }
     rootTracer.nextBatchNeeded();
     rootTracer.readRowsResponseRequested();
     ArrowRecordBatch resolvedBatch = null;
     try {
-      while (hasMoreElements() && readException == null && resolvedBatch == null) {
-        Future<ArrowRecordBatch> futureBatch = null;
-        while (hasMoreElements() && readException == null && futureBatch == null) {
-          futureBatch = queue.poll(POLL_TIME, TimeUnit.MILLISECONDS);
-        }
-        if (futureBatch != null) {
-          resolvedBatch = resolveBatch(futureBatch);
-        }
+      Object nextObject = queue.take();
+      queueSemaphore.release();
+      if (nextObject == DONE_SENTINEL) {
+        return false;
       }
+      if (nextObject instanceof Throwable) {
+        if (nextObject instanceof IOException) {
+          throw (IOException) nextObject;
+        }
+        throw new IOException((Throwable) nextObject);
+      }
+      Preconditions.checkState(nextObject instanceof ArrowRecordBatch, "Expected future object");
+      resolvedBatch = (ArrowRecordBatch) nextObject;
     } catch (InterruptedException e) {
       log.info("Interrupted when waiting for next batch.");
       return false;
     }
 
-    if (readException != null) {
-      if (resolvedBatch != null) {
-        resolvedBatch.close();
-      }
-      throw readException;
-    }
     // We don't have access to bytes here.
     rootTracer.readRowsResponseObtained(/*bytes=*/ 0);
 
@@ -155,15 +126,6 @@ public class ParallelArrowReader implements AutoCloseable {
       return true;
     }
     return false;
-  }
-
-  private boolean dataReady(Future<ArrowRecordBatch> currentBatch)
-      throws InterruptedException, ExecutionException {
-    return currentBatch != null && currentBatch.get() != null;
-  }
-
-  private boolean hasMoreElements() {
-    return !done || queue.size() > 0;
   }
 
   private void start() {
@@ -178,13 +140,11 @@ public class ParallelArrowReader implements AutoCloseable {
       // Tracks which readers have exhausted all of there elements
       AtomicBoolean[] hasData = new AtomicBoolean[readers.size()];
       long lastBytesRead[] = new long[readers.size()];
-      AtomicInteger readersReady = new AtomicInteger(readers.size());
-      CountDownLatch[] readerLocks = new CountDownLatch[readers.size()];
+
       VectorUnloader[] unloader = new VectorUnloader[readers.size()];
       VectorSchemaRoot[] roots = new VectorSchemaRoot[readers.size()];
 
-      for (int x = 0; x < readerLocks.length; x++) {
-        readerLocks[x] = new CountDownLatch(0);
+      for (int x = 0; x < hasData.length; x++) {
         hasData[x] = new AtomicBoolean();
         hasData[x].set(true);
         lastBytesRead[x] = 0;
@@ -194,75 +154,80 @@ public class ParallelArrowReader implements AutoCloseable {
         tracers[x].startStream();
       }
 
-      while (!done) {
+      while (readersReady.get() > 0) {
         for (int readerIdx = 0; readerIdx < readers.size(); readerIdx++) {
           // Ensure that we don't submit another task for the same reader
           // until the last one completed. This is necessary when some readers run out of
           // tasks.
-          readerLocks[readerIdx].await();
           if (!hasData[readerIdx].get()) {
             continue;
           }
           ArrowReader reader = readers.get(readerIdx);
-          readerLocks[readerIdx] = new CountDownLatch(1);
-
           final int idx = readerIdx;
-          currentFuture =
-              executor.submit(
-                  () -> {
-                    try {
-                      tracers[idx].readRowsResponseRequested();
-                      hasData[idx].set(reader.loadNextBatch());
-                      long incrementalBytesRead = reader.bytesRead() - lastBytesRead[idx];
-                      tracers[idx].readRowsResponseObtained(
-                          /*bytesReceived=*/ incrementalBytesRead);
-                      lastBytesRead[idx] = reader.bytesRead();
-                    } catch (IOException e) {
-                      log.info("IOException while consuming reader.", e);
-                      readException = e;
-                      hasData[idx].set(false);
-                    } catch (Exception e) {
-                      readException = new IOException("Failed to consume readers", e);
-                      hasData[idx].set(false);
+          queueSemaphore.acquire();
+          executor.submit(
+              () -> {
+                synchronized (roots[idx]) {
+                  if (!hasData[idx].get()) {
+                    return;
+                  }
+                  try {
+                    tracers[idx].readRowsResponseRequested();
+                    hasData[idx].set(reader.loadNextBatch());
+                    if (!hasData[idx].get()) {
+                      queueSemaphore.release();
                     }
-                    ArrowRecordBatch batch = null;
-                    if (hasData[idx].get()) {
-                      int rows = reader.getVectorSchemaRoot().getRowCount();
-                      // Not quite parsing but re-use it here.
-                      tracers[idx].rowsParseStarted();
-                      batch = unloader[idx].getRecordBatch();
-                      tracers[idx].rowsParseFinished(rows);
-                    } else {
-                      int result = readersReady.addAndGet(-1);
-                      if (result <= 0) {
-                        done = true;
-                      }
-                    }
-                    readerLocks[idx].countDown();
-                    return batch;
-                  });
-          queue.put(currentFuture);
-          currentFuture = null;
+                    long incrementalBytesRead = reader.bytesRead() - lastBytesRead[idx];
+                    tracers[idx].readRowsResponseObtained(/*bytesReceived=*/ incrementalBytesRead);
+                    lastBytesRead[idx] = reader.bytesRead();
+                  } catch (IOException e) {
+                    log.info("IOException while consuming reader.", e);
+                    hasData[idx].set(false);
+                    Preconditions.checkState(queue.offer(e), "Expected space in queue");
+                  } catch (Exception e) {
+                    log.info("Exception caught while consuming reader.", e);
+                    hasData[idx].set(false);
+                    Preconditions.checkState(queue.offer(e), "Expected space in queue");
+                  }
+                  ArrowRecordBatch batch = null;
+                  if (!hasData[idx].get()) {
+                    readersReady.addAndGet(-1);
+                    return;
+                  }
+                  int rows = 0;
+                  try {
+                    rows = reader.getVectorSchemaRoot().getRowCount();
+                  } catch (IOException e) {
+                    queue.offer(e);
+                  }
+                  // Not quite parsing but re-use it here.
+                  tracers[idx].rowsParseStarted();
+                  batch = unloader[idx].getRecordBatch();
+                  tracers[idx].rowsParseFinished(rows);
+                  try {
+                    Preconditions.checkState(queue.offer(batch), "Expected space in queue");
+                  } catch (Exception e) {
+                    batch.close();
+                    throw e;
+                  }
+                }
+              });
         }
       }
+    } catch (InterruptedException e) {
+      log.info("Read ahead interrupted");
     } catch (IOException e) {
       log.info("Error while reading in streams", e);
-      readException = e;
-    } catch (InterruptedException e) {
-      log.info("Reader thread interrupted.");
     }
-    done = true;
+    Preconditions.checkState(queue.offer(DONE_SENTINEL), "Expected available capacity");
   }
 
   @Override
   public void close() {
-    if (readException != null) {
-      log.info("Read exception", readException);
-    }
     rootTracer.finished();
-    done = true;
     // Try to force reader thread to stop.
     if (readerThread != null) {
+      readersReady.set(0);
       readerThread.interrupt();
       try {
         readerThread.join(10000);
@@ -286,30 +251,11 @@ public class ParallelArrowReader implements AutoCloseable {
       log.info("Interrupted when awaiting executor termination");
     }
 
-    int inProgress = 0;
-    List<Future<ArrowRecordBatch>> leftOverWork = new java.util.ArrayList<>();
-    if (currentFuture != null) {
-      leftOverWork.add(currentFuture);
-    }
-    leftOverWork.addAll(queue);
-    for (Future<ArrowRecordBatch> batch : leftOverWork) {
-      if (batch != null) {
-        if (batch.isDone()) {
-          try {
-            if (batch.get() != null) {
-              batch.get().close();
-            }
-          } catch (Exception e) {
-            log.warn("Error closing left over batch", e);
-          }
-        } else {
-          inProgress++;
-        }
-      }
-    }
-    if (inProgress > 0) {
-      log.warn("Left over tasks in progress {}", inProgress);
-    }
+    queue.stream()
+        .filter(x -> x instanceof ArrowRecordBatch)
+        .map(x -> (ArrowRecordBatch) x)
+        .forEach(ArrowRecordBatch::close);
+
     for (BigQueryStorageReadRowsTracer tracer : tracers) {
       tracer.finished();
     }
