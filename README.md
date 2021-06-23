@@ -688,7 +688,7 @@ spark = SparkSession.builder\
   .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.0.jar')\
   .getOrCreate()
 
-spark.sparkContext.addPyfile("gs://spark-lib/bigquery/spark-bigquery-support-0.21.0.zip")
+spark.sparkContext.addPyFile("gs://spark-lib/bigquery/spark-bigquery-support-0.21.0.zip")
 ```
 
 Usage Example:
