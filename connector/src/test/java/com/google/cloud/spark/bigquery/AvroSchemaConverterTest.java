@@ -73,9 +73,23 @@ public class AvroSchemaConverterTest {
                     new Schema.Field("pi", nullable(decimal("pi")), null, (Object) null),
                     new Schema.Field(
                         "big_pi", nullable(decimal("big_pi")), null, (Object) null)))));
-    checkField(fields[11], "int_arr", nullable(Schema.createArray(nullable(Schema.Type.LONG))));
+
     checkField(
-        fields[12],
+        fields[11],
+        "big_numeric_nums",
+        nullable(
+            Schema.createRecord(
+                "big_numeric_nums",
+                null,
+                null,
+                false,
+                ImmutableList.of(
+                    new Schema.Field("min", nullable(Schema.Type.STRING), null, (Object) null),
+                    new Schema.Field("max", nullable(Schema.Type.STRING), null, (Object) null)))));
+
+    checkField(fields[12], "int_arr", nullable(Schema.createArray(nullable(Schema.Type.LONG))));
+    checkField(
+        fields[13],
         "int_struct_arr",
         nullable(
             Schema.createArray(

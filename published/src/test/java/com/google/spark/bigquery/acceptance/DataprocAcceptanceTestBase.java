@@ -16,6 +16,7 @@
 package com.google.spark.bigquery.acceptance;
 
 import com.google.cloud.dataproc.v1.*;
+import java.io.FileInputStream;
 import org.junit.AssumptionViolatedException;
 import org.junit.Test;
 import scala.util.Properties;
@@ -27,6 +28,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.spark.bigquery.acceptance.AcceptanceTestConstants.MAX_BIG_NUMERIC;
+import static com.google.spark.bigquery.acceptance.AcceptanceTestConstants.MIN_BIG_NUMERIC;
+import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.createBqDataset;
+import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.createZipFile;
+import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.deleteBqDatasetAndTables;
+import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.runBqQuery;
 
 public class DataprocAcceptanceTestBase {
 
@@ -58,6 +65,7 @@ public class DataprocAcceptanceTestBase {
     String clusterName = createClusterIfNeeded(dataprocImageVersion, testId);
     AcceptanceTestContext acceptanceTestContext = new AcceptanceTestContext(testId, clusterName);
     uploadConnectorJar(scalaVersion, acceptanceTestContext.connectorJarUri);
+    createBqDataset(acceptanceTestContext.bqDataset);
     return acceptanceTestContext;
   }
 
@@ -65,6 +73,7 @@ public class DataprocAcceptanceTestBase {
     if (context != null) {
       terminateCluster(context.clusterId);
       AcceptanceTestUtils.deleteGcsDir(context.testBaseGcsDir);
+      deleteBqDatasetAndTables(context.bqDataset);
     }
   }
 
@@ -158,6 +167,49 @@ public class DataprocAcceptanceTestBase {
     assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
     assertThat(output.trim()).isEqualTo("spark,10");
+  }
+
+  @Test
+  public void testBigNumeric() throws Exception {
+    String testName = "test-big-numeric";
+    String pyBaseDir = Paths.get("pythonlib").toAbsolutePath().toString();
+    String zipFileLocation =
+        Paths.get("fatJar").toAbsolutePath().toString() + "/big_numeric_acceptance_test.zip";
+    String zipFileUri =
+        context.testBaseGcsDir + "/" + testName + "/big_numeric_acceptance_test.zip";
+
+    createZipFile(pyBaseDir, zipFileLocation);
+
+    AcceptanceTestUtils.uploadToGcs(
+        getClass().getResourceAsStream("/acceptance/big_numeric.py"),
+        context.getScriptUri(testName),
+        "text/x-python");
+    AcceptanceTestUtils.uploadToGcs(
+        new FileInputStream(zipFileLocation), zipFileUri, "application/zip");
+
+    runBqQuery(
+        String.format(
+            AcceptanceTestConstants.BIGNUMERIC_TABLE_QUERY_TEMPLATE,
+            context.bqDataset,
+            context.bqTable));
+
+    Job job =
+        Job.newBuilder()
+            .setPlacement(JobPlacement.newBuilder().setClusterName(context.clusterId))
+            .setPysparkJob(
+                PySparkJob.newBuilder()
+                    .setMainPythonFileUri(context.getScriptUri(testName))
+                    .addJarFileUris(context.connectorJarUri)
+                    .addPythonFileUris(zipFileUri)
+                    .addFileUris(zipFileUri)
+                    .addArgs(context.bqDataset + "." + context.bqTable)
+                    .addArgs(context.getResultsDirUri(testName)))
+            .build();
+
+    Job result = runAndWait(job, Duration.ofSeconds(60));
+    assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
+    String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
+    assertThat(output.trim()).isEqualTo(MIN_BIG_NUMERIC + "," + MAX_BIG_NUMERIC);
   }
 
   private Job runAndWait(Job job, Duration timeout) throws Exception {

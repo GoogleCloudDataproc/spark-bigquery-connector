@@ -19,6 +19,8 @@ import com.google.cloud.bigquery._
 import com.google.cloud.spark.bigquery.TestUtils
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.it.TestConstants._
+import org.apache.spark.bigquery.BigNumeric
+import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Encoders, SparkSession}
 import org.scalatest.concurrent.TimeLimits
@@ -475,14 +477,34 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
       countResults should equal(countAfterCollect)
     }
     */
-
     test("read data types. DataSource %s".format(dataSourceFormat)) {
       // temporarily skipping for v2
       if (dataSourceFormat.equals("bigquery")) {
         val allTypesTable = readAllTypesTable(dataSourceFormat)
         val expectedRow = spark.range(1).select(TestConstants.ALL_TYPES_TABLE_COLS: _*).head.toSeq
-        val row = allTypesTable.head.toSeq
-        row should contain theSameElementsInOrderAs expectedRow
+        val rows = allTypesTable.head.toSeq
+
+        var i = 0
+        for(row <- rows) {
+
+          if(i == BIG_NUMERIC_COLUMN_POSITION) {
+            for(j <- 0 to 1) {
+              val bigNumericValue =
+                row.asInstanceOf[GenericRowWithSchema].get(j).asInstanceOf[BigNumeric]
+
+              val bigNumericString = bigNumericValue.getNumber.toPlainString
+
+              val expectedBigNumericString =
+                expectedRow(i).asInstanceOf[GenericRowWithSchema].get(j)
+
+              assert(bigNumericString === expectedBigNumericString)
+            }
+          } else {
+            assert(row === expectedRow(i))
+          }
+
+          i += 1
+        }
       }
     }
 

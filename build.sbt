@@ -21,10 +21,11 @@ lazy val grpcVersion = "1.37.1"
 lazy val nettyVersion = "4.1.65.Final"
 // should match the dependency in grpc-netty
 lazy val nettyTcnativeVersion = "2.0.39.Final"
+lazy val artifactVersion = "0.21.1-SNAPSHOT"
 
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
-  version := "0.21.2-SNAPSHOT",
+  version := artifactVersion,
   scalaVersion := scala211Version,
   crossScalaVersions := Seq(scala211Version, scala212Version),
   dependencyOverrides ++= Set("org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
@@ -66,6 +67,10 @@ lazy val commonTestDependencies = Seq(
   "com.novocode" % "junit-interface" % "0.11" % "test",
   "com.google.truth" % "truth" % "1.0.1" % "test"
 )
+
+val sparkBigquerySupportZipFile = IO.zip(
+  allSubpaths(new File("pythonlib")),
+  new File("fatJar/spark-bigquery-support-" + artifactVersion +".zip"))
 
 lazy val connector = (project in file("connector"))
   .configs(ITest)
@@ -197,7 +202,8 @@ lazy val published = project
     libraryDependencies ++= (commonTestDependencies.map(
       dependency => dependency.withConfigurations(Some("test"))) ++ Seq(
       "com.google.cloud" % "google-cloud-dataproc" % "1.4.3" % "test",
-      "com.google.cloud" % "google-cloud-storage" % "1.114.0" % "test"
+      "com.google.cloud" % "google-cloud-storage" % "1.114.0" % "test",
+      "com.google.cloud" % "google-cloud-bigquery" % "1.131.1" % "test"
     ))
       .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
 

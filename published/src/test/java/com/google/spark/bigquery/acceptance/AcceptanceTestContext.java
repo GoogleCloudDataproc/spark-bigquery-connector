@@ -21,12 +21,16 @@ public class AcceptanceTestContext {
   final String clusterId;
   final String connectorJarUri;
   final String testBaseGcsDir;
+  final String bqDataset;
+  final String bqTable;
 
   public AcceptanceTestContext(String testId, String clusterId) {
     this.testId = testId;
     this.clusterId = clusterId;
     this.testBaseGcsDir = AcceptanceTestUtils.createTestBaseGcsDir(testId);
     this.connectorJarUri = this.testBaseGcsDir + "/connector.jar";
+    this.bqDataset = "bq_acceptance_test_dataset_" + testId.replace("-", "_");
+    this.bqTable = "bq_acceptance_test_table_" + testId.replace("-", "_");
   }
 
   public String getScriptUri(String testName) {
