@@ -24,6 +24,8 @@ import scala.util.Properties;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -34,6 +36,7 @@ import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.createBqD
 import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.createZipFile;
 import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.deleteBqDatasetAndTables;
 import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.runBqQuery;
+import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.getNumOfRowsOfBqTable;
 
 public class DataprocAcceptanceTestBase {
 
@@ -150,23 +153,40 @@ public class DataprocAcceptanceTestBase {
   @Test
   public void testRead() throws Exception {
     String testName = "test-read";
-    AcceptanceTestUtils.uploadToGcs(
-        getClass().getResourceAsStream("/acceptance/read_shakespeare.py"),
-        context.getScriptUri(testName),
-        "text/x-python");
-    Job job =
-        Job.newBuilder()
-            .setPlacement(JobPlacement.newBuilder().setClusterName(context.clusterId))
-            .setPysparkJob(
-                PySparkJob.newBuilder()
-                    .setMainPythonFileUri(context.getScriptUri(testName))
-                    .addJarFileUris(context.connectorJarUri)
-                    .addArgs(context.getResultsDirUri(testName)))
-            .build();
-    Job result = runAndWait(job, Duration.ofSeconds(60));
+    Job result =
+        createAndRunPythonJob(
+                testName,
+                "read_shakespeare.py",
+                Arrays.asList(context.getResultsDirUri(testName)),
+                60);
     assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
     assertThat(output.trim()).isEqualTo("spark,10");
+  }
+
+  @Test
+  public void writeStream() throws Exception {
+    String testName = "write-stream-test";
+    String jsonFileName = "write_stream_data.json";
+    String jsonFileUri = context.testBaseGcsDir + "/" + testName + "/json/" + jsonFileName;
+    AcceptanceTestUtils.uploadToGcs(
+        getClass().getResourceAsStream("/acceptance/" + jsonFileName),
+        jsonFileUri,
+        "application/json");
+    Job result =
+        createAndRunPythonJob(
+            testName,
+            "write_stream.py",
+            Arrays.asList(
+                context.testBaseGcsDir + "/" + testName + "/json/",
+                context.bqDataset,
+                context.bqStreamTable,
+                AcceptanceTestUtils.BUCKET),
+            120);
+
+    assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
+    int numOfRows = getNumOfRowsOfBqTable(context.bqDataset, context.bqStreamTable);
+    assertThat(numOfRows == 2);
   }
 
   @Test
@@ -210,6 +230,24 @@ public class DataprocAcceptanceTestBase {
     assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
     assertThat(output.trim()).isEqualTo(MIN_BIG_NUMERIC + "," + MAX_BIG_NUMERIC);
+  }
+
+  private Job createAndRunPythonJob(
+          String testName, String pythonFile, List<String> args, long duration) throws Exception {
+    AcceptanceTestUtils.uploadToGcs(
+            getClass().getResourceAsStream("/acceptance/" + pythonFile),
+            context.getScriptUri(testName),
+            "text/x-python");
+    Job job =
+            Job.newBuilder()
+                    .setPlacement(JobPlacement.newBuilder().setClusterName(context.clusterId))
+                    .setPysparkJob(
+                            PySparkJob.newBuilder()
+                                    .setMainPythonFileUri(context.getScriptUri(testName))
+                                    .addJarFileUris(context.connectorJarUri)
+                                    .addAllArgs(args))
+                    .build();
+    return runAndWait(job, Duration.ofSeconds(duration));
   }
 
   private Job runAndWait(Job job, Duration timeout) throws Exception {

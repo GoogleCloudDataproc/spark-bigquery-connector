@@ -23,6 +23,7 @@ public class AcceptanceTestContext {
   final String testBaseGcsDir;
   final String bqDataset;
   final String bqTable;
+  final String bqStreamTable;
 
   public AcceptanceTestContext(String testId, String clusterId) {
     this.testId = testId;
@@ -31,6 +32,7 @@ public class AcceptanceTestContext {
     this.connectorJarUri = this.testBaseGcsDir + "/connector.jar";
     this.bqDataset = "bq_acceptance_test_dataset_" + testId.replace("-", "_");
     this.bqTable = "bq_acceptance_test_table_" + testId.replace("-", "_");
+    this.bqStreamTable = "bq_write_stream_test_table_" + testId.replace("-", "_");
   }
 
   public String getScriptUri(String testName) {

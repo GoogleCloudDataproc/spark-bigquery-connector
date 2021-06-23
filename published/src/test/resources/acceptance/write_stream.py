@@ -5,8 +5,9 @@ from pyspark.sql.types import StructType
 spark = SparkSession.builder.appName('Write Stream Test').getOrCreate()
 
 json_location = sys.argv[1]
-table_name = sys.argv[2]
-temporary_gcs_bucket = sys.argv[3]
+dataset_name = sys.argv[2]
+table_name = sys.argv[3]
+temporary_gcs_bucket = sys.argv[4]
 
 schema = StructType().add("col1", "integer").add("col2", "string")
 
@@ -17,9 +18,10 @@ streamingDF = spark.readStream.option("multiline","true").schema(schema).json(js
 stream_writer = streamingDF.writeStream.format("bigquery") \
     .option("checkpointLocation", "/tmp/" + table_name + "/") \
     .outputMode("append") \
-    .option("table", table_name) \
+    .option("table", dataset_name + "." + table_name) \
     .option("temporaryGcsBucket", temporary_gcs_bucket) \
     .start()
 
 # waiting for 60 seconds for the write to finish
 stream_writer.awaitTermination(60)
+stream_writer.stop()

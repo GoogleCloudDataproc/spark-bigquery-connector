@@ -44,7 +44,7 @@ import java.util.zip.ZipOutputStream;
 public class AcceptanceTestUtils {
 
   // must be set in order to run the acceptance test
-  private static final String BUCKET = System.getenv("ACCEPTANCE_TEST_BUCKET");
+  static final String BUCKET = System.getenv("ACCEPTANCE_TEST_BUCKET");
   private static final BigQuery bq = BigQueryOptions.getDefaultInstance().getService();
 
   static Storage storage =
@@ -152,6 +152,10 @@ public class AcceptanceTestUtils {
   public static void createBqDataset(String dataset) {
     DatasetId datasetId = DatasetId.of(dataset);
     bq.create(DatasetInfo.of(datasetId));
+  }
+
+  public static int getNumOfRowsOfBqTable(String dataset, String table) {
+    return bq.getTable(dataset, table).getNumRows().intValue();
   }
 
   public static void runBqQuery(String query) throws Exception {
