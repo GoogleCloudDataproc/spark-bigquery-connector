@@ -155,10 +155,7 @@ public class DataprocAcceptanceTestBase {
     String testName = "test-read";
     Job result =
         createAndRunPythonJob(
-                testName,
-                "read_shakespeare.py",
-                Arrays.asList(context.getResultsDirUri(testName)),
-                60);
+            testName, "read_shakespeare.py", Arrays.asList(context.getResultsDirUri(testName)), 60);
     assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
     assertThat(output.trim()).isEqualTo("spark,10");
@@ -233,20 +230,20 @@ public class DataprocAcceptanceTestBase {
   }
 
   private Job createAndRunPythonJob(
-          String testName, String pythonFile, List<String> args, long duration) throws Exception {
+      String testName, String pythonFile, List<String> args, long duration) throws Exception {
     AcceptanceTestUtils.uploadToGcs(
-            getClass().getResourceAsStream("/acceptance/" + pythonFile),
-            context.getScriptUri(testName),
-            "text/x-python");
+        getClass().getResourceAsStream("/acceptance/" + pythonFile),
+        context.getScriptUri(testName),
+        "text/x-python");
     Job job =
-            Job.newBuilder()
-                    .setPlacement(JobPlacement.newBuilder().setClusterName(context.clusterId))
-                    .setPysparkJob(
-                            PySparkJob.newBuilder()
-                                    .setMainPythonFileUri(context.getScriptUri(testName))
-                                    .addJarFileUris(context.connectorJarUri)
-                                    .addAllArgs(args))
-                    .build();
+        Job.newBuilder()
+            .setPlacement(JobPlacement.newBuilder().setClusterName(context.clusterId))
+            .setPysparkJob(
+                PySparkJob.newBuilder()
+                    .setMainPythonFileUri(context.getScriptUri(testName))
+                    .addJarFileUris(context.connectorJarUri)
+                    .addAllArgs(args))
+            .build();
     return runAndWait(job, Duration.ofSeconds(duration));
   }
 
