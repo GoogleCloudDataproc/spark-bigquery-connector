@@ -24,7 +24,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.complex.*;
-import org.apache.arrow.vector.holders.NullableVarCharHolder;
 
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.ArrowType.ArrowTypeID;
@@ -399,7 +398,6 @@ public class ArrowSchemaConverter extends ColumnVector {
   private static class StringAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
 
     private final VarCharVector accessor;
-    private final NullableVarCharHolder stringResult = new NullableVarCharHolder();
 
     StringAccessor(VarCharVector vector) {
       super(vector);
@@ -408,8 +406,7 @@ public class ArrowSchemaConverter extends ColumnVector {
 
     @Override
     final UTF8String getUTF8String(int rowId) {
-      accessor.get(rowId, stringResult);
-      if (stringResult.isSet == 0) {
+      if (this.accessor.isSet(rowId) == 0) {
         return null;
       } else {
         ArrowBuf offsets = accessor.getOffsetBuffer();
@@ -422,7 +419,7 @@ public class ArrowSchemaConverter extends ColumnVector {
          * for performance reasons.
          */
         return UTF8String.fromAddress(/* base = */null,
-            stringResult.buffer.memoryAddress() + start,
+            accessor.getDataBuffer().memoryAddress() + start,
             end - start);
       }
     }
