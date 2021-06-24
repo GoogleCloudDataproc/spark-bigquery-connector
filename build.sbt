@@ -21,7 +21,7 @@ lazy val grpcVersion = "1.37.1"
 lazy val nettyVersion = "4.1.65.Final"
 // should match the dependency in grpc-netty
 lazy val nettyTcnativeVersion = "2.0.39.Final"
-lazy val artifactVersion = "0.21.1-SNAPSHOT"
+lazy val artifactVersion = "0.21.2-SNAPSHOT"
 
 lazy val commonSettings = Seq(
   organization := "com.google.cloud.spark",
