@@ -12,6 +12,7 @@
   <artifactId>spark-bigquery-reactor</artifactId>
   <packaging>pom</packaging>
   <name>Spark BigQuery Connector Reactor</name>
+
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
@@ -19,43 +20,121 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
+
+  <developers>
+    <developer>
+      <organization>Google Inc.</organization>
+      <organizationUrl>http://www.google.com</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git</connection>
+    <developerConnection>
+      scm:git:git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git
+    </developerConnection>
+    <url>git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git</url>
+  </scm>
+
+  <issueManagement>
+    <system>GitHub Issues</system>
+    <url>https://github.com/GoogleCloudDataproc/spark-bigquery-connector/issues</url>
+  </issueManagement>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
+
   <profiles>
-      <profile>
-          <id>all</id>
-          <activation>
-              <activeByDefault>true</activeByDefault>
-          </activation>
-          <modules>
-              <module>spark-bigquery-parent</module>
-              <module>bigquery-connector-common</module>
-              <module>spark-bigquery-connector-common</module>
-              <module>spark-bigquery-dsv1</module>
-              <module>spark-bigquery-dsv2</module>
-          </modules>
-      </profile>
-      <profile>
-          <id>dsv1</id>
-          <activation>
-              <activeByDefault>false</activeByDefault>
-          </activation>
-          <modules>
-              <module>spark-bigquery-parent</module>
-              <module>bigquery-connector-common</module>
-              <module>spark-bigquery-connector-common</module>
-              <module>spark-bigquery-dsv1</module>
-          </modules>
-      </profile>
-      <profile>
-          <id>dsv2</id>
-          <activation>
-              <activeByDefault>false</activeByDefault>
-          </activation>
-          <modules>
-              <module>spark-bigquery-parent</module>
-              <module>bigquery-connector-common</module>
-              <module>spark-bigquery-connector-common</module>
-              <module>spark-bigquery-dsv2</module>
-          </modules>
-      </profile>
+    <profile>
+      <id>all</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <modules>
+        <module>spark-bigquery-parent</module>
+        <module>bigquery-connector-common</module>
+        <module>spark-bigquery-connector-common</module>
+        <module>spark-bigquery-dsv1</module>
+        <module>spark-bigquery-dsv2</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>dsv1</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>spark-bigquery-parent</module>
+        <module>bigquery-connector-common</module>
+        <module>spark-bigquery-connector-common</module>
+        <module>spark-bigquery-dsv1</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>dsv2</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>spark-bigquery-parent</module>
+        <module>bigquery-connector-common</module>
+        <module>spark-bigquery-connector-common</module>
+        <module>spark-bigquery-dsv2</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>release</id>
+      <properties>
+        <gpg.skip>false</gpg.skip>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>3.0.1</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-source-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 </project>
