@@ -24,6 +24,7 @@ import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import org.apache.spark.sql.SparkSession;
 
 public class BigQueryDataSourceReaderModule implements Module {
   @Override
@@ -37,7 +38,8 @@ public class BigQueryDataSourceReaderModule implements Module {
       BigQueryClient bigQueryClient,
       BigQueryReadClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory tracerFactory,
-      SparkBigQueryConfig config) {
+      SparkBigQueryConfig config,
+      SparkSession sparkSession) {
     TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
     return new BigQueryDataSourceReader(
         tableInfo,
@@ -46,6 +48,7 @@ public class BigQueryDataSourceReaderModule implements Module {
         tracerFactory,
         config.toReadSessionCreatorConfig(),
         config.getFilter(),
-        config.getSchema());
+        config.getSchema(),
+        sparkSession.sparkContext().applicationId());
   }
 }

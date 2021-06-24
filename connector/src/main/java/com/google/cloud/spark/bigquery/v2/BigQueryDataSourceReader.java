@@ -91,6 +91,7 @@ public class BigQueryDataSourceReader
   private final BigQueryTracerFactory bigQueryTracerFactory;
   private final ReadSessionCreator readSessionCreator;
   private final Optional<String> globalFilter;
+  private final String applicationId;
   private Optional<StructType> schema;
   private Optional<StructType> userProvidedSchema;
   private Filter[] pushedFilters = new Filter[] {};
@@ -103,7 +104,8 @@ public class BigQueryDataSourceReader
       BigQueryTracerFactory tracerFactory,
       ReadSessionCreatorConfig readSessionCreatorConfig,
       Optional<String> globalFilter,
-      Optional<StructType> schema) {
+      Optional<StructType> schema,
+      String applicationId) {
     this.table = table;
     this.tableId = table.getTableId();
     this.readSessionCreatorConfig = readSessionCreatorConfig;
@@ -127,6 +129,7 @@ public class BigQueryDataSourceReader
     for (StructField field : JavaConversions.seqAsJavaList(convertedSchema)) {
       fields.put(field.name(), field);
     }
+    this.applicationId = applicationId;
   }
 
   @Override
@@ -162,6 +165,11 @@ public class BigQueryDataSourceReader
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(tableId, selectedFields, filter);
     ReadSession readSession = readSessionResponse.getReadSession();
+    logger.info(
+        "Created read session for {}: {} for application id: {}",
+        tableId.toString(),
+        readSession.getName(),
+        applicationId);
     return readSession.getStreamsList().stream()
         .map(
             stream ->
@@ -192,6 +200,11 @@ public class BigQueryDataSourceReader
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(tableId, selectedFields, filter);
     ReadSession readSession = readSessionResponse.getReadSession();
+    logger.info(
+        "Created read session for {}: {} for application id: {}",
+        tableId.toString(),
+        readSession.getName(),
+        applicationId);
 
     if (selectedFields.isEmpty()) {
       // means select *

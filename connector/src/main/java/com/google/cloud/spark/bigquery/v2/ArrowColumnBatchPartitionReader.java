@@ -203,11 +203,13 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
           new IteratorMultiplexer(readRowsResponses, numBackgroundThreads);
       List<ArrowReader> readers = new ArrayList<>();
       for (int x = 0; x < numBackgroundThreads; x++) {
+        BigQueryStorageReadRowsTracer multiplexedTracer = tracer.forkWithPrefix("multiplexed-" + x);
         InputStream responseStream =
             new SequenceInputStream(
                 new ReadRowsResponseInputStreamEnumeration(
-                    multiplexer.getSplit(x), tracer.forkWithPrefix("multiplexed-" + x)));
+                    multiplexer.getSplit(x), multiplexedTracer));
         InputStream schemaAndBatches = new SequenceInputStream(schema.newInput(), responseStream);
+        closeables.add(multiplexedTracer::finished);
         readers.add(newArrowStreamReader(schemaAndBatches));
       }
       reader =
