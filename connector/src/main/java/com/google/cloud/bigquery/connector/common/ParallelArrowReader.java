@@ -19,14 +19,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import org.apache.arrow.vector.VectorLoader;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.VectorUnloader;
@@ -180,13 +177,10 @@ public class ParallelArrowReader implements AutoCloseable {
                     long incrementalBytesRead = reader.bytesRead() - lastBytesRead[idx];
                     tracers[idx].readRowsResponseObtained(/*bytesReceived=*/ incrementalBytesRead);
                     lastBytesRead[idx] = reader.bytesRead();
-                  } catch (IOException e) {
-                    log.info("IOException while consuming reader.", e);
-                    hasData[idx].set(false);
-                    Preconditions.checkState(queue.offer(e), "Expected space in queue");
-                  } catch (Exception e) {
+                  } catch (Throwable e) {
                     log.info("Exception caught while consuming reader.", e);
                     hasData[idx].set(false);
+                    readersReady.set(0);
                     Preconditions.checkState(queue.offer(e), "Expected space in queue");
                   }
                   ArrowRecordBatch batch = null;
@@ -214,10 +208,10 @@ public class ParallelArrowReader implements AutoCloseable {
               });
         }
       }
-    } catch (InterruptedException e) {
-      log.info("Read ahead interrupted");
-    } catch (IOException e) {
-      log.info("Error while reading in streams", e);
+    } catch (Throwable e) {
+      log.info("Read ahead caught exceptions", e);
+      Preconditions.checkState(queue.offer(e), "Expected available capacity");
+      return;
     }
     Preconditions.checkState(queue.offer(DONE_SENTINEL), "Expected available capacity");
   }
