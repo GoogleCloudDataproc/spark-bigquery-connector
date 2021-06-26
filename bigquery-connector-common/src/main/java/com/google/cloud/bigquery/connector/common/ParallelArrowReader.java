@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -29,7 +30,6 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.VectorUnloader;
 import org.apache.arrow.vector.ipc.ArrowReader;
 import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
-import org.apache.parquet.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

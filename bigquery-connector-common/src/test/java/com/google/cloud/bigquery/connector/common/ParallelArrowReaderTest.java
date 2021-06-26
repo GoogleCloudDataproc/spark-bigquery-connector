@@ -17,9 +17,6 @@ package com.google.cloud.bigquery.connector.common;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.TimeUnit;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -109,37 +106,37 @@ public class ParallelArrowReaderTest {
 //    assertThat(executor.isShutdown()).isTrue();
 //  }
 
-  @Test
-  public void testReadsAllBatchesInRoundRobinOneelement() throws Exception {
-
-    ColumnarBatch[] batches = new ColumnarBatch[6];
-    for (int x = 0; x < batches.length; x++) {
-      batches[x] = new ColumnarBatch(new ColumnVector[0]);
-    }
-    ArrowReader r1 = getReaderWithSequence();
-    ArrowReader r2 = getReaderWithSequence(0);
-    ArrowReader r3 = getReaderWithSequence();
-    ExecutorService executor = Executors.newFixedThreadPool(3);
-    List<Integer> read = new ArrayList<>();
-    try (VectorSchemaRoot root =
-        VectorSchemaRoot.create(r1.getVectorSchemaRoot().getSchema(), allocator)) {
-      VectorLoader loader = new VectorLoader(root);
-      ParallelArrowReader reader =
-          new ParallelArrowReader(
-              ImmutableList.of(r1, r2, r3),
-              executor,
-              loader,
-              new LoggingBigQueryStorageReadRowsTracer("stream_name", 2));
-
-      while (reader.next()) {
-        read.add(((IntVector) root.getVector(0)).get(0));
-      }
-      reader.close();
-    }
-
-    assertThat(read).containsExactlyElementsIn(ImmutableList.of(0)).inOrder();
-    assertThat(executor.isShutdown()).isTrue();
-  }
+//  @Test
+//  public void testReadsAllBatchesInRoundRobinOneelement() throws Exception {
+//
+//    ColumnarBatch[] batches = new ColumnarBatch[6];
+//    for (int x = 0; x < batches.length; x++) {
+//      batches[x] = new ColumnarBatch(new ColumnVector[0]);
+//    }
+//    ArrowReader r1 = getReaderWithSequence();
+//    ArrowReader r2 = getReaderWithSequence(0);
+//    ArrowReader r3 = getReaderWithSequence();
+//    ExecutorService executor = Executors.newFixedThreadPool(3);
+//    List<Integer> read = new ArrayList<>();
+//    try (VectorSchemaRoot root =
+//        VectorSchemaRoot.create(r1.getVectorSchemaRoot().getSchema(), allocator)) {
+//      VectorLoader loader = new VectorLoader(root);
+//      ParallelArrowReader reader =
+//          new ParallelArrowReader(
+//              ImmutableList.of(r1, r2, r3),
+//              executor,
+//              loader,
+//              new LoggingBigQueryStorageReadRowsTracer("stream_name", 2));
+//
+//      while (reader.next()) {
+//        read.add(((IntVector) root.getVector(0)).get(0));
+//      }
+//      reader.close();
+//    }
+//
+//    assertThat(read).containsExactlyElementsIn(ImmutableList.of(0)).inOrder();
+//    assertThat(executor.isShutdown()).isTrue();
+//  }
 
   @Test
   public void testExceptionIsPropagatedFromNext() throws Exception {
