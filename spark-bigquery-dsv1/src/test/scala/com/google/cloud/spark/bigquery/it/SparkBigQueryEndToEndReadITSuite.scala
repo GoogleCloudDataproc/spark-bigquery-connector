@@ -18,7 +18,6 @@ package com.google.cloud.spark.bigquery.it
 import com.google.cloud.bigquery._
 import com.google.cloud.spark.bigquery.{TestConstants, TestUtils}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
-import com.google.cloud.spark.bigquery.it.TestConstants._
 import org.apache.spark.bigquery.BigNumeric
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types._
@@ -26,7 +25,7 @@ import org.apache.spark.sql.{DataFrame, Encoders, SparkSession}
 import org.scalatest.concurrent.TimeLimits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.time.SpanSugar._
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Ignore, Matchers}
+import org.scalatest._
 
 @Ignore
 class SparkBigQueryEndToEndReadITSuite extends FunSuite
@@ -259,23 +258,23 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
       assert(row(3).isInstanceOf[Long])
     }
 
-//    test("cache data frame in DataSource %s. Data Format %s"
+    //    test("cache data frame in DataSource %s. Data Format %s"
     //    .format(dataSourceFormat, dataFormat)) {
-//      val allTypesTable = readAllTypesTable("bigquery")
-//      writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro")
-//
-//      val df = spark.read.format("bigquery")
-//        .option("dataset", testDataset)
-//        .option("table", testTable)
-//        .option("readDataFormat", "arrow")
-//        .load().cache()
-//
-//      assert(df.head() == allTypesTable.head())
-//
-//      // read from cache
-//      assert(df.head() == allTypesTable.head())
-//      assert(df.schema == allTypesTable.schema)
-//    }
+    //      val allTypesTable = readAllTypesTable("bigquery")
+    //      writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro")
+    //
+    //      val df = spark.read.format("bigquery")
+    //        .option("dataset", testDataset)
+    //        .option("table", testTable)
+    //        .option("readDataFormat", "arrow")
+    //        .load().cache()
+    //
+    //      assert(df.head() == allTypesTable.head())
+    //
+    //      // read from cache
+    //      assert(df.head() == allTypesTable.head())
+    //      assert(df.schema == allTypesTable.schema)
+    //    }
 
     test("number of partitions. DataSource %s. Data Format %s"
       .format(dataSourceFormat, dataFormat)) {
@@ -485,10 +484,10 @@ class SparkBigQueryEndToEndReadITSuite extends FunSuite
         val rows = allTypesTable.head.toSeq
 
         var i = 0
-        for(row <- rows) {
+        for (row <- rows) {
 
-          if(i == BIG_NUMERIC_COLUMN_POSITION) {
-            for(j <- 0 to 1) {
+          if (i == TestConstants.BIG_NUMERIC_COLUMN_POSITION) {
+            for (j <- 0 to 1) {
               val bigNumericValue =
                 row.asInstanceOf[GenericRowWithSchema].get(j).asInstanceOf[BigNumeric]
 

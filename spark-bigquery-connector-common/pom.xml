@@ -81,23 +81,25 @@
                 </executions>
             </plugin>           <!-- Generate build.info -->
             <plugin>
-                <groupId>com.rodiontsev.maven.plugins</groupId>
-                <artifactId>build-info-maven-plugin</artifactId>
-                <version>1.3</version>
-                <configuration>
-                    <filename>spark-bigquery-connector.info</filename>
-                    <projectProperties>
-                        <projectProperty>project.version</projectProperty>
-                    </projectProperties>
-                    <dateTimePattern>yyyy-MM-dd HH:mm:ss</dateTimePattern>
-                    <includeVcsInfo>false</includeVcsInfo>
-                </configuration>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.1.0</version>
                 <executions>
                     <execution>
-                        <phase>prepare-package</phase>
+                        <id>copy-resources</id>
+                        <!-- here the phase you need -->
+                        <phase>validate</phase>
                         <goals>
-                            <goal>extract</goal>
+                            <goal>copy-resources</goal>
                         </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/target/classes</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/build/resources</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
