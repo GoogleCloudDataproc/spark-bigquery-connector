@@ -18,8 +18,7 @@ package com.google.cloud.spark.bigquery.it
 import java.util.UUID
 
 import com.google.cloud.bigquery._
-import com.google.cloud.spark.bigquery.it.TestConstants.BIG_NUMERIC_COLUMN_POSITION
-import com.google.cloud.spark.bigquery.{SchemaConverters, TestUtils}
+import com.google.cloud.spark.bigquery.{SchemaConverters, TestConstants, TestUtils}
 import com.google.common.base.Preconditions
 import org.apache.spark.bigquery.{BigNumeric, BigQueryDataTypes}
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
@@ -518,7 +517,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
   def compareBigNumericDataSetRows(actual: Row, expected: Row): Unit ={
 
     for(i <- 0 until actual.size) {
-      if(i == BIG_NUMERIC_COLUMN_POSITION) {
+      if(i == TestConstants.BIG_NUMERIC_COLUMN_POSITION) {
         for(j <- 0 to 1) {
           val actualBigNumericString =
             actual.get(i).asInstanceOf[GenericRowWithSchema].get(j)
@@ -543,7 +542,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
     val expectedFields = expectedSchema.fields
 
     for(i <- 0 until actualFields.size) {
-      if(i == BIG_NUMERIC_COLUMN_POSITION) {
+      if(i == TestConstants.BIG_NUMERIC_COLUMN_POSITION) {
 
         val actualField = actualFields(i)
         val expectedField = expectedFields(i)
