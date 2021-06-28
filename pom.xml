@@ -52,16 +52,20 @@
     </repository>
   </distributionManagement>
 
+  <modules>
+    <module>spark-bigquery-parent</module>
+    <module>bigquery-connector-common</module>
+    <module>spark-bigquery-connector-common</module>
+    <module>spark-bigquery-python-lib</module>
+  </modules>
+
   <profiles>
     <profile>
       <id>all</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
-        <module>spark-bigquery-parent</module>
-        <module>bigquery-connector-common</module>
-        <module>spark-bigquery-connector-common</module>
         <module>spark-bigquery-dsv1</module>
         <module>spark-bigquery-dsv2</module>
       </modules>
@@ -72,10 +76,29 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
-        <module>spark-bigquery-parent</module>
-        <module>bigquery-connector-common</module>
-        <module>spark-bigquery-connector-common</module>
         <module>spark-bigquery-dsv1</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>dsv1_2.11</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>spark-bigquery-dsv1/spark-bigquery-dsv1-parent</module>
+        <module>spark-bigquery-dsv1/spark-bigquery_2.11</module>
+        <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.11</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>dsv1_2.12</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>spark-bigquery-dsv1/spark-bigquery-dsv1-parent</module>
+        <module>spark-bigquery-dsv1/spark-bigquery_2.12</module>
+        <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.12</module>
       </modules>
     </profile>
     <profile>
@@ -84,10 +107,27 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
-        <module>spark-bigquery-parent</module>
-        <module>bigquery-connector-common</module>
-        <module>spark-bigquery-connector-common</module>
         <module>spark-bigquery-dsv2</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>dsv2_2.4</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
+        <module>spark-bigquery-dsv2/spark-bigquery-spark24</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>dsv2_3</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
+        <module>spark-bigquery-dsv2/spark-bigquery-spark3</module>
       </modules>
     </profile>
     <profile>
