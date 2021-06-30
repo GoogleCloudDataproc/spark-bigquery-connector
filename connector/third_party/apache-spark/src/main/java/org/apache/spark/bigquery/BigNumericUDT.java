@@ -43,6 +43,6 @@ public class BigNumericUDT extends UserDefinedType<BigNumeric>{
 
     @Override
     public String pyUDT() {
-        return "bigquery.google.cloud.spark.big_numeric_support.BigNumericUDT";
+        return "google.cloud.spark.bigquery.big_numeric_support.BigNumericUDT";
     }
 }
