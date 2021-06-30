@@ -692,6 +692,19 @@ for row in data:
   print(str(bigNumeric.number))
 ```
 
+Incase the above code throws ModuleNotFoundError, use the following code before reading the BigNumeric data.
+
+```
+try:
+    import pkg_resources
+
+    pkg_resources.declare_namespace(__name__)
+except ImportError:
+    import pkgutil
+
+    __path__ = pkgutil.extend_path(__path__, __name__)
+```
+
 ### Filtering
 
 The connector automatically computes column and pushdown filters the DataFrame's `SELECT` statement e.g.
