@@ -19,6 +19,8 @@ public class ReadSessionCreatorConfigBuilder {
   private Optional<String> endpoint = Optional.empty();
   private int backgroundParsingThreads = 0;
   private boolean pushAllFilters = true;
+  int prebufferResponses = 1;
+  int streamsPerPartition = 1;
 
   public ReadSessionCreatorConfigBuilder setViewsEnabled(boolean viewsEnabled) {
     this.viewsEnabled = viewsEnabled;
@@ -89,6 +91,16 @@ public class ReadSessionCreatorConfigBuilder {
     return this;
   }
 
+  public ReadSessionCreatorConfigBuilder setPrebufferReadRowsResponses(int prebufferResponses) {
+    this.prebufferResponses = prebufferResponses;
+    return this;
+  }
+
+  public ReadSessionCreatorConfigBuilder setStreamsPerPartition(int streamsPerPartition) {
+    this.streamsPerPartition = streamsPerPartition;
+    return this;
+  }
+
   public ReadSessionCreatorConfig build() {
     return new ReadSessionCreatorConfig(
         viewsEnabled,
@@ -103,6 +115,8 @@ public class ReadSessionCreatorConfigBuilder {
         requestEncodedBase,
         endpoint,
         backgroundParsingThreads,
-        pushAllFilters);
+        pushAllFilters,
+        prebufferResponses,
+        streamsPerPartition);
   }
 }

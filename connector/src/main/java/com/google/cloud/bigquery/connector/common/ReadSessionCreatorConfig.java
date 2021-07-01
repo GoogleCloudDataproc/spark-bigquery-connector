@@ -35,6 +35,8 @@ public class ReadSessionCreatorConfig {
   private final Optional<String> endpoint;
   private final int backgroundParsingThreads;
   private final boolean pushAllFilters;
+  private final int prebufferResponses;
+  private final int streamsPerPartition;
 
   ReadSessionCreatorConfig(
       boolean viewsEnabled,
@@ -49,7 +51,9 @@ public class ReadSessionCreatorConfig {
       Optional<String> requestEncodedBase,
       Optional<String> endpoint,
       int backgroundParsingThreads,
-      boolean pushAllFilters) {
+      boolean pushAllFilters,
+      int prebufferResponses,
+      int streamsPerPartition) {
     this.viewsEnabled = viewsEnabled;
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
@@ -63,6 +67,8 @@ public class ReadSessionCreatorConfig {
     this.endpoint = endpoint;
     this.backgroundParsingThreads = backgroundParsingThreads;
     this.pushAllFilters = pushAllFilters;
+    this.prebufferResponses = prebufferResponses;
+    this.streamsPerPartition = streamsPerPartition;
   }
 
   public boolean isViewsEnabled() {
@@ -119,6 +125,14 @@ public class ReadSessionCreatorConfig {
 
   public ReadRowsHelper.Options toReadRowsHelperOptions() {
     return new ReadRowsHelper.Options(
-        getMaxReadRowsRetries(), endpoint(), backgroundParsingThreads());
+        getMaxReadRowsRetries(), endpoint(), backgroundParsingThreads(), getPrebufferResponses());
+  }
+
+  public int streamsPerPartition() {
+    return streamsPerPartition;
+  }
+
+  public int getPrebufferResponses() {
+    return prebufferResponses;
   }
 }
