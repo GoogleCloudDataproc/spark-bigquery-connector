@@ -17,12 +17,13 @@
 package com.google.cloud.spark.bigquery
 
 import com.google.cloud.bigquery.connector.common.BigQueryClient
+import com.google.cloud.spark.bigquery.spark3.{DataFrameToRDDConverter, Spark3DataFrameToRDDConverter}
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
+import org.apache.spark.sql._
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{DataFrame, Row, SQLContext, SaveMode}
 
 private[bigquery] object BigQueryStreamWriter extends Logging {
 
@@ -40,16 +41,14 @@ private[bigquery] object BigQueryStreamWriter extends Logging {
                  opts: SparkBigQueryConfig,
                  bigQueryClient: BigQueryClient): Unit = {
     val schema: StructType = data.schema
-    val expressionEncoder: ExpressionEncoder[Row] = RowEncoder(schema).resolveAndBind()
-    val rowRdd: RDD[Row] = data.queryExecution.toRdd.mapPartitions(iter =>
-      iter.map(internalRow =>
-        expressionEncoder.fromRow(internalRow)
-      )
-    )
+    val sparkVersion = sqlContext.sparkSession.version
+
+    val rowRdd: RDD[Row] =
+      dataFrameToRDDConverterFactory(sparkVersion).convertToRDD(data)
+
     // Create fixed dataframe
     val dataFrame: DataFrame = sqlContext.createDataFrame(rowRdd, schema)
     val table = Option(bigQueryClient.getTable(opts.getTableId))
-
     val saveMode = getSaveMode(outputMode)
     val helper = BigQueryWriteHelper(
       bigQueryClient, sqlContext, saveMode, opts, dataFrame, table.isDefined)
@@ -76,5 +75,30 @@ private[bigquery] object BigQueryStreamWriter extends Logging {
       SaveMode.Append
     }
   }
+
+  class Spark2DataFrameToRDDConverter extends DataFrameToRDDConverter {
+
+    override def convertToRDD(data: Dataset[Row]): RDD[Row] = {
+      val schema: StructType = data.schema
+      val expressionEncoder = RowEncoder(schema).resolveAndBind()
+
+      val rowRdd: RDD[Row] =
+        data.queryExecution.toRdd.mapPartitions(
+          iter =>
+            iter.map(internalRow => expressionEncoder.fromRow(internalRow)))
+
+      rowRdd
+    }
+  }
+
+  def dataFrameToRDDConverterFactory(sparkVersion: String): DataFrameToRDDConverter = {
+    val version = sparkVersion.charAt(0) - '0'
+    if (version < 3) {
+      new Spark2DataFrameToRDDConverter
+    } else {
+      new Spark3DataFrameToRDDConverter
+    }
+  }
+
 }
 
