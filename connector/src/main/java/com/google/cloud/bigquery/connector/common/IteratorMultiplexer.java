@@ -59,7 +59,7 @@ public class IteratorMultiplexer<T> implements AutoCloseable {
   }
 
   void readAhead() {
-    RuntimeException e = null;
+    Throwable e = null;
     try {
       boolean hasMore = true;
       while (hasMore) {
@@ -77,8 +77,8 @@ public class IteratorMultiplexer<T> implements AutoCloseable {
     } catch (InterruptedException ex) {
       log.info("Worker was interrupted. Ending all iterators");
       e = new RuntimeException(ex);
-    } catch (RuntimeException ex) {
-      log.info("Worker had exception. Ending all iterators");
+    } catch (Throwable ex) {
+      log.info("Worker had exception. Ending all iterators", e);
       e = ex;
     }
     for (int x = 0; x < splits; x++) {
@@ -121,15 +121,19 @@ public class IteratorMultiplexer<T> implements AutoCloseable {
     @Override
     public T next() {
       Preconditions.checkState(t != TERMINAL_SENTINEL, "No next message");
-      if (t instanceof RuntimeException) {
-        throw (RuntimeException) t;
+      if (t instanceof Throwable) {
+        if (t instanceof RuntimeException) {
+          throw (RuntimeException) t;
+        } else {
+          throw new RuntimeException((Throwable) t);
+        }
       }
       T ret = (T) t;
       t = null;
       return ret;
     }
 
-    public synchronized void markDone(RuntimeException e) {
+    public synchronized void markDone(Throwable e) {
       if (t == TERMINAL_SENTINEL || t instanceof Exception) {
         return;
       }
