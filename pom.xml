@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.google.cloud.spark</groupId>
@@ -12,6 +12,7 @@
   <artifactId>spark-bigquery-reactor</artifactId>
   <packaging>pom</packaging>
   <name>Spark BigQuery Connector Reactor</name>
+  <version>spark24-0.30.0-SNAPSHOT</version>
 
   <licenses>
     <license>
@@ -29,7 +30,9 @@
   </developers>
 
   <scm>
-    <connection>scm:git:git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git</connection>
+    <connection>
+      scm:git:git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git
+    </connection>
     <developerConnection>
       scm:git:git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git
     </developerConnection>
@@ -38,19 +41,10 @@
 
   <issueManagement>
     <system>GitHub Issues</system>
-    <url>https://github.com/GoogleCloudDataproc/spark-bigquery-connector/issues</url>
+    <url>
+      https://github.com/GoogleCloudDataproc/spark-bigquery-connector/issues
+    </url>
   </issueManagement>
-
-  <distributionManagement>
-    <snapshotRepository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </snapshotRepository>
-    <repository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-    </repository>
-  </distributionManagement>
 
   <modules>
     <module>spark-bigquery-parent</module>
@@ -87,7 +81,8 @@
       <modules>
         <module>spark-bigquery-dsv1/spark-bigquery-dsv1-parent</module>
         <module>spark-bigquery-dsv1/spark-bigquery_2.11</module>
-        <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.11</module>
+        <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.11
+        </module>
       </modules>
     </profile>
     <profile>
@@ -98,7 +93,8 @@
       <modules>
         <module>spark-bigquery-dsv1/spark-bigquery-dsv1-parent</module>
         <module>spark-bigquery-dsv1/spark-bigquery_2.12</module>
-        <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.12</module>
+        <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.12
+        </module>
       </modules>
     </profile>
     <profile>
@@ -129,52 +125,6 @@
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
         <module>spark-bigquery-dsv2/spark-bigquery-spark3</module>
       </modules>
-    </profile>
-    <profile>
-      <id>release</id>
-      <properties>
-        <gpg.skip>false</gpg.skip>
-      </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-gpg-plugin</artifactId>
-            <version>3.0.1</version>
-            <executions>
-              <execution>
-                <id>sign-artifacts</id>
-                <phase>verify</phase>
-                <goals>
-                  <goal>sign</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <artifactId>maven-source-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>attach-sources</id>
-                <goals>
-                  <goal>jar-no-fork</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>attach-javadocs</id>
-                <goals>
-                  <goal>jar</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
   </profiles>
 </project>
