@@ -6,7 +6,7 @@
     <groupId>com.google.cloud.spark</groupId>
     <artifactId>spark-bigquery-parent</artifactId>
     <version>0.30.0-SNAPSHOT</version>
-    <relativePath>../../spark-bigquery-parent</relativePath>
+    <relativePath>../spark-bigquery-parent</relativePath>
   </parent>
 
   <artifactId>spark-bigquery-support</artifactId>
