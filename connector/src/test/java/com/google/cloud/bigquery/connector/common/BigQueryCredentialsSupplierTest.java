@@ -65,7 +65,12 @@ public class BigQueryCredentialsSupplierTest {
   public void testCredentialsFromAccessToken() throws Exception {
     Credentials credentials =
         new BigQueryCredentialsSupplier(
-                Optional.of(ACCESS_TOKEN), Optional.empty(), Optional.empty())
+                Optional.of(ACCESS_TOKEN),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty())
             .getCredentials();
     assertThat(credentials).isInstanceOf(GoogleCredentials.class);
     GoogleCredentials googleCredentials = (GoogleCredentials) credentials;
@@ -80,7 +85,12 @@ public class BigQueryCredentialsSupplierTest {
 
     Credentials credentials =
         new BigQueryCredentialsSupplier(
-                Optional.empty(), Optional.of(credentialsKey), Optional.empty())
+                Optional.empty(),
+                Optional.of(credentialsKey),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty())
             .getCredentials();
     assertThat(credentials).isInstanceOf(ServiceAccountCredentials.class);
     ServiceAccountCredentials serviceAccountCredentials = (ServiceAccountCredentials) credentials;
@@ -99,7 +109,12 @@ public class BigQueryCredentialsSupplierTest {
 
     Credentials credentials =
         new BigQueryCredentialsSupplier(
-                Optional.empty(), Optional.empty(), Optional.of(credentialsFile.getAbsolutePath()))
+                Optional.empty(),
+                Optional.empty(),
+                Optional.of(credentialsFile.getAbsolutePath()),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty())
             .getCredentials();
     assertThat(credentials).isInstanceOf(ServiceAccountCredentials.class);
     ServiceAccountCredentials serviceAccountCredentials = (ServiceAccountCredentials) credentials;
