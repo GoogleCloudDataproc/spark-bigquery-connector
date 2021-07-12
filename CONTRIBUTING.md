@@ -26,3 +26,23 @@ information on using pull requests.
 
 This project follows [Google's Open Source Community
 Guidelines](https://opensource.google.com/conduct/).
+
+## Building and Testing the Connector
+
+The connector is build using sbt version 0.13. The following targets are used:
+* `sbt publishM2` - builds the connector and publishes it to the local maven repository
+* `sbt test` - runs the unit tests
+* `sbt it:test` - runs the integration tests. Those tests run various cases using a GCP project used for testing.
+* `sbt acceptance:test` - runs the acceptance test. Those test create several Dataproc clusters and then run several
+  test scripts using PySpark. Please run `sbt publishM2` before in order to build the tested artifacts.
+  
+In order to run the integration tests make sure that your GCP user has the proper accounts for creating and deleting
+datasets and tables in your test project in BigQuery. It will also need the permissions to upload files to the test
+bucket in GCS as well as delete them.
+
+Setting the following environment variables is requitred to run the integration tests:
+* `GOOGLE_APPLICATION_CREDENTIALS` - the full path to a credentials JSON, either a service account or the result of a
+  `gcloud auth login` run
+* `GOOGLE_CLOUD_PROJECT` - The Google cloud platform project used to test the connector
+* `TEMPORARY_GCS_BUCKET` - The GCS bucked used to test writing to BigQuery during the integration tests
+* `ACCEPTANCE_TEST_BUCKET` - The GCS bucked used to test writing to BigQuery during the acceptance tests 

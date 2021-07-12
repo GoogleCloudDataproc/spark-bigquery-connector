@@ -755,14 +755,6 @@ To include the connector in your project:
 libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.21.1"
 ```
 
-## Building the Connector
-
-The connector is built using [SBT](https://www.scala-sbt.org/). Following command creates a jar with shaded dependencies:
-
-```
-sbt assembly
-```
-
 ## FAQ
 
 ### What is the Pricing for the Storage API?
