@@ -12,7 +12,6 @@
   <artifactId>spark-bigquery-reactor</artifactId>
   <packaging>pom</packaging>
   <name>Spark BigQuery Connector Reactor</name>
-  <version>spark24-0.30.0-SNAPSHOT</version>
 
   <licenses>
     <license>
