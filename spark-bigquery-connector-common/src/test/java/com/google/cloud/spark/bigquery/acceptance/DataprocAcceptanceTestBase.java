@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.spark.bigquery.acceptance;
+package com.google.cloud.spark.bigquery.acceptance;
 
 import com.google.cloud.dataproc.v1.*;
 import java.io.FileInputStream;
@@ -30,13 +30,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestConstants.MAX_BIG_NUMERIC;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestConstants.MIN_BIG_NUMERIC;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.createBqDataset;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.createZipFile;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.deleteBqDatasetAndTables;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.runBqQuery;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.getNumOfRowsOfBqTable;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MAX_BIG_NUMERIC;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MIN_BIG_NUMERIC;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.createBqDataset;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.createZipFile;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.deleteBqDatasetAndTables;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.runBqQuery;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.getNumOfRowsOfBqTable;
 
 public class DataprocAcceptanceTestBase {
 
@@ -107,7 +107,7 @@ public class DataprocAcceptanceTestBase {
   }
 
   private static String generateClusterName(String dataprocImageVersion, String testId) {
-    return String.format("spark-bigquery-it-%s", testId);
+    return String.format("spark-bigquery-acceptance-test-%s", testId);
   }
 
   private static Cluster createCluster(String clusterName, String dataprocImageVersion) {

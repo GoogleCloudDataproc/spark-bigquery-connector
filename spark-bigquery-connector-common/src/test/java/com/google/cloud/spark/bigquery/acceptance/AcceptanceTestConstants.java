@@ -1,4 +1,4 @@
-package com.google.spark.bigquery.acceptance;
+package com.google.cloud.spark.bigquery.acceptance;
 
 public class AcceptanceTestConstants {
 
