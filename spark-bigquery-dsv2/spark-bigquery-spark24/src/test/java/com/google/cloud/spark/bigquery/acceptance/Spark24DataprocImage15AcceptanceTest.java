@@ -18,17 +18,17 @@ package com.google.cloud.spark.bigquery.acceptance;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-public class DataprocImage20AcceptanceTest extends DataprocAcceptanceTestBase {
+public class Spark24DataprocImage15AcceptanceTest extends DataprocAcceptanceTestBase {
 
   private static AcceptanceTestContext context;
 
-  public DataprocImage20AcceptanceTest() {
-    super(context);
+  public Spark24DataprocImage15AcceptanceTest() {
+    super(context, false);
   }
 
   @BeforeClass
   public static void setup() throws Exception {
-    //context = DataprocAcceptanceTestBase.setup("2.12", "2.0-debian10");
+    context = DataprocAcceptanceTestBase.setup("1.5-debian10");
   }
 
   @AfterClass

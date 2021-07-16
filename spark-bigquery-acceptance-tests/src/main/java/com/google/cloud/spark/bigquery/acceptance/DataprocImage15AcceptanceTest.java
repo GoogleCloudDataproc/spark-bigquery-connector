@@ -28,7 +28,7 @@ public class DataprocImage15AcceptanceTest extends DataprocAcceptanceTestBase {
 
   @BeforeClass
   public static void setup() throws Exception {
-    context = DataprocAcceptanceTestBase.setup("2.12", "1.5-debian10");
+    //context = DataprocAcceptanceTestBase.setup("2.12", "1.5-debian10");
   }
 
   @AfterClass

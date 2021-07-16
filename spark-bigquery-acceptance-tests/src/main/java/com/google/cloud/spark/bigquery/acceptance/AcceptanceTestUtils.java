@@ -37,6 +37,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -50,11 +51,12 @@ public class AcceptanceTestUtils {
   static Storage storage =
       new StorageOptions.DefaultStorageFactory().create(StorageOptions.getDefaultInstance());
 
-  public static Path getAssemblyJar(Path targetDir) {
+  public static Path getArtifact(Path targetDir, String suffix) {
+    Predicate<Path> prefixSuffixChecker = prefixSuffixChecker("spark-bigquery", suffix);
     try {
       return Files.list(targetDir)
           .filter(Files::isRegularFile)
-          .filter(AcceptanceTestUtils::isAssemblyJar)
+          .filter(prefixSuffixChecker)
           .max(Comparator.comparing(AcceptanceTestUtils::lastModifiedTime))
           .get();
     } catch (IOException e) {
@@ -62,9 +64,11 @@ public class AcceptanceTestUtils {
     }
   }
 
-  private static boolean isAssemblyJar(Path path) {
-    String name = path.toFile().getName();
-    return name.endsWith(".jar") && name.startsWith("spark-bigquery");
+  private static Predicate<Path> prefixSuffixChecker(final String prefix, final String suffix) {
+    return path -> {
+      String name = path.toFile().getName();
+      return name.startsWith(prefix) && name.endsWith(suffix);
+    };
   }
 
   private static FileTime lastModifiedTime(Path path) {
@@ -120,13 +124,13 @@ public class AcceptanceTestUtils {
     URI uri = new URI(resultsDirUri);
     Blob csvBlob =
         StreamSupport.stream(
-                storage
-                    .list(
-                        uri.getAuthority(),
-                        Storage.BlobListOption.prefix(uri.getPath().substring(1)))
-                    .iterateAll()
-                    .spliterator(),
-                false)
+            storage
+                .list(
+                    uri.getAuthority(),
+                    Storage.BlobListOption.prefix(uri.getPath().substring(1)))
+                .iterateAll()
+                .spliterator(),
+            false)
             .filter(blob -> blob.getName().endsWith("csv"))
             .findFirst()
             .get();
@@ -137,13 +141,13 @@ public class AcceptanceTestUtils {
     URI uri = new URI(testBaseGcsDir);
     BlobId[] blobIds =
         StreamSupport.stream(
-                storage
-                    .list(
-                        uri.getAuthority(),
-                        Storage.BlobListOption.prefix(uri.getPath().substring(1)))
-                    .iterateAll()
-                    .spliterator(),
-                false)
+            storage
+                .list(
+                    uri.getAuthority(),
+                    Storage.BlobListOption.prefix(uri.getPath().substring(1)))
+                .iterateAll()
+                .spliterator(),
+            false)
             .map(Blob::getBlobId)
             .toArray(BlobId[]::new);
     storage.delete(blobIds);
@@ -166,42 +170,4 @@ public class AcceptanceTestUtils {
     bq.delete(DatasetId.of(dataset), DatasetDeleteOption.deleteContents());
   }
 
-  public static void createZipFile(String sourceDir, String zipFileLocation) throws IOException {
-    if (Files.exists(Paths.get(zipFileLocation))) {
-      Files.delete(Paths.get(zipFileLocation));
-    }
-
-    Path zipFilePath = Files.createFile(Paths.get(zipFileLocation));
-    Path sourceDirPath = Paths.get(sourceDir);
-
-    try (ZipOutputStream stream = new ZipOutputStream(Files.newOutputStream(zipFilePath))) {
-      ArrayList<String> files = new ArrayList<>();
-      filesToZip(new File(sourceDir), files);
-
-      files.stream()
-          .forEach(
-              adr -> {
-                Path path = Paths.get(adr);
-                ZipEntry zipEntry = new ZipEntry(sourceDirPath.relativize(path).toString());
-                try {
-                  stream.putNextEntry(zipEntry);
-                  Files.copy(path, stream);
-                  stream.closeEntry();
-                } catch (IOException exception) {
-                  System.err.println(exception);
-                }
-              });
-    }
-  }
-
-  private static void filesToZip(File folder, ArrayList<String> filesList) {
-    for (File file : folder.listFiles()) {
-      if (file.isDirectory()) {
-        filesToZip(file, filesList);
-      } else if (!file.getAbsolutePath().endsWith(".zip")
-          && !file.getAbsolutePath().endsWith(".DS_Store")) {
-        filesList.add(file.getAbsolutePath());
-      }
-    }
-  }
 }

@@ -31,10 +31,10 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MAX_BIG_NUMERIC;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MIN_BIG_NUMERIC;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.createBqDataset;
-import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.createZipFile;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.deleteBqDatasetAndTables;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.runBqQuery;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.getNumOfRowsOfBqTable;
+import static org.junit.Assume.assumeTrue;
 
 public class DataprocAcceptanceTestBase {
 
@@ -42,13 +42,21 @@ public class DataprocAcceptanceTestBase {
   public static final String DATAPROC_ENDPOINT =
       REGION + "-dataproc.googleapis.com:443";
   private static final String PROJECT_ID = System.getenv("GOOGLE_CLOUD_PROJECT");
+  public static final String CONNECTOR_JAR_DIRECTORY = "target";
   private AcceptanceTestContext context;
+  private boolean sparkStreamingSupported;
 
   protected DataprocAcceptanceTestBase(AcceptanceTestContext context) {
-    this.context = context;
+    this(context, true);
   }
 
-  protected static AcceptanceTestContext setup(String targetDir, String dataprocImageVersion)
+  protected DataprocAcceptanceTestBase(
+      AcceptanceTestContext context, boolean sparkStreamingSupported) {
+    this.context = context;
+    this.sparkStreamingSupported = sparkStreamingSupported;
+  }
+
+  protected static AcceptanceTestContext setup( String dataprocImageVersion)
       throws Exception {
     String testId =
         String.format(
@@ -58,7 +66,7 @@ public class DataprocAcceptanceTestBase {
             dataprocImageVersion.charAt(2));
     String clusterName = createClusterIfNeeded(dataprocImageVersion, testId);
     AcceptanceTestContext acceptanceTestContext = new AcceptanceTestContext(testId, clusterName);
-    uploadConnectorJar(targetDir, acceptanceTestContext.connectorJarUri);
+    uploadConnectorJar(CONNECTOR_JAR_DIRECTORY, acceptanceTestContext.connectorJarUri);
     createBqDataset(acceptanceTestContext.bqDataset);
     return acceptanceTestContext;
   }
@@ -136,9 +144,8 @@ public class DataprocAcceptanceTestBase {
 
   private static void uploadConnectorJar(String targetDir, String connectorJarUri)
       throws Exception {
-    System.out.println("pwd="+Paths.get(".").toAbsolutePath().toString());
     Path targetDirPath = Paths.get(targetDir);
-    Path assemblyJar = AcceptanceTestUtils.getAssemblyJar(targetDirPath);
+    Path assemblyJar = AcceptanceTestUtils.getArtifact(targetDirPath, ".jar");
     AcceptanceTestUtils.copyToGcs(assemblyJar, connectorJarUri, "application/java-archive");
   }
 
@@ -157,72 +164,71 @@ public class DataprocAcceptanceTestBase {
     assertThat(output.trim()).isEqualTo("spark,10");
   }
 
-  // @Test
-  // public void writeStream() throws Exception {
-  //   String testName = "write-stream-test";
-  //   String jsonFileName = "write_stream_data.json";
-  //   String jsonFileUri = context.testBaseGcsDir + "/" + testName + "/json/" + jsonFileName;
-  //
-  //   AcceptanceTestUtils.uploadToGcs(
-  //       getClass().getResourceAsStream("/acceptance/" + jsonFileName),
-  //       jsonFileUri,
-  //       "application/json");
-  //
-  //   Job result =
-  //       createAndRunPythonJob(
-  //           testName,
-  //           "write_stream.py",
-  //           null,
-  //           Arrays.asList(
-  //               context.testBaseGcsDir + "/" + testName + "/json/",
-  //               context.bqDataset,
-  //               context.bqStreamTable,
-  //               AcceptanceTestUtils.BUCKET),
-  //           120);
-  //
-  //   assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
-  //   int numOfRows = getNumOfRowsOfBqTable(context.bqDataset, context.bqStreamTable);
-  //   assertThat(numOfRows == 2);
-  // }
-  //
-  // @Test
-  // public void testBigNumeric() throws Exception {
-  //   String testName = "test-big-numeric";
-  //   String pyBaseDir = Paths.get("pythonlib").toAbsolutePath().toString();
-  //   String zipFileLocation =
-  //       Paths.get("fatJar").toAbsolutePath().toString() + "/big_numeric_acceptance_test.zip";
-  //   String zipFileUri =
-  //       context.testBaseGcsDir + "/" + testName + "/big_numeric_acceptance_test.zip";
-  //
-  //   createZipFile(pyBaseDir, zipFileLocation);
-  //
-  //   AcceptanceTestUtils.uploadToGcs(
-  //       getClass().getResourceAsStream("/acceptance/big_numeric.py"),
-  //       context.getScriptUri(testName),
-  //       "text/x-python");
-  //   AcceptanceTestUtils.uploadToGcs(
-  //       new FileInputStream(zipFileLocation), zipFileUri, "application/zip");
-  //
-  //   runBqQuery(
-  //       String.format(
-  //           AcceptanceTestConstants.BIGNUMERIC_TABLE_QUERY_TEMPLATE,
-  //           context.bqDataset,
-  //           context.bqTable));
-  //
-  //   String tableName = context.bqDataset + "." + context.bqTable;
-  //
-  //   Job result =
-  //       createAndRunPythonJob(
-  //           testName,
-  //           "big_numeric.py",
-  //           zipFileUri,
-  //           Arrays.asList(tableName, context.getResultsDirUri(testName)),
-  //           60);
-  //
-  //   assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
-  //   String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
-  //   assertThat(output.trim()).isEqualTo(MIN_BIG_NUMERIC + "," + MAX_BIG_NUMERIC);
-  // }
+  @Test
+  public void writeStream() throws Exception {
+    // TODO: Should be removed once streaming is supported in DSv2
+    assumeTrue("Spark streaming is not supported by this connector", sparkStreamingSupported);
+    String testName = "write-stream-test";
+    String jsonFileName = "write_stream_data.json";
+    String jsonFileUri = context.testBaseGcsDir + "/" + testName + "/json/" + jsonFileName;
+
+    AcceptanceTestUtils.uploadToGcs(
+        getClass().getResourceAsStream("/acceptance/" + jsonFileName),
+        jsonFileUri,
+        "application/json");
+
+    Job result =
+        createAndRunPythonJob(
+            testName,
+            "write_stream.py",
+            null,
+            Arrays.asList(
+                context.testBaseGcsDir + "/" + testName + "/json/",
+                context.bqDataset,
+                context.bqStreamTable,
+                AcceptanceTestUtils.BUCKET),
+            120);
+
+    assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
+    int numOfRows = getNumOfRowsOfBqTable(context.bqDataset, context.bqStreamTable);
+    assertThat(numOfRows == 2);
+  }
+
+  @Test
+  public void testBigNumeric() throws Exception {
+    String testName = "test-big-numeric";
+    Path pythonLibTargetDir = Paths.get("../../spark-bigquery-python-lib/target");
+    Path pythonLibZip = AcceptanceTestUtils.getArtifact(pythonLibTargetDir, ".zip");
+    String zipFileUri =
+        context.testBaseGcsDir + "/" + testName + "/big_numeric_acceptance_test.zip";
+
+    // AcceptanceTestUtils.uploadToGcs(
+    //     getClass().getResourceAsStream("/acceptance/big_numeric.py"),
+    //     context.getScriptUri(testName),
+    //     "text/x-python");
+    AcceptanceTestUtils.uploadToGcs(
+        new FileInputStream(pythonLibZip.toFile()), zipFileUri, "application/zip");
+
+    runBqQuery(
+        String.format(
+            AcceptanceTestConstants.BIGNUMERIC_TABLE_QUERY_TEMPLATE,
+            context.bqDataset,
+            context.bqTable));
+
+    String tableName = context.bqDataset + "." + context.bqTable;
+
+    Job result =
+        createAndRunPythonJob(
+            testName,
+            "big_numeric.py",
+            zipFileUri,
+            Arrays.asList(tableName, context.getResultsDirUri(testName)),
+            60);
+
+    assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
+    String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
+    assertThat(output.trim()).isEqualTo(MIN_BIG_NUMERIC + "," + MAX_BIG_NUMERIC);
+  }
 
   private Job createAndRunPythonJob(
       String testName, String pythonFile, String pythonZipUri, List<String> args, long duration)
