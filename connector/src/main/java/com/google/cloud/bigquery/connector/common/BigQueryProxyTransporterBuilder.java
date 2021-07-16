@@ -4,7 +4,6 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.apache.v2.ApacheHttpTransport;
 import com.google.api.core.ApiFunction;
 import com.google.auth.http.HttpTransportFactory;
-import com.google.cloud.spark.bigquery.SparkBigQueryProxyAndHttpConfig;
 import io.grpc.HttpConnectProxiedSocketAddress;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.ProxiedSocketAddress;
