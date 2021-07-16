@@ -64,7 +64,7 @@ public class AcceptanceTestUtils {
 
   private static boolean isAssemblyJar(Path path) {
     String name = path.toFile().getName();
-    return name.endsWith(".jar") && name.contains("-assembly-");
+    return name.endsWith(".jar") && name.startsWith("spark-bigquery");
   }
 
   private static FileTime lastModifiedTime(Path path) {
