@@ -106,13 +106,12 @@ public class BigQueryProxyTransporterBuilder {
     }
   }
 
-  private static void checkProxyParamsValidity(
+  public static void checkProxyParamsValidity(
       Optional<String> proxyUsername, Optional<String> proxyPassword)
       throws IllegalArgumentException {
-    if ((proxyUsername.isPresent() && !proxyPassword.isPresent())
-        || (!proxyUsername.isPresent() && proxyPassword.isPresent())) {
+    if (proxyUsername.isPresent() != proxyPassword.isPresent()) {
       throw new IllegalArgumentException(
-          "both proxyUsername and proxyPassword should be null or not null together");
+          "Both proxyUsername and proxyPassword should be defined or not defined together");
     }
   }
 }

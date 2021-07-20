@@ -175,7 +175,7 @@ public class BigQueryCredentialsSupplierTest {
               assertThat(exception)
                   .hasMessageThat()
                   .contains(
-                      "both proxyUsername and proxyPassword should be null or not null together");
+                      "Both proxyUsername and proxyPassword should be defined or not defined together");
             });
   }
 
@@ -259,7 +259,7 @@ public class BigQueryCredentialsSupplierTest {
               assertThat(exception)
                   .hasMessageThat()
                   .contains(
-                      "both proxyUsername and proxyPassword should be null or not null together");
+                      "Both proxyUsername and proxyPassword should be defined or not defined together");
             });
   }
 

@@ -1,6 +1,7 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
+import com.google.cloud.bigquery.connector.common.BigQueryProxyTransporterBuilder;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -113,14 +114,12 @@ public class SparkBigQueryProxyAndHttpConfig implements BigQueryProxyConfig, Ser
     if (!config.proxyUri.isPresent()
         && (config.proxyUsername.isPresent() || config.proxyPassword.isPresent())) {
       throw new IllegalArgumentException(
-          "if proxyAddress is null then proxyUsername and proxyPassword should be null");
+          "Please set proxyAddress in order to use a proxy. "
+              + "Setting proxyUsername or proxyPassword is not enough");
     }
 
-    if ((config.proxyUsername.isPresent() && !config.proxyPassword.isPresent())
-        || (!config.proxyUsername.isPresent() && config.proxyPassword.isPresent())) {
-      throw new IllegalArgumentException(
-          "both proxyUsername and proxyPassword should be null or not null together");
-    }
+    BigQueryProxyTransporterBuilder.checkProxyParamsValidity(
+        config.getProxyUsername(), config.getProxyPassword());
   }
 
   private static void checkHttpParamsValidity(SparkBigQueryProxyAndHttpConfig config)
@@ -164,7 +163,7 @@ public class SparkBigQueryProxyAndHttpConfig implements BigQueryProxyConfig, Ser
       int port = uri.getPort();
       checkArgument(
           Strings.isNullOrEmpty(scheme) || scheme.matches("https?"),
-          "HTTP proxy address '%s' has invalid scheme '%s'.",
+          "Proxy address '%s' has invalid scheme '%s'.",
           proxyAddress,
           scheme);
       checkArgument(!Strings.isNullOrEmpty(host), "Proxy address '%s' has no host.", proxyAddress);

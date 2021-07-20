@@ -3,7 +3,6 @@ package com.google.cloud.spark.bigquery;
 import com.google.api.client.http.apache.v2.ApacheHttpTransport;
 import com.google.api.core.ApiFunction;
 import com.google.auth.http.HttpTransportFactory;
-import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyTransporterBuilder;
 import com.google.common.collect.ImmutableMap;
 import io.grpc.ManagedChannelBuilder;
@@ -168,14 +167,45 @@ public class SparkBigQueryProxyAndHttpConfigTest {
   }
 
   @Test
-  public void testConfigViaSparkBigQueryConfig() throws URISyntaxException {
-    ImmutableMap<String, String> tableOptions = ImmutableMap.of("table", "dataset.table");
+  public void testConfigViaSparkBigQueryConfigWithAllThreeParameters() throws URISyntaxException {
+    HashMap<String, String> sparkConfigOptions = new HashMap<>(defaultOptions);
+    sparkConfigOptions.put("table", "dataset.table");
     ImmutableMap<String, String> globalOptions =
         SparkBigQueryConfig.normalizeConf(defaultGlobalOptions);
-    DataSourceOptions options = new DataSourceOptions(tableOptions);
+    DataSourceOptions options = new DataSourceOptions(sparkConfigOptions);
     SparkBigQueryConfig sparkConfig =
         SparkBigQueryConfig.from(
             options.asMap(),
+            globalOptions,
+            defaultHadoopConfiguration,
+            10,
+            new SQLConf(),
+            "2.4.0",
+            Optional.empty());
+
+    SparkBigQueryProxyAndHttpConfig config =
+        (SparkBigQueryProxyAndHttpConfig) sparkConfig.getBigQueryProxyConfig();
+
+    assertThat(config.getProxyUri())
+        .isEqualTo(Optional.of(getURI("http", "bq-connector-host", 1234)));
+    assertThat(config.getProxyUsername()).isEqualTo(Optional.of("bq-connector-user"));
+    assertThat(config.getProxyPassword()).isEqualTo(Optional.of("bq-connector-password"));
+    assertThat(config.getHttpMaxRetry()).isEqualTo(Optional.of(10));
+    assertThat(config.getHttpConnectTimeout()).isEqualTo(Optional.of(10000));
+    assertThat(config.getHttpReadTimeout()).isEqualTo(Optional.of(20000));
+  }
+
+  @Test
+  public void testConfigViaSparkBigQueryConfigWithGlobalOptionsAndHadoopConfiguration()
+      throws URISyntaxException {
+    HashMap<String, String> sparkConfigOptions = new HashMap<>();
+    sparkConfigOptions.put("table", "dataset.table");
+    ImmutableMap<String, String> globalOptions =
+        SparkBigQueryConfig.normalizeConf(defaultGlobalOptions);
+    DataSourceOptions options = new DataSourceOptions(sparkConfigOptions);
+    SparkBigQueryConfig sparkConfig =
+        SparkBigQueryConfig.from(
+            options.asMap(), // contains only one key "table"
             globalOptions,
             defaultHadoopConfiguration,
             10,
@@ -193,6 +223,33 @@ public class SparkBigQueryProxyAndHttpConfigTest {
     assertThat(config.getHttpMaxRetry()).isEqualTo(Optional.of(20));
     assertThat(config.getHttpConnectTimeout()).isEqualTo(Optional.of(20000));
     assertThat(config.getHttpReadTimeout()).isEqualTo(Optional.of(30000));
+  }
+
+  @Test
+  public void testConfigViaSparkBigQueryConfigWithHadoopConfiguration() throws URISyntaxException {
+    HashMap<String, String> sparkConfigOptions = new HashMap<>();
+    sparkConfigOptions.put("table", "dataset.table");
+    DataSourceOptions options = new DataSourceOptions(sparkConfigOptions);
+    SparkBigQueryConfig sparkConfig =
+        SparkBigQueryConfig.from(
+            options.asMap(), // contains only one key "table"
+            ImmutableMap.of(), // empty global options,
+            defaultHadoopConfiguration,
+            10,
+            new SQLConf(),
+            "2.4.0",
+            Optional.empty());
+
+    SparkBigQueryProxyAndHttpConfig config =
+        (SparkBigQueryProxyAndHttpConfig) sparkConfig.getBigQueryProxyConfig();
+
+    assertThat(config.getProxyUri())
+        .isEqualTo(Optional.of(getURI("http", "bq-connector-host-hadoop", 1234)));
+    assertThat(config.getProxyUsername()).isEqualTo(Optional.of("bq-connector-user-hadoop"));
+    assertThat(config.getProxyPassword()).isEqualTo(Optional.of("bq-connector-password-hadoop"));
+    assertThat(config.getHttpMaxRetry()).isEqualTo(Optional.of(30));
+    assertThat(config.getHttpConnectTimeout()).isEqualTo(Optional.of(30000));
+    assertThat(config.getHttpReadTimeout()).isEqualTo(Optional.of(40000));
   }
 
   @Test
@@ -215,7 +272,9 @@ public class SparkBigQueryProxyAndHttpConfigTest {
 
     assertThat(exception)
         .hasMessageThat()
-        .contains("if proxyAddress is null then proxyUsername and proxyPassword should be null");
+        .contains(
+            "Please set proxyAddress in order to use a proxy. "
+                + "Setting proxyUsername or proxyPassword is not enough");
   }
 
   @Test
@@ -238,7 +297,7 @@ public class SparkBigQueryProxyAndHttpConfigTest {
 
     assertThat(exception)
         .hasMessageThat()
-        .contains("both proxyUsername and proxyPassword should be null or not null together");
+        .contains("Both proxyUsername and proxyPassword should be defined or not defined together");
   }
 
   @Test
@@ -261,7 +320,7 @@ public class SparkBigQueryProxyAndHttpConfigTest {
 
     assertThat(exception)
         .hasMessageThat()
-        .contains("both proxyUsername and proxyPassword should be null or not null together");
+        .contains("Both proxyUsername and proxyPassword should be defined or not defined together");
   }
 
   @Test
@@ -292,7 +351,9 @@ public class SparkBigQueryProxyAndHttpConfigTest {
           assertThrows(
               IllegalArgumentException.class,
               () -> SparkBigQueryProxyAndHttpConfig.parseProxyAddress(address));
-      assertThat(exception).hasMessageThat().contains("Invalid proxy address");
+      assertThat(exception)
+          .hasMessageThat()
+          .isEqualTo(String.format("Invalid proxy address '%s'.", address));
     }
   }
 
@@ -308,7 +369,9 @@ public class SparkBigQueryProxyAndHttpConfigTest {
           assertThrows(
               IllegalArgumentException.class,
               () -> SparkBigQueryProxyAndHttpConfig.parseProxyAddress(address));
-      assertThat(exception).hasMessageThat().contains("has no port");
+      assertThat(exception)
+          .hasMessageThat()
+          .isEqualTo(String.format("Proxy address '%s' has no port.", address));
     }
   }
 
@@ -323,7 +386,9 @@ public class SparkBigQueryProxyAndHttpConfigTest {
           assertThrows(
               IllegalArgumentException.class,
               () -> SparkBigQueryProxyAndHttpConfig.parseProxyAddress(address));
-      assertThat(exception).hasMessageThat().contains("invalid scheme");
+      assertThat(exception)
+          .hasMessageThat()
+          .contains(String.format("Proxy address '%s' has invalid scheme", address));
     }
   }
 
@@ -336,7 +401,9 @@ public class SparkBigQueryProxyAndHttpConfigTest {
             IllegalArgumentException.class,
             () -> SparkBigQueryProxyAndHttpConfig.parseProxyAddress(address));
 
-    assertThat(exception).hasMessageThat().contains("Proxy address ':1234' has no host.");
+    assertThat(exception)
+        .hasMessageThat()
+        .isEqualTo(String.format("Proxy address '%s' has no host.", address));
   }
 
   private URI getURI(String scheme, String host, int port) throws URISyntaxException {
@@ -400,6 +467,6 @@ public class SparkBigQueryProxyAndHttpConfigTest {
                 assertThat(exception)
                     .hasMessageThat()
                     .contains(
-                        "both proxyUsername and proxyPassword should be null or not null together"));
+                        "Both proxyUsername and proxyPassword should be defined or not defined together"));
   }
 }
