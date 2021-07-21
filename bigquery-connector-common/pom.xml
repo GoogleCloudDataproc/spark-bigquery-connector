@@ -19,15 +19,6 @@
     </license>
   </licenses>
   <dependencies>
-<!--    <dependency>-->
-<!--      <groupId>com.google.api</groupId>-->
-<!--      <artifactId>gax-grpc</artifactId>-->
-<!--      <exclusions>-->
-<!--        <exclusion>-->
-<!--          <groupId>io.grpc</groupId>-->
-<!--          <artifactId>grpc-netty-shaded</artifactId>-->
-<!--        </exclusion></exclusions>-->
-<!--    </dependency>-->
     <dependency>
       <groupId>com.google.api.grpc</groupId>
       <artifactId>grpc-google-cloud-bigquerystorage-v1</artifactId>
