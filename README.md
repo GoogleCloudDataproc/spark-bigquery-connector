@@ -493,6 +493,64 @@ The API Supports a number of options to configure the read
         </td>
         <td>Write</td>
      </tr>
+   <tr valign="top">
+     <td><code>proxyAddress</code>
+     </td>
+     <td> Address of the proxy server. The proxy must be a HTTP proxy and address should be in the `host:port` format.
+          Can be alternatively set in the Spark configuration (<code>spark.conf.set(...)</code>) or in Hadoop
+          Configuration (<code>fs.gs.proxy.address</code>).
+          <br/> (Optional. Required only if connecting to GCP via proxy.)
+     </td>
+     <td>Read/Write</td>
+   </tr>
+   <tr valign="top">
+     <td><code>proxyUsername</code>
+     </td>
+     <td> The userName used to connect to the proxy. Can be alternatively set in the Spark configuration
+          (<code>spark.conf.set(...)</code>) or in Hadoop Configuration (<code>fs.gs.proxy.username</code>).
+          <br/> (Optional. Required only if connecting to GCP via proxy with authentication.)
+     </td>
+     <td>Read/Write</td>
+   </tr>
+   <tr valign="top">
+     <td><code>proxyPassword</code>
+     </td>
+     <td> The password used to connect to the proxy. Can be alternatively set in the Spark configuration
+          (<code>spark.conf.set(...)</code>) or in Hadoop Configuration (<code>fs.gs.proxy.password</code>).
+          <br/> (Optional. Required only if connecting to GCP via proxy with authentication.)
+     </td>
+     <td>Read/Write</td>
+   </tr>
+   <tr valign="top">
+     <td><code>httpMaxRetry</code>
+     </td>
+     <td> The maximum number of retries for the low-level HTTP requests to BigQuery. Can be alternatively set in the
+          Spark configuration (<code>spark.conf.set("httpMaxRetry", ...)</code>) or in Hadoop Configuration
+          (<code>fs.gs.http.max.retry</code>).
+          <br/> (Optional. Default is 10)
+     </td>
+     <td>Read/Write</td>
+   </tr>
+   <tr valign="top">
+     <td><code>httpConnectTimeout</code>
+     </td>
+     <td> The timeout in milliseconds to establish a connection with BigQuery. Can be alternatively set in the
+          Spark configuration (<code>spark.conf.set("httpConnectTimeout", ...)</code>) or in Hadoop Configuration
+          (<code>fs.gs.http.connect-timeout</code>).
+          <br/> (Optional. Default is 60000 ms. 0 for an infinite timeout, a negative number for 20000)
+     </td>
+     <td>Read/Write</td>
+   </tr>
+   <tr valign="top">
+     <td><code>httpReadTimeout</code>
+     </td>
+     <td> The timeout in milliseconds to read data from an established connection. Can be alternatively set in the
+          Spark configuration (<code>spark.conf.set("httpReadTimeout", ...)</code>) or in Hadoop Configuration
+          (<code>fs.gs.http.read-timeout</code>).
+          <br/> (Optional. Default is 60000 ms. 0 for an infinite timeout, a negative number for 20000)
+     </td>
+     <td>Read</td>
+   </tr>
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter
@@ -804,3 +862,42 @@ or
 ```
 spark.conf.set("gcpAccessToken", "<access-token>")
 ```
+
+### How do I connect to GCP/BigQuery via Proxy?
+
+To connect to a forward proxy and to authenticate the user credentials, configure the following options.
+
+`proxyAddress`: Address of the proxy server. The proxy must be an HTTP proxy and address should be in the `host:port`
+format.
+
+`proxyUsername`: The userName used to connect to the proxy.
+
+`proxyPassword`: The password used to connect to the proxy.
+
+```
+val df = spark.read.format("bigquery")
+  .option("proxyAddress", "http://my-proxy:1234")
+  .option("proxyUsername", "my-username")
+  .option("proxyPassword", "my-password")
+  .load("some-table")
+```
+
+The same proxy parameters can also be set globally using Spark's RuntimeConfig like this:
+
+```
+spark.conf.set("proxyAddress", "http://my-proxy:1234")
+spark.conf.set("proxyUsername", "my-username")
+spark.conf.set("proxyPassword", "my-password")
+
+val df = spark.read.format("bigquery")
+  .load("some-table")
+```
+
+You can set the following in the hadoop configuration as well.
+
+`fs.gs.proxy.address`(similar to "proxyAddress"), `fs.gs.proxy.username`(similar to "proxyUsername") and
+`fs.gs.proxy.password`(similar to "proxyPassword").
+
+If the same parameter is set at multiple places the order of priority is as follows:
+
+option("key", "value") > spark.conf > hadoop configuration
