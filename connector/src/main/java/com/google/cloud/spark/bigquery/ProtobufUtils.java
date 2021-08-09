@@ -19,9 +19,8 @@ import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.storage.v1beta2.ProtoRows;
-import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
-import com.google.cloud.bigquery.storage.v1beta2.ProtoSchemaConverter;
+import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
+import com.google.cloud.bigquery.storage.v1alpha2.ProtoSchemaConverter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -117,26 +116,36 @@ public class ProtobufUtils {
               .build();
 
   /** BigQuery Schema ==> ProtoSchema converter utils: */
-  public static ProtoSchema toProtoSchema(Schema schema) throws IllegalArgumentException {
+  public static ProtoBufProto.ProtoSchema toProtoSchema(Schema schema)
+      throws IllegalArgumentException {
     try {
       Descriptors.Descriptor descriptor = toDescriptor(schema);
-      ProtoSchema protoSchema = ProtoSchemaConverter.convert(descriptor);
-      return protoSchema;
+      return ProtoSchemaConverter.convert(descriptor);
     } catch (Descriptors.DescriptorValidationException e) {
-      throw new IllegalArgumentException("Could not build Proto-Schema from Spark schema.", e);
+      throw new IllegalArgumentException("Could not build Proto-Schema from Spark schema", e);
+    }
+  }
+
+  public static ProtoBufProto.ProtoSchema toProtoSchema(StructType schema)
+      throws IllegalArgumentException {
+    try {
+      Descriptors.Descriptor descriptor = toDescriptor(schema);
+      return ProtoSchemaConverter.convert(descriptor);
+    } catch (Descriptors.DescriptorValidationException e) {
+      throw new IllegalArgumentException("Could not build Proto-Schema from Spark schema", e);
     }
   }
 
   private static Descriptors.Descriptor toDescriptor(Schema schema)
-          throws Descriptors.DescriptorValidationException {
+      throws Descriptors.DescriptorValidationException {
     DescriptorProtos.DescriptorProto.Builder descriptorBuilder =
-            DescriptorProtos.DescriptorProto.newBuilder().setName("Schema");
+        DescriptorProtos.DescriptorProto.newBuilder().setName("Schema");
 
     FieldList fields = schema.getFields();
 
     int initialDepth = 0;
     DescriptorProtos.DescriptorProto descriptorProto =
-            buildDescriptorProtoWithFields(descriptorBuilder, fields, initialDepth);
+        buildDescriptorProtoWithFields(descriptorBuilder, fields, initialDepth);
 
     return createDescriptorFromProto(descriptorProto);
   }
@@ -172,7 +181,7 @@ public class ProtobufUtils {
         String recordTypeName =
             RESERVED_NESTED_TYPE_NAME
                 + messageNumber; // TODO: Maintain this as a reserved nested-type name, which no
-                                 // column can have.
+        // column can have.
         DescriptorProtos.DescriptorProto.Builder nestedFieldTypeBuilder =
             descriptorBuilder.addNestedTypeBuilder();
         nestedFieldTypeBuilder.setName(recordTypeName);
@@ -235,10 +244,10 @@ public class ProtobufUtils {
    * Spark Row --> ProtoRows converter utils: To be used by the DataWriters facing the BigQuery
    * Storage Write API
    */
-  public static ProtoRows toProtoRows(StructType sparkSchema, InternalRow[] rows) {
+  public static ProtoBufProto.ProtoRows toProtoRows(StructType sparkSchema, InternalRow[] rows) {
     try {
       Descriptors.Descriptor schemaDescriptor = toDescriptor(sparkSchema);
-      ProtoRows.Builder protoRows = ProtoRows.newBuilder();
+      ProtoBufProto.ProtoRows.Builder protoRows = ProtoBufProto.ProtoRows.newBuilder();
       for (InternalRow row : rows) {
         DynamicMessage rowMessage = buildSingleRowMessage(sparkSchema, schemaDescriptor, row);
         protoRows.addSerializedRows(rowMessage.toByteString());
@@ -400,7 +409,7 @@ public class ProtobufUtils {
         String nestedName =
             RESERVED_NESTED_TYPE_NAME
                 + messageNumber; // TODO: Maintain this as a reserved nested-type name, which no
-                                 // column can have.
+        // column can have.
         StructField[] subFields = structType.fields();
 
         DescriptorProtos.DescriptorProto.Builder nestedFieldTypeBuilder =

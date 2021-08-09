@@ -16,6 +16,7 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.BaseServiceException;
+import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.http.BaseHttpServiceException;
 import com.google.common.cache.Cache;
@@ -24,6 +25,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.threeten.bp.Duration;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -147,19 +152,19 @@ public class BigQueryClient {
    *     it has finished successfully).
    */
   public Job overwriteDestinationWithTemporary(
-          TableId temporaryTableId, TableId destinationTableId) {
+      TableId temporaryTableId, TableId destinationTableId) {
     String queryFormat =
-            "MERGE `%s`\n"
-                    + "USING (SELECT * FROM `%s`)\n"
-                    + "ON FALSE\n"
-                    + "WHEN NOT MATCHED THEN INSERT ROW\n"
-                    + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
+        "MERGE `%s`\n"
+            + "USING (SELECT * FROM `%s`)\n"
+            + "ON FALSE\n"
+            + "WHEN NOT MATCHED THEN INSERT ROW\n"
+            + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
 
     QueryJobConfiguration queryConfig =
-            QueryJobConfiguration.newBuilder(
-                    sqlFromFormat(queryFormat, destinationTableId, temporaryTableId))
-                    .setUseLegacySql(false)
-                    .build();
+        QueryJobConfiguration.newBuilder(
+                sqlFromFormat(queryFormat, destinationTableId, temporaryTableId))
+            .setUseLegacySql(false)
+            .build();
 
     return create(JobInfo.newBuilder(queryConfig).build());
   }
@@ -186,7 +191,7 @@ public class BigQueryClient {
 
   String sqlFromFormat(String queryFormat, TableId destinationTableId, TableId temporaryTableId) {
     return String.format(
-            queryFormat, fullTableName(destinationTableId), fullTableName(temporaryTableId));
+        queryFormat, fullTableName(destinationTableId), fullTableName(temporaryTableId));
   }
 
   /**
@@ -198,8 +203,8 @@ public class BigQueryClient {
    */
   public String createTablePathForBigQueryStorage(TableId tableId) {
     return String.format(
-            "projects/%s/datasets/%s/tables/%s",
-            tableId.getProject(), tableId.getDataset(), tableId.getTable());
+        "projects/%s/datasets/%s/tables/%s",
+        tableId.getProject(), tableId.getDataset(), tableId.getTable());
   }
 
   public TableInfo getReadTable(ReadTableOptions options) {
@@ -405,6 +410,27 @@ public class BigQueryClient {
           String.format(
               "Error creating destination table using the following query: [%s]", querySql),
           e);
+    }
+  }
+
+  /**
+   * Waits for a BigQuery Job to complete: this is a blocking function.
+   *
+   * @param job The {@code Job} to keep track of.
+   */
+  public void waitForJob(Job job) {
+    try {
+      Job completedJob =
+          job.waitFor(
+              RetryOption.initialRetryDelay(Duration.ofSeconds(1)),
+              RetryOption.totalTimeout(Duration.ofMinutes(3)));
+      if (completedJob == null && completedJob.getStatus().getError() != null) {
+        throw new UncheckedIOException(
+            new IOException(completedJob.getStatus().getError().toString()));
+      }
+    } catch (InterruptedException e) {
+      throw new RuntimeException(
+          "Could not copy table from temporary sink to destination table.", e);
     }
   }
 

@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.BigQueryClientModule;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientModule;
+import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.apache.spark.sql.SaveMode;
@@ -46,7 +47,8 @@ public class BigQueryWriteSupportDataSourceV2 implements DataSourceV2, WriteSupp
         Guice.createInjector(
             new BigQueryWriteClientModule(writeUUID, mode, schema),
             new BigQueryClientModule(),
-            new SparkBigQueryConnectorModule(spark, options, Optional.of(schema)));
+            new SparkBigQueryConnectorModule(
+                spark, options.asMap(), Optional.of(schema), DataSourceVersion.V2));
 
     BigQueryDataSourceWriter writer = injector.getInstance(BigQueryDataSourceWriter.class);
     return Optional.of(writer);
