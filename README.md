@@ -68,8 +68,8 @@ The latest version of the connector is publicly available in the following links
 
 | version | Link |
 | --- | --- |
-| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.1.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.1.jar)) |
-| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.21.1.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.21.1.jar)) |
+| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.22.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.22.0.jar)) |
+| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.22.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.22.0.jar)) |
 
 The connector is also available from the
 [Maven Central](https://repo1.maven.org/maven2/com/google/cloud/spark/)
@@ -78,8 +78,8 @@ repository. It can be used using the `--packages` option or the
 
 | version | Connector Artifact |
 | --- | --- |
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.21.1` |
-| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.21.1` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.22.0` |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.22.0` |
 
 If you want to keep up with the latest version of the connector the following links can be used. Notice that for production
 environments where the connector version should be pinned, one of the above links should be used.
@@ -703,13 +703,15 @@ Code examples:
 **Scala:**
 
 ```
+import org.apache.spark.bigquery.BigNumeric
+
 val df = spark.read
   .format("bigquery")
-  .load({project}.{dataset}.{table_name})
+  .load("PROJECT.DATASET.TABLE")
 
 val rows: Array[java.math.BigDecimal] = df
   .collect()
-  .map(row => row.get({columnPositionOfBignumeric}).asInstanceOf[BigNumeric].getNumber)
+  .map(row => row.get("BIG_NUMERIC_COLUMN").asInstanceOf[BigNumeric].getNumber)
 
 rows.foreach(value => System.out.println("BigNumeric value  " + value.toPlainString))
 ```
@@ -721,9 +723,9 @@ creating the job or added during runtime. See examples below:
 1) Adding python files while launching pyspark
 ```
 # use appropriate version for jar depending on the scala version
-pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.0.jar
-  --py-files gs://spark-lib/bigquery/spark-bigquery-support-0.21.0.zip
-  --files gs://spark-lib/bigquery/spark-bigquery-support-0.21.0.zip
+pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.22.0.jar
+  --py-files gs://spark-lib/bigquery/spark-bigquery-support-0.22.0.zip
+  --files gs://spark-lib/bigquery/spark-bigquery-support-0.22.0.zip
 ```
 
 2) Adding python files in Jupyter Notebook
@@ -732,9 +734,9 @@ from pyspark.sql import SparkSession
 # use appropriate version for jar depending on the scala version
 spark = SparkSession.builder\
   .appName('BigNumeric')\
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.0.jar')\
-  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support-0.21.0.zip')\
-  .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support-0.21.0.zip')\
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.22.0.jar')\
+  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support-0.22.0.zip')\
+  .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support-0.22.0.zip')\
   .getOrCreate()
 ```
 
@@ -743,10 +745,10 @@ spark = SparkSession.builder\
 # use appropriate version for jar depending on the scala version
 spark = SparkSession.builder\
   .appName('BigNumeric')\
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.21.0.jar')\
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.22.0.jar')\
   .getOrCreate()
 
-spark.sparkContext.addPyFile("gs://spark-lib/bigquery/spark-bigquery-support-0.21.0.zip")
+spark.sparkContext.addPyFile("gs://spark-lib/bigquery/spark-bigquery-support-0.22.0.zip")
 ```
 
 Usage Example:
@@ -760,7 +762,8 @@ for row in data:
   print(str(bigNumeric.number))
 ```
 
-Incase the above code throws ModuleNotFoundError, use the following code before reading the BigNumeric data.
+In case the above code throws ModuleNotFoundError, please add the following code
+before reading the BigNumeric data.
 
 ```
 try:
@@ -848,7 +851,7 @@ using the following code:
 ```python
 from pyspark.sql import SparkSession
 spark = SparkSession.builder\
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.21.1")\
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.22.0")\
   .getOrCreate()
 df = spark.read.format("bigquery")\
   .load("dataset.table")
@@ -857,7 +860,7 @@ df = spark.read.format("bigquery")\
 **Scala:**
 ```python
 val spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.21.1")
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.22.0")
   .getOrCreate()
 val df = spark.read.format("bigquery")
   .load("dataset.table")
@@ -865,7 +868,7 @@ val df = spark.read.format("bigquery")
 
 In case Spark cluster is using Scala 2.12 (it's optional for Spark 2.4.x,
 mandatory in 3.0.x), then the relevant package is
-com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.21.1. In
+com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.22.0. In
 order to know which Scala version is used, please run the following code:
 
 **Python:**
@@ -889,14 +892,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery-with-dependencies_${scala.version}</artifactId>
-  <version>0.21.1</version>
+  <version>0.22.0</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.21.1"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.22.0"
 ```
 
 ## FAQ

@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.22.0 - 2021-06-22
+* PR #404: Added support for BigNumeric
+* PR #430: Added HTTP and gRPC proxy support  
+* Issue #273: Resolved the streaming write issue for spark 3.x
+
 ## 0.21.1 - 2021-06-22
 * PR #413: Pushing all filters to BigQuery Storage API
 * Issue #412: Supporting WITH queries
