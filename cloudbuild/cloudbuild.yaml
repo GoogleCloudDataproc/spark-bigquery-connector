@@ -1,23 +1,18 @@
 steps:
-  # 1. Create a Docker image. Repo will be automatically mounted on all docker containers.
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'docker-build'
-    args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit', '-f', 'cloudbuild/Dockerfile', '.']
+  # 1. Run unit tests
+  - id: 'unit tests'
+    name: maven:3-jdk-8
+    entrypoint: mvn
+    args: ['test', '-Pall']
 
-  # 2. Run unit tests
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
-    id: 'unittests'
-    entrypoint: 'sbt'
-    args: ['test']
-
-  # 3. Run integration tests
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
-    id: 'integration-tests'
-    entrypoint: 'sbt'
-    args: ['it:test']
-    env:
-      - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
-      - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
+  # 2. Run integration tests
+ # - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+ #   id: 'integration-tests'
+ #   entrypoint: 'sbt'
+ #   args: ['it:test']
+ #   env:
+ #     - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
+ #     - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
 
 # Tests take around 20 mins in general.
 timeout: 1800s
