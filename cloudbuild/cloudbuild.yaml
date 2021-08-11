@@ -4,6 +4,9 @@ steps:
     name: maven:3-jdk-8
     entrypoint: mvn
     args: ['test', '-Pall']
+    env:
+      - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
+      - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
 
   # 2. Run integration tests
  # - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
