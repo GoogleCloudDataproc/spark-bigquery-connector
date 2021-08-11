@@ -37,7 +37,7 @@
               <goal>enforce</goal>
             </goals>
             <configuration>
-              <rules>
+              <rules>gi
                 <bannedDependencies>
                   <excludes combine.children="append">
                     <exclude>*:*_2.12</exclude>
