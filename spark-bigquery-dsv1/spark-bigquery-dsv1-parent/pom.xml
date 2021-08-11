@@ -14,7 +14,7 @@
   <packaging>pom</packaging>
   <properties>
     <scala.binary.version>2.11</scala.binary.version>
-    <spark.version>2.3.0</spark.version>
+    <spark.version>2.4.0</spark.version>
   </properties>
   <licenses>
     <license>
@@ -76,13 +76,6 @@
       <version>${project.version}</version>
       <scope>test</scope>
       <classifier>tests</classifier>
-    </dependency>
-    <!-- spark 2.3, 2.4 has dependency on a field in this specific version -->
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-all</artifactId>
-      <version>4.1.17.Final</version>
-      <scope>provided</scope>
     </dependency>
   </dependencies>
   <build>
