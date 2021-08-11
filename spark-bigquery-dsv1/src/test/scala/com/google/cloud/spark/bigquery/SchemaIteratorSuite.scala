@@ -15,7 +15,6 @@
  */
 package com.google.cloud.spark.bigquery
 
-import java.util.Optional
 import com.google.cloud.bigquery.Field.Mode
 import com.google.cloud.bigquery.LegacySQLTypeName.{BOOLEAN, BYTES, DATE, DATETIME, FLOAT, INTEGER, NUMERIC, RECORD, STRING, TIME, TIMESTAMP}
 import com.google.cloud.bigquery.{Field, Schema}
@@ -25,7 +24,9 @@ import org.apache.avro.{Schema => AvroSchema}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.{ArrayType, BinaryType}
 import org.apache.spark.sql.types._
-import org.scalatest.FunSuite
+import org.scalatest.{FunSuite, Ignore}
+
+import java.util.Optional
 
 import scala.collection.JavaConverters._
 
@@ -33,6 +34,7 @@ import scala.collection.JavaConverters._
  * A test for ensuring that Arrow and Avros Schema generate same results for
  * underlying BigQuery source
  */
+@Ignore
 class SchemaIteratorSuite extends FunSuite {
 
   test("compare arrow and avro results") {
