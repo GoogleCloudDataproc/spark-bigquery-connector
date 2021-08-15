@@ -17,7 +17,7 @@ package com.google.cloud.spark.bigquery.v2;
 
 import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 
-public class BigQueryWriterCommitMessage implements WriterCommitMessage {
+public class BigQueryDirectWriterCommitMessage implements WriterCommitMessage {
 
   private final String writeStreamName;
   private final int partitionId;
@@ -26,7 +26,7 @@ public class BigQueryWriterCommitMessage implements WriterCommitMessage {
   private final String tablePath;
   private final long rowCount;
 
-  public BigQueryWriterCommitMessage(
+  public BigQueryDirectWriterCommitMessage(
       String writeStreamName /*List<String> writeStreamNames*/,
       int partitionId,
       long taskId,

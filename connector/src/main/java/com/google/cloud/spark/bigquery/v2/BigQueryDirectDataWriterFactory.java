@@ -17,30 +17,25 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
-import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.writer.DataWriter;
 import org.apache.spark.sql.sources.v2.writer.DataWriterFactory;
 import org.apache.spark.sql.types.StructType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow> {
-
-  final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterFactory.class);
-
+public class BigQueryDirectDataWriterFactory implements DataWriterFactory<InternalRow> {
   private final BigQueryWriteClientFactory writeClientFactory;
   private final String tablePath;
   private final StructType sparkSchema;
-  private final ProtoBufProto.ProtoSchema protoSchema;
+  private final ProtoSchema protoSchema;
   private final boolean ignoreInputs;
   private final RetrySettings bigqueryDataWriterHelperRetrySettings;
 
-  public BigQueryDataWriterFactory(
+  public BigQueryDirectDataWriterFactory(
       BigQueryWriteClientFactory writeClientFactory,
       String tablePath,
       StructType sparkSchema,
-      ProtoBufProto.ProtoSchema protoSchema,
+      ProtoSchema protoSchema,
       boolean ignoreInputs,
       RetrySettings bigqueryDataWriterHelperRetrySettings) {
     this.writeClientFactory = writeClientFactory;
@@ -56,7 +51,7 @@ public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow>
    * the call of its methods; otherwise return BigQueryDataWriter.
    *
    * @see NoOpDataWriter
-   * @see BigQueryDataWriter
+   * @see BigQueryDirectDataWriter
    * @param partitionId The partitionId of the DataWriter to be created
    * @param taskId the taskId
    * @param epochId the epochId
@@ -67,7 +62,7 @@ public class BigQueryDataWriterFactory implements DataWriterFactory<InternalRow>
     if (ignoreInputs) {
       return new NoOpDataWriter();
     }
-    return new BigQueryDataWriter(
+    return new BigQueryDirectDataWriter(
         partitionId,
         taskId,
         epochId,

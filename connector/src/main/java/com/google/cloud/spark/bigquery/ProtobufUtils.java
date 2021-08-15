@@ -19,8 +19,9 @@ import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
-import com.google.cloud.bigquery.storage.v1alpha2.ProtoSchemaConverter;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoRows;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoSchemaConverter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -116,8 +117,7 @@ public class ProtobufUtils {
               .build();
 
   /** BigQuery Schema ==> ProtoSchema converter utils: */
-  public static ProtoBufProto.ProtoSchema toProtoSchema(Schema schema)
-      throws IllegalArgumentException {
+  public static ProtoSchema toProtoSchema(Schema schema) throws IllegalArgumentException {
     try {
       Descriptors.Descriptor descriptor = toDescriptor(schema);
       return ProtoSchemaConverter.convert(descriptor);
@@ -126,8 +126,7 @@ public class ProtobufUtils {
     }
   }
 
-  public static ProtoBufProto.ProtoSchema toProtoSchema(StructType schema)
-      throws IllegalArgumentException {
+  public static ProtoSchema toProtoSchema(StructType schema) throws IllegalArgumentException {
     try {
       Descriptors.Descriptor descriptor = toDescriptor(schema);
       return ProtoSchemaConverter.convert(descriptor);
@@ -244,10 +243,10 @@ public class ProtobufUtils {
    * Spark Row --> ProtoRows converter utils: To be used by the DataWriters facing the BigQuery
    * Storage Write API
    */
-  public static ProtoBufProto.ProtoRows toProtoRows(StructType sparkSchema, InternalRow[] rows) {
+  public static ProtoRows toProtoRows(StructType sparkSchema, InternalRow[] rows) {
     try {
       Descriptors.Descriptor schemaDescriptor = toDescriptor(sparkSchema);
-      ProtoBufProto.ProtoRows.Builder protoRows = ProtoBufProto.ProtoRows.newBuilder();
+      ProtoRows.Builder protoRows = ProtoRows.newBuilder();
       for (InternalRow row : rows) {
         DynamicMessage rowMessage = buildSingleRowMessage(sparkSchema, schemaDescriptor, row);
         protoRows.addSerializedRows(rowMessage.toByteString());
@@ -274,13 +273,9 @@ public class ProtobufUtils {
           schemaDescriptor.findNestedTypeByName(RESERVED_NESTED_TYPE_NAME + (protoFieldNumber));
       Object protoValue =
           convertSparkValueToProtoRowValue(sparkType, sparkValue, nullable, nestedTypeDescriptor);
-
-      // logger.debug("Converted value {} to proto-value: {}", sparkValue, protoValue);
-
       if (protoValue == null) {
         continue;
       }
-
       messageBuilder.setField(schemaDescriptor.findFieldByNumber(protoFieldNumber), protoValue);
     }
 
@@ -364,9 +359,7 @@ public class ProtobufUtils {
     }
 
     if (sparkType instanceof BinaryType) {
-      // TODO: when BigQuery Storage Write API remove Byte64 encoding requirement, return the raw
-      // sparkValue.
-      return Base64.getEncoder().encode((byte[]) sparkValue);
+      return sparkValue;
     }
 
     if (sparkType instanceof StringType) {

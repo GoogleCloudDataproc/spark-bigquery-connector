@@ -33,13 +33,13 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
 
-class BigQueryDataSourceWriterModule implements Module {
+class BigQueryInDirectDataSourceWriterModule implements Module {
 
   private final String writeUUID;
   private final StructType sparkSchema;
   private final SaveMode mode;
 
-  BigQueryDataSourceWriterModule(String writeUUID, StructType sparkSchema, SaveMode mode) {
+  BigQueryInDirectDataSourceWriterModule(String writeUUID, StructType sparkSchema, SaveMode mode) {
     this.writeUUID = writeUUID;
     this.sparkSchema = sparkSchema;
     this.mode = mode;

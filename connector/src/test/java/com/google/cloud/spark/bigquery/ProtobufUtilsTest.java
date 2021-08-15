@@ -18,8 +18,9 @@ package com.google.cloud.spark.bigquery;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
-import com.google.cloud.bigquery.storage.v1alpha2.ProtoSchemaConverter;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoRows;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoSchemaConverter;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
@@ -44,10 +45,7 @@ import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessag
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoRows;
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
-import java.util.Base64;
-import static com.google.cloud.spark.bigquery.ProtobufUtils.*;
 import static com.google.common.truth.Truth.assertThat;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 public class ProtobufUtilsTest {
@@ -81,8 +79,8 @@ public class ProtobufUtilsTest {
   public void testBigQueryToProtoSchema() throws Exception {
     logger.setLevel(Level.DEBUG);
 
-    ProtoBufProto.ProtoSchema converted = toProtoSchema(BIG_BIGQUERY_SCHEMA);
-    ProtoBufProto.ProtoSchema expected =
+    ProtoSchema converted = toProtoSchema(BIG_BIGQUERY_SCHEMA);
+    ProtoSchema expected =
         ProtoSchemaConverter.convert(
             Descriptors.FileDescriptor.buildFrom(
                     DescriptorProtos.FileDescriptorProto.newBuilder()
@@ -131,7 +129,7 @@ public class ProtobufUtilsTest {
   public void testSparkRowToProtoRow() throws Exception {
     logger.setLevel(Level.DEBUG);
 
-    ProtoBufProto.ProtoRows converted =
+    ProtoRows converted =
         toProtoRows(
             BIG_SPARK_SCHEMA,
             new InternalRow[] {
@@ -149,7 +147,7 @@ public class ProtobufUtilsTest {
                   })
             });
 
-    ProtoBufProto.ProtoRows expected = MY_PROTO_ROWS;
+    ProtoRows expected = MY_PROTO_ROWS;
 
     assertThat(converted.getSerializedRows(0).toByteArray())
         .isEqualTo(expected.getSerializedRows(0).toByteArray());
@@ -160,7 +158,7 @@ public class ProtobufUtilsTest {
     logger.setLevel(Level.DEBUG);
 
     try {
-      ProtoBufProto.ProtoRows converted =
+      ProtoRows converted =
           toProtoRows(
               new StructType()
                   .add(new StructField("String", DataTypes.StringType, false, Metadata.empty())),
@@ -169,7 +167,7 @@ public class ProtobufUtilsTest {
     } catch (Exception ignored) {
     }
     try {
-      ProtoBufProto.ProtoRows converted =
+      ProtoRows converted =
           toProtoRows(
               new StructType()
                   .add(new StructField("String", DataTypes.StringType, true, Metadata.empty())),
@@ -432,8 +430,8 @@ public class ProtobufUtilsTest {
     }
   }
 
-  public ProtoBufProto.ProtoRows MY_PROTO_ROWS =
-      ProtoBufProto.ProtoRows.newBuilder()
+  public ProtoRows MY_PROTO_ROWS =
+      ProtoRows.newBuilder()
           .addSerializedRows(
               DynamicMessage.newBuilder(BIG_SCHEMA_ROW_DESCRIPTOR)
                   .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(1), 1L)
@@ -446,9 +444,7 @@ public class ProtobufUtilsTest {
                       buildSingleRowMessage(MY_STRUCT, STRUCT_DESCRIPTOR, INTERNAL_STRUCT_DATA))
                   .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(5), 3.14)
                   .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(6), true)
-                  .setField(
-                      BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(7),
-                      Base64.getEncoder().encode(new byte[] {11, 0x7F}))
+                  .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(7), new byte[] {11, 0x7F})
                   .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(8), 647133184)
                   .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(9), 1594080000000L)
                   /*.setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(10),

@@ -17,7 +17,7 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
-import com.google.cloud.bigquery.storage.v1alpha2.*;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -32,9 +32,8 @@ import java.io.IOException;
 import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessage;
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
 
-public class BigQueryDataWriter implements DataWriter<InternalRow> {
-
-  final Logger logger = LoggerFactory.getLogger(BigQueryDataWriter.class);
+public class BigQueryDirectDataWriter implements DataWriter<InternalRow> {
+  final Logger logger = LoggerFactory.getLogger(BigQueryDirectDataWriter.class);
 
   private final int partitionId;
   private final long taskId;
@@ -49,14 +48,14 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
    */
   private BigQueryDataWriterHelper writerHelper;
 
-  public BigQueryDataWriter(
+  public BigQueryDirectDataWriter(
       int partitionId,
       long taskId,
       long epochId,
       BigQueryWriteClientFactory writeClientFactory,
       String tablePath,
       StructType sparkSchema,
-      ProtoBufProto.ProtoSchema protoSchema,
+      ProtoSchema protoSchema,
       RetrySettings bigqueryDataWriterHelperRetrySettings) {
     this.partitionId = partitionId;
     this.taskId = taskId;
@@ -66,7 +65,7 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
     try {
       this.schemaDescriptor = toDescriptor(sparkSchema);
     } catch (Descriptors.DescriptorValidationException e) {
-      throw new BigQueryDataSourceWriter.InvalidSchemaException(
+      throw new BigQueryDirectDataSourceWriter.InvalidSchemaException(
           "Could not convert spark-schema to descriptor object", e);
     }
 
@@ -92,7 +91,7 @@ public class BigQueryDataWriter implements DataWriter<InternalRow> {
     logger.debug(
         "Data Writer {}'s write-stream has finalized with row count: {}", partitionId, rowCount);
 
-    return new BigQueryWriterCommitMessage(
+    return new BigQueryDirectWriterCommitMessage(
         writeStreamName, partitionId, taskId, epochId, tablePath, rowCount);
   }
 

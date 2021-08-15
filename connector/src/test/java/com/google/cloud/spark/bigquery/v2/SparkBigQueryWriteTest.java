@@ -209,8 +209,9 @@ public class SparkBigQueryWriteTest {
 
     expectedDF
         .write()
-        .format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+        .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
         .option("table", writeTo)
+        .option("writePath", "direct")
         .option("dataset", DATASET)
         .option("project", PROJECT)
         .mode(SaveMode.Overwrite)
@@ -240,7 +241,7 @@ public class SparkBigQueryWriteTest {
 
     smallDataDf
         .write()
-        .format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+        .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
@@ -248,7 +249,7 @@ public class SparkBigQueryWriteTest {
 
     smallDataDf
         .write()
-        .format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+        .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
@@ -278,7 +279,7 @@ public class SparkBigQueryWriteTest {
 
     twiceAsBigDf
         .write()
-        .format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+        .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
@@ -308,7 +309,7 @@ public class SparkBigQueryWriteTest {
 
     smallDataDf
         .write()
-        .format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+        .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
@@ -316,7 +317,7 @@ public class SparkBigQueryWriteTest {
 
     twiceAsBigDf
         .write()
-        .format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+        .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
@@ -344,7 +345,7 @@ public class SparkBigQueryWriteTest {
 
     smallDataDf
         .write()
-        .format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+        .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
@@ -353,7 +354,7 @@ public class SparkBigQueryWriteTest {
     try {
       smallDataDf
           .write()
-          .format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+          .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
           .option("table", writeTo)
           .option("dataset", DATASET)
           .option("project", PROJECT)
@@ -370,7 +371,7 @@ public class SparkBigQueryWriteTest {
     String writeTo = "20MB";
 
     MB20Df.write()
-        .format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+        .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
@@ -394,7 +395,7 @@ public class SparkBigQueryWriteTest {
     String writeTo = "100MB";
 
     MB100Df.write()
-        .format("com.google.cloud.spark.bigquery.v2.BigQueryWriteSupportDataSourceV2")
+        .format("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
@@ -456,7 +457,10 @@ public class SparkBigQueryWriteTest {
                   "int_req",
                   LongType,
                   false,
-                  new MetadataBuilder().putString("description", "required integer").build()))
+                  new MetadataBuilder()
+                      .putString("description", "required integer")
+                      .putString("comment", "required integer")
+                      .build()))
           .add(new StructField("int_null", LongType, true, Metadata.empty()))
           .add(new StructField("long", LongType, true, Metadata.empty()))
           .add(new StructField("short", LongType, true, Metadata.empty()))
@@ -495,9 +499,11 @@ public class SparkBigQueryWriteTest {
             (byte) 127,
             true,
             "hello",
-            new Date(1595010664123L),
-            new Timestamp(1595010664123L),
-            new byte[] {1, 2, 3, 4},
+            Date.valueOf("2019-03-18"),
+            new Timestamp(1552872225000L), // 2019-03-18 01:23:45
+            new byte[] {
+              98, 121, 116, 101, 115
+            }, // byte[] representation of string "bytes" -> stored in BQ as Ynl0ZXM=
             1.2345,
             /*RowFactory.create(
                     Decimal.apply(new BigDecimal("-99999999999999999999999999999.999999999")),

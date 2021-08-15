@@ -79,9 +79,33 @@ public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport, WriteSup
   @Override
   public Optional<DataSourceWriter> createWriter(
       String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
+    String path = options.get("writePath").orElse("direct");
+
+    if (path.equalsIgnoreCase("direct")) {
+      return createDirectDataSourceWriter(writeUUID, schema, mode, options);
+    } else if (path.equalsIgnoreCase("inDirect")) {
+      return createInDirectDataSourceWriter(writeUUID, schema, mode, options);
+    } else {
+      throw new IllegalArgumentException("Unknown writePath Provided for writing the DataFrame");
+    }
+  }
+
+  private Optional<DataSourceWriter> createDirectDataSourceWriter(
+      String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
     Injector injector =
         createInjector(
-            schema, options, new BigQueryDataSourceWriterModule(writeUUID, schema, mode));
+            schema, options, new BigQueryDirectDataSourceWriterModule(writeUUID, mode, schema));
+
+    BigQueryDirectDataSourceWriter writer =
+        injector.getInstance(BigQueryDirectDataSourceWriter.class);
+    return Optional.of(writer);
+  }
+
+  private Optional<DataSourceWriter> createInDirectDataSourceWriter(
+      String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
+    Injector injector =
+        createInjector(
+            schema, options, new BigQueryInDirectDataSourceWriterModule(writeUUID, schema, mode));
     // first verify if we need to do anything at all, based on the table existence and the save
     // mode.
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);

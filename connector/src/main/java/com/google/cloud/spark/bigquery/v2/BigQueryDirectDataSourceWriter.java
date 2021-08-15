@@ -16,13 +16,15 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.api.gax.retrying.RetrySettings;
+import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
-import com.google.cloud.bigquery.storage.v1alpha2.BigQueryWriteClient;
-import com.google.cloud.bigquery.storage.v1alpha2.ProtoBufProto;
-import com.google.cloud.bigquery.storage.v1alpha2.Storage;
+import com.google.cloud.bigquery.storage.v1beta2.BatchCommitWriteStreamsRequest;
+import com.google.cloud.bigquery.storage.v1beta2.BatchCommitWriteStreamsResponse;
+import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteClient;
+import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
 import com.google.common.base.Preconditions;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -32,21 +34,24 @@ import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.threeten.bp.Duration;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
 import static com.google.cloud.spark.bigquery.SchemaConverters.toBigQuerySchema;
 
-public class BigQueryDataSourceWriter implements DataSourceWriter {
+public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
 
-  final Logger logger = LoggerFactory.getLogger(BigQueryDataSourceWriter.class);
+  final Logger logger = LoggerFactory.getLogger(BigQueryDirectDataSourceWriter.class);
 
   private final BigQueryClient bigQueryClient;
   private final BigQueryWriteClientFactory writeClientFactory;
   private final TableId destinationTableId;
   private final StructType sparkSchema;
-  private final ProtoBufProto.ProtoSchema protoSchema;
+  private final ProtoSchema protoSchema;
   private final String writeUUID;
   private final RetrySettings bigqueryDataWriterHelperRetrySettings;
 
@@ -63,7 +68,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
 
   private WritingMode writingMode = WritingMode.ALL_ELSE;
 
-  public BigQueryDataSourceWriter(
+  public BigQueryDirectDataSourceWriter(
       BigQueryClient bigQueryClient,
       BigQueryWriteClientFactory bigQueryWriteClientFactory,
       TableId destinationTableId,
@@ -137,7 +142,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
 
   @Override
   public DataWriterFactory<InternalRow> createWriterFactory() {
-    return new BigQueryDataWriterFactory(
+    return new BigQueryDirectDataWriterFactory(
         writeClientFactory,
         tablePathForBigQueryStorage,
         sparkSchema,
@@ -169,13 +174,13 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
         writeUUID,
         Arrays.toString(messages));
 
-    Storage.BatchCommitWriteStreamsRequest.Builder batchCommitWriteStreamsRequest =
-        Storage.BatchCommitWriteStreamsRequest.newBuilder().setParent(tablePathForBigQueryStorage);
+    BatchCommitWriteStreamsRequest.Builder batchCommitWriteStreamsRequest =
+        BatchCommitWriteStreamsRequest.newBuilder().setParent(tablePathForBigQueryStorage);
     for (WriterCommitMessage message : messages) {
       batchCommitWriteStreamsRequest.addWriteStreams(
-          ((BigQueryWriterCommitMessage) message).getWriteStreamName());
+          ((BigQueryDirectWriterCommitMessage) message).getWriteStreamName());
     }
-    Storage.BatchCommitWriteStreamsResponse batchCommitWriteStreamsResponse =
+    BatchCommitWriteStreamsResponse batchCommitWriteStreamsResponse =
         writeClient.batchCommitWriteStreams(batchCommitWriteStreamsRequest.build());
 
     if (!batchCommitWriteStreamsResponse.hasCommitTime()) {
@@ -190,7 +195,7 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     if (writingMode.equals(WritingMode.OVERWRITE)) {
       Job overwriteJob =
           bigQueryClient.overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
-      bigQueryClient.waitForJob(overwriteJob);
+      waitForJob(overwriteJob);
       Preconditions.checkState(
           bigQueryClient.deleteTable(temporaryTableId),
           new BigQueryConnectorException(
@@ -199,6 +204,27 @@ public class BigQueryDataSourceWriter implements DataSourceWriter {
     }
 
     writeClient.shutdown();
+  }
+
+  /**
+   * Waits for a BigQuery Job to complete: this is a blocking function.
+   *
+   * @param job The {@code Job} to keep track of.
+   */
+  public static void waitForJob(Job job) {
+    try {
+      Job completedJob =
+          job.waitFor(
+              RetryOption.initialRetryDelay(Duration.ofSeconds(1)),
+              RetryOption.totalTimeout(Duration.ofMinutes(3)));
+      if (completedJob == null && completedJob.getStatus().getError() != null) {
+        throw new UncheckedIOException(
+            new IOException(completedJob.getStatus().getError().toString()));
+      }
+    } catch (InterruptedException e) {
+      throw new RuntimeException(
+          "Could not copy table from temporary sink to destination table.", e);
+    }
   }
 
   /**

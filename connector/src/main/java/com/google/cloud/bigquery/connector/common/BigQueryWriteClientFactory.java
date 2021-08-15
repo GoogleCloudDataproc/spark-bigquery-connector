@@ -16,37 +16,48 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.auth.Credentials;
-import com.google.cloud.bigquery.storage.v1alpha2.BigQueryWriteClient;
-import com.google.cloud.bigquery.storage.v1alpha2.BigQueryWriteSettings;
+import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteClient;
+import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteSettings;
 
 import javax.inject.Inject;
 import java.io.IOException;
 import java.io.Serializable;
-import java.io.UncheckedIOException;
 
 public class BigQueryWriteClientFactory implements Serializable {
   private final Credentials credentials;
   // using the user agent as HeaderProvider is not serializable
   private final UserAgentHeaderProvider userAgentHeaderProvider;
+  private final BigQueryConfig bqConfig;
 
   @Inject
   public BigQueryWriteClientFactory(
       BigQueryCredentialsSupplier bigQueryCredentialsSupplier,
-      UserAgentHeaderProvider userAgentHeaderProvider) {
+      UserAgentHeaderProvider userAgentHeaderProvider,
+      BigQueryConfig bqConfig) {
     // using Guava's optional as it is serializable
     this.credentials = bigQueryCredentialsSupplier.getCredentials();
     this.userAgentHeaderProvider = userAgentHeaderProvider;
+    this.bqConfig = bqConfig;
   }
 
   public BigQueryWriteClient createBigQueryWriteClient() {
     try {
+      InstantiatingGrpcChannelProvider.Builder transportBuilder =
+          BigQueryWriteSettings.defaultGrpcTransportProviderBuilder()
+              .setHeaderProvider(userAgentHeaderProvider);
+      BigQueryProxyConfig proxyConfig = bqConfig.getBigQueryProxyConfig();
+      if (proxyConfig.getProxyUri().isPresent()) {
+        transportBuilder.setChannelConfigurator(
+            BigQueryProxyTransporterBuilder.createGrpcChannelConfigurator(
+                proxyConfig.getProxyUri(),
+                proxyConfig.getProxyUsername(),
+                proxyConfig.getProxyPassword()));
+      }
       BigQueryWriteSettings.Builder clientSettings =
           BigQueryWriteSettings.newBuilder()
-              .setTransportChannelProvider(
-                  BigQueryWriteSettings.defaultGrpcTransportProviderBuilder()
-                      .setHeaderProvider(userAgentHeaderProvider)
-                      .build())
+              .setTransportChannelProvider(transportBuilder.build())
               .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
       return BigQueryWriteClient.create(clientSettings.build());
     } catch (IOException e) {

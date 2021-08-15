@@ -111,6 +111,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
     df.write.format(dataSource)
       .mode(mode)
       .option("table", fullTableName)
+      .option("writePath", "inDirect")
       .option("temporaryGcsBucket", temporaryGcsBucket)
       .option("intermediateFormat", format)
       .save()
@@ -214,6 +215,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
     test("write to bq - simplified api. DataSource %s".format(dataSourceFormat)) {
       initialData.write.format(dataSourceFormat)
         .option("temporaryGcsBucket", temporaryGcsBucket)
+        .option("writePath", "inDirect")
         .save(fullTableName)
       testTableNumberOfRows shouldBe 2
       initialDataValuesExist shouldBe true
@@ -260,6 +262,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
       val df = initialData
       df.write.format(dataSourceFormat)
         .option("table", fullTableName)
+        .option("writePath", "inDirect")
         .save()
       testTableNumberOfRows shouldBe 2
       initialDataValuesExist shouldBe true
@@ -276,6 +279,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("partitionField", "created_timestamp")
         .option("clusteredFields", "platform")
+        .option("writePath", "inDirect")
         .mode(SaveMode.Overwrite)
         .save()
 
@@ -316,6 +320,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("datePartition", "20200701")
         .mode("overwrite")
+        .option("writePath", "inDirect")
         .save(fullTableName)
 
       val resultDF = spark.read.format(dataSourceFormat).load(fullTableName)
