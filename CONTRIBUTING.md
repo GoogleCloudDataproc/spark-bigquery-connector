@@ -45,9 +45,11 @@ The project's artifacts are:
 * `spark-bigquery-parent` - The parent POM for all artifacts. Common settings
   and artifact version should be defined here.
 * `bigquery-connector-common` - Utility classes for working with the BigQuery
-  APIs. This artifact has no dependency on Spark.
-* `spark-bigquery-connector-common`- Common code shared among all connectors
-  (Scala and Java alike).
+  APIs. This artifact has no dependency on Spark. This artifact can potentially
+  be used by non-spark connectors
+* `spark-bigquery-connector-common`- Common utilites and logic  shared among
+  all connectors (Scala and Java alike). Whenever possible, new code should be
+  in this artifact
 * `spark-bigquery-dsv1/spark-bigquery-dsv1-parent` - Common settings for the
   Scala based DataSource V1 implementation.
 * `spark-bigquery-dsv1/spark-bigquery-dsv1-spark3-support` - As some of the APIs
@@ -73,9 +75,8 @@ The project's artifacts are:
   types not supported by Spark.
 
 As building and running all the connectors is a lengthy process, the project is
-split into several artifacts, and only part of them can be built at a single run
-using [Maven profiles](https://maven.apache.org/guides/introduction/introduction-to-profiles.html).
-The profiles are:
+split into several [profiles](https://maven.apache.org/guides/introduction/introduction-to-profiles.html),
+each building only a subset of the project's artifacts. The profiles are:
 
 * `dsv1` - Running both Scala/DSv1 connectors.
 * `dsv1_2.11` - Running just the Scala 2.11 connector.
@@ -84,6 +85,9 @@ The profiles are:
 * `dsv2_2.4` - Running just the Java Spark 2.4 connector.
 * `dsv2_3` - Running just the Java Spark 3 connector.
 * `all` - Running all the connectors.
+
+Example: In order to compile **just** the Scala 2.12 connector run 
+`./mvnw install -Pdsv1_2.12`.
 
 **Important**: If no profile is selected, then only the common artifacts are run.
 
