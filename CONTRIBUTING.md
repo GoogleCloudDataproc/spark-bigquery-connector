@@ -29,18 +29,77 @@ Guidelines](https://opensource.google.com/conduct/).
 
 ## Building and Testing the Connector
 
-The connector is build using sbt version 0.13. The following targets are used:
-* `sbt publishM2` - builds the connector and publishes it to the local maven repository
-* `sbt test` - runs the unit tests
-* `sbt it:test` - runs the integration tests. Those tests run various cases using a GCP project used for testing.
-* `sbt acceptance:test` - runs the acceptance test. Those test create several Dataproc clusters and then run several
-  test scripts using PySpark. Please run `sbt publishM2` before in order to build the tested artifacts.
+The connector is built using the Maven wrapper. The project contains several
+connectors, sharing some of the code among them. The connectors are:
+* spark-bigquery_2.11 - a Scala 2.11 based connector, targeting Spark 2.3 and
+  2.4 using Scala 2.11.
+* spark-bigquery_2.12 - a Scala 2.12 based connector, targeting Spark 2.4 and 
+  3.x using Scala 2.12.
+* spark-bigquery:spark2.4 - a Java only connector, targeting Spark 2.4 (of all
+  Scala versions), using the new DataSource APIs.
+* spark-bigquery:spark3 - a Java only connector, targeting Spark 3 (of all
+  Scala versions), using the new DataSource APIs. Still under development.
+
+The project's artifacts are:
+  
+* `spark-bigquery-parent` - The parent POM for all artifacts. Common settings
+  and artifact version should be defined here.
+* `bigquery-connector-common` - Utility classes for working with the BigQuery
+  APIs. This artifact has no dependency on Spark. This artifact can potentially
+  be used by non-spark connectors
+* `spark-bigquery-connector-common`- Common utilites and logic  shared among
+  all connectors (Scala and Java alike). Whenever possible, new code should be
+  in this artifact
+* `spark-bigquery-dsv1/spark-bigquery-dsv1-parent` - Common settings for the
+  Scala based DataSource V1 implementation.
+* `spark-bigquery-dsv1/spark-bigquery-dsv1-spark3-support` - As some of the APIs
+  used by the connector have changed between Spark 2.x and 3.x, they are wrapped
+  in a neutral interface with wrappers for the two implementations. Unlike the
+  other dsv1 artifacts, this project depends on Spark 3 for this reason.
+* `spark-bigquery-dsv1/spark-bigquery_2.11` and
+  `spark-bigquery-dsv1/spark-bigquery_2.12` - The implementation of the Scala
+  based connectors. Both connectors share the same code via a symbolic link, so
+  a change in one of them will automatically affect the other.
+* `spark-bigquery-dsv1/spark-bigquery-with-dependencies-parent` - Common
+  settings for the shaded artifacts.
+* `spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.11` and
+  `spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.12` - The shaded
+  distributable of the connector, containing all the dependencies.
+* `spark-bigquery-dsv2/spark-bigquery-dsv2-parent` - Common settings for the
+  Java only DataSource V2 implementations.
+* `spark-bigquery-dsv2/spark-bigquery-spark24` - A Java only DataSource V2
+  connector implementing the Spark 2.4 APIs.
+* `spark-bigquery-dsv2/spark-bigquery-spark3` - A Java only DataSource V2
+  connector implementing the Spark 3 APIs. Under development.
+* `spark-bigquery-python-lib` - The python support library, adding BigQuery
+  types not supported by Spark.
+
+As building and running all the connectors is a lengthy process, the project is
+split into several [profiles](https://maven.apache.org/guides/introduction/introduction-to-profiles.html),
+each building only a subset of the project's artifacts. The profiles are:
+
+* `dsv1` - Running both Scala/DSv1 connectors.
+* `dsv1_2.11` - Running just the Scala 2.11 connector.
+* `dsv1_2.12` - Running just the Scala 2.12 connector.
+* `dsv2` - Running both Java/DSv2 connectors.
+* `dsv2_2.4` - Running just the Java Spark 2.4 connector.
+* `dsv2_3` - Running just the Java Spark 3 connector.
+* `all` - Running all the connectors.
+
+Example: In order to compile **just** the Scala 2.12 connector run 
+`./mvnw install -Pdsv1_2.12`.
+
+**Important**: If no profile is selected, then only the common artifacts are run.
+
+The acceptance test is disabled by default. In order to run it please add the
+`acceptance` profile to the run, in the following manner: 
+`./mvnw verify -Pdsv2_2.4,acceptance`.
   
 In order to run the integration tests make sure that your GCP user has the proper accounts for creating and deleting
 datasets and tables in your test project in BigQuery. It will also need the permissions to upload files to the test
 bucket in GCS as well as delete them.
 
-Setting the following environment variables is requitred to run the integration tests:
+Setting the following environment variables is required to run the integration tests:
 * `GOOGLE_APPLICATION_CREDENTIALS` - the full path to a credentials JSON, either a service account or the result of a
   `gcloud auth login` run
 * `GOOGLE_CLOUD_PROJECT` - The Google cloud platform project used to test the connector
