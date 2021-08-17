@@ -29,7 +29,7 @@
     </dependency>
          <dependency>
            <groupId>${project.groupId}</groupId>
-           <artifactId>spark-bigquery-acceptance-tests</artifactId>
+           <artifactId>spark-bigquery-tests</artifactId>
            <version>${project.parent.version}</version>
            <scope>test</scope>
         </dependency>

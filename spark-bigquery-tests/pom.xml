@@ -9,7 +9,7 @@
     <relativePath>../spark-bigquery-parent</relativePath>
   </parent>
 
-  <artifactId>spark-bigquery-acceptance-tests</artifactId>
+  <artifactId>spark-bigquery-tests</artifactId>
   <name>BigQuery Connector Acceptance Tests</name>
   <licenses>
     <license>
