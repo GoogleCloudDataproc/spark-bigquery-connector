@@ -13,46 +13,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.it
+package com.google.cloud.spark.bigquery.integration;
 
-import com.google.cloud.bigquery.BigQuery.DatasetDeleteOption
-import com.google.cloud.bigquery._
-import org.apache.spark.internal.Logging
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.DatasetId;
+import com.google.cloud.bigquery.DatasetInfo;
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.MetadataBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-object IntegrationTestUtils extends Logging {
+import java.util.Optional;
 
-  def getBigquery: BigQuery = BigQueryOptions.getDefaultInstance.getService
+public class IntegrationTestUtils {
 
-  def createDataset(dataset: String): Unit = {
-    val bq = getBigquery
-    val datasetId = DatasetId.of(dataset)
-    log.warn(s"Creating test dataset: $datasetId")
-    bq.create(DatasetInfo.of(datasetId))
-  }
+    static Logger logger = LoggerFactory.getLogger(IntegrationTestUtils.class);
 
-  def createView(dataset: String, table: String, view: String): Unit ={
-    val bq = getBigquery
-    val query = String.format("SELECT * FROM %s.%s", dataset, table)
-    val tableId = TableId.of(dataset, view)
-    val viewDefinition =
-      ViewDefinition.newBuilder(query).setUseLegacySql(false).build
-    bq.create(TableInfo.of(tableId, viewDefinition))
-  }
+    public static BigQuery getBigquery() {
+        return BigQueryOptions.getDefaultInstance().getService();
+    }
 
-  def runQuery(query: String): Unit = {
-    log.warn(s"Running query '$query'")
-    getBigquery.query(QueryJobConfiguration.of(query))
-  }
+    public static void createDataset(String dataset) {
+        BigQuery bq = getBigquery();
+        DatasetId datasetId = DatasetId.of(dataset);
+        logger.warn("Creating test dataset: {}", datasetId);
+        bq.create(DatasetInfo.of(datasetId));
+    }
 
-  def deleteDatasetAndTables(dataset: String): Unit = {
-    val bq = getBigquery
-    log.warn(s"Deleting test dataset '$dataset' and its contents")
-    bq.delete(DatasetId.of(dataset), DatasetDeleteOption.deleteContents())
-  }
+    public static void runQuery(String query) {
+        BigQueryClient bigQueryClient = new BigQueryClient(getBigquery(), Optional.empty(), Optional.empty());
+        logger.warn("Running query '{}'", query);
+        bigQueryClient.query(query);
+    }
+
+    public static void deleteDatasetAndTables(String dataset) {
+        BigQuery bq = getBigquery();
+        logger.warn("Deleting test dataset '{}' and its contents", dataset);
+        bq.delete(DatasetId.of(dataset), BigQuery.DatasetDeleteOption.deleteContents());
+    }
+
+    static Metadata metadata(String key, String value) {
+        MetadataBuilder metadata = new MetadataBuilder();
+        metadata.putString(key, value);
+        return metadata.build();
+    }
 }
-
-case class Person(name: String, friends: Seq[Friend])
-
-case class Friend(age: Int, links: Seq[Link])
-
-case class Link(uri: String)

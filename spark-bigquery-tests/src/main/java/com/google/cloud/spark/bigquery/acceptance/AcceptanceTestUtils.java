@@ -169,43 +169,4 @@ public class AcceptanceTestUtils {
   public static void deleteBqDatasetAndTables(String dataset) {
     bq.delete(DatasetId.of(dataset), DatasetDeleteOption.deleteContents());
   }
-
-  public static void createZipFile(String sourceDir, String zipFileLocation) throws IOException {
-    if (Files.exists(Paths.get(zipFileLocation))) {
-      Files.delete(Paths.get(zipFileLocation));
-    }
-
-    Path zipFilePath = Files.createFile(Paths.get(zipFileLocation));
-    Path sourceDirPath = Paths.get(sourceDir);
-
-    try (ZipOutputStream stream = new ZipOutputStream(Files.newOutputStream(zipFilePath))) {
-      ArrayList<String> files = new ArrayList<>();
-      filesToZip(new File(sourceDir), files);
-
-      files.stream()
-          .forEach(
-              adr -> {
-                Path path = Paths.get(adr);
-                ZipEntry zipEntry = new ZipEntry(sourceDirPath.relativize(path).toString());
-                try {
-                  stream.putNextEntry(zipEntry);
-                  Files.copy(path, stream);
-                  stream.closeEntry();
-                } catch (IOException exception) {
-                  System.err.println(exception);
-                }
-              });
-    }
-  }
-
-  private static void filesToZip(File folder, ArrayList<String> filesList) {
-    for (File file : folder.listFiles()) {
-      if (file.isDirectory()) {
-        filesToZip(file, filesList);
-      } else if (!file.getAbsolutePath().endsWith(".zip")
-          && !file.getAbsolutePath().endsWith(".DS_Store")) {
-        filesList.add(file.getAbsolutePath());
-      }
-    }
-  }
 }

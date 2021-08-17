@@ -67,7 +67,7 @@ public class BigQueryClient {
   private final Optional<String> materializationProject;
   private final Optional<String> materializationDataset;
 
-  BigQueryClient(
+  public BigQueryClient(
       BigQuery bigQuery,
       Optional<String> materializationProject,
       Optional<String> materializationDataset) {
@@ -187,7 +187,7 @@ public class BigQueryClient {
     return bigQuery.create(jobInfo);
   }
 
-  TableResult query(String sql) {
+  public TableResult query(String sql) {
     try {
       return bigQuery.query(QueryJobConfiguration.of(sql));
     } catch (InterruptedException e) {

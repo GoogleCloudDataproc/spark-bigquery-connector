@@ -13,142 +13,124 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.it
+package com.google.cloud.spark.bigquery.integration;
 
-import com.google.cloud.bigquery._
-import com.google.cloud.spark.bigquery.TestUtils
-import org.apache.spark.sql.SparkSession
-import org.scalatest.concurrent.TimeLimits
-import org.scalatest.prop.TableDrivenPropertyChecks
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Ignore, Matchers}
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Stream;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.junit.Before;
+import org.junit.Test;
 
-@Ignore
-class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
-  with BeforeAndAfter
-  with BeforeAndAfterAll
-  with Matchers
-  with TimeLimits
-  with TableDrivenPropertyChecks {
+import static java.util.stream.Collectors.toList;
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
-  val bq = BigQueryOptions.getDefaultInstance.getService
-  private val ALL_TYPES_TABLE_NAME = "all_types"
-  private var spark: SparkSession = _
-  private var testDataset: String = _
+class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
-  before {
+  private static final String  ALL_TYPES_TABLE_NAME = "all_types";
+  private BigQuery bq;
+  private String testDataset  ;
+  private String testTable  ;
+
+  protected ReadFromQueryIntegrationTestBase(SparkSession spark, String testDataset) {
+    super(spark);
+    this.bq = BigQueryOptions.getDefaultInstance().getService();
+    this.testDataset = testDataset;
+  }
+
+  @Before public void setUp() {
     // have a fresh table for each test
-    testTable = s"test_${System.nanoTime()}"
+    testTable = "test_" + System.nanoTime();
   }
 
-  private var testTable: String = _
+  // override def beforeAll: Unit = {
+  //   spark = TestUtils.getOrCreateSparkSession(getClass.getSimpleName)
+  //   testDataset = s"spark_bigquery_${getClass.getSimpleName}_${System.currentTimeMillis()}"
+  //   IntegrationTestUtils.createDataset(testDataset)
+  // }
 
-  override def beforeAll: Unit = {
-    spark = TestUtils.getOrCreateSparkSession(getClass.getSimpleName)
-    testDataset = s"spark_bigquery_${getClass.getSimpleName}_${System.currentTimeMillis()}"
-    IntegrationTestUtils.createDataset(testDataset)
-  }
-
-  private def testReadFromQueryInternal(format: String, query: String) {
-    val df = spark.read.format(format)
+  private void testReadFromQueryInternal(String query) {
+    Dataset<Row> df = spark.read().format("bigquery")
       .option("viewsEnabled", true)
       .option("materializationDataset", testDataset)
-      .load(query)
+      .load(query);
 
-    val totalRows = df.count
-    totalRows should equal(9)
-
-    val corpuses = df.select("corpus").collect().map(row => row(0).toString).sorted
-    val expectedCorpuses = Array("2kinghenryvi", "3kinghenryvi", "allswellthatendswell", "hamlet",
-      "juliuscaesar", "kinghenryv", "kinglear", "periclesprinceoftyre", "troilusandcressida")
-    corpuses should equal(expectedCorpuses)
-
+  validateResult(df);
   }
 
-  private def testReadFromQuery(format: String): Unit = {
+  @Test
+  public void testReadFromQuery() {
     // the query suffix is to make sure that each format will have
     // a different table created due to the destination table cache
-    testReadFromQueryInternal(format,
-      "SELECT corpus, corpus_date FROM `bigquery-public-data.samples.shakespeare` " +
-        s"WHERE word='spark' AND '$format'='$format'")
+    String random = String.valueOf(System.nanoTime());
+    String query = String.format(
+        "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
+        random, random);
+    testReadFromQueryInternal(query);
   }
 
-  private def testReadFromQueryWithNewLine(format: String) {
+  @Test
+  public void testReadFromQueryWithNewLine() {
     // the query suffix is to make sure that each format will have
     // a different table created due to the destination table cache
-    testReadFromQueryInternal(format,
-      """SELECT
-        |corpus, corpus_date
-        |FROM `bigquery-public-data.samples.shakespeare` """.stripMargin +
-        s"WHERE word='spark' AND '$format'='$format'")
+    String random = String.valueOf(System.nanoTime());
+    String query = String.format(
+        "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare`\n"+
+            "WHERE word='spark' AND '%s'='%s'",
+        random, random);
+    testReadFromQueryInternal(query);
   }
 
-  def testQueryOption(format: String) {
+  @Test
+  public void testQueryOption() {
     // the query suffix is to make sure that each format will have
     // a different table created due to the destination table cache
-    val sql = "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` " +
-      s"WHERE word='spark' AND '$format'='$format'";
-    val df = spark.read.format(format)
-      .option("viewsEnabled", true)
-      .option("materializationDataset", testDataset)
-      .option("query", sql)
-      .load()
-
-    val totalRows = df.count
-    totalRows should equal(9)
-
-    val corpuses = df.select("corpus").collect().map(row => row(0).toString).sorted
-    val expectedCorpuses = Array("2kinghenryvi", "3kinghenryvi", "allswellthatendswell", "hamlet",
-      "juliuscaesar", "kinghenryv", "kinglear", "periclesprinceoftyre", "troilusandcressida")
-    corpuses should equal(expectedCorpuses)
-  }
-
-  def testBadQuery(format: String): Unit = {
-    val badSql = "SELECT bogus_column FROM `bigquery-public-data.samples.shakespeare`"
-    // v1 throws BigQueryConnectorException
-    // v2 throws Guice ProviderException, as the table is materialized in teh module
-    intercept[RuntimeException] {
-      spark.read.format(format)
+    String random = String.valueOf(System.nanoTime());
+    String query = String.format(
+        "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
+        random, random);
+    Dataset<Row> df = spark.read().format("bigquery")
         .option("viewsEnabled", true)
         .option("materializationDataset", testDataset)
-        .load(badSql)
-    }
+        .option("query", query)
+        .load();
+
+    validateResult(df);
   }
 
-  test("test read from query - v1") {
-    testReadFromQuery("bigquery")
+  private void validateResult(Dataset<Row> df) {
+    long totalRows = df.count();
+    assertThat(totalRows).isEqualTo(9);
+
+    List<String> corpuses = Stream.of(df.select("corpus").collect())
+        .map(row -> row.get(0).toString()).sorted().collect(toList());
+    List<String> expectedCorpuses = Arrays
+        .asList("2kinghenryvi", "3kinghenryvi", "allswellthatendswell", "hamlet",
+            "juliuscaesar", "kinghenryv", "kinglear", "periclesprinceoftyre", "troilusandcressida");
+    assertThat(corpuses).isEqualTo(expectedCorpuses);
   }
 
-  test("test read from query - v2") {
-    testReadFromQuery("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
+  @Test public void
+  testBadQuery() {
+    String badSql = "SELECT bogus_column FROM `bigquery-public-data.samples.shakespeare`";
+    // v1 throws BigQueryConnectorException
+    // v2 throws Guice ProviderException, as the table is materialized in teh module
+    assertThrows(RuntimeException.class, () -> {
+      spark.read().format("bigquery")
+        .option("viewsEnabled", true)
+        .option("materializationDataset", testDataset)
+        .load(badSql);
+    });
   }
 
-  test("test read from query with newline - v1") {
-    testReadFromQueryWithNewLine("bigquery")
-  }
-
-  test("test read from query with newline - v2") {
-    testReadFromQueryWithNewLine("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
-  }
-
-  test("test query option - v1") {
-    testQueryOption("bigquery")
-  }
-
-  test("test query option - v2") {
-    testQueryOption("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
-  }
-
-  test("test bad query - v1") {
-    testBadQuery("bigquery")
-  }
-
-  test("test bad query - v2") {
-    testBadQuery("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
-  }
-
-  override def afterAll: Unit = {
-    IntegrationTestUtils.deleteDatasetAndTables(testDataset)
-  }
+  // override def afterAll: Unit = {
+  //   IntegrationTestUtils.deleteDatasetAndTables(testDataset)
+  // }
 
 }
 
