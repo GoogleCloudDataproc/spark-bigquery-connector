@@ -201,11 +201,6 @@ public class DataprocAcceptanceTestBase {
     Path pythonLibZip = AcceptanceTestUtils.getArtifact(pythonLibTargetDir, ".zip");
     String zipFileUri =
         context.testBaseGcsDir + "/" + testName + "/big_numeric_acceptance_test.zip";
-
-    // AcceptanceTestUtils.uploadToGcs(
-    //     getClass().getResourceAsStream("/acceptance/big_numeric.py"),
-    //     context.getScriptUri(testName),
-    //     "text/x-python");
     AcceptanceTestUtils.uploadToGcs(
         new FileInputStream(pythonLibZip.toFile()), zipFileUri, "application/zip");
 
