@@ -13,13 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.spark.bigquery.acceptance;
+package com.google.cloud.spark.bigquery.acceptance;
 
 import com.google.cloud.dataproc.v1.*;
 import java.io.FileInputStream;
-import org.junit.AssumptionViolatedException;
 import org.junit.Test;
-import scala.util.Properties;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,35 +28,36 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestConstants.MAX_BIG_NUMERIC;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestConstants.MIN_BIG_NUMERIC;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.createBqDataset;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.createZipFile;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.deleteBqDatasetAndTables;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.runBqQuery;
-import static com.google.spark.bigquery.acceptance.AcceptanceTestUtils.getNumOfRowsOfBqTable;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MAX_BIG_NUMERIC;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MIN_BIG_NUMERIC;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.createBqDataset;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.deleteBqDatasetAndTables;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.runBqQuery;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.getNumOfRowsOfBqTable;
+import static org.junit.Assume.assumeTrue;
 
 public class DataprocAcceptanceTestBase {
 
-  public static final String US_CENTRAL_1_DATAPROC_ENDPOINT =
-      "us-central1-dataproc.googleapis.com:443";
+  private static final String REGION = "us-west1";
+  public static final String DATAPROC_ENDPOINT =
+      REGION + "-dataproc.googleapis.com:443";
   private static final String PROJECT_ID = System.getenv("GOOGLE_CLOUD_PROJECT");
-  private static final String REGION = "us-central1";
+  public static final String CONNECTOR_JAR_DIRECTORY = "target";
   private AcceptanceTestContext context;
+  private boolean sparkStreamingSupported;
 
   protected DataprocAcceptanceTestBase(AcceptanceTestContext context) {
-    this.context = context;
+    this(context, true);
   }
 
-  protected static AcceptanceTestContext setup(String scalaVersion, String dataprocImageVersion)
+  protected DataprocAcceptanceTestBase(
+      AcceptanceTestContext context, boolean sparkStreamingSupported) {
+    this.context = context;
+    this.sparkStreamingSupported = sparkStreamingSupported;
+  }
+
+  protected static AcceptanceTestContext setup( String dataprocImageVersion)
       throws Exception {
-    // this line will abort the test for the wrong scala version
-    String runtimeScalaVersion = Properties.versionNumberString();
-    if (!runtimeScalaVersion.startsWith(scalaVersion)) {
-      throw new AssumptionViolatedException(
-          String.format(
-              "Test is for scala %s, Runtime is scala %s", scalaVersion, runtimeScalaVersion));
-    }
     String testId =
         String.format(
             "%s-%s%s",
@@ -67,7 +66,7 @@ public class DataprocAcceptanceTestBase {
             dataprocImageVersion.charAt(2));
     String clusterName = createClusterIfNeeded(dataprocImageVersion, testId);
     AcceptanceTestContext acceptanceTestContext = new AcceptanceTestContext(testId, clusterName);
-    uploadConnectorJar(scalaVersion, acceptanceTestContext.connectorJarUri);
+    uploadConnectorJar(CONNECTOR_JAR_DIRECTORY, acceptanceTestContext.connectorJarUri);
     createBqDataset(acceptanceTestContext.bqDataset);
     return acceptanceTestContext;
   }
@@ -82,7 +81,7 @@ public class DataprocAcceptanceTestBase {
 
   protected static String createClusterIfNeeded(String dataprocImageVersion, String testId)
       throws Exception {
-    String clusterName = generateClusterName(dataprocImageVersion, testId);
+    String clusterName = generateClusterName(testId);
     cluster(
         client ->
             client
@@ -100,14 +99,14 @@ public class DataprocAcceptanceTestBase {
     try (ClusterControllerClient clusterControllerClient =
         ClusterControllerClient.create(
             ClusterControllerSettings.newBuilder()
-                .setEndpoint("us-central1-dataproc.googleapis.com:443")
+                .setEndpoint(DATAPROC_ENDPOINT)
                 .build())) {
       command.accept(clusterControllerClient);
     }
   }
 
-  private static String generateClusterName(String dataprocImageVersion, String testId) {
-    return String.format("spark-bigquery-it-%s", testId);
+  private static String generateClusterName(String testId) {
+    return String.format("spark-bigquery-acceptance-test-%s", testId);
   }
 
   private static Cluster createCluster(String clusterName, String dataprocImageVersion) {
@@ -143,10 +142,10 @@ public class DataprocAcceptanceTestBase {
         .build();
   }
 
-  private static void uploadConnectorJar(String scalaVersion, String connectorJarUri)
+  private static void uploadConnectorJar(String targetDir, String connectorJarUri)
       throws Exception {
-    Path targetDir = Paths.get(String.format("fatJar/target/scala-%s/", scalaVersion));
-    Path assemblyJar = AcceptanceTestUtils.getAssemblyJar(targetDir);
+    Path targetDirPath = Paths.get(targetDir);
+    Path assemblyJar = AcceptanceTestUtils.getArtifact(targetDirPath, ".jar");
     AcceptanceTestUtils.copyToGcs(assemblyJar, connectorJarUri, "application/java-archive");
   }
 
@@ -167,6 +166,8 @@ public class DataprocAcceptanceTestBase {
 
   @Test
   public void writeStream() throws Exception {
+    // TODO: Should be removed once streaming is supported in DSv2
+    assumeTrue("Spark streaming is not supported by this connector", sparkStreamingSupported);
     String testName = "write-stream-test";
     String jsonFileName = "write_stream_data.json";
     String jsonFileUri = context.testBaseGcsDir + "/" + testName + "/json/" + jsonFileName;
@@ -196,20 +197,12 @@ public class DataprocAcceptanceTestBase {
   @Test
   public void testBigNumeric() throws Exception {
     String testName = "test-big-numeric";
-    String pyBaseDir = Paths.get("pythonlib").toAbsolutePath().toString();
-    String zipFileLocation =
-        Paths.get("fatJar").toAbsolutePath().toString() + "/big_numeric_acceptance_test.zip";
+    Path pythonLibTargetDir = Paths.get("../../spark-bigquery-python-lib/target");
+    Path pythonLibZip = AcceptanceTestUtils.getArtifact(pythonLibTargetDir, ".zip");
     String zipFileUri =
         context.testBaseGcsDir + "/" + testName + "/big_numeric_acceptance_test.zip";
-
-    createZipFile(pyBaseDir, zipFileLocation);
-
     AcceptanceTestUtils.uploadToGcs(
-        getClass().getResourceAsStream("/acceptance/big_numeric.py"),
-        context.getScriptUri(testName),
-        "text/x-python");
-    AcceptanceTestUtils.uploadToGcs(
-        new FileInputStream(zipFileLocation), zipFileUri, "application/zip");
+        new FileInputStream(pythonLibZip.toFile()), zipFileUri, "application/zip");
 
     runBqQuery(
         String.format(
@@ -272,7 +265,7 @@ public class DataprocAcceptanceTestBase {
     try (JobControllerClient jobControllerClient =
         JobControllerClient.create(
             JobControllerSettings.newBuilder()
-                .setEndpoint(US_CENTRAL_1_DATAPROC_ENDPOINT)
+                .setEndpoint(DATAPROC_ENDPOINT)
                 .build())) {
       Job request = jobControllerClient.submitJob(PROJECT_ID, REGION, job);
       String jobId = request.getReference().getJobId();

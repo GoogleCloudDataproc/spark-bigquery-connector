@@ -13,22 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.spark.bigquery.acceptance;
+package com.google.cloud.spark.bigquery.acceptance;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-public class DataprocImage20AcceptanceTest extends DataprocAcceptanceTestBase {
+public class Scala212DataprocImage20AcceptanceTest extends DataprocAcceptanceTestBase {
 
   private static AcceptanceTestContext context;
 
-  public DataprocImage20AcceptanceTest() {
+  public Scala212DataprocImage20AcceptanceTest() {
     super(context);
   }
 
   @BeforeClass
   public static void setup() throws Exception {
-    context = DataprocAcceptanceTestBase.setup("2.12", "2.0-debian10");
+    context = DataprocAcceptanceTestBase.setup("2.0-debian10");
   }
 
   @AfterClass

@@ -49,6 +49,7 @@
   <modules>
     <module>spark-bigquery-parent</module>
     <module>bigquery-connector-common</module>
+    <module>spark-bigquery-acceptance-tests</module>
     <module>spark-bigquery-connector-common</module>
     <module>spark-bigquery-python-lib</module>
   </modules>

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.spark.bigquery.acceptance;
+package com.google.cloud.spark.bigquery.acceptance;
 
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
@@ -37,6 +37,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -50,11 +51,12 @@ public class AcceptanceTestUtils {
   static Storage storage =
       new StorageOptions.DefaultStorageFactory().create(StorageOptions.getDefaultInstance());
 
-  public static Path getAssemblyJar(Path targetDir) {
+  public static Path getArtifact(Path targetDir, String suffix) {
+    Predicate<Path> prefixSuffixChecker = prefixSuffixChecker("spark-bigquery", suffix);
     try {
       return Files.list(targetDir)
           .filter(Files::isRegularFile)
-          .filter(AcceptanceTestUtils::isAssemblyJar)
+          .filter(prefixSuffixChecker)
           .max(Comparator.comparing(AcceptanceTestUtils::lastModifiedTime))
           .get();
     } catch (IOException e) {
@@ -62,9 +64,11 @@ public class AcceptanceTestUtils {
     }
   }
 
-  private static boolean isAssemblyJar(Path path) {
-    String name = path.toFile().getName();
-    return name.endsWith(".jar") && name.contains("-assembly-");
+  private static Predicate<Path> prefixSuffixChecker(final String prefix, final String suffix) {
+    return path -> {
+      String name = path.toFile().getName();
+      return name.startsWith(prefix) && name.endsWith(suffix);
+    };
   }
 
   private static FileTime lastModifiedTime(Path path) {
@@ -120,13 +124,13 @@ public class AcceptanceTestUtils {
     URI uri = new URI(resultsDirUri);
     Blob csvBlob =
         StreamSupport.stream(
-                storage
-                    .list(
-                        uri.getAuthority(),
-                        Storage.BlobListOption.prefix(uri.getPath().substring(1)))
-                    .iterateAll()
-                    .spliterator(),
-                false)
+            storage
+                .list(
+                    uri.getAuthority(),
+                    Storage.BlobListOption.prefix(uri.getPath().substring(1)))
+                .iterateAll()
+                .spliterator(),
+            false)
             .filter(blob -> blob.getName().endsWith("csv"))
             .findFirst()
             .get();
@@ -137,13 +141,13 @@ public class AcceptanceTestUtils {
     URI uri = new URI(testBaseGcsDir);
     BlobId[] blobIds =
         StreamSupport.stream(
-                storage
-                    .list(
-                        uri.getAuthority(),
-                        Storage.BlobListOption.prefix(uri.getPath().substring(1)))
-                    .iterateAll()
-                    .spliterator(),
-                false)
+            storage
+                .list(
+                    uri.getAuthority(),
+                    Storage.BlobListOption.prefix(uri.getPath().substring(1)))
+                .iterateAll()
+                .spliterator(),
+            false)
             .map(Blob::getBlobId)
             .toArray(BlobId[]::new);
     storage.delete(blobIds);

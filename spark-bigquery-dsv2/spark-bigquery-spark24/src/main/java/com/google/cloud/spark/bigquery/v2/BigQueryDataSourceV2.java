@@ -28,6 +28,7 @@ import com.google.inject.Injector;
 import com.google.inject.Module;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.sources.DataSourceRegister;
 import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.apache.spark.sql.sources.v2.DataSourceV2;
 import org.apache.spark.sql.sources.v2.ReadSupport;
@@ -42,7 +43,8 @@ import java.util.Optional;
  * A DataSourceV2 implementation, providing efficient reader and writer for the Google Cloud
  * Platform BigQuery.
  */
-public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport, WriteSupport {
+public class BigQueryDataSourceV2 implements DataSourceV2, DataSourceRegister, ReadSupport,
+    WriteSupport {
 
   @Override
   public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
@@ -121,5 +123,10 @@ public class BigQueryDataSourceV2 implements DataSourceV2, ReadSupport, WriteSup
     BigQueryIndirectDataSourceWriter writer =
         injector.getInstance(BigQueryIndirectDataSourceWriter.class);
     return Optional.of(writer);
+  }
+
+  @Override
+  public String shortName() {
+    return "bigquery";
   }
 }
