@@ -2,10 +2,20 @@ package com.google.cloud.spark.bigquery.integration;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
+import org.apache.spark.bigquery.BigNumeric;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import scala.collection.JavaConverters;
+
+import static com.google.common.truth.Truth.assertThat;
 
 @RunWith(Parameterized.class)
 public class DataSourceV1ReadByFormatIntegrationTest extends ReadByFormatIntegrationTestBase {
@@ -33,4 +43,5 @@ public class DataSourceV1ReadByFormatIntegrationTest extends ReadByFormatIntegra
   public static void clean() {
     IntegrationTestUtils.clean(ctx);
   }
+
 }
