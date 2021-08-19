@@ -12,7 +12,7 @@
   <artifactId>spark-bigquery-reactor</artifactId>
   <packaging>pom</packaging>
   <name>Spark BigQuery Connector Reactor</name>
- 
+
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
@@ -79,8 +79,11 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
+        <module>spark-bigquery-dsv1/spark-bigquery-dsv1-spark3-support</module>
         <module>spark-bigquery-dsv1/spark-bigquery-dsv1-parent</module>
         <module>spark-bigquery-dsv1/spark-bigquery_2.11</module>
+        <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies-parent
+        </module>
         <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.11
         </module>
       </modules>
@@ -91,8 +94,11 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
+        <module>spark-bigquery-dsv1/spark-bigquery-dsv1-spark3-support</module>
         <module>spark-bigquery-dsv1/spark-bigquery-dsv1-parent</module>
         <module>spark-bigquery-dsv1/spark-bigquery_2.12</module>
+        <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies-parent
+        </module>
         <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.12
         </module>
       </modules>
