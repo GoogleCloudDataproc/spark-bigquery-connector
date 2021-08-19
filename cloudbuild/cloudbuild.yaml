@@ -3,7 +3,7 @@ steps:
   - id: 'unit tests'
     name: maven:3-jdk-8
     entrypoint: mvn
-    args: ['test', '-Pall']
+    args: ['install', '-Pall']
     env:
       - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
       - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
