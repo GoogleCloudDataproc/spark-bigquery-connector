@@ -38,6 +38,7 @@ import org.junit.Test;
 
 import static com.google.cloud.spark.bigquery.integration.IntegrationTestUtils.metadata;
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.fail;
 
 public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
@@ -123,25 +124,27 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         .load(SHAKESPEARE_TABLE));
   }
 
-//
+  //
 // before {
 //   // have a fresh table for each test
 //   testTable = s"test_${System.nanoTime()}"
 // }
 ////
-@Test @Ignore("DSv2 only")
-public void testReadCompressed() {
-  Dataset<Row> df = spark.read().format("bigquery")
-      .option("table", SHAKESPEARE_TABLE)
-      .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
-      .load();
-  // Test early termination succeeds
-  df.head();
-  testShakespeare(df);
-}
+  @Test
+  @Ignore("DSv2 only")
+  public void testReadCompressed() {
+    Dataset<Row> df = spark.read().format("bigquery")
+        .option("table", SHAKESPEARE_TABLE)
+        .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
+        .load();
+    // Test early termination succeeds
+    df.head();
+    testShakespeare(df);
+  }
 
 
-  @Test @Ignore("DSv2 only")
+  @Test
+  @Ignore("DSv2 only")
   public void testReadCompressedWith1BackgroundThreads() {
     Dataset<Row> df = spark.read().format("bigquery")
         .option("table", SHAKESPEARE_TABLE)
@@ -151,21 +154,22 @@ public void testReadCompressed() {
     // Test early termination succeeds
     df.head();
     testShakespeare(df);
-}
+  }
 
-  @Test @Ignore("DSv2 only")
+  @Test
+  @Ignore("DSv2 only")
   public void testReadCompressedWith4BackgroundThreads() {
-  Dataset<Row> df = spark.read().format("bigquery")
-    .option("table", SHAKESPEARE_TABLE)
-    .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
-    .option("bqBackgroundThreadsPerStream", "4")
-    .load();
-  // Test early termination succeeds
-  df.head();
-  testShakespeare(df);
-}
+    Dataset<Row> df = spark.read().format("bigquery")
+        .option("table", SHAKESPEARE_TABLE)
+        .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
+        .option("bqBackgroundThreadsPerStream", "4")
+        .load();
+    // Test early termination succeeds
+    df.head();
+    testShakespeare(df);
+  }
 
-// for (
+  // for (
 //   dataFormat <- Seq("avro", "arrow");
 //   dataSourceFormat <- Seq("bigquery", "com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
 // ) {
@@ -185,21 +189,22 @@ public void testReadCompressed() {
 //       .format(s"$testDataset.$STRUCT_COLUMN_ORDER_TEST_TABLE_NAME"))
 // }
 //
-@Test public void testFilters() {
-  Dataset<Row> df = spark.read().format("bigquery").load(SHAKESPEARE_TABLE);
-  assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);
-  assertThat(df.count()).isEqualTo(SHAKESPEARE_TABLE_NUM_ROWS);
-  FILTER_DATA.forEach( (condition, expectedElements) ->
-  {
-    List<String> firstWords = Arrays.asList((String[]) df.select("word")
-        .where(condition)
-        .distinct()
-        .as(Encoders.STRING())
-        .sort("word")
-        .take(3));
-    assertThat(firstWords).containsExactlyElementsIn(expectedElements);
-  });
-}
+  @Test
+  public void testFilters() {
+    Dataset<Row> df = spark.read().format("bigquery").load(SHAKESPEARE_TABLE);
+    assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);
+    assertThat(df.count()).isEqualTo(SHAKESPEARE_TABLE_NUM_ROWS);
+    FILTER_DATA.forEach((condition, expectedElements) ->
+    {
+      List<String> firstWords = Arrays.asList((String[]) df.select("word")
+          .where(condition)
+          .distinct()
+          .as(Encoders.STRING())
+          .sort("word")
+          .take(3));
+      assertThat(firstWords).containsExactlyElementsIn(expectedElements);
+    });
+  }
 //
 // def testsWithReadInFormat(dataSourceFormat: String, dataFormat: String): Unit = {
 //
@@ -236,7 +241,7 @@ public void testReadCompressed() {
 //
 //   test("out of order columns. DataSource %s. Data Format %s"
 //     .format(dataSourceFormat, dataFormat)) {
-//     val row = spark.read.format(dataSourceFormat)
+//     val row = spark.read.format("bigquery")
 //       .option("table", SHAKESPEARE_TABLE)
 //       .option("readDataFormat", dataFormat).load()
 //       .select("word_count", "word").head
@@ -246,7 +251,7 @@ public void testReadCompressed() {
 //
 //   test("select all columns from a table. DataSource %s. Data Format %s"
 //     .format(dataSourceFormat, dataFormat)) {
-//     val row = spark.read.format(dataSourceFormat)
+//     val row = spark.read.format("bigquery")
 //       .option("table", SHAKESPEARE_TABLE)
 //       .option("readDataFormat", dataFormat).load()
 //       .select("word_count", "word", "corpus", "corpus_date").head
@@ -286,7 +291,7 @@ public void testReadCompressed() {
 //
 //   test("default number of partitions. DataSource %s. Data Format %s"
 //     .format(dataSourceFormat, dataFormat)) {
-//     val df = spark.read.format(dataSourceFormat)
+//     val df = spark.read.format("bigquery")
 //       .option("table", LARGE_TABLE)
 //       .option("readDataFormat", dataFormat)
 //       .load()
@@ -326,7 +331,7 @@ public void testReadCompressed() {
 //   test("test optimized count(*). DataSource %s. Data Format %s"
 //     .format(dataSourceFormat, dataFormat)) {
 //     DirectBigQueryRelation.emptyRowRDDsCreated = 0
-//     val oldMethodCount = spark.read.format(dataSourceFormat)
+//     val oldMethodCount = spark.read.format("bigquery")
 //       .option("table", "bigquery-public-data.samples.shakespeare")
 //       .option("optimizedEmptyProjection", "false")
 //       .option("readDataFormat", dataFormat)
@@ -338,7 +343,7 @@ public void testReadCompressed() {
 //     assert(DirectBigQueryRelation.emptyRowRDDsCreated == 0)
 //
 //     assertResult(oldMethodCount) {
-//       spark.read.format(dataSourceFormat)
+//       spark.read.format("bigquery")
 //         .option("table", "bigquery-public-data.samples.shakespeare")
 //         .option("readDataFormat", dataFormat)
 //         .load()
@@ -354,7 +359,7 @@ public void testReadCompressed() {
 //   test("test optimized count(*) with filter. DataSource %s. Data Format %s"
 //     .format(dataSourceFormat, dataFormat)) {
 //     DirectBigQueryRelation.emptyRowRDDsCreated = 0
-//     val oldMethodCount = spark.read.format(dataSourceFormat)
+//     val oldMethodCount = spark.read.format("bigquery")
 //       .option("table", "bigquery-public-data.samples.shakespeare")
 //       .option("optimizedEmptyProjection", "false")
 //       .option("readDataFormat", dataFormat)
@@ -365,7 +370,7 @@ public void testReadCompressed() {
 //     assert(DirectBigQueryRelation.emptyRowRDDsCreated == 0)
 //
 //     assertResult(oldMethodCount) {
-//       spark.read.format(dataSourceFormat)
+//       spark.read.format("bigquery")
 //         .option("table", "bigquery-public-data.samples.shakespeare")
 //         .option("readDataFormat", dataFormat)
 //         .load()
@@ -379,7 +384,7 @@ public void testReadCompressed() {
 //   test("keeping filters behaviour. DataSource %s. Data Format %s"
 //     .format(dataSourceFormat, dataFormat)) {
 //     val newBehaviourWords = extractWords(
-//       spark.read.format(dataSourceFormat)
+//       spark.read.format("bigquery")
 //         .option("table", "bigquery-public-data.samples.shakespeare")
 //         .option("filter", "length(word) = 1")
 //         .option("combinePushedDownFilters", "true")
@@ -387,7 +392,7 @@ public void testReadCompressed() {
 //         .load())
 //
 //     val oldBehaviourWords = extractWords(
-//       spark.read.format(dataSourceFormat)
+//       spark.read.format("bigquery")
 //         .option("table", "bigquery-public-data.samples.shakespeare")
 //         .option("filter", "length(word) = 1")
 //         .option("combinePushedDownFilters", "false")
@@ -406,7 +411,7 @@ public void testReadCompressed() {
 //       .schema(schema)
 //       .option("dataset", testDataset)
 //       .option("table", STRUCT_COLUMN_ORDER_TEST_TABLE_NAME)
-//       .format(dataSourceFormat)
+//       .format("bigquery")
 //       .option("readDataFormat", dataFormat)
 //       .load()
 //       .as(Encoders.bean(classOf[TestConstants.ColumnOrderTestClass]))
@@ -417,27 +422,28 @@ public void testReadCompressed() {
 // }
 //
 // def getViewDataFrame(dataSourceFormat: String, dataFormat: String): DataFrame =
-//   spark.read.format(dataSourceFormat)
+//   spark.read.format("bigquery")
 //     .option("table", ALL_TYPES_VIEW_NAME)
 //     .option("viewsEnabled", "true")
 //     .option("viewMaterializationProject", System.getenv("GOOGLE_CLOUD_PROJECT"))
 //     .option("viewMaterializationDataset", testDataset)
 //     .option("readDataFormat", dataFormat)
 //     .load()
-//
-// def readAllTypesTable(dataSourceFormat: String): DataFrame =
-//   spark.read.format(dataSourceFormat)
-//     .option("dataset", testDataset)
-//     .option("table", ALL_TYPES_TABLE_NAME)
-//     .load()
-//
-//
+
+  Dataset<Row> readAllTypesTable() {
+    return spark.read().format("bigquery")
+        .option("dataset", testDataset)
+        .option("table", ALL_TYPES_TABLE_NAME)
+        .load();
+  }
+
+  //
 // Seq("bigquery", "com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
 //   .foreach(testsWithDataSource)
 //
 // def testsWithDataSource(dataSourceFormat: String) {
 //
-//   test("OR across columns with Arrow. DataSource %s".format(dataSourceFormat)) {
+//   test("OR across columns with Arrow. DataSource %s".format("bigquery")) {
 //
 //     val avroResults = spark.read.format("bigquery")
 //       .option("table", "bigquery-public-data.samples.shakespeare")
@@ -457,15 +463,15 @@ public void testReadCompressed() {
 //   // Disabling the test until the merge the master
 //   // TODO: enable it
 //   /*
-//   test("Count with filters - Arrow. DataSource %s".format(dataSourceFormat)) {
+//   test("Count with filters - Arrow. DataSource %s".format("bigquery")) {
 //
-//     val countResults = spark.read.format(dataSourceFormat)
+//     val countResults = spark.read.format("bigquery")
 //       .option("table", "bigquery-public-data.samples.shakespeare")
 //       .option("readDataFormat", "ARROW")
 //       .load().where("word_count = 1 OR corpus_date = 0")
 //       .count()
 //
-//     val countAfterCollect = spark.read.format(dataSourceFormat)
+//     val countAfterCollect = spark.read.format("bigquery")
 //       .option("table", "bigquery-public-data.samples.shakespeare")
 //       .option("readDataFormat", "ARROW")
 //       .load().where("word_count = 1 OR corpus_date = 0")
@@ -474,7 +480,7 @@ public void testReadCompressed() {
 //     countResults should equal(countAfterCollect)
 //   }
 //   */
-//   test("read data types. DataSource %s".format(dataSourceFormat)) {
+//   test("read data types. DataSource %s".format("bigquery")) {
 //     // temporarily skipping for v2
 //     if (dataSourceFormat.equals("bigquery")) {
 //       val allTypesTable = readAllTypesTable(dataSourceFormat)
@@ -506,65 +512,67 @@ public void testReadCompressed() {
 //   }
 //
 //
-//   test("known size in bytes. DataSource %s".format(dataSourceFormat)) {
-//     val allTypesTable = readAllTypesTable(dataSourceFormat)
-//     val actualTableSize = allTypesTable.queryExecution.analyzed.stats.sizeInBytes
-//     assert(actualTableSize == TestConstants.ALL_TYPES_TABLE_SIZE)
-//   }
-//
-//   test("known schema. DataSource %s".format(dataSourceFormat)) {
-//     val allTypesTable = readAllTypesTable(dataSourceFormat)
-//     assert(allTypesTable.schema == TestConstants.ALL_TYPES_TABLE_SCHEMA)
-//   }
-//
-//   test("user defined schema. DataSource %s".format(dataSourceFormat)) {
-//     // TODO(pmkc): consider a schema that wouldn't cause cast errors if read.
-//     val expectedSchema = StructType(Seq(StructField("whatever", ByteType)))
-//     val table = spark.read.schema(expectedSchema)
-//       .format(dataSourceFormat)
-//       .option("table", SHAKESPEARE_TABLE)
-//       .load()
-//     assert(expectedSchema == table.schema)
-//   }
-//
-//   test("non-existent schema. DataSource %s".format(dataSourceFormat)) {
-//     assertThrows[RuntimeException] {
-//       spark.read.format(dataSourceFormat).option("table", NON_EXISTENT_TABLE).load()
-//     }
-//   }
-//
-//   test("head does not time out and OOM. DataSource %s".format(dataSourceFormat)) {
-//     failAfter(10 seconds) {
-//       spark.read.format(dataSourceFormat)
-//         .option("table", LARGE_TABLE)
-//         .load()
-//         .select(LARGE_TABLE_FIELD)
-//         .head
-//     }
-//   }
-//   test("Unhandle filter on struct. DataSource %s".format(dataSourceFormat)) {
-//     val df = spark.read.format(dataSourceFormat)
-//       .option("table", "bigquery-public-data:samples.github_nested")
-//       .option("filter", "url like '%spark'")
-//       .load()
-//
-//     val result = df.select("url")
-//       .where("repository is not null")
-//       .collect()
-//
-//     result.size shouldBe 85
-//   }
-// }
-//
-// // Write tests. We have four save modes: Append, ErrorIfExists, Ignore and
-// // Overwrite. For each there are two behaviours - the table exists or not.
-// // See more at http://spark.apache.org/docs/2.3.2/api/java/org/apache/spark/sql/SaveMode.html
-//
-// override def afterAll: Unit = {
-//   IntegrationTestUtils.deleteDatasetAndTables(testDataset)
-// }
-//
-//
+  @Test
+  public void testKnownSizeInBytes() {
+    Dataset<Row> allTypesTable = readAllTypesTable();
+    long actualTableSize = allTypesTable.queryExecution().analyzed().stats().sizeInBytes()
+        .longValue();
+    assertThat(actualTableSize).isEqualTo(TestConstants.ALL_TYPES_TABLE_SIZE);
+  }
+
+  @Test
+  public void testKnownSchema() {
+    Dataset<Row> allTypesTable = readAllTypesTable();
+    assertThat(allTypesTable.schema()).isEqualTo(TestConstants.ALL_TYPES_TABLE_SCHEMA);
+  }
+
+  @Test
+  public void testUserDefinedSchema() {
+    // TODO(pmkc): consider a schema that wouldn't cause cast errors if read.
+    StructType expectedSchema = new StructType(
+        new StructField[] {
+            new StructField("whatever", DataTypes.ByteType, true, Metadata.empty())
+        });
+    Dataset<Row> table = spark.read().schema(expectedSchema)
+        .format("bigquery")
+        .option("table", SHAKESPEARE_TABLE)
+        .load();
+    assertThat(expectedSchema).isEqualTo(table.schema());
+  }
+
+  @Test
+  public void testNonExistentSchema() {
+    try {
+      spark.read().format("bigquery").option("table", NON_EXISTENT_TABLE).load();
+      fail("Trying to read a non existing table should throw an exception");
+    } catch (RuntimeException e) {
+      // success
+    }
+  }
+
+  @Test(timeout = 10_000) // 10 seconds
+  public void testHeadDoesNotTimeoutAndOOM() {
+    spark.read().format("bigquery")
+        .option("table", LARGE_TABLE)
+        .load()
+        .select(LARGE_TABLE_FIELD)
+        .head();
+  }
+
+  @Test
+  public void testUnhandleFilterOnStruct() {
+    Dataset<Row> df = spark.read().format("bigquery")
+        .option("table", "bigquery-public-data:samples.github_nested")
+        .option("filter", "url like '%spark'")
+        .load();
+
+    List<Row> result = df.select("url")
+        .where("repository is not null")
+        .collectAsList();
+
+    assertThat(result).hasSize(85);
+  }
+
 // def extractWords(df: DataFrame): Set[String] = {
 //   df.select("word")
 //     .where("corpus_date = 0")

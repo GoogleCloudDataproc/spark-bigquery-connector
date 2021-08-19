@@ -12,7 +12,7 @@ public class DataSourceV1ReadByFormatIntegrationTest extends ReadByFormatIntegra
 
   static IntegrationTestContext ctx;
 
-  @Parameterized.Parameters
+  @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> formats() {
     return Arrays.asList(new Object[][]{
         {"AVRO"},

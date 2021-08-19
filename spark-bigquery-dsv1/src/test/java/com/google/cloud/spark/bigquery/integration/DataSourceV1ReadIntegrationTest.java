@@ -13,7 +13,7 @@ public class DataSourceV1ReadIntegrationTest extends ReadIntegrationTestBase {
 
   @BeforeClass
   public static void initialize() {
-    ctx = IntegrationTestUtils.initialize(DataSourceV1ReadIntegrationTest.class, false);
+    ctx = IntegrationTestUtils.initialize(DataSourceV1ReadIntegrationTest.class, true);
   }
 
   @AfterClass
