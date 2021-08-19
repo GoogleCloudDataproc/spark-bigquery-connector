@@ -9,13 +9,13 @@ steps:
       - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
 
   # 2. Run integration tests
- # - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
- #   id: 'integration-tests'
- #   entrypoint: 'sbt'
- #   args: ['it:test']
- #   env:
- #     - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
- #     - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
+  - name: maven:3-jdk-8
+    id: 'integration-tests'
+    entrypoint: mvn
+    args: ['failsafe:integration-test' ,'-Pdsv1_2.11,integration']
+    env:
+      - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
+      - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
 
 # Tests take around 20 mins in general.
 timeout: 1800s

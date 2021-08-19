@@ -29,7 +29,14 @@ import static org.apache.spark.sql.functions.*;
 
 public class TestConstants {
 
-  private static DataType BQ_NUMERIC = DataTypes.createDecimalType(38, 9);
+   static final String LARGE_TABLE = "bigquery-public-data.samples.natality";
+   static final String LARGE_TABLE_FIELD = "is_male";
+   static final long LARGE_TABLE_NUM_ROWS = 33271914L;
+   static final String NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent";
+   static final String STRUCT_COLUMN_ORDER_TEST_TABLE_NAME = "struct_column_order";
+   static final String ALL_TYPES_TABLE_NAME = "all_types";
+   static final String ALL_TYPES_VIEW_NAME = "all_types_view";
+   static DataType BQ_NUMERIC = DataTypes.createDecimalType(38, 9);
   public static int BIG_NUMERIC_COLUMN_POSITION = 11;
 
   public static StructType ALL_TYPES_TABLE_SCHEMA = new StructType(copy(
@@ -99,11 +106,40 @@ public class TestConstants {
           "  cast(3.14 as numeric) as pi,",
           "  cast(\"31415926535897932384626433832.795028841\" as numeric) as big_pi",
           ") as nums,",
+          "struct(",
+          "  cast(\"-578960446186580977117854925043439539266.34992332820282019728792003956564819968\" as bignumeric) as min,",
+          "  cast(\"578960446186580977117854925043439539266.34992332820282019728792003956564819967\" as bignumeric) as max",
+          ") as big_numeric_nums,",
           "[1, 2, 3] as int_arr,",
           "[(select as struct 1)] as int_struct_arr"
       ).collect(Collectors.joining("\n"));
 
   public static int ALL_TYPES_TABLE_SIZE = 224;
+
+  static String STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE =
+      Stream.of(
+          "create table %s.%s (",
+          "str string,",
+          "nums struct <",
+          "  num1 int64,",
+          "  num2 int64,",
+          "  num3 int64,",
+          "  string_struct_arr array <struct<str1 string, str2 string, str3 string>>",
+          " >",
+          ")",
+          "as",
+          "select",
+          "\"outer_string\" as str,",
+          "struct(",
+          " 1 as num1,",
+          " 2 as num2,",
+          " 3 as num3,",
+          " [",
+          "   struct(\"0:str1\" as str1, \"0:str2\" as str2, \"0:str3\" as str3),",
+          "   struct(\"1:str1\" as str1, \"1:str2\" as str2, \"1:str3\" as str3)",
+          " ] as string_struct_arr",
+          ") as nums"
+      ).collect(Collectors.joining("\n"));
 
   public static List<Column> ALL_TYPES_TABLE_COLS = Arrays.asList(
       lit(42L),

@@ -37,8 +37,6 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   private static final String  TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
   private static final String LIBRARIES_PROJECTS_TABLE = "bigquery-public-data.libraries_io.projects";
   private static final String ALL_TYPES_TABLE_NAME = "all_types";
-  private String testDataset;
-  private String testTable;
   private BigQuery bq;
 
   private String temporaryGcsBucket = Preconditions.checkNotNull(
@@ -46,10 +44,8 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     "Please set the %s env variable to point to a write enabled GCS bucket",
       TEMPORARY_GCS_BUCKET_ENV_VARIABLE);
 
-  public WriteIntegrationTestBase(SparkSession spark,
-      String testDataset) {
-    super(spark);
-    this.testDataset = testDataset;
+  public WriteIntegrationTestBase(IntegrationTestContext ctx) {
+    super(ctx);
     this.bq = BigQueryOptions.getDefaultInstance().getService();
   }
 
@@ -68,24 +64,9 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     this.testTable = "test_" + System.nanoTime();
   }
 
-  // override def beforeAll: Unit = {
-  //   spark = TestUtils.getOrCreateSparkSession("SparkBigQueryEndToEndWriteITSuite")
-  //   //    spark.conf.set("spark.sql.codegen.factoryMode", "NO_CODEGEN")
-  //   //    System.setProperty("spark.testing", "true")
-  //   testDataset = s"spark_bigquery_it_${System.currentTimeMillis()}"
-  //   IntegrationTestUtils.createDataset(testDataset)
-  //   IntegrationTestUtils.runQuery(
-  //     TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE.format(s"$testDataset.$ALL_TYPES_TABLE_NAME"))
-  // }
-
-
   // Write tests. We have four save modes: Append, ErrorIfExists, Ignore and
   // Overwrite. For each there are two behaviours - the table exists or not.
   // See more at http://spark.apache.org/docs/2.3.2/api/java/org/apache/spark/sql/SaveMode.html
-
-  // override def afterAll: Unit = {
-  //   IntegrationTestUtils.deleteDatasetAndTables(testDataset)
-  // }
 
   // private Dataset<Row> initialData() { return spark.createDataFrame(spark.sparkContext().parallelize(
   //   Seq(Person("Abc", Seq(Friend(10, Seq(Link("www.abc.com"))))),

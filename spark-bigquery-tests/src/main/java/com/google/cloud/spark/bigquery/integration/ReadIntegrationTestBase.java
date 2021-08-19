@@ -42,7 +42,6 @@ import static com.google.common.truth.Truth.assertThat;
 public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   private static final Map<String, Collection<String>> FILTER_DATA = ImmutableMap.<String, Collection<String>>builder()
-      .put("condition", ImmutableList.of("elements"))
       .put("word_count == 4", ImmutableList.of("'A", "'But", "'Faith"))
       .put("word_count > 3", ImmutableList.of("'", "''Tis", "'A"))
       .put("word_count >= 2", ImmutableList.of("'", "''Lo", "''O"))
@@ -91,11 +90,9 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   private static final String STRUCT_COLUMN_ORDER_TEST_TABLE_NAME = "struct_column_order";
   private static final String ALL_TYPES_TABLE_NAME = "all_types";
   private static final String ALL_TYPES_VIEW_NAME = "all_types_view";
-  private String testDataset;
-  private String testTable;
 
-  public ReadIntegrationTestBase(SparkSession spark) {
-    super(spark);
+  public ReadIntegrationTestBase(IntegrationTestContext ctx) {
+    super(ctx);
   }
 
   /**
@@ -104,7 +101,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   private void testShakespeare(Dataset<Row> df) {
     assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);
     assertThat(df.count()).isEqualTo(SHAKESPEARE_TABLE_NUM_ROWS);
-    List<String> firstWords = Arrays.asList(df.select("word")
+    List<String> firstWords = Arrays.asList((String[]) df.select("word")
         .where("word >= 'a' AND word not like '%\\'%'")
         .distinct()
         .as(Encoders.STRING())
@@ -194,13 +191,13 @@ public void testReadCompressed() {
   assertThat(df.count()).isEqualTo(SHAKESPEARE_TABLE_NUM_ROWS);
   FILTER_DATA.forEach( (condition, expectedElements) ->
   {
-    List<String> firstWords = Arrays.asList(df.select("word")
+    List<String> firstWords = Arrays.asList((String[]) df.select("word")
         .where(condition)
         .distinct()
         .as(Encoders.STRING())
         .sort("word")
         .take(3));
-    assertThat(firstWords).containsExactly(expectedElements);
+    assertThat(firstWords).containsExactlyElementsIn(expectedElements);
   });
 }
 //

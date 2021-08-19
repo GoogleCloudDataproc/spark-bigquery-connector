@@ -18,9 +18,11 @@ package com.google.cloud.spark.bigquery.integration;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.junit.Before;
@@ -34,25 +36,11 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
 
   private static final String  ALL_TYPES_TABLE_NAME = "all_types";
   private BigQuery bq;
-  private String testDataset  ;
-  private String testTable  ;
 
-  protected ReadFromQueryIntegrationTestBase(SparkSession spark, String testDataset) {
-    super(spark);
+  protected ReadFromQueryIntegrationTestBase(IntegrationTestContext ctx) {
+    super(ctx);
     this.bq = BigQueryOptions.getDefaultInstance().getService();
-    this.testDataset = testDataset;
   }
-
-  @Before public void setUp() {
-    // have a fresh table for each test
-    testTable = "test_" + System.nanoTime();
-  }
-
-  // override def beforeAll: Unit = {
-  //   spark = TestUtils.getOrCreateSparkSession(getClass.getSimpleName)
-  //   testDataset = s"spark_bigquery_${getClass.getSimpleName}_${System.currentTimeMillis()}"
-  //   IntegrationTestUtils.createDataset(testDataset)
-  // }
 
   private void testReadFromQueryInternal(String query) {
     Dataset<Row> df = spark.read().format("bigquery")
@@ -107,12 +95,11 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     long totalRows = df.count();
     assertThat(totalRows).isEqualTo(9);
 
-    List<String> corpuses = Stream.of(df.select("corpus").collect())
-        .map(row -> row.get(0).toString()).sorted().collect(toList());
+    List<String> corpuses = df.select("corpus").as(Encoders.STRING()).collectAsList();
     List<String> expectedCorpuses = Arrays
         .asList("2kinghenryvi", "3kinghenryvi", "allswellthatendswell", "hamlet",
             "juliuscaesar", "kinghenryv", "kinglear", "periclesprinceoftyre", "troilusandcressida");
-    assertThat(corpuses).isEqualTo(expectedCorpuses);
+    assertThat(corpuses).containsExactlyElementsIn(expectedCorpuses);
   }
 
   @Test public void

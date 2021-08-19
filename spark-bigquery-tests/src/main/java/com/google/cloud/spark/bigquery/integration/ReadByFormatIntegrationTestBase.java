@@ -91,13 +91,10 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   private static final String STRUCT_COLUMN_ORDER_TEST_TABLE_NAME = "struct_column_order";
   private static final String ALL_TYPES_TABLE_NAME = "all_types";
   private static final String ALL_TYPES_VIEW_NAME = "all_types_view";
-  private String testDataset;
-  private String testTable;
   private String dataFormat;
 
-  public ReadByFormatIntegrationTestBase(SparkSession spark,String testDataset, String dataFormat) {
-    super(spark);
-    this.testDataset = testDataset;
+  public ReadByFormatIntegrationTestBase(IntegrationTestContext ctx, String dataFormat) {
+    super(ctx);
     this.dataFormat = dataFormat;
   }
 
@@ -135,7 +132,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
       .collectAsList();
 
     assertThat(result).hasSize(1);
-    List<Row> filteredResult = result.stream().filter(row -> row.getInt(0) == 42)
+    List<Row> filteredResult = result.stream().filter(row ->  row.getLong(0) == 42L)
         .collect(Collectors.toList());
     assertThat(filteredResult).hasSize(1);
    }
@@ -152,7 +149,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
         .collectAsList();
 
     assertThat(result).hasSize(1);
-    List<Row> filteredResult = result.stream().filter(row -> row.getInt(0) == 42)
+    List<Row> filteredResult = result.stream().filter(row -> row.getLong(0) == 42L)
         .collect(Collectors.toList());
     assertThat(filteredResult).hasSize(1);
   }

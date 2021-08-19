@@ -16,12 +16,22 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import org.apache.spark.sql.SparkSession;
+import org.junit.Before;
 
-protected class SparkBigQueryIntegrationTestBase {
+class SparkBigQueryIntegrationTestBase {
 
   protected SparkSession spark;
+  protected String testDataset  ;
+  protected String testTable  ;
 
-  public SparkBigQueryIntegrationTestBase(SparkSession spark) {
-    this.spark = spark;
+
+  public SparkBigQueryIntegrationTestBase(IntegrationTestContext ctx) {
+    this.spark = ctx.getSpark();
+   this.testDataset = ctx.getTestDataset() ;
+  }
+
+  @Before
+  public void createTestTable() {
+    testTable =  "test" + System.nanoTime();
   }
 }
