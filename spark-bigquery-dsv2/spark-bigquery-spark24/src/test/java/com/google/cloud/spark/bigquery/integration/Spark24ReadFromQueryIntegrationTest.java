@@ -14,7 +14,7 @@ public class Spark24ReadFromQueryIntegrationTest extends ReadFromQueryIntegratio
 
   @BeforeClass
   public static void initialize() {
-    ctx = IntegrationTestUtils.initialize(Spark24ReadFromQueryIntegrationTest.class);
+    ctx = IntegrationTestUtils.initialize(Spark24ReadFromQueryIntegrationTest.class, true);
   }
 
   @AfterClass
