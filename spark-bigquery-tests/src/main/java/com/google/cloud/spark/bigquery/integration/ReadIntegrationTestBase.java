@@ -16,18 +16,20 @@
 package com.google.cloud.spark.bigquery.integration;
 
 
+import static com.google.cloud.spark.bigquery.integration.IntegrationTestUtils.metadata;
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
@@ -35,10 +37,6 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static com.google.cloud.spark.bigquery.integration.IntegrationTestUtils.metadata;
-import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
 
 public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
@@ -124,12 +122,6 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         .load(SHAKESPEARE_TABLE));
   }
 
-  //
-// before {
-//   // have a fresh table for each test
-//   testTable = s"test_${System.nanoTime()}"
-// }
-////
   @Test
   @Ignore("DSv2 only")
   public void testReadCompressed() {
@@ -169,26 +161,6 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     testShakespeare(df);
   }
 
-  // for (
-//   dataFormat <- Seq("avro", "arrow");
-//   dataSourceFormat <- Seq("bigquery", "com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
-// ) {
-//   testsWithReadInFormat(dataSourceFormat, dataFormat)
-// }
-//
-// override def beforeAll: Unit = {
-//   spark = TestUtils.getOrCreateSparkSession(getClass.getSimpleName)
-//   testDataset = s"spark_bigquery_${getClass.getSimpleName}_${System.currentTimeMillis()}"
-//   IntegrationTestUtils.createDataset(testDataset)
-//   IntegrationTestUtils.runQuery(
-//     TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE.format(s"$testDataset.$ALL_TYPES_TABLE_NAME"))
-//   IntegrationTestUtils.createView(testDataset, ALL_TYPES_TABLE_NAME, ALL_TYPES_VIEW_NAME)
-//   IntegrationTestUtils.runQuery(
-//     TestConstants
-//       .STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE
-//       .format(s"$testDataset.$STRUCT_COLUMN_ORDER_TEST_TABLE_NAME"))
-// }
-//
   @Test
   public void testFilters() {
     Dataset<Row> df = spark.read().format("bigquery").load(SHAKESPEARE_TABLE);
@@ -213,51 +185,24 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         .load();
   }
 
-  //
-// Seq("bigquery", "com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")
-//   .foreach(testsWithDataSource)
-//
-// def testsWithDataSource(dataSourceFormat: String) {
-//
-//   test("OR across columns with Arrow. DataSource %s".format("bigquery")) {
-//
-//     val avroResults = spark.read.format("bigquery")
-//       .option("table", "bigquery-public-data.samples.shakespeare")
-//       .option("filter", "word_count = 1 OR corpus_date = 0")
-//       .option("readDataFormat", "AVRO")
-//       .load().collect()
-//
-//     val arrowResults = spark.read.format("bigquery")
-//       .option("table", "bigquery-public-data.samples.shakespeare")
-//       .option("readDataFormat", "ARROW")
-//       .load().where("word_count = 1 OR corpus_date = 0")
-//       .collect()
-//
-//     avroResults should equal(arrowResults)
-//   }
-//
-//   // Disabling the test until the merge the master
-//   // TODO: enable it
-//   /*
-//   test("Count with filters - Arrow. DataSource %s".format("bigquery")) {
-//
-//     val countResults = spark.read.format("bigquery")
-//       .option("table", "bigquery-public-data.samples.shakespeare")
-//       .option("readDataFormat", "ARROW")
-//       .load().where("word_count = 1 OR corpus_date = 0")
-//       .count()
-//
-//     val countAfterCollect = spark.read.format("bigquery")
-//       .option("table", "bigquery-public-data.samples.shakespeare")
-//       .option("readDataFormat", "ARROW")
-//       .load().where("word_count = 1 OR corpus_date = 0")
-//       .collect().size
-//
-//     countResults should equal(countAfterCollect)
-//   }
-//   */
-//
-//
+  @Test
+  public void testCountWithFilters() {
+    long countResults = spark.read().format("bigquery")
+        .option("table", "bigquery-public-data.samples.shakespeare")
+        .option("readDataFormat", "ARROW")
+        .load().where("word_count = 1 OR corpus_date = 0")
+        .count();
+
+    long countAfterCollect = spark.read().format("bigquery")
+        .option("table", "bigquery-public-data.samples.shakespeare")
+        .option("readDataFormat", "ARROW")
+        .load().where("word_count = 1 OR corpus_date = 0")
+        .collectAsList()
+        .size();
+
+    assertThat(countResults).isEqualTo(countAfterCollect);
+  }
+
   @Test
   public void testKnownSizeInBytes() {
     Dataset<Row> allTypesTable = readAllTypesTable();
@@ -276,7 +221,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   public void testUserDefinedSchema() {
     // TODO(pmkc): consider a schema that wouldn't cause cast errors if read.
     StructType expectedSchema = new StructType(
-        new StructField[] {
+        new StructField[]{
             new StructField("whatever", DataTypes.ByteType, true, Metadata.empty())
         });
     Dataset<Row> table = spark.read().schema(expectedSchema)
@@ -288,12 +233,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testNonExistentSchema() {
-    try {
-      spark.read().format("bigquery").option("table", NON_EXISTENT_TABLE).load();
-      fail("Trying to read a non existing table should throw an exception");
-    } catch (RuntimeException e) {
-      // success
-    }
+    assertThrows("Trying to read a non existing table should throw an exception",
+        RuntimeException.class, () -> {
+          spark.read().format("bigquery").option("table", NON_EXISTENT_TABLE).load();
+        });
   }
 
   @Test(timeout = 10_000) // 10 seconds
@@ -318,14 +261,5 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
     assertThat(result).hasSize(85);
   }
-
-// def extractWords(df: DataFrame): Set[String] = {
-//   df.select("word")
-//     .where("corpus_date = 0")
-//     .collect()
-//     .map(_.getString(0))
-//     .toSet
-// }
-
 }
 

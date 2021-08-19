@@ -15,22 +15,17 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
+
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
-import org.junit.Before;
 import org.junit.Test;
-
-import static java.util.stream.Collectors.toList;
-import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertThrows;
 
 class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
@@ -114,10 +109,6 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
         .load(badSql);
     });
   }
-
-  // override def afterAll: Unit = {
-  //   IntegrationTestUtils.deleteDatasetAndTables(testDataset)
-  // }
 
 }
 

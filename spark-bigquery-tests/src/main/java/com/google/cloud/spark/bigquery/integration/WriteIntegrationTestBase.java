@@ -15,22 +15,14 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import com.google.common.collect.ImmutableMap;
-import java.io.Serializable;
-import java.sql.Timestamp;
-import java.util.Map;
-import java.util.UUID;
-
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.common.base.Preconditions;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.junit.Before;
-
-import static scala.collection.JavaConverters.*;
 
 class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
@@ -545,6 +537,23 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   //     }
   //   }
   // }
-
+  //   //    @Test public void testcache data frame in DataSource %s. Data Format %s"
+//   //    .format(dataSourceFormat, dataFormat)) {
+//   //      val allTypesTable = readAllTypesTable("bigquery")
+//   //      writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro")
+//   //
+//   //      val df = spark.read.format("bigquery")
+//   //        .option("dataset", testDataset)
+//   //        .option("table", testTable)
+//   //        .option("readDataFormat", "arrow")
+//   //        .load().cache()
+//   //
+//   //      assertThat(df.head() == allTypesTable.head())
+//   //
+//   //      // read from cache
+//   //      assertThat(df.head() == allTypesTable.head())
+//   //      assertThat(df.schema == allTypesTable.schema)
+//   //    }
+//
 }
 

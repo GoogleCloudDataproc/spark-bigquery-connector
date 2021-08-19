@@ -15,17 +15,27 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import org.apache.spark.bigquery.BigQueryDataTypes;
-import org.apache.spark.sql.Column;
-import org.apache.spark.sql.types.*;
+import static org.apache.spark.sql.functions.array;
+import static org.apache.spark.sql.functions.from_utc_timestamp;
+import static org.apache.spark.sql.functions.lit;
+import static org.apache.spark.sql.functions.struct;
+import static org.apache.spark.sql.functions.to_date;
 
+import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.apache.spark.sql.functions.*;
+import org.apache.spark.bigquery.BigQueryDataTypes;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.types.ArrayType;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 
 public class TestConstants {
 
@@ -124,7 +134,7 @@ public class TestConstants {
           "  num1 int64,",
           "  num2 int64,",
           "  num3 int64,",
-          "  string_struct_arr array <struct<str1 string, str2 string, str3 string>>",
+          "  strings array <struct<str1 string, str2 string, str3 string>>",
           " >",
           ")",
           "as",
@@ -167,5 +177,213 @@ public class TestConstants {
 
   private static <T> T[] copy(T... elements) {
     return elements;
+  }
+
+  public static ColumnOrderTestClass STRUCT_COLUMN_ORDER_TEST_TABLE_COLS =
+      new ColumnOrderTestClass(
+          new NumStruct(
+              3L,
+              2L,
+              1L,
+              ImmutableList.of(
+                  new StringStruct("0:str3", "0:str1", "0:str2"),
+                  new StringStruct("1:str3", "1:str1", "1:str2"))),
+          "outer_string");
+
+  public static class StringStruct {
+    private String str3;
+    private String str1;
+    private String str2;
+
+    public StringStruct() {}
+
+    public StringStruct(String str3, String str1, String str2) {
+      this.str3 = str3;
+      this.str1 = str1;
+      this.str2 = str2;
+    }
+
+    public String getStr3() {
+      return str3;
+    }
+
+    public void setStr3(String str3) {
+      this.str3 = str3;
+    }
+
+    public String getStr1() {
+      return str1;
+    }
+
+    public void setStr1(String str1) {
+      this.str1 = str1;
+    }
+
+    public String getStr2() {
+      return str2;
+    }
+
+    public void setStr2(String str2) {
+      this.str2 = str2;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof StringStruct)) {
+        return false;
+      }
+      StringStruct that = (StringStruct) o;
+      return Objects.equal(str3, that.str3) && Objects
+          .equal(str1, that.str1) && Objects.equal(str2, that.str2);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(str3, str1, str2);
+    }
+
+    @Override
+    public String toString() {
+      return "StringStruct{" +
+          "str3='" + str3 + '\'' +
+          ", str1='" + str1 + '\'' +
+          ", str2='" + str2 + '\'' +
+          '}';
+    }
+  }
+
+  public static class NumStruct {
+    private Long num3;
+    private Long num2;
+    private Long num1;
+    private List<StringStruct> strings;
+
+    public NumStruct() {}
+
+    public NumStruct(Long num3, Long num2, Long num1, List<StringStruct> strings) {
+      this.num3 = num3;
+      this.num2 = num2;
+      this.num1 = num1;
+      this.strings = strings;
+    }
+
+    public Long getNum3() {
+      return num3;
+    }
+
+    public void setNum3(Long num3) {
+      this.num3 = num3;
+    }
+
+    public Long getNum2() {
+      return num2;
+    }
+
+    public void setNum2(Long num2) {
+      this.num2 = num2;
+    }
+
+    public Long getNum1() {
+      return num1;
+    }
+
+    public void setNum1(Long num1) {
+      this.num1 = num1;
+    }
+
+    public List<StringStruct> getStrings() {
+      return strings;
+    }
+
+    public void setStrings(List<StringStruct> strings) {
+      this.strings = strings;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof NumStruct)) {
+        return false;
+      }
+      NumStruct numStruct = (NumStruct) o;
+      return Objects.equal(num3, numStruct.num3)
+          && Objects.equal(num2, numStruct.num2)
+          && Objects.equal(num1, numStruct.num1)
+          && Objects.equal(strings, numStruct.strings);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(num3, num2, num1, strings);
+    }
+
+    @Override
+    public String toString() {
+      return "NumStruct{" +
+          "num3=" + num3 +
+          ", num2=" + num2 +
+          ", num1=" + num1 +
+          ", stringStructArr=" + strings +
+          '}';
+    }
+  }
+
+  public static class ColumnOrderTestClass {
+    private NumStruct nums;
+    private String str;
+
+    public ColumnOrderTestClass() {}
+
+    public ColumnOrderTestClass(NumStruct nums, String str) {
+      this.nums = nums;
+      this.str = str;
+    }
+
+    public NumStruct getNums() {
+      return nums;
+    }
+
+    public void setNums(NumStruct nums) {
+      this.nums = nums;
+    }
+
+    public String getStr() {
+      return str;
+    }
+
+    public void setStr(String str) {
+      this.str = str;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof ColumnOrderTestClass)) {
+        return false;
+      }
+      ColumnOrderTestClass that = (ColumnOrderTestClass) o;
+      return Objects.equal(nums, that.nums) && Objects
+          .equal(str, that.str);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(nums, str);
+    }
+
+    @Override
+    public String toString() {
+      return "ColumnOrderTestClass{" +
+          "nums=" + nums +
+          ", str='" + str + '\'' +
+          '}';
+    }
   }
 }
