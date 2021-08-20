@@ -22,7 +22,7 @@ public class DataSourceV1ReadIntegrationTest extends ReadIntegrationTestBase {
 
   @BeforeClass
   public static void initialize() {
-    ctx = IntegrationTestUtils.initialize(DataSourceV1ReadIntegrationTest.class, true);
+    ctx = IntegrationTestUtils.initialize(DataSourceV1ReadIntegrationTest.class);
   }
 
   @AfterClass
@@ -38,24 +38,7 @@ public class DataSourceV1ReadIntegrationTest extends ReadIntegrationTestBase {
         .select(TestConstants.ALL_TYPES_TABLE_COLS.stream().toArray(Column[]::new)).head();
     Row row = allTypesTable.head();
 
-    for (int i = 0; i < expectedValues.length(); i++) {
-      if (i == TestConstants.BIG_NUMERIC_COLUMN_POSITION) {
-        for (int j = 0; j < 2; j++) {
-          BigNumeric bigNumericValue = (BigNumeric) (((GenericRowWithSchema) row.get(i)).get(j));
-
-          String bigNumericString = bigNumericValue.getNumber().toPlainString();
-
-          String expectedBigNumericString =
-              (((GenericRowWithSchema) row.get(i)).get(j)).toString();
-
-          assertThat(bigNumericString).isEqualTo(expectedBigNumericString);
-          ;
-        }
-      } else {
-        Object value = row.get(i);
-        assertThat(value).isEqualTo(expectedValues.get(i));
-      }
-    }
+    IntegrationTestUtils.compareBigNumericDataSetRows(row, expectedValues);
   }
 
   // DSv2 does not support Avro

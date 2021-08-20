@@ -15,6 +15,8 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.DatasetId;
@@ -24,9 +26,19 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import java.util.Optional;
+import org.apache.spark.bigquery.BigNumeric;
+import org.apache.spark.bigquery.BigNumericUDT;
+import org.apache.spark.bigquery.BigQueryDataTypes;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+import org.apache.spark.unsafe.types.UTF8String;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +60,6 @@ public class IntegrationTestUtils {
   public static void runQuery(String query) {
     BigQueryClient bigQueryClient = new BigQueryClient(getBigquery(), Optional.empty(),
         Optional.empty());
-    logger.warn("Running query '{}'", query);
     bigQueryClient.query(query);
   }
 
@@ -81,25 +92,79 @@ public class IntegrationTestUtils {
   }
 
   public static IntegrationTestContext initialize(
-      Class<? extends SparkBigQueryIntegrationTestBase> testClass, boolean createAllTypesTable) {
+      Class<? extends SparkBigQueryIntegrationTestBase> testClass) {
     SparkSession spark = getOrCreateSparkSession(testClass.getSimpleName());
     String testDataset = String
         .format("spark_bigquery_%s_%d", testClass.getSimpleName(), System.currentTimeMillis());
     createDataset(testDataset);
-    if (createAllTypesTable) {
-      runQuery(String.format(
-          TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE,
-          testDataset, TestConstants.ALL_TYPES_TABLE_NAME));
-      createView(testDataset, TestConstants.ALL_TYPES_TABLE_NAME,
-          TestConstants.ALL_TYPES_VIEW_NAME);
-      runQuery(String.format(
-          TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE,
-          testDataset, TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_NAME));
-    }
+    runQuery(String.format(
+        TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE,
+        testDataset, TestConstants.ALL_TYPES_TABLE_NAME));
+    createView(testDataset, TestConstants.ALL_TYPES_TABLE_NAME,
+        TestConstants.ALL_TYPES_VIEW_NAME);
+    runQuery(String.format(
+        TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE,
+        testDataset, TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_NAME));
     return new IntegrationTestContext(spark, testDataset);
   }
 
   public static void clean(IntegrationTestContext ctx) {
     deleteDatasetAndTables(ctx.getTestDataset());
   }
+
+  public static void compareBigNumericDataSetRows(Row row, Row expected) {
+    for (int i = 0; i < expected.length(); i++) {
+      // if (i == TestConstants.BIG_NUMERIC_COLUMN_POSITION) {
+      // TODO: Restore this code after
+      //  https://github.com/GoogleCloudDataproc/spark-bigquery-connector/issues/446
+      //  is fixed
+      //
+      // for (int j = 0; j < 2; j++) {
+      //   String bigNumericString = getBigNumericString(row, i, j);
+      //   String expectedBigNumericString = getBigNumericString(expected, i, j);
+      //   assertThat(bigNumericString).isEqualTo(expectedBigNumericString);
+      // }
+      // } else {
+      Object value = row.get(i);
+      assertThat(value).isEqualTo(expected.get(i));
+      //     }
+    }
+  }
+
+  private static String getBigNumericString(Row row, int i, int j) {
+    BigNumeric bigNumericValue = (BigNumeric) (((GenericRowWithSchema) row.get(i)).get(j));
+    String bigNumericString = bigNumericValue.getNumber().toPlainString();
+    return bigNumericString;
+  }
+
+  public static void compareBigNumericDataSetSchema(StructType actualSchema,
+      StructType expectedSchema) {
+
+    StructField[] actualFields = actualSchema.fields();
+    StructField[] expectedFields = expectedSchema.fields();
+
+    for (int i = 0; i < actualFields.length; i++) {
+      StructField actualField = actualFields[i];
+      StructField expectedField = expectedFields[i];
+      assertThat(actualField).isEqualTo(expectedField);
+      // TODO: Restore this code after
+      //  https://github.com/GoogleCloudDataproc/spark-bigquery-connector/issues/446
+      //  is fixed
+      //
+      // if (i == TestConstants.BIG_NUMERIC_COLUMN_POSITION) {
+      //   for (int j = 0; j < 2; j++) {
+      //     DataType actualFieldDataType = ((StructType) actualField.dataType()).fields()[j]
+      //         .dataType();
+      //     DataType expectedFieldDataType = ((StructType) expectedField.dataType()).fields()[j]
+      //         .dataType();
+      //     assertThat(actualFieldDataType).isEqualTo(DataTypes.StringType);
+      //     assertThat(expectedFieldDataType).isEqualTo(BigQueryDataTypes.BigNumericType);
+      //   }
+      //
+      // } else {
+      //   assertThat(actualField).isEqualTo(expectedField);
+      // }
+    }
+  }
+
 }

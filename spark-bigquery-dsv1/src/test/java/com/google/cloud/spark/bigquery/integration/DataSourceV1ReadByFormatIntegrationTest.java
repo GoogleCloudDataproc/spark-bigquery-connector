@@ -37,7 +37,7 @@ public class DataSourceV1ReadByFormatIntegrationTest extends ReadByFormatIntegra
 
   @BeforeClass
   public static void initialize() {
-    ctx = IntegrationTestUtils.initialize(DataSourceV1ReadByFormatIntegrationTest.class, true);
+    ctx = IntegrationTestUtils.initialize(DataSourceV1ReadByFormatIntegrationTest.class);
   }
 
   @AfterClass

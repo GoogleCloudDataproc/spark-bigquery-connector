@@ -42,6 +42,11 @@
       <artifactId>google-cloud-storage</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.google.cloud.bigdataoss</groupId>
+      <artifactId>gcs-connector</artifactId>
+      <classifier>shaded</classifier>
+    </dependency>
+    <dependency>
       <groupId>com.google.truth</groupId>
       <artifactId>truth</artifactId>
     </dependency>

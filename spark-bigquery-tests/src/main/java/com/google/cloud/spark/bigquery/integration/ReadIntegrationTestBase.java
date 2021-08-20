@@ -20,6 +20,7 @@ import static com.google.cloud.spark.bigquery.integration.IntegrationTestUtils.m
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
@@ -68,6 +69,9 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
           "The work from which this word was extracted.")),
       StructField.apply("corpus_date", DataTypes.LongType, false, metadata("description",
           "The year in which this corpus was published."))});
+  protected final String PROJECT_ID = Preconditions
+      .checkNotNull(System.getenv("GOOGLE_CLOUD_PROJECT"),
+          "Please set the GOOGLE_CLOUD_PROJECT env variable in order to read views");
 
 
   private static final StructType SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT = new StructType(
@@ -261,5 +265,19 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
     assertThat(result).hasSize(85);
   }
+
+
+  @Test
+  public void testQueryMaterializedView() {
+    Dataset<Row> df = spark.read().format("bigquery")
+        .option("table", "bigquery-public-data:ethereum_blockchain.live_logs")
+        .option("viewsEnabled", "true")
+        .option("viewMaterializationProject", PROJECT_ID)
+        .option("viewMaterializationDataset", testDataset)
+        .load();
+
+    assertThat(df.count()).isGreaterThan(1);
+  }
+
 }
 

@@ -159,7 +159,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     assertThat(df.rdd().getNumPartitions()).isEqualTo(58);
   }
 
-  @Test(timeout = 120_000)
+  @Test(timeout = 300_000)
   public void testBalancedPartitions() {
     // Select first partition
     Dataset<Row> df = spark.read()

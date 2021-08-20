@@ -14,7 +14,7 @@ public class DataSourceV1ReadFromQueryIntegrationTest extends ReadFromQueryInteg
 
   @BeforeClass
   public static void initialize() {
-    ctx = IntegrationTestUtils.initialize(DataSourceV1ReadFromQueryIntegrationTest.class, true);
+    ctx = IntegrationTestUtils.initialize(DataSourceV1ReadFromQueryIntegrationTest.class);
   }
 
   @AfterClass

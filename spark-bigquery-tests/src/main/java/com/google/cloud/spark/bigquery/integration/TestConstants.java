@@ -67,11 +67,15 @@ public class TestConstants {
               new StructField("pi", BQ_NUMERIC, true, Metadata.empty()),
               new StructField("big_pi", BQ_NUMERIC, true, Metadata.empty()))),
           true, Metadata.empty()),
-      new StructField("big_numeric_nums",
-          new StructType(copy(
-              new StructField("min", BigQueryDataTypes.BigNumericType, true, Metadata.empty()),
-              new StructField("max", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))),
-          true, Metadata.empty()),
+      // TODO: Restore this code after
+      //  https://github.com/GoogleCloudDataproc/spark-bigquery-connector/issues/446
+      //  is fixed
+      //
+      // new StructField("big_numeric_nums",
+      //     new StructType(copy(
+      //         new StructField("min", BigQueryDataTypes.BigNumericType, true, Metadata.empty()),
+      //         new StructField("max", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))),
+      //     true, Metadata.empty()),
       new StructField("int_arr", new ArrayType(DataTypes.LongType, true), true, Metadata.empty()),
       new StructField("int_struct_arr", new ArrayType(
           new StructType(copy(new StructField("i", DataTypes.LongType, true, Metadata.empty()))),
@@ -94,7 +98,7 @@ public class TestConstants {
           "binary bytes,",
           "float float64,",
           "nums struct<min numeric, max numeric, pi numeric, big_pi numeric>,",
-          "big_numeric_nums struct<min bignumeric, max bignumeric>,",
+//          "big_numeric_nums struct<min bignumeric, max bignumeric>,",
           "int_arr array<int64>,",
           "int_struct_arr array<struct<i int64>>",
           ") as",
@@ -116,15 +120,15 @@ public class TestConstants {
           "  cast(3.14 as numeric) as pi,",
           "  cast(\"31415926535897932384626433832.795028841\" as numeric) as big_pi",
           ") as nums,",
-          "struct(",
-          "  cast(\"-578960446186580977117854925043439539266.34992332820282019728792003956564819968\" as bignumeric) as min,",
-          "  cast(\"578960446186580977117854925043439539266.34992332820282019728792003956564819967\" as bignumeric) as max",
-          ") as big_numeric_nums,",
+          // "struct(",
+          // "  cast(\"-578960446186580977117854925043439539266.34992332820282019728792003956564819968\" as bignumeric) as min,",
+          // "  cast(\"578960446186580977117854925043439539266.34992332820282019728792003956564819967\" as bignumeric) as max",
+          // ") as big_numeric_nums,",
           "[1, 2, 3] as int_arr,",
           "[(select as struct 1)] as int_struct_arr"
       ).collect(Collectors.joining("\n"));
 
-  public static int ALL_TYPES_TABLE_SIZE = 224;
+  public static int ALL_TYPES_TABLE_SIZE = 160;
 
   static String STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE =
       Stream.of(
@@ -167,10 +171,10 @@ public class TestConstants {
           lit("99999999999999999999999999999.999999999").cast(BQ_NUMERIC),
           lit(3.14).cast(BQ_NUMERIC),
           lit("31415926535897932384626433832.795028841").cast(BQ_NUMERIC)),
-      struct(
-          lit("-578960446186580977117854925043439539266.34992332820282019728792003956564819968"),
-          lit("578960446186580977117854925043439539266.34992332820282019728792003956564819967")
-      ),
+      // struct(
+      //     lit("-578960446186580977117854925043439539266.34992332820282019728792003956564819968"),
+      //     lit("578960446186580977117854925043439539266.34992332820282019728792003956564819967")
+      // ),
       array(lit(1), lit(2), lit(3)),
       array(struct(lit(1)))
   );
