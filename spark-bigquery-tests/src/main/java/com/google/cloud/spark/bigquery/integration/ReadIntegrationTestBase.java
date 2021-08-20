@@ -94,10 +94,6 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   private static final String ALL_TYPES_TABLE_NAME = "all_types";
   private static final String ALL_TYPES_VIEW_NAME = "all_types_view";
 
-  public ReadIntegrationTestBase(IntegrationTestContext ctx) {
-    super(ctx);
-  }
-
   /**
    * Generate a test to verify that the given DataFrame is equal to a known result.
    */
@@ -184,7 +180,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   Dataset<Row> readAllTypesTable() {
     return spark.read().format("bigquery")
-        .option("dataset", testDataset)
+        .option("dataset", testDataset.toString())
         .option("table", ALL_TYPES_TABLE_NAME)
         .load();
   }
@@ -273,7 +269,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         .option("table", "bigquery-public-data:ethereum_blockchain.live_logs")
         .option("viewsEnabled", "true")
         .option("viewMaterializationProject", PROJECT_ID)
-        .option("viewMaterializationDataset", testDataset)
+        .option("viewMaterializationDataset", testDataset.toString())
         .load();
 
     assertThat(df.count()).isGreaterThan(1);

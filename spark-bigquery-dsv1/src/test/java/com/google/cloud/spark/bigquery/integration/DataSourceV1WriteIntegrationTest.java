@@ -24,22 +24,6 @@ import scala.collection.Seq;
 
 public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
 
-  static IntegrationTestContext ctx;
-
-  public DataSourceV1WriteIntegrationTest() {
-    super(ctx);
-  }
-
-  @BeforeClass
-  public static void initialize() {
-    ctx = IntegrationTestUtils.initialize(DataSourceV1WriteIntegrationTest.class);
-  }
-
-  @AfterClass
-  public static void clean() {
-    IntegrationTestUtils.clean(ctx);
-  }
-
   // DSv2 does not support BigNumeric yet
   @Test
   public void testWriteAllDataTypes() {
@@ -50,7 +34,7 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
     writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro");
 
     Dataset<Row> df = spark.read().format("bigquery")
-        .option("dataset", testDataset)
+        .option("dataset", testDataset.toString())
         .option("table", testTable)
         .option("readDataFormat", "arrow")
         .load().cache();

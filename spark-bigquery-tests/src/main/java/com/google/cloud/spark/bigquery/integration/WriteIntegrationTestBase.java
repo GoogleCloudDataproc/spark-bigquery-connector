@@ -74,8 +74,8 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
       "Please set the %s env variable to point to a write enabled GCS bucket",
       TEMPORARY_GCS_BUCKET_ENV_VARIABLE);
 
-  public WriteIntegrationTestBase(IntegrationTestContext ctx) {
-    super(ctx);
+  public WriteIntegrationTestBase() {
+    super();
     this.bq = BigQueryOptions.getDefaultInstance().getService();
   }
 
@@ -118,11 +118,11 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   // getNumRows returns BigInteger, and it messes up the matchers
   protected int testTableNumberOfRows() {
-    return bq.getTable(testDataset, testTable).getNumRows().intValue();
+    return bq.getTable(testDataset.toString(), testTable).getNumRows().intValue();
   }
 
   private StandardTableDefinition testPartitionedTableDefinition() {
-    return bq.getTable(testDataset, testTable + "_partitioned")
+    return bq.getTable(testDataset.toString(), testTable + "_partitioned")
         .getDefinition();
   }
 
@@ -141,7 +141,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   Dataset<Row> readAllTypesTable() {
     return spark.read().format("bigquery")
-        .option("dataset", testDataset)
+        .option("dataset", testDataset.toString())
         .option("table", ALL_TYPES_TABLE_NAME)
         .load();
   }
@@ -222,7 +222,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   //       writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro")
   //
   //       val df = spark.read.format("bigquery")
-  //         .option("dataset", testDataset)
+  //         .option("dataset", testDataset.toString())
   //         .option("table", testTable)
   //         .load()
   //
@@ -264,7 +264,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   protected Dataset<Row> overwriteSinglePartition(StructField dateField) {
     // create partitioned table
     String tableName = fullTableNamePartitioned() + "_" + id.getAndIncrement();
-    TableId tableId = TableId.of(testDataset, tableName);
+    TableId tableId = TableId.of(testDataset.toString(), tableName);
     Schema schema = Schema.of(
         Field.of("the_date", LegacySQLTypeName.DATE),
         Field.of("some_text", LegacySQLTypeName.STRING)
@@ -326,7 +326,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   //   //    test("support custom data types() {
-  //   //      val table = s"$testDataset.$testTable"
+  //   //      val table = s"$testDataset.toString().$testTable"
   //   //
   //   //      val originalVectorDF = spark.createDataFrame(
   //   //        List(Row("row1", 1, Vectors.dense(1, 2, 3))).asJava,
@@ -379,7 +379,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
       writeToBigQuery(descriptionDF, SaveMode.Overwrite);
 
       Dataset<Row> readDF = spark.read().format("bigquery")
-          .option("dataset", testDataset)
+          .option("dataset", testDataset.toString())
           .option("table", testTable)
           .load();
 
@@ -428,7 +428,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         new Data("c", Timestamp.valueOf("2020-01-03 03:03:03"))
     );
     Dataset<Row> df = spark.createDataset(data, Encoders.bean(Data.class)).toDF();
-    String table = testDataset + "." + testTable + "_" + partitionType;
+    String table = testDataset.toString() + "." + testTable + "_" + partitionType;
     df.write().format("bigquery")
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("partitionField", "ts")
@@ -447,7 +447,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro");
 
     Dataset<Row> df = spark.read().format("bigquery")
-        .option("dataset", testDataset)
+        .option("dataset", testDataset.toString())
         .option("table", testTable)
         .option("readDataFormat", "arrow")
         .load().cache();
@@ -471,7 +471,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   protected String fullTableName() {
-    return testDataset + "." + testTable;
+    return testDataset.toString() + "." + testTable;
   }
 
   protected String fullTableNamePartitioned() {

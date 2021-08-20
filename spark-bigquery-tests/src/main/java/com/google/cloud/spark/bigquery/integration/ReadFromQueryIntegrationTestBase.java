@@ -32,15 +32,15 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
   private static final String  ALL_TYPES_TABLE_NAME = "all_types";
   private BigQuery bq;
 
-  protected ReadFromQueryIntegrationTestBase(IntegrationTestContext ctx) {
-    super(ctx);
+  protected ReadFromQueryIntegrationTestBase() {
+    super();
     this.bq = BigQueryOptions.getDefaultInstance().getService();
   }
 
   private void testReadFromQueryInternal(String query) {
     Dataset<Row> df = spark.read().format("bigquery")
       .option("viewsEnabled", true)
-      .option("materializationDataset", testDataset)
+      .option("materializationDataset", testDataset.toString())
       .load(query);
 
   validateResult(df);
@@ -79,7 +79,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
         random, random);
     Dataset<Row> df = spark.read().format("bigquery")
         .option("viewsEnabled", true)
-        .option("materializationDataset", testDataset)
+        .option("materializationDataset", testDataset.toString())
         .option("query", query)
         .load();
 
@@ -105,7 +105,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     assertThrows(RuntimeException.class, () -> {
       spark.read().format("bigquery")
         .option("viewsEnabled", true)
-        .option("materializationDataset", testDataset)
+        .option("materializationDataset", testDataset.toString())
         .load(badSql);
     });
   }

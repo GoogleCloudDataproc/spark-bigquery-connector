@@ -17,21 +17,62 @@ package com.google.cloud.spark.bigquery.integration;
 
 import org.apache.spark.sql.SparkSession;
 import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.rules.ExternalResource;
 
-class SparkBigQueryIntegrationTestBase {
+public class SparkBigQueryIntegrationTestBase {
+
+  @ClassRule public static SparkFactory sparkFactory = new SparkFactory();
+  @ClassRule public static TestDataset testDataset = new TestDataset();
 
   protected SparkSession spark;
-  protected String testDataset  ;
-  protected String testTable  ;
+  protected String testTable;
 
-
-  public SparkBigQueryIntegrationTestBase(IntegrationTestContext ctx) {
-    this.spark = ctx.getSpark();
-   this.testDataset = ctx.getTestDataset() ;
+  public SparkBigQueryIntegrationTestBase() {
+    this.spark = sparkFactory.spark;
   }
 
   @Before
   public void createTestTable() {
-    testTable =  "test" + System.nanoTime();
+    testTable = "test_" + System.nanoTime();
+  }
+
+  protected static class SparkFactory extends ExternalResource {
+    SparkSession spark;
+
+    @Override
+    protected void before() throws Throwable {
+      spark = SparkSession.builder().master("local").getOrCreate();
+    }
+
+  }
+
+    protected static class TestDataset extends ExternalResource {
+
+    String testDataset = String
+        .format("spark_bigquery_%d_%d", System.currentTimeMillis(), System.nanoTime());
+
+    @Override
+    protected void before() throws Throwable {
+      IntegrationTestUtils.createDataset(testDataset);
+      IntegrationTestUtils.runQuery(String.format(
+          TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE,
+          testDataset, TestConstants.ALL_TYPES_TABLE_NAME));
+      IntegrationTestUtils.createView(testDataset, TestConstants.ALL_TYPES_TABLE_NAME,
+          TestConstants.ALL_TYPES_VIEW_NAME);
+      IntegrationTestUtils.runQuery(String.format(
+          TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE,
+          testDataset, TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_NAME));
+    }
+
+    @Override
+    protected void after() {
+     IntegrationTestUtils.deleteDatasetAndTables(testDataset);
+    }
+
+    @Override
+    public String toString() {
+      return testDataset;
+    }
   }
 }

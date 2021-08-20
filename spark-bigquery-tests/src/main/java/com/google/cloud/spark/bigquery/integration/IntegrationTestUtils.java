@@ -91,27 +91,6 @@ public class IntegrationTestUtils {
     bq.create(TableInfo.of(tableId, viewDefinition));
   }
 
-  public static IntegrationTestContext initialize(
-      Class<? extends SparkBigQueryIntegrationTestBase> testClass) {
-    SparkSession spark = getOrCreateSparkSession(testClass.getSimpleName());
-    String testDataset = String
-        .format("spark_bigquery_%s_%d", testClass.getSimpleName(), System.currentTimeMillis());
-    createDataset(testDataset);
-    runQuery(String.format(
-        TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE,
-        testDataset, TestConstants.ALL_TYPES_TABLE_NAME));
-    createView(testDataset, TestConstants.ALL_TYPES_TABLE_NAME,
-        TestConstants.ALL_TYPES_VIEW_NAME);
-    runQuery(String.format(
-        TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE,
-        testDataset, TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_NAME));
-    return new IntegrationTestContext(spark, testDataset);
-  }
-
-  public static void clean(IntegrationTestContext ctx) {
-    deleteDatasetAndTables(ctx.getTestDataset());
-  }
-
   public static void compareBigNumericDataSetRows(Row row, Row expected) {
     for (int i = 0; i < expected.length(); i++) {
       // if (i == TestConstants.BIG_NUMERIC_COLUMN_POSITION) {

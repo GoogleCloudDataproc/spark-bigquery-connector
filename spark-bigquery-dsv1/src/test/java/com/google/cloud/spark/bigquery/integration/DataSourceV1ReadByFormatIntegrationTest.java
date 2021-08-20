@@ -21,8 +21,6 @@ import static com.google.common.truth.Truth.assertThat;
 @RunWith(Parameterized.class)
 public class DataSourceV1ReadByFormatIntegrationTest extends ReadByFormatIntegrationTestBase {
 
-  static IntegrationTestContext ctx;
-
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> formats() {
     return Arrays.asList(new Object[][]{
@@ -32,17 +30,7 @@ public class DataSourceV1ReadByFormatIntegrationTest extends ReadByFormatIntegra
   }
 
   public DataSourceV1ReadByFormatIntegrationTest(String format) {
-    super(ctx, format);
-  }
-
-  @BeforeClass
-  public static void initialize() {
-    ctx = IntegrationTestUtils.initialize(DataSourceV1ReadByFormatIntegrationTest.class);
-  }
-
-  @AfterClass
-  public static void clean() {
-    IntegrationTestUtils.clean(ctx);
+    super(format);
   }
 
   @Test

@@ -77,8 +77,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   private static final String ALL_TYPES_VIEW_NAME = "all_types_view";
   protected String dataFormat;
 
-  public ReadByFormatIntegrationTestBase(IntegrationTestContext ctx, String dataFormat) {
-    super(ctx);
+  public ReadByFormatIntegrationTestBase(String dataFormat) {
+    super();
     this.dataFormat = dataFormat;
   }
 
@@ -213,7 +213,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
     Dataset<TestConstants.ColumnOrderTestClass> dataset = spark.read()
         .schema(schema)
-        .option("dataset", testDataset)
+        .option("dataset", testDataset.toString())
         .option("table", STRUCT_COLUMN_ORDER_TEST_TABLE_NAME)
         .format("bigquery")
         .option("readDataFormat", dataFormat)
@@ -229,14 +229,14 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
         .option("table", ALL_TYPES_VIEW_NAME)
         .option("viewsEnabled", "true")
         .option("viewMaterializationProject", System.getenv("GOOGLE_CLOUD_PROJECT"))
-        .option("viewMaterializationDataset", testDataset)
+        .option("viewMaterializationDataset", testDataset.toString())
         .option("readDataFormat", dataFormat)
         .load();
   }
 
   Dataset<Row> readAllTypesTable() {
     return spark.read().format("bigquery")
-        .option("dataset", testDataset)
+        .option("dataset", testDataset.toString())
         .option("table", ALL_TYPES_TABLE_NAME)
         .load();
   }

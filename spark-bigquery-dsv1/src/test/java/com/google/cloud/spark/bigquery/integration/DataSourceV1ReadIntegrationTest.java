@@ -14,22 +14,6 @@ import org.junit.Test;
 
 public class DataSourceV1ReadIntegrationTest extends ReadIntegrationTestBase {
 
-  static IntegrationTestContext ctx;
-
-  public DataSourceV1ReadIntegrationTest() {
-    super(ctx);
-  }
-
-  @BeforeClass
-  public static void initialize() {
-    ctx = IntegrationTestUtils.initialize(DataSourceV1ReadIntegrationTest.class);
-  }
-
-  @AfterClass
-  public static void clean() {
-    IntegrationTestUtils.clean(ctx);
-  }
-
   // @TODO Move to suport class once DSv2 supports all types
   @Test
   public void testReadDataTypes() {
