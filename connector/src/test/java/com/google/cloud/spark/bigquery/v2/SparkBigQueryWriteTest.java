@@ -21,6 +21,8 @@ import com.google.cloud.bigquery.*;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.spark.bigquery.BigNumeric;
+import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.types.*;
@@ -443,6 +445,21 @@ public class SparkBigQueryWriteTest {
                       .add(new StructField("big_pi", NUMERIC_SPARK_TYPE, true, Metadata.empty())),
                   true,
                   Metadata.empty()))
+          .add(
+              new StructField(
+                  "big_numeric_nums",
+                  new StructType()
+                      .add(
+                          new StructField(
+                              "min", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))
+                      .add(
+                          new StructField(
+                              "max", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))
+                      .add(
+                          new StructField(
+                              "pi", BigQueryDataTypes.BigNumericType, true, Metadata.empty())),
+                  true,
+                  Metadata.empty()))
           .add(new StructField("int_arr", new ArrayType(IntegerType, true), true, Metadata.empty()))
           .add(
               new StructField(
@@ -484,6 +501,21 @@ public class SparkBigQueryWriteTest {
                       .add(new StructField("max", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
                       .add(new StructField("pi", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
                       .add(new StructField("big_pi", NUMERIC_SPARK_TYPE, true, Metadata.empty())),
+                  true,
+                  Metadata.empty()))
+          .add(
+              new StructField(
+                  "big_numeric_nums",
+                  new StructType()
+                      .add(
+                          new StructField(
+                              "min", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))
+                      .add(
+                          new StructField(
+                              "max", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))
+                      .add(
+                          new StructField(
+                              "pi", BigQueryDataTypes.BigNumericType, true, Metadata.empty())),
                   true,
                   Metadata.empty()))
           .add(new StructField("int_arr", new ArrayType(LongType, true), true, Metadata.empty()))
@@ -535,6 +567,14 @@ public class SparkBigQueryWriteTest {
                         new MathContext(BQ_NUMERIC_PRECISION)),
                     BQ_NUMERIC_PRECISION,
                     BQ_NUMERIC_SCALE)),
+            RowFactory.create(
+                new BigNumeric(
+                    new BigDecimal(
+                        "-578960446186580977117854925043439539266.34992332820282019728792003956564819968")),
+                new BigNumeric(
+                    new BigDecimal(
+                        "578960446186580977117854925043439539266.34992332820282019728792003956564819967")),
+                new BigNumeric(new BigDecimal("3.14"))),
             new int[] {1, 2, 3, 4},
             new Row[] {RowFactory.create(1), RowFactory.create(1)})
       };

@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import java.util.function.Function;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
+import org.apache.spark.bigquery.BigNumericUDT;
 import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
@@ -419,6 +420,11 @@ public class SchemaConverters {
             "Decimal type is too wide to fit in BigQuery Numeric format");
       }
     }
+
+    if (elementType instanceof BigNumericUDT) {
+      return LegacySQLTypeName.BIGNUMERIC;
+    }
+
     if (elementType instanceof StringType) {
       return LegacySQLTypeName.STRING;
     }

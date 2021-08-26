@@ -28,6 +28,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+import org.apache.spark.bigquery.BigNumericUDT;
+import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.*;
@@ -65,6 +67,9 @@ public class ProtobufUtils {
               .put(LegacySQLTypeName.FLOAT, DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
               .put(
                   LegacySQLTypeName.NUMERIC, DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
+              .put(
+                  LegacySQLTypeName.BIGNUMERIC,
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(LegacySQLTypeName.STRING, DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(
                   LegacySQLTypeName.TIMESTAMP,
@@ -100,6 +105,9 @@ public class ProtobufUtils {
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
               .put(
                   NUMERIC_SPARK_TYPE.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
+              .put(
+                  BigQueryDataTypes.BigNumericType.json(),
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(
                   DataTypes.StringType.json(),
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
@@ -352,6 +360,10 @@ public class ProtobufUtils {
 
     if (sparkType instanceof DecimalType) {
       return convertDecimalToString((Decimal) sparkValue);
+    }
+
+    if (sparkType instanceof BigNumericUDT) {
+      return new String(((UTF8String) sparkValue).getBytes(), UTF_8);
     }
 
     if (sparkType instanceof BooleanType) {
