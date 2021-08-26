@@ -31,6 +31,7 @@ import org.threeten.bp.Duration;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -46,6 +47,8 @@ public class SparkBigQueryWriteTest {
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
   private static final int BQ_NUMERIC_PRECISION = 38;
   private static final int BQ_NUMERIC_SCALE = 9;
+  private static final DecimalType NUMERIC_SPARK_TYPE =
+      DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
 
   public static final Logger logger = LogManager.getLogger("com.google.cloud");
 
@@ -430,14 +433,16 @@ public class SparkBigQueryWriteTest {
           .add(new StructField("timestamp", TimestampType, true, Metadata.empty()))
           .add(new StructField("binary", BinaryType, true, Metadata.empty()))
           .add(new StructField("float", DoubleType, true, Metadata.empty()))
-          /*.add(new StructField("nums", new StructType()
-          .add(new StructField("min", new DecimalType(38,9), true, Metadata.empty()))
-          .add(new StructField("max", new DecimalType(38,9), true, Metadata.empty()))
-          .add(new StructField("pi", new DecimalType(38,9), true, Metadata.empty()))
-          .add(new StructField("big_pi", new DecimalType(38,9), true, Metadata.empty())),
-          true, Metadata.empty()))*/
-          // TODO: current known issues with NUMERIC type conversion. Restore this check when they
-          // are fixed.
+          .add(
+              new StructField(
+                  "nums",
+                  new StructType()
+                      .add(new StructField("min", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
+                      .add(new StructField("max", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
+                      .add(new StructField("pi", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
+                      .add(new StructField("big_pi", NUMERIC_SPARK_TYPE, true, Metadata.empty())),
+                  true,
+                  Metadata.empty()))
           .add(new StructField("int_arr", new ArrayType(IntegerType, true), true, Metadata.empty()))
           .add(
               new StructField(
@@ -471,14 +476,16 @@ public class SparkBigQueryWriteTest {
           .add(new StructField("timestamp", TimestampType, true, Metadata.empty()))
           .add(new StructField("binary", BinaryType, true, Metadata.empty()))
           .add(new StructField("float", DoubleType, true, Metadata.empty()))
-          /*.add(new StructField("nums", new StructType()
-          .add(new StructField("min", new DecimalType(38,9), true, Metadata.empty()))
-          .add(new StructField("max", new DecimalType(38,9), true, Metadata.empty()))
-          .add(new StructField("pi", new DecimalType(38,9), true, Metadata.empty()))
-          .add(new StructField("big_pi", new DecimalType(38,9), true, Metadata.empty())),
-          true, Metadata.empty()))*/
-          // TODO: current known issues with NUMERIC type conversion. Restore this check when they
-          // are fixed.
+          .add(
+              new StructField(
+                  "nums",
+                  new StructType()
+                      .add(new StructField("min", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
+                      .add(new StructField("max", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
+                      .add(new StructField("pi", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
+                      .add(new StructField("big_pi", NUMERIC_SPARK_TYPE, true, Metadata.empty())),
+                  true,
+                  Metadata.empty()))
           .add(new StructField("int_arr", new ArrayType(LongType, true), true, Metadata.empty()))
           .add(
               new StructField(
@@ -505,14 +512,29 @@ public class SparkBigQueryWriteTest {
               98, 121, 116, 101, 115
             }, // byte[] representation of string "bytes" -> stored in BQ as Ynl0ZXM=
             1.2345,
-            /*RowFactory.create(
-                    Decimal.apply(new BigDecimal("-99999999999999999999999999999.999999999")),
-                    Decimal.apply(new BigDecimal("99999999999999999999999999999.999999999")),
-                    Decimal.apply(new BigDecimal("3.14")),
-                    Decimal.apply(new BigDecimal("31415926535897932384626433832.795028841"))
-            ),*/
-            // TODO: current known issues with NUMERIC type conversion. Restore this check when they
-            // are fixed.
+            RowFactory.create(
+                Decimal.apply(
+                    new BigDecimal(
+                        "-99999999999999999999999999999.999999999",
+                        new MathContext(BQ_NUMERIC_PRECISION)),
+                    BQ_NUMERIC_PRECISION,
+                    BQ_NUMERIC_SCALE),
+                Decimal.apply(
+                    new BigDecimal(
+                        "99999999999999999999999999999.999999999",
+                        new MathContext(BQ_NUMERIC_PRECISION)),
+                    BQ_NUMERIC_PRECISION,
+                    BQ_NUMERIC_SCALE),
+                Decimal.apply(
+                    new BigDecimal("3.14", new MathContext(BQ_NUMERIC_PRECISION)),
+                    BQ_NUMERIC_PRECISION,
+                    BQ_NUMERIC_SCALE),
+                Decimal.apply(
+                    new BigDecimal(
+                        "31415926535897932384626433832.795028841",
+                        new MathContext(BQ_NUMERIC_PRECISION)),
+                    BQ_NUMERIC_PRECISION,
+                    BQ_NUMERIC_SCALE)),
             new int[] {1, 2, 3, 4},
             new Row[] {RowFactory.create(1), RowFactory.create(1)})
       };

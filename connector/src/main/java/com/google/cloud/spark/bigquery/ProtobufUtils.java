@@ -25,7 +25,6 @@ import com.google.cloud.bigquery.storage.v1beta2.ProtoSchemaConverter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.primitives.Bytes;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
@@ -38,7 +37,6 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -49,6 +47,8 @@ public class ProtobufUtils {
 
   private static final int BQ_NUMERIC_PRECISION = 38;
   private static final int BQ_NUMERIC_SCALE = 9;
+  private static final DecimalType NUMERIC_SPARK_TYPE =
+      DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   // The maximum nesting depth of a BigQuery RECORD:
   private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
   // For every message, a nested type is name "STRUCT"+i, where i is the
@@ -63,7 +63,8 @@ public class ProtobufUtils {
               .put(LegacySQLTypeName.INTEGER, DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
               .put(LegacySQLTypeName.BOOLEAN, DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL)
               .put(LegacySQLTypeName.FLOAT, DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
-              .put(LegacySQLTypeName.NUMERIC, DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
+              .put(
+                  LegacySQLTypeName.NUMERIC, DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(LegacySQLTypeName.STRING, DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(
                   LegacySQLTypeName.TIMESTAMP,
@@ -98,8 +99,7 @@ public class ProtobufUtils {
                   DataTypes.DoubleType.json(),
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
               .put(
-                  DecimalType.SYSTEM_DEFAULT().json(),
-                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
+                  NUMERIC_SPARK_TYPE.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(
                   DataTypes.StringType.json(),
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
@@ -351,7 +351,7 @@ public class ProtobufUtils {
     }
 
     if (sparkType instanceof DecimalType) {
-      return convertBigDecimalToNumeric(((Decimal) sparkValue).toJavaBigDecimal());
+      return convertDecimalToString((Decimal) sparkValue);
     }
 
     if (sparkType instanceof BooleanType) {
@@ -426,23 +426,13 @@ public class ProtobufUtils {
     if (sparkType instanceof MapType) {
       throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
     }
-    if (sparkType instanceof DecimalType) {
-      return DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES;
-    }
     return Preconditions.checkNotNull(
         SparkToProtoType.get(sparkType.json()),
         new IllegalStateException("Unexpected type: " + sparkType));
   }
 
-  // TODO: current known issues with NUMERIC type. When NUMERIC type support is added to BigQuery
-  // Storage Write API, overhaul this method.
-  private static byte[] convertBigDecimalToNumeric(BigDecimal decimal) {
-    byte[] unscaledValue =
-        decimal
-            .setScale(BQ_NUMERIC_SCALE, BigDecimal.ROUND_UNNECESSARY)
-            .unscaledValue()
-            .toByteArray();
-    Bytes.reverse(unscaledValue);
-    return Base64.getEncoder().encode(unscaledValue);
+  private static String convertDecimalToString(Decimal decimal) {
+    BigDecimal bigDecimal = decimal.toJavaBigDecimal();
+    return bigDecimal.toPlainString();
   }
 }
