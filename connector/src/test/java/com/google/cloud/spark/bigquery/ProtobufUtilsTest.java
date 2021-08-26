@@ -28,6 +28,8 @@ import com.google.protobuf.Message;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.spark.bigquery.BigNumeric;
+import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
@@ -97,7 +99,9 @@ public class ProtobufUtilsTest {
                                 .addField(
                                     PROTO_STRING_FIELD.clone().setName("Numeric").setNumber(9))
                                 .addField(
-                                    PROTO_INTEGER_FIELD.clone().setName("TimeStamp").setNumber(10))
+                                    PROTO_STRING_FIELD.clone().setName("BigNumeric").setNumber(10))
+                                .addField(
+                                    PROTO_INTEGER_FIELD.clone().setName("TimeStamp").setNumber(11))
                                 .setName("Schema")
                                 .build())
                         .build(),
@@ -150,7 +154,9 @@ public class ProtobufUtilsTest {
                             "-99999999999999999999999999999.999999999",
                             new MathContext(BQ_NUMERIC_PRECISION)),
                         BQ_NUMERIC_PRECISION,
-                        BQ_NUMERIC_SCALE)
+                        BQ_NUMERIC_SCALE),
+                    UTF8String.fromString(
+                        "-578960446186580977117854925043439539266.34992332820282019728792003956564819968")
                   })
             });
 
@@ -212,6 +218,8 @@ public class ProtobufUtilsTest {
       new StructField("TimeStamp", DataTypes.TimestampType, true, Metadata.empty());
   public final StructField SPARK_NUMERIC_FIELD =
       new StructField("Numeric", NUMERIC_SPARK_TYPE, true, Metadata.empty());
+  public final StructField SPARK_BIGNUMERIC_FIELD =
+      new StructField("BigNumeric", BigQueryDataTypes.BigNumericType, true, Metadata.empty());
 
   public final StructType BIG_SPARK_SCHEMA =
       new StructType()
@@ -224,7 +232,8 @@ public class ProtobufUtilsTest {
           .add(SPARK_BINARY_FIELD)
           .add(SPARK_DATE_FIELD)
           .add(SPARK_TIMESTAMP_FIELD)
-          .add(SPARK_NUMERIC_FIELD);
+          .add(SPARK_NUMERIC_FIELD)
+          .add(SPARK_BIGNUMERIC_FIELD);
 
   public final Field BIGQUERY_INTEGER_FIELD =
       Field.newBuilder("Number", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build();
@@ -259,6 +268,11 @@ public class ProtobufUtilsTest {
   public final Field BIGQUERY_NUMERIC_FIELD =
       Field.newBuilder("Numeric", LegacySQLTypeName.NUMERIC).setMode(Field.Mode.REQUIRED).build();
 
+  public final Field BIGQUERY_BIGNUMERIC_FIELD =
+      Field.newBuilder("BigNumeric", LegacySQLTypeName.BIGNUMERIC)
+          .setMode(Field.Mode.REQUIRED)
+          .build();
+
   public final Schema BIG_BIGQUERY_SCHEMA =
       Schema.of(
           BIGQUERY_INTEGER_FIELD,
@@ -270,6 +284,7 @@ public class ProtobufUtilsTest {
           BIGQUERY_BYTES_FIELD,
           BIGQUERY_DATE_FIELD,
           BIGQUERY_NUMERIC_FIELD,
+          BIGQUERY_BIGNUMERIC_FIELD,
           BIGQUERY_TIMESTAMP_FIELD);
 
   public final DescriptorProtos.FieldDescriptorProto.Builder PROTO_INTEGER_FIELD =
@@ -444,6 +459,9 @@ public class ProtobufUtilsTest {
                   .setField(
                       BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(10),
                       "-99999999999999999999999999999.999999999")
+                  .setField(
+                      BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(11),
+                      "-578960446186580977117854925043439539266.34992332820282019728792003956564819968")
                   .build()
                   .toByteString())
           .build();
