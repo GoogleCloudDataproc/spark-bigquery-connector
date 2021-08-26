@@ -31,14 +31,13 @@ import org.apache.log4j.Logger;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.DecimalType;
-import org.apache.spark.sql.types.Metadata;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.junit.AssumptionViolatedException;
 import org.junit.Test;
+
+import java.math.BigDecimal;
+import java.math.MathContext;
 
 import static com.google.cloud.spark.bigquery.ProtobufUtils.buildDescriptorProtoWithFields;
 import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessage;
@@ -96,7 +95,9 @@ public class ProtobufUtilsTest {
                                 .addField(PROTO_BYTES_FIELD.clone().setNumber(7))
                                 .addField(PROTO_DATE_FIELD.clone().setNumber(8))
                                 .addField(
-                                    PROTO_INTEGER_FIELD.clone().setName("TimeStamp").setNumber(9))
+                                    PROTO_STRING_FIELD.clone().setName("Numeric").setNumber(9))
+                                .addField(
+                                    PROTO_INTEGER_FIELD.clone().setName("TimeStamp").setNumber(10))
                                 .setName("Schema")
                                 .build())
                         .build(),
@@ -143,7 +144,13 @@ public class ProtobufUtilsTest {
                     true,
                     new byte[] {11, 0x7F},
                     1594080000000L,
-                    1594080000000L
+                    1594080000000L,
+                    Decimal.apply(
+                        new BigDecimal(
+                            "-99999999999999999999999999999.999999999",
+                            new MathContext(BQ_NUMERIC_PRECISION)),
+                        BQ_NUMERIC_PRECISION,
+                        BQ_NUMERIC_SCALE)
                   })
             });
 
@@ -203,6 +210,8 @@ public class ProtobufUtilsTest {
       new StructField("Date", DataTypes.DateType, true, Metadata.empty());
   public final StructField SPARK_TIMESTAMP_FIELD =
       new StructField("TimeStamp", DataTypes.TimestampType, true, Metadata.empty());
+  public final StructField SPARK_NUMERIC_FIELD =
+      new StructField("Numeric", NUMERIC_SPARK_TYPE, true, Metadata.empty());
 
   public final StructType BIG_SPARK_SCHEMA =
       new StructType()
@@ -214,7 +223,8 @@ public class ProtobufUtilsTest {
           .add(SPARK_BOOLEAN_FIELD)
           .add(SPARK_BINARY_FIELD)
           .add(SPARK_DATE_FIELD)
-          .add(SPARK_TIMESTAMP_FIELD);
+          .add(SPARK_TIMESTAMP_FIELD)
+          .add(SPARK_NUMERIC_FIELD);
 
   public final Field BIGQUERY_INTEGER_FIELD =
       Field.newBuilder("Number", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build();
@@ -246,6 +256,8 @@ public class ProtobufUtilsTest {
       Field.newBuilder("TimeStamp", LegacySQLTypeName.TIMESTAMP)
           .setMode(Field.Mode.NULLABLE)
           .build();
+  public final Field BIGQUERY_NUMERIC_FIELD =
+      Field.newBuilder("Numeric", LegacySQLTypeName.NUMERIC).setMode(Field.Mode.REQUIRED).build();
 
   public final Schema BIG_BIGQUERY_SCHEMA =
       Schema.of(
@@ -257,6 +269,7 @@ public class ProtobufUtilsTest {
           BIGQUERY_BOOLEAN_FIELD,
           BIGQUERY_BYTES_FIELD,
           BIGQUERY_DATE_FIELD,
+          BIGQUERY_NUMERIC_FIELD,
           BIGQUERY_TIMESTAMP_FIELD);
 
   public final DescriptorProtos.FieldDescriptorProto.Builder PROTO_INTEGER_FIELD =
@@ -339,11 +352,6 @@ public class ProtobufUtilsTest {
           .setName("Schema")
           .build();
 
-  public final InternalRow INTEGER_INTERNAL_ROW = new GenericInternalRow(new Object[] {1});
-  public final InternalRow STRING_INTERNAL_ROW =
-      new GenericInternalRow(new Object[] {UTF8String.fromString("A")});
-  public final InternalRow ARRAY_INTERNAL_ROW =
-      new GenericInternalRow(new Object[] {ArrayData.toArrayData(new int[] {0, 1, 2})});
   public final InternalRow INTERNAL_STRUCT_DATA =
       new GenericInternalRow(new Object[] {1, UTF8String.fromString("A")});
   public final InternalRow STRUCT_INTERNAL_ROW =
@@ -399,20 +407,6 @@ public class ProtobufUtilsTest {
     }
   }
 
-  public final DynamicMessage INTEGER_ROW_MESSAGE =
-      DynamicMessage.newBuilder(INTEGER_SCHEMA_DESCRIPTOR)
-          .setField(INTEGER_SCHEMA_DESCRIPTOR.findFieldByNumber(1), 1L)
-          .build();
-  public final DynamicMessage STRING_ROW_MESSAGE =
-      DynamicMessage.newBuilder(STRING_SCHEMA_DESCRIPTOR)
-          .setField(STRING_SCHEMA_DESCRIPTOR.findFieldByNumber(1), "A")
-          .build();
-  public final DynamicMessage ARRAY_ROW_MESSAGE =
-      DynamicMessage.newBuilder(ARRAY_SCHEMA_DESCRIPTOR)
-          .addRepeatedField(ARRAY_SCHEMA_DESCRIPTOR.findFieldByNumber(1), 0L)
-          .addRepeatedField(ARRAY_SCHEMA_DESCRIPTOR.findFieldByNumber(1), 1L)
-          .addRepeatedField(ARRAY_SCHEMA_DESCRIPTOR.findFieldByNumber(1), 2L)
-          .build();
   public DynamicMessage StructRowMessage =
       DynamicMessage.newBuilder(STRUCT_SCHEMA_DESCRIPTOR)
           .setField(
@@ -447,10 +441,9 @@ public class ProtobufUtilsTest {
                   .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(7), new byte[] {11, 0x7F})
                   .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(8), 647133184)
                   .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(9), 1594080000000L)
-                  /*.setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(10),
-                  Base64.getEncoder().encode("-99999999999999999999999999999.999999999".getBytes(UTF_8)))*/
-                  // TODO: current known issues with NUMERIC type conversion, waiting for BigQuery
-                  // team input.
+                  .setField(
+                      BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(10),
+                      "-99999999999999999999999999999.999999999")
                   .build()
                   .toByteString())
           .build();
