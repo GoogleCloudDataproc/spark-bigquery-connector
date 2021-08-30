@@ -240,8 +240,8 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
           .option("table", testTable)
           .load()
 
-        compareBigNumericDataSetRows(df.head(), allTypesTable.head())
-        compareBigNumericDataSetSchema(df.schema, allTypesTable.schema)
+        compareDataSetRows(df.head(), allTypesTable.head())
+        compareDataSetSchema(df.schema, allTypesTable.schema)
       }
     }
 
@@ -378,11 +378,11 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
           .option("readDataFormat", "arrow")
           .load().cache()
 
-        compareBigNumericDataSetRows(df.head(), allTypesTable.head())
+        compareDataSetRows(df.head(), allTypesTable.head())
 
         // read from cache
-        compareBigNumericDataSetRows(df.head(), allTypesTable.head())
-        compareBigNumericDataSetSchema(df.schema, allTypesTable.schema)
+        compareDataSetRows(df.head(), allTypesTable.head())
+        compareDataSetSchema(df.schema, allTypesTable.schema)
       }
     }
 
@@ -525,14 +525,14 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
     val readDF = spark.read.format("bigquery").load(table)
     assert(readDF.count == 3)
   }
-  
-  def compareBigNumericDataSetRows(actual: Row, expected: Row): Unit ={
+
+  def compareDataSetRows(actual: Row, expected: Row): Unit ={
     for(i <- 0 until actual.size) {
         assert(actual.get(i) === expected.get(i))
     }
   }
 
-  def compareBigNumericDataSetSchema(actualSchema: StructType, expectedSchema: StructType): Unit = {
+  def compareDataSetSchema(actualSchema: StructType, expectedSchema: StructType) = {
     val actualFields = actualSchema.fields
     val expectedFields = expectedSchema.fields
 
