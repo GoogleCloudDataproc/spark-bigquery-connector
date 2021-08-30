@@ -32,6 +32,8 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 
+import static com.google.cloud.spark.bigquery.SchemaConverters.*;
+import static com.google.cloud.spark.bigquery.SchemaConverters.BQ_BIG_NUMERIC_SCALE;
 import static com.google.common.truth.Truth.assertThat;
 
 public class AvroSchemaConverterTest {
@@ -68,11 +70,26 @@ public class AvroSchemaConverterTest {
                 null,
                 false,
                 ImmutableList.of(
-                    new Schema.Field("min", nullable(decimal("min")), null, (Object) null),
-                    new Schema.Field("max", nullable(decimal("max")), null, (Object) null),
-                    new Schema.Field("pi", nullable(decimal("pi")), null, (Object) null),
                     new Schema.Field(
-                        "big_pi", nullable(decimal("big_pi")), null, (Object) null)))));
+                        "min",
+                        nullable(decimal(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE)),
+                        null,
+                        (Object) null),
+                    new Schema.Field(
+                        "max",
+                        nullable(decimal(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE)),
+                        null,
+                        (Object) null),
+                    new Schema.Field(
+                        "pi",
+                        nullable(decimal(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE)),
+                        null,
+                        (Object) null),
+                    new Schema.Field(
+                        "big_pi",
+                        nullable(decimal(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE)),
+                        null,
+                        (Object) null)))));
 
     checkField(
         fields[11],
@@ -84,8 +101,16 @@ public class AvroSchemaConverterTest {
                 null,
                 false,
                 ImmutableList.of(
-                    new Schema.Field("min", nullable(Schema.Type.STRING), null, (Object) null),
-                    new Schema.Field("max", nullable(Schema.Type.STRING), null, (Object) null)))));
+                    new Schema.Field(
+                        "min",
+                        nullable(decimal(BQ_BIG_NUMERIC_PRECESION, BQ_BIG_NUMERIC_SCALE)),
+                        null,
+                        (Object) null),
+                    new Schema.Field(
+                        "max",
+                        nullable(decimal(BQ_BIG_NUMERIC_PRECESION, BQ_BIG_NUMERIC_SCALE)),
+                        null,
+                        (Object) null)))));
 
     checkField(fields[12], "int_arr", nullable(Schema.createArray(nullable(Schema.Type.LONG))));
     checkField(
@@ -198,22 +223,18 @@ public class AvroSchemaConverterTest {
   public void testConvertDecimal() {
     InternalRow row =
         new GenericInternalRow(
-            new Object[] {
-              Decimal.apply(BigDecimal.valueOf(123.456), SchemaConverters.BQ_NUMERIC_PRECISION, 3)
-            });
+            new Object[] {Decimal.apply(BigDecimal.valueOf(123.456), BQ_NUMERIC_PRECISION, 3)});
     StructType sparkSchema =
         DataTypes.createStructType(
             ImmutableList.of(
                 DataTypes.createStructField(
-                    "decimal_f",
-                    DataTypes.createDecimalType(SchemaConverters.BQ_NUMERIC_PRECISION, 3),
-                    false)));
+                    "decimal_f", DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, 3), false)));
 
     Schema avroSchema =
         SchemaBuilder.record("root")
             .fields() //
             .name("decimal_f")
-            .type(decimal("decimal_f"))
+            .type(decimal(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE))
             .noDefault() //
             .endRecord();
     GenericData.Record result =
@@ -224,7 +245,7 @@ public class AvroSchemaConverterTest {
             decimalConversion.fromBytes(
                 (ByteBuffer) result.get(0),
                 avroSchema.getField("decimal_f").schema(),
-                LogicalTypes.decimal(SchemaConverters.BQ_NUMERIC_PRECISION, 3)))
+                LogicalTypes.decimal(BQ_NUMERIC_PRECISION, 3)))
         .isEqualTo(BigDecimal.valueOf(123.456));
   }
 
@@ -289,8 +310,8 @@ public class AvroSchemaConverterTest {
     assertThat(field.schema()).isEqualTo(schema);
   }
 
-  private Schema decimal(String name) {
-    return LogicalTypes.decimal(38, 9).addToSchema(SchemaBuilder.builder().bytesType());
+  private Schema decimal(int precision, int scale) {
+    return LogicalTypes.decimal(precision, scale).addToSchema(SchemaBuilder.builder().bytesType());
   }
 
   Schema nullable(Schema schema) {

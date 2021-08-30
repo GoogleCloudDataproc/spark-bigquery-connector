@@ -19,4 +19,17 @@ public class BigNumeric {
     public String toString() {
         return this.number.toPlainString();
     }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (!(other instanceof BigNumeric)) {
+            return false;
+        }
+
+        BigNumeric otherBigNumeric = (BigNumeric) other;
+        return this.number != null ? this.number.equals(otherBigNumeric.number) : otherBigNumeric.number == null;
+    }
 }
