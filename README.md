@@ -470,7 +470,7 @@ The API Supports a number of options to configure the read
     <tr valign="top">
            <td><code>clusteredFields</code>
             </td>
-            <td>Comma separated list of non-repeated, top level columns. Clustering is only supported for partitioned tables
+            <td>Comma separated list of non-repeated, top level columns.
                <br/>(Optional).
             </td>
             <td>Write</td>

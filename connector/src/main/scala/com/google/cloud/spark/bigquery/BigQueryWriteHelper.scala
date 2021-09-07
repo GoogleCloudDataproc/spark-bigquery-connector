@@ -15,9 +15,6 @@
  */
 package com.google.cloud.spark.bigquery
 
-import java.io.IOException
-import java.util.UUID
-
 import com.google.cloud.bigquery.JobInfo.CreateDisposition.CREATE_NEVER
 import com.google.cloud.bigquery._
 import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryUtil}
@@ -29,6 +26,8 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
+import java.io.IOException
+import java.util.UUID
 import scala.collection.JavaConverters._
 
 case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
@@ -101,11 +100,11 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
     val fs = gcsPath.getFileSystem(conf)
     val sourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(
       ToIterator(fs.listFiles(gcsPath, false))
-      .map(_.getPath.toString)
-      .filter(_.toLowerCase.endsWith(
-        s".${options.getIntermediateFormat.getFormatOptions.getType.toLowerCase}"))
-      .toList
-      .asJava)
+        .map(_.getPath.toString)
+        .filter(_.toLowerCase.endsWith(
+          s".${options.getIntermediateFormat.getFormatOptions.getType.toLowerCase}"))
+        .toList
+        .asJava)
 
     val jobConfigurationBuilder = LoadJobConfiguration.newBuilder(
       options.getTableId, sourceUris, options.getIntermediateFormat.getFormatOptions)
@@ -133,12 +132,12 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
       }
 
       jobConfigurationBuilder.setTimePartitioning(timePartitionBuilder.build())
+    }
 
-      if (options.getClusteredFields.isPresent) {
-        val clustering =
-          Clustering.newBuilder().setFields(options.getClusteredFields.get).build();
-        jobConfigurationBuilder.setClustering(clustering)
-      }
+    if (options.getClusteredFields.isPresent) {
+      val clustering =
+        Clustering.newBuilder().setFields(options.getClusteredFields.get).build();
+      jobConfigurationBuilder.setClustering(clustering)
     }
 
     if (options.isUseAvroLogicalTypes) {
@@ -196,8 +195,9 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
       .filter {
         field =>
           SupportedCustomDataType.of(field.dataType).isPresent ||
-            getDescriptionOrCommentOfField(field).isPresent}
-      .map (field => (field.name, field))
+            getDescriptionOrCommentOfField(field).isPresent
+      }
+      .map(field => (field.name, field))
       .toMap
 
     if (!fieldsToUpdate.isEmpty) {
@@ -221,7 +221,7 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
     val newField = field.toBuilder
     val bqDescription = getDescriptionOrCommentOfField(dataField)
 
-    if(bqDescription.isPresent){
+    if (bqDescription.isPresent) {
       newField.setDescription(bqDescription.get)
     } else {
       val marker = SupportedCustomDataType.of(dataField.dataType).get.getTypeMarker
