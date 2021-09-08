@@ -386,6 +386,35 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
       }
     }
 
+    test("partial writes to a BigNumeric table %s".format(dataSourceFormat)) {
+
+      // Writing BigNumeric to BQ as BigNumeric is supported only by BigQueryDataSourceV2
+      if(dataSourceFormat.equals("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")) {
+        val allTypesTable = readAllTypesTable(dataSourceFormat)
+        val partialRow =
+          allTypesTable
+            .select("int_req", "int_null", "bl", "nums", "big_numeric_nums", "int_struct_arr")
+
+        writeToBigQuery(dataSourceFormat, allTypesTable, SaveMode.Overwrite, "avro")
+        writeToBigQuery(dataSourceFormat, partialRow, SaveMode.Append, "avro")
+
+        val df = spark.read.format(dataSourceFormat)
+          .option("dataset", testDataset)
+          .option("table", testTable)
+          .option("readDataFormat", "arrow")
+          .load()
+
+        val actualRow = df.filter("str is null").head
+        val expectedRow = partialRow.head()
+        val expectedFieldNames = expectedRow.schema.fields.map(field => field.name)
+
+        val actualValueMap = actualRow.getValuesMap(expectedFieldNames)
+        val expectedValuesMap = expectedRow.getValuesMap(expectedFieldNames)
+
+        assert(actualValueMap === expectedValuesMap)
+      }
+    }
+
     test("write to bq with description/comment. DataSource %s".format(dataSourceFormat)) {
       val testDescription = "test description"
       val testComment = "test comment"
