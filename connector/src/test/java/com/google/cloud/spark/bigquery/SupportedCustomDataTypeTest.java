@@ -15,9 +15,14 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import org.apache.spark.bigquery.BigNumeric;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.math.BigDecimal;
 import java.util.Optional;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -36,5 +41,31 @@ public class SupportedCustomDataTypeTest {
     Optional<SupportedCustomDataType> matrix =
         SupportedCustomDataType.of(SQLDataTypes.MatrixType());
     assertThat(matrix.isPresent()).isTrue();
+  }
+
+  @Test
+  public void testSerializabilityOfBigNumeric() throws IOException {
+    new ObjectOutputStream(new ByteArrayOutputStream())
+        .writeObject(new BigNumeric(new BigDecimal("123.123")));
+  }
+
+  @Test
+  public void testBigNumericEquality() throws IOException {
+    BigNumeric bn1 = new BigNumeric(new BigDecimal("123.123"));
+    BigNumeric bn2 = new BigNumeric(new BigDecimal("123.123"));
+    BigNumeric bn3 = new BigNumeric(new BigDecimal("456.456"));
+
+    assertThat(bn1.equals(bn2)).isTrue();
+    assertThat(bn1.equals(bn3)).isFalse();
+  }
+
+  @Test
+  public void testBigNumericHashCode() throws IOException {
+    BigNumeric bn1 = new BigNumeric(new BigDecimal("123.123"));
+    BigNumeric bn2 = new BigNumeric(new BigDecimal("123.123"));
+    BigNumeric bn3 = new BigNumeric(new BigDecimal("456.456"));
+
+    assertThat(bn1.hashCode() == bn2.hashCode()).isTrue();
+    assertThat(bn1.hashCode() == bn3.hashCode()).isFalse();
   }
 }

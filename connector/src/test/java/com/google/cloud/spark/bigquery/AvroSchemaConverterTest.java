@@ -32,8 +32,10 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 
-import static com.google.cloud.spark.bigquery.SchemaConverters.*;
+import static com.google.cloud.spark.bigquery.SchemaConverters.BQ_BIG_NUMERIC_PRECESION;
 import static com.google.cloud.spark.bigquery.SchemaConverters.BQ_BIG_NUMERIC_SCALE;
+import static com.google.cloud.spark.bigquery.SchemaConverters.BQ_NUMERIC_PRECISION;
+import static com.google.cloud.spark.bigquery.SchemaConverters.BQ_NUMERIC_SCALE;
 import static com.google.common.truth.Truth.assertThat;
 
 public class AvroSchemaConverterTest {

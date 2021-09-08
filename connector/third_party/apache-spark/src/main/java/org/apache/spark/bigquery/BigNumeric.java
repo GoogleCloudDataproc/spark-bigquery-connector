@@ -1,10 +1,12 @@
 package org.apache.spark.bigquery;
 
 import org.apache.spark.sql.types.SQLUserDefinedType;
+
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 @SQLUserDefinedType(udt = BigNumericUDT.class)
-public class BigNumeric {
+public class BigNumeric implements Serializable {
     private final BigDecimal number;
 
     public BigNumeric(BigDecimal number) {
@@ -31,5 +33,10 @@ public class BigNumeric {
 
         BigNumeric otherBigNumeric = (BigNumeric) other;
         return this.number != null ? this.number.equals(otherBigNumeric.number) : otherBigNumeric.number == null;
+    }
+
+    @Override
+    public int hashCode(){
+       return this.number.hashCode();
     }
 }
