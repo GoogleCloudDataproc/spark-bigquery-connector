@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery.it
 
 import java.util.UUID
-
 import com.google.cloud.bigquery._
 import com.google.cloud.spark.bigquery.it.TestConstants.BIG_NUMERIC_COLUMN_POSITION
 import com.google.cloud.spark.bigquery.{SchemaConverters, TestUtils}
@@ -97,8 +96,10 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
     Seq(Person("Xyz", Seq(Friend(10, Seq(Link("www.xyz.com"))))),
       Person("Pqr", Seq(Friend(12, Seq(Link("www.pqr.com"))))))))
 
+  private def testTableOnBigQuery: Table = bq.getTable(testDataset, testTable)
+
   // getNumRows returns BigInteger, and it messes up the matchers
-  private def testTableNumberOfRows = bq.getTable(testDataset, testTable).getNumRows.intValue
+  private def testTableNumberOfRows = testTableOnBigQuery.getNumRows.intValue
 
   private def testPartitionedTableDefinition = bq.getTable(testDataset, testTable + "_partitioned")
     .getDefinition[StandardTableDefinition]()
@@ -107,12 +108,14 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
                                dataSource: String,
                                df: DataFrame,
                                mode: SaveMode,
-                               format: String = "parquet") =
+                               format: String = "parquet",
+                               additionalOptions: Map[String, String] = Map.empty[String, String]) =
     df.write.format(dataSource)
       .mode(mode)
       .option("table", fullTableName)
       .option("temporaryGcsBucket", temporaryGcsBucket)
       .option("intermediateFormat", format)
+      .options(additionalOptions)
       .save()
 
   private def initialDataValuesExist = numberOfRowsWith("Abc") == 1
@@ -231,7 +234,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
 
       // temporarily skipping for v1, as "AVRO" write format is throwing error
       // while writing to GCS
-      if(dataSourceFormat.equals("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")) {
+      if (dataSourceFormat.equals("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")) {
         val allTypesTable = readAllTypesTable(dataSourceFormat)
         writeToBigQuery(dataSourceFormat, allTypesTable, SaveMode.Overwrite, "avro")
 
@@ -368,7 +371,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
 
       // temporarily skipping for v1, as "AVRO" write format is throwing error
       // while writing to GCS
-      if(dataSourceFormat.equals("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")) {
+      if (dataSourceFormat.equals("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")) {
         val allTypesTable = readAllTypesTable(dataSourceFormat)
         writeToBigQuery(dataSourceFormat, allTypesTable, SaveMode.Overwrite, "avro")
 
@@ -429,6 +432,18 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
           assert(!description.isPresent)
         }
       }
+    }
+
+    test("write unpartitioned clustered table. DataSource %s".format(dataSourceFormat)) {
+      writeToBigQuery(dataSourceFormat, initialData, SaveMode.Append,
+        additionalOptions = Map("clusteredFields" -> "name"))
+
+      testTableNumberOfRows shouldBe 2
+      initialDataValuesExist shouldBe true
+      val clustering = testTableOnBigQuery.getDefinition[StandardTableDefinition]
+        .getClustering.getFields
+      clustering.size() shouldBe 1
+      clustering.asScala.head shouldBe "name"
     }
   }
 
@@ -514,11 +529,11 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
     assert(readDF.count == 3)
   }
 
-  def compareBigNumericDataSetRows(actual: Row, expected: Row): Unit ={
+  def compareBigNumericDataSetRows(actual: Row, expected: Row): Unit = {
 
-    for(i <- 0 until actual.size) {
-      if(i == BIG_NUMERIC_COLUMN_POSITION) {
-        for(j <- 0 to 1) {
+    for (i <- 0 until actual.size) {
+      if (i == BIG_NUMERIC_COLUMN_POSITION) {
+        for (j <- 0 to 1) {
           val actualBigNumericString =
             actual.get(i).asInstanceOf[GenericRowWithSchema].get(j)
 
@@ -536,13 +551,13 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
     }
   }
 
-  def compareBigNumericDataSetSchema(actualSchema: StructType, expectedSchema: StructType) = {
+  def compareBigNumericDataSetSchema(actualSchema: StructType, expectedSchema: StructType): Unit = {
 
     val actualFields = actualSchema.fields
     val expectedFields = expectedSchema.fields
 
     for(i <- 0 until actualFields.size) {
-      if(i == BIG_NUMERIC_COLUMN_POSITION) {
+      if (i == BIG_NUMERIC_COLUMN_POSITION) {
 
         val actualField = actualFields(i)
         val expectedField = expectedFields(i)

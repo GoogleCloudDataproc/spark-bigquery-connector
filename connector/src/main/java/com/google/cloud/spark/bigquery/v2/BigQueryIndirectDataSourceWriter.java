@@ -33,7 +33,6 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
-import java.util.function.Function;
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -50,11 +49,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -183,14 +182,15 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
       config.getPartitionRequireFilter().ifPresent(timePartitionBuilder::setRequirePartitionFilter);
       config.getPartitionField().ifPresent(timePartitionBuilder::setField);
       jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
-      config
-          .getClusteredFields()
-          .ifPresent(
-              clusteredFields -> {
-                Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
-                jobConfiguration.setClustering(clustering);
-              });
     }
+
+    config
+        .getClusteredFields()
+        .ifPresent(
+            clusteredFields -> {
+              Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
+              jobConfiguration.setClustering(clustering);
+            });
 
     if (!config.getLoadSchemaUpdateOptions().isEmpty()) {
       jobConfiguration.setSchemaUpdateOptions(config.getLoadSchemaUpdateOptions());
