@@ -1,8 +1,11 @@
 # Release Notes
 
-## 0.22.0 - 2021-06-22
+## 0.22.1 - 2021-09-08
+* Issue #444: allowing unpartitioned clustered table 
+
+## 0.22.0 - 2021-08-10
 * PR #404: Added support for BigNumeric
-* PR #430: Added HTTP and gRPC proxy support  
+* PR #430: Added HTTP and gRPC proxy support
 * Issue #273: Resolved the streaming write issue for spark 3.x
 
 ## 0.21.1 - 2021-06-22
