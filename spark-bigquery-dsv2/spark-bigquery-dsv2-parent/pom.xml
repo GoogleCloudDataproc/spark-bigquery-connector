@@ -137,12 +137,12 @@
               </shadedPattern>
             </relocation>
             <relocation>
-              <pattern>org.apache.arrow</pattern>
+              <pattern>org.apache.beam</pattern>
               <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.apache.beam
               </shadedPattern>
             </relocation>
             <relocation>
-              <pattern>org.apache.commons</pattern>
+            <pattern>org.apache.commons</pattern>
               <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.apache.commons
               </shadedPattern>
             </relocation>
@@ -216,7 +216,7 @@
         </configuration>
         <executions>
           <execution>
-            <phase>package</phase>
+            <phase>install</phase>
             <goals>
               <goal>shade</goal>
             </goals>
