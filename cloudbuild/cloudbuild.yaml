@@ -3,7 +3,7 @@ steps:
   - id: 'Running tests and integration tests'
     name: maven:3-jdk-8
     entrypoint: mvn
-    args: ['install', '-Pall,integration', '-Dmaven.repo.remote=https://maven-central.storage.googleapis.com/maven2/,https://repo1.maven.org/maven2/']
+    args: ['install', '-Pintegration,dsv1_2.12,dsv2', '-Dmaven.repo.remote=https://maven-central.storage.googleapis.com/maven2/,https://repo1.maven.org/maven2/']
     env:
       - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
       - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
