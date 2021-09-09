@@ -1,18 +1,9 @@
 steps:
   # 1. Run unit and integration tests on DSv1
-  - id: 'DataSource v1'
+  - id: 'Running tests and integration tests'
     name: maven:3-jdk-8
     entrypoint: mvn
-    args: ['install', 'failsafe:integration-test', '-Pdsv1_2.11,integration', '-Dmaven.repo.remote=https://maven-central.storage.googleapis.com/maven2/,https://repo1.maven.org/maven2/']
-    env:
-      - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
-      - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
-
-  # 2. Run unit tests on on DSv2, integration tests fail still
-  - id: 'DataSource v2'
-    name: maven:3-jdk-8
-    entrypoint: mvn
-    args: ['test' ,'-Pdsv2']
+    args: ['install', '-Pall,integration', '-Dmaven.repo.remote=https://maven-central.storage.googleapis.com/maven2/,https://repo1.maven.org/maven2/']
     env:
       - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
       - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'

@@ -234,7 +234,8 @@ public class BigQueryClient {
           || (type == TableDefinition.Type.TABLE && filter.isPresent())) {
         // run a query
         String table = fullTableName(tableInfo.getTableId());
-        String sql = format("SELECT COUNT(*) from `%s` WHERE %s", table, filter.get());
+        String whereClause = filter.map(f -> "WHERE " + f).orElse("");
+        String sql = format("SELECT COUNT(*) from `%s` %s", table, whereClause);
         TableResult result = bigQuery.query(QueryJobConfiguration.of(sql));
         return result.iterateAll().iterator().next().get(0).getLongValue();
       } else {

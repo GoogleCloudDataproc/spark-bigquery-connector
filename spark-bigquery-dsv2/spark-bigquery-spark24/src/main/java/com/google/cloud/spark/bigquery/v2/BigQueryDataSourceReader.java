@@ -37,6 +37,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.sources.v2.reader.DataSourceReader;
@@ -53,22 +62,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.collection.JavaConversions;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.OptionalLong;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 public class BigQueryDataSourceReader
     implements DataSourceReader,
-        SupportsPushDownRequiredColumns,
-        SupportsPushDownFilters,
-        SupportsReportStatistics,
-        SupportsScanColumnarBatch {
+    SupportsPushDownRequiredColumns,
+    SupportsPushDownFilters,
+    SupportsReportStatistics,
+    SupportsScanColumnarBatch {
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryDataSourceReader.class);
 
@@ -97,7 +96,7 @@ public class BigQueryDataSourceReader
   private final String applicationId;
   private Optional<StructType> schema;
   private Optional<StructType> userProvidedSchema;
-  private Filter[] pushedFilters = new Filter[] {};
+  private Filter[] pushedFilters = new Filter[]{};
   private Map<String, StructField> fields;
 
   public BigQueryDataSourceReader(
@@ -158,13 +157,7 @@ public class BigQueryDataSourceReader
         schema
             .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
             .orElse(ImmutableList.of());
-    Optional<String> filter =
-        emptyIfNeeded(
-            SparkFilterUtils.getCompiledFilter(
-                readSessionCreatorConfig.getPushAllFilters(),
-                readSessionCreatorConfig.getReadDataFormat(),
-                globalFilter,
-                pushedFilters));
+    Optional<String> filter = getCombinedFilter();
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(tableId, selectedFields, filter);
     ReadSession readSession = readSessionResponse.getReadSession();
@@ -184,6 +177,15 @@ public class BigQueryDataSourceReader
         .collect(Collectors.toList());
   }
 
+  private Optional<String> getCombinedFilter() {
+    return emptyIfNeeded(
+        SparkFilterUtils.getCompiledFilter(
+            readSessionCreatorConfig.getPushAllFilters(),
+            readSessionCreatorConfig.getReadDataFormat(),
+            globalFilter,
+            pushedFilters));
+  }
+
   @Override
   public List<InputPartition<ColumnarBatch>> planBatchInputPartitions() {
     if (!enableBatchRead()) {
@@ -193,13 +195,7 @@ public class BigQueryDataSourceReader
         schema
             .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
             .orElse(ImmutableList.copyOf(fields.keySet()));
-    Optional<String> filter =
-        emptyIfNeeded(
-            SparkFilterUtils.getCompiledFilter(
-                readSessionCreatorConfig.getPushAllFilters(),
-                readSessionCreatorConfig.getReadDataFormat(),
-                globalFilter,
-                pushedFilters));
+    Optional<String> filter = getCombinedFilter();
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(tableId, selectedFields, filter);
     ReadSession readSession = readSessionResponse.getReadSession();
@@ -221,8 +217,8 @@ public class BigQueryDataSourceReader
 
     ImmutableList<String> partitionSelectedFields = selectedFields;
     return Streams.stream(
-            Iterables.partition(
-                readSession.getStreamsList(), readSessionCreatorConfig.streamsPerPartition()))
+        Iterables.partition(
+            readSession.getStreamsList(), readSessionCreatorConfig.streamsPerPartition()))
         .map(
             streams ->
                 new ArrowInputPartition(
@@ -277,7 +273,8 @@ public class BigQueryDataSourceReader
   }
 
   List<InputPartition<InternalRow>> createEmptyProjectionPartitions() {
-    long rowCount = bigQueryClient.calculateTableSize(tableId, globalFilter);
+    Optional<String> filter = getCombinedFilter();
+    long rowCount = bigQueryClient.calculateTableSize(tableId, filter);
     logger.info("Used optimized BQ count(*) path. Count: " + rowCount);
     int partitionsCount = readSessionCreatorConfig.getDefaultParallelism();
     int partitionSize = (int) (rowCount / partitionsCount);
