@@ -63,8 +63,6 @@ import scala.Some;
 class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   private static final String TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
-  private static final String LIBRARIES_PROJECTS_TABLE = "bigquery-public-data.libraries_io.projects";
-  private static final String ALL_TYPES_TABLE_NAME = "all_types";
   protected static AtomicInteger id = new AtomicInteger(0);
   protected BigQuery bq;
 
@@ -142,7 +140,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   Dataset<Row> readAllTypesTable() {
     return spark.read().format("bigquery")
         .option("dataset", testDataset.toString())
-        .option("table", ALL_TYPES_TABLE_NAME)
+        .option("table", TestConstants.ALL_TYPES_TABLE_NAME)
         .load();
   }
 
@@ -212,25 +210,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
   }
-
-  //   test("write all types to bq - avro format() {
-  //
-  //     // temporarily skipping for v1, as "AVRO" write format is throwing error
-  //     // while writing to GCS
-  //     if("bigquery".equals("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")) {
-  //       val allTypesTable = readAllTypesTable("bigquery")
-  //       writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro")
-  //
-  //       val df = spark.read.format("bigquery")
-  //         .option("dataset", testDataset.toString())
-  //         .option("table", testTable)
-  //         .load()
-  //
-  //       compareBigNumericDataSetRows(df.head(), allTypesTable.head())
-  //       compareBigNumericDataSetSchema(df.schema, allTypesTable.schema)
-  //     }
-  //   }
-
+  
   @Test
   public void testWriteToBigQueryAddingTheSettingsToSparkConf() {
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
@@ -244,7 +224,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   @Test
   public void testWriteToBigQueryPartitionedAndClusteredTable() {
     Dataset<Row> df = spark.read().format("bigquery")
-        .option("table", LIBRARIES_PROJECTS_TABLE)
+        .option("table", TestConstants.LIBRARIES_PROJECTS_TABLE)
         .load()
         .where("platform = 'Sublime'");
 

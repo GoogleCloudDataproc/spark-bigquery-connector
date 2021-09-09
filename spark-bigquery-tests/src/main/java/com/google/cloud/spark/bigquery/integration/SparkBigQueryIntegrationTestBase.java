@@ -43,6 +43,8 @@ public class SparkBigQueryIntegrationTestBase {
     @Override
     protected void before() throws Throwable {
       spark = SparkSession.builder().master("local").getOrCreate();
+      // reducing test's logs
+      spark.sparkContext().setLogLevel("WARN");
     }
 
   }

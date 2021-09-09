@@ -57,25 +57,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
       .put("corpus like '%kinghenryiv'", ImmutableList.of("'", "'And", "'Anon"))
       .put("corpus like '%king%'", ImmutableList.of("'", "'A", "'Affectionate"))
       .build();
-  private static final String LIBRARIES_PROJECTS_TABLE = "bigquery-public-data.libraries_io.projects";
-  private static final String SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare";
-  private static final long SHAKESPEARE_TABLE_NUM_ROWS = 164656L;
-  private static final StructType SHAKESPEARE_TABLE_SCHEMA = new StructType(new StructField[]{
-      StructField.apply("word", DataTypes.StringType, false, metadata("description",
-          "A single unique word (where whitespace is the delimiter) extracted from a corpus.")),
-      StructField.apply("word_count", DataTypes.LongType, false, metadata("description",
-          "The number of times this word appears in this corpus.")),
-      StructField.apply("corpus", DataTypes.StringType, false, metadata("description",
-          "The work from which this word was extracted.")),
-      StructField.apply("corpus_date", DataTypes.LongType, false, metadata("description",
-          "The year in which this corpus was published."))});
   protected final String PROJECT_ID = Preconditions
       .checkNotNull(System.getenv("GOOGLE_CLOUD_PROJECT"),
           "Please set the GOOGLE_CLOUD_PROJECT env variable in order to read views");
 
 
   private static final StructType SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT = new StructType(
-      Stream.of(SHAKESPEARE_TABLE_SCHEMA.fields()).map(
+      Stream.of(TestConstants.SHAKESPEARE_TABLE_SCHEMA.fields()).map(
           field -> {
             Metadata metadata =
                 new MetadataBuilder()
@@ -99,7 +87,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
    */
   private void testShakespeare(Dataset<Row> df) {
     assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);
-    assertThat(df.count()).isEqualTo(SHAKESPEARE_TABLE_NUM_ROWS);
+    assertThat(df.count()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
     List<String> firstWords = Arrays.asList((String[]) df.select("word")
         .where("word >= 'a' AND word not like '%\\'%'")
         .distinct()
@@ -112,21 +100,21 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   @Test
   public void testReadWithOption() {
     testShakespeare(spark.read().format("bigquery")
-        .option("table", SHAKESPEARE_TABLE)
+        .option("table", TestConstants.SHAKESPEARE_TABLE)
         .load());
   }
 
   @Test
   public void testReadWithSimplifiedApi() {
     testShakespeare(spark.read().format("bigquery")
-        .load(SHAKESPEARE_TABLE));
+        .load(TestConstants.SHAKESPEARE_TABLE));
   }
 
   @Test
   @Ignore("DSv2 only")
   public void testReadCompressed() {
     Dataset<Row> df = spark.read().format("bigquery")
-        .option("table", SHAKESPEARE_TABLE)
+        .option("table", TestConstants.SHAKESPEARE_TABLE)
         .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
         .load();
     // Test early termination succeeds
@@ -139,7 +127,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   @Ignore("DSv2 only")
   public void testReadCompressedWith1BackgroundThreads() {
     Dataset<Row> df = spark.read().format("bigquery")
-        .option("table", SHAKESPEARE_TABLE)
+        .option("table", TestConstants.SHAKESPEARE_TABLE)
         .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
         .option("bqBackgroundThreadsPerStream", "1")
         .load();
@@ -152,7 +140,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   @Ignore("DSv2 only")
   public void testReadCompressedWith4BackgroundThreads() {
     Dataset<Row> df = spark.read().format("bigquery")
-        .option("table", SHAKESPEARE_TABLE)
+        .option("table", TestConstants.SHAKESPEARE_TABLE)
         .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
         .option("bqBackgroundThreadsPerStream", "4")
         .load();
@@ -163,9 +151,9 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testFilters() {
-    Dataset<Row> df = spark.read().format("bigquery").load(SHAKESPEARE_TABLE);
+    Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
     assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);
-    assertThat(df.count()).isEqualTo(SHAKESPEARE_TABLE_NUM_ROWS);
+    assertThat(df.count()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
     FILTER_DATA.forEach((condition, expectedElements) ->
     {
       List<String> firstWords = Arrays.asList((String[]) df.select("word")
@@ -226,7 +214,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         });
     Dataset<Row> table = spark.read().schema(expectedSchema)
         .format("bigquery")
-        .option("table", SHAKESPEARE_TABLE)
+        .option("table", TestConstants.SHAKESPEARE_TABLE)
         .load();
     assertThat(expectedSchema).isEqualTo(table.schema());
   }
@@ -273,6 +261,25 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         .load();
 
     assertThat(df.count()).isGreaterThan(1);
+  }
+
+  @Test
+  public void testOrAcrossColumnsAndFormats() {
+    List<Row> avroResults = spark.read().format("bigquery")
+        .option("table", "bigquery-public-data.samples.shakespeare")
+        .option("filter", "word_count = 1 OR corpus_date = 0")
+        .option("readDataFormat", "AVRO")
+        .load()
+        .collectAsList();
+
+    List<Row> arrowResults = spark.read().format("bigquery")
+        .option("table", "bigquery-public-data.samples.shakespeare")
+        .option("readDataFormat", "ARROW")
+        .load()
+        .where("word_count = 1 OR corpus_date = 0")
+        .collectAsList();
+
+    assertThat(avroResults).isEqualTo(arrowResults);
   }
 
 }

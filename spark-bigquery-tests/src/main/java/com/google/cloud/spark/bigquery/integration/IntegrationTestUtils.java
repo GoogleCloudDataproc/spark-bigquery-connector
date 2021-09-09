@@ -91,7 +91,7 @@ public class IntegrationTestUtils {
     bq.create(TableInfo.of(tableId, viewDefinition));
   }
 
-  public static void compareBigNumericDataSetRows(Row row, Row expected) {
+  public static void compareRows(Row row, Row expected) {
     for (int i = 0; i < expected.length(); i++) {
       // if (i == TestConstants.BIG_NUMERIC_COLUMN_POSITION) {
       // TODO: Restore this code after
@@ -108,12 +108,6 @@ public class IntegrationTestUtils {
       assertThat(value).isEqualTo(expected.get(i));
       //     }
     }
-  }
-
-  private static String getBigNumericString(Row row, int i, int j) {
-    BigNumeric bigNumericValue = (BigNumeric) (((GenericRowWithSchema) row.get(i)).get(j));
-    String bigNumericString = bigNumericValue.getNumber().toPlainString();
-    return bigNumericString;
   }
 
   public static void compareBigNumericDataSetSchema(StructType actualSchema,

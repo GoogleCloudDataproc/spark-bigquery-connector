@@ -16,36 +16,34 @@
 package com.google.cloud.spark.bigquery.integration.model;
 
 import com.google.common.base.Objects;
-import java.util.List;
 
-public class Person {
+public class ColumnOrderTestClass {
 
-  private String name;
-  private List<Friend> friends;
+  private NumStruct nums;
+  private String str;
 
-  public Person() {
+  public ColumnOrderTestClass() {
   }
 
-  public Person(String name,
-      List<Friend> friends) {
-    this.name = name;
-    this.friends = friends;
+  public ColumnOrderTestClass(NumStruct nums, String str) {
+    this.nums = nums;
+    this.str = str;
   }
 
-  public String getName() {
-    return name;
+  public NumStruct getNums() {
+    return nums;
   }
 
-  public void setName(String name) {
-    this.name = name;
+  public void setNums(NumStruct nums) {
+    this.nums = nums;
   }
 
-  public List<Friend> getFriends() {
-    return friends;
+  public String getStr() {
+    return str;
   }
 
-  public void setFriends(List<Friend> friends) {
-    this.friends = friends;
+  public void setStr(String str) {
+    this.str = str;
   }
 
   @Override
@@ -53,24 +51,24 @@ public class Person {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof Person)) {
+    if (!(o instanceof ColumnOrderTestClass)) {
       return false;
     }
-    Person person = (Person) o;
-    return Objects.equal(name, person.name) && Objects
-        .equal(friends, person.friends);
+    ColumnOrderTestClass that = (ColumnOrderTestClass) o;
+    return Objects.equal(nums, that.nums) && Objects
+        .equal(str, that.str);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(name, friends);
+    return Objects.hashCode(nums, str);
   }
 
   @Override
   public String toString() {
-    return "Person{" +
-        "name='" + name + '\'' +
-        ", friends=" + friends +
+    return "ColumnOrderTestClass{" +
+        "nums=" + nums +
+        ", str='" + str + '\'' +
         '}';
   }
 }

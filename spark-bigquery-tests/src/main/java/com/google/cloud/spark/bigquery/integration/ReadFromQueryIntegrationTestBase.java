@@ -29,7 +29,6 @@ import org.junit.Test;
 
 class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
-  private static final String  ALL_TYPES_TABLE_NAME = "all_types";
   private BigQuery bq;
 
   protected ReadFromQueryIntegrationTestBase() {

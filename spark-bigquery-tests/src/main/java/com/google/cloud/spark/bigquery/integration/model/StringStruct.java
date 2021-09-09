@@ -18,34 +18,43 @@ package com.google.cloud.spark.bigquery.integration.model;
 import com.google.common.base.Objects;
 import java.util.List;
 
-public class Person {
+public class StringStruct {
 
-  private String name;
-  private List<Friend> friends;
+  private String str3;
+  private String str1;
+  private String str2;
 
-  public Person() {
+  public StringStruct() {
   }
 
-  public Person(String name,
-      List<Friend> friends) {
-    this.name = name;
-    this.friends = friends;
+  public StringStruct(String str3, String str1, String str2) {
+    this.str3 = str3;
+    this.str1 = str1;
+    this.str2 = str2;
   }
 
-  public String getName() {
-    return name;
+  public String getStr3() {
+    return str3;
   }
 
-  public void setName(String name) {
-    this.name = name;
+  public void setStr3(String str3) {
+    this.str3 = str3;
   }
 
-  public List<Friend> getFriends() {
-    return friends;
+  public String getStr1() {
+    return str1;
   }
 
-  public void setFriends(List<Friend> friends) {
-    this.friends = friends;
+  public void setStr1(String str1) {
+    this.str1 = str1;
+  }
+
+  public String getStr2() {
+    return str2;
+  }
+
+  public void setStr2(String str2) {
+    this.str2 = str2;
   }
 
   @Override
@@ -53,24 +62,25 @@ public class Person {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof Person)) {
+    if (!(o instanceof StringStruct)) {
       return false;
     }
-    Person person = (Person) o;
-    return Objects.equal(name, person.name) && Objects
-        .equal(friends, person.friends);
+    StringStruct that = (StringStruct) o;
+    return Objects.equal(str3, that.str3) && Objects
+        .equal(str1, that.str1) && Objects.equal(str2, that.str2);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(name, friends);
+    return Objects.hashCode(str3, str1, str2);
   }
 
   @Override
   public String toString() {
-    return "Person{" +
-        "name='" + name + '\'' +
-        ", friends=" + friends +
+    return "StringStruct{" +
+        "str3='" + str3 + '\'' +
+        ", str1='" + str1 + '\'' +
+        ", str2='" + str2 + '\'' +
         '}';
   }
 }
