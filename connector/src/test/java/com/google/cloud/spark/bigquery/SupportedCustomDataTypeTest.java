@@ -55,8 +55,8 @@ public class SupportedCustomDataTypeTest {
     BigNumeric bn2 = new BigNumeric(new BigDecimal("123.123"));
     BigNumeric bn3 = new BigNumeric(new BigDecimal("456.456"));
 
-    assertThat(bn1.equals(bn2)).isTrue();
-    assertThat(bn1.equals(bn3)).isFalse();
+    assertThat(bn1).isEqualTo(bn2);
+    assertThat(bn1).isNotEqualTo(bn3);
   }
 
   @Test
@@ -65,7 +65,7 @@ public class SupportedCustomDataTypeTest {
     BigNumeric bn2 = new BigNumeric(new BigDecimal("123.123"));
     BigNumeric bn3 = new BigNumeric(new BigDecimal("456.456"));
 
-    assertThat(bn1.hashCode() == bn2.hashCode()).isTrue();
-    assertThat(bn1.hashCode() == bn3.hashCode()).isFalse();
+    assertThat(bn1.hashCode()).isEqualTo(bn2.hashCode());
+    assertThat(bn1.hashCode()).isNotEqualTo(bn3.hashCode());
   }
 }

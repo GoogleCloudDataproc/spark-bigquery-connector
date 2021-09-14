@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 
 @SQLUserDefinedType(udt = BigNumericUDT.class)
 public class BigNumeric implements Serializable {
+    private static final long serialVersionUID = -2206218441920461328L;
     private final BigDecimal number;
 
     public BigNumeric(BigDecimal number) {
