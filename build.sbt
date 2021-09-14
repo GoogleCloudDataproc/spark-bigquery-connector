@@ -16,7 +16,7 @@
 lazy val scala211Version = "2.11.12"
 lazy val scala212Version = "2.12.10"
 lazy val sparkVersion = "2.4.0"
-lazy val grpcVersion = "1.37.1"
+lazy val grpcVersion = "1.40.1"
 // should match the dependency from grpc-netty
 lazy val nettyVersion = "4.1.65.Final"
 // should match the dependency in grpc-netty
@@ -135,7 +135,7 @@ lazy val connector = (project in file("connector"))
 
       // Keep com.google.cloud dependencies in sync
       "com.google.cloud" % "google-cloud-bigquery" % "1.131.1",
-      "com.google.cloud" % "google-cloud-bigquerystorage" % "1.22.0"
+      "com.google.cloud" % "google-cloud-bigquerystorage" % "2.1.2"
         exclude("io.grpc", "grpc-netty-shaded"),
       // Keep in sync with com.google.cloud
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.11.3",
