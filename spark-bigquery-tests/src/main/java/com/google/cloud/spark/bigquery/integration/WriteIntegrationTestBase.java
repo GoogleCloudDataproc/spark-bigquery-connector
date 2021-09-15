@@ -210,7 +210,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
   }
-  
+
   @Test
   public void testWriteToBigQueryAddingTheSettingsToSparkConf() {
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
@@ -304,31 +304,6 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .withComment(comment));
     assertThat(resultDF.schema().fields()[0].getComment()).isEqualTo(Some.apply(comment));
   }
-
-  //   //    test("support custom data types() {
-  //   //      val table = s"$testDataset.toString().$testTable"
-  //   //
-  //   //      val originalVectorDF = spark.createDataFrame(
-  //   //        List(Row("row1", 1, Vectors.dense(1, 2, 3))).asJava,
-  //   //        StructType(Seq(
-  //   //          StructField("name", DataTypes.StringType),
-  //   //          StructField("num", DataTypes.IntegerType),
-  //   //          StructField("vector", SQLDataTypes.VectorType))))
-  //   //
-  //   //      originalVectorDF.write.format("bigquery")
-  //   //        // must use avro or orc
-  //   //        .option("intermediateFormat", "avro")
-  //   //        .option("temporaryGcsBucket", temporaryGcsBucket)
-  //   //        .save(table)
-  //   //
-  //   //      val readVectorDF = spark.read.format("bigquery")
-  //   //        .load(table)
-  //   //
-  //   //      val orig = originalVectorDF.head
-  //   //      val read = readVectorDF.head
-  //   //
-  //   //      read should equal(orig)
-  //   //    }
 
   @Test
   public void testWriteToBigQueryWithDescription() {

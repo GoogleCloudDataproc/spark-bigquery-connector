@@ -92,7 +92,7 @@ Example: In order to compile **just** the Scala 2.12 connector run
 **Important**: If no profile is selected, then only the common artifacts are run.
 
 The integration and acceptance tests are disabled by default. In order to run it please add the
-followint profiles to the run:
+following profiles to the run:
 * Integration tests - `./mvnw failsafe:integration-test -Pdsv1_2.11,integration` 
 * Acceptance tests - `./mvnw verify -Pdsv2_2.4,acceptance`
   
