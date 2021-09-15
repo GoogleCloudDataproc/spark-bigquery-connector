@@ -60,6 +60,16 @@ public class SupportedCustomDataTypeTest {
   }
 
   @Test
+  public void testBigNumericNullEquality() throws IOException {
+    BigNumeric bn1 = new BigNumeric(new BigDecimal("123.123"));
+    BigNumeric bn2 = new BigNumeric(null);
+    BigNumeric bn3 = new BigNumeric(null);
+
+    assertThat(bn1).isNotEqualTo(bn2);
+    assertThat(bn2).isEqualTo(bn3);
+  }
+
+  @Test
   public void testBigNumericHashCode() throws IOException {
     BigNumeric bn1 = new BigNumeric(new BigDecimal("123.123"));
     BigNumeric bn2 = new BigNumeric(new BigDecimal("123.123"));
@@ -67,5 +77,15 @@ public class SupportedCustomDataTypeTest {
 
     assertThat(bn1.hashCode()).isEqualTo(bn2.hashCode());
     assertThat(bn1.hashCode()).isNotEqualTo(bn3.hashCode());
+  }
+
+  @Test
+  public void testBigNumericNullHashCode() throws IOException {
+    BigNumeric bn1 = new BigNumeric(new BigDecimal("123.123"));
+    BigNumeric bn2 = new BigNumeric(null);
+    BigNumeric bn3 = new BigNumeric(null);
+
+    assertThat(bn1.hashCode()).isNotEqualTo(bn2.hashCode());
+    assertThat(bn2.hashCode()).isEqualTo(bn3.hashCode());
   }
 }

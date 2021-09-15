@@ -20,7 +20,7 @@ public class BigNumeric implements Serializable {
 
     @Override
     public String toString() {
-        return this.number.toPlainString();
+        return this.number != null ? this.number.toPlainString() : "";
     }
 
     @Override
@@ -37,7 +37,7 @@ public class BigNumeric implements Serializable {
     }
 
     @Override
-    public int hashCode(){
-       return this.number.hashCode();
+    public int hashCode() {
+       return this.number != null ? this.number.hashCode() : 0;
     }
 }
