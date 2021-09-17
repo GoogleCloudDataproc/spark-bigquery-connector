@@ -12,7 +12,6 @@
   <artifactId>spark-bigquery-reactor</artifactId>
   <packaging>pom</packaging>
   <name>Spark BigQuery Connector Reactor</name>
-  <version>spark24-0.30.0-SNAPSHOT</version>
 
   <licenses>
     <license>
@@ -49,7 +48,7 @@
   <modules>
     <module>spark-bigquery-parent</module>
     <module>bigquery-connector-common</module>
-    <module>spark-bigquery-acceptance-tests</module>
+    <module>spark-bigquery-tests</module>
     <module>spark-bigquery-connector-common</module>
     <module>spark-bigquery-python-lib</module>
   </modules>
@@ -80,8 +79,11 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
+        <module>spark-bigquery-dsv1/spark-bigquery-dsv1-spark3-support</module>
         <module>spark-bigquery-dsv1/spark-bigquery-dsv1-parent</module>
         <module>spark-bigquery-dsv1/spark-bigquery_2.11</module>
+        <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies-parent
+        </module>
         <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.11
         </module>
       </modules>
@@ -92,8 +94,11 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
+        <module>spark-bigquery-dsv1/spark-bigquery-dsv1-spark3-support</module>
         <module>spark-bigquery-dsv1/spark-bigquery-dsv1-parent</module>
         <module>spark-bigquery-dsv1/spark-bigquery_2.12</module>
+        <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies-parent
+        </module>
         <module>spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.12
         </module>
       </modules>

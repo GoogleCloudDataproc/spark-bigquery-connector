@@ -67,7 +67,7 @@ public class BigQueryClient {
   private final Optional<String> materializationProject;
   private final Optional<String> materializationDataset;
 
-  BigQueryClient(
+  public BigQueryClient(
       BigQuery bigQuery,
       Optional<String> materializationProject,
       Optional<String> materializationDataset) {
@@ -187,7 +187,7 @@ public class BigQueryClient {
     return bigQuery.create(jobInfo);
   }
 
-  TableResult query(String sql) {
+  public TableResult query(String sql) {
     try {
       return bigQuery.query(QueryJobConfiguration.of(sql));
     } catch (InterruptedException e) {
@@ -234,7 +234,8 @@ public class BigQueryClient {
           || (type == TableDefinition.Type.TABLE && filter.isPresent())) {
         // run a query
         String table = fullTableName(tableInfo.getTableId());
-        String sql = format("SELECT COUNT(*) from `%s` WHERE %s", table, filter.get());
+        String whereClause = filter.map(f -> "WHERE " + f).orElse("");
+        String sql = format("SELECT COUNT(*) from `%s` %s", table, whereClause);
         TableResult result = bigQuery.query(QueryJobConfiguration.of(sql));
         return result.iterateAll().iterator().next().get(0).getLongValue();
       } else {

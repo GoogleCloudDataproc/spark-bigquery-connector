@@ -19,4 +19,24 @@ public class BigNumeric {
     public String toString() {
         return this.number.toPlainString();
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof BigNumeric)) {
+            return false;
+        }
+
+        BigNumeric that = (BigNumeric) o;
+
+        return number != null ? number.equals(that.number) : that.number == null;
+    }
+
+    @Override
+    public int hashCode() {
+        return number != null ? number.hashCode() : 0;
+    }
+
 }

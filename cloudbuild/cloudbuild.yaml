@@ -1,21 +1,15 @@
 steps:
-  # 1. Run unit tests
-  - id: 'unit tests'
+  # 1. Run unit and integration tests on DSv1
+  - id: 'Running tests and integration tests'
     name: maven:3-jdk-8
     entrypoint: mvn
-    args: ['test', '-Pall']
+    args: ['-B', '-e', 'install', '-Pintegration,dsv1_2.12,dsv2', '-s', '/workspace/cloudbuild/gcp-settings.xml', '-Dmaven.repo.local=/workspace/.repository']
     env:
       - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
       - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
 
-  # 2. Run integration tests
- # - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
- #   id: 'integration-tests'
- #   entrypoint: 'sbt'
- #   args: ['it:test']
- #   env:
- #     - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
- #     - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
-
 # Tests take around 20 mins in general.
 timeout: 1800s
+
+options:
+  machineType: 'N1_HIGHCPU_32'

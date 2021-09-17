@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.spark3;
+package com.google.cloud.spark.bigquery.integration;
 
-import org.apache.spark.rdd.RDD;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
+public class Spark24ReadByFormatIntegrationTest extends ReadByFormatIntegrationTestBase {
 
-public interface DataFrameToRDDConverter {
-  RDD<Row> convertToRDD(Dataset<Row> data);
+  public Spark24ReadByFormatIntegrationTest() {
+    super("ARROW");
+  }
+
+  // tests are from the super-class
 }

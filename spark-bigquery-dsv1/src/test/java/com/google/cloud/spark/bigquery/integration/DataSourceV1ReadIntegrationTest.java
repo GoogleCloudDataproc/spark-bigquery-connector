@@ -13,12 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.spark3;
+package com.google.cloud.spark.bigquery.integration;
 
-import org.apache.spark.rdd.RDD;
+import static com.google.common.truth.Truth.assertThat;
+
+import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.junit.Test;
 
-public interface DataFrameToRDDConverter {
-  RDD<Row> convertToRDD(Dataset<Row> data);
+public class DataSourceV1ReadIntegrationTest extends ReadIntegrationTestBase {
+
+  // @TODO Move to suport class once DSv2 supports all types
+  @Test
+  public void testReadDataTypes() {
+    Dataset<Row> allTypesTable = readAllTypesTable();
+    Row expectedValues = spark.range(1)
+        .select(TestConstants.ALL_TYPES_TABLE_COLS.stream().toArray(Column[]::new)).head();
+    Row row = allTypesTable.head();
+
+    IntegrationTestUtils.compareRows(row, expectedValues);
+  }
+
+  // additional tests are from the super-class
+
 }

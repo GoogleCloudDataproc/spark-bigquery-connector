@@ -79,6 +79,17 @@
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>com.google.cloud.bigdataoss</groupId>
+        <artifactId>gcs-connector</artifactId>
+        <version>hadoop2-2.0.0</version>
+        <classifier>shaded</classifier>
+        <exclusions>
+          <exclusion>
+            <groupId>com.google.cloud.bigdataoss</groupId>
+            <artifactId>util-hadoop</artifactId>
+          </exclusion></exclusions>
+      </dependency>
+      <dependency>
         <groupId>com.google.errorprone</groupId>
         <artifactId>error_prone_annotations</artifactId>
         <version>2.3.4</version>
@@ -105,6 +116,12 @@
         <groupId>com.google.truth</groupId>
         <artifactId>truth</artifactId>
         <version>1.1.2</version>
+      </dependency>
+      <!-- see https://github.com/paul-hammant/paranamer#releases -->
+      <dependency>
+        <groupId>com.thoughtworks.paranamer</groupId>
+        <artifactId>paranamer</artifactId>
+        <version>2.8</version>
       </dependency>
       <dependency>
         <groupId>io.grpc</groupId>
@@ -135,7 +152,12 @@
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.13</version>
+        <version>4.13.2</version>
+      </dependency>
+      <dependency>
+        <groupId>log4j</groupId>
+        <artifactId>log4j</artifactId>
+        <version>1.2.17</version>
       </dependency>
       <dependency>
         <groupId>org.apache.avro</groupId>
@@ -167,6 +189,11 @@
         <artifactId>arrow-vector</artifactId>
         <version>${arrow.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>3.10.0</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
   <dependencies>
@@ -184,7 +211,6 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>3.10.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -276,6 +302,42 @@
   </build>
 
   <profiles>
+    <profile>
+      <id>integration</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>3.0.0-M5</version>
+            <configuration>
+              <forkCount>5</forkCount>
+              <reuseForks>false</reuseForks>
+              <includes>
+                <include>**/*IntegrationTest.java</include>
+              </includes>
+            </configuration>
+            <executions>
+              <execution>
+                <id>integration-test</id>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>verify</id>
+                <goals>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <id>acceptance</id>
       <activation>

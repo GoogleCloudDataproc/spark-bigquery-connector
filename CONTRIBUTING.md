@@ -91,9 +91,10 @@ Example: In order to compile **just** the Scala 2.12 connector run
 
 **Important**: If no profile is selected, then only the common artifacts are run.
 
-The acceptance test is disabled by default. In order to run it please add the
-`acceptance` profile to the run, in the following manner: 
-`./mvnw verify -Pdsv2_2.4,acceptance`.
+The integration and acceptance tests are disabled by default. In order to run it please add the
+following profiles to the run:
+* Integration tests - `./mvnw failsafe:integration-test -Pdsv1_2.11,integration` 
+* Acceptance tests - `./mvnw verify -Pdsv2_2.4,acceptance`
   
 In order to run the integration tests make sure that your GCP user has the proper accounts for creating and deleting
 datasets and tables in your test project in BigQuery. It will also need the permissions to upload files to the test
