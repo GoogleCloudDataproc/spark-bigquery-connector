@@ -220,15 +220,15 @@ note there are a few caveats:
 * The materialization process can also incur additional costs to your BigQuery
   bill.
 * By default, the materialized views are created in the same project and
-  dataset. Those can be configured by the optional `viewMaterializationProject`
-  and `viewMaterializationDataset` options, respectively. These options can also
+  dataset. Those can be configured by the optional `materializationProject`
+  and `materializationDataset` options, respectively. These options can also
   be globally set by calling `spark.conf.set(...)` before reading the views.
 * Reading from views is **disabled** by default. In order to enable it,
   either set the viewsEnabled option when reading the specific view
   (`.option("viewsEnabled", "true")`) or set it globally by calling
   `spark.conf.set("viewsEnabled", "true")`.
 * As mentioned in the [BigQuery documentation](https://cloud.google.com/bigquery/docs/writing-results#temporary_and_permanent_tables),
-the `viewMaterializationDataset` should be in same location as the view.
+the `materializationDataset` should be in same location as the view.
 
 ### Writing data to BigQuery
 
