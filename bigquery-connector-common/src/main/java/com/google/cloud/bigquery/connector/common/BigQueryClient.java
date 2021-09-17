@@ -105,7 +105,7 @@ public class BigQueryClient {
 
     TableDefinition tableDefinition = table.getDefinition();
     TableDefinition.Type tableType = tableDefinition.getType();
-    if (TableDefinition.Type.TABLE == tableType) {
+    if (TableDefinition.Type.TABLE == tableType || TableDefinition.Type.EXTERNAL == tableType) {
       return table;
     }
     if (TableDefinition.Type.VIEW == tableType
