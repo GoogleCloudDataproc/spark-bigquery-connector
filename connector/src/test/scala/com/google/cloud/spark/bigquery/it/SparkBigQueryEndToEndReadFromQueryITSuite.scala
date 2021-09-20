@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.it
 
 import com.google.cloud.bigquery._
+import com.google.cloud.bigquery.connector.common.BigQueryClient
 import com.google.cloud.spark.bigquery.TestUtils
 import org.apache.spark.sql.SparkSession
 import org.scalatest.concurrent.TimeLimits
@@ -38,6 +39,7 @@ class SparkBigQueryEndToEndReadFromQueryITSuite extends FunSuite
   before {
     // have a fresh table for each test
     testTable = s"test_${System.nanoTime()}"
+    BigQueryClient.clearDestinationTableCache()
   }
 
   private var testTable: String = _

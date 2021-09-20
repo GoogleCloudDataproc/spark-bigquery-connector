@@ -30,6 +30,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.http.BaseHttpServiceException;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
@@ -293,6 +294,15 @@ public class BigQueryClient {
               "Error creating destination table using the following query: [%s]", querySql),
           e);
     }
+  }
+
+  /**
+   * Clears the <code>destinationTableCache</code>. Should not be used by regular applications, and is relevant for the
+   * integration tests only
+   */
+  @VisibleForTesting
+  public static void clearDestinationTableCache() {
+    destinationTableCache.cleanUp();
   }
 
   public interface ReadTableOptions {
