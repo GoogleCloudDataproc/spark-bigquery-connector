@@ -164,6 +164,8 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
 
+    Schema bqSchema = SchemaConverters.toBigQuerySchema(sparkSchema);
+
     LoadJobConfiguration.Builder jobConfiguration =
         LoadJobConfiguration.newBuilder(
                 config.getTableId(),
@@ -171,6 +173,7 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
                 config.getIntermediateFormat().getFormatOptions())
             .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
             .setWriteDisposition(saveModeToWriteDisposition(saveMode))
+            .setSchema(bqSchema)
             .setAutodetect(true);
 
     config.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);

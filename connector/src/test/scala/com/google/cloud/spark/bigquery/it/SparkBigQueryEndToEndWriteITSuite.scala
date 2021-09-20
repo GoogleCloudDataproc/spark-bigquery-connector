@@ -15,14 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.it
 
-import java.util.UUID
 import com.google.cloud.bigquery._
-import com.google.cloud.spark.bigquery.it.TestConstants.BIG_NUMERIC_COLUMN_POSITION
 import com.google.cloud.spark.bigquery.{SchemaConverters, TestUtils}
 import com.google.common.base.Preconditions
-import org.apache.spark.bigquery.{BigNumeric, BigQueryDataTypes}
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
-import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types._
@@ -32,6 +28,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.time.SpanSugar._
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite, Matchers}
 
+import java.util.UUID
 import scala.collection.JavaConverters._
 
 class SparkBigQueryEndToEndWriteITSuite extends FunSuite
@@ -243,8 +240,8 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
           .option("table", testTable)
           .load()
 
-        compareBigNumericDataSetRows(df.head(), allTypesTable.head())
-        compareBigNumericDataSetSchema(df.schema, allTypesTable.schema)
+        compareDataSetRows(df.head(), allTypesTable.head())
+        compareDataSetSchema(df.schema, allTypesTable.schema)
       }
     }
 
@@ -381,11 +378,40 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
           .option("readDataFormat", "arrow")
           .load().cache()
 
-        compareBigNumericDataSetRows(df.head(), allTypesTable.head())
+        compareDataSetRows(df.head(), allTypesTable.head())
 
         // read from cache
-        compareBigNumericDataSetRows(df.head(), allTypesTable.head())
-        compareBigNumericDataSetSchema(df.schema, allTypesTable.schema)
+        compareDataSetRows(df.head(), allTypesTable.head())
+        compareDataSetSchema(df.schema, allTypesTable.schema)
+      }
+    }
+
+    test("partial writes to a BigNumeric table %s".format(dataSourceFormat)) {
+
+      // Writing BigNumeric to BQ as BigNumeric is supported only by BigQueryDataSourceV2
+      if(dataSourceFormat.equals("com.google.cloud.spark.bigquery.v2.BigQueryDataSourceV2")) {
+        val allTypesTable = readAllTypesTable(dataSourceFormat)
+        val partialRow =
+          allTypesTable
+            .select("int_req", "int_null", "bl", "nums", "big_numeric_nums", "int_struct_arr")
+
+        writeToBigQuery(dataSourceFormat, allTypesTable, SaveMode.Overwrite, "avro")
+        writeToBigQuery(dataSourceFormat, partialRow, SaveMode.Append, "avro")
+
+        val df = spark.read.format(dataSourceFormat)
+          .option("dataset", testDataset)
+          .option("table", testTable)
+          .option("readDataFormat", "arrow")
+          .load()
+
+        val actualRow = df.filter("str is null").head
+        val expectedRow = partialRow.head()
+        val expectedFieldNames = expectedRow.schema.fields.map(field => field.name)
+
+        val actualValueMap = actualRow.getValuesMap(expectedFieldNames)
+        val expectedValuesMap = expectedRow.getValuesMap(expectedFieldNames)
+
+        assert(actualValueMap === expectedValuesMap)
       }
     }
 
@@ -529,53 +555,18 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
     assert(readDF.count == 3)
   }
 
-  def compareBigNumericDataSetRows(actual: Row, expected: Row): Unit = {
-
-    for (i <- 0 until actual.size) {
-      if (i == BIG_NUMERIC_COLUMN_POSITION) {
-        for (j <- 0 to 1) {
-          val actualBigNumericString =
-            actual.get(i).asInstanceOf[GenericRowWithSchema].get(j)
-
-          val expectedBigNumericValue =
-            expected.get(i).asInstanceOf[GenericRowWithSchema].get(j).asInstanceOf[BigNumeric]
-
-          val expectedBigNumericString =
-            expectedBigNumericValue.getNumber.toPlainString
-
-          assert(actualBigNumericString === expectedBigNumericString)
-        }
-      } else {
+  def compareDataSetRows(actual: Row, expected: Row): Unit ={
+    for(i <- 0 until actual.size) {
         assert(actual.get(i) === expected.get(i))
-      }
     }
   }
 
-  def compareBigNumericDataSetSchema(actualSchema: StructType, expectedSchema: StructType): Unit = {
-
+  def compareDataSetSchema(actualSchema: StructType, expectedSchema: StructType) = {
     val actualFields = actualSchema.fields
     val expectedFields = expectedSchema.fields
 
     for(i <- 0 until actualFields.size) {
-      if (i == BIG_NUMERIC_COLUMN_POSITION) {
-
-        val actualField = actualFields(i)
-        val expectedField = expectedFields(i)
-
-        for(j <- 0 to 1) {
-          val actualFieldDataType =
-            actualField.dataType.asInstanceOf[StructType].fields(j).dataType
-
-          val expectedFieldDataType =
-            expectedField.dataType.asInstanceOf[StructType].fields(j).dataType
-
-          assert(actualFieldDataType === StringType)
-          assert(expectedFieldDataType === BigQueryDataTypes.BigNumericType)
-        }
-
-      } else {
         assert(actualFields(i) === expectedFields(i))
-      }
     }
   }
 

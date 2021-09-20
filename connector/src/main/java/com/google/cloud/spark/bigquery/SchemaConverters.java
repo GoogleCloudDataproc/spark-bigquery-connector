@@ -27,6 +27,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
+import org.apache.spark.bigquery.BigNumericUDT;
 import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
@@ -72,6 +73,7 @@ public class SchemaConverters {
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
   static final int BQ_NUMERIC_PRECISION = 38;
   static final int BQ_NUMERIC_SCALE = 9;
+  static final int BQ_BIG_NUMERIC_PRECESION = 77;
   static final int BQ_BIG_NUMERIC_SCALE = 38;
   private static final DecimalType NUMERIC_SPARK_TYPE =
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
@@ -435,6 +437,9 @@ public class SchemaConverters {
     if (elementType instanceof FloatType || elementType instanceof DoubleType) {
       return LegacySQLTypeName.FLOAT;
     }
+    if (elementType instanceof BigNumericUDT) {
+      return LegacySQLTypeName.BIGNUMERIC;
+    }
     if (elementType instanceof DecimalType) {
       DecimalType decimalType = (DecimalType) elementType;
       if (decimalType.precision() <= BQ_NUMERIC_PRECISION
@@ -449,9 +454,7 @@ public class SchemaConverters {
       return LegacySQLTypeName.STRING;
     }
     if (elementType instanceof TimestampType) {
-      // return LegacySQLTypeName.TIMESTAMP; FIXME: Restore this correct conversion when the Vortex
-      // team adds microsecond support to their backend
-      return LegacySQLTypeName.INTEGER;
+      return LegacySQLTypeName.TIMESTAMP;
     }
     if (elementType instanceof DateType) {
       return LegacySQLTypeName.DATE;
