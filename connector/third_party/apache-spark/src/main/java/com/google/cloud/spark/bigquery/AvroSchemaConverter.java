@@ -22,6 +22,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.util.Utf8;
+import org.apache.spark.bigquery.BigNumericUDT;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.SpecializedGetters;
 import org.apache.spark.sql.catalyst.util.ArrayData;
@@ -46,9 +47,13 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.types.TimestampType;
 import org.apache.spark.sql.types.UserDefinedType;
 
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
+
+import static com.google.cloud.spark.bigquery.SchemaConverters.BQ_BIG_NUMERIC_PRECESION;
+import static com.google.cloud.spark.bigquery.SchemaConverters.BQ_BIG_NUMERIC_SCALE;
 
 public class AvroSchemaConverter {
 
@@ -99,6 +104,13 @@ public class AvroSchemaConverter {
             "Decimal type is too wide to fit in BigQuery Numeric format");
       }
     }
+
+    if(dataType instanceof BigNumericUDT) {
+      return LogicalTypes
+              .decimal(BQ_BIG_NUMERIC_PRECESION, BQ_BIG_NUMERIC_SCALE)
+              .addToSchema(builder.bytesType());
+    }
+
     if (dataType instanceof StringType) {
       return builder.stringType();
     }
@@ -193,6 +205,13 @@ public class AvroSchemaConverter {
             avroType,
             LogicalTypes.decimal(decimalType.precision(), decimalType.scale()));
       };
+    }
+    if(sparkType instanceof BigNumericUDT && avroType.getType() == Schema.Type.BYTES){
+      return (getter, ordinal) ->
+              DECIMAL_CONVERSIONS.toBytes(
+                new BigDecimal(getter.getUTF8String(ordinal).toString()),
+                avroType,
+                LogicalTypes.decimal(BQ_BIG_NUMERIC_PRECESION, BQ_BIG_NUMERIC_SCALE));
     }
     if (sparkType instanceof StringType && avroType.getType() == Schema.Type.STRING) {
       return (getter, ordinal) -> new Utf8(getter.getUTF8String(ordinal).getBytes());
