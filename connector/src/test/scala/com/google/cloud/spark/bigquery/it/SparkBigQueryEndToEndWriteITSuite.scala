@@ -16,6 +16,8 @@
 package com.google.cloud.spark.bigquery.it
 
 import com.google.cloud.bigquery._
+import com.google.cloud.bigquery.connector.common.BigQueryClient
+import com.google.cloud.spark.bigquery.it.TestConstants.BIG_NUMERIC_COLUMN_POSITION
 import com.google.cloud.spark.bigquery.{SchemaConverters, TestUtils}
 import com.google.common.base.Preconditions
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
@@ -63,6 +65,7 @@ class SparkBigQueryEndToEndWriteITSuite extends FunSuite
   before {
     // have a fresh table for each test
     testTable = s"test_${System.nanoTime()}"
+    BigQueryClient.clearDestinationTableCache()
   }
   private var testTable: String = _
 
