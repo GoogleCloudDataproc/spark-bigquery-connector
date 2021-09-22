@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.22.2 - 2021-09-22
+* Issue #446: BigNumeric values are properly written to BigQuery
+* Issue #452: Adding the option to clean BigQueryClient.destinationTableCache
+* BigQuery API has been upgraded to version 2.1.8
+* BigQuery Storage API has been upgraded to version 2.1.2
+* gRPC has been upgraded to version 1.4.0
+
 ## 0.22.1 - 2021-09-08
 * Issue #444: allowing unpartitioned clustered table 
 
