@@ -57,7 +57,7 @@ lazy val root = (project in file("."))
 lazy val commonTestDependencies = Seq(
   "io.grpc" % "grpc-alts" % grpcVersion exclude("io.grpc", "grpc-netty-shaded"),
   "io.grpc" % "grpc-netty" % grpcVersion,
-  "com.google.api" % "gax-grpc" % "1.64.0" exclude("io.grpc", "grpc-netty-shaded"),
+  "com.google.api" % "gax-grpc" % "2.4.1" exclude("io.grpc", "grpc-netty-shaded"),
   "com.google.guava" % "guava" % "30.1.1-jre",
 
   "org.scalatest" %% "scalatest" % "3.1.0" % "test",
@@ -134,7 +134,7 @@ lazy val connector = (project in file("connector"))
 
 
       // Keep com.google.cloud dependencies in sync
-      "com.google.cloud" % "google-cloud-bigquery" % "1.131.1",
+      "com.google.cloud" % "google-cloud-bigquery" % "2.1.8",
       "com.google.cloud" % "google-cloud-bigquerystorage" % "2.1.2"
         exclude("io.grpc", "grpc-netty-shaded"),
       // Keep in sync with com.google.cloud
@@ -213,9 +213,9 @@ lazy val published = project
     ) },
     libraryDependencies ++= (commonTestDependencies.map(
       dependency => dependency.withConfigurations(Some("test"))) ++ Seq(
-      "com.google.cloud" % "google-cloud-dataproc" % "1.4.3" % "test",
-      "com.google.cloud" % "google-cloud-storage" % "1.114.0" % "test",
-      "com.google.cloud" % "google-cloud-bigquery" % "1.131.1" % "test"
+      "com.google.cloud" % "google-cloud-dataproc" % "2.1.4" % "test",
+      "com.google.cloud" % "google-cloud-storage" % "2.1.3" % "test",
+      "com.google.cloud" % "google-cloud-bigquery" % "2.1.8" % "test"
     ))
       .map(_.excludeAll(excludedOrgs.map(ExclusionRule(_)): _*))
 
