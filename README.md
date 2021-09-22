@@ -134,9 +134,9 @@ val df = spark.read.bigquery("bigquery-public-data.samples.shakespeare")
 
 For more information, see additional code samples in
 [Python](examples/python/shakespeare.py),
-[Scala](connector/src/main/scala/com/google/cloud/spark/bigquery/examples/Shakespeare.scala)
+[Scala](spark-bigquery-dsv1/src/main/scala/com/google/cloud/spark/bigquery/examples/Shakespeare.scala)
 and
-[Java](connector/src/main/java/com/google/cloud/spark/bigquery/examples/JavaShakespeare.java).
+[Java](spark-bigquery-connector-common/src/main/java/com/google/cloud/spark/bigquery/examples/JavaShakespeare.java).
 
 ### Reading data from a BigQuery query
 
