@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery.integration.model;
 
 import com.google.common.base.Objects;
-import java.util.List;
 
 public class StringStruct {
 
@@ -24,8 +23,7 @@ public class StringStruct {
   private String str1;
   private String str2;
 
-  public StringStruct() {
-  }
+  public StringStruct() {}
 
   public StringStruct(String str3, String str1, String str2) {
     this.str3 = str3;
@@ -66,8 +64,9 @@ public class StringStruct {
       return false;
     }
     StringStruct that = (StringStruct) o;
-    return Objects.equal(str3, that.str3) && Objects
-        .equal(str1, that.str1) && Objects.equal(str2, that.str2);
+    return Objects.equal(str3, that.str3)
+        && Objects.equal(str1, that.str1)
+        && Objects.equal(str2, that.str2);
   }
 
   @Override
@@ -77,10 +76,16 @@ public class StringStruct {
 
   @Override
   public String toString() {
-    return "StringStruct{" +
-        "str3='" + str3 + '\'' +
-        ", str1='" + str1 + '\'' +
-        ", str2='" + str2 + '\'' +
-        '}';
+    return "StringStruct{"
+        + "str3='"
+        + str3
+        + '\''
+        + ", str1='"
+        + str1
+        + '\''
+        + ", str2='"
+        + str2
+        + '\''
+        + '}';
   }
 }

@@ -22,8 +22,7 @@ public class Link implements Serializable {
 
   private String uri;
 
-  public Link() {
-  }
+  public Link() {}
 
   public Link(String uri) {
     this.uri = uri;
@@ -56,8 +55,6 @@ public class Link implements Serializable {
 
   @Override
   public String toString() {
-    return "Link{" +
-        "uri='" + uri + '\'' +
-        '}';
+    return "Link{" + "uri='" + uri + '\'' + '}';
   }
 }

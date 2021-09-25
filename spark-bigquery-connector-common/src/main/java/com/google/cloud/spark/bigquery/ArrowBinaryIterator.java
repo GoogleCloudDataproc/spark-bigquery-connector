@@ -18,10 +18,17 @@ package com.google.cloud.spark.bigquery;
 import com.google.cloud.bigquery.connector.common.ArrowUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.SequenceInputStream;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.arrow.compression.CommonsCompressionFactory;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -34,14 +41,6 @@ import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.SequenceInputStream;
-import java.io.UncheckedIOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class ArrowBinaryIterator implements Iterator<InternalRow> {
 

@@ -16,7 +16,6 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
-
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;

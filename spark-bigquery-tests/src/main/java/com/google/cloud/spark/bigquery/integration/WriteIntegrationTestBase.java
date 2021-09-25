@@ -15,6 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
+
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Field;
@@ -32,14 +35,12 @@ import com.google.cloud.spark.bigquery.integration.model.Link;
 import com.google.cloud.spark.bigquery.integration.model.Person;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.Uninterruptibles;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
@@ -52,11 +53,6 @@ import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Before;
-
-import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertThrows;
-
-import org.junit.Ignore;
 import org.junit.Test;
 import scala.Some;
 
@@ -66,11 +62,11 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   protected static AtomicInteger id = new AtomicInteger(0);
   protected BigQuery bq;
 
-
-  protected String temporaryGcsBucket = Preconditions.checkNotNull(
-      System.getenv(TEMPORARY_GCS_BUCKET_ENV_VARIABLE),
-      "Please set the %s env variable to point to a write enabled GCS bucket",
-      TEMPORARY_GCS_BUCKET_ENV_VARIABLE);
+  protected String temporaryGcsBucket =
+      Preconditions.checkNotNull(
+          System.getenv(TEMPORARY_GCS_BUCKET_ENV_VARIABLE),
+          "Please set the %s env variable to point to a write enabled GCS bucket",
+          TEMPORARY_GCS_BUCKET_ENV_VARIABLE);
 
   public WriteIntegrationTestBase() {
     super();
@@ -98,20 +94,28 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   // See more at http://spark.apache.org/docs/2.3.2/api/java/org/apache/spark/sql/SaveMode.html
 
   protected Dataset<Row> initialData() {
-    return spark.createDataset(Arrays.asList( //
-        new Person("Abc", Arrays.asList(
-            new Friend(10, Arrays.asList(new Link("www.abc.com"))))), //
-        new Person("Def", Arrays.asList(new Friend(12, Arrays.asList(new Link("www.def.com")))))),
-        Encoders.bean(Person.class)).toDF();
+    return spark
+        .createDataset(
+            Arrays.asList( //
+                new Person(
+                    "Abc",
+                    Arrays.asList(new Friend(10, Arrays.asList(new Link("www.abc.com"))))), //
+                new Person(
+                    "Def", Arrays.asList(new Friend(12, Arrays.asList(new Link("www.def.com")))))),
+            Encoders.bean(Person.class))
+        .toDF();
   }
 
   protected Dataset<Row> additonalData() {
-    return spark.createDataset(Arrays.asList( //
-        new Person("Xyz",
-            Arrays.asList(new Friend(10, Arrays.asList(new Link("www.xyz.com"))))),
-        new Person("Pqr",
-            Arrays.asList(new Friend(12, Arrays.asList(new Link("www.pqr.com")))))),
-        Encoders.bean(Person.class)).toDF();
+    return spark
+        .createDataset(
+            Arrays.asList( //
+                new Person(
+                    "Xyz", Arrays.asList(new Friend(10, Arrays.asList(new Link("www.xyz.com"))))),
+                new Person(
+                    "Pqr", Arrays.asList(new Friend(12, Arrays.asList(new Link("www.pqr.com")))))),
+            Encoders.bean(Person.class))
+        .toDF();
   }
 
   // getNumRows returns BigInteger, and it messes up the matchers
@@ -120,8 +124,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   private StandardTableDefinition testPartitionedTableDefinition() {
-    return bq.getTable(testDataset.toString(), testTable + "_partitioned")
-        .getDefinition();
+    return bq.getTable(testDataset.toString(), testTable + "_partitioned").getDefinition();
   }
 
   protected void writeToBigQuery(Dataset<Row> df, SaveMode mode) {
@@ -129,7 +132,8 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   protected void writeToBigQuery(Dataset<Row> df, SaveMode mode, String format) {
-    df.write().format("bigquery")
+    df.write()
+        .format("bigquery")
         .mode(mode)
         .option("table", fullTableName())
         .option("temporaryGcsBucket", temporaryGcsBucket)
@@ -138,7 +142,9 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   Dataset<Row> readAllTypesTable() {
-    return spark.read().format("bigquery")
+    return spark
+        .read()
+        .format("bigquery")
         .option("dataset", testDataset.toString())
         .option("table", TestConstants.ALL_TYPES_TABLE_NAME)
         .load();
@@ -163,9 +169,11 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     // second write
-    assertThrows(IllegalArgumentException.class, () -> {
-      writeToBigQuery(additonalData(), SaveMode.ErrorIfExists);
-    });
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          writeToBigQuery(additonalData(), SaveMode.ErrorIfExists);
+        });
   }
 
   @Test
@@ -201,10 +209,11 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assertThat(initialDataValuesExist()).isTrue();
   }
 
-
   @Test
   public void testWriteToBigQuerySimplifiedApi() {
-    initialData().write().format("bigquery")
+    initialData()
+        .write()
+        .format("bigquery")
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .save(fullTableName());
     assertThat(testTableNumberOfRows()).isEqualTo(2);
@@ -214,21 +223,23 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   @Test
   public void testWriteToBigQueryAddingTheSettingsToSparkConf() {
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
-    initialData().write().format("bigquery")
-        .option("table", fullTableName())
-        .save();
+    initialData().write().format("bigquery").option("table", fullTableName()).save();
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
   }
 
   @Test
   public void testWriteToBigQueryPartitionedAndClusteredTable() {
-    Dataset<Row> df = spark.read().format("bigquery")
-        .option("table", TestConstants.LIBRARIES_PROJECTS_TABLE)
-        .load()
-        .where("platform = 'Sublime'");
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", TestConstants.LIBRARIES_PROJECTS_TABLE)
+            .load()
+            .where("platform = 'Sublime'");
 
-    df.write().format("bigquery")
+    df.write()
+        .format("bigquery")
         .option("table", fullTableNamePartitioned())
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("partitionField", "created_timestamp")
@@ -245,34 +256,42 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     // create partitioned table
     String tableName = fullTableNamePartitioned() + "_" + id.getAndIncrement();
     TableId tableId = TableId.of(testDataset.toString(), tableName);
-    Schema schema = Schema.of(
-        Field.of("the_date", LegacySQLTypeName.DATE),
-        Field.of("some_text", LegacySQLTypeName.STRING)
-    );
-    TimePartitioning timePartitioning = TimePartitioning.newBuilder(TimePartitioning.Type.DAY)
-        .setField("the_date").build();
-    StandardTableDefinition tableDefinition = StandardTableDefinition.newBuilder()
-        .setSchema(schema)
-        .setTimePartitioning(timePartitioning)
-        .build();
+    Schema schema =
+        Schema.of(
+            Field.of("the_date", LegacySQLTypeName.DATE),
+            Field.of("some_text", LegacySQLTypeName.STRING));
+    TimePartitioning timePartitioning =
+        TimePartitioning.newBuilder(TimePartitioning.Type.DAY).setField("the_date").build();
+    StandardTableDefinition tableDefinition =
+        StandardTableDefinition.newBuilder()
+            .setSchema(schema)
+            .setTimePartitioning(timePartitioning)
+            .build();
     bq.create(TableInfo.of(tableId, tableDefinition));
     // entering the data
     try {
-      bq.query(QueryJobConfiguration.of(
-          String.format("insert into `" + fullTableName()
-              + "` (the_date, some_text) values ('2020-07-01', 'foo'), ('2020-07-02', 'bar')")));
+      bq.query(
+          QueryJobConfiguration.of(
+              String.format(
+                  "insert into `"
+                      + fullTableName()
+                      + "` (the_date, some_text) values ('2020-07-01', 'foo'), ('2020-07-02', 'bar')")));
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
 
     // overrding a single partition
     List<Row> rows = Arrays.asList(RowFactory.create(Date.valueOf("2020-07-01"), "baz"));
-    StructType newDataSchema = new StructType(new StructField[]{
-        dateField,
-        new StructField("some_text", DataTypes.StringType, true, Metadata.empty())});
+    StructType newDataSchema =
+        new StructType(
+            new StructField[] {
+              dateField, new StructField("some_text", DataTypes.StringType, true, Metadata.empty())
+            });
     Dataset<Row> newDataDF = spark.createDataFrame(rows, newDataSchema);
 
-    newDataDF.write().format("bigquery")
+    newDataDF
+        .write()
+        .format("bigquery")
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("datePartition", "20200701")
         .mode("overwrite")
@@ -288,20 +307,21 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return resultDF;
   }
 
-  //TODO: figure out why the table creation fails
-  //@Test
+  // TODO: figure out why the table creation fails
+  // @Test
   public void testOverwriteSinglePartition() {
     overwriteSinglePartition(
         new StructField("the_date", DataTypes.DateType, true, Metadata.empty()));
   }
 
-  //TODO: figure out why the table creation fails
-  //@Test
+  // TODO: figure out why the table creation fails
+  // @Test
   public void testOverwriteSinglePartitionWithComment() {
     String comment = "the partition field";
-    Dataset<Row> resultDF = overwriteSinglePartition(
-        new StructField("the_date", DataTypes.DateType, true, Metadata.empty())
-            .withComment(comment));
+    Dataset<Row> resultDF =
+        overwriteSinglePartition(
+            new StructField("the_date", DataTypes.DateType, true, Metadata.empty())
+                .withComment(comment));
     assertThat(resultDF.schema().fields()[0].getComment()).isEqualTo(Some.apply(comment));
   }
 
@@ -310,21 +330,21 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     String testDescription = "test description";
     String testComment = "test comment";
 
-    Metadata metadata =
-        Metadata.fromJson("{\"description\": \"" + testDescription + "\"}");
+    Metadata metadata = Metadata.fromJson("{\"description\": \"" + testDescription + "\"}");
 
-    StructType[] schemas = new StructType[]{
-        structType(new StructField("c1", DataTypes.IntegerType, true, metadata)),
-        structType(
-            new StructField("c1", DataTypes.IntegerType, true, Metadata.empty())
-                .withComment(testComment)),
-        structType(
-            new StructField("c1", DataTypes.IntegerType, true, metadata)
-                .withComment(testComment)),
-        structType(new StructField("c1", DataTypes.IntegerType, true, Metadata.empty()))
-    };
+    StructType[] schemas =
+        new StructType[] {
+          structType(new StructField("c1", DataTypes.IntegerType, true, metadata)),
+          structType(
+              new StructField("c1", DataTypes.IntegerType, true, Metadata.empty())
+                  .withComment(testComment)),
+          structType(
+              new StructField("c1", DataTypes.IntegerType, true, metadata)
+                  .withComment(testComment)),
+          structType(new StructField("c1", DataTypes.IntegerType, true, Metadata.empty()))
+        };
 
-    String[] readValues = new String[]{testDescription, testComment, testComment, null};
+    String[] readValues = new String[] {testDescription, testComment, testComment, null};
 
     for (int i = 0; i < schemas.length; i++) {
       List<Row> data = Arrays.asList(RowFactory.create(100), RowFactory.create(200));
@@ -333,10 +353,13 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
       writeToBigQuery(descriptionDF, SaveMode.Overwrite);
 
-      Dataset<Row> readDF = spark.read().format("bigquery")
-          .option("dataset", testDataset.toString())
-          .option("table", testTable)
-          .load();
+      Dataset<Row> readDF =
+          spark
+              .read()
+              .format("bigquery")
+              .option("dataset", testDataset.toString())
+              .option("table", testTable)
+              .load();
 
       Optional<String> description =
           SchemaConverters.getDescriptionOrCommentOfField(readDF.schema().fields()[0]);
@@ -350,11 +373,9 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     }
   }
 
-
   private StructType structType(StructField... fields) {
     return new StructType(fields);
   }
-
 
   @Test
   public void testPartition_Hourly() {
@@ -377,14 +398,15 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   private void testPartition(String partitionType) {
-    List<Data> data = Arrays.asList(
-        new Data("a", Timestamp.valueOf("2020-01-01 01:01:01")),
-        new Data("b", Timestamp.valueOf("2020-01-02 02:02:02")),
-        new Data("c", Timestamp.valueOf("2020-01-03 03:03:03"))
-    );
+    List<Data> data =
+        Arrays.asList(
+            new Data("a", Timestamp.valueOf("2020-01-01 01:01:01")),
+            new Data("b", Timestamp.valueOf("2020-01-02 02:02:02")),
+            new Data("c", Timestamp.valueOf("2020-01-03 03:03:03")));
     Dataset<Row> df = spark.createDataset(data, Encoders.bean(Data.class)).toDF();
     String table = testDataset.toString() + "." + testTable + "_" + partitionType;
-    df.write().format("bigquery")
+    df.write()
+        .format("bigquery")
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("partitionField", "ts")
         .option("partitionType", partitionType)
@@ -401,11 +423,15 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     Dataset<Row> allTypesTable = readAllTypesTable();
     writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro");
 
-    Dataset<Row> df = spark.read().format("bigquery")
-        .option("dataset", testDataset.toString())
-        .option("table", testTable)
-        .option("readDataFormat", "arrow")
-        .load().cache();
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .option("readDataFormat", "arrow")
+            .load()
+            .cache();
 
     assertThat(df.head()).isEqualTo(allTypesTable.head());
 
@@ -414,11 +440,11 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assertThat(df.schema()).isEqualTo(allTypesTable.schema());
   }
 
-
   protected long numberOfRowsWith(String name) {
     try {
-      return bq.query(QueryJobConfiguration
-          .of(String.format("select name from %s where name='%s'", fullTableName(), name)))
+      return bq.query(
+              QueryJobConfiguration.of(
+                  String.format("select name from %s where name='%s'", fullTableName(), name)))
           .getTotalRows();
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
@@ -440,6 +466,4 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   protected boolean initialDataValuesExist() {
     return numberOfRowsWith("Abc") == 1;
   }
-
 }
-

@@ -25,7 +25,12 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.spark.bigquery.BigQueryDataTypes;
@@ -34,12 +39,6 @@ import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.stream.Collectors;
 
 public class SchemaConverters {
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.

@@ -1,25 +1,24 @@
 package com.google.cloud.spark.bigquery;
 
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
+
 import com.google.api.client.http.apache.v2.ApacheHttpTransport;
 import com.google.api.core.ApiFunction;
 import com.google.auth.http.HttpTransportFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyTransporterBuilder;
 import com.google.common.collect.ImmutableMap;
 import io.grpc.ManagedChannelBuilder;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.spark.sql.internal.SQLConf;
-import org.apache.spark.sql.sources.v2.DataSourceOptions;
-import org.junit.Test;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-
-import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertThrows;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.spark.sql.internal.SQLConf;
+import org.apache.spark.sql.sources.v2.DataSourceOptions;
+import org.junit.Test;
 
 public class SparkBigQueryProxyAndHttpConfigTest {
 

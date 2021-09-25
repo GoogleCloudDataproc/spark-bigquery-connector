@@ -15,6 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.UUID;
 import org.apache.avro.Schema;
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
 import org.apache.hadoop.fs.FileSystem;
@@ -23,10 +26,6 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.writer.DataWriter;
 import org.apache.spark.sql.sources.v2.writer.DataWriterFactory;
 import org.apache.spark.sql.types.StructType;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.UUID;
 
 class BigQueryIndirectDataWriterFactory implements DataWriterFactory<InternalRow> {
 

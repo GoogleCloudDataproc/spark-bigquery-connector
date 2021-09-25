@@ -15,13 +15,10 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static java.lang.String.format;
+
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
-import org.apache.spark.sql.sources.*;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
-import org.apache.spark.sql.types.ArrayType;
-
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -30,8 +27,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
-import static java.lang.String.format;
+import org.apache.spark.sql.sources.*;
+import org.apache.spark.sql.types.ArrayType;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 
 public class SparkFilterUtils {
 

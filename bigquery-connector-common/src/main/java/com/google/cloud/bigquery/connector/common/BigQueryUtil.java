@@ -15,6 +15,10 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.cloud.http.BaseHttpServiceException.UNKNOWN_CODE;
+import static com.google.common.base.Throwables.getCausalChain;
+import static java.lang.String.format;
+
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.TableId;
@@ -24,17 +28,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static com.google.cloud.http.BaseHttpServiceException.UNKNOWN_CODE;
-import static com.google.common.base.Throwables.getCausalChain;
-import static java.lang.String.format;
 
 public class BigQueryUtil {
   static final ImmutableSet<String> INTERNAL_ERROR_MESSAGES =

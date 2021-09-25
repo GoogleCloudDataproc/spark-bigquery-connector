@@ -45,11 +45,15 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
     Dataset<Row> allTypesTable = readAllTypesTable();
     writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro");
 
-    Dataset<Row> df = spark.read().format("bigquery")
-        .option("dataset", testDataset.toString())
-        .option("table", testTable)
-        .option("readDataFormat", "arrow")
-        .load().cache();
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .option("readDataFormat", "arrow")
+            .load()
+            .cache();
 
     IntegrationTestUtils.compareRows(df.head(), allTypesTable.head());
 
@@ -66,7 +70,6 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
     writeToBigQuery(initialData(), SaveMode.ErrorIfExists, "orc");
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
-
   }
 
   // v2 does not support parquet
@@ -79,9 +82,11 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
 
   @Test
   public void testWriteToBigQuery_UnsupportedFormat() {
-    assertThrows(Exception.class, () -> {
-      writeToBigQuery(initialData(), SaveMode.ErrorIfExists, "something else");
-    });
+    assertThrows(
+        Exception.class,
+        () -> {
+          writeToBigQuery(initialData(), SaveMode.ErrorIfExists, "something else");
+        });
   }
 
   @Test(timeout = 120_000)
@@ -93,13 +98,15 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
     Dataset<Row> streamingDF = stream.toDF();
     String cpLoc = String.format("/tmp/%s-%d", fullTableName(), System.nanoTime());
     // Start write stream
-    StreamingQuery writeStream = streamingDF.writeStream().
-        format("bigquery").
-        outputMode(OutputMode.Append()).
-        option("checkpointLocation", cpLoc).
-        option("table", fullTableName()).
-        option("temporaryGcsBucket", temporaryGcsBucket).
-        start();
+    StreamingQuery writeStream =
+        streamingDF
+            .writeStream()
+            .format("bigquery")
+            .outputMode(OutputMode.Append())
+            .option("checkpointLocation", cpLoc)
+            .option("table", fullTableName())
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .start();
 
     // Write to stream
     stream.addData(toSeq(initialData().collectAsList()));

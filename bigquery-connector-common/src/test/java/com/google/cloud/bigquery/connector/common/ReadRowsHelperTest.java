@@ -15,53 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import com.google.api.gax.rpc.TransportChannelProvider;
-import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
-import com.google.cloud.bigquery.storage.v1.BigQueryReadGrpc.BigQueryReadImplBase;
-import com.google.cloud.bigquery.storage.v1.BigQueryReadSettings;
-import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
-import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
-import com.google.cloud.bigquery.storage.v1.stub.EnhancedBigQueryReadStubSettings;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Multimaps;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
-import io.grpc.netty.NettyServerBuilder;
-import io.grpc.stub.StreamObserver;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-
-import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
 
 @Ignore
 public class ReadRowsHelperTest {
@@ -183,7 +137,8 @@ public class ReadRowsHelperTest {
   //   when(clientFactory.createBigQueryReadClient(any())).thenReturn(fakeServerClient());
   //   fakeService.reset(ImmutableMap.of(request.getReadStream(), batch1));
   //   ReadSessionCreatorConfig config =
-  //       new ReadSessionCreatorConfigBuilder().setEndpoint(Optional.of("127.0.0.1:" + 123)).build();
+  //       new ReadSessionCreatorConfigBuilder().setEndpoint(Optional.of("127.0.0.1:" +
+  // 123)).build();
   //   helper = new ReadRowsHelper(clientFactory, request, config.toReadRowsHelperOptions());
   //   assertThat(Iterators.getOnlyElement(helper.readRows()).getRowCount()).isEqualTo(10);
   //   ArgumentCaptor<Optional<String>> endpointCaptor = ArgumentCaptor.forClass(Optional.class);
@@ -207,7 +162,8 @@ public class ReadRowsHelperTest {
   //   assertThat(responses.size()).isEqualTo(2);
   //   assertThat(responses.stream().mapToLong(ReadRowsResponse::getRowCount).sum()).isEqualTo(21);
   //
-  //   List<ReadRowsRequest> requests = fakeService.requestsByStreamName.get(request.getReadStream());
+  //   List<ReadRowsRequest> requests =
+  // fakeService.requestsByStreamName.get(request.getReadStream());
   //   assertThat(requests)
   //       .containsExactly(request.setOffset(0).build(), request.setOffset(10).build())
   //       .inOrder();

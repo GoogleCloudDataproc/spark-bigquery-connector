@@ -20,11 +20,10 @@ import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
+import java.util.Iterator;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartition;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
-
-import java.util.Iterator;
 
 public class BigQueryInputPartition implements InputPartition<InternalRow> {
 

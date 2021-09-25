@@ -23,11 +23,9 @@ public class Person {
   private String name;
   private List<Friend> friends;
 
-  public Person() {
-  }
+  public Person() {}
 
-  public Person(String name,
-      List<Friend> friends) {
+  public Person(String name, List<Friend> friends) {
     this.name = name;
     this.friends = friends;
   }
@@ -57,8 +55,7 @@ public class Person {
       return false;
     }
     Person person = (Person) o;
-    return Objects.equal(name, person.name) && Objects
-        .equal(friends, person.friends);
+    return Objects.equal(name, person.name) && Objects.equal(friends, person.friends);
   }
 
   @Override
@@ -68,9 +65,6 @@ public class Person {
 
   @Override
   public String toString() {
-    return "Person{" +
-        "name='" + name + '\'' +
-        ", friends=" + friends +
-        '}';
+    return "Person{" + "name='" + name + '\'' + ", friends=" + friends + '}';
   }
 }

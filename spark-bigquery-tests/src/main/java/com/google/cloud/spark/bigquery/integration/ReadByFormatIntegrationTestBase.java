@@ -15,29 +15,20 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-
-import static com.google.cloud.spark.bigquery.integration.IntegrationTestUtils.metadata;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
-
 
 public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
@@ -54,14 +45,11 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     Dataset<Row> df = getViewDataFrame();
 
     // filer and select are pushed down to BQ
-    List<Row> result = df
-        .select("int_req")
-        .filter("str = 'string'")
-        .collectAsList();
+    List<Row> result = df.select("int_req").filter("str = 'string'").collectAsList();
 
     assertThat(result).hasSize(1);
-    List<Row> filteredResult = result.stream().filter(row -> row.getLong(0) == 42L)
-        .collect(Collectors.toList());
+    List<Row> filteredResult =
+        result.stream().filter(row -> row.getLong(0) == 42L).collect(Collectors.toList());
     assertThat(filteredResult).hasSize(1);
   }
 
@@ -72,33 +60,40 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     Dataset<Row> cachedDF = df.cache();
 
     // filter and select are run on the spark side as the view was cached
-    List<Row> result = cachedDF
-        .select("int_req")
-        .filter("str = 'string'")
-        .collectAsList();
+    List<Row> result = cachedDF.select("int_req").filter("str = 'string'").collectAsList();
 
     assertThat(result).hasSize(1);
-    List<Row> filteredResult = result.stream().filter(row -> row.getLong(0) == 42L)
-        .collect(Collectors.toList());
+    List<Row> filteredResult =
+        result.stream().filter(row -> row.getLong(0) == 42L).collect(Collectors.toList());
     assertThat(filteredResult).hasSize(1);
   }
 
   @Test
   public void testOutOfOrderColumns() {
-    Row row = spark.read().format("bigquery")
-        .option("table", TestConstants.SHAKESPEARE_TABLE)
-        .option("readDataFormat", dataFormat).load()
-        .select("word_count", "word").head();
+    Row row =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", TestConstants.SHAKESPEARE_TABLE)
+            .option("readDataFormat", dataFormat)
+            .load()
+            .select("word_count", "word")
+            .head();
     assertThat(row.get(0)).isInstanceOf(Long.class);
     assertThat(row.get(1)).isInstanceOf(String.class);
   }
 
   @Test
   public void testSelectAllColumnsFromATable() {
-    Row row = spark.read().format("bigquery")
-        .option("table", TestConstants.SHAKESPEARE_TABLE)
-        .option("readDataFormat", dataFormat).load()
-        .select("word_count", "word", "corpus", "corpus_date").head();
+    Row row =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", TestConstants.SHAKESPEARE_TABLE)
+            .option("readDataFormat", dataFormat)
+            .load()
+            .select("word_count", "word", "corpus", "corpus_date")
+            .head();
     assertThat(row.get(0)).isInstanceOf(Long.class);
     assertThat(row.get(1)).isInstanceOf(String.class);
     assertThat(row.get(2)).isInstanceOf(String.class);
@@ -107,20 +102,26 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
   @Test
   public void testNumberOfPartitions() {
-    Dataset<Row> df = spark.read().format("bigquery")
-        .option("table",TestConstants. LARGE_TABLE)
-        .option("parallelism", "5")
-        .option("readDataFormat", dataFormat)
-        .load();
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", TestConstants.LARGE_TABLE)
+            .option("parallelism", "5")
+            .option("readDataFormat", dataFormat)
+            .load();
     assertThat(df.rdd().getNumPartitions()).isEqualTo(5);
   }
 
   @Test
   public void testDefaultNumberOfPartitions() {
-    Dataset<Row> df = spark.read().format("bigquery")
-        .option("table", TestConstants.LARGE_TABLE)
-        .option("readDataFormat", dataFormat)
-        .load();
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", TestConstants.LARGE_TABLE)
+            .option("readDataFormat", dataFormat)
+            .load();
 
     assertThat(df.rdd().getNumPartitions()).isEqualTo(58);
   }
@@ -128,16 +129,22 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   @Test(timeout = 300_000)
   public void testBalancedPartitions() {
     // Select first partition
-    Dataset<Row> df = spark.read()
-        .format("bigquery")
-        .option("parallelism", 5)
-        .option("readDataFormat", dataFormat)
-        .option("filter", "year > 2000")
-        .load(TestConstants.LARGE_TABLE)
-        .select(TestConstants.LARGE_TABLE_FIELD); // minimize payload
-    long sizeOfFirstPartition = df.rdd().toJavaRDD().mapPartitions(
-        rows -> Arrays.asList(Iterators.size(rows)).iterator())
-        .collect().get(0).longValue();
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("parallelism", 5)
+            .option("readDataFormat", dataFormat)
+            .option("filter", "year > 2000")
+            .load(TestConstants.LARGE_TABLE)
+            .select(TestConstants.LARGE_TABLE_FIELD); // minimize payload
+    long sizeOfFirstPartition =
+        df.rdd()
+            .toJavaRDD()
+            .mapPartitions(rows -> Arrays.asList(Iterators.size(rows)).iterator())
+            .collect()
+            .get(0)
+            .longValue();
 
     // Since we are only reading from a single stream, we can expect to get
     // at least as many rows
@@ -154,21 +161,27 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
   @Test
   public void testKeepingFiltersBehaviour() {
-    Set<String> newBehaviourWords = extractWords(
-        spark.read().format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("filter", "length(word) = 1")
-            .option("combinePushedDownFilters", "true")
-            .option("readDataFormat", dataFormat)
-            .load());
+    Set<String> newBehaviourWords =
+        extractWords(
+            spark
+                .read()
+                .format("bigquery")
+                .option("table", "bigquery-public-data.samples.shakespeare")
+                .option("filter", "length(word) = 1")
+                .option("combinePushedDownFilters", "true")
+                .option("readDataFormat", dataFormat)
+                .load());
 
-    Set<String> oldBehaviourWords = extractWords(
-        spark.read().format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("filter", "length(word) = 1")
-            .option("combinePushedDownFilters", "false")
-            .option("readDataFormat", dataFormat)
-            .load());
+    Set<String> oldBehaviourWords =
+        extractWords(
+            spark
+                .read()
+                .format("bigquery")
+                .option("table", "bigquery-public-data.samples.shakespeare")
+                .option("filter", "length(word) = 1")
+                .option("combinePushedDownFilters", "false")
+                .option("readDataFormat", dataFormat)
+                .load());
 
     assertThat(newBehaviourWords).isEqualTo(oldBehaviourWords);
   }
@@ -177,21 +190,25 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   public void testColumnOrderOfStruct() {
     StructType schema = Encoders.bean(ColumnOrderTestClass.class).schema();
 
-    Dataset<ColumnOrderTestClass> dataset = spark.read()
-        .schema(schema)
-        .option("dataset", testDataset.toString())
-        .option("table", TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_NAME)
-        .format("bigquery")
-        .option("readDataFormat", dataFormat)
-        .load()
-        .as(Encoders.bean(ColumnOrderTestClass.class));
+    Dataset<ColumnOrderTestClass> dataset =
+        spark
+            .read()
+            .schema(schema)
+            .option("dataset", testDataset.toString())
+            .option("table", TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_NAME)
+            .format("bigquery")
+            .option("readDataFormat", dataFormat)
+            .load()
+            .as(Encoders.bean(ColumnOrderTestClass.class));
 
     ColumnOrderTestClass row = dataset.head();
     assertThat(row).isEqualTo(TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_COLS);
   }
 
   Dataset<Row> getViewDataFrame() {
-    return spark.read().format("bigquery")
+    return spark
+        .read()
+        .format("bigquery")
         .option("table", TestConstants.ALL_TYPES_VIEW_NAME)
         .option("viewsEnabled", "true")
         .option("viewMaterializationProject", System.getenv("GOOGLE_CLOUD_PROJECT"))
@@ -201,18 +218,16 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   }
 
   Dataset<Row> readAllTypesTable() {
-    return spark.read().format("bigquery")
+    return spark
+        .read()
+        .format("bigquery")
         .option("dataset", testDataset.toString())
         .option("table", TestConstants.ALL_TYPES_TABLE_NAME)
         .load();
   }
 
   protected Set<String> extractWords(Dataset<Row> df) {
-    return ImmutableSet.copyOf(df.select("word")
-        .where("corpus_date = 0")
-        .as(Encoders.STRING())
-        .collectAsList());
+    return ImmutableSet.copyOf(
+        df.select("word").where("corpus_date = 0").as(Encoders.STRING()).collectAsList());
   }
-
 }
-

@@ -15,8 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import static com.google.common.truth.Truth.assertThat;
-
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -28,8 +26,11 @@ public class DataSourceV1ReadIntegrationTest extends ReadIntegrationTestBase {
   @Test
   public void testReadDataTypes() {
     Dataset<Row> allTypesTable = readAllTypesTable();
-    Row expectedValues = spark.range(1)
-        .select(TestConstants.ALL_TYPES_TABLE_COLS.stream().toArray(Column[]::new)).head();
+    Row expectedValues =
+        spark
+            .range(1)
+            .select(TestConstants.ALL_TYPES_TABLE_COLS.stream().toArray(Column[]::new))
+            .head();
     Row row = allTypesTable.head();
 
     IntegrationTestUtils.compareRows(row, expectedValues);

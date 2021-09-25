@@ -25,8 +25,7 @@ public class NumStruct {
   private Long num1;
   private List<StringStruct> strings;
 
-  public NumStruct() {
-  }
+  public NumStruct() {}
 
   public NumStruct(Long num3, Long num2, Long num1, List<StringStruct> strings) {
     this.num3 = num3;
@@ -89,11 +88,15 @@ public class NumStruct {
 
   @Override
   public String toString() {
-    return "NumStruct{" +
-        "num3=" + num3 +
-        ", num2=" + num2 +
-        ", num1=" + num1 +
-        ", stringStructArr=" + strings +
-        '}';
+    return "NumStruct{"
+        + "num3="
+        + num3
+        + ", num2="
+        + num2
+        + ", num1="
+        + num1
+        + ", stringStructArr="
+        + strings
+        + '}';
   }
 }

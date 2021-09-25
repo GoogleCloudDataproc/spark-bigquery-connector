@@ -15,6 +15,10 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static com.google.cloud.spark.bigquery.SchemaConverters.*;
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.fail;
+
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
@@ -23,18 +27,12 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
-import org.apache.log4j.Level;
+import java.util.Optional;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.types.*;
 import org.junit.Test;
-
-import java.util.Optional;
-
-import static com.google.cloud.spark.bigquery.SchemaConverters.*;
-import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
 
 public class SchemaConverterTest {
 

@@ -37,12 +37,15 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
   }
 
   private void testReadFromQueryInternal(String query) {
-    Dataset<Row> df = spark.read().format("bigquery")
-      .option("viewsEnabled", true)
-      .option("materializationDataset", testDataset.toString())
-      .load(query);
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", true)
+            .option("materializationDataset", testDataset.toString())
+            .load(query);
 
-  validateResult(df);
+    validateResult(df);
   }
 
   @Test
@@ -50,9 +53,10 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     // the query suffix is to make sure that each format will have
     // a different table created due to the destination table cache
     String random = String.valueOf(System.nanoTime());
-    String query = String.format(
-        "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
-        random, random);
+    String query =
+        String.format(
+            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
+            random, random);
     testReadFromQueryInternal(query);
   }
 
@@ -61,10 +65,11 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     // the query suffix is to make sure that each format will have
     // a different table created due to the destination table cache
     String random = String.valueOf(System.nanoTime());
-    String query = String.format(
-        "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare`\n"+
-            "WHERE word='spark' AND '%s'='%s'",
-        random, random);
+    String query =
+        String.format(
+            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare`\n"
+                + "WHERE word='spark' AND '%s'='%s'",
+            random, random);
     testReadFromQueryInternal(query);
   }
 
@@ -73,14 +78,18 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     // the query suffix is to make sure that each format will have
     // a different table created due to the destination table cache
     String random = String.valueOf(System.nanoTime());
-    String query = String.format(
-        "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
-        random, random);
-    Dataset<Row> df = spark.read().format("bigquery")
-        .option("viewsEnabled", true)
-        .option("materializationDataset", testDataset.toString())
-        .option("query", query)
-        .load();
+    String query =
+        String.format(
+            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
+            random, random);
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", true)
+            .option("materializationDataset", testDataset.toString())
+            .option("query", query)
+            .load();
 
     validateResult(df);
   }
@@ -90,24 +99,34 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     assertThat(totalRows).isEqualTo(9);
 
     List<String> corpuses = df.select("corpus").as(Encoders.STRING()).collectAsList();
-    List<String> expectedCorpuses = Arrays
-        .asList("2kinghenryvi", "3kinghenryvi", "allswellthatendswell", "hamlet",
-            "juliuscaesar", "kinghenryv", "kinglear", "periclesprinceoftyre", "troilusandcressida");
+    List<String> expectedCorpuses =
+        Arrays.asList(
+            "2kinghenryvi",
+            "3kinghenryvi",
+            "allswellthatendswell",
+            "hamlet",
+            "juliuscaesar",
+            "kinghenryv",
+            "kinglear",
+            "periclesprinceoftyre",
+            "troilusandcressida");
     assertThat(corpuses).containsExactlyElementsIn(expectedCorpuses);
   }
 
-  @Test public void
-  testBadQuery() {
+  @Test
+  public void testBadQuery() {
     String badSql = "SELECT bogus_column FROM `bigquery-public-data.samples.shakespeare`";
     // v1 throws BigQueryConnectorException
     // v2 throws Guice ProviderException, as the table is materialized in teh module
-    assertThrows(RuntimeException.class, () -> {
-      spark.read().format("bigquery")
-        .option("viewsEnabled", true)
-        .option("materializationDataset", testDataset.toString())
-        .load(badSql);
-    });
+    assertThrows(
+        RuntimeException.class,
+        () -> {
+          spark
+              .read()
+              .format("bigquery")
+              .option("viewsEnabled", true)
+              .option("materializationDataset", testDataset.toString())
+              .load(badSql);
+        });
   }
-
 }
-

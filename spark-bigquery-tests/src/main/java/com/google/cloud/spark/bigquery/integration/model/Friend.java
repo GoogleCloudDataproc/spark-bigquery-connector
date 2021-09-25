@@ -23,8 +23,7 @@ public class Friend {
   private int age;
   private List<Link> links;
 
-  public Friend() {
-  }
+  public Friend() {}
 
   public Friend(int age, List<Link> links) {
     this.age = age;
@@ -66,9 +65,6 @@ public class Friend {
 
   @Override
   public String toString() {
-    return "Friend{" +
-        "age=" + age +
-        ", links=" + links +
-        '}';
+    return "Friend{" + "age=" + age + ", links=" + links + '}';
   }
 }

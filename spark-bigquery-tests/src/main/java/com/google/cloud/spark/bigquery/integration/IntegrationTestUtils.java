@@ -26,19 +26,12 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import java.util.Optional;
-import org.apache.spark.bigquery.BigNumeric;
-import org.apache.spark.bigquery.BigNumericUDT;
-import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
-import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
-import org.apache.spark.unsafe.types.UTF8String;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,8 +51,8 @@ public class IntegrationTestUtils {
   }
 
   public static void runQuery(String query) {
-    BigQueryClient bigQueryClient = new BigQueryClient(getBigquery(), Optional.empty(),
-        Optional.empty());
+    BigQueryClient bigQueryClient =
+        new BigQueryClient(getBigquery(), Optional.empty(), Optional.empty());
     bigQueryClient.query(query);
   }
 
@@ -76,18 +69,14 @@ public class IntegrationTestUtils {
   }
 
   static SparkSession getOrCreateSparkSession(String applicationName) {
-    return SparkSession.builder()
-        .appName(applicationName)
-        .master("local")
-        .getOrCreate();
+    return SparkSession.builder().appName(applicationName).master("local").getOrCreate();
   }
 
   static void createView(String dataset, String table, String view) {
     BigQuery bq = getBigquery();
     String query = String.format("SELECT * FROM %s.%s", dataset, table);
     TableId tableId = TableId.of(dataset, view);
-    ViewDefinition viewDefinition =
-        ViewDefinition.newBuilder(query).setUseLegacySql(false).build();
+    ViewDefinition viewDefinition = ViewDefinition.newBuilder(query).setUseLegacySql(false).build();
     bq.create(TableInfo.of(tableId, viewDefinition));
   }
 
@@ -110,8 +99,8 @@ public class IntegrationTestUtils {
     }
   }
 
-  public static void compareBigNumericDataSetSchema(StructType actualSchema,
-      StructType expectedSchema) {
+  public static void compareBigNumericDataSetSchema(
+      StructType actualSchema, StructType expectedSchema) {
 
     StructField[] actualFields = actualSchema.fields();
     StructField[] expectedFields = expectedSchema.fields();
@@ -139,5 +128,4 @@ public class IntegrationTestUtils {
       // }
     }
   }
-
 }

@@ -15,21 +15,20 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
+
 import com.google.api.client.json.GenericJson;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
-import org.junit.Test;
-
 import java.io.File;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
-
-import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertThrows;
+import org.junit.Test;
 
 public class BigQueryCredentialsSupplierTest {
 

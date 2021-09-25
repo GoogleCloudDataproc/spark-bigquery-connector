@@ -24,7 +24,6 @@ import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.storage.*;
 import com.google.common.io.ByteStreams;
-
 import java.io.*;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -33,14 +32,10 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 public class AcceptanceTestUtils {
 
@@ -124,13 +119,13 @@ public class AcceptanceTestUtils {
     URI uri = new URI(resultsDirUri);
     Blob csvBlob =
         StreamSupport.stream(
-            storage
-                .list(
-                    uri.getAuthority(),
-                    Storage.BlobListOption.prefix(uri.getPath().substring(1)))
-                .iterateAll()
-                .spliterator(),
-            false)
+                storage
+                    .list(
+                        uri.getAuthority(),
+                        Storage.BlobListOption.prefix(uri.getPath().substring(1)))
+                    .iterateAll()
+                    .spliterator(),
+                false)
             .filter(blob -> blob.getName().endsWith("csv"))
             .findFirst()
             .get();
@@ -141,13 +136,13 @@ public class AcceptanceTestUtils {
     URI uri = new URI(testBaseGcsDir);
     BlobId[] blobIds =
         StreamSupport.stream(
-            storage
-                .list(
-                    uri.getAuthority(),
-                    Storage.BlobListOption.prefix(uri.getPath().substring(1)))
-                .iterateAll()
-                .spliterator(),
-            false)
+                storage
+                    .list(
+                        uri.getAuthority(),
+                        Storage.BlobListOption.prefix(uri.getPath().substring(1)))
+                    .iterateAll()
+                    .spliterator(),
+                false)
             .map(Blob::getBlobId)
             .toArray(BlobId[]::new);
     storage.delete(blobIds);

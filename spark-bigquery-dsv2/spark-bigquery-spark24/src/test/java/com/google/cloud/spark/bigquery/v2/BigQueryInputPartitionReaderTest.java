@@ -15,20 +15,17 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import static com.google.common.truth.Truth.*;
+
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
-import com.google.cloud.bigquery.storage.v1.StreamStats;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.TextFormat;
+import java.util.Iterator;
 import java.util.Optional;
-import org.apache.log4j.Logger;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.junit.Test;
-
-import java.util.Iterator;
-
-import static com.google.common.truth.Truth.*;
 
 public class BigQueryInputPartitionReaderTest {
 

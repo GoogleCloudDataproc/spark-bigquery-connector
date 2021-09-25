@@ -298,6 +298,40 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>2.13.1</version>
+        <configuration>
+          <formats>
+            <format>
+              <includes>
+                <include>*.md</include>
+                <include>.gitignore</include>
+              </includes>
+              <trimTrailingWhitespace/>
+              <endWithNewline/>
+            </format>
+          </formats>
+          <java>
+            <toggleOffOn>
+              <off>fmt:off</off>
+              <on>fmt:on</on>
+            </toggleOffOn>
+            <googleJavaFormat>
+              <version>1.7</version>
+            </googleJavaFormat>
+          </java>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>compile</phase>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 

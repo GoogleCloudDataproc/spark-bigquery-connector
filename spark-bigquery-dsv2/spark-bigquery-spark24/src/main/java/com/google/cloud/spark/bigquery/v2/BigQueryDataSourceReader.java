@@ -64,10 +64,10 @@ import scala.collection.JavaConversions;
 
 public class BigQueryDataSourceReader
     implements DataSourceReader,
-    SupportsPushDownRequiredColumns,
-    SupportsPushDownFilters,
-    SupportsReportStatistics,
-    SupportsScanColumnarBatch {
+        SupportsPushDownRequiredColumns,
+        SupportsPushDownFilters,
+        SupportsReportStatistics,
+        SupportsScanColumnarBatch {
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryDataSourceReader.class);
 
@@ -96,7 +96,7 @@ public class BigQueryDataSourceReader
   private final String applicationId;
   private Optional<StructType> schema;
   private Optional<StructType> userProvidedSchema;
-  private Filter[] pushedFilters = new Filter[]{};
+  private Filter[] pushedFilters = new Filter[] {};
   private Map<String, StructField> fields;
 
   public BigQueryDataSourceReader(
@@ -217,8 +217,8 @@ public class BigQueryDataSourceReader
 
     ImmutableList<String> partitionSelectedFields = selectedFields;
     return Streams.stream(
-        Iterables.partition(
-            readSession.getStreamsList(), readSessionCreatorConfig.streamsPerPartition()))
+            Iterables.partition(
+                readSession.getStreamsList(), readSessionCreatorConfig.streamsPerPartition()))
         .map(
             streams ->
                 new ArrowInputPartition(
