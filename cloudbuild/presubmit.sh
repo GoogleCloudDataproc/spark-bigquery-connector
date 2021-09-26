@@ -46,7 +46,7 @@ case $STEP in
 esac
 
 # Upload test coverage report to Codecov
-#bash <(curl -s https://codecov.io/bash) -K -F "${STEP}"
+bash <(curl -s https://codecov.io/bash) -K -F "${STEP}"
 
 
 
