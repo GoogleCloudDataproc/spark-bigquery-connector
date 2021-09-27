@@ -17,6 +17,11 @@
 
 set -euxo pipefail
 
+if [ -z "${CODECOV_TOKEN}" ]; then
+  echo "missing environment variable CODECOV_TOKEN"
+  exit 1
+fi
+
 readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository"
 readonly STEP=$1
 
@@ -31,12 +36,12 @@ case $STEP in
 
   # Run unit tests
   unittest)
-    $MVN test -Pdsv1_2.12,dsv2
+    $MVN test jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv2
     ;;
 
   # Run integration tests
   integrationtest)
-    $MVN failsafe:integration-test failsafe:verify -Pintegration,dsv1_2.12,dsv2
+    $MVN failsafe:integration-test failsafe:verify jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv2
     ;;
 
   *)
