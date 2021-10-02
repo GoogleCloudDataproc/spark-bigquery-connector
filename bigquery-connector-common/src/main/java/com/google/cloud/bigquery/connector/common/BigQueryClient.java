@@ -33,6 +33,8 @@ import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobConfiguration;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -87,6 +89,107 @@ public class BigQueryClient {
     return bigQuery.getTable(tableId);
   }
 
+  /**
+   * Checks whether the requested table exists in BigQuery.
+   *
+   * @param tableId The TableId of the requested table in BigQuery
+   * @return True if the requested table exists in BigQuery, false otherwise.
+   */
+  public boolean tableExists(TableId tableId) {
+    return getTable(tableId) != null;
+  }
+
+  /**
+   * Creates an empty table in BigQuery.
+   *
+   * @param tableId The TableId of the table to be created.
+   * @param schema The Schema of the table to be created.
+   * @return The {@code Table} object representing the table that was created.
+   */
+  public Table createTable(TableId tableId, Schema schema) {
+    TableInfo tableInfo = TableInfo.newBuilder(tableId, StandardTableDefinition.of(schema)).build();
+    return bigQuery.create(tableInfo);
+  }
+
+  /**
+   * Creates a temporary table with a time-to-live of 1 day, and the same location as the
+   * destination table; the temporary table will have the same name as the destination table, with
+   * the current time in milliseconds appended to it; useful for holding temporary data in order to
+   * overwrite the destination table.
+   *
+   * @param destinationTableId The TableId of the eventual destination for the data going into the
+   *     temporary table.
+   * @param schema The Schema of the destination / temporary table.
+   * @return The {@code Table} object representing the created temporary table.
+   */
+  public Table createTempTable(TableId destinationTableId, Schema schema) {
+    String tempProject = materializationProject.orElseGet(destinationTableId::getProject);
+    String tempDataset = materializationDataset.orElseGet(destinationTableId::getDataset);
+    TableId tempTableId =
+        TableId.of(tempProject, tempDataset, destinationTableId.getTable() + System.nanoTime());
+    // Build TableInfo with expiration time of one day from current epoch.
+    TableInfo tableInfo =
+        TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema))
+            .setExpirationTime(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1))
+            .build();
+    return bigQuery.create(tableInfo);
+  }
+
+  /**
+   * Deletes this table in BigQuery.
+   *
+   * @param tableId The TableId of the table to be deleted.
+   * @return True if the operation was successful, false otherwise.
+   */
+  public boolean deleteTable(TableId tableId) {
+    return bigQuery.delete(tableId);
+  }
+
+  /**
+   * Overwrites the given destination table, with all the data from the given temporary table,
+   * transactionally.
+   *
+   * @param temporaryTableId The {@code TableId} representing the temporary-table.
+   * @param destinationTableId The {@code TableId} representing the destination table.
+   * @return The {@code Job} object representing this operation (which can be tracked to wait until
+   *     it has finished successfully).
+   */
+  public Job overwriteDestinationWithTemporary(
+      TableId temporaryTableId, TableId destinationTableId) {
+    String queryFormat =
+        "MERGE `%s`\n"
+            + "USING (SELECT * FROM `%s`)\n"
+            + "ON FALSE\n"
+            + "WHEN NOT MATCHED THEN INSERT ROW\n"
+            + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
+
+    QueryJobConfiguration queryConfig =
+        QueryJobConfiguration.newBuilder(
+                sqlFromFormat(queryFormat, destinationTableId, temporaryTableId))
+            .setUseLegacySql(false)
+            .build();
+
+    return create(JobInfo.newBuilder(queryConfig).build());
+  }
+
+  String sqlFromFormat(String queryFormat, TableId destinationTableId, TableId temporaryTableId) {
+    return String.format(
+        queryFormat, fullTableName(destinationTableId), fullTableName(temporaryTableId));
+  }
+
+  /**
+   * Creates a String appropriately formatted for BigQuery Storage Write API representing the given
+   * table.
+   *
+   * @param tableId The {@code TableId} representing the given object.
+   * @return The formatted String.
+   */
+  public String createTablePathForBigQueryStorage(TableId tableId) {
+    return String.format(
+        "projects/%s/datasets/%s/tables/%s",
+        tableId.getProject(), tableId.getDataset(), tableId.getTable());
+  }
+
   public TableInfo getReadTable(ReadTableOptions options) {
     Optional<String> query = options.query();
     // first, let check if this is a query
@@ -126,7 +229,8 @@ public class BigQueryClient {
       throw new BigQueryConnectorException(
           UNSUPPORTED,
           format(
-              "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
+              "Views are not enabled. You can enable views by setting '%s' to true. Notice"
+                  + " additional cost may occur.",
               options.viewEnabledParamName()));
     }
   }

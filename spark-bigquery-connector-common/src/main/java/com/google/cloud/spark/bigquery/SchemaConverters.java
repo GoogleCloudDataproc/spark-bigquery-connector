@@ -39,6 +39,7 @@ import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
+import org.apache.spark.bigquery.BigNumericUDT;
 
 public class SchemaConverters {
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
@@ -418,13 +419,14 @@ public class SchemaConverters {
             "Decimal type is too wide to fit in BigQuery Numeric format");
       }
     }
+    if (elementType instanceof BigNumericUDT) {
+      return LegacySQLTypeName.BIGNUMERIC;
+    }
     if (elementType instanceof StringType) {
       return LegacySQLTypeName.STRING;
     }
     if (elementType instanceof TimestampType) {
-      // return LegacySQLTypeName.TIMESTAMP; FIXME: Restore this correct conversion when the Vortex
-      // team adds microsecond support to their backend
-      return LegacySQLTypeName.INTEGER;
+      return LegacySQLTypeName.TIMESTAMP;
     }
     if (elementType instanceof DateType) {
       return LegacySQLTypeName.DATE;

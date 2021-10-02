@@ -38,6 +38,7 @@ public class BigQueryClientModule implements com.google.inject.Module {
     binder
         .bind(BigQueryTracerFactory.class)
         .toInstance(new LoggingBigQueryTracerFactory(/*Log every 2^14 batches*/ 14));
+    binder.bind(BigQueryWriteClientFactory.class).in(Scopes.SINGLETON);
   }
 
   @Provides

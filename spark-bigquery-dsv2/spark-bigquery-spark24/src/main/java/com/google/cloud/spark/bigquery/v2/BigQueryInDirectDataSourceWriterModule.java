@@ -32,13 +32,13 @@ import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructType;
 
-class BigQueryDataSourceWriterModule implements Module {
+class BigQueryInDirectDataSourceWriterModule implements Module {
 
   private final String writeUUID;
   private final StructType sparkSchema;
   private final SaveMode mode;
 
-  BigQueryDataSourceWriterModule(String writeUUID, StructType sparkSchema, SaveMode mode) {
+  BigQueryInDirectDataSourceWriterModule(String writeUUID, StructType sparkSchema, SaveMode mode) {
     this.writeUUID = writeUUID;
     this.sparkSchema = sparkSchema;
     this.mode = mode;

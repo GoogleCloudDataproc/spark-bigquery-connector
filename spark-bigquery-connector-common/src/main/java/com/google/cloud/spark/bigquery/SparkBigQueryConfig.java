@@ -131,6 +131,9 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private int numStreamsPerPartition = MIN_STREAMS_PER_PARTITION;
   private SparkBigQueryProxyAndHttpConfig sparkBigQueryProxyAndHttpConfig;
   private CompressionCodec arrowCompressionCodec = DEFAULT_ARROW_COMPRESSION_CODEC;
+  // for V2 write with BigQuery Storage Write API
+  RetrySettings bigqueryDataWriteHelperRetrySettings =
+      RetrySettings.newBuilder().setMaxAttempts(5).build();
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -170,7 +173,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
             .or(DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES);
     if (config.materializationExpirationTimeInMinutes < 1) {
       throw new IllegalArgumentException(
-          "materializationExpirationTimeInMinutes must have a positive value, the configured value is "
+          "materializationExpirationTimeInMinutes must have a positive value, the configured value"
+              + " is "
               + config.materializationExpirationTimeInMinutes);
     }
     // get the table details
@@ -632,6 +636,10 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         .setInitialRetryDelay(Duration.ofMillis(1250))
         .setMaxRetryDelay(Duration.ofSeconds(5))
         .build();
+  }
+
+  public RetrySettings getBigqueryDataWriteHelperRetrySettings() {
+    return bigqueryDataWriteHelperRetrySettings;
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
