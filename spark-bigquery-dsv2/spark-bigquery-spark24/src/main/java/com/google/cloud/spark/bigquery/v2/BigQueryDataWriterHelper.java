@@ -61,7 +61,8 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
 
   final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterHelperDefault.class);
 
-  final long MAX_APPEND_ROWS_REQUEST_SIZE = StreamWriterV2.getApiMaxRequestBytes();
+  final long MAX_APPEND_ROWS_REQUEST_SIZE = 1000000L;
+  // StreamWriterV2.getApiMaxRequestBytes() (8MB) is not working currently
 
   private final BigQueryWriteClient writeClient;
   private final String tablePath;
