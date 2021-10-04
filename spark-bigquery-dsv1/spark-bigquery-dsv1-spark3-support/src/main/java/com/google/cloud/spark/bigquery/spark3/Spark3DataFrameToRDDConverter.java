@@ -15,6 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.spark3;
 
+import java.io.Serializable;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -31,11 +35,6 @@ import scala.collection.JavaConverters;
 import scala.reflect.ClassTag;
 import scala.reflect.ClassTag$;
 import scala.runtime.AbstractFunction1;
-
-import java.io.Serializable;
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class Spark3DataFrameToRDDConverter implements DataFrameToRDDConverter {
 

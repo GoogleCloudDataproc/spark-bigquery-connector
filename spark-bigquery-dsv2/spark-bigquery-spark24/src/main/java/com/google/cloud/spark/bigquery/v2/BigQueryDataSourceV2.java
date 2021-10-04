@@ -26,6 +26,7 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConnectorModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
+import java.util.Optional;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.sources.DataSourceRegister;
@@ -37,14 +38,12 @@ import org.apache.spark.sql.sources.v2.reader.DataSourceReader;
 import org.apache.spark.sql.sources.v2.writer.DataSourceWriter;
 import org.apache.spark.sql.types.StructType;
 
-import java.util.Optional;
-
 /**
  * A DataSourceV2 implementation, providing efficient reader and writer for the Google Cloud
  * Platform BigQuery.
  */
-public class BigQueryDataSourceV2 implements DataSourceV2, DataSourceRegister, ReadSupport,
-    WriteSupport {
+public class BigQueryDataSourceV2
+    implements DataSourceV2, DataSourceRegister, ReadSupport, WriteSupport {
 
   @Override
   public DataSourceReader createReader(StructType schema, DataSourceOptions options) {

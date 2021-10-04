@@ -15,15 +15,14 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
+
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.TableId;
-import org.junit.Test;
-
 import java.util.Optional;
-
-import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertThrows;
+import org.junit.Test;
 
 public class BigQueryUtilTest {
 

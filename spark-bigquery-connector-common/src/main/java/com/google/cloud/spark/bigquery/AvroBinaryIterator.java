@@ -17,6 +17,10 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.Schema;
 import com.google.protobuf.ByteString;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
@@ -26,11 +30,6 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Iterator;
-import java.util.List;
 
 public class AvroBinaryIterator implements Iterator<InternalRow> {
 

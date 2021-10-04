@@ -16,11 +16,10 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.common.base.Preconditions;
-import org.apache.spark.ml.linalg.SQLDataTypes;
-import org.apache.spark.sql.types.DataType;
-
 import java.util.Optional;
 import java.util.stream.Stream;
+import org.apache.spark.ml.linalg.SQLDataTypes;
+import org.apache.spark.sql.types.DataType;
 
 public enum SupportedCustomDataType {
   SPARK_ML_VECTOR("vector", SQLDataTypes.VectorType()),

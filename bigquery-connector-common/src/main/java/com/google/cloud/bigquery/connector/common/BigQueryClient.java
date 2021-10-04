@@ -15,6 +15,15 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED;
+import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.convertToBigQueryException;
+import static com.google.common.collect.ImmutableList.toImmutableList;
+import static java.lang.String.format;
+import static java.util.Locale.ENGLISH;
+import static java.util.UUID.randomUUID;
+import static java.util.stream.Collectors.joining;
+
 import com.google.cloud.BaseServiceException;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -34,9 +43,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -44,15 +50,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
-import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED;
-import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
-import static com.google.cloud.bigquery.connector.common.BigQueryUtil.convertToBigQueryException;
-import static com.google.common.collect.ImmutableList.toImmutableList;
-import static java.lang.String.format;
-import static java.util.Locale.ENGLISH;
-import static java.util.UUID.randomUUID;
-import static java.util.stream.Collectors.joining;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // holds caches and mappings
 // presto converts the dataset and table names to lower case, while BigQuery is case sensitive

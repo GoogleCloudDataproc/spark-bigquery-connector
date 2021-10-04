@@ -15,10 +15,17 @@
  */
 package com.google.cloud.spark.bigquery.acceptance;
 
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MAX_BIG_NUMERIC;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MIN_BIG_NUMERIC;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.createBqDataset;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.deleteBqDatasetAndTables;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.getNumOfRowsOfBqTable;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.runBqQuery;
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assume.assumeTrue;
+
 import com.google.cloud.dataproc.v1.*;
 import java.io.FileInputStream;
-import org.junit.Test;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -26,21 +33,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-
-import static com.google.common.truth.Truth.assertThat;
-import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MAX_BIG_NUMERIC;
-import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MIN_BIG_NUMERIC;
-import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.createBqDataset;
-import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.deleteBqDatasetAndTables;
-import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.runBqQuery;
-import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.getNumOfRowsOfBqTable;
-import static org.junit.Assume.assumeTrue;
+import org.junit.Test;
 
 public class DataprocAcceptanceTestBase {
 
   private static final String REGION = "us-west1";
-  public static final String DATAPROC_ENDPOINT =
-      REGION + "-dataproc.googleapis.com:443";
+  public static final String DATAPROC_ENDPOINT = REGION + "-dataproc.googleapis.com:443";
   private static final String PROJECT_ID = System.getenv("GOOGLE_CLOUD_PROJECT");
   public static final String CONNECTOR_JAR_DIRECTORY = "target";
   private AcceptanceTestContext context;
@@ -56,8 +54,7 @@ public class DataprocAcceptanceTestBase {
     this.sparkStreamingSupported = sparkStreamingSupported;
   }
 
-  protected static AcceptanceTestContext setup( String dataprocImageVersion)
-      throws Exception {
+  protected static AcceptanceTestContext setup(String dataprocImageVersion) throws Exception {
     String testId =
         String.format(
             "%s-%s%s",
@@ -98,9 +95,7 @@ public class DataprocAcceptanceTestBase {
   private static void cluster(ThrowingConsumer<ClusterControllerClient> command) throws Exception {
     try (ClusterControllerClient clusterControllerClient =
         ClusterControllerClient.create(
-            ClusterControllerSettings.newBuilder()
-                .setEndpoint(DATAPROC_ENDPOINT)
-                .build())) {
+            ClusterControllerSettings.newBuilder().setEndpoint(DATAPROC_ENDPOINT).build())) {
       command.accept(clusterControllerClient);
     }
   }
@@ -264,9 +259,7 @@ public class DataprocAcceptanceTestBase {
   private Job runAndWait(Job job, Duration timeout) throws Exception {
     try (JobControllerClient jobControllerClient =
         JobControllerClient.create(
-            JobControllerSettings.newBuilder()
-                .setEndpoint(DATAPROC_ENDPOINT)
-                .build())) {
+            JobControllerSettings.newBuilder().setEndpoint(DATAPROC_ENDPOINT).build())) {
       Job request = jobControllerClient.submitJob(PROJECT_ID, REGION, job);
       String jobId = request.getReference().getJobId();
       CompletableFuture<Job> finishedJobFuture =

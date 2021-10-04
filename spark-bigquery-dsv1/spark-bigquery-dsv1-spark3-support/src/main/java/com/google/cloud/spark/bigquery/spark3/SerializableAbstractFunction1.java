@@ -15,10 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.spark3;
 
-import scala.runtime.AbstractFunction1;
-
 import java.io.Serializable;
 import java.util.function.Function;
+import scala.runtime.AbstractFunction1;
 
 public class SerializableAbstractFunction1<T, U> extends AbstractFunction1<T, U>
     implements Serializable {

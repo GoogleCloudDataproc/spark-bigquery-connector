@@ -22,8 +22,7 @@ public class ColumnOrderTestClass {
   private NumStruct nums;
   private String str;
 
-  public ColumnOrderTestClass() {
-  }
+  public ColumnOrderTestClass() {}
 
   public ColumnOrderTestClass(NumStruct nums, String str) {
     this.nums = nums;
@@ -55,8 +54,7 @@ public class ColumnOrderTestClass {
       return false;
     }
     ColumnOrderTestClass that = (ColumnOrderTestClass) o;
-    return Objects.equal(nums, that.nums) && Objects
-        .equal(str, that.str);
+    return Objects.equal(nums, that.nums) && Objects.equal(str, that.str);
   }
 
   @Override
@@ -66,9 +64,6 @@ public class ColumnOrderTestClass {
 
   @Override
   public String toString() {
-    return "ColumnOrderTestClass{" +
-        "nums=" + nums +
-        ", str='" + str + '\'' +
-        '}';
+    return "ColumnOrderTestClass{" + "nums=" + nums + ", str='" + str + '\'' + '}';
   }
 }

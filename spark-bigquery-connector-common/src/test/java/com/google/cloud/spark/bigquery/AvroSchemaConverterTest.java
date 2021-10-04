@@ -15,7 +15,11 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableList;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
@@ -27,11 +31,6 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
-
-import java.math.BigDecimal;
-import java.nio.ByteBuffer;
-
-import static com.google.common.truth.Truth.assertThat;
 
 public class AvroSchemaConverterTest {
 

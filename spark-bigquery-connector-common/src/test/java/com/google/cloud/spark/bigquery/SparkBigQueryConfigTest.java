@@ -15,25 +15,24 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.spark.sql.internal.SQLConf;
-import org.apache.spark.sql.sources.v2.DataSourceOptions;
-import org.junit.Test;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
-
-import static com.google.common.truth.Truth.assertThat;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.spark.sql.internal.SQLConf;
+import org.apache.spark.sql.sources.v2.DataSourceOptions;
+import org.junit.Test;
 
 public class SparkBigQueryConfigTest {
 

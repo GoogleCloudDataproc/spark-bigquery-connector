@@ -25,13 +25,15 @@ public class AcceptanceTestConstants {
 
   public static final String BIGNUMERIC_TABLE_QUERY_TEMPLATE =
       "create table %s.%s (\n"
-      + "    min bignumeric,\n"
-      + "    max bignumeric\n"
-      + "    ) \n"
-      + "    as \n"
-      + "    select \n"
-      + "    cast(\"" + MIN_BIG_NUMERIC + "\" as bignumeric) as min,\n"
-      + "    cast(\"" + MAX_BIG_NUMERIC + "\" as bignumeric) as max";
-
-
+          + "    min bignumeric,\n"
+          + "    max bignumeric\n"
+          + "    ) \n"
+          + "    as \n"
+          + "    select \n"
+          + "    cast(\""
+          + MIN_BIG_NUMERIC
+          + "\" as bignumeric) as min,\n"
+          + "    cast(\""
+          + MAX_BIG_NUMERIC
+          + "\" as bignumeric) as max";
 }

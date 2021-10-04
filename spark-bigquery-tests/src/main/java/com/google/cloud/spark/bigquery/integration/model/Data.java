@@ -54,8 +54,7 @@ public class Data implements Serializable {
       return false;
     }
     Data data = (Data) o;
-    return Objects.equal(str, data.str) && Objects
-        .equal(ts, data.ts);
+    return Objects.equal(str, data.str) && Objects.equal(ts, data.ts);
   }
 
   @Override
@@ -65,10 +64,6 @@ public class Data implements Serializable {
 
   @Override
   public String toString() {
-    return "Data{" +
-        "str='" + str + '\'' +
-        ", ts=" + ts +
-        '}';
+    return "Data{" + "str='" + str + '\'' + ", ts=" + ts + '}';
   }
 }
-

@@ -16,11 +16,11 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.ArrowUtil;
+import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.connector.common.IteratorMultiplexer;
 import com.google.cloud.bigquery.connector.common.NonInterruptibleBlockingBytesChannel;
 import com.google.cloud.bigquery.connector.common.ParallelArrowReader;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
-import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.connector.common.ReadRowsResponseInputStreamEnumeration;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ArrowSchemaConverter;
@@ -49,11 +49,11 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowReader;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.arrow.vector.types.pojo.Schema;
+import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
-import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
 class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader<ColumnarBatch> {
   private static final long maxAllocation = 500 * 1024 * 1024;
