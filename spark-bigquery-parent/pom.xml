@@ -32,9 +32,9 @@
 
     <avro.version>1.8.2</avro.version>
     <arrow.version>4.0.0</arrow.version>
-    <gax.version>1.64.0</gax.version>
+    <gax.version>2.5.0</gax.version>
     <google-cloud-bom.version>0.161.0</google-cloud-bom.version>
-    <grpc.version>1.32.2</grpc.version>
+    <grpc.version>1.41.0</grpc.version>
     <guava.version>30.1.1-jre</guava.version>
     <netty.version>4.1.65.Final</netty.version>
     <protobuf.version>3.17.3</protobuf.version>
@@ -87,7 +87,8 @@
           <exclusion>
             <groupId>com.google.cloud.bigdataoss</groupId>
             <artifactId>util-hadoop</artifactId>
-          </exclusion></exclusions>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>com.google.errorprone</groupId>
@@ -220,6 +221,22 @@
     </dependency>
   </dependencies>
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>0.8.7</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>prepare-agent</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -370,6 +387,20 @@
                 </goals>
               </execution>
             </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>coverage</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
           </plugin>
         </plugins>
       </build>
