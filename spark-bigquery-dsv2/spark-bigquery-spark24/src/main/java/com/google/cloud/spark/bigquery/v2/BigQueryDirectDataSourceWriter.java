@@ -75,7 +75,8 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
       String writeUUID,
       SaveMode saveMode,
       StructType sparkSchema,
-      RetrySettings bigqueryDataWriterHelperRetrySettings) {
+      RetrySettings bigqueryDataWriterHelperRetrySettings)
+      throws IllegalArgumentException {
     this.bigQueryClient = bigQueryClient;
     this.writeClientFactory = bigQueryWriteClientFactory;
     this.destinationTableId = destinationTableId;
@@ -112,7 +113,8 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
    *     or the temporaryTableId.
    */
   private TableId getOrCreateTable(
-      SaveMode saveMode, TableId destinationTableId, Schema bigQuerySchema) {
+      SaveMode saveMode, TableId destinationTableId, Schema bigQuerySchema)
+      throws IllegalArgumentException {
     if (bigQueryClient.tableExists(destinationTableId)) {
       Preconditions.checkArgument(
           bigQueryClient
@@ -132,7 +134,7 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
           writingMode = WritingMode.IGNORE_INPUTS;
           break;
         case ErrorIfExists:
-          throw new BigQueryConnectorException("Table already exists in BigQuery");
+          throw new IllegalArgumentException("Table already exists in BigQuery");
       }
       return bigQueryClient.getTable(destinationTableId).getTableId();
     } else {

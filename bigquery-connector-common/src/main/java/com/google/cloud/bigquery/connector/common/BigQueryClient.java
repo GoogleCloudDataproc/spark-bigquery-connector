@@ -125,8 +125,11 @@ public class BigQueryClient {
   public Table createTempTable(TableId destinationTableId, Schema schema) {
     String tempProject = materializationProject.orElseGet(destinationTableId::getProject);
     String tempDataset = materializationDataset.orElseGet(destinationTableId::getDataset);
+    String tableName = destinationTableId.getTable() + System.nanoTime();
     TableId tempTableId =
-        TableId.of(tempProject, tempDataset, destinationTableId.getTable() + System.nanoTime());
+        tempProject == null
+            ? TableId.of(tempDataset, tableName)
+            : TableId.of(tempProject, tempDataset, tableName);
     // Build TableInfo with expiration time of one day from current epoch.
     TableInfo tableInfo =
         TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema))
@@ -173,8 +176,15 @@ public class BigQueryClient {
   }
 
   String sqlFromFormat(String queryFormat, TableId destinationTableId, TableId temporaryTableId) {
-    return String.format(
-        queryFormat, fullTableName(destinationTableId), fullTableName(temporaryTableId));
+    String destinationTableName =
+        destinationTableId.getProject() == null
+            ? tableNameWithoutProject(destinationTableId)
+            : fullTableName(destinationTableId);
+    String temporaryTableName =
+        temporaryTableId.getProject() == null
+            ? tableNameWithoutProject(temporaryTableId)
+            : fullTableName(temporaryTableId);
+    return String.format(queryFormat, destinationTableName, temporaryTableName);
   }
 
   /**
@@ -321,6 +331,10 @@ public class BigQueryClient {
 
   String fullTableName(TableId tableId) {
     return format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
+  }
+
+  String tableNameWithoutProject(TableId tableId) {
+    return format("%s.%s", tableId.getDataset(), tableId.getTable());
   }
 
   public long calculateTableSize(TableId tableId, Optional<String> filter) {

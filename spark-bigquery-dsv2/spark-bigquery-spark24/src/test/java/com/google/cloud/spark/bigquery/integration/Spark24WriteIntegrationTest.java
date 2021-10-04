@@ -45,6 +45,10 @@ import static org.junit.Assert.fail;
 
 public class Spark24WriteIntegrationTest extends WriteIntegrationTestBase {
 
+  public Spark24WriteIntegrationTest() {
+    super(true);
+  }
+
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
   private static final int BQ_NUMERIC_PRECISION = 38;
