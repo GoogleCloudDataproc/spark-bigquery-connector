@@ -850,7 +850,7 @@ val df = spark.read.format("bigquery")
 ### Configuring Partitioning
 
 By default the connector creates one partition per 400MB in the table being read (before filtering). This should roughly correspond to the maximum number of readers supported by the BigQuery Storage API.
-This can be configured explicitly with the <code>[parallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
+This can be configured explicitly with the <code>[maxParallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
 
 ## Using in Jupyter Notebooks
 
