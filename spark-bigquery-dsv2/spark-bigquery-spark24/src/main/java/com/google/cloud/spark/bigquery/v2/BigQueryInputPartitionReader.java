@@ -27,41 +27,40 @@ import java.util.Iterator;
 
 class BigQueryInputPartitionReader implements InputPartitionReader<InternalRow> {
 
-  private Iterator<ReadRowsResponse> readRowsResponses;
-  private ReadRowsResponseToInternalRowIteratorConverter converter;
-  private ReadRowsHelper readRowsHelper;
-  private Iterator<InternalRow> rows = ImmutableList.<InternalRow>of().iterator();
-  private InternalRow currentRow;
+    private Iterator<ReadRowsResponse> readRowsResponses;
+    private ReadRowsResponseToInternalRowIteratorConverter converter;
+    private ReadRowsHelper readRowsHelper;
+    private Iterator<InternalRow> rows = ImmutableList.<InternalRow>of().iterator();
+    private InternalRow currentRow;
 
-  BigQueryInputPartitionReader(
-      Iterator<ReadRowsResponse> readRowsResponses,
-      ReadRowsResponseToInternalRowIteratorConverter converter,
-      ReadRowsHelper readRowsHelper) {
-    this.readRowsResponses = readRowsResponses;
-    this.converter = converter;
-    this.readRowsHelper = readRowsHelper;
-  }
 
-  @Override
-  public boolean next() throws IOException {
-    while (!rows.hasNext()) {
-      if (!readRowsResponses.hasNext()) {
-        return false;
-      }
-      ReadRowsResponse readRowsResponse = readRowsResponses.next();
-      rows = converter.convert(readRowsResponse);
+    public BigQueryInputPartitionReader(Iterator<ReadRowsResponse> readRowsResponses, ReadRowsResponseToInternalRowIteratorConverter converter, ReadRowsHelper readRowsHelper) {
+        this.readRowsResponses = readRowsResponses;
+        this.converter = converter;
+        this.readRowsHelper = readRowsHelper;
     }
-    currentRow = rows.next();
-    return true;
-  }
 
-  @Override
-  public InternalRow get() {
-    return currentRow;
-  }
 
-  @Override
-  public void close() throws IOException {
-    readRowsHelper.close();
-  }
+    @Override
+    public boolean next() throws IOException {
+        while (!rows.hasNext()) {
+            if (!readRowsResponses.hasNext()) {
+                return false;
+            }
+            ReadRowsResponse readRowsResponse = readRowsResponses.next();
+            rows = converter.convert(readRowsResponse);
+        }
+        currentRow = rows.next();
+        return true;
+    }
+
+    @Override
+    public InternalRow get() {
+        return currentRow;
+    }
+
+    @Override
+    public void close() throws IOException {
+        readRowsHelper.close();
+    }
 }

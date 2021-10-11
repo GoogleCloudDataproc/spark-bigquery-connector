@@ -26,23 +26,21 @@ import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
 import java.util.Iterator;
 
-public class BigQueryInputPartition implements InputPartition<InternalRow> {
+public class BigQueryInputPartition  implements  InputPartition<InternalRow>{
 
-  private final BigQueryReadClientFactory bigQueryReadClientFactory;
-  private final String streamName;
-  private final ReadRowsHelper.Options options;
-  private final ReadRowsResponseToInternalRowIteratorConverter converter;
+    private final BigQueryReadClientFactory bigQueryReadClientFactory;
+    private final String streamName;
+    private final ReadRowsHelper.Options options;
+    private final ReadRowsResponseToInternalRowIteratorConverter converter;
 
-  public BigQueryInputPartition(
-      BigQueryReadClientFactory bigQueryReadClientFactory,
-      String streamName,
-      ReadRowsHelper.Options options,
-      ReadRowsResponseToInternalRowIteratorConverter converter) {
-    this.bigQueryReadClientFactory = bigQueryReadClientFactory;
-    this.streamName = streamName;
-    this.options = options;
-    this.converter = converter;
-  }
+    public BigQueryInputPartition(BigQueryReadClientFactory bigQueryReadClientFactory, String streamName, ReadRowsHelper.Options options, ReadRowsResponseToInternalRowIteratorConverter converter) {
+         this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+         this.streamName = streamName;
+         this.options = options;
+         this.converter = converter;
+     }
+
+
 
   @Override
   public InputPartitionReader<InternalRow> createPartitionReader() {
