@@ -16,11 +16,14 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.common.GenericAvroIntermediateRecordWriter;
+import java.io.IOException;
+import java.io.OutputStream;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import org.apache.avro.io.DatumWriter;
 
 public class AvroIntermediateRecordWriter extends GenericAvroIntermediateRecordWriter implements IntermediateRecordWriter {
 

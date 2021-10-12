@@ -15,12 +15,11 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import org.junit.Test;
+import static com.google.common.truth.Truth.assertThat;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-
-import static com.google.common.truth.Truth.assertThat;
+import org.junit.Test;
 
 public class DurationTimerTest {
   @Test

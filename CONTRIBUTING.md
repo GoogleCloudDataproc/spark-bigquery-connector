@@ -33,7 +33,7 @@ The connector is built using the Maven wrapper. The project contains several
 connectors, sharing some of the code among them. The connectors are:
 * spark-bigquery_2.11 - a Scala 2.11 based connector, targeting Spark 2.3 and
   2.4 using Scala 2.11.
-* spark-bigquery_2.12 - a Scala 2.12 based connector, targeting Spark 2.4 and 
+* spark-bigquery_2.12 - a Scala 2.12 based connector, targeting Spark 2.4 and
   3.x using Scala 2.12.
 * spark-bigquery:spark2.4 - a Java only connector, targeting Spark 2.4 (of all
   Scala versions), using the new DataSource APIs.
@@ -41,7 +41,7 @@ connectors, sharing some of the code among them. The connectors are:
   Scala versions), using the new DataSource APIs. Still under development.
 
 The project's artifacts are:
-  
+
 * `spark-bigquery-parent` - The parent POM for all artifacts. Common settings
   and artifact version should be defined here.
 * `bigquery-connector-common` - Utility classes for working with the BigQuery
@@ -86,15 +86,16 @@ each building only a subset of the project's artifacts. The profiles are:
 * `dsv2_3` - Running just the Java Spark 3 connector.
 * `all` - Running all the connectors.
 
-Example: In order to compile **just** the Scala 2.12 connector run 
+Example: In order to compile **just** the Scala 2.12 connector run
 `./mvnw install -Pdsv1_2.12`.
 
 **Important**: If no profile is selected, then only the common artifacts are run.
 
-The acceptance test is disabled by default. In order to run it please add the
-`acceptance` profile to the run, in the following manner: 
-`./mvnw verify -Pdsv2_2.4,acceptance`.
-  
+The integration and acceptance tests are disabled by default. In order to run it please add the
+following profiles to the run:
+* Integration tests - `./mvnw failsafe:integration-test -Pdsv1_2.11,integration`
+* Acceptance tests - `./mvnw verify -Pdsv2_2.4,acceptance`
+
 In order to run the integration tests make sure that your GCP user has the proper accounts for creating and deleting
 datasets and tables in your test project in BigQuery. It will also need the permissions to upload files to the test
 bucket in GCS as well as delete them.
@@ -104,4 +105,4 @@ Setting the following environment variables is required to run the integration t
   `gcloud auth login` run
 * `GOOGLE_CLOUD_PROJECT` - The Google cloud platform project used to test the connector
 * `TEMPORARY_GCS_BUCKET` - The GCS bucked used to test writing to BigQuery during the integration tests
-* `ACCEPTANCE_TEST_BUCKET` - The GCS bucked used to test writing to BigQuery during the acceptance tests 
+* `ACCEPTANCE_TEST_BUCKET` - The GCS bucked used to test writing to BigQuery during the acceptance tests

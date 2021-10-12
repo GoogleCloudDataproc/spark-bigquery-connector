@@ -1,21 +1,40 @@
 steps:
-  # 1. Run unit tests
-  - id: 'unit tests'
-    name: maven:3-jdk-8
-    entrypoint: mvn
-    args: ['test', '-Pall']
-    env:
-      - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
-      - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
+  # 1. Create a Docker image containing hadoop-connectors repo
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'docker-build'
+    args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit', '-f', 'cloudbuild/Dockerfile', '.']
 
-  # 2. Run integration tests
- # - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
- #   id: 'integration-tests'
- #   entrypoint: 'sbt'
- #   args: ['it:test']
- #   env:
- #     - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
- #     - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
+# 2. Fetch maven and dependencies
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+    id: 'init'
+    waitFor: ['docker-build']
+    entrypoint: 'bash'
+    args: ['/workspace/cloudbuild/presubmit.sh', 'init']
+    env:
+    - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
+
+# 3. Run unit tests
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+    id: 'unit-tests'
+    waitFor: ['init']
+    entrypoint: 'bash'
+    args: ['/workspace/cloudbuild/presubmit.sh', 'unittest']
+    env:
+    - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
+
+# 4. Run integration tests concurrently with unit tests
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+    id: 'integration-tests'
+    waitFor: ['unit-tests']
+    entrypoint: 'bash'
+    args: ['/workspace/cloudbuild/presubmit.sh', 'integrationtest']
+    env:
+    - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
+    - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
+    - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
 
 # Tests take around 20 mins in general.
 timeout: 1800s
+
+options:
+  machineType: 'N1_HIGHCPU_32'

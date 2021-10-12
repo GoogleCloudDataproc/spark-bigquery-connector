@@ -15,11 +15,11 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static java.lang.String.format;
+
 import com.google.cloud.bigquery.connector.common.VersionProvider;
 import org.apache.spark.SparkContext;
 import scala.util.Properties;
-
-import static java.lang.String.format;
 
 public class SparkBigQueryConnectorVersionProvider implements VersionProvider {
 

@@ -112,7 +112,7 @@ private[bigquery] class DirectBigQueryRelation(
       if (requiredColumns.isEmpty) {
         logDebug(s"Not using optimized empty projection")
       }
-      val actualTableDefinition = actualTable.getDefinition[StandardTableDefinition]
+      val actualTableDefinition = actualTable.getDefinition[TableDefinition]
       val actualTablePath = DirectBigQueryRelation.toTablePath(actualTable.getTableId)
       val readOptions = TableReadOptions.newBuilder()
         .addAllSelectedFields(requiredColumns.toList.asJava)
@@ -298,9 +298,10 @@ private[bigquery] class DirectBigQueryRelation(
 
   def getNumBytes(tableDefinition: TableDefinition): Long = {
     val tableType = tableDefinition.getType
-    if (options.isViewsEnabled &&
-      (TableDefinition.Type.VIEW == tableType ||
-        TableDefinition.Type.MATERIALIZED_VIEW == tableType)) {
+    if (TableDefinition.Type.EXTERNAL == tableType ||
+      (options.isViewsEnabled &&
+        (TableDefinition.Type.VIEW == tableType ||
+        TableDefinition.Type.MATERIALIZED_VIEW == tableType))) {
       sqlContext.sparkSession.sessionState.conf.defaultSizeInBytes
     } else {
       tableDefinition.asInstanceOf[StandardTableDefinition].getNumBytes

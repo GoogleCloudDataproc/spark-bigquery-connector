@@ -8,6 +8,10 @@ import io.grpc.HttpConnectProxiedSocketAddress;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.ProxiedSocketAddress;
 import io.grpc.ProxyDetector;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.net.URI;
+import java.util.Optional;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
@@ -15,11 +19,6 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClientBuilder;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.net.URI;
-import java.util.Optional;
 
 public class BigQueryProxyTransporterBuilder {
 

@@ -15,6 +15,14 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static com.google.cloud.spark.bigquery.ProtobufUtils.buildDescriptorProtoWithFields;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessage;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoRows;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.fail;
+
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
@@ -40,14 +48,6 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.junit.AssumptionViolatedException;
 import org.junit.Test;
-
-import static com.google.cloud.spark.bigquery.ProtobufUtils.buildDescriptorProtoWithFields;
-import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessage;
-import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
-import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoRows;
-import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
-import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
 
 public class ProtobufUtilsTest {
 

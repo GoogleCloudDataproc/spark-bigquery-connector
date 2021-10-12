@@ -15,10 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import java.io.IOException;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
-
-import java.io.IOException;
 
 class BigQueryEmptyProjectionInputPartitionReader implements InputPartitionReader<InternalRow> {
 

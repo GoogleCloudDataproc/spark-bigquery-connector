@@ -15,10 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import org.apache.avro.generic.GenericRecord;
-
 import java.io.Closeable;
 import java.io.IOException;
+import org.apache.avro.generic.GenericRecord;
 
 public interface IntermediateRecordWriter extends Closeable {
 

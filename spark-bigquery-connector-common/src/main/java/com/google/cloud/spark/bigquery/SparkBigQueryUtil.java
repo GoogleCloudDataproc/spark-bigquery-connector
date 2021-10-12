@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;

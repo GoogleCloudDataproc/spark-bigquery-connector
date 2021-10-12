@@ -15,16 +15,17 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static com.google.common.base.Optional.fromJavaUtil;
+
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.protobuf.ByteString;
-import org.apache.spark.sql.catalyst.InternalRow;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
-import static com.google.common.base.Optional.fromJavaUtil;
 
 public interface ReadRowsResponseToInternalRowIteratorConverter {
 

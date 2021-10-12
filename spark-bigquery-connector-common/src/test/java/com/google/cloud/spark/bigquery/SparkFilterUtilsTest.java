@@ -15,21 +15,19 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.cloud.bigquery.storage.v1.DataFormat;
-import com.google.common.collect.ImmutableList;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Optional;
 import org.apache.spark.sql.sources.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import java.sql.Date;
-import java.sql.Timestamp;
-import java.text.ParseException;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.Optional;
-
-import static com.google.common.truth.Truth.assertThat;
 
 @RunWith(Parameterized.class)
 public class SparkFilterUtilsTest {

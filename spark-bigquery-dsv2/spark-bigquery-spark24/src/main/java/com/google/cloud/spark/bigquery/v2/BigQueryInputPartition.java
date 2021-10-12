@@ -20,27 +20,28 @@ import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
+import java.util.Iterator;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartition;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
-import java.util.Iterator;
+public class BigQueryInputPartition implements InputPartition<InternalRow> {
 
-public class BigQueryInputPartition  implements  InputPartition<InternalRow>{
+  private final BigQueryReadClientFactory bigQueryReadClientFactory;
+  private final String streamName;
+  private final ReadRowsHelper.Options options;
+  private final ReadRowsResponseToInternalRowIteratorConverter converter;
 
-    private final BigQueryReadClientFactory bigQueryReadClientFactory;
-    private final String streamName;
-    private final ReadRowsHelper.Options options;
-    private final ReadRowsResponseToInternalRowIteratorConverter converter;
-
-    public BigQueryInputPartition(BigQueryReadClientFactory bigQueryReadClientFactory, String streamName, ReadRowsHelper.Options options, ReadRowsResponseToInternalRowIteratorConverter converter) {
-         this.bigQueryReadClientFactory = bigQueryReadClientFactory;
-         this.streamName = streamName;
-         this.options = options;
-         this.converter = converter;
-     }
-
-
+  public BigQueryInputPartition(
+      BigQueryReadClientFactory bigQueryReadClientFactory,
+      String streamName,
+      ReadRowsHelper.Options options,
+      ReadRowsResponseToInternalRowIteratorConverter converter) {
+    this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+    this.streamName = streamName;
+    this.options = options;
+    this.converter = converter;
+  }
 
   @Override
   public InputPartitionReader<InternalRow> createPartitionReader() {

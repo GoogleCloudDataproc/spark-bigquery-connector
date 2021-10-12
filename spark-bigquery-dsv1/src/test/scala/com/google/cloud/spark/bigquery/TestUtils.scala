@@ -21,12 +21,6 @@ import org.apache.spark.sql.SparkSession
 import org.mockito.Mockito._
 
 object TestUtils {
-  def getOrCreateSparkSession(applicationName: String): SparkSession = {
-    SparkSession.builder()
-      .appName(applicationName)
-      .master("local")
-      .getOrCreate()
-  }
 
   def table(info: TableInfo): Table = {
     // Visibility hacks

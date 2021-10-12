@@ -15,12 +15,11 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import org.junit.Test;
-import org.junit.Before;
+import static com.google.common.truth.Truth.assertThat;
 
 import java.time.Instant;
-
-import static com.google.common.truth.Truth.assertThat;
+import org.junit.Before;
+import org.junit.Test;
 
 public class LoggingBigQueryStorageReadRowsTracerTest {
   LoggingBigQueryStorageReadRowsTracer loggingTracer;

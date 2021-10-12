@@ -15,20 +15,18 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import com.google.common.collect.ImmutableList;
-import java.io.Serializable;
-import java.util.List;
-import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.util.Objects.requireNonNull;
 
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
-
+import com.google.common.collect.ImmutableList;
+import java.io.Serializable;
 import java.util.Iterator;
-
-import static java.util.Objects.requireNonNull;
+import java.util.List;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ReadRowsHelper implements AutoCloseable {
   private static final Logger logger = LoggerFactory.getLogger(ReadRowsHelper.class);

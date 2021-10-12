@@ -15,6 +15,9 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
+import static java.lang.String.format;
+
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -24,16 +27,11 @@ import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.common.collect.ImmutableList;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.stream.Stream;
-
-import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
-import static java.lang.String.format;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // A helper class, also handles view materialization
 public class ReadSessionCreator {

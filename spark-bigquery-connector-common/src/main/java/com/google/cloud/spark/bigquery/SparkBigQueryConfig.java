@@ -15,6 +15,10 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
+import static java.lang.String.format;
+
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
 import com.google.cloud.bigquery.BigQueryOptions;
@@ -28,12 +32,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.spark.sql.execution.datasources.DataSource;
-import org.apache.spark.sql.internal.SQLConf;
-import org.apache.spark.sql.types.StructType;
-import org.threeten.bp.Duration;
-
 import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -48,10 +46,11 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
-import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
-import static java.lang.String.format;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.spark.sql.execution.datasources.DataSource;
+import org.apache.spark.sql.internal.SQLConf;
+import org.apache.spark.sql.types.StructType;
+import org.threeten.bp.Duration;
 
 public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
