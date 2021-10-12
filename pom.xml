@@ -52,6 +52,8 @@
     <module>spark-bigquery-acceptance-tests</module>
     <module>spark-bigquery-connector-common</module>
     <module>spark-bigquery-python-lib</module>
+    <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
+    <module>spark-bigquery-dsv2/spark-bigquery-spark24</module>
   </modules>
 
   <profiles>
