@@ -15,9 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import com.google.cloud.bigquery.connector.common.ReadRowsHelper.Options;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
-
 import java.util.Optional;
 import java.util.OptionalInt;
 

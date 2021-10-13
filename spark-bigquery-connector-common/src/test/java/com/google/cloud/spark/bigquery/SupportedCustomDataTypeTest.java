@@ -15,12 +15,11 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import org.apache.spark.ml.linalg.SQLDataTypes;
-import org.junit.Test;
+import static com.google.common.truth.Truth.assertThat;
 
 import java.util.Optional;
-
-import static com.google.common.truth.Truth.assertThat;
+import org.apache.spark.ml.linalg.SQLDataTypes;
+import org.junit.Test;
 
 public class SupportedCustomDataTypeTest {
 

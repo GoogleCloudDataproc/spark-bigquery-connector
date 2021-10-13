@@ -15,11 +15,10 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.Duration;
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link BigQueryStorageReadRowsTracer} that accumulates and logs times

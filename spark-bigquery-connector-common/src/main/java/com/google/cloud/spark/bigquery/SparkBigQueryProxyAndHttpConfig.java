@@ -1,21 +1,21 @@
 package com.google.cloud.spark.bigquery;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
+import static com.google.common.base.Optional.fromJavaUtil;
+import static com.google.common.base.Optional.fromNullable;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyTransporterBuilder;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-import org.apache.hadoop.conf.Configuration;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Optional;
-
-import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Optional.fromNullable;
-import static com.google.common.base.Optional.fromJavaUtil;
+import org.apache.hadoop.conf.Configuration;
 
 public class SparkBigQueryProxyAndHttpConfig implements BigQueryProxyConfig, Serializable {
 

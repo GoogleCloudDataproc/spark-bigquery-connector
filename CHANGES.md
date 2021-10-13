@@ -2,7 +2,7 @@
 
 ## 0.22.0 - 2021-06-22
 * PR #404: Added support for BigNumeric
-* PR #430: Added HTTP and gRPC proxy support  
+* PR #430: Added HTTP and gRPC proxy support
 * Issue #273: Resolved the streaming write issue for spark 3.x
 
 ## 0.21.1 - 2021-06-22
@@ -27,7 +27,7 @@
 * Netty has been upgraded to version 4.1.65.Final
 
 ## 0.20.0 - 2021-03-29
-* PR #375: Added support for pseudo column support - time partitioned table now supoort the _PARTITIONTIME and _PARTITIONDATE fields 
+* PR #375: Added support for pseudo column support - time partitioned table now supoort the _PARTITIONTIME and _PARTITIONDATE fields
 * Issue# 190: Writing data to BigQuery properly populate the field description
 * Issue #265: Fixed nested conjunctions/disjunctions when using the AVRO read format
 * Issue #326: Fixing netty_tcnative_windows.dll shading
@@ -57,16 +57,16 @@
 
 ## 0.18.0 - 2020-11-12
 * Issue #226: Adding support for HOUR, MONTH, DAY TimePartitions
-* Issue #260: Increasing connection timeout to the BigQuery service, and 
+* Issue #260: Increasing connection timeout to the BigQuery service, and
               configuring the request retry settings.
 * Issue #263: Fixed `select *` error when ColumnarBatch is used (DataSource v2)
 * Issue #266: Fixed the external configuration not working regression bug
               (Introduced in version 0.17.2)
-* PR #262: Filters on BigQuery DATE and TIMESTAMP now use the right type.  
+* PR #262: Filters on BigQuery DATE and TIMESTAMP now use the right type.
 * BigQuery API has been upgraded to version 1.123.2
 * BigQuery Storage API has been upgraded to version 1.6.0
-* Guava has been upgraded to version 30.0-jre 
-* Netty has been upgraded to version 4.1.51.Final 
+* Guava has been upgraded to version 30.0-jre
+* Netty has been upgraded to version 4.1.51.Final
 * netty-tcnative has been upgraded to version 4.1.34.Final
 
 ## 0.17.3 - 2020-10-06
@@ -86,7 +86,7 @@
 
 ## 0.17.0 - 2020-07-15
 * PR #201: [Structured streaming write](http://spark.apache.org/docs/2.4.5/structured-streaming-programming-guide.html#starting-streaming-queries)
-  is now supported (thanks @varundhussa) 
+  is now supported (thanks @varundhussa)
 * PR #202: Users now has the option to keep the data on GCS after writing to BigQuery (thanks @leoneuwald)
 * PR #211: Enabling to overwrite data of a single date partition
 * PR #198: Supporting columnar batch reads from Spark in the DataSource V2 implementation. **It is not ready for production use.**
@@ -94,7 +94,7 @@
 * Issue #197: Conditions on StructType fields are now handled by Spark and not the connector
 * BigQuery API has been upgraded to version 1.116.3
 * BigQuery Storage API has been upgraded to version 1.0.0
-* Netty has been upgraded to version 4.1.48.Final (Fixing issue #200) 
+* Netty has been upgraded to version 4.1.48.Final (Fixing issue #200)
 
 ## 0.16.1 - 2020-06-11
 * PR #186: Fixed SparkBigQueryConnectorUserAgentProvider initialization bug
@@ -128,7 +128,7 @@
   on top of Credentials file, Credentials, and the `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
 
 ## 0.14.0-beta - 2020-03-31
-* Issue #96: Added Arrow as a supported format for reading from BigQuery 
+* Issue #96: Added Arrow as a supported format for reading from BigQuery
 * Issue #130 Adding the field description to the schema metadata
 * Issue #124: Fixing null values in ArrayType
 * Issue #143: Allowing the setting of `SchemaUpdateOption`s When writing to BigQuery
@@ -147,8 +147,8 @@
 **Please don't use this version, use 0.13.1-beta instead**
 
 * Moved to use BigQuery Storage API v1beta2
-* changed the `parallelism` parameter to `maxParallelism` in order to reflect the 
-  Change in the underlining API (the old parameter has been deprecated) 
+* changed the `parallelism` parameter to `maxParallelism` in order to reflect the
+  Change in the underlining API (the old parameter has been deprecated)
 * Upgrade version of google-cloud-bigquerystorage library to 0.122.0-beta.
 * Issue #73: Optimized empty projection used for count() execution.
 * Issue #121: Added the option to configure CreateDisposition when inserting data
@@ -187,7 +187,7 @@
   in the first time. This had no impact on the actual logic, just on the log.
   The method now verifies the path exists before trying to delete it, and
   hides the redundant exception.
-* Added support for data.write.bigquery("table") implicit import, fixed 
+* Added support for data.write.bigquery("table") implicit import, fixed
   regression caused by relying of shaded scalalogging
 
 ## 0.9.0-beta - 2019-10-08

@@ -17,7 +17,6 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.gax.rpc.HeaderProvider;
 import com.google.common.collect.ImmutableMap;
-
 import java.io.Serializable;
 import java.util.Map;
 

@@ -29,4 +29,3 @@ class BigQueryIndirectWriterCommitMessage implements WriterCommitMessage {
         return uri;
     }
 }
-
