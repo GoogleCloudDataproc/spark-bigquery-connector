@@ -13,32 +13,14 @@ public class GenericBigQueryInputPartitionReader {
   private Iterator<ReadRowsResponse> readRowsResponses;
   private ReadRowsResponseToInternalRowIteratorConverter converter;
   private ReadRowsHelper readRowsHelper;
-  private Iterator<InternalRow> rows = ImmutableList.<InternalRow>of().iterator();
-  private InternalRow currentRow;
-
-  public boolean next() throws IOException {
-    while (!rows.hasNext()) {
-      if (!readRowsResponses.hasNext()) {
-        return false;
-      }
-      ReadRowsResponse readRowsResponse = readRowsResponses.next();
-      rows = converter.convert(readRowsResponse);
-    }
-    currentRow = rows.next();
-    return true;
-  }
 
   public GenericBigQueryInputPartitionReader(
       Iterator<ReadRowsResponse> readRowsResponses,
       ReadRowsResponseToInternalRowIteratorConverter converter,
-      ReadRowsHelper readRowsHelper,
-      Iterator<InternalRow> rows,
-      InternalRow currentRow) {
+      ReadRowsHelper readRowsHelper) {
     this.readRowsResponses = readRowsResponses;
     this.converter = converter;
     this.readRowsHelper = readRowsHelper;
-    this.rows = rows;
-    this.currentRow = currentRow;
   }
 
   public Iterator<ReadRowsResponse> getReadRowsResponses() {
@@ -53,11 +35,4 @@ public class GenericBigQueryInputPartitionReader {
     return readRowsHelper;
   }
 
-  public Iterator<InternalRow> getRows() {
-    return rows;
-  }
-
-  public InternalRow getCurrentRow() {
-    return currentRow;
-  }
 }
