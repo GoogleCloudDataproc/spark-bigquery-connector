@@ -20,46 +20,44 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.common.GenericBigQueryInputPartitionReader;
 import com.google.common.collect.ImmutableList;
-
 import java.io.IOException;
 import java.util.Iterator;
-
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
-class BigQueryInputPartitionReader extends GenericBigQueryInputPartitionReader implements InputPartitionReader<InternalRow> {
+class BigQueryInputPartitionReader extends GenericBigQueryInputPartitionReader
+    implements InputPartitionReader<InternalRow> {
 
+  private Iterator<InternalRow> rows = ImmutableList.<InternalRow>of().iterator();
+  private InternalRow currentRow;
 
-    private Iterator<InternalRow> rows = ImmutableList.<InternalRow>of().iterator();
-    private InternalRow currentRow;
+  public BigQueryInputPartitionReader(
+      Iterator<ReadRowsResponse> readRowsResponses,
+      ReadRowsResponseToInternalRowIteratorConverter converter,
+      ReadRowsHelper readRowsHelper) {
+    super(readRowsResponses, converter, readRowsHelper);
+  }
 
-    public BigQueryInputPartitionReader(
-            Iterator<ReadRowsResponse> readRowsResponses,
-            ReadRowsResponseToInternalRowIteratorConverter converter,
-            ReadRowsHelper readRowsHelper) {
-        super(readRowsResponses, converter, readRowsHelper);
+  @Override
+  public boolean next() throws IOException {
+    while (!rows.hasNext()) {
+      if (!super.getReadRowsResponses().hasNext()) {
+        return false;
+      }
+      ReadRowsResponse readRowsResponse = super.getReadRowsResponses().next();
+      rows = super.getConverter().convert(readRowsResponse);
     }
+    currentRow = rows.next();
+    return true;
+  }
 
-    @Override
-    public boolean next() throws IOException {
-        while (!rows.hasNext()) {
-            if (!super.getReadRowsResponses().hasNext()) {
-                return false;
-            }
-            ReadRowsResponse readRowsResponse = super.getReadRowsResponses().next();
-            rows = super.getConverter().convert(readRowsResponse);
-        }
-        currentRow = rows.next();
-        return true;
-    }
+  @Override
+  public InternalRow get() {
+    return currentRow;
+  }
 
-    @Override
-    public InternalRow get() {
-        return currentRow;
-    }
-
-    @Override
-    public void close() throws IOException {
-        super.getReadRowsHelper().close();
-    }
+  @Override
+  public void close() throws IOException {
+    super.getReadRowsHelper().close();
+  }
 }

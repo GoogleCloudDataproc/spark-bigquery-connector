@@ -282,6 +282,6 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
   }
 
   void cleanTemporaryGcsPathIfNeeded() {
-    intermediateDataCleaner.ifPresent(cleaner -> cleaner.deletePath());
+    intermediateDataCleaner.ifPresent(cleaner -> cleaner.run());
   }
 }
