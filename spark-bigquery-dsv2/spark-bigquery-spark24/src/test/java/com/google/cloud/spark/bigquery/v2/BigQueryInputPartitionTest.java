@@ -1,7 +1,6 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
-import com.google.cloud.bigquery.connector.common.ReadRowsHelper.Options;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.common.collect.Lists;

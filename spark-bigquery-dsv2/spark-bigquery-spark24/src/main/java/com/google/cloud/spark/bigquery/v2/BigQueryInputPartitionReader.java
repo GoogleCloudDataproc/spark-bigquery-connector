@@ -18,7 +18,6 @@ package com.google.cloud.spark.bigquery.v2;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
-import com.google.cloud.spark.bigquery.common.GenericBigQueryInputPartitionReader;
 import com.google.common.collect.ImmutableList;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
@@ -26,7 +25,7 @@ import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 import java.io.IOException;
 import java.util.Iterator;
 
-class BigQueryInputPartitionReader implements InputPartitionReader<InternalRow> {
+class BigQueryInputPartitionReader  implements InputPartitionReader<InternalRow> {
 
     private Iterator<ReadRowsResponse> readRowsResponses;
     private ReadRowsResponseToInternalRowIteratorConverter converter;

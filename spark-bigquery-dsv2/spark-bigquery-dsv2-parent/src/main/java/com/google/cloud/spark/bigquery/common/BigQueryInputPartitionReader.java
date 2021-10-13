@@ -21,17 +21,17 @@ public class BigQueryInputPartitionReader extends GenericBigQueryInputPartitionR
 
     @Override
     public boolean next() throws IOException {
-        return false;
+        return super.next();
     }
 
     @Override
     public InternalRow get() {
 
-        return this.getCurrentRow();
+        return super.getCurrentRow();
     }
 
     @Override
     public void close() throws IOException {
-        this.getReadRowsHelper().close();
+        super.getReadRowsHelper().close();
     }
 }

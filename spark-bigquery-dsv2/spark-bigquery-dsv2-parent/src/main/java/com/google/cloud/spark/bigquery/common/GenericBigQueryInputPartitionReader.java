@@ -6,6 +6,7 @@ import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConv
 import com.google.common.collect.ImmutableList;
 import org.apache.spark.sql.catalyst.InternalRow;
 
+import java.io.IOException;
 import java.util.Iterator;
 
 public class GenericBigQueryInputPartitionReader {
@@ -42,6 +43,17 @@ public class GenericBigQueryInputPartitionReader {
 
     public InternalRow getCurrentRow() {
         return currentRow;
+    }
+    public boolean next() throws IOException {
+        while (!rows.hasNext()) {
+            if (!readRowsResponses.hasNext()) {
+                return false;
+            }
+            ReadRowsResponse readRowsResponse = readRowsResponses.next();
+            rows = converter.convert(readRowsResponse);
+        }
+        currentRow = rows.next();
+        return true;
     }
 
 
