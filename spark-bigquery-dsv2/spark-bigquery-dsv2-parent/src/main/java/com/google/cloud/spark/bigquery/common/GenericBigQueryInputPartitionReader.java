@@ -4,36 +4,29 @@ import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.common.collect.ImmutableList;
-import org.apache.spark.sql.catalyst.InternalRow;
-
 import java.io.IOException;
-
 import java.util.Iterator;
 import org.apache.spark.sql.catalyst.InternalRow;
 
 public class GenericBigQueryInputPartitionReader {
 
-    private Iterator<ReadRowsResponse> readRowsResponses;
-    private ReadRowsResponseToInternalRowIteratorConverter converter;
-    private ReadRowsHelper readRowsHelper;
-    private Iterator<InternalRow> rows = ImmutableList.<InternalRow>of().iterator();
-    private InternalRow currentRow;
+  private Iterator<ReadRowsResponse> readRowsResponses;
+  private ReadRowsResponseToInternalRowIteratorConverter converter;
+  private ReadRowsHelper readRowsHelper;
+  private Iterator<InternalRow> rows = ImmutableList.<InternalRow>of().iterator();
+  private InternalRow currentRow;
 
-
-    public boolean next() throws IOException {
-        while (!rows.hasNext()) {
-            if (!readRowsResponses.hasNext()) {
-                return false;
-            }
-            ReadRowsResponse readRowsResponse = readRowsResponses.next();
-            rows = converter.convert(readRowsResponse);
-        }
-        currentRow = rows.next();
-        return true;
+  public boolean next() throws IOException {
+    while (!rows.hasNext()) {
+      if (!readRowsResponses.hasNext()) {
+        return false;
+      }
+      ReadRowsResponse readRowsResponse = readRowsResponses.next();
+      rows = converter.convert(readRowsResponse);
     }
-
-
-
+    currentRow = rows.next();
+    return true;
+  }
 
   public GenericBigQueryInputPartitionReader(
       Iterator<ReadRowsResponse> readRowsResponses,

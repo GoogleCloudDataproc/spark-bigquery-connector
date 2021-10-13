@@ -15,11 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectDataWriterFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.UUID;
-
-import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectDataWriterFactory;
 import org.apache.avro.Schema;
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
 import org.apache.hadoop.fs.FileSystem;
@@ -29,7 +28,8 @@ import org.apache.spark.sql.sources.v2.writer.DataWriter;
 import org.apache.spark.sql.sources.v2.writer.DataWriterFactory;
 import org.apache.spark.sql.types.StructType;
 
-class BigQueryIndirectDataWriterFactory extends GenericBigQueryIndirectDataWriterFactory implements DataWriterFactory<InternalRow> {
+class BigQueryIndirectDataWriterFactory extends GenericBigQueryIndirectDataWriterFactory
+    implements DataWriterFactory<InternalRow> {
 
   SerializableConfiguration conf;
   StructType sparkSchema;
@@ -39,7 +39,7 @@ class BigQueryIndirectDataWriterFactory extends GenericBigQueryIndirectDataWrite
       String gcsDirPath,
       StructType sparkSchema,
       String avroSchemaJson) {
-    super(gcsDirPath,avroSchemaJson);
+    super(gcsDirPath, avroSchemaJson);
     this.conf = conf;
     this.sparkSchema = sparkSchema;
   }

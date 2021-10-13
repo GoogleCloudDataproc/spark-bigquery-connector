@@ -24,7 +24,7 @@ import java.util.Iterator;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
-class BigQueryInputPartitionReader  implements InputPartitionReader<InternalRow> {
+class BigQueryInputPartitionReader implements InputPartitionReader<InternalRow> {
 
   private Iterator<ReadRowsResponse> readRowsResponses;
   private ReadRowsResponseToInternalRowIteratorConverter converter;

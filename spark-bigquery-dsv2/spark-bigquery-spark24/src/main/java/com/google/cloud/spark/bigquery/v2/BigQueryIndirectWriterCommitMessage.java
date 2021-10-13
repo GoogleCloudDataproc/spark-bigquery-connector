@@ -19,13 +19,13 @@ import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 
 class BigQueryIndirectWriterCommitMessage implements WriterCommitMessage {
 
-    private final String uri;
+  private final String uri;
 
-    public BigQueryIndirectWriterCommitMessage(String uri) {
-        this.uri = uri;
-    }
+  public BigQueryIndirectWriterCommitMessage(String uri) {
+    this.uri = uri;
+  }
 
-    public String getUri() {
-        return uri;
-    }
+  public String getUri() {
+    return uri;
+  }
 }
