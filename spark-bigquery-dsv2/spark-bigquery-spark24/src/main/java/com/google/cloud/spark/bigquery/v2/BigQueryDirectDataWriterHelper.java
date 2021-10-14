@@ -35,8 +35,8 @@ import org.slf4j.LoggerFactory;
  * The class which sketches out the necessary functions in order for a Spark DataWriter to interact
  * with the BigQuery Storage Write API.
  */
-class BigQueryDataWriterHelper {
-  final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterHelper.class);
+public class BigQueryDirectDataWriterHelper {
+  final Logger logger = LoggerFactory.getLogger(BigQueryDirectDataWriterHelper.class);
 
   // multiplying with 0.95 so as to keep a buffer preventing the quota limits
   final long MAX_APPEND_ROWS_REQUEST_SIZE = (long) (StreamWriterV2.getApiMaxRequestBytes() * 0.95);
@@ -54,7 +54,7 @@ class BigQueryDataWriterHelper {
   private long appendRequestSizeBytes = 0; // number of bytes waiting for the next append request
   private long writeStreamRowCount = 0; // total offset / rows of the current write-stream
 
-  BigQueryDataWriterHelper(
+  BigQueryDirectDataWriterHelper(
       BigQueryClientFactory writeClientFactory,
       String tablePath,
       ProtoSchema protoSchema,

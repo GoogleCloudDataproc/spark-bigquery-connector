@@ -46,7 +46,7 @@ public class BigQueryDirectDataWriter implements DataWriter<InternalRow> {
    * A helper object to assist the BigQueryDataWriter with all the writing: essentially does all the
    * interaction with BigQuery Storage Write API.
    */
-  private BigQueryDataWriterHelper writerHelper;
+  private BigQueryDirectDataWriterHelper writerHelper;
 
   public BigQueryDirectDataWriter(
       int partitionId,
@@ -70,7 +70,7 @@ public class BigQueryDirectDataWriter implements DataWriter<InternalRow> {
     }
 
     this.writerHelper =
-        new BigQueryDataWriterHelper(
+        new BigQueryDirectDataWriterHelper(
             writeClientFactory, tablePath, protoSchema, bigqueryDataWriterHelperRetrySettings);
   }
 
