@@ -1,11 +1,10 @@
 package org.apache.spark.bigquery;
 
+import java.math.BigDecimal;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.UserDefinedType;
 import org.apache.spark.unsafe.types.UTF8String;
-
-import java.math.BigDecimal;
 
 public class BigNumericUDT extends UserDefinedType<BigNumeric> {
 

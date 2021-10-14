@@ -15,6 +15,8 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Field;
@@ -32,6 +34,13 @@ import com.google.cloud.spark.bigquery.integration.model.Link;
 import com.google.cloud.spark.bigquery.integration.model.Person;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -42,19 +51,10 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import scala.Some;
-
-import java.sql.Date;
-import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static com.google.common.truth.Truth.assertThat;
 
 class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
@@ -171,7 +171,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     // second write
-    assertThrows(
+    Assert.assertThrows(
         Exception.class,
         () -> {
           writeToBigQuery(additonalData(), SaveMode.ErrorIfExists);

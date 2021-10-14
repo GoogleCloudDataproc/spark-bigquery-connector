@@ -15,6 +15,8 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
@@ -24,22 +26,21 @@ import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
 import com.google.cloud.bigquery.storage.v1beta2.ProtoSchemaConverter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.spark.bigquery.BigNumericUDT;
+import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.spark.bigquery.BigNumericUDT;
-import org.apache.spark.bigquery.BigQueryDataTypes;
-import com.google.common.collect.ImmutableMap;
-import java.math.BigDecimal;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class ProtobufUtils {
 

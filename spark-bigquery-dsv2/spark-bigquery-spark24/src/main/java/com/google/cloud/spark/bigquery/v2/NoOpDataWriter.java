@@ -15,11 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import java.io.IOException;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.writer.DataWriter;
 import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
-
-import java.io.IOException;
 
 public class NoOpDataWriter implements DataWriter<InternalRow> {
   @Override

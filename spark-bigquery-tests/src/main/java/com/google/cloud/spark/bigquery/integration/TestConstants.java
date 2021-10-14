@@ -36,7 +36,6 @@ import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
 import com.google.cloud.spark.bigquery.integration.model.NumStruct;
 import com.google.cloud.spark.bigquery.integration.model.StringStruct;
 import com.google.common.collect.ImmutableList;
-
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.sql.Date;
@@ -46,7 +45,6 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.apache.spark.bigquery.BigNumeric;
 import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.Column;

@@ -15,6 +15,13 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_API_ALL_TYPES_ROWS;
+import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_API_ALL_TYPES_SCHEMA;
+import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_API_ALL_TYPES_SCHEMA_BIGQUERY_REPRESENTATION;
+import static com.google.common.truth.Truth.assertThat;
+import static java.lang.String.format;
+import static org.junit.Assert.fail;
+
 import com.google.cloud.RetryOption;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.bigquery.BigQuery;
@@ -25,6 +32,8 @@ import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import java.io.IOException;
+import java.util.Arrays;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -36,16 +45,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.threeten.bp.Duration;
-
-import java.io.IOException;
-import java.util.Arrays;
-
-import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_API_ALL_TYPES_ROWS;
-import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_API_ALL_TYPES_SCHEMA;
-import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_API_ALL_TYPES_SCHEMA_BIGQUERY_REPRESENTATION;
-import static com.google.common.truth.Truth.assertThat;
-import static java.lang.String.format;
-import static org.junit.Assert.fail;
 
 public class Spark24WriteIntegrationTest extends WriteIntegrationTestBase {
 

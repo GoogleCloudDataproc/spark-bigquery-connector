@@ -15,8 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
+import static com.google.cloud.spark.bigquery.SchemaConverters.toBigQuerySchema;
+
 import com.google.api.gax.retrying.RetrySettings;
-import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
@@ -26,6 +28,7 @@ import com.google.cloud.bigquery.storage.v1beta2.BatchCommitWriteStreamsResponse
 import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
 import com.google.common.base.Preconditions;
+import java.util.Arrays;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.writer.DataSourceWriter;
@@ -34,14 +37,6 @@ import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.threeten.bp.Duration;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Arrays;
-
-import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
-import static com.google.cloud.spark.bigquery.SchemaConverters.toBigQuerySchema;
 
 public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
 

@@ -37,28 +37,20 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.threeten.bp.Duration;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
-import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED;
-import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
-import static com.google.cloud.bigquery.connector.common.BigQueryUtil.convertToBigQueryException;
-import static com.google.common.collect.ImmutableList.toImmutableList;
-import static java.lang.String.format;
-import static java.util.Locale.ENGLISH;
-import static java.util.UUID.randomUUID;
-import static java.util.stream.Collectors.joining;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.threeten.bp.Duration;
 
 // holds caches and mappings
 // presto converts the dataset and table names to lower case, while BigQuery is case sensitive
@@ -248,8 +240,8 @@ public class BigQueryClient {
     }
     // not regular table or a view
     throw new BigQueryConnectorException(
-        UNSUPPORTED,
-        format(
+        BigQueryErrorCode.UNSUPPORTED,
+        String.format(
             "Table type '%s' of table '%s.%s' is not supported",
             tableType, table.getTableId().getDataset(), table.getTableId().getTable()));
   }
@@ -257,8 +249,8 @@ public class BigQueryClient {
   private void validateViewsEnabled(ReadTableOptions options) {
     if (!options.viewsEnabled()) {
       throw new BigQueryConnectorException(
-          UNSUPPORTED,
-          format(
+          BigQueryErrorCode.UNSUPPORTED,
+          String.format(
               "Views are not enabled. You can enable views by setting '%s' to true. Notice"
                   + " additional cost may occur.",
               options.viewEnabledParamName()));
@@ -282,14 +274,16 @@ public class BigQueryClient {
     Iterable<Table> allTables = bigQuery.listTables(datasetId).iterateAll();
     return StreamSupport.stream(allTables.spliterator(), false)
         .filter(table -> allowedTypes.contains(table.getDefinition().getType()))
-        .collect(toImmutableList());
+        .collect(ImmutableList.toImmutableList());
   }
 
   TableId createDestinationTable(
       Optional<String> referenceProject, Optional<String> referenceDataset) {
     String project = materializationProject.orElse(referenceProject.orElse(null));
     String dataset = materializationDataset.orElse(referenceDataset.orElse(null));
-    String name = format("_bqc_%s", randomUUID().toString().toLowerCase(ENGLISH).replace("-", ""));
+    String name =
+        String.format(
+            "_bqc_%s", UUID.randomUUID().toString().toLowerCase(Locale.ENGLISH).replace("-", ""));
     return project == null ? TableId.of(dataset, name) : TableId.of(project, dataset, name);
   }
 
@@ -312,7 +306,9 @@ public class BigQueryClient {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new BigQueryException(
-          BaseHttpServiceException.UNKNOWN_CODE, format("Failed to run the job [%s]", job), e);
+          BaseHttpServiceException.UNKNOWN_CODE,
+          String.format("Failed to run the job [%s]", job),
+          e);
     }
   }
 
@@ -326,7 +322,9 @@ public class BigQueryClient {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new BigQueryException(
-          BaseHttpServiceException.UNKNOWN_CODE, format("Failed to run the query [%s]", sql), e);
+          BaseHttpServiceException.UNKNOWN_CODE,
+          String.format("Failed to run the query [%s]", sql),
+          e);
     }
   }
 
@@ -334,7 +332,9 @@ public class BigQueryClient {
     String columns =
         requiredColumns.isEmpty()
             ? "*"
-            : requiredColumns.stream().map(column -> format("`%s`", column)).collect(joining(","));
+            : requiredColumns.stream()
+                .map(column -> String.format("`%s`", column))
+                .collect(Collectors.joining(","));
 
     return createSql(table, columns, filters);
   }
@@ -346,14 +346,15 @@ public class BigQueryClient {
 
     String whereClause = createWhereClause(filters).map(clause -> "WHERE " + clause).orElse("");
 
-    return format("SELECT %s FROM `%s` %s", formattedQuery, tableName, whereClause);
+    return String.format("SELECT %s FROM `%s` %s", formattedQuery, tableName, whereClause);
   }
 
   String fullTableName(TableId tableId) {
     if (tableId.getProject() == null) {
-      return format("%s.%s", tableId.getDataset(), tableId.getTable());
+      return String.format("%s.%s", tableId.getDataset(), tableId.getTable());
     } else {
-      return format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
+      return String.format(
+          "%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
     }
   }
 
@@ -372,12 +373,12 @@ public class BigQueryClient {
         // run a query
         String table = fullTableName(tableInfo.getTableId());
         String whereClause = filter.map(f -> "WHERE " + f).orElse("");
-        String sql = format("SELECT COUNT(*) from `%s` %s", table, whereClause);
+        String sql = String.format("SELECT COUNT(*) from `%s` %s", table, whereClause);
         TableResult result = bigQuery.query(QueryJobConfiguration.of(sql));
         return result.iterateAll().iterator().next().get(0).getLongValue();
       } else {
         throw new IllegalArgumentException(
-            format(
+            String.format(
                 "Unsupported table type %s for table %s",
                 type, fullTableName(tableInfo.getTableId())));
       }
@@ -426,7 +427,7 @@ public class BigQueryClient {
           new DestinationTableBuilder(this, querySql, destinationTableId, expirationTimeInMinutes));
     } catch (Exception e) {
       throw new BigQueryConnectorException(
-          BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
+          BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
           String.format(
               "Error creating destination table using the following query: [%s]", querySql),
           e);
@@ -478,7 +479,7 @@ public class BigQueryClient {
       Job job = waitForJob(bigQueryClient.create(jobInfo));
       log.debug("job has finished. %s", job);
       if (job.getStatus().getError() != null) {
-        throw convertToBigQueryException(job.getStatus().getError());
+        throw BigQueryUtil.convertToBigQueryException(job.getStatus().getError());
       }
       // add expiration time to the table
       TableInfo createdTable = bigQueryClient.getTable(destinationTable);
@@ -496,7 +497,7 @@ public class BigQueryClient {
         Thread.currentThread().interrupt();
         throw new BigQueryException(
             BaseServiceException.UNKNOWN_CODE,
-            format("Job %s has been interrupted", job.getJobId()),
+            String.format("Job %s has been interrupted", job.getJobId()),
             e);
       }
     }

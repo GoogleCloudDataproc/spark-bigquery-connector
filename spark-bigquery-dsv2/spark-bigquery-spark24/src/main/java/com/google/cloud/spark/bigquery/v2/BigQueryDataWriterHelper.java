@@ -23,14 +23,13 @@ import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.storage.v1.stub.readrows.ApiResultRetryAlgorithm;
 import com.google.cloud.bigquery.storage.v1beta2.*;
-import com.google.protobuf.ByteString;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.google.cloud.bigquery.storage.v1beta2.WriteStream;
-
+import com.google.protobuf.ByteString;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The class which sketches out the necessary functions in order for a Spark DataWriter to interact

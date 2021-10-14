@@ -33,9 +33,12 @@ import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
@@ -48,10 +51,6 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.junit.AssumptionViolatedException;
 import org.junit.Test;
-import org.apache.spark.bigquery.BigQueryDataTypes;
-
-import java.math.BigDecimal;
-import java.math.MathContext;
 
 public class ProtobufUtilsTest {
 

@@ -7,14 +7,13 @@ import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadSettings;
 import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteSettings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.util.Optional;
+import javax.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Since Guice recommends to avoid injecting closeable resources (see
