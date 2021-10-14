@@ -19,8 +19,8 @@ import com.google.api.client.util.Sleeper;
 import com.google.api.core.ApiFuture;
 import com.google.api.core.NanoClock;
 import com.google.api.gax.retrying.*;
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
-import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
 import com.google.cloud.bigquery.storage.v1.stub.readrows.ApiResultRetryAlgorithm;
 import com.google.cloud.bigquery.storage.v1beta2.*;
 import com.google.protobuf.ByteString;
@@ -33,36 +33,14 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /**
- * The interface which sketches out the necessary functions in order for a Spark DataWriter to
- * interact with the BigQuery Storage Write API.
+ * The class which sketches out the necessary functions in order for a Spark DataWriter to interact
+ * with the BigQuery Storage Write API.
  */
-interface BigQueryDataWriterHelper {
+class BigQueryDataWriterHelper {
+  final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterHelper.class);
 
-  static BigQueryDataWriterHelper from(
-      BigQueryWriteClientFactory writeClientFactory,
-      String tablePath,
-      ProtoSchema protoSchema,
-      RetrySettings bigqueryDataWriterHelperRetrySettings) {
-    return new BigQueryDataWriterHelperDefault(
-        writeClientFactory, tablePath, protoSchema, bigqueryDataWriterHelperRetrySettings);
-  }
-
-  void addRow(ByteString message) throws IOException;
-
-  long commit() throws IOException;
-
-  String getWriteStreamName();
-
-  void abort();
-}
-
-/** The current default implementation of such a helper interface. */
-class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
-
-  final Logger logger = LoggerFactory.getLogger(BigQueryDataWriterHelperDefault.class);
-
-  final long MAX_APPEND_ROWS_REQUEST_SIZE = 1000000L;
-  // StreamWriterV2.getApiMaxRequestBytes() (8MB) is not working currently
+  // multiplying with 0.95 so as to keep a buffer preventing the quota limits
+  final long MAX_APPEND_ROWS_REQUEST_SIZE = (long) (StreamWriterV2.getApiMaxRequestBytes() * 0.95);
 
   private final BigQueryWriteClient writeClient;
   private final String tablePath;
@@ -75,12 +53,10 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
 
   private long appendRequestRowCount = 0; // number of rows waiting for the next append request
   private long appendRequestSizeBytes = 0; // number of bytes waiting for the next append request
-
-  private long writeStreamSizeBytes = 0; // total bytes of the current write-stream
   private long writeStreamRowCount = 0; // total offset / rows of the current write-stream
 
-  BigQueryDataWriterHelperDefault(
-      BigQueryWriteClientFactory writeClientFactory,
+  BigQueryDataWriterHelper(
+      BigQueryClientFactory writeClientFactory,
       String tablePath,
       ProtoSchema protoSchema,
       RetrySettings bigqueryDataWriterHelperRetrySettings) {
@@ -166,7 +142,6 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
    * @param message The row, in a ByteString message, to be added to protoRows.
    * @throws IOException If sendAppendRowsRequest fails.
    */
-  @Override
   public void addRow(ByteString message) throws IOException {
     int messageSize = message.size();
 
@@ -203,7 +178,6 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
 
     clearProtoRows();
     this.writeStreamRowCount += appendRequestRowCount;
-    this.writeStreamSizeBytes += appendRequestSizeBytes;
     this.appendRequestRowCount = 0;
     this.appendRequestSizeBytes = 0;
   }
@@ -251,7 +225,6 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
    *     the expected offset (which is equal to the number of rows appended thus far).
    * @see this#writeStreamRowCount
    */
-  @Override
   public long commit() throws IOException {
     if (this.protoRows.getSerializedRowsCount() != 0) {
       sendAppendRowsRequest();
@@ -316,7 +289,6 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
    * Deletes the data left over in the protoRows, using method clearProtoRows, closes the
    * StreamWriter, shuts down the WriteClient, and nulls out the protoRows and write-stream-name.
    */
-  @Override
   public void abort() {
     clearProtoRows();
     if (streamWriter != null) {
@@ -335,7 +307,6 @@ class BigQueryDataWriterHelperDefault implements BigQueryDataWriterHelper {
     }
   }
 
-  @Override
   public String getWriteStreamName() {
     return writeStreamName;
   }

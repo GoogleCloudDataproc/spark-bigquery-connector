@@ -16,7 +16,7 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.api.gax.retrying.RetrySettings;
-import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.writer.DataWriter;
@@ -24,7 +24,7 @@ import org.apache.spark.sql.sources.v2.writer.DataWriterFactory;
 import org.apache.spark.sql.types.StructType;
 
 public class BigQueryDirectDataWriterFactory implements DataWriterFactory<InternalRow> {
-  private final BigQueryWriteClientFactory writeClientFactory;
+  private final BigQueryClientFactory writeClientFactory;
   private final String tablePath;
   private final StructType sparkSchema;
   private final ProtoSchema protoSchema;
@@ -32,7 +32,7 @@ public class BigQueryDirectDataWriterFactory implements DataWriterFactory<Intern
   private final RetrySettings bigqueryDataWriterHelperRetrySettings;
 
   public BigQueryDirectDataWriterFactory(
-      BigQueryWriteClientFactory writeClientFactory,
+      BigQueryClientFactory writeClientFactory,
       String tablePath,
       StructType sparkSchema,
       ProtoSchema protoSchema,

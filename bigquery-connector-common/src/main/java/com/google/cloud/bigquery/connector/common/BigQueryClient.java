@@ -15,16 +15,8 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED;
-import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
-import static com.google.cloud.bigquery.connector.common.BigQueryUtil.convertToBigQueryException;
-import static com.google.common.collect.ImmutableList.toImmutableList;
-import static java.lang.String.format;
-import static java.util.Locale.ENGLISH;
-import static java.util.UUID.randomUUID;
-import static java.util.stream.Collectors.joining;
-
 import com.google.cloud.BaseServiceException;
+import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Dataset;
@@ -45,6 +37,12 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.threeten.bp.Duration;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -52,8 +50,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED;
+import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.convertToBigQueryException;
+import static com.google.common.collect.ImmutableList.toImmutableList;
+import static java.lang.String.format;
+import static java.util.Locale.ENGLISH;
+import static java.util.UUID.randomUUID;
+import static java.util.stream.Collectors.joining;
 
 // holds caches and mappings
 // presto converts the dataset and table names to lower case, while BigQuery is case sensitive
@@ -75,6 +80,27 @@ public class BigQueryClient {
     this.bigQuery = bigQuery;
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
+  }
+
+  /**
+   * Waits for a BigQuery Job to complete: this is a blocking function.
+   *
+   * @param job The {@code Job} to keep track of.
+   */
+  public static void waitForJob(Job job) {
+    try {
+      Job completedJob =
+          job.waitFor(
+              RetryOption.initialRetryDelay(Duration.ofSeconds(1)),
+              RetryOption.totalTimeout(Duration.ofMinutes(3)));
+      if (completedJob == null && completedJob.getStatus().getError() != null) {
+        throw new UncheckedIOException(
+            new IOException(completedJob.getStatus().getError().toString()));
+      }
+    } catch (InterruptedException e) {
+      throw new RuntimeException(
+          "Could not copy table from temporary sink to destination table.", e);
+    }
   }
 
   // return empty if no filters are used
@@ -176,14 +202,8 @@ public class BigQueryClient {
   }
 
   String sqlFromFormat(String queryFormat, TableId destinationTableId, TableId temporaryTableId) {
-    String destinationTableName =
-        destinationTableId.getProject() == null
-            ? tableNameWithoutProject(destinationTableId)
-            : fullTableName(destinationTableId);
-    String temporaryTableName =
-        temporaryTableId.getProject() == null
-            ? tableNameWithoutProject(temporaryTableId)
-            : fullTableName(temporaryTableId);
+    String destinationTableName = fullTableName(destinationTableId);
+    String temporaryTableName = fullTableName(temporaryTableId);
     return String.format(queryFormat, destinationTableName, temporaryTableName);
   }
 
@@ -330,11 +350,11 @@ public class BigQueryClient {
   }
 
   String fullTableName(TableId tableId) {
-    return format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
-  }
-
-  String tableNameWithoutProject(TableId tableId) {
-    return format("%s.%s", tableId.getDataset(), tableId.getTable());
+    if (tableId.getProject() == null) {
+      return format("%s.%s", tableId.getDataset(), tableId.getTable());
+    } else {
+      return format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
+    }
   }
 
   public long calculateTableSize(TableId tableId, Optional<String> filter) {

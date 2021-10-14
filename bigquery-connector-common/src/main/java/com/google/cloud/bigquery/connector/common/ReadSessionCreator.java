@@ -47,12 +47,12 @@ public class ReadSessionCreator {
 
   private final ReadSessionCreatorConfig config;
   private final BigQueryClient bigQueryClient;
-  private final BigQueryReadClientFactory bigQueryReadClientFactory;
+  private final BigQueryClientFactory bigQueryReadClientFactory;
 
   public ReadSessionCreator(
       ReadSessionCreatorConfig config,
       BigQueryClient bigQueryClient,
-      BigQueryReadClientFactory bigQueryReadClientFactory) {
+      BigQueryClientFactory bigQueryReadClientFactory) {
     this.config = config;
     this.bigQueryClient = bigQueryClient;
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;

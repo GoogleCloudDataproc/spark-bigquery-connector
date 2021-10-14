@@ -19,6 +19,7 @@ import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 
 public class BigQueryDirectWriterCommitMessage implements WriterCommitMessage {
 
+  private static final long serialVersionUID = -1562914502592461805L;
   private final String writeStreamName;
   private final int partitionId;
   private final long taskId;

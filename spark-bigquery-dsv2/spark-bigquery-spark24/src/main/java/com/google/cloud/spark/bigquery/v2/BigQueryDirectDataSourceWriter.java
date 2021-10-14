@@ -19,8 +19,8 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
-import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
 import com.google.cloud.bigquery.storage.v1beta2.BatchCommitWriteStreamsRequest;
 import com.google.cloud.bigquery.storage.v1beta2.BatchCommitWriteStreamsResponse;
 import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteClient;
@@ -48,7 +48,7 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
   final Logger logger = LoggerFactory.getLogger(BigQueryDirectDataSourceWriter.class);
 
   private final BigQueryClient bigQueryClient;
-  private final BigQueryWriteClientFactory writeClientFactory;
+  private final BigQueryClientFactory writeClientFactory;
   private final TableId destinationTableId;
   private final StructType sparkSchema;
   private final ProtoSchema protoSchema;
@@ -70,7 +70,7 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
 
   public BigQueryDirectDataSourceWriter(
       BigQueryClient bigQueryClient,
-      BigQueryWriteClientFactory bigQueryWriteClientFactory,
+      BigQueryClientFactory bigQueryWriteClientFactory,
       TableId destinationTableId,
       String writeUUID,
       SaveMode saveMode,
@@ -87,7 +87,8 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
     try {
       this.protoSchema = toProtoSchema(sparkSchema);
     } catch (IllegalArgumentException e) {
-      throw new InvalidSchemaException("Could not convert Spark schema to protobuf descriptor", e);
+      throw new BigQueryConnectorException.InvalidSchemaException(
+          "Could not convert Spark schema to protobuf descriptor", e);
     }
 
     this.temporaryTableId = getOrCreateTable(saveMode, destinationTableId, bigQuerySchema);
@@ -122,7 +123,7 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
               .getDefinition()
               .getSchema()
               .equals(bigQuerySchema),
-          new SchemaValidationException(
+          new BigQueryConnectorException.InvalidSchemaException(
               "Destination table's schema is not compatible with dataframe's schema"));
       switch (saveMode) {
         case Append:
@@ -197,7 +198,7 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
     if (writingMode.equals(WritingMode.OVERWRITE)) {
       Job overwriteJob =
           bigQueryClient.overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
-      waitForJob(overwriteJob);
+      BigQueryClient.waitForJob(overwriteJob);
       Preconditions.checkState(
           bigQueryClient.deleteTable(temporaryTableId),
           new BigQueryConnectorException(
@@ -206,27 +207,6 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
     }
 
     writeClient.shutdown();
-  }
-
-  /**
-   * Waits for a BigQuery Job to complete: this is a blocking function.
-   *
-   * @param job The {@code Job} to keep track of.
-   */
-  public static void waitForJob(Job job) {
-    try {
-      Job completedJob =
-          job.waitFor(
-              RetryOption.initialRetryDelay(Duration.ofSeconds(1)),
-              RetryOption.totalTimeout(Duration.ofMinutes(3)));
-      if (completedJob == null && completedJob.getStatus().getError() != null) {
-        throw new UncheckedIOException(
-            new IOException(completedJob.getStatus().getError().toString()));
-      }
-    } catch (InterruptedException e) {
-      throw new RuntimeException(
-          "Could not copy table from temporary sink to destination table.", e);
-    }
   }
 
   /**
@@ -245,26 +225,6 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
     // Deletes the preliminary table we wrote to (if it exists):
     if (bigQueryClient.tableExists(temporaryTableId)) {
       bigQueryClient.deleteTable(temporaryTableId);
-    }
-  }
-
-  protected static class InvalidSchemaException extends BigQueryConnectorException {
-    InvalidSchemaException(String message) {
-      super(message);
-    }
-
-    InvalidSchemaException(String message, Throwable t) {
-      super(message, t);
-    }
-  }
-
-  protected static class SchemaValidationException extends InvalidSchemaException {
-    SchemaValidationException(String message) {
-      super(message);
-    }
-
-    SchemaValidationException(String message, Throwable t) {
-      super(message, t);
     }
   }
 }

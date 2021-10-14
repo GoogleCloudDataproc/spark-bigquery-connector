@@ -16,7 +16,8 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.api.gax.retrying.RetrySettings;
-import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
@@ -52,7 +53,7 @@ public class BigQueryDirectDataWriter implements DataWriter<InternalRow> {
       int partitionId,
       long taskId,
       long epochId,
-      BigQueryWriteClientFactory writeClientFactory,
+      BigQueryClientFactory writeClientFactory,
       String tablePath,
       StructType sparkSchema,
       ProtoSchema protoSchema,
@@ -65,12 +66,12 @@ public class BigQueryDirectDataWriter implements DataWriter<InternalRow> {
     try {
       this.schemaDescriptor = toDescriptor(sparkSchema);
     } catch (Descriptors.DescriptorValidationException e) {
-      throw new BigQueryDirectDataSourceWriter.InvalidSchemaException(
+      throw new BigQueryConnectorException.InvalidSchemaException(
           "Could not convert spark-schema to descriptor object", e);
     }
 
     this.writerHelper =
-        BigQueryDataWriterHelper.from(
+        new BigQueryDataWriterHelper(
             writeClientFactory, tablePath, protoSchema, bigqueryDataWriterHelperRetrySettings);
   }
 

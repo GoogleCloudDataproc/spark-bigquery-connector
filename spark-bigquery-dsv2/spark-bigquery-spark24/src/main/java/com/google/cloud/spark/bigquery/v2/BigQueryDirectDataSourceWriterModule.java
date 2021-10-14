@@ -3,7 +3,7 @@ package com.google.cloud.spark.bigquery.v2;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
-import com.google.cloud.bigquery.connector.common.BigQueryWriteClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.inject.Binder;
 import com.google.inject.Provides;
@@ -33,7 +33,7 @@ public class BigQueryDirectDataSourceWriterModule implements com.google.inject.M
   @Provides
   public BigQueryDirectDataSourceWriter provideDataSourceWriter(
       BigQueryClient bigQueryClient,
-      BigQueryWriteClientFactory bigQueryWriteClientFactory,
+      BigQueryClientFactory bigQueryWriteClientFactory,
       SparkBigQueryConfig config) {
     TableId tableId = config.getTableId();
     RetrySettings bigqueryDataWriteHelperRetrySettings =

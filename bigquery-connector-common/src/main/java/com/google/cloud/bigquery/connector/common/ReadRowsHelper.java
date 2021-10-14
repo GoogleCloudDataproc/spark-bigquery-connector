@@ -66,13 +66,13 @@ public class ReadRowsHelper implements AutoCloseable {
     }
   }
 
-  private final BigQueryReadClientFactory bigQueryReadClientFactory;
+  private final BigQueryClientFactory bigQueryReadClientFactory;
   private final List<ReadRowsRequest.Builder> requests;
   private BigQueryReadClient client;
   private StreamCombiningIterator incomingStream;
 
   public ReadRowsHelper(
-      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryClientFactory bigQueryReadClientFactory,
       ReadRowsRequest.Builder request,
       Options options) {
     this.bigQueryReadClientFactory =
@@ -82,7 +82,7 @@ public class ReadRowsHelper implements AutoCloseable {
   }
 
   public ReadRowsHelper(
-      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryClientFactory bigQueryReadClientFactory,
       List<ReadRowsRequest.Builder> requests,
       Options options) {
     this.bigQueryReadClientFactory =
