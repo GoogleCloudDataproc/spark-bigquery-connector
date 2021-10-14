@@ -47,9 +47,10 @@ public class GenericBigQueryInputPartition {
 
   // Get BigQuery Readrowsresponse object by passing the name of bigquery stream name
   public Iterator<ReadRowsResponse> getReadRowsResponse() {
-    // Create Bigquery Read rows Request object by passing bigquery stream name
+    // Create Bigquery Read rows Request object by passing bigquery stream name (For each logical bigquery stream we will have separate readRowrequest object)
     ReadRowsRequest.Builder readRowsRequest =
         ReadRowsRequest.newBuilder().setReadStream(this.streamName);
+
     ReadRowsHelper readRowsHelper =
         new ReadRowsHelper(this.bigQueryReadClientFactory, readRowsRequest, this.options);
     this.readRowsHelper = readRowsHelper;
