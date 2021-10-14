@@ -35,7 +35,10 @@ import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 
+import static com.google.common.base.Optional.fromJavaUtil;
+
 public class ArrowInputPartition extends GenericArrowInputPartition implements InputPartition<ColumnarBatch> {
+  private final com.google.common.base.Optional<StructType> userProvidedSchema;
 
   public ArrowInputPartition(
       BigQueryReadClientFactory bigQueryReadClientFactory,
@@ -45,7 +48,8 @@ public class ArrowInputPartition extends GenericArrowInputPartition implements I
       ImmutableList<String> selectedFields,
       ReadSessionResponse readSessionResponse,
       Optional<StructType> userProvidedSchema) {
-    super(bigQueryReadClientFactory,tracerFactory,names,options,selectedFields,readSessionResponse,userProvidedSchema);
+    super(bigQueryReadClientFactory,tracerFactory,names,options,selectedFields,readSessionResponse);
+    this.userProvidedSchema = fromJavaUtil(userProvidedSchema);
   }
 
   // this method will be called by spark executors  and it will create partition reader object to read data from Bigquery Streams
@@ -68,7 +72,7 @@ public class ArrowInputPartition extends GenericArrowInputPartition implements I
         readRowsHelper,
         super.getSelectedFields(),
         tracer,
-        super.getUserProvidedSchema().toJavaUtil(),
+        userProvidedSchema.toJavaUtil(),
         super.getOptions().numBackgroundThreads());
   }
 }

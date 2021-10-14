@@ -18,21 +18,26 @@ package com.google.cloud.spark.bigquery.v2;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.spark.bigquery.ArrowSchemaConverter;
 import com.google.cloud.spark.bigquery.common.GenericArrowColumnBatchPartitionReader;
 import com.google.protobuf.ByteString;
-
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
-
 import org.apache.arrow.util.AutoCloseables;
+import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
+
 class ArrowColumnBatchPartitionColumnBatchReader extends GenericArrowColumnBatchPartitionReader implements InputPartitionReader<ColumnarBatch> {
-    private static final long maxAllocation = 500 * 1024 * 1024;
+
+    private final Map<String, StructField> userProvidedFieldMap;
+    private ColumnarBatch currentBatch;
+    private boolean closed = false;
 
     ArrowColumnBatchPartitionColumnBatchReader(
             Iterator<ReadRowsResponse> readRowsResponses,
@@ -42,27 +47,58 @@ class ArrowColumnBatchPartitionColumnBatchReader extends GenericArrowColumnBatch
             BigQueryStorageReadRowsTracer tracer,
             Optional<StructType> userProvidedSchema,
             int numBackgroundThreads) {
-        super(readRowsResponses, schema, readRowsHelper, namesInOrder, tracer, userProvidedSchema, numBackgroundThreads);
+        super(readRowsResponses, schema, readRowsHelper, namesInOrder, tracer, numBackgroundThreads);
+        List<StructField> userProvidedFieldList =
+                Arrays.stream(userProvidedSchema.orElse(new StructType()).fields())
+                        .collect(Collectors.toList());
+        this.userProvidedFieldMap =
+                userProvidedFieldList.stream().collect(Collectors.toMap(StructField::name, field -> field));
+
     }
+
 
     @Override
     public boolean next() throws IOException {
         super.getTracer().nextBatchNeeded();
-        if (super.closed) {
+        if (closed) {
             return false;
         }
-        super.getNextHelper();
+        super.getTracer().rowsParseStarted();
+
+        closed = !super.getReader().loadNextBatch();
+
+        if (closed) {
+            return false;
+        }
+
+        VectorSchemaRoot root = super.getReader().root();
+        if (currentBatch == null) {
+            // trying to verify from dev@spark but this object
+            // should only need to get created once.  The underlying
+            // vectors should stay the same.
+            ColumnVector[] columns =
+                    super.getNamesInOrder().stream()
+                            .map(root::getVector)
+                            .map(
+                                    vector ->
+                                            new ArrowSchemaConverter(vector, userProvidedFieldMap.get(vector.getName())))
+                            .toArray(ColumnVector[]::new);
+
+            currentBatch = new ColumnarBatch(columns);
+        }
+        currentBatch.setNumRows(root.getRowCount());
+        super.getTracer().rowsParseFinished(currentBatch.numRows());
         return true;
     }
 
     @Override
     public ColumnarBatch get() {
-        return super.getCurrentBatch();
+        return currentBatch;
     }
 
     @Override
     public void close() throws IOException {
-        super.closed = true;
+        closed = true;
         try {
             super.getTracer().finished();
             super.getCloseables().set(0, super.getReader());

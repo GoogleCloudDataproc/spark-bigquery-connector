@@ -1,19 +1,12 @@
 package com.google.cloud.spark.bigquery.common;
 
-import com.google.cloud.bigquery.connector.common.*;
-import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
-import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
+import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
+import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
+import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
-import org.apache.spark.sql.types.StructType;
-
-import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import static com.google.common.base.Optional.fromJavaUtil;
 
 public class GenericArrowInputPartition {
     private final BigQueryReadClientFactory bigQueryReadClientFactory;
@@ -22,7 +15,6 @@ public class GenericArrowInputPartition {
     private final ReadRowsHelper.Options options;
     private final ImmutableList<String> selectedFields;
     private final ByteString serializedArrowSchema;
-    private final com.google.common.base.Optional<StructType> userProvidedSchema;
 
     public GenericArrowInputPartition(
             BigQueryReadClientFactory bigQueryReadClientFactory,
@@ -30,8 +22,7 @@ public class GenericArrowInputPartition {
             List<String> names,
             ReadRowsHelper.Options options,
             ImmutableList<String> selectedFields,
-            ReadSessionResponse readSessionResponse,
-            java.util.Optional<StructType> userProvidedSchema) {
+            ReadSessionResponse readSessionResponse) {
         this.bigQueryReadClientFactory = bigQueryReadClientFactory;
         this.streamNames = names;
         this.options = options;
@@ -39,9 +30,7 @@ public class GenericArrowInputPartition {
         this.serializedArrowSchema =
                 readSessionResponse.getReadSession().getArrowSchema().getSerializedSchema();
         this.tracerFactory = tracerFactory;
-        this.userProvidedSchema = fromJavaUtil(userProvidedSchema);
     }
-
 
 
     public BigQueryReadClientFactory getBigQueryReadClientFactory() {
@@ -68,8 +57,5 @@ public class GenericArrowInputPartition {
         return serializedArrowSchema;
     }
 
-    public Optional<StructType> getUserProvidedSchema() {
-        return userProvidedSchema;
-    }
 
 }
