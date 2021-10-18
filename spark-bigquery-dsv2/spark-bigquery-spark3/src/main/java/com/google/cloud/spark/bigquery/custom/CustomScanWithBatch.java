@@ -21,9 +21,8 @@ public class CustomScanWithBatch implements Scan, Batch {
 
     @Override
     public StructType readSchema() {
-        StructField[] structFields = new StructField[]{
-                new StructField("value", DataTypes.StringType, true, Metadata.empty())};
-        return new StructType(structFields);
+        GenericBQDataSourceReaderHelper dataSourceReaderHelper = new GenericBQDataSourceReaderHelper();
+        return dataSourceReaderHelper.readschema(schema,table)
     }
 
     @Override

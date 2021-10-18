@@ -136,6 +136,7 @@ public class BigQueryDataSourceReader
 
   @Override
   public StructType readSchema() {
+
     // TODO: rely on Java code
     return schema.orElse(
         SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table)));
