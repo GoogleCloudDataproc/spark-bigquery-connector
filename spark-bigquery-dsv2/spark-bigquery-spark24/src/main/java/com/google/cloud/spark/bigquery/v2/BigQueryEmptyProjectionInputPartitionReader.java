@@ -16,31 +16,31 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.common.GenericBigQueryEmptyProjectionInputPartitionReader;
+import java.io.IOException;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
-import java.io.IOException;
+class BigQueryEmptyProjectionInputPartitionReader
+    extends GenericBigQueryEmptyProjectionInputPartitionReader
+    implements InputPartitionReader<InternalRow> {
 
-class BigQueryEmptyProjectionInputPartitionReader extends GenericBigQueryEmptyProjectionInputPartitionReader implements InputPartitionReader<InternalRow> {
+  BigQueryEmptyProjectionInputPartitionReader(int partitionSize) {
+    super(partitionSize);
+  }
 
+  @Override
+  public boolean next() throws IOException {
+    return super.currentIndex < super.partitionSize;
+  }
 
-    BigQueryEmptyProjectionInputPartitionReader(int partitionSize) {
-        super(partitionSize);
-    }
+  @Override
+  public InternalRow get() {
+    super.currentIndex++;
+    return InternalRow.empty();
+  }
 
-    @Override
-    public boolean next() throws IOException {
-        return super.currentIndex < super.partitionSize;
-    }
-
-    @Override
-    public InternalRow get() {
-        super.currentIndex++;
-        return InternalRow.empty();
-    }
-
-    @Override
-    public void close() throws IOException {
-        // empty
-    }
+  @Override
+  public void close() throws IOException {
+    // empty
+  }
 }

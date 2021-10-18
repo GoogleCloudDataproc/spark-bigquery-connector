@@ -15,6 +15,8 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import static com.google.common.base.Optional.fromJavaUtil;
+
 import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
@@ -22,22 +24,19 @@ import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
-import com.google.cloud.spark.bigquery.common.GenericArrowInputPartition;
 import com.google.cloud.spark.bigquery.common.GenericArrowBigQueryInputPartitionHelper;
+import com.google.cloud.spark.bigquery.common.GenericArrowInputPartition;
 import com.google.common.collect.ImmutableList;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-
 import org.apache.spark.sql.sources.v2.reader.InputPartition;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 
-import static com.google.common.base.Optional.fromJavaUtil;
-
-public class ArrowInputPartition extends GenericArrowInputPartition implements InputPartition<ColumnarBatch> {
+public class ArrowInputPartition extends GenericArrowInputPartition
+    implements InputPartition<ColumnarBatch> {
   private final com.google.common.base.Optional<StructType> userProvidedSchema;
 
   public ArrowInputPartition(
@@ -48,21 +47,35 @@ public class ArrowInputPartition extends GenericArrowInputPartition implements I
       ImmutableList<String> selectedFields,
       ReadSessionResponse readSessionResponse,
       Optional<StructType> userProvidedSchema) {
-    super(bigQueryReadClientFactory,tracerFactory,names,options,selectedFields,readSessionResponse);
+    super(
+        bigQueryReadClientFactory,
+        tracerFactory,
+        names,
+        options,
+        selectedFields,
+        readSessionResponse);
     this.userProvidedSchema = fromJavaUtil(userProvidedSchema);
   }
 
-  // this method will be called by spark executors  and it will create partition reader object to read data from Bigquery Streams
+  // this method will be called by spark executors  and it will create partition reader object to
+  // read data from Bigquery Streams
   @Override
   public InputPartitionReader<ColumnarBatch> createPartitionReader() {
-    // instantiate the GenericArrowBigQueryInputPartitionHelper class for each call of partition reader
-    GenericArrowBigQueryInputPartitionHelper bqInputPartitionHelper= new GenericArrowBigQueryInputPartitionHelper();
-    // using generic helper class from dsv 2 parent library to create tracer,read row request object  for each inputPartition reader
-    BigQueryStorageReadRowsTracer tracer = bqInputPartitionHelper.getBQTracerByStreamNames(super.getTracerFactory(),super.getStreamNames());
-    List<ReadRowsRequest.Builder> readRowsRequests = bqInputPartitionHelper.getListOfReadRowsRequestsByStreamNames(super.getStreamNames());
+    // instantiate the GenericArrowBigQueryInputPartitionHelper class for each call of partition
+    // reader
+    GenericArrowBigQueryInputPartitionHelper bqInputPartitionHelper =
+        new GenericArrowBigQueryInputPartitionHelper();
+    // using generic helper class from dsv 2 parent library to create tracer,read row request object
+    //  for each inputPartition reader
+    BigQueryStorageReadRowsTracer tracer =
+        bqInputPartitionHelper.getBQTracerByStreamNames(
+            super.getTracerFactory(), super.getStreamNames());
+    List<ReadRowsRequest.Builder> readRowsRequests =
+        bqInputPartitionHelper.getListOfReadRowsRequestsByStreamNames(super.getStreamNames());
 
     ReadRowsHelper readRowsHelper =
-        new ReadRowsHelper(super.getBigQueryReadClientFactory(), readRowsRequests, super.getOptions());
+        new ReadRowsHelper(
+            super.getBigQueryReadClientFactory(), readRowsRequests, super.getOptions());
     tracer.startStream();
     // iterator to read data from bigquery read rows object
     Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();

@@ -1,13 +1,13 @@
 package com.google.cloud.spark.bigquery.common;
 
 public class GenericBigQueryEmptyProjectionInputPartition {
-    final int partitionSize;
+  final int partitionSize;
 
-    public GenericBigQueryEmptyProjectionInputPartition(int partitionSize) {
-        this.partitionSize = partitionSize;
-    }
+  public GenericBigQueryEmptyProjectionInputPartition(int partitionSize) {
+    this.partitionSize = partitionSize;
+  }
 
-    public int getPartitionSize() {
-        return partitionSize;
-    }
+  public int getPartitionSize() {
+    return partitionSize;
+  }
 }

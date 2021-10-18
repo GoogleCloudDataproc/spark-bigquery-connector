@@ -9,53 +9,50 @@ import com.google.protobuf.ByteString;
 import java.util.List;
 
 public class GenericArrowInputPartition {
-    private final BigQueryReadClientFactory bigQueryReadClientFactory;
-    private final BigQueryTracerFactory tracerFactory;
-    private final List<String> streamNames;
-    private final ReadRowsHelper.Options options;
-    private final ImmutableList<String> selectedFields;
-    private final ByteString serializedArrowSchema;
+  private final BigQueryReadClientFactory bigQueryReadClientFactory;
+  private final BigQueryTracerFactory tracerFactory;
+  private final List<String> streamNames;
+  private final ReadRowsHelper.Options options;
+  private final ImmutableList<String> selectedFields;
+  private final ByteString serializedArrowSchema;
 
-    public GenericArrowInputPartition(
-            BigQueryReadClientFactory bigQueryReadClientFactory,
-            BigQueryTracerFactory tracerFactory,
-            List<String> names,
-            ReadRowsHelper.Options options,
-            ImmutableList<String> selectedFields,
-            ReadSessionResponse readSessionResponse) {
-        this.bigQueryReadClientFactory = bigQueryReadClientFactory;
-        this.streamNames = names;
-        this.options = options;
-        this.selectedFields = selectedFields;
-        this.serializedArrowSchema =
-                readSessionResponse.getReadSession().getArrowSchema().getSerializedSchema();
-        this.tracerFactory = tracerFactory;
-    }
+  public GenericArrowInputPartition(
+      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryTracerFactory tracerFactory,
+      List<String> names,
+      ReadRowsHelper.Options options,
+      ImmutableList<String> selectedFields,
+      ReadSessionResponse readSessionResponse) {
+    this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+    this.streamNames = names;
+    this.options = options;
+    this.selectedFields = selectedFields;
+    this.serializedArrowSchema =
+        readSessionResponse.getReadSession().getArrowSchema().getSerializedSchema();
+    this.tracerFactory = tracerFactory;
+  }
 
+  public BigQueryReadClientFactory getBigQueryReadClientFactory() {
+    return bigQueryReadClientFactory;
+  }
 
-    public BigQueryReadClientFactory getBigQueryReadClientFactory() {
-        return bigQueryReadClientFactory;
-    }
+  public BigQueryTracerFactory getTracerFactory() {
+    return tracerFactory;
+  }
 
-    public BigQueryTracerFactory getTracerFactory() {
-        return tracerFactory;
-    }
+  public List<String> getStreamNames() {
+    return streamNames;
+  }
 
-    public List<String> getStreamNames() {
-        return streamNames;
-    }
+  public ReadRowsHelper.Options getOptions() {
+    return options;
+  }
 
-    public ReadRowsHelper.Options getOptions() {
-        return options;
-    }
+  public ImmutableList<String> getSelectedFields() {
+    return selectedFields;
+  }
 
-    public ImmutableList<String> getSelectedFields() {
-        return selectedFields;
-    }
-
-    public ByteString getSerializedArrowSchema() {
-        return serializedArrowSchema;
-    }
-
-
+  public ByteString getSerializedArrowSchema() {
+    return serializedArrowSchema;
+  }
 }
