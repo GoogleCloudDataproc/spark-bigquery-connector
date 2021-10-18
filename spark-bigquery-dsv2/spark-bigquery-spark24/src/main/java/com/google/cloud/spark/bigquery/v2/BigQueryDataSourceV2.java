@@ -22,11 +22,12 @@ import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryConnectorModule;
-import com.google.cloud.spark.bigquery.SparkSessionHelper;
 import com.google.cloud.spark.bigquery.common.GenericDataSourceHelperClass;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
+
+import java.util.Map;
 import java.util.Optional;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
@@ -50,9 +51,26 @@ public class BigQueryDataSourceV2
 
   @Override
   public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
-    Injector injector = SparkSessionHelper.createInjector(schema, options.asMap(), new BigQueryDataSourceReaderModule());
+    Injector injector = createInjector(schema, options.asMap(), new BigQueryDataSourceReaderModule());
     BigQueryDataSourceReader reader = injector.getInstance(BigQueryDataSourceReader.class);
     return reader;
+  }
+  // This method is used to create spark session
+  public static SparkSession getDefaultSparkSessionOrCreate() {
+    scala.Option<SparkSession> defaultSpareSession = SparkSession.getActiveSession();
+    if (defaultSpareSession.isDefined()) {
+      return defaultSpareSession.get();
+    }
+    return SparkSession.builder().appName("spark-bigquery-connector").getOrCreate();
+  }
+  // This method is used to create injection by providing
+  public static Injector createInjector(StructType schema, Map<String, String> options, Module module) {
+    SparkSession spark = getDefaultSparkSessionOrCreate();
+    return Guice.createInjector(
+            new BigQueryClientModule(),
+            new SparkBigQueryConnectorModule(
+                    spark, options, Optional.ofNullable(schema), DataSourceVersion.V2),
+            module);
   }
 
   @Override
@@ -68,7 +86,7 @@ public class BigQueryDataSourceV2
   public Optional<DataSourceWriter> createWriter(
       String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
     Injector injector =
-        SparkSessionHelper.createInjector(
+        createInjector(
             schema, options.asMap(), new BigQueryDataSourceWriterModule(writeUUID, schema, mode));
     // first verify if we need to do anything at all, based on the table existence and the save
     // mode.
