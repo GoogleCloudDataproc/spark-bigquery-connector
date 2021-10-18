@@ -38,6 +38,11 @@ public class GenericBQDataSourceReaderHelper {
       }
     }
 
-    return null;
-  }
+    public boolean isBatchReadEnable(){
+
+        return true;
+    }
+
+
+
 }

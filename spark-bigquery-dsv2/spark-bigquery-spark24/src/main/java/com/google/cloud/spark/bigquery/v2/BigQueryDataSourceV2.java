@@ -15,7 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientModule;
@@ -23,6 +22,8 @@ import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryConnectorModule;
+import com.google.cloud.spark.bigquery.SparkSessionHelper;
+import com.google.cloud.spark.bigquery.common.GenericDataSourceHelperClass;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
@@ -53,7 +54,7 @@ public class BigQueryDataSourceV2
   }
 
   private Injector createInjector(StructType schema, DataSourceOptions options, Module module) {
-    SparkSession spark = getDefaultSparkSessionOrCreate();
+    SparkSession spark = SparkSessionHelper.getDefaultSparkSessionOrCreate();
     return Guice.createInjector(
         new BigQueryClientModule(),
         new SparkBigQueryConnectorModule(
@@ -61,13 +62,7 @@ public class BigQueryDataSourceV2
         module);
   }
 
-  private SparkSession getDefaultSparkSessionOrCreate() {
-    scala.Option<SparkSession> defaultSpareSession = SparkSession.getActiveSession();
-    if (defaultSpareSession.isDefined()) {
-      return defaultSpareSession.get();
-    }
-    return SparkSession.builder().appName("spark-bigquery-connector").getOrCreate();
-  }
+
 
   @Override
   public DataSourceReader createReader(DataSourceOptions options) {
@@ -107,17 +102,7 @@ public class BigQueryDataSourceV2
       // If the CreateDisposition is CREATE_NEVER, and the table does not exist,
       // there's no point in writing the data to GCS in the first place as it going
       // to fail on the BigQuery side.
-      boolean createNever =
-          config
-              .getCreateDisposition()
-              .map(createDisposition -> createDisposition == JobInfo.CreateDisposition.CREATE_NEVER)
-              .orElse(false);
-      if (createNever) {
-        throw new IllegalArgumentException(
-            String.format(
-                "For table %s Create Disposition is CREATE_NEVER and the table does not exists. Aborting the insert",
-                BigQueryUtil.friendlyTableName(config.getTableId())));
-      }
+          new GenericDataSourceHelperClass().checkCreateDisposition(config);
     }
     BigQueryIndirectDataSourceWriter writer =
         injector.getInstance(BigQueryIndirectDataSourceWriter.class);
