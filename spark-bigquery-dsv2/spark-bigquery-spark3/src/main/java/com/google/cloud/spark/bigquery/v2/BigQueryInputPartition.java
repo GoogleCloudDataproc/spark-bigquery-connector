@@ -22,15 +22,15 @@ import org.apache.spark.sql.connector.read.InputPartition;
 
 public class BigQueryInputPartition implements InputPartition {
 
-    private BigQueryReadClientFactory bigQueryReadClientFactory;
-    private String streamName;
-    private ReadRowsHelper.Options options;
-    private ReadRowsResponseToInternalRowIteratorConverter converter;
+  private BigQueryReadClientFactory bigQueryReadClientFactory;
+  private String streamName;
+  private ReadRowsHelper.Options options;
+  private ReadRowsResponseToInternalRowIteratorConverter converter;
 
-    public BigQueryInputPartition() {
-        this.bigQueryReadClientFactory = bigQueryReadClientFactory;
-        this.streamName = streamName;
-        this.options = options;
-        this.converter = converter;
-    }
+  public BigQueryInputPartition() {
+    this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+    this.streamName = streamName;
+    this.options = options;
+    this.converter = converter;
+  }
 }

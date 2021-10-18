@@ -62,8 +62,6 @@ public class BigQueryDataSourceV2
         module);
   }
 
-
-
   @Override
   public DataSourceReader createReader(DataSourceOptions options) {
     return createReader(null, options);
@@ -102,7 +100,7 @@ public class BigQueryDataSourceV2
       // If the CreateDisposition is CREATE_NEVER, and the table does not exist,
       // there's no point in writing the data to GCS in the first place as it going
       // to fail on the BigQuery side.
-          new GenericDataSourceHelperClass().checkCreateDisposition(config);
+      new GenericDataSourceHelperClass().checkCreateDisposition(config);
     }
     BigQueryIndirectDataSourceWriter writer =
         injector.getInstance(BigQueryIndirectDataSourceWriter.class);

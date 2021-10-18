@@ -19,12 +19,10 @@ import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
-import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
-import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
@@ -86,7 +84,6 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
         }
       };
 
-
   private Optional<StructType> schema;
   private Optional<StructType> userProvidedSchema;
   private Filter[] pushedFilters = new Filter[] {};
@@ -101,7 +98,14 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
       Optional<String> globalFilter,
       Optional<StructType> schema,
       String applicationId) {
-    super(table,readSessionCreatorConfig,bigQueryClient,bigQueryReadClientFactory,tracerFactory,globalFilter,applicationId);
+    super(
+        table,
+        readSessionCreatorConfig,
+        bigQueryClient,
+        bigQueryReadClientFactory,
+        tracerFactory,
+        globalFilter,
+        applicationId);
 
     StructType convertedSchema =
         SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table));
@@ -117,7 +121,6 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
     for (StructField field : JavaConversions.seqAsJavaList(convertedSchema)) {
       fields.put(field.name(), field);
     }
-
   }
 
   @Override
@@ -130,7 +133,8 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
 
   @Override
   public boolean enableBatchRead() {
-    return super.getReadSessionCreatorConfig().getReadDataFormat() == DataFormat.ARROW && !isEmptySchema();
+    return super.getReadSessionCreatorConfig().getReadDataFormat() == DataFormat.ARROW
+        && !isEmptySchema();
   }
 
   @Override
@@ -168,7 +172,7 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
     return emptyIfNeeded(
         SparkFilterUtils.getCompiledFilter(
             super.getReadSessionCreatorConfig().getPushAllFilters(),
-                super.getReadSessionCreatorConfig().getReadDataFormat(),
+            super.getReadSessionCreatorConfig().getReadDataFormat(),
             super.getGlobalFilter(),
             pushedFilters));
   }
@@ -205,7 +209,8 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
     ImmutableList<String> partitionSelectedFields = selectedFields;
     return Streams.stream(
             Iterables.partition(
-                readSession.getStreamsList(), super.getReadSessionCreatorConfig().streamsPerPartition()))
+                readSession.getStreamsList(),
+                super.getReadSessionCreatorConfig().streamsPerPartition()))
         .map(
             streams ->
                 new ArrowInputPartition(
@@ -281,9 +286,9 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
     List<Filter> unhandledFilters = new ArrayList<>();
     for (Filter filter : filters) {
       if (SparkFilterUtils.isTopLevelFieldHandled(
-              super.getReadSessionCreatorConfig().getPushAllFilters(),
+          super.getReadSessionCreatorConfig().getPushAllFilters(),
           filter,
-              super.getReadSessionCreatorConfig().getReadDataFormat(),
+          super.getReadSessionCreatorConfig().getReadDataFormat(),
           fields)) {
         handledFilters.add(filter);
       } else {

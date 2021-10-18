@@ -37,12 +37,10 @@ public class GenericBQDataSourceReaderHelper {
                     .collect(Collectors.toList()));
       }
     }
+    return null;
+  }
 
-    public boolean isBatchReadEnable(){
-
-        return true;
-    }
-
-
-
+  public boolean isBatchReadEnable() {
+    return true;
+  }
 }

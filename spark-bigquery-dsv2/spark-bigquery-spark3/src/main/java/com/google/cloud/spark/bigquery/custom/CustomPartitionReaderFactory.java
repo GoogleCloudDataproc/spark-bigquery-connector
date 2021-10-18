@@ -6,8 +6,8 @@ import org.apache.spark.sql.connector.read.PartitionReader;
 import org.apache.spark.sql.connector.read.PartitionReaderFactory;
 
 public class CustomPartitionReaderFactory implements PartitionReaderFactory {
-    @Override
-    public PartitionReader<InternalRow> createReader(InputPartition partition) {
-        return new CustomPartitionReader();
-    }
+  @Override
+  public PartitionReader<InternalRow> createReader(InputPartition partition) {
+    return new CustomPartitionReader();
+  }
 }

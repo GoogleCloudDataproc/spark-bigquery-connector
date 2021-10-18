@@ -7,23 +7,23 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
 public class AvroIntermediateRecordWriter extends GenericAvroIntermediateRecordWriter
-        implements IntermediateRecordWriter {
+    implements IntermediateRecordWriter {
 
-    AvroIntermediateRecordWriter(Schema schema, OutputStream outputStream) throws IOException {
-        super(schema, outputStream);
-    }
+  AvroIntermediateRecordWriter(Schema schema, OutputStream outputStream) throws IOException {
+    super(schema, outputStream);
+  }
 
-    @Override
-    public void write(GenericRecord record) throws IOException {
-        getDataFileWriter().append(record);
-    }
+  @Override
+  public void write(GenericRecord record) throws IOException {
+    getDataFileWriter().append(record);
+  }
 
-    @Override
-    public void close() throws IOException {
-        try {
-            getDataFileWriter().flush();
-        } finally {
-            getDataFileWriter().close();
-        }
+  @Override
+  public void close() throws IOException {
+    try {
+      getDataFileWriter().flush();
+    } finally {
+      getDataFileWriter().close();
     }
+  }
 }
