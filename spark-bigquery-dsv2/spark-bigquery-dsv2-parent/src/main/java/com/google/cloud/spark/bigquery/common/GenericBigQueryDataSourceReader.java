@@ -5,8 +5,8 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.Optional;
-import java.util.OptionalLong;
 
 public class GenericBigQueryDataSourceReader {
 
@@ -21,14 +21,12 @@ public class GenericBigQueryDataSourceReader {
     private final Optional<String> globalFilter;
     private final String applicationId;
 
-
-
-    public GenericBigQueryDataSourceReader(TableInfo table, TableId tableId, ReadSessionCreatorConfig readSessionCreatorConfig,
+    public GenericBigQueryDataSourceReader(TableInfo table, ReadSessionCreatorConfig readSessionCreatorConfig,
                                            BigQueryClient bigQueryClient, BigQueryReadClientFactory bigQueryReadClientFactory,
-                                           BigQueryTracerFactory bigQueryTracerFactory, ReadSessionCreator readSessionCreator,
+                                           BigQueryTracerFactory bigQueryTracerFactory,
                                            Optional<String> globalFilter, String applicationId) {
         this.table = table;
-        this.tableId = tableId;
+        this.tableId = table.getTableId();
         this.readSessionCreatorConfig = readSessionCreatorConfig;
         this.bigQueryClient = bigQueryClient;
         this.bigQueryReadClientFactory = bigQueryReadClientFactory;
@@ -36,6 +34,43 @@ public class GenericBigQueryDataSourceReader {
         this.applicationId = applicationId;
         this.readSessionCreator = new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
         this.globalFilter = globalFilter;
+    }
+
+
+    public TableInfo getTable() {
+        return table;
+    }
+
+    public TableId getTableId() {
+        return tableId;
+    }
+
+    public ReadSessionCreatorConfig getReadSessionCreatorConfig() {
+        return readSessionCreatorConfig;
+    }
+
+    public BigQueryClient getBigQueryClient() {
+        return bigQueryClient;
+    }
+
+    public BigQueryReadClientFactory getBigQueryReadClientFactory() {
+        return bigQueryReadClientFactory;
+    }
+
+    public BigQueryTracerFactory getBigQueryTracerFactory() {
+        return bigQueryTracerFactory;
+    }
+
+    public ReadSessionCreator getReadSessionCreator() {
+        return readSessionCreator;
+    }
+
+    public Optional<String> getGlobalFilter() {
+        return globalFilter;
+    }
+
+    public String getApplicationId() {
+        return applicationId;
     }
 
 

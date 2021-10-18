@@ -23,6 +23,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryConnectorModule;
+import com.google.cloud.spark.bigquery.common.GenericDataSourceHelperClass;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
@@ -107,17 +108,7 @@ public class BigQueryDataSourceV2
       // If the CreateDisposition is CREATE_NEVER, and the table does not exist,
       // there's no point in writing the data to GCS in the first place as it going
       // to fail on the BigQuery side.
-      boolean createNever =
-          config
-              .getCreateDisposition()
-              .map(createDisposition -> createDisposition == JobInfo.CreateDisposition.CREATE_NEVER)
-              .orElse(false);
-      if (createNever) {
-        throw new IllegalArgumentException(
-            String.format(
-                "For table %s Create Disposition is CREATE_NEVER and the table does not exists. Aborting the insert",
-                BigQueryUtil.friendlyTableName(config.getTableId())));
-      }
+          new GenericDataSourceHelperClass().checkCreateDisposition(config);
     }
     BigQueryIndirectDataSourceWriter writer =
         injector.getInstance(BigQueryIndirectDataSourceWriter.class);

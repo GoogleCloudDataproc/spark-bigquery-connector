@@ -16,7 +16,8 @@ import java.util.Set;
 
 public class BigQueryDataSource implements TableProvider, DataSourceRegister, SupportsRead {
 
-    private  Set<TableCapability> capabilities;
+    private Set<TableCapability> capabilities;
+
     @Override
     public StructType inferSchema(CaseInsensitiveStringMap options) {
         return null;
@@ -51,10 +52,10 @@ public class BigQueryDataSource implements TableProvider, DataSourceRegister, Su
     //Returns the set of capabilities for this table. E.g. Our DataSource Connector only supports batch read for now
     @Override
     public Set<TableCapability> capabilities() {
-        if(capabilities == null)
-        {
-            capabilities =new HashSet<TableCapability>();
+        if (capabilities == null) {
+            capabilities = new HashSet<TableCapability>();
             capabilities.add(TableCapability.BATCH_READ);
+            capabilities.add(TableCapability.BATCH_WRITE);
         }
         return capabilities;
     }
