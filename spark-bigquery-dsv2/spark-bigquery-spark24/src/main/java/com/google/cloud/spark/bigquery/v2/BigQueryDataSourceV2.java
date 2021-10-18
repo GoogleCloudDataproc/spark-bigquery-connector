@@ -46,21 +46,23 @@ import org.apache.spark.sql.types.StructType;
 public class BigQueryDataSourceV2
     implements DataSourceV2, DataSourceRegister, ReadSupport, WriteSupport {
 
+
+
   @Override
   public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
-    Injector injector = createInjector(schema, options, new BigQueryDataSourceReaderModule());
+    Injector injector = SparkSessionHelper.createInjector(schema, options.asMap(), new BigQueryDataSourceReaderModule());
     BigQueryDataSourceReader reader = injector.getInstance(BigQueryDataSourceReader.class);
     return reader;
   }
 
-  private Injector createInjector(StructType schema, DataSourceOptions options, Module module) {
-    SparkSession spark = SparkSessionHelper.getDefaultSparkSessionOrCreate();
-    return Guice.createInjector(
-        new BigQueryClientModule(),
-        new SparkBigQueryConnectorModule(
-            spark, options.asMap(), Optional.ofNullable(schema), DataSourceVersion.V2),
-        module);
-  }
+  // private Injector createInjector(StructType schema, DataSourceOptions options, Module module) {
+  //   SparkSession spark = SparkSessionHelper.getDefaultSparkSessionOrCreate();
+  //   return Guice.createInjector(
+  //       new BigQueryClientModule(),
+  //       new SparkBigQueryConnectorModule(
+  //           spark, options.asMap(), Optional.ofNullable(schema), DataSourceVersion.V2),
+  //       module);
+  // }
 
   @Override
   public DataSourceReader createReader(DataSourceOptions options) {
@@ -75,8 +77,8 @@ public class BigQueryDataSourceV2
   public Optional<DataSourceWriter> createWriter(
       String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
     Injector injector =
-        createInjector(
-            schema, options, new BigQueryDataSourceWriterModule(writeUUID, schema, mode));
+        SparkSessionHelper.createInjector(
+            schema, options.asMap(), new BigQueryDataSourceWriterModule(writeUUID, schema, mode));
     // first verify if we need to do anything at all, based on the table existence and the save
     // mode.
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
