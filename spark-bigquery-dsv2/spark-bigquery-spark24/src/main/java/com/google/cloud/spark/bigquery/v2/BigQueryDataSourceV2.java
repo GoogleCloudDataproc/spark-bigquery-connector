@@ -15,7 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientModule;
@@ -23,6 +22,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryConnectorModule;
+import com.google.cloud.spark.bigquery.SparkSessionHelper;
 import com.google.cloud.spark.bigquery.common.GenericDataSourceHelperClass;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -54,7 +54,7 @@ public class BigQueryDataSourceV2
   }
 
   private Injector createInjector(StructType schema, DataSourceOptions options, Module module) {
-    SparkSession spark = getDefaultSparkSessionOrCreate();
+    SparkSession spark = SparkSessionHelper.getDefaultSparkSessionOrCreate();
     return Guice.createInjector(
         new BigQueryClientModule(),
         new SparkBigQueryConnectorModule(
@@ -62,13 +62,7 @@ public class BigQueryDataSourceV2
         module);
   }
 
-  private SparkSession getDefaultSparkSessionOrCreate() {
-    scala.Option<SparkSession> defaultSpareSession = SparkSession.getActiveSession();
-    if (defaultSpareSession.isDefined()) {
-      return defaultSpareSession.get();
-    }
-    return SparkSession.builder().appName("spark-bigquery-connector").getOrCreate();
-  }
+
 
   @Override
   public DataSourceReader createReader(DataSourceOptions options) {
