@@ -34,7 +34,12 @@ public class GenericBigQueryIndirectDataWriterFactory {
 
   public void enableDataWriter(int partitionId, long taskId, long epochId) {
     this.avroSchema = new Schema.Parser().parse(this.avroSchemaJson);
-    UUID uuid = new UUID(taskId, epochId);
+    UUID uuid;
+    if (epochId != -1L) {
+      uuid = new UUID(taskId, epochId);
+    } else {
+      uuid = new UUID(taskId, partitionId);
+    }
     this.uri = String.format("%s/part-%06d-%s.avro", this.gcsDirPath, partitionId, uuid);
     this.path = new Path(uri);
   }
