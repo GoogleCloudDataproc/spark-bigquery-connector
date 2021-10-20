@@ -15,45 +15,24 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.StandardTableDefinition;
-import com.google.cloud.bigquery.TableDefinition;
-import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.connector.common.BigQueryClient;
-import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
-import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
-import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
-import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
+import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.connector.common.*;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
-import com.google.cloud.spark.bigquery.common.GenericBigQueryDataSourceReader;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.OptionalLong;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.Filter;
-import org.apache.spark.sql.sources.v2.reader.DataSourceReader;
-import org.apache.spark.sql.sources.v2.reader.InputPartition;
-import org.apache.spark.sql.sources.v2.reader.Statistics;
-import org.apache.spark.sql.sources.v2.reader.SupportsPushDownFilters;
-import org.apache.spark.sql.sources.v2.reader.SupportsPushDownRequiredColumns;
-import org.apache.spark.sql.sources.v2.reader.SupportsReportStatistics;
-import org.apache.spark.sql.sources.v2.reader.SupportsScanColumnarBatch;
+import org.apache.spark.sql.sources.v2.reader.*;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
@@ -61,7 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.collection.JavaConversions;
 
-public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
+public class BigQueryDataSourceReader
     implements DataSourceReader,
         SupportsPushDownRequiredColumns,
         SupportsPushDownFilters,
@@ -84,6 +63,15 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
         }
       };
 
+  private final TableInfo table;
+  private final TableId tableId;
+  private final ReadSessionCreatorConfig readSessionCreatorConfig;
+  private final BigQueryClient bigQueryClient;
+  private final BigQueryReadClientFactory bigQueryReadClientFactory;
+  private final BigQueryTracerFactory bigQueryTracerFactory;
+  private final ReadSessionCreator readSessionCreator;
+  private final Optional<String> globalFilter;
+  private final String applicationId;
   private Optional<StructType> schema;
   private Optional<StructType> userProvidedSchema;
   private Filter[] pushedFilters = new Filter[] {};
@@ -98,15 +86,15 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
       Optional<String> globalFilter,
       Optional<StructType> schema,
       String applicationId) {
-    super(
-        table,
-        readSessionCreatorConfig,
-        bigQueryClient,
-        bigQueryReadClientFactory,
-        tracerFactory,
-        globalFilter,
-        applicationId);
-
+    this.table = table;
+    this.tableId = table.getTableId();
+    this.readSessionCreatorConfig = readSessionCreatorConfig;
+    this.bigQueryClient = bigQueryClient;
+    this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+    this.bigQueryTracerFactory = tracerFactory;
+    this.readSessionCreator =
+        new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
+    this.globalFilter = globalFilter;
     StructType convertedSchema =
         SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table));
     if (schema.isPresent()) {
@@ -121,20 +109,19 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
     for (StructField field : JavaConversions.seqAsJavaList(convertedSchema)) {
       fields.put(field.name(), field);
     }
+    this.applicationId = applicationId;
   }
 
   @Override
   public StructType readSchema() {
-
     // TODO: rely on Java code
     return schema.orElse(
-        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(super.getTable())));
+        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table)));
   }
 
   @Override
   public boolean enableBatchRead() {
-    return super.getReadSessionCreatorConfig().getReadDataFormat() == DataFormat.ARROW
-        && !isEmptySchema();
+    return readSessionCreatorConfig.getReadDataFormat() == DataFormat.ARROW && !isEmptySchema();
   }
 
   @Override
@@ -150,20 +137,20 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
             .orElse(ImmutableList.of());
     Optional<String> filter = getCombinedFilter();
     ReadSessionResponse readSessionResponse =
-        super.getReadSessionCreator().create(super.getTableId(), selectedFields, filter);
+        readSessionCreator.create(tableId, selectedFields, filter);
     ReadSession readSession = readSessionResponse.getReadSession();
     logger.info(
         "Created read session for {}: {} for application id: {}",
-        super.getTableId().toString(),
+        tableId.toString(),
         readSession.getName(),
-        super.getApplicationId());
+        applicationId);
     return readSession.getStreamsList().stream()
         .map(
             stream ->
                 new BigQueryInputPartition(
-                    super.getBigQueryReadClientFactory(),
+                    bigQueryReadClientFactory,
                     stream.getName(),
-                    super.getReadSessionCreatorConfig().toReadRowsHelperOptions(),
+                    readSessionCreatorConfig.toReadRowsHelperOptions(),
                     createConverter(selectedFields, readSessionResponse, userProvidedSchema)))
         .collect(Collectors.toList());
   }
@@ -171,9 +158,9 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
   private Optional<String> getCombinedFilter() {
     return emptyIfNeeded(
         SparkFilterUtils.getCompiledFilter(
-            super.getReadSessionCreatorConfig().getPushAllFilters(),
-            super.getReadSessionCreatorConfig().getReadDataFormat(),
-            super.getGlobalFilter(),
+            readSessionCreatorConfig.getPushAllFilters(),
+            readSessionCreatorConfig.getReadDataFormat(),
+            globalFilter,
             pushedFilters));
   }
 
@@ -188,13 +175,13 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
             .orElse(ImmutableList.copyOf(fields.keySet()));
     Optional<String> filter = getCombinedFilter();
     ReadSessionResponse readSessionResponse =
-        super.getReadSessionCreator().create(super.getTableId(), selectedFields, filter);
+        readSessionCreator.create(tableId, selectedFields, filter);
     ReadSession readSession = readSessionResponse.getReadSession();
     logger.info(
         "Created read session for {}: {} for application id: {}",
-        super.getTableId().toString(),
+        tableId.toString(),
         readSession.getName(),
-        super.getApplicationId());
+        applicationId);
 
     if (selectedFields.isEmpty()) {
       // means select *
@@ -209,18 +196,17 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
     ImmutableList<String> partitionSelectedFields = selectedFields;
     return Streams.stream(
             Iterables.partition(
-                readSession.getStreamsList(),
-                super.getReadSessionCreatorConfig().streamsPerPartition()))
+                readSession.getStreamsList(), readSessionCreatorConfig.streamsPerPartition()))
         .map(
             streams ->
                 new ArrowInputPartition(
-                    super.getBigQueryReadClientFactory(),
-                    super.getBigQueryTracerFactory(),
+                    bigQueryReadClientFactory,
+                    bigQueryTracerFactory,
                     streams.stream()
                         .map(ReadStream::getName)
                         // This formulation is used to guarantee a serializable list.
                         .collect(Collectors.toCollection(ArrayList::new)),
-                    super.getReadSessionCreatorConfig().toReadRowsHelperOptions(),
+                    readSessionCreatorConfig.toReadRowsHelperOptions(),
                     partitionSelectedFields,
                     readSessionResponse,
                     userProvidedSchema))
@@ -231,13 +217,12 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
     return schema.map(StructType::isEmpty).orElse(false);
   }
 
-  // this method should move into the spark bigquery connector common
   private ReadRowsResponseToInternalRowIteratorConverter createConverter(
       ImmutableList<String> selectedFields,
       ReadSessionResponse readSessionResponse,
       Optional<StructType> userProvidedSchema) {
     ReadRowsResponseToInternalRowIteratorConverter converter;
-    DataFormat format = super.getReadSessionCreatorConfig().getReadDataFormat();
+    DataFormat format = readSessionCreatorConfig.getReadDataFormat();
     if (format == DataFormat.AVRO) {
       Schema schema =
           SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
@@ -262,14 +247,14 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
           userProvidedSchema);
     }
     throw new IllegalArgumentException(
-        "No known converted for " + super.getReadSessionCreatorConfig().getReadDataFormat());
+        "No known converted for " + readSessionCreatorConfig.getReadDataFormat());
   }
 
   List<InputPartition<InternalRow>> createEmptyProjectionPartitions() {
     Optional<String> filter = getCombinedFilter();
-    long rowCount = super.getBigQueryClient().calculateTableSize(super.getTableId(), filter);
+    long rowCount = bigQueryClient.calculateTableSize(tableId, filter);
     logger.info("Used optimized BQ count(*) path. Count: " + rowCount);
-    int partitionsCount = super.getReadSessionCreatorConfig().getDefaultParallelism();
+    int partitionsCount = readSessionCreatorConfig.getDefaultParallelism();
     int partitionSize = (int) (rowCount / partitionsCount);
     InputPartition<InternalRow>[] partitions =
         IntStream.range(0, partitionsCount)
@@ -286,9 +271,9 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
     List<Filter> unhandledFilters = new ArrayList<>();
     for (Filter filter : filters) {
       if (SparkFilterUtils.isTopLevelFieldHandled(
-          super.getReadSessionCreatorConfig().getPushAllFilters(),
+          readSessionCreatorConfig.getPushAllFilters(),
           filter,
-          super.getReadSessionCreatorConfig().getReadDataFormat(),
+          readSessionCreatorConfig.getReadDataFormat(),
           fields)) {
         handledFilters.add(filter);
       } else {
@@ -315,8 +300,8 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
 
   @Override
   public Statistics estimateStatistics() {
-    return super.getTable().getDefinition().getType() == TableDefinition.Type.TABLE
-        ? new StandardTableStatistics(super.getTable().getDefinition())
+    return table.getDefinition().getType() == TableDefinition.Type.TABLE
+        ? new StandardTableStatistics(table.getDefinition())
         : UNKNOWN_STATISTICS;
   }
 }
