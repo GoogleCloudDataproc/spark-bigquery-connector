@@ -54,7 +54,7 @@ public class BigQueryDataSourceV2
     return reader;
   }
   // This method is used to create spark session
-  public static SparkSession getDefaultSparkSessionOrCreate() {
+  public SparkSession getDefaultSparkSessionOrCreate() {
     scala.Option<SparkSession> defaultSpareSession = SparkSession.getActiveSession();
     if (defaultSpareSession.isDefined()) {
       return defaultSpareSession.get();
@@ -62,8 +62,7 @@ public class BigQueryDataSourceV2
     return SparkSession.builder().appName("spark-bigquery-connector").getOrCreate();
   }
   // This method is used to create injection by providing
-  public static Injector createInjector(
-      StructType schema, Map<String, String> options, Module module) {
+  public Injector createInjector(StructType schema, Map<String, String> options, Module module) {
     SparkSession spark = getDefaultSparkSessionOrCreate();
     return Guice.createInjector(
         new BigQueryClientModule(),
