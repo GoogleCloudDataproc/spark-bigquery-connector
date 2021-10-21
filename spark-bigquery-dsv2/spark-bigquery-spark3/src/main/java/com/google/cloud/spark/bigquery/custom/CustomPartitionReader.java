@@ -1,10 +1,9 @@
 package com.google.cloud.spark.bigquery.custom;
 
-import org.apache.hadoop.util.UTF8ByteArrayUtils;
+
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.connector.read.PartitionReader;
 import org.apache.spark.unsafe.types.UTF8String;
-import scala.Array;
 import scala.collection.JavaConverters;
 
 import java.io.IOException;

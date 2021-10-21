@@ -21,8 +21,9 @@ public class CustomScanWithBatch implements Scan, Batch {
 
     @Override
     public StructType readSchema() {
-        GenericBQDataSourceReaderHelper dataSourceReaderHelper = new GenericBQDataSourceReaderHelper();
-        return dataSourceReaderHelper.readschema(schema,table)
+        /*GenericBQDataSourceReaderHelper dataSourceReaderHelper = new GenericBQDataSourceReaderHelper();
+        return dataSourceReaderHelper.readschema(schema,table)*/
+        return null;
     }
 
     @Override
