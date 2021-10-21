@@ -126,6 +126,6 @@ public class BigQueryDataSourceV2
 
   @Override
   public String shortName() {
-    return "bigquery1";
+    return "bigquery";
   }
 }
