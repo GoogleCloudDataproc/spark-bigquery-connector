@@ -130,6 +130,31 @@
       <artifactId>google-http-client-appengine</artifactId>
       <version>1.40.0</version>
     </dependency>
+    <dependency>
+      <groupId>com.google.inject</groupId>
+      <artifactId>guice</artifactId>
+      <version>4.2.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.5.13</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpcore</artifactId>
+      <version>4.4.14</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud.spark</groupId>
+      <artifactId>spark-bigquery-connector-common</artifactId>
+      <version>0.30.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.arrow</groupId>
+      <artifactId>arrow-compression</artifactId>
+      <version>4.0.0</version>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -173,6 +198,10 @@
                   <include>io.opencensus</include>
                   <include>io.grpc:grpc-context</include>
                   <include>com.google.http-client:google-http-client-appengine</include>
+                  <include>com.google.inject:guice</include>
+                  <include>org.apache.httpcomponents:httpclient</include>
+                  <include>org.apache.httpcomponents:httpcore</include>
+                  <include>org.apache.arrow:arrow-compression</include>
                 </includes>
               </artifactSet>
               <minimizeJar>true</minimizeJar>
@@ -183,6 +212,7 @@
                   <includes>
                     <include>com.google.cloud.spark.bigquery.common.**</include>
                     <include>com.google.cloud.spark.bigquery.**</include>
+                    <include>org.apache.spark.bigquery.**</include>
                     <include>com.google.cloud.spark.bigquery.connector.common.**</include>
                     <include>com.google.api.gax.**</include>
                     <include>com.google.cloud.**</include>
@@ -191,6 +221,7 @@
                     <include>com.google.api.gax.grpc.**</include>
                     <include>com.google.cloud.bigquery.**</include>
                     <include>com.google.common.base.**</include>
+                    <include>com.google.common.collect.**</include>
                     <include>com.google.cloud.http.**</include>
                     <include>com.google.api.**</include>
                     <include>com.google.api.client.**</include>
@@ -198,6 +229,14 @@
                     <include>io.opencensus.**</include>
                     <include>io.grpc.**</include>
                     <include>com.google.api.client.extensions.appengine.**</include>
+                    <include>com.google.inject.**</include>
+                    <include>org.apache.http.client.**</include>
+                    <include>org.apache.http.config.**</include>
+                    <include>org.apache.arrow.compression.**</include>
+                    <include>org.apache.http.conn.**</include>
+                    <include>org.apache.http.impl.client.**</include>
+                    <include>org.apache.http.auth.**</include>
+                    <include>com.google.cloud.bigquery.connector.common.**</include>
                   </includes>
                 </relocation>
               </relocations>
