@@ -14,6 +14,7 @@ public class CustomDataSourceRunner {
             .read()
             .format("bigquery")
             .option("table", "bigquery-public-data:samples.shakespeare")
+            //.option("credentials", "/home/praful/tidy-tine-318906-f45b44d49e7c.json")
             .load();
     simpleDf.show();
     ////            .option("credentials", "/home/hdoop/tidy-tine-318906-56d63fd04176.json")
