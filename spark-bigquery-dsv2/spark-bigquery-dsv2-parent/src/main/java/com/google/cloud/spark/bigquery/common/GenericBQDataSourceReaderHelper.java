@@ -14,31 +14,6 @@ import java.util.stream.Collectors;
 
 public class GenericBQDataSourceReaderHelper {
 
-  public ReadRowsResponseToInternalRowIteratorConverter createConverter(
-      ImmutableList<String> selectedFields,
-      ReadSessionResponse readSessionResponse,
-      ReadSessionCreatorConfig readSessionCreatorConfig) {
-    DataFormat format = readSessionCreatorConfig.getReadDataFormat();
-    if (format == DataFormat.AVRO) {
-      Schema schema =
-          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
-      if (selectedFields.isEmpty()) {
-        // means select *
-        selectedFields =
-            schema.getFields().stream()
-                .map(Field::getName)
-                .collect(ImmutableList.toImmutableList());
-      } else {
-        Set<String> requiredColumnSet = ImmutableSet.copyOf(selectedFields);
-        schema =
-            Schema.of(
-                schema.getFields().stream()
-                    .filter(field -> requiredColumnSet.contains(field.getName()))
-                    .collect(Collectors.toList()));
-      }
-    }
-    return null;
-  }
 
   public boolean isBatchReadEnable() {
     return true;

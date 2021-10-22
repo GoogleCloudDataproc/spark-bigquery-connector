@@ -19,12 +19,14 @@ public class CustomScanWithBatch implements Scan, Batch {
     return new CustomPartitionReaderFactory();
   }
 
-  @Override
-  public StructType readSchema() {
-    GenericBQDataSourceReaderHelper dataSourceReaderHelper = new GenericBQDataSourceReaderHelper();
-    //        return dataSourceReaderHelper.readschema(schema,table);
-    return null;
-  }
+
+    @Override
+    public StructType readSchema() {
+        /*GenericBQDataSourceReaderHelper dataSourceReaderHelper = new GenericBQDataSourceReaderHelper();
+        return dataSourceReaderHelper.readschema(schema,table)*/
+        return null;
+    }
+
 
   @Override
   public Batch toBatch() {
