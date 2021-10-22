@@ -13,6 +13,8 @@
   <version>spark24-${project.parent.version}</version>
   <name>BigQuery DataSource v2 for Spark 2.4</name>
   <properties>
+    <scala.binary.version>2.12</scala.binary.version>
+    <scala.version>2.12.7</scala.version>
     <spark.version>2.4.0</spark.version>
   </properties>
   <licenses>
