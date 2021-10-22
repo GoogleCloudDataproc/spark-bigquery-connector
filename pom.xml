@@ -53,6 +53,7 @@
     <module>spark-bigquery-python-lib</module>
     <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
     <module>spark-bigquery-dsv2/spark-bigquery-spark24</module>
+    <module>spark-bigquery-dsv2/spark-bigquery-spark3</module>
     <module>coverage</module>
   </modules>
 

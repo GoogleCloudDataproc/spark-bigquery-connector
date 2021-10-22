@@ -10,12 +10,12 @@ import org.apache.hadoop.fs.Path;
  */
 class IntermediateDataCleaner extends GenericIntermediateDataCleaner {
 
-    IntermediateDataCleaner(Path path, Configuration conf) {
-        super(path, conf);
-    }
+  IntermediateDataCleaner(Path path, Configuration conf) {
+    super(path, conf);
+  }
 
-    @Override
-    public void run() {
-        super.run();
-    }
+  @Override
+  public void run() {
+    super.run();
+  }
 }

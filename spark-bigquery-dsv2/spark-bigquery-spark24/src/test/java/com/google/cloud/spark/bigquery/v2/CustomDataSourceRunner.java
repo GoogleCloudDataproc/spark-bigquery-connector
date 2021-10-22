@@ -7,10 +7,13 @@ import org.apache.spark.sql.SparkSession;
 public class CustomDataSourceRunner {
   public static void main(String[] args) {
     SparkSession sparkSession = new CustomDataSourceRunner().getDefaultSparkSessionOrCreate();
+    sparkSession.sparkContext().setLogLevel("ERROR");
     Dataset<Row> simpleDf =
         sparkSession
             .read()
-            .format("com.google.cloud.spark.bigquery.custom.CustomTableProvider")
+            .format("bigquery")
+            .option("table", "bigquery-public-data:samples.shakespeare")
+            //.option("credentials", "/home/praful/tidy-tine-318906-f45b44d49e7c.json")
             .load();
     simpleDf.show();
   }
