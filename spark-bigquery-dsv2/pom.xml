@@ -16,5 +16,6 @@
     <module>spark-bigquery-dsv2-parent</module>
     <module>spark-bigquery-spark24</module>
     <module>spark-bigquery-spark3</module>
+      <module>spark-bigquery-dsv2-common</module>
   </modules>
 </project>

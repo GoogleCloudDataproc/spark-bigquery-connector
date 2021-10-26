@@ -61,8 +61,7 @@ public class BigQueryDataSourceV2
     return SparkSession.builder().appName("spark-bigquery-connector").getOrCreate();
   }
   // This method is used to create injection by providing
-  public Injector createInjector(
-      StructType schema, DataSourceOptions options, Module module) {
+  public Injector createInjector(StructType schema, DataSourceOptions options, Module module) {
     SparkSession spark = getDefaultSparkSessionOrCreate();
     return Guice.createInjector(
         new BigQueryClientModule(),
