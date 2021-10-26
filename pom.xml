@@ -120,6 +120,7 @@
       </activation>
       <modules>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
+        <module>spark-bigquery-dsv2/spark-bigquery-dsv2-common</module>
         <module>spark-bigquery-dsv2/spark-bigquery-spark24</module>
       </modules>
     </profile>
