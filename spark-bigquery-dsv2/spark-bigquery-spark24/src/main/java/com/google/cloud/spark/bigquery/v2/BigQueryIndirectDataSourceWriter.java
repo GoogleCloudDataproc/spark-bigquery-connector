@@ -15,8 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.BigQueryException;
-import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
@@ -24,18 +22,16 @@ import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
-import com.google.cloud.http.BaseHttpServiceException;
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
+import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectDataSourceWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,7 +41,6 @@ import java.util.stream.Stream;
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.writer.DataSourceWriter;
@@ -61,18 +56,14 @@ import org.slf4j.LoggerFactory;
  * format, and then triggering a BigQuery load job on this data. Hence the "indirect" - the data
  * goes through an intermediate storage.
  */
-public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
+public class BigQueryIndirectDataSourceWriter extends GenericBigQueryIndirectDataSourceWriter
+    implements DataSourceWriter {
 
   private static final Logger logger =
       LoggerFactory.getLogger(BigQueryIndirectDataSourceWriter.class);
 
-  private final BigQueryClient bigQueryClient;
-  private final SparkBigQueryConfig config;
-  private final Configuration hadoopConfiguration;
   private final StructType sparkSchema;
-  private final String writeUUID;
   private final SaveMode saveMode;
-  private final Path gcsPath;
   private final Optional<IntermediateDataCleaner> intermediateDataCleaner;
 
   public BigQueryIndirectDataSourceWriter(
@@ -84,45 +75,18 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
       SaveMode saveMode,
       Path gcsPath,
       Optional<IntermediateDataCleaner> intermediateDataCleaner) {
-    this.bigQueryClient = bigQueryClient;
-    this.config = config;
-    this.hadoopConfiguration = hadoopConfiguration;
+    super(bigQueryClient, config, hadoopConfiguration, writeUUID, gcsPath);
     this.sparkSchema = sparkSchema;
-    this.writeUUID = writeUUID;
     this.saveMode = saveMode;
-    this.gcsPath = gcsPath;
     this.intermediateDataCleaner = intermediateDataCleaner;
-  }
-
-  static <T> Iterable<T> wrap(final RemoteIterator<T> remoteIterator) {
-    return () ->
-        new Iterator<T>() {
-          @Override
-          public boolean hasNext() {
-            try {
-              return remoteIterator.hasNext();
-            } catch (IOException e) {
-              throw new UncheckedIOException(e);
-            }
-          }
-
-          @Override
-          public T next() {
-            try {
-              return remoteIterator.next();
-            } catch (IOException e) {
-              throw new UncheckedIOException(e);
-            }
-          }
-        };
   }
 
   @Override
   public DataWriterFactory<InternalRow> createWriterFactory() {
     org.apache.avro.Schema avroSchema = AvroSchemaConverter.sparkSchemaToAvroSchema(sparkSchema);
     return new BigQueryIndirectDataWriterFactory(
-        new SerializableConfiguration(hadoopConfiguration),
-        gcsPath.toString(),
+        new SerializableConfiguration(getHadoopConfiguration()),
+        getGcsPath().toString(),
         sparkSchema,
         avroSchema.toString());
   }
@@ -152,8 +116,8 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
     try {
       logger.warn(
           "Aborting write {} for table {}",
-          writeUUID,
-          BigQueryUtil.friendlyTableName(config.getTableId()));
+          getWriteUUID(),
+          BigQueryUtil.friendlyTableName(getConfig().getTableId()));
     } finally {
       cleanTemporaryGcsPathIfNeeded();
     }
@@ -163,54 +127,15 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
 
-    LoadJobConfiguration.Builder jobConfiguration =
-        LoadJobConfiguration.newBuilder(
-                config.getTableId(),
-                optimizedSourceUris,
-                config.getIntermediateFormat().getFormatOptions())
-            .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
-            .setWriteDisposition(saveModeToWriteDisposition(saveMode))
-            .setAutodetect(true);
-
-    config.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
-
-    if (config.getPartitionField().isPresent() || config.getPartitionType().isPresent()) {
-      TimePartitioning.Builder timePartitionBuilder =
-          TimePartitioning.newBuilder(config.getPartitionTypeOrDefault());
-      config.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
-      config.getPartitionRequireFilter().ifPresent(timePartitionBuilder::setRequirePartitionFilter);
-      config.getPartitionField().ifPresent(timePartitionBuilder::setField);
-      jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
-      config
-          .getClusteredFields()
-          .ifPresent(
-              clusteredFields -> {
-                Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
-                jobConfiguration.setClustering(clustering);
-              });
-    }
-
-    if (!config.getLoadSchemaUpdateOptions().isEmpty()) {
-      jobConfiguration.setSchemaUpdateOptions(config.getLoadSchemaUpdateOptions());
-    }
-
-    Job finishedJob = bigQueryClient.createAndWaitFor(jobConfiguration);
-
-    if (finishedJob.getStatus().getError() != null) {
-      throw new BigQueryException(
-          BaseHttpServiceException.UNKNOWN_CODE,
-          String.format(
-              "Failed to load to %s in job %s. BigQuery error was '%s'",
-              BigQueryUtil.friendlyTableName(config.getTableId()),
-              finishedJob.getJobId(),
-              finishedJob.getStatus().getError().getMessage()),
-          finishedJob.getStatus().getError());
-    } else {
-      logger.info(
-          "Done loading to {}. jobId: {}",
-          BigQueryUtil.friendlyTableName(config.getTableId()),
-          finishedJob.getJobId());
-    }
+    LoadJobConfiguration.Builder jobConfiguration = createJobConfiguration(optimizedSourceUris);
+    jobConfiguration.setWriteDisposition(saveModeToWriteDisposition(saveMode));
+    Job finishedJob =
+        getBigQueryClient().createAndWaitFor(prepareJobConfiguration(jobConfiguration));
+    String jobResult = validateJobStatus(finishedJob);
+    logger.info(
+        jobResult,
+        BigQueryUtil.friendlyTableName(getConfig().getTableId()),
+        finishedJob.getJobId());
   }
 
   JobInfo.WriteDisposition saveModeToWriteDisposition(SaveMode saveMode) {
@@ -240,7 +165,8 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
 
     if (!fieldsToUpdate.isEmpty()) {
       logger.debug("updating schema, found fields to update: {}", fieldsToUpdate.keySet());
-      TableInfo originalTableInfo = bigQueryClient.getTable(config.getTableIdWithoutThePartition());
+      TableInfo originalTableInfo =
+          getBigQueryClient().getTable(getConfig().getTableIdWithoutThePartition());
       TableDefinition originalTableDefinition = originalTableInfo.getDefinition();
       Schema originalSchema = originalTableDefinition.getSchema();
       Schema updatedSchema =
@@ -257,7 +183,7 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
               .toBuilder()
               .setDefinition(originalTableDefinition.toBuilder().setSchema(updatedSchema).build());
 
-      bigQueryClient.update(updatedTableInfo.build());
+      getBigQueryClient().update(updatedTableInfo.build());
     }
   }
 
@@ -282,6 +208,6 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
   }
 
   void cleanTemporaryGcsPathIfNeeded() {
-    intermediateDataCleaner.ifPresent(cleaner -> cleaner.deletePath());
+    intermediateDataCleaner.ifPresent(cleaner -> cleaner.run());
   }
 }

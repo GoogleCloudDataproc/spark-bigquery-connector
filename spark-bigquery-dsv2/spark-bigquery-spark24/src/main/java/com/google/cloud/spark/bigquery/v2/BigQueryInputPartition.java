@@ -17,39 +17,30 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
-import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
-import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
-import java.util.Iterator;
+import com.google.cloud.spark.bigquery.common.GenericBigQueryInputPartition;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartition;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
-public class BigQueryInputPartition implements InputPartition<InternalRow> {
-
-  private final BigQueryReadClientFactory bigQueryReadClientFactory;
-  private final String streamName;
-  private final ReadRowsHelper.Options options;
-  private final ReadRowsResponseToInternalRowIteratorConverter converter;
+// This class will be used at spark executor side to create inputPartition object.
+public class BigQueryInputPartition extends GenericBigQueryInputPartition
+    implements InputPartition<InternalRow> {
 
   public BigQueryInputPartition(
       BigQueryReadClientFactory bigQueryReadClientFactory,
       String streamName,
       ReadRowsHelper.Options options,
       ReadRowsResponseToInternalRowIteratorConverter converter) {
-    this.bigQueryReadClientFactory = bigQueryReadClientFactory;
-    this.streamName = streamName;
-    this.options = options;
-    this.converter = converter;
+    super(bigQueryReadClientFactory, streamName, options, converter);
   }
 
+  // This method will Create the actual data reader and Read the data for corresponding RDD
+  // partition.
+  // It will return object of Bigquery Input Partition reader class
   @Override
   public InputPartitionReader<InternalRow> createPartitionReader() {
-    ReadRowsRequest.Builder readRowsRequest =
-        ReadRowsRequest.newBuilder().setReadStream(streamName);
-    ReadRowsHelper readRowsHelper =
-        new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequest, options);
-    Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
-    return new BigQueryInputPartitionReader(readRowsResponses, converter, readRowsHelper);
+    return new BigQueryInputPartitionReader(
+        super.getReadRowsResponse(), super.getConverter(), super.getReadRowsHelper());
   }
 }
