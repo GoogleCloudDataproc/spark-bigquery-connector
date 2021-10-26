@@ -26,7 +26,6 @@ import com.google.cloud.spark.bigquery.common.GenericDataSourceHelperClass;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
-import java.util.Map;
 import java.util.Optional;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;

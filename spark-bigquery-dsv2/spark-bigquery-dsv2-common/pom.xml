@@ -10,11 +10,17 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>spark-bigquery-dsv2-common</artifactId>
-    <name>Generic BigQuery Connector Common Library</name>
-    <packaging>jar</packaging>
+    <name>DSV2 BigQuery Connector Common Library</name>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
     <dependencies>
         <dependency>
-            <groupId>com.google.cloud.spark</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>bigquery-connector-common</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
@@ -38,29 +44,8 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>spark-bigquery-connector-common</artifactId>
-            <version>${project.parent.version}</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
-
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-    </properties>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.2.0</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 </project>

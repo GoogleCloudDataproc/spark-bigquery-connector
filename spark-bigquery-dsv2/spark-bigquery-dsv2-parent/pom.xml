@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.google.cloud.spark</groupId>
@@ -11,7 +11,10 @@
 
   <artifactId>spark-bigquery-dsv2-parent</artifactId>
   <name>BigQuery DataSource v2 implementation common settings</name>
-  <packaging>jar</packaging>
+  <packaging>pom</packaging>
+  <properties>
+    <spark.version>2.4.0</spark.version>
+  </properties>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
@@ -25,22 +28,23 @@
       <artifactId>spark-bigquery-connector-common</artifactId>
       <version>${project.parent.version}</version>
     </dependency>
-
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-mllib_2.12</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-sql_2.12</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>spark-bigquery-tests</artifactId>
       <version>${project.parent.version}</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.avro</groupId>
-      <artifactId>avro</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-common</artifactId>
-      <version>2.6.5</version>
-      <scope>compile</scope>
     </dependency>
   </dependencies>
   <build>
@@ -138,7 +142,7 @@
               </shadedPattern>
             </relocation>
             <relocation>
-            <pattern>org.apache.commons</pattern>
+              <pattern>org.apache.commons</pattern>
               <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.apache.commons
               </shadedPattern>
             </relocation>
@@ -193,7 +197,7 @@
           </relocations>
           <transformers>
             <transformer
-              implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                    implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
           </transformers>
           <filters>
             <filter>
