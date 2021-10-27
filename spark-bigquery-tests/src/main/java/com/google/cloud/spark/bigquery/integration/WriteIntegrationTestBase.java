@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
@@ -34,6 +35,7 @@ import com.google.cloud.spark.bigquery.integration.model.Link;
 import com.google.cloud.spark.bigquery.integration.model.Person;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.inject.ProvisionException;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -51,7 +53,6 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import scala.Some;
@@ -171,8 +172,9 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     // second write
-    Assert.assertThrows(
-        Exception.class,
+    assertThrows(
+        "Table already exists in BigQuery",
+        ProvisionException.class,
         () -> {
           writeToBigQuery(additonalData(), SaveMode.ErrorIfExists);
         });
@@ -400,41 +402,29 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testPartition_Hourly() {
-    // partition write not supported in BQ Storage Write API
-    if (isDirectWrite) {
-      return;
-    }
     testPartition("HOUR");
   }
 
   @Test
   public void testPartition_Daily() {
-    // partition write not supported in BQ Storage Write API
-    if (isDirectWrite) {
-      return;
-    }
     testPartition("DAY");
   }
 
   @Test
   public void testPartition_Monthly() {
-    // partition write not supported in BQ Storage Write API
-    if (isDirectWrite) {
-      return;
-    }
     testPartition("MONTH");
   }
 
   @Test
   public void testPartition_Yearly() {
-    // partition write not supported in BQ Storage Write API
-    if (isDirectWrite) {
-      return;
-    }
     testPartition("YEAR");
   }
 
   private void testPartition(String partitionType) {
+    // partition write not supported in BQ Storage Write API
+    if (isDirectWrite) {
+      return;
+    }
     List<Data> data =
         Arrays.asList(
             new Data("a", Timestamp.valueOf("2020-01-01 01:01:01")),
