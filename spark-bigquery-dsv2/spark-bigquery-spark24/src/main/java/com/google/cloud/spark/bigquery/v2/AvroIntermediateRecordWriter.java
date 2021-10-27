@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.common.GenericAvroIntermediateRecordWriter;
+import com.google.cloud.spark.bigquery.common.IntermediateRecordWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import org.apache.avro.Schema;

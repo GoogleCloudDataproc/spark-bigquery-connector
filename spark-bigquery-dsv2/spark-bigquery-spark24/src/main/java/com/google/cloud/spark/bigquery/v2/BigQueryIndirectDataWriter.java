@@ -15,12 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectDataWriter;
+import com.google.cloud.spark.bigquery.common.IntermediateRecordWriter;
 import java.io.IOException;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -34,8 +32,6 @@ class BigQueryIndirectDataWriter extends GenericBigQueryIndirectDataWriter
     implements DataWriter<InternalRow> {
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryIndirectDataWriter.class);
-  FSDataOutputStream outputStream;
-  StructType sparkSchema;
   IntermediateRecordWriter intermediateRecordWriter;
 
   protected BigQueryIndirectDataWriter(
@@ -45,22 +41,19 @@ class BigQueryIndirectDataWriter extends GenericBigQueryIndirectDataWriter
       StructType sparkSchema,
       Schema avroSchema,
       IntermediateRecordWriter intermediateRecordWriter) {
-    super(partitionId, path, fs, avroSchema);
-    this.sparkSchema = sparkSchema;
+    super(partitionId, path, fs, sparkSchema, avroSchema, intermediateRecordWriter);
     this.intermediateRecordWriter = intermediateRecordWriter;
   }
 
   @Override
   public void write(InternalRow record) throws IOException {
-    GenericRecord avroRecord =
-        AvroSchemaConverter.sparkRowToAvroGenericData(record, sparkSchema, getAvroSchema());
-    intermediateRecordWriter.write(avroRecord);
+    this.writeRecord(record);
   }
 
   @Override
   public WriterCommitMessage commit() throws IOException {
-    intermediateRecordWriter.close();
-    return new BigQueryIndirectWriterCommitMessage(getPath().toString());
+    this.commitRecord();
+    return new BigQueryIndirectWriterCommitMessage(this.getPath().toString());
   }
 
   @Override
@@ -69,6 +62,6 @@ class BigQueryIndirectDataWriter extends GenericBigQueryIndirectDataWriter
         "Writing of partition {} has been aborted, attempting to delete {}",
         getPartitionId(),
         getPath());
-    getFs().delete(getPath(), false);
+    this.writeAbort();
   }
 }

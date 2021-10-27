@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectDataWriterFactory;
+import com.google.cloud.spark.bigquery.common.IntermediateRecordWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
