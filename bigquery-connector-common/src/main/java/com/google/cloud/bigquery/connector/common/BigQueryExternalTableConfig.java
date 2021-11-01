@@ -45,7 +45,7 @@ public class BigQueryExternalTableConfig {
     }
 
     //get Field Delimiter For CSV file
-    public String getFieldReader(TableInfo tableInfo){
+    public String getFieldDelimiter(TableInfo tableInfo){
         ExternalTableDefinition tableDefinition= tableInfo.getDefinition();
         CsvOptions csvOptions= tableDefinition.getFormatOptions();
         return csvOptions.getFieldDelimiter();
