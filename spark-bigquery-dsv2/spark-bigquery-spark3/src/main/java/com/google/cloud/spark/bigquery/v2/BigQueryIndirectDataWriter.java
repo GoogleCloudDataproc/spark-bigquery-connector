@@ -15,7 +15,7 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class BigQueryIndirectDataWriter extends GenericBigQueryIndirectDataWriter
+class BigQueryIndirectDataWriter
     implements DataWriter<InternalRow> {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryIndirectDataWriter.class);
   FSDataOutputStream outputStream;
@@ -29,36 +29,35 @@ class BigQueryIndirectDataWriter extends GenericBigQueryIndirectDataWriter
       StructType sparkSchema,
       Schema avroSchema,
       IntermediateRecordWriter intermediateRecordWriter) {
-    super(partitionId, path, fs, avroSchema);
-    this.sparkSchema = sparkSchema;
-    this.intermediateRecordWriter = intermediateRecordWriter;
+    //super(partitionId, path, fs, sparkSchema,avroSchema);
+
   }
 
   @Override
   public void write(InternalRow record) throws IOException {
-    GenericRecord avroRecord =
+   /* GenericRecord avroRecord =
         AvroSchemaConverter.sparkRowToAvroGenericData(record, sparkSchema, getAvroSchema());
-    intermediateRecordWriter.write(avroRecord);
+    intermediateRecordWriter.write(avroRecord);*/
   }
 
   @Override
   public void abort() throws IOException {
-    logger.warn(
-        "Writing of partition {} has been aborted, attempting to delete {}",
-        getPartitionId(),
+    //logger.warn(
+      //  "Writing of partition {} has been aborted, attempting to delete {}",
+/*        getPartitionId(),
         getPath());
-    getFs().delete(getPath(), false);
+    getFs().delete(getPath(), false);*/
   }
 
   @Override
   public WriterCommitMessage commit() throws IOException {
     intermediateRecordWriter.close();
-    return new BigQueryIndirectWriterCommitMessage(getPath().toString());
+    return new BigQueryIndirectWriterCommitMessage("");
   }
 
   @Override
   public void close() throws IOException {
-    logger.warn("Closing File System", getPartitionId(), getPath());
-    getFs().close();
+/*    logger.warn("Closing File System", getPartitionId(), getPath());
+    getFs().close();*/
   }
 }

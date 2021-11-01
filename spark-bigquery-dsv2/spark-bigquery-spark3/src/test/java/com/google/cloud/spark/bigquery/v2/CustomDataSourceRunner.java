@@ -6,13 +6,19 @@ import org.apache.spark.sql.SparkSession;
 
 public class CustomDataSourceRunner {
   public static void main(String[] args) {
-    SparkSession sparkSession = new CustomDataSourceRunner().getDefaultSparkSessionOrCreate();
-    Dataset<Row> simpleDf =
-        sparkSession
-            .read()
-            .format("com.google.cloud.spark.bigquery.custom.CustomTableProvider")
-            .load();
-    simpleDf.show();
+   try {
+     SparkSession sparkSession = new CustomDataSourceRunner().getDefaultSparkSessionOrCreate();
+     Dataset<Row> simpleDf =
+             sparkSession
+                     .read()
+                     .format("com.google.cloud.spark.bigquery.v2.BQTableProvider")
+                     .load();
+     simpleDf.show();
+
+   }catch (Exception e)
+   {
+     e.printStackTrace();
+   }
   }
 
   private SparkSession getDefaultSparkSessionOrCreate() {
