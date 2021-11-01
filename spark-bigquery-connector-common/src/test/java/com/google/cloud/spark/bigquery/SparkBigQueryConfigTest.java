@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
@@ -96,7 +97,8 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryClientConnectTimeout()).isEqualTo(60 * 1000);
     assertThat(config.getBigQueryClientReadTimeout()).isEqualTo(60 * 1000);
     assertThat(config.getBigQueryClientRetrySettings().getMaxAttempts()).isEqualTo(10);
-    assertThat(config.getArrowCompressionCodec()).isEqualTo(CompressionCodec.COMPRESSION_UNSPECIFIED);
+    assertThat(config.getArrowCompressionCodec())
+        .isEqualTo(CompressionCodec.COMPRESSION_UNSPECIFIED);
   }
 
   @Test
@@ -185,22 +187,25 @@ public class SparkBigQueryConfigTest {
                 .put("arrowCompressionCodec", "randomCompression")
                 .build());
 
-    try {
-      SparkBigQueryConfig.from(
-          options.asMap(),
-          ImmutableMap.of(),
-          hadoopConfiguration,
-          DEFAULT_PARALLELISM,
-          new SQLConf(),
-          SPARK_VERSION,
-          Optional.empty());
-      Assert.fail("IllegalArgumentException was not thrown");
-    }
-    catch (IllegalArgumentException e) {
-      String errorMessage = "Compression codec 'RANDOMCOMPRESSION' for Arrow is not supported."
-          + " Supported formats are 'ZSTD,LZ4_FRAME,COMPRESSION_UNSPECIFIED'";
-      assertThat(e.getMessage()).isEqualTo(errorMessage);
-    }
+    IllegalArgumentException exception =
+        Assert.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                SparkBigQueryConfig.from(
+                    options.asMap(),
+                    ImmutableMap.of(),
+                    hadoopConfiguration,
+                    DEFAULT_PARALLELISM,
+                    new SQLConf(),
+                    SPARK_VERSION,
+                    Optional.empty()));
+
+    assertThat(exception)
+        .hasMessageThat()
+        .contains(
+            "Compression codec 'RANDOMCOMPRESSION' for Arrow is not supported."
+                + " Supported formats are "
+                + Arrays.toString(CompressionCodec.values()));
   }
 
   @Test

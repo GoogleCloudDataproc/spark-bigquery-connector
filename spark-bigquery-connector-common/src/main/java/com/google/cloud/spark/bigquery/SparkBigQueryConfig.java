@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -88,11 +89,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   public static final int MIN_STREAMS_PER_PARTITION = 1;
   private static final int DEFAULT_BIGQUERY_CLIENT_RETRIES = 10;
   private static final String ARROW_COMPRESSION_CODEC_OPTION = "arrowCompressionCodec";
-  private static final ImmutableList<String> PERMITTED_ARROW_COMPRESSION_CODECS =
-      ImmutableList.of(
-          CompressionCodec.ZSTD.toString(),
-          CompressionCodec.LZ4_FRAME.toString(),
-          CompressionCodec.COMPRESSION_UNSPECIFIED.toString());
+
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
   // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
@@ -311,13 +308,14 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
             .transform(String::toUpperCase)
             .or(DEFAULT_ARROW_COMPRESSION_CODEC.toString());
 
-    if (!PERMITTED_ARROW_COMPRESSION_CODECS.contains(arrowCompressionCodecParam)) {
+    try {
+      config.arrowCompressionCodec = CompressionCodec.valueOf(arrowCompressionCodecParam);
+    } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(
           format(
-              "Compression codec '%s' for Arrow is not supported. Supported formats are '%s'",
-              arrowCompressionCodecParam, String.join(",", PERMITTED_ARROW_COMPRESSION_CODECS)));
+              "Compression codec '%s' for Arrow is not supported. Supported formats are %s",
+              arrowCompressionCodecParam, Arrays.toString(CompressionCodec.values())));
     }
-    config.arrowCompressionCodec = CompressionCodec.valueOf(arrowCompressionCodecParam);
 
     return config;
   }
