@@ -18,34 +18,37 @@ package com.google.cloud.spark.bigquery.v2;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
-import com.google.cloud.spark.bigquery.common.GenericBigQueryInputPartitionReader;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Iterator;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
-class BigQueryInputPartitionReader extends GenericBigQueryInputPartitionReader
-    implements InputPartitionReader<InternalRow> {
+class BigQueryInputPartitionReader implements InputPartitionReader<InternalRow> {
 
+  private Iterator<ReadRowsResponse> readRowsResponses;
+  private ReadRowsResponseToInternalRowIteratorConverter converter;
+  private ReadRowsHelper readRowsHelper;
   private Iterator<InternalRow> rows = ImmutableList.<InternalRow>of().iterator();
   private InternalRow currentRow;
 
-  public BigQueryInputPartitionReader(
+  BigQueryInputPartitionReader(
       Iterator<ReadRowsResponse> readRowsResponses,
       ReadRowsResponseToInternalRowIteratorConverter converter,
       ReadRowsHelper readRowsHelper) {
-    super(readRowsResponses, converter, readRowsHelper);
+    this.readRowsResponses = readRowsResponses;
+    this.converter = converter;
+    this.readRowsHelper = readRowsHelper;
   }
 
   @Override
   public boolean next() throws IOException {
     while (!rows.hasNext()) {
-      if (!super.getReadRowsResponses().hasNext()) {
+      if (!readRowsResponses.hasNext()) {
         return false;
       }
-      ReadRowsResponse readRowsResponse = super.getReadRowsResponses().next();
-      rows = super.getConverter().convert(readRowsResponse);
+      ReadRowsResponse readRowsResponse = readRowsResponses.next();
+      rows = converter.convert(readRowsResponse);
     }
     currentRow = rows.next();
     return true;
@@ -58,6 +61,6 @@ class BigQueryInputPartitionReader extends GenericBigQueryInputPartitionReader
 
   @Override
   public void close() throws IOException {
-    super.getReadRowsHelper().close();
+    readRowsHelper.close();
   }
 }

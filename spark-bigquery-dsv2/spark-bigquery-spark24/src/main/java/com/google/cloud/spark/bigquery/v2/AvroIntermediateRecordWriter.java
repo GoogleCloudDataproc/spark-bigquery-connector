@@ -15,31 +15,38 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.common.GenericAvroIntermediateRecordWriter;
-import com.google.cloud.spark.bigquery.common.IntermediateRecordWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import org.apache.avro.Schema;
+import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumWriter;
 
-public class AvroIntermediateRecordWriter extends GenericAvroIntermediateRecordWriter
-    implements IntermediateRecordWriter {
+public class AvroIntermediateRecordWriter implements IntermediateRecordWriter {
+
+  private final OutputStream outputStream;
+  private final DatumWriter<GenericRecord> writer;
+  private final DataFileWriter<GenericRecord> dataFileWriter;
 
   AvroIntermediateRecordWriter(Schema schema, OutputStream outputStream) throws IOException {
-    super(schema, outputStream);
+    this.outputStream = outputStream;
+    this.writer = new GenericDatumWriter<>(schema);
+    this.dataFileWriter = new DataFileWriter<>(writer);
+    this.dataFileWriter.create(schema, outputStream);
   }
 
   @Override
   public void write(GenericRecord record) throws IOException {
-    getDataFileWriter().append(record);
+    dataFileWriter.append(record);
   }
 
   @Override
   public void close() throws IOException {
     try {
-      getDataFileWriter().flush();
+      dataFileWriter.flush();
     } finally {
-      getDataFileWriter().close();
+      dataFileWriter.close();
     }
   }
 }

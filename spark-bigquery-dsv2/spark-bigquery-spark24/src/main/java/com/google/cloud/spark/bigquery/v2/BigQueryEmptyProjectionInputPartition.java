@@ -15,20 +15,20 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.common.GenericBigQueryEmptyProjectionInputPartition;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartition;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
-public class BigQueryEmptyProjectionInputPartition
-    extends GenericBigQueryEmptyProjectionInputPartition implements InputPartition<InternalRow> {
+public class BigQueryEmptyProjectionInputPartition implements InputPartition<InternalRow> {
+
+  final int partitionSize;
 
   public BigQueryEmptyProjectionInputPartition(int partitionSize) {
-    super(partitionSize);
+    this.partitionSize = partitionSize;
   }
 
   @Override
   public InputPartitionReader<InternalRow> createPartitionReader() {
-    return new BigQueryEmptyProjectionInputPartitionReader(super.getPartitionSize());
+    return new BigQueryEmptyProjectionInputPartitionReader(partitionSize);
   }
 }

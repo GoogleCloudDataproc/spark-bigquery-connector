@@ -15,10 +15,11 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectDataWriter;
-import com.google.cloud.spark.bigquery.common.IntermediateRecordWriter;
+import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import java.io.IOException;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -28,11 +29,16 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class BigQueryIndirectDataWriter extends GenericBigQueryIndirectDataWriter
-    implements DataWriter<InternalRow> {
+class BigQueryIndirectDataWriter implements DataWriter<InternalRow> {
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryIndirectDataWriter.class);
+  Path path;
+  FileSystem fs;
+  FSDataOutputStream outputStream;
+  StructType sparkSchema;
+  Schema avroSchema;
   IntermediateRecordWriter intermediateRecordWriter;
+  private int partitionId;
 
   protected BigQueryIndirectDataWriter(
       int partitionId,
@@ -41,27 +47,31 @@ class BigQueryIndirectDataWriter extends GenericBigQueryIndirectDataWriter
       StructType sparkSchema,
       Schema avroSchema,
       IntermediateRecordWriter intermediateRecordWriter) {
-    super(partitionId, path, fs, sparkSchema, avroSchema, intermediateRecordWriter);
+    this.partitionId = partitionId;
+    this.path = path;
+    this.fs = fs;
+    this.sparkSchema = sparkSchema;
+    this.avroSchema = avroSchema;
     this.intermediateRecordWriter = intermediateRecordWriter;
   }
 
   @Override
   public void write(InternalRow record) throws IOException {
-    this.writeRecord(record);
+    GenericRecord avroRecord =
+        AvroSchemaConverter.sparkRowToAvroGenericData(record, sparkSchema, avroSchema);
+    intermediateRecordWriter.write(avroRecord);
   }
 
   @Override
   public WriterCommitMessage commit() throws IOException {
-    this.commitRecord();
-    return new BigQueryIndirectWriterCommitMessage(this.getPath().toString());
+    intermediateRecordWriter.close();
+    return new BigQueryIndirectWriterCommitMessage(path.toString());
   }
 
   @Override
   public void abort() throws IOException {
     logger.warn(
-        "Writing of partition {} has been aborted, attempting to delete {}",
-        getPartitionId(),
-        getPath());
-    this.writeAbort();
+        "Writing of partition {} has been aborted, attempting to delete {}", partitionId, path);
+    fs.delete(path, false);
   }
 }
