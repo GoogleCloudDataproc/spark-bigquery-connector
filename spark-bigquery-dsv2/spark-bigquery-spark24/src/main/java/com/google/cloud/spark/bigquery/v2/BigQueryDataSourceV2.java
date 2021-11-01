@@ -19,6 +19,7 @@ import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientModule;
+import com.google.cloud.bigquery.connector.common.BigQueryExternalTableConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
@@ -47,9 +48,21 @@ public class BigQueryDataSourceV2
 
   @Override
   public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
-    Injector injector = createInjector(schema, options, new BigQueryDataSourceReaderModule());
-    BigQueryDataSourceReader reader = injector.getInstance(BigQueryDataSourceReader.class);
-    return reader;
+    Injector externalTableInjector = createInjector(
+                    schema, options, new BigQueryExternalTableReaderModule());
+    BigQueryClient bigQueryClient = externalTableInjector.getInstance(BigQueryClient.class);
+    SparkBigQueryConfig config = externalTableInjector.getInstance(SparkBigQueryConfig.class);
+    TableInfo table = bigQueryClient.getTable(config.getTableId());
+    BigQueryExternalTableConfig externalTableConfig= new BigQueryExternalTableConfig();
+    //check if table type is not external
+    if(!externalTableConfig.isInputTableAExternalTable(table)) {
+      Injector injector = createInjector(schema, options, new BigQueryDataSourceReaderModule());
+      BigQueryDataSourceReader reader = injector.getInstance(BigQueryDataSourceReader.class);
+      return reader;
+    }
+    else{
+      return null; // once BigqueryExternalTable Reader ready we will change null to external table reader object;
+    }
   }
 
   private Injector createInjector(StructType schema, DataSourceOptions options, Module module) {

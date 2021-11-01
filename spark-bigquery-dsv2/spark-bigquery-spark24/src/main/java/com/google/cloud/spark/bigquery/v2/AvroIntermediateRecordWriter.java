@@ -29,6 +29,7 @@ public class AvroIntermediateRecordWriter implements IntermediateRecordWriter {
   private final DatumWriter<GenericRecord> writer;
   private final DataFileWriter<GenericRecord> dataFileWriter;
 
+
   AvroIntermediateRecordWriter(Schema schema, OutputStream outputStream) throws IOException {
     this.outputStream = outputStream;
     this.writer = new GenericDatumWriter<>(schema);
