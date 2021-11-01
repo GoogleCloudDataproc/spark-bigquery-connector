@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -32,6 +33,7 @@ import java.util.OptionalLong;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.sources.v2.DataSourceOptions;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class SparkBigQueryConfigTest {
@@ -94,6 +96,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryClientConnectTimeout()).isEqualTo(60 * 1000);
     assertThat(config.getBigQueryClientReadTimeout()).isEqualTo(60 * 1000);
     assertThat(config.getBigQueryClientRetrySettings().getMaxAttempts()).isEqualTo(10);
+    assertThat(config.getArrowCompressionCodec()).isEqualTo(CompressionCodec.COMPRESSION_UNSPECIFIED);
   }
 
   @Test
@@ -128,6 +131,7 @@ public class SparkBigQueryConfigTest {
                 .put("httpConnectTimeout", "10000")
                 .put("httpReadTimeout", "20000")
                 .put("httpMaxRetry", "5")
+                .put("arrowCompressionCodec", "ZSTD")
                 .build());
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -166,6 +170,37 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryClientConnectTimeout()).isEqualTo(10000);
     assertThat(config.getBigQueryClientReadTimeout()).isEqualTo(20000);
     assertThat(config.getBigQueryClientRetrySettings().getMaxAttempts()).isEqualTo(5);
+    assertThat(config.getArrowCompressionCodec()).isEqualTo(CompressionCodec.ZSTD);
+  }
+
+  @Test
+  public void testInvalidCompressionCodec() {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options =
+        new DataSourceOptions(
+            ImmutableMap.<String, String>builder()
+                .put("table", "test_t")
+                .put("dataset", "test_d")
+                .put("project", "test_p")
+                .put("arrowCompressionCodec", "randomCompression")
+                .build());
+
+    try {
+      SparkBigQueryConfig.from(
+          options.asMap(),
+          ImmutableMap.of(),
+          hadoopConfiguration,
+          DEFAULT_PARALLELISM,
+          new SQLConf(),
+          SPARK_VERSION,
+          Optional.empty());
+      Assert.fail("IllegalArgumentException was not thrown");
+    }
+    catch (IllegalArgumentException e) {
+      String errorMessage = "Compression codec 'RANDOMCOMPRESSION' for Arrow is not supported."
+          + " Supported formats are 'ZSTD,LZ4_FRAME,COMPRESSION_UNSPECIFIED'";
+      assertThat(e.getMessage()).isEqualTo(errorMessage);
+    }
   }
 
   @Test

@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -35,6 +36,7 @@ public class ReadSessionCreatorConfig {
   private final boolean pushAllFilters;
   private final int prebufferResponses;
   private final int streamsPerPartition;
+  private final CompressionCodec arrowCompressionCodec;
 
   ReadSessionCreatorConfig(
       boolean viewsEnabled,
@@ -51,7 +53,8 @@ public class ReadSessionCreatorConfig {
       int backgroundParsingThreads,
       boolean pushAllFilters,
       int prebufferResponses,
-      int streamsPerPartition) {
+      int streamsPerPartition,
+      CompressionCodec arrowCompressionCodec) {
     this.viewsEnabled = viewsEnabled;
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
@@ -67,6 +70,7 @@ public class ReadSessionCreatorConfig {
     this.pushAllFilters = pushAllFilters;
     this.prebufferResponses = prebufferResponses;
     this.streamsPerPartition = streamsPerPartition;
+    this.arrowCompressionCodec = arrowCompressionCodec;
   }
 
   public boolean isViewsEnabled() {
@@ -91,6 +95,10 @@ public class ReadSessionCreatorConfig {
 
   public DataFormat getReadDataFormat() {
     return readDataFormat;
+  }
+
+  public CompressionCodec getArrowCompressionCodec() {
+    return arrowCompressionCodec;
   }
 
   public int getMaxReadRowsRetries() {

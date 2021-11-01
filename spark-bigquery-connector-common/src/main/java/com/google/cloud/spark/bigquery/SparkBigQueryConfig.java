@@ -27,6 +27,7 @@ import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.*;
+import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -65,6 +66,10 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   @VisibleForTesting
   static final IntermediateFormat DEFAULT_INTERMEDIATE_FORMAT = IntermediateFormat.PARQUET;
 
+  @VisibleForTesting
+  static final CompressionCodec DEFAULT_ARROW_COMPRESSION_CODEC =
+      CompressionCodec.COMPRESSION_UNSPECIFIED;
+
   static final String GCS_CONFIG_CREDENTIALS_FILE_PROPERTY =
       "google.cloud.auth.service.account.json.keyfile";
   static final String GCS_CONFIG_PROJECT_ID_PROPERTY = "fs.gs.project.id";
@@ -82,6 +87,12 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   public static final int MIN_BUFFERED_RESPONSES_PER_STREAM = 1;
   public static final int MIN_STREAMS_PER_PARTITION = 1;
   private static final int DEFAULT_BIGQUERY_CLIENT_RETRIES = 10;
+  private static final String ARROW_COMPRESSION_CODEC_OPTION = "arrowCompressionCodec";
+  private static final ImmutableList<String> PERMITTED_ARROW_COMPRESSION_CODECS =
+      ImmutableList.of(
+          CompressionCodec.ZSTD.toString(),
+          CompressionCodec.LZ4_FRAME.toString(),
+          CompressionCodec.COMPRESSION_UNSPECIFIED.toString());
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
   // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
@@ -122,6 +133,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private int numPrebufferReadRowsResponses = MIN_BUFFERED_RESPONSES_PER_STREAM;
   private int numStreamsPerPartition = MIN_STREAMS_PER_PARTITION;
   private SparkBigQueryProxyAndHttpConfig sparkBigQueryProxyAndHttpConfig;
+  private CompressionCodec arrowCompressionCodec = DEFAULT_ARROW_COMPRESSION_CODEC;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -293,6 +305,19 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         getAnyOption(globalOptions, options, "bqNumStreamsPerPartition")
             .transform(Integer::parseInt)
             .or(MIN_STREAMS_PER_PARTITION);
+
+    String arrowCompressionCodecParam =
+        getAnyOption(globalOptions, options, ARROW_COMPRESSION_CODEC_OPTION)
+            .transform(String::toUpperCase)
+            .or(DEFAULT_ARROW_COMPRESSION_CODEC.toString());
+
+    if (!PERMITTED_ARROW_COMPRESSION_CODECS.contains(arrowCompressionCodecParam)) {
+      throw new IllegalArgumentException(
+          format(
+              "Compression codec '%s' for Arrow is not supported. Supported formats are '%s'",
+              arrowCompressionCodecParam, String.join(",", PERMITTED_ARROW_COMPRESSION_CODECS)));
+    }
+    config.arrowCompressionCodec = CompressionCodec.valueOf(arrowCompressionCodecParam);
 
     return config;
   }
@@ -496,6 +521,10 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     return readDataFormat;
   }
 
+  public CompressionCodec getArrowCompressionCodec() {
+    return arrowCompressionCodec;
+  }
+
   public boolean isCombinePushedDownFilters() {
     return combinePushedDownFilters;
   }
@@ -624,6 +653,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         .setPushAllFilters(pushAllFilters)
         .setPrebufferReadRowsResponses(numPrebufferReadRowsResponses)
         .setStreamsPerPartition(numStreamsPerPartition)
+        .setArrowCompressionCodec(arrowCompressionCodec)
         .build();
   }
 

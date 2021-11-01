@@ -582,6 +582,18 @@ The API Supports a number of options to configure the read
      </td>
      <td>Read</td>
    </tr>
+   <tr valign="top">
+     <td><code>arrowCompressionCodec</code>
+     </td>
+     <td>  Compression codec while reading from a BigQuery table when using Arrow format. Options : 
+           <code>ZSTD (Zstandard compression)</code>, 
+           <code>LZ4_FRAME (https://github.com/lz4/lz4/blob/dev/doc/lz4_Frame_format.md)</code>, 
+           <code>COMPRESSION_UNSPECIFIED</code>. The recommended compression codec is <code>ZSTD</code> 
+           while using Java. 
+          <br/> (Optional. Defaults to <code>COMPRESSION_UNSPECIFIED</code> which means no compression will be used)
+     </td>
+     <td>Read</td>
+   </tr>
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter
