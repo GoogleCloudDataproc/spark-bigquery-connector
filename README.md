@@ -243,7 +243,7 @@ df.write \
 
 The data is temporarily stored using the [Apache parquet](https://parquet.apache.org/) format. An alternative format is [Apache ORC](https://orc.apache.org/).
 
-The GCS bucket and the format can also be set globally using Spark"s RuntimeConfig like this:
+The GCS bucket and the format can also be set globally using Spark's RuntimeConfig like this:
 ```
 spark.conf.set("temporaryGcsBucket","some-bucket")
 df.write \
