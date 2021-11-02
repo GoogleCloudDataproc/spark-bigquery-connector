@@ -385,7 +385,7 @@ The API Supports a number of options to configure the read
        columns) logic, used for <code>count()</code> execution. This logic takes
        the data directly from the table metadata or performs a much efficient
        `SELECT COUNT(*) WHERE...` in case there is a filter. You can cancel the
-       use of this logic byt setting this option to <code>false</code>.
+       use of this logic by setting this option to <code>false</code>.
        <br/>(Optional, defaults to <code>true</code>)
    </td>
    <td>Read</td>
