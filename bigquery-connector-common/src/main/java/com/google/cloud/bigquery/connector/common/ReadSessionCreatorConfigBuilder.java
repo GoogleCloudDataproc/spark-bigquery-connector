@@ -1,5 +1,6 @@
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -21,6 +22,7 @@ public class ReadSessionCreatorConfigBuilder {
   private boolean pushAllFilters = true;
   int prebufferResponses = 1;
   int streamsPerPartition = 1;
+  private CompressionCodec arrowCompressionCodec = CompressionCodec.COMPRESSION_UNSPECIFIED;
 
   public ReadSessionCreatorConfigBuilder setViewsEnabled(boolean viewsEnabled) {
     this.viewsEnabled = viewsEnabled;
@@ -101,6 +103,12 @@ public class ReadSessionCreatorConfigBuilder {
     return this;
   }
 
+  public ReadSessionCreatorConfigBuilder setArrowCompressionCodec(
+      CompressionCodec arrowCompressionCodec) {
+    this.arrowCompressionCodec = arrowCompressionCodec;
+    return this;
+  }
+
   public ReadSessionCreatorConfig build() {
     return new ReadSessionCreatorConfig(
         viewsEnabled,
@@ -117,6 +125,7 @@ public class ReadSessionCreatorConfigBuilder {
         backgroundParsingThreads,
         pushAllFilters,
         prebufferResponses,
-        streamsPerPartition);
+        streamsPerPartition,
+        arrowCompressionCodec);
   }
 }

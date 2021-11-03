@@ -325,4 +325,43 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
     assertThat(avroResults).isEqualTo(arrowResults);
   }
+
+  @Test
+  public void testArrowCompressionCodec() {
+    List<Row> avroResults =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("filter", "word_count = 1 OR corpus_date = 0")
+            .option("readDataFormat", "AVRO")
+            .load()
+            .collectAsList();
+
+    List<Row> arrowResultsForZstdCodec =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("readDataFormat", "ARROW")
+            .option("arrowCompressionCodec", "ZSTD")
+            .load()
+            .where("word_count = 1 OR corpus_date = 0")
+            .collectAsList();
+
+    assertThat(avroResults).isEqualTo(arrowResultsForZstdCodec);
+
+    List<Row> arrowResultsForLZ4FrameCodec =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("readDataFormat", "ARROW")
+            .option("arrowCompressionCodec", "LZ4_FRAME")
+            .load()
+            .where("word_count = 1 OR corpus_date = 0")
+            .collectAsList();
+
+    assertThat(avroResults).isEqualTo(arrowResultsForLZ4FrameCodec);
+  }
 }
