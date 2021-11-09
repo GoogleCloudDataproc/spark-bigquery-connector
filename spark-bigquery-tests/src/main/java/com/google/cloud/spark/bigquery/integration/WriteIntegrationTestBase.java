@@ -134,15 +134,18 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   protected void writeToBigQuery(Dataset<Row> df, SaveMode mode, String format) {
-    String writePath = isDirectWrite ? "direct" : "indirect";
     df.write()
         .format("bigquery")
         .mode(mode)
         .option("table", fullTableName())
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("intermediateFormat", format)
-        .option("writePath", writePath)
+        .option("writePath", getWritePath())
         .save();
+  }
+
+  protected String getWritePath() {
+    return isDirectWrite ? "direct" : "indirect";
   }
 
   Dataset<Row> readAllTypesTable() {
@@ -234,7 +237,12 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   @Test
   public void testWriteToBigQueryAddingTheSettingsToSparkConf() throws InterruptedException {
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
-    initialData().write().format("bigquery").option("table", fullTableName()).save();
+    initialData()
+        .write()
+        .format("bigquery")
+        .option("table", fullTableName())
+        .option("writePath", getWritePath())
+        .save();
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
   }
@@ -259,6 +267,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("partitionField", "created_timestamp")
         .option("clusteredFields", "platform")
+        .option("writePath", getWritePath())
         .mode(SaveMode.Overwrite)
         .save();
 
@@ -367,7 +376,6 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
       Dataset<Row> descriptionDF = spark.createDataFrame(data, schemas[i]);
 
-      String writePath = isDirectWrite ? "direct" : "indirect";
       descriptionDF
           .write()
           .format("bigquery")
@@ -375,7 +383,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
           .option("table", fullTableName() + "_" + i)
           .option("temporaryGcsBucket", temporaryGcsBucket)
           .option("intermediateFormat", "parquet")
-          .option("writePath", writePath)
+          .option("writePath", getWritePath())
           .save();
 
       Dataset<Row> readDF =
@@ -441,6 +449,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         .option("partitionType", partitionType)
         .option("partitionRequireFilter", "true")
         .option("table", table)
+        .option("writePath", getWritePath())
         .save();
 
     Dataset<Row> readDF = spark.read().format("bigquery").load(table);

@@ -211,7 +211,7 @@ public class Spark24WriteIntegrationTest extends WriteIntegrationTestBase {
 
   @Test
   public void testSparkAppendSaveMode() throws Exception {
-    String writeTo = "append";
+    String writeTo = "testSparkAppendSaveMode" + System.currentTimeMillis();
 
     Dataset<Row> expectedDF = twiceAsBigDf;
 
@@ -279,7 +279,7 @@ public class Spark24WriteIntegrationTest extends WriteIntegrationTestBase {
 
   @Test
   public void testSparkWriteIgnoreSaveMode() throws Exception {
-    String writeTo = "ignore";
+    String writeTo = "testSparkWriteIgnoreSaveMode" + System.currentTimeMillis();
 
     Dataset<Row> expectedDF = smallDataDf;
 
@@ -317,7 +317,7 @@ public class Spark24WriteIntegrationTest extends WriteIntegrationTestBase {
 
   @Test
   public void testSparkWriteErrorSaveMode() throws Exception {
-    String writeTo = "error";
+    String writeTo = "testSparkWriteErrorSaveMode" + System.currentTimeMillis();
 
     smallDataDf
         .write()
