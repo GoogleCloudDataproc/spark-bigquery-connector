@@ -34,8 +34,11 @@ import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.apache.spark.sql.sources.v2.DataSourceV2;
 import org.apache.spark.sql.sources.v2.ReadSupport;
 import org.apache.spark.sql.sources.v2.WriteSupport;
+import org.apache.spark.sql.sources.v2.StreamWriteSupport;
 import org.apache.spark.sql.sources.v2.reader.DataSourceReader;
 import org.apache.spark.sql.sources.v2.writer.DataSourceWriter;
+import org.apache.spark.sql.sources.v2.writer.streaming.StreamWriter;
+import org.apache.spark.sql.streaming.OutputMode;
 import org.apache.spark.sql.types.StructType;
 
 /**
@@ -43,7 +46,7 @@ import org.apache.spark.sql.types.StructType;
  * Platform BigQuery.
  */
 public class BigQueryDataSourceV2
-    implements DataSourceV2, DataSourceRegister, ReadSupport, WriteSupport {
+    implements DataSourceV2, DataSourceRegister, ReadSupport, WriteSupport, StreamWriteSupport {
 
   @Override
   public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
@@ -127,5 +130,13 @@ public class BigQueryDataSourceV2
   @Override
   public String shortName() {
     return "bigquery";
+  }
+
+  @Override
+  public StreamWriter createStreamWriter(String queryId, StructType schema, OutputMode mode, DataSourceOptions options) {
+    //  In Development
+     System.out.println("In createStreamWriter");
+    //return  BigQueryStreamingWriter of type StreamWriter
+    return null;
   }
 }
