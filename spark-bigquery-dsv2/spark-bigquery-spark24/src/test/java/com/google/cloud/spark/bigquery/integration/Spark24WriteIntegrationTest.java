@@ -34,6 +34,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -44,12 +45,20 @@ import org.apache.spark.sql.SparkSession;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.threeten.bp.Duration;
 
+@RunWith(Parameterized.class)
 public class Spark24WriteIntegrationTest extends WriteIntegrationTestBase {
 
-  public Spark24WriteIntegrationTest() {
-    super(true);
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<Boolean[]> formats() {
+    return Arrays.asList(new Boolean[][] {{Boolean.TRUE}, {Boolean.FALSE}});
+  }
+
+  public Spark24WriteIntegrationTest(Boolean isDirectWrite) {
+    super(isDirectWrite);
   }
 
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.

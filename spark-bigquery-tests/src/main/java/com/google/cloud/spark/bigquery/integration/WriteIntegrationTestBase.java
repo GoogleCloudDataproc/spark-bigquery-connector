@@ -35,7 +35,6 @@ import com.google.cloud.spark.bigquery.integration.model.Link;
 import com.google.cloud.spark.bigquery.integration.model.Person;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.inject.ProvisionException;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -135,12 +134,14 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   protected void writeToBigQuery(Dataset<Row> df, SaveMode mode, String format) {
+    String writePath = isDirectWrite ? "direct" : "indirect";
     df.write()
         .format("bigquery")
         .mode(mode)
         .option("table", fullTableName())
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("intermediateFormat", format)
+        .option("writePath", writePath)
         .save();
   }
 
@@ -173,8 +174,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assertThat(initialDataValuesExist()).isTrue();
     // second write
     assertThrows(
-        "Table already exists in BigQuery",
-        ProvisionException.class,
+        Exception.class,
         () -> {
           writeToBigQuery(additonalData(), SaveMode.ErrorIfExists);
         });
@@ -367,6 +367,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
       Dataset<Row> descriptionDF = spark.createDataFrame(data, schemas[i]);
 
+      String writePath = isDirectWrite ? "direct" : "indirect";
       descriptionDF
           .write()
           .format("bigquery")
@@ -374,6 +375,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
           .option("table", fullTableName() + "_" + i)
           .option("temporaryGcsBucket", temporaryGcsBucket)
           .option("intermediateFormat", "parquet")
+          .option("writePath", writePath)
           .save();
 
       Dataset<Row> readDF =
