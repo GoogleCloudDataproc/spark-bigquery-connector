@@ -134,11 +134,9 @@ public class BigQueryDataSourceV2
 
   @Override
   public StreamWriter createStreamWriter(String queryId, StructType schema, OutputMode mode, DataSourceOptions options) {
-
     //  In Development
      System.out.println("In createStreamWriter");
     //return  BigQueryStreamingWriter of type StreamWriter
-
     return null;
   }
 }

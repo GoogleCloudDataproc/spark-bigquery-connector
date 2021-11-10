@@ -23,13 +23,11 @@ public class BigQueryStreamingWriter implements StreamWriter {
 
     @Override
     public DataWriterFactory<InternalRow> createWriterFactory() {
-
         //In Development
         // Call BigQueryIndirectWriterFactory
         // Either BigqueryIndirectWriterFactory will be used or new class will be created implementing DataWriterFactory
         // Based on above params will be sent CreateStreamWriter
         // From there BigQueryIndirect will be used
-
         return null;
     }
 }
