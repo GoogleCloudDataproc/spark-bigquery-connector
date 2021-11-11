@@ -136,7 +136,17 @@ public class BigQueryDataSourceV2
   public StreamWriter createStreamWriter(String queryId, StructType schema, OutputMode mode, DataSourceOptions options) {
     //  In Development
      System.out.println("In createStreamWriter");
+
+    Injector injector =
+            createInjector(
+                    schema, options, new BigQueryStreamWriterModule(queryId, schema, mode));
+
+    BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
+    SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
+    TableInfo table = bigQueryClient.getTable(config.getTableId());
+
     //return  BigQueryStreamingWriter of type StreamWriter
+
     return null;
   }
 }

@@ -28,6 +28,8 @@ public class BigQueryStreamingWriter implements StreamWriter {
         // Either BigqueryIndirectWriterFactory will be used or new class will be created implementing DataWriterFactory
         // Based on above params will be sent CreateStreamWriter
         // From there BigQueryIndirect will be used
+
+        //return new BigQueryIndirectDataWriterFactory(conf,gcsDirPath,sparkSchema,avrosSchemaJson)
         return null;
     }
 }
