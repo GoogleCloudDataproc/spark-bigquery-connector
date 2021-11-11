@@ -349,7 +349,7 @@ public class BigQueryClient {
     return String.format("SELECT %s FROM `%s` %s", formattedQuery, tableName, whereClause);
   }
 
-  String fullTableName(TableId tableId) {
+  public static String fullTableName(TableId tableId) {
     if (tableId.getProject() == null) {
       return String.format("%s.%s", tableId.getDataset(), tableId.getTable());
     } else {

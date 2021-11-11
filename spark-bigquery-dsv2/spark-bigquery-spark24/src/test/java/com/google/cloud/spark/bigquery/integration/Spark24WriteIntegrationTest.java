@@ -19,7 +19,6 @@ import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_
 import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_API_ALL_TYPES_SCHEMA;
 import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_API_ALL_TYPES_SCHEMA_BIGQUERY_REPRESENTATION;
 import static com.google.common.truth.Truth.assertThat;
-import static java.lang.String.format;
 import static org.junit.Assert.fail;
 
 import com.google.cloud.RetryOption;
@@ -32,6 +31,7 @@ import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -162,11 +162,9 @@ public class Spark24WriteIntegrationTest extends WriteIntegrationTestBase {
   static String sqlFromFormat(
       String queryFormat, TableId destinationTableId, TableId temporaryTableId) {
     return String.format(
-        queryFormat, fullTableName(destinationTableId), fullTableName(temporaryTableId));
-  }
-
-  static String fullTableName(TableId tableId) {
-    return format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
+        queryFormat,
+        BigQueryClient.fullTableName(destinationTableId),
+        BigQueryClient.fullTableName(temporaryTableId));
   }
 
   @AfterClass
