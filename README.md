@@ -243,7 +243,7 @@ df.write \
 
 The data is temporarily stored using the [Apache parquet](https://parquet.apache.org/) format. An alternative format is [Apache ORC](https://orc.apache.org/).
 
-The GCS bucket and the format can also be set globally using Spark"s RuntimeConfig like this:
+The GCS bucket and the format can also be set globally using Spark's RuntimeConfig like this:
 ```
 spark.conf.set("temporaryGcsBucket","some-bucket")
 df.write \
@@ -385,7 +385,7 @@ The API Supports a number of options to configure the read
        columns) logic, used for <code>count()</code> execution. This logic takes
        the data directly from the table metadata or performs a much efficient
        `SELECT COUNT(*) WHERE...` in case there is a filter. You can cancel the
-       use of this logic byt setting this option to <code>false</code>.
+       use of this logic by setting this option to <code>false</code>.
        <br/>(Optional, defaults to <code>true</code>)
    </td>
    <td>Read</td>
@@ -510,7 +510,7 @@ The API Supports a number of options to configure the read
        <td><code>allowFieldAddition</code>
         </td>
         <td>Adds the <a href="https://googleapis.dev/java/google-cloud-clients/latest/com/google/cloud/bigquery/JobInfo.SchemaUpdateOption.html#ALLOW_FIELD_ADDITION" target="_blank">ALLOW_FIELD_ADDITION</a>
-            SchemaUpdateOption to the BigQuery LoadJob. Allowed vales are <code>true</code> and <code>false</code>.
+            SchemaUpdateOption to the BigQuery LoadJob. Allowed values are <code>true</code> and <code>false</code>.
            <br/>(Optional. Default to <code>false</code>).
         </td>
         <td>Write</td>
@@ -519,7 +519,7 @@ The API Supports a number of options to configure the read
        <td><code>allowFieldRelaxation</code>
         </td>
         <td>Adds the <a href="https://googleapis.dev/java/google-cloud-clients/latest/com/google/cloud/bigquery/JobInfo.SchemaUpdateOption.html#ALLOW_FIELD_RELAXATION" target="_blank">ALLOW_FIELD_RELAXATION</a>
-            SchemaUpdateOption to the BigQuery LoadJob. Allowed vales are <code>true</code> and <code>false</code>.
+            SchemaUpdateOption to the BigQuery LoadJob. Allowed values are <code>true</code> and <code>false</code>.
            <br/>(Optional. Default to <code>false</code>).
         </td>
         <td>Write</td>
