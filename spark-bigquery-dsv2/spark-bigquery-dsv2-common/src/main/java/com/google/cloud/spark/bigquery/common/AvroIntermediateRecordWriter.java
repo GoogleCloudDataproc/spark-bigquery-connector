@@ -13,33 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.common;
 
-import com.google.cloud.spark.bigquery.common.GenericAvroIntermediateRecordWriter;
-import com.google.cloud.spark.bigquery.common.IntermediateRecordWriter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Serializable;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
-public class AvroIntermediateRecordWriter extends GenericAvroIntermediateRecordWriter
-    implements IntermediateRecordWriter {
+public class AvroIntermediateRecordWriter implements IntermediateRecordWriter, Serializable {
+  private GenericAvroIntermediateRecordWriter avroIntermediateRecordWriterHelper;
 
   AvroIntermediateRecordWriter(Schema schema, OutputStream outputStream) throws IOException {
-    super(schema, outputStream);
+    this.avroIntermediateRecordWriterHelper =
+        new GenericAvroIntermediateRecordWriter(schema, outputStream);
   }
 
   @Override
   public void write(GenericRecord record) throws IOException {
-    getDataFileWriter().append(record);
+    this.avroIntermediateRecordWriterHelper.write(record);
   }
 
   @Override
   public void close() throws IOException {
-    try {
-      getDataFileWriter().flush();
-    } finally {
-      getDataFileWriter().close();
-    }
+    this.avroIntermediateRecordWriterHelper.close();
   }
 }

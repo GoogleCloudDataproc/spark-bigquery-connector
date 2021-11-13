@@ -1,10 +1,9 @@
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectDataWriter;
+import com.google.cloud.spark.bigquery.common.IntermediateRecordWriter;
 import java.io.IOException;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -15,12 +14,10 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class BigQueryIndirectDataWriter extends GenericBigQueryIndirectDataWriter
-    implements DataWriter<InternalRow> {
+class BigQueryIndirectDataWriter implements DataWriter<InternalRow> {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryIndirectDataWriter.class);
   FSDataOutputStream outputStream;
-  StructType sparkSchema;
-  IntermediateRecordWriter intermediateRecordWriter;
+  GenericBigQueryIndirectDataWriter dataWriter;
 
   protected BigQueryIndirectDataWriter(
       int partitionId,
@@ -29,36 +26,34 @@ class BigQueryIndirectDataWriter extends GenericBigQueryIndirectDataWriter
       StructType sparkSchema,
       Schema avroSchema,
       IntermediateRecordWriter intermediateRecordWriter) {
-    super(partitionId, path, fs, avroSchema);
-    this.sparkSchema = sparkSchema;
-    this.intermediateRecordWriter = intermediateRecordWriter;
+    this.dataWriter =
+        new GenericBigQueryIndirectDataWriter(
+            partitionId, path, fs, sparkSchema, avroSchema, intermediateRecordWriter);
   }
 
   @Override
   public void write(InternalRow record) throws IOException {
-    GenericRecord avroRecord =
-        AvroSchemaConverter.sparkRowToAvroGenericData(record, sparkSchema, getAvroSchema());
-    intermediateRecordWriter.write(avroRecord);
+    this.dataWriter.writeRecord(record);
   }
 
   @Override
   public void abort() throws IOException {
     logger.warn(
         "Writing of partition {} has been aborted, attempting to delete {}",
-        getPartitionId(),
-        getPath());
-    getFs().delete(getPath(), false);
+        this.dataWriter.getPartitionId(),
+        this.dataWriter.getPath());
+    this.dataWriter.writeAbort();
   }
 
   @Override
   public WriterCommitMessage commit() throws IOException {
-    intermediateRecordWriter.close();
-    return new BigQueryIndirectWriterCommitMessage(getPath().toString());
+    this.dataWriter.commitRecord();
+    return new BigQueryIndirectWriterCommitMessage(dataWriter.getPath().toString());
   }
 
   @Override
   public void close() throws IOException {
-    logger.warn("Closing File System", getPartitionId(), getPath());
-    getFs().close();
+    logger.warn("Closing File System", dataWriter.getPartitionId(), dataWriter.getPath());
+    dataWriter.close();
   }
 }

@@ -16,41 +16,38 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectDataWriterFactory;
-import com.google.cloud.spark.bigquery.common.IntermediateRecordWriter;
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.UncheckedIOException;
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.writer.DataWriter;
 import org.apache.spark.sql.sources.v2.writer.DataWriterFactory;
 import org.apache.spark.sql.types.StructType;
 
-class BigQueryIndirectDataWriterFactory extends GenericBigQueryIndirectDataWriterFactory
-    implements DataWriterFactory<InternalRow> {
-
-  SerializableConfiguration conf;
-  StructType sparkSchema;
+class BigQueryIndirectDataWriterFactory implements DataWriterFactory<InternalRow>, Serializable {
+  private final GenericBigQueryIndirectDataWriterFactory dataWriterFactory;
 
   public BigQueryIndirectDataWriterFactory(
       SerializableConfiguration conf,
       String gcsDirPath,
       StructType sparkSchema,
       String avroSchemaJson) {
-    super(gcsDirPath, avroSchemaJson);
-    this.conf = conf;
-    this.sparkSchema = sparkSchema;
+    this.dataWriterFactory =
+        new GenericBigQueryIndirectDataWriterFactory(conf, gcsDirPath, sparkSchema, avroSchemaJson);
   }
 
   @Override
   public DataWriter<InternalRow> createDataWriter(int partitionId, long taskId, long epochId) {
     try {
-      enableDataWriter(partitionId, taskId, epochId);
-      FileSystem fs = getPath().getFileSystem(conf.get());
-      IntermediateRecordWriter intermediateRecordWriter =
-          new AvroIntermediateRecordWriter(getAvroSchema(), fs.create(getPath()));
+      this.dataWriterFactory.enableDataWriter(partitionId, taskId, epochId);
       return new BigQueryIndirectDataWriter(
-          partitionId, getPath(), fs, sparkSchema, getAvroSchema(), intermediateRecordWriter);
+          partitionId,
+          this.dataWriterFactory.getPath(),
+          this.dataWriterFactory.getFs(),
+          this.dataWriterFactory.getSparkSchema(),
+          this.dataWriterFactory.getAvroSchema(),
+          this.dataWriterFactory.getIntermediateRecordWriter());
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }

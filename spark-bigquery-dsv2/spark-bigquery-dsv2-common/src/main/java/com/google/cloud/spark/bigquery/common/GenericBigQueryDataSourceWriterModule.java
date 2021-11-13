@@ -4,16 +4,26 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Optional;
 import java.util.UUID;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.types.StructType;
 
 public class GenericBigQueryDataSourceWriterModule implements Serializable {
   private final String writeUUID;
+  private final StructType sparkSchema;
+  private final SaveMode mode;
+  private Optional<IntermediateDataCleaner> intermediateDataCleaner;
+  private Path gcsPath;
 
-  public GenericBigQueryDataSourceWriterModule(String writeUUID) {
+  public GenericBigQueryDataSourceWriterModule(
+      String writeUUID, StructType sparkSchema, SaveMode mode) {
     this.writeUUID = writeUUID;
+    this.sparkSchema = sparkSchema;
+    this.mode = mode;
   }
 
   public String getWriteUUID() {
@@ -51,6 +61,32 @@ public class GenericBigQueryDataSourceWriterModule implements Serializable {
       FileSystem fs = gcsPath.getFileSystem(conf);
       needNewPath = fs.exists(gcsPath); // if the path exists for some reason, then retry
     }
+    return gcsPath;
+  }
+
+  public void createIntermediateCleaner(
+      SparkBigQueryConfig config, Configuration conf, String applicationId) throws IOException {
+    this.gcsPath = createGcsPath(config, conf, applicationId);
+    this.intermediateDataCleaner =
+        config.getTemporaryGcsBucket().map(ignored -> new IntermediateDataCleaner(gcsPath, conf));
+    // based on pmkc's suggestion at https://git.io/JeWRt
+    this.intermediateDataCleaner.ifPresent(
+        cleaner -> Runtime.getRuntime().addShutdownHook(cleaner));
+  }
+
+  public StructType getSparkSchema() {
+    return sparkSchema;
+  }
+
+  public SaveMode getMode() {
+    return mode;
+  }
+
+  public Optional<IntermediateDataCleaner> getIntermediateDataCleaner() {
+    return intermediateDataCleaner;
+  }
+
+  public Path getGcsPath() {
     return gcsPath;
   }
 }

@@ -24,15 +24,17 @@ import org.apache.spark.sql.sources.v2.reader.InputPartition;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
 // This class will be used at spark executor side to create inputPartition object.
-public class BigQueryInputPartition extends GenericBigQueryInputPartition
-    implements InputPartition<InternalRow> {
+public class BigQueryInputPartition implements InputPartition<InternalRow> {
+  private GenericBigQueryInputPartition inputPartitionHelper;
 
   public BigQueryInputPartition(
       BigQueryReadClientFactory bigQueryReadClientFactory,
       String streamName,
       ReadRowsHelper.Options options,
       ReadRowsResponseToInternalRowIteratorConverter converter) {
-    super(bigQueryReadClientFactory, streamName, options, converter);
+    this.inputPartitionHelper =
+        new GenericBigQueryInputPartition(
+            bigQueryReadClientFactory, streamName, options, converter);
   }
 
   // This method will Create the actual data reader and Read the data for corresponding RDD
@@ -41,6 +43,8 @@ public class BigQueryInputPartition extends GenericBigQueryInputPartition
   @Override
   public InputPartitionReader<InternalRow> createPartitionReader() {
     return new BigQueryInputPartitionReader(
-        super.getReadRowsResponse(), super.getConverter(), super.getReadRowsHelper());
+        this.inputPartitionHelper.getReadRowsResponse(),
+        this.inputPartitionHelper.getConverter(),
+        this.inputPartitionHelper.getReadRowsHelper());
   }
 }

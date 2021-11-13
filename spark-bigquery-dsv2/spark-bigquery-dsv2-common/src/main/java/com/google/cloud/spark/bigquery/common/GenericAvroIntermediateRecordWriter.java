@@ -9,7 +9,7 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
 
-public class GenericAvroIntermediateRecordWriter implements Serializable {
+public class GenericAvroIntermediateRecordWriter implements Serializable, IntermediateRecordWriter {
   private final OutputStream outputStream;
   private final DatumWriter<GenericRecord> writer;
   private final DataFileWriter<GenericRecord> dataFileWriter;
@@ -24,5 +24,19 @@ public class GenericAvroIntermediateRecordWriter implements Serializable {
 
   public DataFileWriter<GenericRecord> getDataFileWriter() {
     return this.dataFileWriter;
+  }
+
+  @Override
+  public void write(GenericRecord avroRecord) throws IOException {
+    this.dataFileWriter.append(avroRecord);
+  }
+
+  @Override
+  public void close() throws IOException {
+    try {
+      this.dataFileWriter.flush();
+    } finally {
+      this.dataFileWriter.close();
+    }
   }
 }

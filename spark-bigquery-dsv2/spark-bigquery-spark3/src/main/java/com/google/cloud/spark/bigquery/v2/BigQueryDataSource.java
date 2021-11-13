@@ -3,17 +3,17 @@ package com.google.cloud.spark.bigquery.v2;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import org.apache.spark.sql.connector.catalog.SupportsRead;
-import org.apache.spark.sql.connector.catalog.Table;
-import org.apache.spark.sql.connector.catalog.TableCapability;
-import org.apache.spark.sql.connector.catalog.TableProvider;
+import org.apache.spark.sql.connector.catalog.*;
 import org.apache.spark.sql.connector.expressions.Transform;
 import org.apache.spark.sql.connector.read.ScanBuilder;
+import org.apache.spark.sql.connector.write.LogicalWriteInfo;
+import org.apache.spark.sql.connector.write.WriteBuilder;
 import org.apache.spark.sql.sources.DataSourceRegister;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 
-public class BigQueryDataSource implements TableProvider, DataSourceRegister, SupportsRead {
+public class BigQueryDataSource
+    implements TableProvider, DataSourceRegister, SupportsRead, SupportsWrite {
 
   private Set<TableCapability> capabilities;
 
@@ -60,5 +60,10 @@ public class BigQueryDataSource implements TableProvider, DataSourceRegister, Su
       capabilities.add(TableCapability.BATCH_WRITE);
     }
     return capabilities;
+  }
+
+  @Override
+  public WriteBuilder newWriteBuilder(LogicalWriteInfo logicalWriteInfo) {
+    return null;
   }
 }

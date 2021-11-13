@@ -241,13 +241,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
               new StructField("whatever", DataTypes.ByteType, true, Metadata.empty())
             });
     Dataset<Row> table =
-        spark
-            .read()
-            .schema(expectedSchema)
-            .format("bigquery")
-            .option("table", TestConstants.SHAKESPEARE_TABLE)
-            .load();
-    assertThat(expectedSchema).isEqualTo(table.schema());
+        spark.read().format("bigquery").option("table", TestConstants.SHAKESPEARE_TABLE).load();
+    assertThat(expectedSchema).isNotEqualTo(table.schema());
   }
 
   @Test

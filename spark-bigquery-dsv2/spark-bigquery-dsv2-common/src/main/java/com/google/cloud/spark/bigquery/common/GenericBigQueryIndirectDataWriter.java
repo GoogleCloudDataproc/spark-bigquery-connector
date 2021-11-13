@@ -18,6 +18,7 @@ public class GenericBigQueryIndirectDataWriter implements Serializable {
   Schema avroSchema;
   private int partitionId;
   StructType sparkSchema;
+  private boolean fileClosed = false;
   IntermediateRecordWriter intermediateRecordWriter;
 
   public GenericBigQueryIndirectDataWriter(
@@ -75,5 +76,12 @@ public class GenericBigQueryIndirectDataWriter implements Serializable {
 
   public void writeAbort() throws IOException {
     this.fs.delete(path, false);
+  }
+
+  public void close() throws IOException {
+    if (!this.fileClosed) {
+      this.fs.close();
+      this.fileClosed = true;
+    }
   }
 }

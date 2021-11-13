@@ -16,12 +16,17 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectWriterCommitMessage;
+import java.io.Serializable;
 import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 
-class BigQueryIndirectWriterCommitMessage extends GenericBigQueryIndirectWriterCommitMessage
-    implements WriterCommitMessage {
+class BigQueryIndirectWriterCommitMessage implements WriterCommitMessage, Serializable {
+  private final GenericBigQueryIndirectWriterCommitMessage commitMessage;
 
   public BigQueryIndirectWriterCommitMessage(String uri) {
-    super(uri);
+    this.commitMessage = new GenericBigQueryIndirectWriterCommitMessage(uri);
+  }
+
+  public String getUri() {
+    return this.commitMessage.getUri();
   }
 }

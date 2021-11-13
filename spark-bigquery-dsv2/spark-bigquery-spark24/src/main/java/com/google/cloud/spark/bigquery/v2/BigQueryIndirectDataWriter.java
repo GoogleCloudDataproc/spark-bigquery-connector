@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery.v2;
 import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectDataWriter;
 import com.google.cloud.spark.bigquery.common.IntermediateRecordWriter;
 import java.io.IOException;
+import java.io.Serializable;
 import org.apache.avro.Schema;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -28,11 +29,10 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class BigQueryIndirectDataWriter extends GenericBigQueryIndirectDataWriter
-    implements DataWriter<InternalRow> {
+class BigQueryIndirectDataWriter implements DataWriter<InternalRow>, Serializable {
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryIndirectDataWriter.class);
-  IntermediateRecordWriter intermediateRecordWriter;
+  private GenericBigQueryIndirectDataWriter helperDataWriter;
 
   protected BigQueryIndirectDataWriter(
       int partitionId,
@@ -41,27 +41,28 @@ class BigQueryIndirectDataWriter extends GenericBigQueryIndirectDataWriter
       StructType sparkSchema,
       Schema avroSchema,
       IntermediateRecordWriter intermediateRecordWriter) {
-    super(partitionId, path, fs, sparkSchema, avroSchema, intermediateRecordWriter);
-    this.intermediateRecordWriter = intermediateRecordWriter;
+    helperDataWriter =
+        new GenericBigQueryIndirectDataWriter(
+            partitionId, path, fs, sparkSchema, avroSchema, intermediateRecordWriter);
   }
 
   @Override
   public void write(InternalRow record) throws IOException {
-    this.writeRecord(record);
+    helperDataWriter.writeRecord(record);
   }
 
   @Override
   public WriterCommitMessage commit() throws IOException {
-    this.commitRecord();
-    return new BigQueryIndirectWriterCommitMessage(this.getPath().toString());
+    helperDataWriter.commitRecord();
+    return new BigQueryIndirectWriterCommitMessage(helperDataWriter.getPath().toString());
   }
 
   @Override
   public void abort() throws IOException {
     logger.warn(
         "Writing of partition {} has been aborted, attempting to delete {}",
-        getPartitionId(),
-        getPath());
-    this.writeAbort();
+        helperDataWriter.getPartitionId(),
+        helperDataWriter.getPath());
+    helperDataWriter.writeAbort();
   }
 }

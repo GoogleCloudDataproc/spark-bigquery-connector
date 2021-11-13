@@ -7,13 +7,16 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import java.io.Serializable;
 import java.util.Iterator;
+import org.apache.spark.sql.catalyst.InternalRow;
 
 public class GenericBigQueryInputPartition implements Serializable {
-  private final BigQueryReadClientFactory bigQueryReadClientFactory;
-  private final String streamName;
-  private final ReadRowsHelper.Options options;
-  private final ReadRowsResponseToInternalRowIteratorConverter converter;
+  private BigQueryReadClientFactory bigQueryReadClientFactory;
+  private String streamName;
+  private ReadRowsHelper.Options options;
+  private ReadRowsResponseToInternalRowIteratorConverter converter;
   private ReadRowsHelper readRowsHelper;
+  private int partitionSize;
+  private int currentIndex;
 
   public GenericBigQueryInputPartition(
       BigQueryReadClientFactory bigQueryReadClientFactory,
@@ -24,6 +27,15 @@ public class GenericBigQueryInputPartition implements Serializable {
     this.streamName = streamName;
     this.options = options;
     this.converter = converter;
+  }
+
+  public GenericBigQueryInputPartition(int partitionSize) {
+    this.partitionSize = partitionSize;
+    this.currentIndex = 0;
+  }
+
+  public int getCurrentIndex() {
+    return currentIndex;
   }
 
   public ReadRowsHelper getReadRowsHelper() {
@@ -46,6 +58,10 @@ public class GenericBigQueryInputPartition implements Serializable {
     return converter;
   }
 
+  public int getPartitionSize() {
+    return partitionSize;
+  }
+
   // Get BigQuery Readrowsresponse object by passing the name of bigquery stream name
   public Iterator<ReadRowsResponse> getReadRowsResponse() {
     // Create Bigquery Read rows Request object by passing bigquery stream name (For each logical
@@ -58,5 +74,14 @@ public class GenericBigQueryInputPartition implements Serializable {
     this.readRowsHelper = readRowsHelper;
     Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
     return readRowsResponses;
+  }
+
+  public boolean next() {
+    return this.currentIndex < this.partitionSize;
+  }
+
+  public InternalRow get() {
+    this.currentIndex++;
+    return InternalRow.empty();
   }
 }

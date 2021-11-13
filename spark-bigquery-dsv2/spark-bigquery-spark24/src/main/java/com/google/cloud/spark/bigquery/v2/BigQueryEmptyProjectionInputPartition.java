@@ -20,15 +20,17 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.reader.InputPartition;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
-public class BigQueryEmptyProjectionInputPartition
-    extends GenericBigQueryEmptyProjectionInputPartition implements InputPartition<InternalRow> {
+public class BigQueryEmptyProjectionInputPartition implements InputPartition<InternalRow> {
+  private GenericBigQueryEmptyProjectionInputPartition emptyProjectionInputPartitionHelper;
 
   public BigQueryEmptyProjectionInputPartition(int partitionSize) {
-    super(partitionSize);
+    this.emptyProjectionInputPartitionHelper =
+        new GenericBigQueryEmptyProjectionInputPartition(partitionSize);
   }
 
   @Override
   public InputPartitionReader<InternalRow> createPartitionReader() {
-    return new BigQueryEmptyProjectionInputPartitionReader(super.getPartitionSize());
+    return new BigQueryEmptyProjectionInputPartitionReader(
+        this.emptyProjectionInputPartitionHelper.getPartitionSize());
   }
 }

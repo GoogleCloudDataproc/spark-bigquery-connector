@@ -4,9 +4,9 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.google.cloud.spark</groupId>
-    <artifactId>spark-bigquery-parent</artifactId>
+    <artifactId>spark-bigquery-dsv2-parent</artifactId>
     <version>0.30.0-SNAPSHOT</version>
-    <relativePath>../../spark-bigquery-parent</relativePath>
+    <relativePath>../spark-bigquery-dsv2-parent</relativePath>
   </parent>
 
   <artifactId>spark-bigquery</artifactId>
@@ -23,15 +23,15 @@
     </license>
   </licenses>
   <dependencies>
-    <dependency>
-      <groupId>com.google.cloud.spark</groupId>
-      <artifactId>spark-bigquery-dsv2-parent</artifactId>
-      <version>0.30.0-SNAPSHOT</version>
-    </dependency>
       <dependency>
           <groupId>org.apache.beam</groupId>
           <artifactId>beam-sdks-java-io-hadoop-common</artifactId>
           <version>2.29.0</version>
+       <exclusions>
+        <exclusion>
+          <groupId>org.apache.beam</groupId>
+          <artifactId>beam-sdks-java-core</artifactId>
+        </exclusion></exclusions>
           <scope>compile</scope>
       </dependency>
     <dependency>
@@ -44,6 +44,30 @@
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-sql_2.12</artifactId>
       <version>3.0.0</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-mllib_2.12</artifactId>
+      <version>3.0.0</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud.spark</groupId>
+      <artifactId>spark-bigquery-dsv2-common</artifactId>
+      <version>0.30.0-SNAPSHOT</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud.spark</groupId>
+      <artifactId>spark-bigquery-tests</artifactId>
+      <version>0.30.0-SNAPSHOT</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-common</artifactId>
+      <version>2.7.4</version>
       <scope>compile</scope>
     </dependency>
   </dependencies>

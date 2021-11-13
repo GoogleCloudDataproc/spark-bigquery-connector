@@ -15,27 +15,17 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Job;
-import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.LoadJobConfiguration;
-import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.TableDefinition;
-import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
-import com.google.cloud.spark.bigquery.AvroSchemaConverter;
-import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
-import com.google.cloud.spark.bigquery.SupportedCustomDataType;
 import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectDataSourceWriter;
+import com.google.cloud.spark.bigquery.common.IntermediateDataCleaner;
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
@@ -46,7 +36,6 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.writer.DataSourceWriter;
 import org.apache.spark.sql.sources.v2.writer.DataWriterFactory;
 import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
-import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,15 +45,11 @@ import org.slf4j.LoggerFactory;
  * format, and then triggering a BigQuery load job on this data. Hence the "indirect" - the data
  * goes through an intermediate storage.
  */
-public class BigQueryIndirectDataSourceWriter extends GenericBigQueryIndirectDataSourceWriter
-    implements DataSourceWriter {
+public class BigQueryIndirectDataSourceWriter implements DataSourceWriter, Serializable {
 
   private static final Logger logger =
       LoggerFactory.getLogger(BigQueryIndirectDataSourceWriter.class);
-
-  private final StructType sparkSchema;
-  private final SaveMode saveMode;
-  private final Optional<IntermediateDataCleaner> intermediateDataCleaner;
+  GenericBigQueryIndirectDataSourceWriter dataSourceWriterHelper;
 
   public BigQueryIndirectDataSourceWriter(
       BigQueryClient bigQueryClient,
@@ -75,20 +60,25 @@ public class BigQueryIndirectDataSourceWriter extends GenericBigQueryIndirectDat
       SaveMode saveMode,
       Path gcsPath,
       Optional<IntermediateDataCleaner> intermediateDataCleaner) {
-    super(bigQueryClient, config, hadoopConfiguration, writeUUID, gcsPath);
-    this.sparkSchema = sparkSchema;
-    this.saveMode = saveMode;
-    this.intermediateDataCleaner = intermediateDataCleaner;
+    this.dataSourceWriterHelper =
+        new GenericBigQueryIndirectDataSourceWriter(
+            bigQueryClient,
+            config,
+            hadoopConfiguration,
+            sparkSchema,
+            writeUUID,
+            saveMode,
+            gcsPath,
+            intermediateDataCleaner);
   }
 
   @Override
   public DataWriterFactory<InternalRow> createWriterFactory() {
-    org.apache.avro.Schema avroSchema = AvroSchemaConverter.sparkSchemaToAvroSchema(sparkSchema);
     return new BigQueryIndirectDataWriterFactory(
-        new SerializableConfiguration(getHadoopConfiguration()),
-        getGcsPath().toString(),
-        sparkSchema,
-        avroSchema.toString());
+        new SerializableConfiguration(this.dataSourceWriterHelper.getHadoopConfiguration()),
+        this.dataSourceWriterHelper.getGcsPath().toString(),
+        this.dataSourceWriterHelper.getSparkSchema(),
+        this.dataSourceWriterHelper.getAvroSchemaName());
   }
 
   @Override
@@ -102,12 +92,17 @@ public class BigQueryIndirectDataSourceWriter extends GenericBigQueryIndirectDat
               .map(msg -> ((BigQueryIndirectWriterCommitMessage) msg).getUri())
               .collect(Collectors.toList());
       loadDataToBigQuery(sourceUris);
-      updateMetadataIfNeeded();
+      String logMessage = this.dataSourceWriterHelper.updateMetadataIfNeeded();
+      if (logMessage != null) {
+        logger.debug("updated schema, following fields updated: {}", logMessage);
+      } else {
+        logger.debug("no fields updated");
+      }
       logger.info("Data has been successfully loaded to BigQuery");
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     } finally {
-      cleanTemporaryGcsPathIfNeeded();
+      this.dataSourceWriterHelper.cleanTemporaryGcsPathIfNeeded();
     }
   }
 
@@ -116,98 +111,20 @@ public class BigQueryIndirectDataSourceWriter extends GenericBigQueryIndirectDat
     try {
       logger.warn(
           "Aborting write {} for table {}",
-          getWriteUUID(),
-          BigQueryUtil.friendlyTableName(getConfig().getTableId()));
+          this.dataSourceWriterHelper.getWriteUUID(),
+          BigQueryUtil.friendlyTableName(this.dataSourceWriterHelper.getConfig().getTableId()));
     } finally {
-      cleanTemporaryGcsPathIfNeeded();
+      this.dataSourceWriterHelper.cleanTemporaryGcsPathIfNeeded();
     }
   }
 
   void loadDataToBigQuery(List<String> sourceUris) throws IOException {
     // Solving Issue #248
-    List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
-
-    LoadJobConfiguration.Builder jobConfiguration = createJobConfiguration(optimizedSourceUris);
-    jobConfiguration.setWriteDisposition(saveModeToWriteDisposition(saveMode));
-    Job finishedJob =
-        getBigQueryClient().createAndWaitFor(prepareJobConfiguration(jobConfiguration));
-    String jobResult = validateJobStatus(finishedJob);
+    Job finishedJob = this.dataSourceWriterHelper.loadDataToBigQuery(sourceUris);
+    String jobResult = this.dataSourceWriterHelper.validateJobStatus(finishedJob);
     logger.info(
         jobResult,
-        BigQueryUtil.friendlyTableName(getConfig().getTableId()),
+        BigQueryUtil.friendlyTableName(this.dataSourceWriterHelper.getConfig().getTableId()),
         finishedJob.getJobId());
-  }
-
-  JobInfo.WriteDisposition saveModeToWriteDisposition(SaveMode saveMode) {
-    if (saveMode == SaveMode.ErrorIfExists) {
-      return JobInfo.WriteDisposition.WRITE_EMPTY;
-    }
-    // SaveMode.Ignore is handled in the data source level. If it has arrived here it means tha
-    // table does not exist
-    if (saveMode == SaveMode.Append || saveMode == SaveMode.Ignore) {
-      return JobInfo.WriteDisposition.WRITE_APPEND;
-    }
-    if (saveMode == SaveMode.Overwrite) {
-      return JobInfo.WriteDisposition.WRITE_TRUNCATE;
-    }
-    throw new UnsupportedOperationException(
-        "SaveMode " + saveMode + " is currently not supported.");
-  }
-
-  void updateMetadataIfNeeded() {
-    Map<String, StructField> fieldsToUpdate =
-        Stream.of(sparkSchema.fields())
-            .filter(
-                field ->
-                    SupportedCustomDataType.of(field.dataType()).isPresent()
-                        || SchemaConverters.getDescriptionOrCommentOfField(field).isPresent())
-            .collect(Collectors.toMap(StructField::name, Function.identity()));
-
-    if (!fieldsToUpdate.isEmpty()) {
-      logger.debug("updating schema, found fields to update: {}", fieldsToUpdate.keySet());
-      TableInfo originalTableInfo =
-          getBigQueryClient().getTable(getConfig().getTableIdWithoutThePartition());
-      TableDefinition originalTableDefinition = originalTableInfo.getDefinition();
-      Schema originalSchema = originalTableDefinition.getSchema();
-      Schema updatedSchema =
-          Schema.of(
-              originalSchema.getFields().stream()
-                  .map(
-                      field ->
-                          Optional.ofNullable(fieldsToUpdate.get(field.getName()))
-                              .map(sparkSchemaField -> updatedField(field, sparkSchemaField))
-                              .orElse(field))
-                  .collect(Collectors.toList()));
-      TableInfo.Builder updatedTableInfo =
-          originalTableInfo
-              .toBuilder()
-              .setDefinition(originalTableDefinition.toBuilder().setSchema(updatedSchema).build());
-
-      getBigQueryClient().update(updatedTableInfo.build());
-    }
-  }
-
-  Field updatedField(Field field, StructField sparkSchemaField) {
-    Field.Builder newField = field.toBuilder();
-    Optional<String> bqDescription =
-        SchemaConverters.getDescriptionOrCommentOfField(sparkSchemaField);
-
-    if (bqDescription.isPresent()) {
-      newField.setDescription(bqDescription.get());
-    } else {
-      String description = field.getDescription();
-      String marker = SupportedCustomDataType.of(sparkSchemaField.dataType()).get().getTypeMarker();
-
-      if (description == null) {
-        newField.setDescription(marker);
-      } else if (!description.endsWith(marker)) {
-        newField.setDescription(description + " " + marker);
-      }
-    }
-    return newField.build();
-  }
-
-  void cleanTemporaryGcsPathIfNeeded() {
-    intermediateDataCleaner.ifPresent(cleaner -> cleaner.run());
   }
 }

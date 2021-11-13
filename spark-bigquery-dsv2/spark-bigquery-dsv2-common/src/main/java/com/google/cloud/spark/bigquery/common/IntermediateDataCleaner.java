@@ -7,16 +7,15 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GenericIntermediateDataCleaner extends Thread implements Serializable {
-  private static final Logger logger =
-      LoggerFactory.getLogger(GenericIntermediateDataCleaner.class);
+public class IntermediateDataCleaner extends Thread implements Serializable {
+  private static final Logger logger = LoggerFactory.getLogger(IntermediateDataCleaner.class);
 
   /** the path to delete */
   private final Path path;
   /** the hadoop configuration */
   private final Configuration conf;
 
-  public GenericIntermediateDataCleaner(Path path, Configuration conf) {
+  public IntermediateDataCleaner(Path path, Configuration conf) {
     this.path = path;
     this.conf = conf;
   }

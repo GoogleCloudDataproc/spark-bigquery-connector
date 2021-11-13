@@ -23,19 +23,16 @@ import com.google.cloud.spark.bigquery.common.GenericArrowColumnBatchPartitionRe
 import com.google.protobuf.ByteString;
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 import org.apache.arrow.util.AutoCloseables;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
-import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 
-class ArrowColumnBatchPartitionColumnBatchReader extends GenericArrowColumnBatchPartitionReader
-    implements InputPartitionReader<ColumnarBatch> {
+class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader<ColumnarBatch> {
 
-  private final Map<String, StructField> userProvidedFieldMap;
+  private GenericArrowColumnBatchPartitionReader columnBatchPartitionReaderHelper;
   private ColumnarBatch currentBatch;
   private boolean closed = false;
 
@@ -47,45 +44,52 @@ class ArrowColumnBatchPartitionColumnBatchReader extends GenericArrowColumnBatch
       BigQueryStorageReadRowsTracer tracer,
       Optional<StructType> userProvidedSchema,
       int numBackgroundThreads) {
-    super(readRowsResponses, schema, readRowsHelper, namesInOrder, tracer, numBackgroundThreads);
-    List<StructField> userProvidedFieldList =
-        Arrays.stream(userProvidedSchema.orElse(new StructType()).fields())
-            .collect(Collectors.toList());
-    this.userProvidedFieldMap =
-        userProvidedFieldList.stream().collect(Collectors.toMap(StructField::name, field -> field));
+    this.columnBatchPartitionReaderHelper =
+        new GenericArrowColumnBatchPartitionReader(
+            readRowsResponses,
+            schema,
+            readRowsHelper,
+            namesInOrder,
+            tracer,
+            userProvidedSchema,
+            numBackgroundThreads);
   }
 
   @Override
   public boolean next() throws IOException {
-    super.getTracer().nextBatchNeeded();
+    this.columnBatchPartitionReaderHelper.getTracer().nextBatchNeeded();
     if (closed) {
       return false;
     }
-    super.getTracer().rowsParseStarted();
+    this.columnBatchPartitionReaderHelper.getTracer().rowsParseStarted();
 
-    closed = !super.getReader().loadNextBatch();
+    closed = !this.columnBatchPartitionReaderHelper.getReader().loadNextBatch();
 
     if (closed) {
       return false;
     }
 
-    VectorSchemaRoot root = super.getReader().root();
+    VectorSchemaRoot root = this.columnBatchPartitionReaderHelper.getReader().root();
     if (currentBatch == null) {
       // trying to verify from dev@spark but this object
       // should only need to get created once.  The underlying
       // vectors should stay the same.
       ColumnVector[] columns =
-          super.getNamesInOrder().stream()
+          this.columnBatchPartitionReaderHelper.getNamesInOrder().stream()
               .map(root::getVector)
               .map(
                   vector ->
-                      new ArrowSchemaConverter(vector, userProvidedFieldMap.get(vector.getName())))
+                      new ArrowSchemaConverter(
+                          vector,
+                          this.columnBatchPartitionReaderHelper
+                              .getUserProvidedFieldMap()
+                              .get(vector.getName())))
               .toArray(ColumnVector[]::new);
 
       currentBatch = new ColumnarBatch(columns);
     }
     currentBatch.setNumRows(root.getRowCount());
-    super.getTracer().rowsParseFinished(currentBatch.numRows());
+    this.columnBatchPartitionReaderHelper.getTracer().rowsParseFinished(currentBatch.numRows());
     return true;
   }
 
@@ -98,18 +102,26 @@ class ArrowColumnBatchPartitionColumnBatchReader extends GenericArrowColumnBatch
   public void close() throws IOException {
     closed = true;
     try {
-      super.getTracer().finished();
-      super.getCloseables().set(0, super.getReader());
-      super.getCloseables().add(super.getAllocator());
-      AutoCloseables.close(super.getCloseables());
+      this.columnBatchPartitionReaderHelper.getTracer().finished();
+      this.columnBatchPartitionReaderHelper
+          .getCloseables()
+          .set(0, this.columnBatchPartitionReaderHelper.getReader());
+      this.columnBatchPartitionReaderHelper
+          .getCloseables()
+          .add(this.columnBatchPartitionReaderHelper.getAllocator());
+      AutoCloseables.close(this.columnBatchPartitionReaderHelper.getCloseables());
     } catch (Exception e) {
       throw new IOException(
-          "Failure closing arrow components. stream: " + super.getReadRowsHelper(), e);
+          "Failure closing arrow components. stream: "
+              + this.columnBatchPartitionReaderHelper.getReadRowsHelper(),
+          e);
     } finally {
       try {
-        super.getReadRowsHelper().close();
+        this.columnBatchPartitionReaderHelper.getReadRowsHelper().close();
       } catch (Exception e) {
-        throw new IOException("Failure closing stream: " + super.getReadRowsHelper(), e);
+        throw new IOException(
+            "Failure closing stream: " + this.columnBatchPartitionReaderHelper.getReadRowsHelper(),
+            e);
       }
     }
   }

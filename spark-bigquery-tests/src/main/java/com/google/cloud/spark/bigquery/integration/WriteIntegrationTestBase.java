@@ -123,7 +123,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return bq.getTable(testDataset.toString(), testTable).getNumRows().intValue();
   }
 
-  private StandardTableDefinition testPartitionedTableDefinition() {
+  StandardTableDefinition testPartitionedTableDefinition() {
     return bq.getTable(testDataset.toString(), testTable + "_partitioned").getDefinition();
   }
 
@@ -138,6 +138,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         .option("table", fullTableName())
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("intermediateFormat", format)
+        .option("schema", df.schema().toDDL())
         .save();
   }
 
@@ -373,7 +374,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     }
   }
 
-  private StructType structType(StructField... fields) {
+  public StructType structType(StructField... fields) {
     return new StructType(fields);
   }
 
@@ -429,7 +430,7 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .format("bigquery")
             .option("dataset", testDataset.toString())
             .option("table", testTable)
-            .option("readDataFormat", "arrow")
+            .option("readDataFormat", "avro")
             .load()
             .cache();
 

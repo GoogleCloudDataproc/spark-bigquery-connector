@@ -9,13 +9,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.arrow.compression.CommonsCompressionFactory;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.AutoCloseables;
@@ -24,6 +23,8 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowReader;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.arrow.vector.types.pojo.Schema;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 
 public class GenericArrowColumnBatchPartitionReader implements Serializable {
   private static final long maxAllocation = 500 * 1024 * 1024;
@@ -38,6 +39,7 @@ public class GenericArrowColumnBatchPartitionReader implements Serializable {
   private final BufferAllocator allocator;
   private final List<String> namesInOrder;
   private final BigQueryStorageReadRowsTracer tracer;
+  private final Map<String, StructField> userProvidedFieldMap;
 
   private final List<AutoCloseable> closeables = new ArrayList<>();
 
@@ -67,11 +69,17 @@ public class GenericArrowColumnBatchPartitionReader implements Serializable {
       ReadRowsHelper readRowsHelper,
       List<String> namesInOrder,
       BigQueryStorageReadRowsTracer tracer,
+      Optional<StructType> userProvidedSchema,
       int numBackgroundThreads) {
     this.allocator = ArrowUtil.newRootAllocator(maxAllocation);
     this.readRowsHelper = readRowsHelper;
     this.namesInOrder = namesInOrder;
     this.tracer = tracer;
+    List<StructField> userProvidedFieldList =
+        Arrays.stream(userProvidedSchema.orElse(new StructType()).fields())
+            .collect(Collectors.toList());
+    this.userProvidedFieldMap =
+        userProvidedFieldList.stream().collect(Collectors.toMap(StructField::name, field -> field));
     // place holder for reader.
     closeables.add(null);
     if (numBackgroundThreads == 1) {
@@ -121,6 +129,10 @@ public class GenericArrowColumnBatchPartitionReader implements Serializable {
       InputStream fullStream = makeSingleInputStream(readRowsResponses, schema, tracer);
       this.reader = new SimpleAdapter(newArrowStreamReader(fullStream));
     }
+  }
+
+  public Map<String, StructField> getUserProvidedFieldMap() {
+    return userProvidedFieldMap;
   }
 
   public interface ArrowReaderAdapter extends AutoCloseable {

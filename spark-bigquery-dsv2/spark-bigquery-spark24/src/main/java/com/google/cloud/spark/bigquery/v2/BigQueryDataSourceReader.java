@@ -105,6 +105,7 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
         bigQueryReadClientFactory,
         tracerFactory,
         globalFilter,
+        schema,
         applicationId);
 
     StructType convertedSchema =
@@ -227,7 +228,7 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
         .collect(Collectors.toList());
   }
 
-  private boolean isEmptySchema() {
+  public boolean isEmptySchema() {
     return schema.map(StructType::isEmpty).orElse(false);
   }
 
@@ -262,7 +263,7 @@ public class BigQueryDataSourceReader extends GenericBigQueryDataSourceReader
           userProvidedSchema);
     }
     throw new IllegalArgumentException(
-        "No known converted for " + super.getReadSessionCreatorConfig().getReadDataFormat());
+        "No known converter for " + super.getReadSessionCreatorConfig().getReadDataFormat());
   }
 
   List<InputPartition<InternalRow>> createEmptyProjectionPartitions() {

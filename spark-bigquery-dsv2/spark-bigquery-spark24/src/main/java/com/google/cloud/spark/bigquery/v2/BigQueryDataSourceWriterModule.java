@@ -23,22 +23,17 @@ import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import java.io.IOException;
-import java.util.Optional;
-import org.apache.hadoop.fs.Path;
+import java.io.Serializable;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructType;
 
-class BigQueryDataSourceWriterModule extends GenericBigQueryDataSourceWriterModule
-    implements Module {
-
-  private final StructType sparkSchema;
-  private final SaveMode mode;
+class BigQueryDataSourceWriterModule implements Module, Serializable {
+  private GenericBigQueryDataSourceWriterModule dataSourceWriterModuleHelper;
 
   BigQueryDataSourceWriterModule(String writeUUID, StructType sparkSchema, SaveMode mode) {
-    super(writeUUID);
-    this.sparkSchema = sparkSchema;
-    this.mode = mode;
+    this.dataSourceWriterModuleHelper =
+        new GenericBigQueryDataSourceWriterModule(writeUUID, sparkSchema, mode);
   }
 
   @Override
@@ -51,28 +46,17 @@ class BigQueryDataSourceWriterModule extends GenericBigQueryDataSourceWriterModu
   public BigQueryIndirectDataSourceWriter provideDataSourceWriter(
       BigQueryClient bigQueryClient, SparkBigQueryConfig config, SparkSession spark)
       throws IOException {
-    Path gcsPath =
-        createGcsPath(
-            config,
-            spark.sparkContext().hadoopConfiguration(),
-            spark.sparkContext().applicationId());
-    Optional<IntermediateDataCleaner> intermediateDataCleaner =
-        config
-            .getTemporaryGcsBucket()
-            .map(
-                ignored ->
-                    new IntermediateDataCleaner(
-                        gcsPath, spark.sparkContext().hadoopConfiguration()));
+    this.dataSourceWriterModuleHelper.createIntermediateCleaner(
+        config, spark.sparkContext().hadoopConfiguration(), spark.sparkContext().applicationId());
     // based on pmkc's suggestion at https://git.io/JeWRt
-    intermediateDataCleaner.ifPresent(cleaner -> Runtime.getRuntime().addShutdownHook(cleaner));
     return new BigQueryIndirectDataSourceWriter(
         bigQueryClient,
         config,
         spark.sparkContext().hadoopConfiguration(),
-        sparkSchema,
-        getWriteUUID(),
-        mode,
-        gcsPath,
-        intermediateDataCleaner);
+        this.dataSourceWriterModuleHelper.getSparkSchema(),
+        this.dataSourceWriterModuleHelper.getWriteUUID(),
+        this.dataSourceWriterModuleHelper.getMode(),
+        this.dataSourceWriterModuleHelper.getGcsPath(),
+        this.dataSourceWriterModuleHelper.getIntermediateDataCleaner());
   }
 }
