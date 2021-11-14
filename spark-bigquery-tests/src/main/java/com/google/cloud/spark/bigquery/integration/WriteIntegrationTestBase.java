@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertThrows;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
@@ -56,7 +55,7 @@ import org.junit.Before;
 import org.junit.Test;
 import scala.Some;
 
-class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
+abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   private static final String TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
   protected static AtomicInteger id = new AtomicInteger(0);
@@ -169,19 +168,10 @@ class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assertThat(additionalDataValuesExist()).isTrue();
   }
 
-  @Test
-  public void testWriteToBigQuery_ErrorIfExistsSaveMode() throws InterruptedException {
-    // initial write
-    writeToBigQuery(initialData(), SaveMode.ErrorIfExists);
-    assertThat(testTableNumberOfRows()).isEqualTo(2);
-    assertThat(initialDataValuesExist()).isTrue();
-    // second write
-    assertThrows(
-        Exception.class,
-        () -> {
-          writeToBigQuery(additonalData(), SaveMode.ErrorIfExists);
-        });
-  }
+  // Making this abstract because both V1 and V2 throws different exceptions.
+  // V1 throws IllegalArgumentException and V2 throws ProvisionException as in V2 the code breaks at
+  // Guice.
+  public abstract void testWriteToBigQuery_ErrorIfExistsSaveMode() throws InterruptedException;
 
   @Test
   public void testWriteToBigQuery_IgnoreSaveMode() throws InterruptedException {

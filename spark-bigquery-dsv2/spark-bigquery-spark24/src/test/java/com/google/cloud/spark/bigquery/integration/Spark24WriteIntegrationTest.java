@@ -19,6 +19,7 @@ import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_
 import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_API_ALL_TYPES_SCHEMA;
 import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_API_ALL_TYPES_SCHEMA_BIGQUERY_REPRESENTATION;
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.google.cloud.RetryOption;
@@ -32,6 +33,7 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.inject.ProvisionException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,8 +59,11 @@ public class Spark24WriteIntegrationTest extends WriteIntegrationTestBase {
     return Arrays.asList(new Boolean[][] {{Boolean.TRUE}, {Boolean.FALSE}});
   }
 
+  private final boolean isDirectWrite;
+
   public Spark24WriteIntegrationTest(Boolean isDirectWrite) {
     super(isDirectWrite);
+    this.isDirectWrite = isDirectWrite;
   }
 
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
@@ -384,5 +389,22 @@ public class Spark24WriteIntegrationTest extends WriteIntegrationTestBase {
                 bigquery
                     .getTable(TableId.of(BIGQUERY_PUBLIC_DATA, MB100_DATASET, MB100_TABLE))
                     .getNumBytes()));
+  }
+
+  @Test
+  public void testWriteToBigQuery_ErrorIfExistsSaveMode() throws InterruptedException {
+    // initial write
+    writeToBigQuery(initialData(), SaveMode.ErrorIfExists);
+    assertThat(testTableNumberOfRows()).isEqualTo(2);
+    assertThat(initialDataValuesExist()).isTrue();
+    // second write
+    if (isDirectWrite) {
+      assertThrows(
+          ProvisionException.class, () -> writeToBigQuery(additonalData(), SaveMode.ErrorIfExists));
+    } else {
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> writeToBigQuery(additonalData(), SaveMode.ErrorIfExists));
+    }
   }
 }

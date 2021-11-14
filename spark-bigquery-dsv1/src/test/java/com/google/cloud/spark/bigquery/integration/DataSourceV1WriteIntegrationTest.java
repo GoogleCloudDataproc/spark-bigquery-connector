@@ -130,6 +130,20 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
     assertThat(additionalDataValuesExist()).isTrue();
   }
 
+  @Test
+  public void testWriteToBigQuery_ErrorIfExistsSaveMode() throws InterruptedException {
+    // initial write
+    writeToBigQuery(initialData(), SaveMode.ErrorIfExists);
+    assertThat(testTableNumberOfRows()).isEqualTo(2);
+    assertThat(initialDataValuesExist()).isTrue();
+    // second write
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          writeToBigQuery(additonalData(), SaveMode.ErrorIfExists);
+        });
+  }
+
   private static <T> Seq<T> toSeq(List<T> list) {
     return JavaConverters.asScalaIteratorConverter(list.iterator()).asScala().toSeq();
   }
