@@ -31,7 +31,7 @@ public class ReadSessionCreatorTest {
   UnaryCallable<CreateReadSessionRequest, ReadSession> createReadSessionCall =
       mock(UnaryCallable.class);
   BigQueryReadClient readClient = BigQueryReadClient.create(stub);
-  BigQueryReadClientFactory bigQueryReadClientFactory = mock(BigQueryReadClientFactory.class);
+  BigQueryClientFactory bigQueryReadClientFactory = mock(BigQueryClientFactory.class);
   TableInfo table =
       TableInfo.newBuilder(
               TableId.of("a", "b"),

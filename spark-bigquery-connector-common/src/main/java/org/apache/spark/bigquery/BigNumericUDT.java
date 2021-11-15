@@ -1,8 +1,6 @@
 package org.apache.spark.bigquery;
 
 import java.math.BigDecimal;
-import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.UserDefinedType;
@@ -16,10 +14,9 @@ public class BigNumericUDT extends UserDefinedType<BigNumeric> {
   }
 
   @Override
-  public InternalRow serialize(BigNumeric obj) {
-    InternalRow row = new GenericInternalRow(1);
-    row.update(0, UTF8String.fromString(obj.getNumber().toPlainString()));
-    return row;
+  public UTF8String serialize(BigNumeric obj) {
+    String number = obj.getNumber().toPlainString();
+    return UTF8String.fromString(number);
   }
 
   @Override
