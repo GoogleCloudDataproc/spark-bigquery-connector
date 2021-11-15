@@ -33,8 +33,8 @@ import org.apache.spark.sql.sources.DataSourceRegister;
 import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.apache.spark.sql.sources.v2.DataSourceV2;
 import org.apache.spark.sql.sources.v2.ReadSupport;
-import org.apache.spark.sql.sources.v2.WriteSupport;
 import org.apache.spark.sql.sources.v2.StreamWriteSupport;
+import org.apache.spark.sql.sources.v2.WriteSupport;
 import org.apache.spark.sql.sources.v2.reader.DataSourceReader;
 import org.apache.spark.sql.sources.v2.writer.DataSourceWriter;
 import org.apache.spark.sql.sources.v2.writer.streaming.StreamWriter;
@@ -133,20 +133,32 @@ public class BigQueryDataSourceV2
   }
 
   @Override
-  public StreamWriter createStreamWriter(String queryId, StructType schema, OutputMode mode, DataSourceOptions options) {
+  public StreamWriter createStreamWriter(
+      String queryId, StructType schema, OutputMode mode, DataSourceOptions options) {
     //  In Development
-     System.out.println("In createStreamWriter");
-
+    System.out.println("*** In createStreamWriter ***");
+    System.out.println(" && Params &&");
+    System.out.println("QueryId - " + queryId);
+    System.out.println("Schema - " + schema);
+    System.out.println("Output Mode - " + mode);
+    System.out.println("DataSourceOptions - " + options);
     Injector injector =
-            createInjector(
-                    schema, options, new BigQueryStreamWriterModule(queryId, schema, mode));
+        createInjector(schema, options, new BigQueryStreamWriterModule(queryId, schema, mode));
 
-    BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
-    SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
-    TableInfo table = bigQueryClient.getTable(config.getTableId());
+//    BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
+//    System.out.println("BigQueryClient " + bigQueryClient);
+    //    SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
+    //    System.out.println("config "+ config);
+    //    TableInfo table = bigQueryClient.getTable(config.getTableId());
+    //    System.out.println("Table "+ table);
 
-    //return  BigQueryStreamingWriter of type StreamWriter
+    // return  BigQueryStreamingWriter of type StreamWriter
+    //  StreamWriter streamWriter = new BigQueryStreamingWriter();
 
-    return null;
+    //    BigQueryStreamingWriter writer =
+    //            injector.getInstance(BigQueryStreamingWriter.class);
+    //    return Optional.of(writer);
+
+    return new BigQueryStreamingWriter();
   }
 }
