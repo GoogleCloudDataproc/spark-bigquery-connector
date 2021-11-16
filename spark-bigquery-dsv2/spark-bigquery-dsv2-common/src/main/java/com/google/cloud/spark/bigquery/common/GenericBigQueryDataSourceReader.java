@@ -44,8 +44,10 @@ public class GenericBigQueryDataSourceReader implements Serializable {
   private Map<String, StructField> fields;
   private ReadSession readSession;
   private ImmutableList<String> selectedFields;
+  private ImmutableList<String> selectedBatchFields;
   private Optional<String> filter;
   private ReadSessionResponse readSessionResponse;
+  private GenericBigQuerySparkFilterHelper sparkFilterHelper;
 
   public GenericBigQueryDataSourceReader(
       TableInfo table,
@@ -66,14 +68,39 @@ public class GenericBigQueryDataSourceReader implements Serializable {
     this.readSessionCreator =
         new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
     this.globalFilter = globalFilter;
-    this.schema = schema;
-    this.populateSchema(table);
+    StructType convertedSchema =
+        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table));
+    if (schema.isPresent()) {
+      this.schema = schema;
+      this.userProvidedSchema = schema;
+    } else {
+      this.schema = Optional.of(convertedSchema);
+      this.userProvidedSchema = Optional.empty();
+    }
+    // We want to keep the key order
+    this.fields = new LinkedHashMap<>();
+    for (StructField field : JavaConversions.seqAsJavaList(convertedSchema)) {
+      this.fields.put(field.name(), field);
+    }
     this.selectedFields =
-        schema
+        this.schema
             .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
             .orElse(ImmutableList.of());
-    this.filter = getCombinedFilter();
-    this.readSessionResponse = this.readSessionCreator.create(this.tableId, selectedFields, filter);
+    this.sparkFilterHelper = new GenericBigQuerySparkFilterHelper(table);
+  }
+
+  public void createReadSession(boolean batch) {
+    this.selectedFields =
+        batch
+            ? this.schema
+                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+                .orElse(ImmutableList.copyOf(this.fields.keySet()))
+            : this.schema
+                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+                .orElse(ImmutableList.of());
+    Optional<String> filter = getCombinedFilter();
+    this.readSessionResponse =
+        this.readSessionCreator.create(this.tableId, this.selectedFields, filter);
     this.readSession = readSessionResponse.getReadSession();
   }
 
@@ -96,11 +123,14 @@ public class GenericBigQueryDataSourceReader implements Serializable {
     }
   }
 
+  public Optional<StructType> getSchema() {
+    return this.schema;
+  }
+
   private void populateSchema(TableInfo table) {
     StructType convertedSchema =
         SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table));
     if (schema.isPresent()) {
-      this.schema = schema;
       this.userProvidedSchema = schema;
     } else {
       this.schema = Optional.of(convertedSchema);
@@ -166,7 +196,7 @@ public class GenericBigQueryDataSourceReader implements Serializable {
   }
 
   public Map<String, StructField> getFields() {
-    return fields;
+    return this.fields;
   }
 
   public Optional<String> getFilter() {
@@ -236,5 +266,34 @@ public class GenericBigQueryDataSourceReader implements Serializable {
 
   public void pruneColumns(StructType requiredSchema) {
     this.schema = Optional.ofNullable(requiredSchema);
+  }
+
+  public Filter[] pushFilters(Filter[] filters) {
+    return this.pushFilters(filters, this.readSessionCreatorConfig, this.fields);
+  }
+
+  public Filter[] pushFilters(
+      Filter[] filters,
+      ReadSessionCreatorConfig readSessionCreatorConfig,
+      Map<String, StructField> fields) {
+    List<Filter> handledFilters = new ArrayList<>();
+    List<Filter> unhandledFilters = new ArrayList<>();
+    for (Filter filter : filters) {
+      if (SparkFilterUtils.isTopLevelFieldHandled(
+          readSessionCreatorConfig.getPushAllFilters(),
+          filter,
+          readSessionCreatorConfig.getReadDataFormat(),
+          fields)) {
+        handledFilters.add(filter);
+      } else {
+        unhandledFilters.add(filter);
+      }
+    }
+    this.pushedFilters = handledFilters.stream().toArray(Filter[]::new);
+    return unhandledFilters.stream().toArray(Filter[]::new);
+  }
+
+  public Filter[] getPushedFilters() {
+    return this.pushedFilters;
   }
 }
