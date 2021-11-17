@@ -19,7 +19,7 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
-import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
@@ -70,10 +70,24 @@ public class BigQueryDataSourceReader
         }
       };
 
+  private final TableInfo table;
+  private final TableId tableId;
+  private final ReadSessionCreatorConfig readSessionCreatorConfig;
+  private final BigQueryClient bigQueryClient;
+  private final BigQueryClientFactory bigQueryReadClientFactory;
+  private final BigQueryTracerFactory bigQueryTracerFactory;
+  private final ReadSessionCreator readSessionCreator;
+  private final Optional<String> globalFilter;
+  private final String applicationId;
+  private Optional<StructType> schema;
+  private Optional<StructType> userProvidedSchema;
+  private Filter[] pushedFilters = new Filter[] {};
+  private Map<String, StructField> fields;
+
   public BigQueryDataSourceReader(
       TableInfo table,
       BigQueryClient bigQueryClient,
-      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory tracerFactory,
       ReadSessionCreatorConfig readSessionCreatorConfig,
       Optional<String> globalFilter,

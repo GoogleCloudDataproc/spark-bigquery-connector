@@ -15,7 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
+import static com.google.common.base.Optional.fromJavaUtil;
+
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
@@ -36,8 +38,16 @@ import org.apache.spark.sql.vectorized.ColumnarBatch;
 public class ArrowInputPartition implements InputPartition<ColumnarBatch> {
   private GenericArrowInputPartition arrowInputPartitionHelper;
 
+  private final BigQueryClientFactory bigQueryReadClientFactory;
+  private final BigQueryTracerFactory tracerFactory;
+  private final List<String> streamNames;
+  private final ReadRowsHelper.Options options;
+  private final ImmutableList<String> selectedFields;
+  private final ByteString serializedArrowSchema;
+  private final com.google.common.base.Optional<StructType> userProvidedSchema;
+
   public ArrowInputPartition(
-      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory tracerFactory,
       List<String> names,
       ReadRowsHelper.Options options,

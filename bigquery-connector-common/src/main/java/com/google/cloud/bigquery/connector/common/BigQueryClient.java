@@ -15,16 +15,8 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED;
-import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
-import static com.google.cloud.bigquery.connector.common.BigQueryUtil.convertToBigQueryException;
-import static com.google.common.collect.ImmutableList.toImmutableList;
-import static java.lang.String.format;
-import static java.util.Locale.ENGLISH;
-import static java.util.UUID.randomUUID;
-import static java.util.stream.Collectors.joining;
-
 import com.google.cloud.BaseServiceException;
+import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Dataset;
@@ -33,6 +25,8 @@ import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobConfiguration;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -43,8 +37,12 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -52,6 +50,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.threeten.bp.Duration;
 
 // holds caches and mappings
 // presto converts the dataset and table names to lower case, while BigQuery is case sensitive
@@ -75,6 +74,27 @@ public class BigQueryClient {
     this.materializationDataset = materializationDataset;
   }
 
+  /**
+   * Waits for a BigQuery Job to complete: this is a blocking function.
+   *
+   * @param job The {@code Job} to keep track of.
+   */
+  public static void waitForJob(Job job) {
+    try {
+      Job completedJob =
+          job.waitFor(
+              RetryOption.initialRetryDelay(Duration.ofSeconds(1)),
+              RetryOption.totalTimeout(Duration.ofMinutes(3)));
+      if (completedJob == null && completedJob.getStatus().getError() != null) {
+        throw new UncheckedIOException(
+            new IOException(completedJob.getStatus().getError().toString()));
+      }
+    } catch (InterruptedException e) {
+      throw new RuntimeException(
+          "Could not copy table from temporary sink to destination table.", e);
+    }
+  }
+
   // return empty if no filters are used
   private static Optional<String> createWhereClause(String[] filters) {
     if (filters.length == 0) {
@@ -85,6 +105,111 @@ public class BigQueryClient {
 
   public TableInfo getTable(TableId tableId) {
     return bigQuery.getTable(tableId);
+  }
+
+  /**
+   * Checks whether the requested table exists in BigQuery.
+   *
+   * @param tableId The TableId of the requested table in BigQuery
+   * @return True if the requested table exists in BigQuery, false otherwise.
+   */
+  public boolean tableExists(TableId tableId) {
+    return getTable(tableId) != null;
+  }
+
+  /**
+   * Creates an empty table in BigQuery.
+   *
+   * @param tableId The TableId of the table to be created.
+   * @param schema The Schema of the table to be created.
+   * @return The {@code Table} object representing the table that was created.
+   */
+  public Table createTable(TableId tableId, Schema schema) {
+    TableInfo tableInfo = TableInfo.newBuilder(tableId, StandardTableDefinition.of(schema)).build();
+    return bigQuery.create(tableInfo);
+  }
+
+  /**
+   * Creates a temporary table with a time-to-live of 1 day, and the same location as the
+   * destination table; the temporary table will have the same name as the destination table, with
+   * the current time in milliseconds appended to it; useful for holding temporary data in order to
+   * overwrite the destination table.
+   *
+   * @param destinationTableId The TableId of the eventual destination for the data going into the
+   *     temporary table.
+   * @param schema The Schema of the destination / temporary table.
+   * @return The {@code Table} object representing the created temporary table.
+   */
+  public Table createTempTable(TableId destinationTableId, Schema schema) {
+    String tempProject = materializationProject.orElseGet(destinationTableId::getProject);
+    String tempDataset = materializationDataset.orElseGet(destinationTableId::getDataset);
+    String tableName = destinationTableId.getTable() + System.nanoTime();
+    TableId tempTableId =
+        tempProject == null
+            ? TableId.of(tempDataset, tableName)
+            : TableId.of(tempProject, tempDataset, tableName);
+    // Build TableInfo with expiration time of one day from current epoch.
+    TableInfo tableInfo =
+        TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema))
+            .setExpirationTime(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1))
+            .build();
+    return bigQuery.create(tableInfo);
+  }
+
+  /**
+   * Deletes this table in BigQuery.
+   *
+   * @param tableId The TableId of the table to be deleted.
+   * @return True if the operation was successful, false otherwise.
+   */
+  public boolean deleteTable(TableId tableId) {
+    return bigQuery.delete(tableId);
+  }
+
+  /**
+   * Overwrites the given destination table, with all the data from the given temporary table,
+   * transactionally.
+   *
+   * @param temporaryTableId The {@code TableId} representing the temporary-table.
+   * @param destinationTableId The {@code TableId} representing the destination table.
+   * @return The {@code Job} object representing this operation (which can be tracked to wait until
+   *     it has finished successfully).
+   */
+  public Job overwriteDestinationWithTemporary(
+      TableId temporaryTableId, TableId destinationTableId) {
+    String queryFormat =
+        "MERGE `%s`\n"
+            + "USING (SELECT * FROM `%s`)\n"
+            + "ON FALSE\n"
+            + "WHEN NOT MATCHED THEN INSERT ROW\n"
+            + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
+
+    QueryJobConfiguration queryConfig =
+        QueryJobConfiguration.newBuilder(
+                sqlFromFormat(queryFormat, destinationTableId, temporaryTableId))
+            .setUseLegacySql(false)
+            .build();
+
+    return create(JobInfo.newBuilder(queryConfig).build());
+  }
+
+  String sqlFromFormat(String queryFormat, TableId destinationTableId, TableId temporaryTableId) {
+    String destinationTableName = fullTableName(destinationTableId);
+    String temporaryTableName = fullTableName(temporaryTableId);
+    return String.format(queryFormat, destinationTableName, temporaryTableName);
+  }
+
+  /**
+   * Creates a String appropriately formatted for BigQuery Storage Write API representing the given
+   * table.
+   *
+   * @param tableId The {@code TableId} representing the given object.
+   * @return The formatted String.
+   */
+  public String createTablePathForBigQueryStorage(TableId tableId) {
+    return String.format(
+        "projects/%s/datasets/%s/tables/%s",
+        tableId.getProject(), tableId.getDataset(), tableId.getTable());
   }
 
   public TableInfo getReadTable(ReadTableOptions options) {
@@ -115,8 +240,8 @@ public class BigQueryClient {
     }
     // not regular table or a view
     throw new BigQueryConnectorException(
-        UNSUPPORTED,
-        format(
+        BigQueryErrorCode.UNSUPPORTED,
+        String.format(
             "Table type '%s' of table '%s.%s' is not supported",
             tableType, table.getTableId().getDataset(), table.getTableId().getTable()));
   }
@@ -124,9 +249,10 @@ public class BigQueryClient {
   private void validateViewsEnabled(ReadTableOptions options) {
     if (!options.viewsEnabled()) {
       throw new BigQueryConnectorException(
-          UNSUPPORTED,
-          format(
-              "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
+          BigQueryErrorCode.UNSUPPORTED,
+          String.format(
+              "Views are not enabled. You can enable views by setting '%s' to true. Notice"
+                  + " additional cost may occur.",
               options.viewEnabledParamName()));
     }
   }
@@ -148,14 +274,16 @@ public class BigQueryClient {
     Iterable<Table> allTables = bigQuery.listTables(datasetId).iterateAll();
     return StreamSupport.stream(allTables.spliterator(), false)
         .filter(table -> allowedTypes.contains(table.getDefinition().getType()))
-        .collect(toImmutableList());
+        .collect(ImmutableList.toImmutableList());
   }
 
   TableId createDestinationTable(
       Optional<String> referenceProject, Optional<String> referenceDataset) {
     String project = materializationProject.orElse(referenceProject.orElse(null));
     String dataset = materializationDataset.orElse(referenceDataset.orElse(null));
-    String name = format("_bqc_%s", randomUUID().toString().toLowerCase(ENGLISH).replace("-", ""));
+    String name =
+        String.format(
+            "_bqc_%s", UUID.randomUUID().toString().toLowerCase(Locale.ENGLISH).replace("-", ""));
     return project == null ? TableId.of(dataset, name) : TableId.of(project, dataset, name);
   }
 
@@ -178,7 +306,9 @@ public class BigQueryClient {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new BigQueryException(
-          BaseHttpServiceException.UNKNOWN_CODE, format("Failed to run the job [%s]", job), e);
+          BaseHttpServiceException.UNKNOWN_CODE,
+          String.format("Failed to run the job [%s]", job),
+          e);
     }
   }
 
@@ -192,7 +322,9 @@ public class BigQueryClient {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new BigQueryException(
-          BaseHttpServiceException.UNKNOWN_CODE, format("Failed to run the query [%s]", sql), e);
+          BaseHttpServiceException.UNKNOWN_CODE,
+          String.format("Failed to run the query [%s]", sql),
+          e);
     }
   }
 
@@ -200,7 +332,9 @@ public class BigQueryClient {
     String columns =
         requiredColumns.isEmpty()
             ? "*"
-            : requiredColumns.stream().map(column -> format("`%s`", column)).collect(joining(","));
+            : requiredColumns.stream()
+                .map(column -> String.format("`%s`", column))
+                .collect(Collectors.joining(","));
 
     return createSql(table, columns, filters);
   }
@@ -212,11 +346,16 @@ public class BigQueryClient {
 
     String whereClause = createWhereClause(filters).map(clause -> "WHERE " + clause).orElse("");
 
-    return format("SELECT %s FROM `%s` %s", formattedQuery, tableName, whereClause);
+    return String.format("SELECT %s FROM `%s` %s", formattedQuery, tableName, whereClause);
   }
 
-  String fullTableName(TableId tableId) {
-    return format("%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
+  public static String fullTableName(TableId tableId) {
+    if (tableId.getProject() == null) {
+      return String.format("%s.%s", tableId.getDataset(), tableId.getTable());
+    } else {
+      return String.format(
+          "%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
+    }
   }
 
   public long calculateTableSize(TableId tableId, Optional<String> filter) {
@@ -234,12 +373,12 @@ public class BigQueryClient {
         // run a query
         String table = fullTableName(tableInfo.getTableId());
         String whereClause = filter.map(f -> "WHERE " + f).orElse("");
-        String sql = format("SELECT COUNT(*) from `%s` %s", table, whereClause);
+        String sql = String.format("SELECT COUNT(*) from `%s` %s", table, whereClause);
         TableResult result = bigQuery.query(QueryJobConfiguration.of(sql));
         return result.iterateAll().iterator().next().get(0).getLongValue();
       } else {
         throw new IllegalArgumentException(
-            format(
+            String.format(
                 "Unsupported table type %s for table %s",
                 type, fullTableName(tableInfo.getTableId())));
       }
@@ -288,7 +427,7 @@ public class BigQueryClient {
           new DestinationTableBuilder(this, querySql, destinationTableId, expirationTimeInMinutes));
     } catch (Exception e) {
       throw new BigQueryConnectorException(
-          BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
+          BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
           String.format(
               "Error creating destination table using the following query: [%s]", querySql),
           e);
@@ -340,7 +479,7 @@ public class BigQueryClient {
       Job job = waitForJob(bigQueryClient.create(jobInfo));
       log.debug("job has finished. %s", job);
       if (job.getStatus().getError() != null) {
-        throw convertToBigQueryException(job.getStatus().getError());
+        throw BigQueryUtil.convertToBigQueryException(job.getStatus().getError());
       }
       // add expiration time to the table
       TableInfo createdTable = bigQueryClient.getTable(destinationTable);
@@ -358,7 +497,7 @@ public class BigQueryClient {
         Thread.currentThread().interrupt();
         throw new BigQueryException(
             BaseServiceException.UNKNOWN_CODE,
-            format("Job %s has been interrupted", job.getJobId()),
+            String.format("Job %s has been interrupted", job.getJobId()),
             e);
       }
     }

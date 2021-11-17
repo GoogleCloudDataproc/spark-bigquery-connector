@@ -33,6 +33,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
+import org.apache.spark.bigquery.BigNumericUDT;
 import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
@@ -418,13 +419,14 @@ public class SchemaConverters {
             "Decimal type is too wide to fit in BigQuery Numeric format");
       }
     }
+    if (elementType instanceof BigNumericUDT) {
+      return LegacySQLTypeName.BIGNUMERIC;
+    }
     if (elementType instanceof StringType) {
       return LegacySQLTypeName.STRING;
     }
     if (elementType instanceof TimestampType) {
-      // return LegacySQLTypeName.TIMESTAMP; FIXME: Restore this correct conversion when the Vortex
-      // team adds microsecond support to their backend
-      return LegacySQLTypeName.INTEGER;
+      return LegacySQLTypeName.TIMESTAMP;
     }
     if (elementType instanceof DateType) {
       return LegacySQLTypeName.DATE;
