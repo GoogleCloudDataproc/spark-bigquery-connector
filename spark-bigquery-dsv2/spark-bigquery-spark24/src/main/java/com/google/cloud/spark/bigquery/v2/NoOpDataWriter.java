@@ -13,24 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.bigquery.connector.common;
+package com.google.cloud.spark.bigquery.v2;
 
-public enum BigQueryErrorCode {
-  BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED(0),
-  BIGQUERY_DATETIME_PARSING_ERROR(1),
-  BIGQUERY_FAILED_TO_EXECUTE_QUERY(2),
-  BIGQUERY_INVALID_SCHEMA(2),
-  // Should be last
-  UNSUPPORTED(9998),
-  UNKNOWN(9999);
+import java.io.IOException;
+import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.sources.v2.writer.DataWriter;
+import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 
-  final int code;
+public class NoOpDataWriter implements DataWriter<InternalRow> {
+  @Override
+  public void write(InternalRow record) throws IOException {}
 
-  BigQueryErrorCode(int code) {
-    this.code = code;
+  @Override
+  public WriterCommitMessage commit() throws IOException {
+    return null;
   }
 
-  public int getCode() {
-    return code;
-  }
+  @Override
+  public void abort() throws IOException {}
 }

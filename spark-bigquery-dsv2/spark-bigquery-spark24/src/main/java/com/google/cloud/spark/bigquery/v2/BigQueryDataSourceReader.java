@@ -22,7 +22,7 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
-import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
@@ -89,7 +89,7 @@ public class BigQueryDataSourceReader
   private final TableId tableId;
   private final ReadSessionCreatorConfig readSessionCreatorConfig;
   private final BigQueryClient bigQueryClient;
-  private final BigQueryReadClientFactory bigQueryReadClientFactory;
+  private final BigQueryClientFactory bigQueryReadClientFactory;
   private final BigQueryTracerFactory bigQueryTracerFactory;
   private final ReadSessionCreator readSessionCreator;
   private final Optional<String> globalFilter;
@@ -102,7 +102,7 @@ public class BigQueryDataSourceReader
   public BigQueryDataSourceReader(
       TableInfo table,
       BigQueryClient bigQueryClient,
-      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory tracerFactory,
       ReadSessionCreatorConfig readSessionCreatorConfig,
       Optional<String> globalFilter,

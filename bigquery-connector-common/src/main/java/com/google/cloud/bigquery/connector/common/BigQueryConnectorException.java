@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.BIGQUERY_INVALID_SCHEMA;
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNKNOWN;
 
 public class BigQueryConnectorException extends RuntimeException {
@@ -41,5 +42,16 @@ public class BigQueryConnectorException extends RuntimeException {
 
   public BigQueryErrorCode getErrorCode() {
     return errorCode;
+  }
+
+  // inner child class
+  public static class InvalidSchemaException extends BigQueryConnectorException {
+    public InvalidSchemaException(String message) {
+      super(BIGQUERY_INVALID_SCHEMA, message);
+    }
+
+    public InvalidSchemaException(String message, Throwable t) {
+      super(BIGQUERY_INVALID_SCHEMA, message, t);
+    }
   }
 }

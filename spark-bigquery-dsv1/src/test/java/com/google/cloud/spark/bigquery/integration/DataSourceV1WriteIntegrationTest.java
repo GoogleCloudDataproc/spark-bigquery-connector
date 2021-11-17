@@ -36,6 +36,10 @@ import scala.collection.Seq;
 
 public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
 
+  public DataSourceV1WriteIntegrationTest() {
+    super(false);
+  }
+
   // DSv2 does not support BigNumeric yet
   @Test
   public void testWriteAllDataTypes() {
@@ -64,7 +68,7 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
 
   // v2 does not support ORC
   @Test
-  public void testWriteToBigQuery_OrcFormat() {
+  public void testWriteToBigQuery_OrcFormat() throws InterruptedException {
     // required by ORC
     spark.conf().set("spark.sql.orc.impl", "native");
     writeToBigQuery(initialData(), SaveMode.ErrorIfExists, "orc");
@@ -74,7 +78,7 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
 
   // v2 does not support parquet
   @Test
-  public void testWriteToBigQuery_ParquetFormat() {
+  public void testWriteToBigQuery_ParquetFormat() throws InterruptedException {
     writeToBigQuery(initialData(), SaveMode.ErrorIfExists, "parquet");
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
@@ -90,7 +94,7 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
   }
 
   @Test(timeout = 120_000)
-  public void testStreamingToBigQueryWriteAppend() {
+  public void testStreamingToBigQueryWriteAppend() throws InterruptedException {
     StructType schema = initialData().schema();
     ExpressionEncoder<Row> expressionEncoder = RowEncoder.apply(schema);
     MemoryStream<Row> stream = MemoryStream.apply(expressionEncoder, spark.sqlContext());
@@ -124,6 +128,20 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
     writeStream.stop();
     assertThat(testTableNumberOfRows()).isEqualTo(4);
     assertThat(additionalDataValuesExist()).isTrue();
+  }
+
+  @Test
+  public void testWriteToBigQuery_ErrorIfExistsSaveMode() throws InterruptedException {
+    // initial write
+    writeToBigQuery(initialData(), SaveMode.ErrorIfExists);
+    assertThat(testTableNumberOfRows()).isEqualTo(2);
+    assertThat(initialDataValuesExist()).isTrue();
+    // second write
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          writeToBigQuery(additonalData(), SaveMode.ErrorIfExists);
+        });
   }
 
   private static <T> Seq<T> toSeq(List<T> list) {
