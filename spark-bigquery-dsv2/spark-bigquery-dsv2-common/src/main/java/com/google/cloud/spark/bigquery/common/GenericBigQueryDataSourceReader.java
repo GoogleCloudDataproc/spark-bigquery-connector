@@ -44,8 +44,10 @@ public class GenericBigQueryDataSourceReader implements Serializable {
   private Map<String, StructField> fields;
   private ReadSession readSession;
   private ImmutableList<String> selectedFields;
-  private Optional<String> filter;
   private ReadSessionResponse readSessionResponse;
+  private int partitionSize;
+  private int partitionsCount;
+  private int firstPartitionSize;
 
   public GenericBigQueryDataSourceReader(
       TableInfo table,
@@ -67,36 +69,6 @@ public class GenericBigQueryDataSourceReader implements Serializable {
         new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
     this.globalFilter = globalFilter;
     this.schema = schema;
-    this.populateSchema(table);
-    this.selectedFields =
-        schema
-            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-            .orElse(ImmutableList.of());
-    this.filter = getCombinedFilter();
-    this.readSessionResponse = this.readSessionCreator.create(this.tableId, selectedFields, filter);
-    this.readSession = readSessionResponse.getReadSession();
-  }
-
-  public void emptySchemaForPartition() {
-    this.selectedFields =
-        schema
-            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-            .orElse(ImmutableList.copyOf(fields.keySet()));
-    this.filter = getCombinedFilter();
-    this.readSessionResponse = this.readSessionCreator.create(tableId, selectedFields, filter);
-    this.readSession = readSessionResponse.getReadSession();
-    if (this.selectedFields.isEmpty()) {
-      // means select *
-      Schema tableSchema =
-          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
-      this.selectedFields =
-          tableSchema.getFields().stream()
-              .map(Field::getName)
-              .collect(ImmutableList.toImmutableList());
-    }
-  }
-
-  private void populateSchema(TableInfo table) {
     StructType convertedSchema =
         SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table));
     if (schema.isPresent()) {
@@ -110,6 +82,37 @@ public class GenericBigQueryDataSourceReader implements Serializable {
     this.fields = new LinkedHashMap<>();
     for (StructField field : JavaConversions.seqAsJavaList(convertedSchema)) {
       fields.put(field.name(), field);
+    }
+  }
+
+  public Optional<StructType> getSchema() {
+    return schema;
+  }
+
+  public void createReadSession(boolean batch) {
+    this.selectedFields =
+        batch
+            ? this.schema
+                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+                .orElse(ImmutableList.copyOf(fields.keySet()))
+            : this.schema
+                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+                .orElse(ImmutableList.of());
+    Optional<String> filter = getCombinedFilter();
+    this.readSessionResponse =
+        this.readSessionCreator.create(this.tableId, this.selectedFields, filter);
+    this.readSession = readSessionResponse.getReadSession();
+  }
+
+  public void emptySchemaForPartition() {
+    if (this.selectedFields.isEmpty()) {
+      // means select *
+      Schema tableSchema =
+          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
+      this.selectedFields =
+          tableSchema.getFields().stream()
+              .map(Field::getName)
+              .collect(ImmutableList.toImmutableList());
     }
   }
 
@@ -169,8 +172,20 @@ public class GenericBigQueryDataSourceReader implements Serializable {
     return fields;
   }
 
-  public Optional<String> getFilter() {
-    return filter;
+  public Filter[] getPushedFilters() {
+    return pushedFilters;
+  }
+
+  public int getPartitionSize() {
+    return partitionSize;
+  }
+
+  public int getPartitionsCount() {
+    return partitionsCount;
+  }
+
+  public int getFirstPartitionSize() {
+    return firstPartitionSize;
   }
 
   public StructType readSchema() {
@@ -236,5 +251,32 @@ public class GenericBigQueryDataSourceReader implements Serializable {
 
   public void pruneColumns(StructType requiredSchema) {
     this.schema = Optional.ofNullable(requiredSchema);
+  }
+
+  public Filter[] pushFilters(Filter[] filters) {
+    List<Filter> handledFilters = new ArrayList<>();
+    List<Filter> unhandledFilters = new ArrayList<>();
+    for (Filter filter : filters) {
+      if (SparkFilterUtils.isTopLevelFieldHandled(
+          this.readSessionCreatorConfig.getPushAllFilters(),
+          filter,
+          this.readSessionCreatorConfig.getReadDataFormat(),
+          this.fields)) {
+        handledFilters.add(filter);
+      } else {
+        unhandledFilters.add(filter);
+      }
+    }
+    pushedFilters = handledFilters.stream().toArray(Filter[]::new);
+    return unhandledFilters.stream().toArray(Filter[]::new);
+  }
+
+  public void createEmptyProjectionPartitions() {
+    Optional<String> filter = getCombinedFilter();
+    long rowCount = this.bigQueryClient.calculateTableSize(this.tableId, filter);
+    logger.info("Used optimized BQ count(*) path. Count: " + rowCount);
+    this.partitionsCount = this.readSessionCreatorConfig.getDefaultParallelism();
+    int partitionSize = (int) (rowCount / this.partitionsCount);
+    this.firstPartitionSize = partitionSize + (int) (rowCount % partitionsCount);
   }
 }
