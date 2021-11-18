@@ -4,14 +4,17 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.*;
 import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.cloud.spark.bigquery.common.GenericBigQuerySparkFilterHelper;
-import java.util.Optional;
+import java.util.*;
 import org.apache.spark.sql.connector.read.Scan;
 import org.apache.spark.sql.connector.read.ScanBuilder;
 import org.apache.spark.sql.connector.read.SupportsPushDownFilters;
 import org.apache.spark.sql.connector.read.SupportsPushDownRequiredColumns;
 import org.apache.spark.sql.sources.Filter;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import scala.collection.JavaConversions;
 
 public class BigQueryScanBuilder
     implements ScanBuilder, SupportsPushDownFilters, SupportsPushDownRequiredColumns {
@@ -27,6 +30,8 @@ public class BigQueryScanBuilder
   private Optional<StructType> schema;
   private Optional<StructType> userProvidedSchema;
   private GenericBigQuerySparkFilterHelper filterHelper;
+  private Map<String, StructField> fields;
+  private Filter[] pushedFilters = new Filter[] {};
 
   BigQueryScanBuilder(
       TableInfo table,
@@ -57,17 +62,36 @@ public class BigQueryScanBuilder
       this.schema = Optional.of(convertedSchema);
       this.userProvidedSchema = Optional.empty();
     }
-    filterHelper = new GenericBigQuerySparkFilterHelper(table);
+    this.fields = new LinkedHashMap<>();
+    for (StructField field : JavaConversions.seqAsJavaList(convertedSchema)) {
+      fields.put(field.name(), field);
+    }
   }
 
   @Override
   public Filter[] pushFilters(Filter[] filters) {
-    return filterHelper.pushFilters(filters, readSessionCreatorConfig, filterHelper.getFields());
+    List<Filter> handledFilters = new ArrayList<>();
+    List<Filter> unhandledFilters = new ArrayList<>();
+    for (Filter filter : filters) {
+      if (SparkFilterUtils.isTopLevelFieldHandled(
+          this.readSessionCreatorConfig.getPushAllFilters(),
+          filter,
+          this.readSessionCreatorConfig.getReadDataFormat(),
+          this.fields)) {
+        handledFilters.add(filter);
+      } else {
+        unhandledFilters.add(filter);
+      }
+    }
+    pushedFilters = handledFilters.stream().toArray(Filter[]::new);
+    return unhandledFilters.stream().toArray(Filter[]::new);
+    //    return filterHelper.pushFilters(filters, readSessionCreatorConfig,
+    // filterHelper.getFields());
   }
 
   @Override
   public Filter[] pushedFilters() {
-    return filterHelper.getPushedFilters();
+    return this.pushedFilters;
   }
 
   @Override
@@ -81,12 +105,15 @@ public class BigQueryScanBuilder
         table,
         tableId,
         schema,
+        userProvidedSchema,
+        fields,
         readSessionCreatorConfig,
         bigQueryClient,
         bigQueryReadClientFactory,
         bigQueryTracerFactory,
         readSessionCreator,
         globalFilter,
+        pushedFilters,
         applicationId);
   }
 }

@@ -123,7 +123,7 @@ public class Spark3WriteIntegrationTest extends WriteIntegrationTestBase {
             .read()
             .format("bigquery")
             .option("table", TestConstants.LIBRARIES_PROJECTS_TABLE)
-                .option("filter","platform = 'Sublime'")
+            .option("filter", "platform = 'Sublime'")
             .load();
 
     df.write()

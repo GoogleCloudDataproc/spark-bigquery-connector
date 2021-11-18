@@ -5,7 +5,7 @@ import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.common.GenericArrowBigQueryInputPartitionHelper;
-import com.google.cloud.spark.bigquery.common.GenericBigQuerySchemaHelper;
+//import com.google.cloud.spark.bigquery.common.GenericBigQuerySchemaHelper;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -16,10 +16,10 @@ import org.apache.spark.sql.vectorized.ColumnarBatch;
 
 public class BigQueryPartitionReaderFactory implements PartitionReaderFactory {
 
-  private final GenericBigQuerySchemaHelper schemaHelper;
+//  private final GenericBigQuerySchemaHelper schemaHelper;
 
   BigQueryPartitionReaderFactory() {
-    schemaHelper = new GenericBigQuerySchemaHelper();
+//    schemaHelper = new GenericBigQuerySchemaHelper();
   }
 
   @Override
@@ -47,7 +47,6 @@ public class BigQueryPartitionReaderFactory implements PartitionReaderFactory {
   @Override
   public PartitionReader<ColumnarBatch> createColumnarReader(InputPartition partition) {
     if (partition instanceof ArrowInputPartition) {
-
       GenericArrowBigQueryInputPartitionHelper bqInputPartitionHelper =
           new GenericArrowBigQueryInputPartitionHelper();
       // using generic helper class from dsv 2 parent library to create tracer,read row request
