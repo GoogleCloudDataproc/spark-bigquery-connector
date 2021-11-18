@@ -70,6 +70,10 @@ The latest version of the connector is publicly available in the following links
 | --- | --- |
 | Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.22.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.22.0.jar)) |
 | Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.22.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.22.0.jar)) |
+| Java       | `gs://spark-lib/bigquery/spark-bigquery-spark24-0.22.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-spark24-0.22.0.jar)) |
+
+**Note:** If you are using scala jars please use the jar as per the scala version. From Spark 2.4 onwards there is an
+option to use the Java only jar.
 
 The connector is also available from the
 [Maven Central](https://repo1.maven.org/maven2/com/google/cloud/spark/)
@@ -80,6 +84,7 @@ repository. It can be used using the `--packages` option or the
 | --- | --- |
 | Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.22.0` |
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.22.0` |
+| Java       | `com.google.cloud.spark:spark-bigquery-spark24:0.22.0` |
 
 If you want to keep up with the latest version of the connector the following links can be used. Notice that for production
 environments where the connector version should be pinned, one of the above links should be used.
@@ -88,7 +93,7 @@ environments where the connector version should be pinned, one of the above link
 | --- | --- |
 | Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-latest_2.11.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.11.jar)) |
 | Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar)) |
-
+| Java       | `gs://spark-lib/bigquery/spark-bigquery-spark24-latest.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-spark24-latest.jar)) |
 
 ## Hello World Example
 
@@ -232,6 +237,7 @@ the `materializationDataset` should be in same location as the view.
 
 ### Writing data to BigQuery
 
+### 1) Write via Spark DataSource V1 (Scala connector)
 Writing a DataFrame to BigQuery is done in a similar manner. Notice that the process writes the data first to GCS and then loads it to BigQuery, a GCS bucket must be configured to indicate the temporary data location.
 
 ```
@@ -265,6 +271,25 @@ df.writeStream \
 ```
 
 **Important:** The connector does not configure the GCS connector, in order to avoid conflict with another GCS connector, if exists. In order to use the write capabilities of the connector, please configure the GCS connector on your cluster as explained [here](https://github.com/GoogleCloudPlatform/bigdata-interop/tree/master/gcs).
+
+### 2) Write via Spark DataSource V2 (Java Connector)
+From Spark 2.4 onwards there is an option to write directly to BigQuery without first writing to GCS.
+The Java connector uses Spark DataSource V2 API in conjuction with [BigQuery Storage Write API](https://cloud.google.com/bigquery/docs/write-api)
+to write data directly to BigQuery. Even while using this connector users have option to write indirectly via GCS rather
+than using the BigQuery Storage Write API, this is controlled by the option `writePath`. By using the value `direct`
+connector writes to BigQuery directly without first writing to GCS and the value `indirect` writes via GCS.
+
+`Code Sample:`
+
+```
+df.write \
+  .format("bigquery") \
+  .option("writePath", "direct") \
+  .save("dataset.table") \
+```
+
+**Important:** Please read [this article](https://cloud.google.com/bigquery/pricing#data_ingestion_pricing) to understand
+the pricing of BigQuery Storage Write API, which is used under the hood.
 
 ### Properties
 
@@ -426,6 +451,16 @@ The API Supports a number of options to configure the read
        (<code>spark.conf.set(...)</code>).
    </td>
    <td>Write</td>
+  </tr>
+  <tr valign="top">
+   <td><code>writePath</code>
+     </td>
+       <td>Used in Java connector (for Spark versions greater than 2.4) to control the write mode. If value `direct` is 
+       supplied then connector writes to BigQuery directly without first writing to GCS and the value indirect writes 
+       via GCS.
+       <br/>(Optional, defaults to <code>direct</code>)
+     </td>
+   <td>Write (scope: Jave connector)</td>
   </tr>
   <tr valign="top">
    <td><code>persistentGcsBucket</code>
