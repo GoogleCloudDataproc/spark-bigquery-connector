@@ -21,26 +21,51 @@ import static org.apache.spark.sql.functions.from_utc_timestamp;
 import static org.apache.spark.sql.functions.lit;
 import static org.apache.spark.sql.functions.struct;
 import static org.apache.spark.sql.functions.to_date;
+import static org.apache.spark.sql.types.DataTypes.BinaryType;
+import static org.apache.spark.sql.types.DataTypes.BooleanType;
+import static org.apache.spark.sql.types.DataTypes.ByteType;
+import static org.apache.spark.sql.types.DataTypes.DateType;
+import static org.apache.spark.sql.types.DataTypes.DoubleType;
+import static org.apache.spark.sql.types.DataTypes.IntegerType;
+import static org.apache.spark.sql.types.DataTypes.LongType;
+import static org.apache.spark.sql.types.DataTypes.ShortType;
+import static org.apache.spark.sql.types.DataTypes.StringType;
+import static org.apache.spark.sql.types.DataTypes.TimestampType;
 
 import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
 import com.google.cloud.spark.bigquery.integration.model.NumStruct;
 import com.google.cloud.spark.bigquery.integration.model.StringStruct;
 import com.google.common.collect.ImmutableList;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.spark.bigquery.BigNumeric;
+import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.Column;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.ArrayType;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Decimal;
+import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 public class TestConstants {
 
+  static final int BQ_NUMERIC_PRECISION = 38;
+  static final int BQ_NUMERIC_SCALE = 9;
+  static final DecimalType NUMERIC_SPARK_TYPE =
+      DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   static final String SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare";
   static final long SHAKESPEARE_TABLE_NUM_ROWS = 164656L;
   static final StructType SHAKESPEARE_TABLE_SCHEMA =
@@ -52,7 +77,8 @@ public class TestConstants {
                 false,
                 metadata(
                     "description",
-                    "A single unique word (where whitespace is the delimiter) extracted from a corpus.")),
+                    "A single unique word (where whitespace is the delimiter) extracted from a"
+                        + " corpus.")),
             StructField.apply(
                 "word_count",
                 DataTypes.LongType,
@@ -239,4 +265,167 @@ public class TestConstants {
                   new StringStruct("0:str3", "0:str1", "0:str2"),
                   new StringStruct("1:str3", "1:str1", "1:str2"))),
           "outer_string");
+
+  // Constants for storage api tests.
+  public static final StructType STORAGE_API_ALL_TYPES_SCHEMA =
+      new StructType()
+          .add(
+              new StructField(
+                  "int_req",
+                  IntegerType,
+                  false,
+                  new MetadataBuilder().putString("description", "required integer").build()))
+          .add(new StructField("int_null", IntegerType, true, Metadata.empty()))
+          .add(new StructField("long", LongType, true, Metadata.empty()))
+          .add(new StructField("short", ShortType, true, Metadata.empty()))
+          .add(new StructField("bytenum", ByteType, true, Metadata.empty()))
+          .add(new StructField("bool", BooleanType, true, Metadata.empty()))
+          .add(new StructField("str", StringType, true, Metadata.empty()))
+          .add(new StructField("date", DateType, true, Metadata.empty()))
+          .add(new StructField("timestamp", TimestampType, true, Metadata.empty()))
+          .add(new StructField("binary", BinaryType, true, Metadata.empty()))
+          .add(new StructField("float", DoubleType, true, Metadata.empty()))
+          .add(
+              new StructField(
+                  "nums",
+                  new StructType()
+                      .add(new StructField("min", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
+                      .add(new StructField("max", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
+                      .add(new StructField("pi", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
+                      .add(new StructField("big_pi", NUMERIC_SPARK_TYPE, true, Metadata.empty())),
+                  true,
+                  Metadata.empty()))
+          .add(
+              new StructField(
+                  "big_numeric_nums",
+                  new StructType()
+                      .add(
+                          new StructField(
+                              "min", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))
+                      .add(
+                          new StructField(
+                              "max", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))
+                      .add(
+                          new StructField(
+                              "pi", BigQueryDataTypes.BigNumericType, true, Metadata.empty())),
+                  true,
+                  Metadata.empty()))
+          .add(new StructField("int_arr", new ArrayType(IntegerType, true), true, Metadata.empty()))
+          .add(
+              new StructField(
+                  "int_struct_arr",
+                  new ArrayType(
+                      new StructType()
+                          .add(new StructField("i", IntegerType, true, Metadata.empty())),
+                      true),
+                  true,
+                  Metadata.empty()));
+
+  // same as ALL_TYPES_SCHEMA, except all IntegerType's are LongType's.
+  public static final StructType STORAGE_API_ALL_TYPES_SCHEMA_BIGQUERY_REPRESENTATION =
+      new StructType()
+          .add(
+              new StructField(
+                  "int_req",
+                  LongType,
+                  false,
+                  new MetadataBuilder()
+                      .putString("description", "required integer")
+                      .putString("comment", "required integer")
+                      .build()))
+          .add(new StructField("int_null", LongType, true, Metadata.empty()))
+          .add(new StructField("long", LongType, true, Metadata.empty()))
+          .add(new StructField("short", LongType, true, Metadata.empty()))
+          .add(new StructField("bytenum", LongType, true, Metadata.empty()))
+          .add(new StructField("bool", BooleanType, true, Metadata.empty()))
+          .add(new StructField("str", StringType, true, Metadata.empty()))
+          .add(new StructField("date", DateType, true, Metadata.empty()))
+          .add(new StructField("timestamp", TimestampType, true, Metadata.empty()))
+          .add(new StructField("binary", BinaryType, true, Metadata.empty()))
+          .add(new StructField("float", DoubleType, true, Metadata.empty()))
+          .add(
+              new StructField(
+                  "nums",
+                  new StructType()
+                      .add(new StructField("min", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
+                      .add(new StructField("max", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
+                      .add(new StructField("pi", NUMERIC_SPARK_TYPE, true, Metadata.empty()))
+                      .add(new StructField("big_pi", NUMERIC_SPARK_TYPE, true, Metadata.empty())),
+                  true,
+                  Metadata.empty()))
+          .add(
+              new StructField(
+                  "big_numeric_nums",
+                  new StructType()
+                      .add(
+                          new StructField(
+                              "min", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))
+                      .add(
+                          new StructField(
+                              "max", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))
+                      .add(
+                          new StructField(
+                              "pi", BigQueryDataTypes.BigNumericType, true, Metadata.empty())),
+                  true,
+                  Metadata.empty()))
+          .add(new StructField("int_arr", new ArrayType(LongType, true), true, Metadata.empty()))
+          .add(
+              new StructField(
+                  "int_struct_arr",
+                  new ArrayType(
+                      new StructType().add(new StructField("i", LongType, true, Metadata.empty())),
+                      true),
+                  true,
+                  Metadata.empty()));
+
+  public static final Row[] STORAGE_API_ALL_TYPES_ROWS =
+      new Row[] {
+        RowFactory.create(
+            123456789,
+            null,
+            123456789L,
+            (short) 1024,
+            (byte) 127,
+            true,
+            "hello",
+            Date.valueOf("2019-03-18"),
+            new Timestamp(1552872225000L), // 2019-03-18 01:23:45
+            new byte[] {
+              98, 121, 116, 101, 115
+            }, // byte[] representation of string "bytes" -> stored in BQ as Ynl0ZXM=
+            1.2345,
+            RowFactory.create(
+                Decimal.apply(
+                    new BigDecimal(
+                        "-99999999999999999999999999999.999999999",
+                        new MathContext(BQ_NUMERIC_PRECISION)),
+                    BQ_NUMERIC_PRECISION,
+                    BQ_NUMERIC_SCALE),
+                Decimal.apply(
+                    new BigDecimal(
+                        "99999999999999999999999999999.999999999",
+                        new MathContext(BQ_NUMERIC_PRECISION)),
+                    BQ_NUMERIC_PRECISION,
+                    BQ_NUMERIC_SCALE),
+                Decimal.apply(
+                    new BigDecimal("3.14", new MathContext(BQ_NUMERIC_PRECISION)),
+                    BQ_NUMERIC_PRECISION,
+                    BQ_NUMERIC_SCALE),
+                Decimal.apply(
+                    new BigDecimal(
+                        "31415926535897932384626433832.795028841",
+                        new MathContext(BQ_NUMERIC_PRECISION)),
+                    BQ_NUMERIC_PRECISION,
+                    BQ_NUMERIC_SCALE)),
+            RowFactory.create(
+                new BigNumeric(
+                    new BigDecimal(
+                        "-578960446186580977117854925043439539266.34992332820282019728792003956564819968")),
+                new BigNumeric(
+                    new BigDecimal(
+                        "578960446186580977117854925043439539266.34992332820282019728792003956564819967")),
+                new BigNumeric(new BigDecimal("3.14"))),
+            new int[] {1, 2, 3, 4},
+            new Row[] {RowFactory.create(1), RowFactory.create(1)})
+      };
 }

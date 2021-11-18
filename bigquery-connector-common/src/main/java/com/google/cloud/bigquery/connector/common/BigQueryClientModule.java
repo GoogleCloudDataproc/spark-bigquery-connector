@@ -34,7 +34,7 @@ public class BigQueryClientModule implements com.google.inject.Module {
   @Override
   public void configure(Binder binder) {
     // BigQuery related
-    binder.bind(BigQueryReadClientFactory.class).in(Scopes.SINGLETON);
+    binder.bind(BigQueryClientFactory.class).in(Scopes.SINGLETON);
     binder
         .bind(BigQueryTracerFactory.class)
         .toInstance(new LoggingBigQueryTracerFactory(/*Log every 2^14 batches*/ 14));

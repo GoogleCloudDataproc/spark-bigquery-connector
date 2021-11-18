@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.common.GenericBigQueryInputPartition;
@@ -28,7 +28,7 @@ public class BigQueryInputPartition implements InputPartition<InternalRow> {
   private GenericBigQueryInputPartition inputPartitionHelper;
 
   public BigQueryInputPartition(
-      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryClientFactory bigQueryReadClientFactory,
       String streamName,
       ReadRowsHelper.Options options,
       ReadRowsResponseToInternalRowIteratorConverter converter) {
