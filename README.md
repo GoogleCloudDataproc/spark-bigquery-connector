@@ -455,8 +455,8 @@ The API Supports a number of options to configure the read
   <tr valign="top">
    <td><code>writePath</code>
      </td>
-       <td>Used in Java connector (for Spark versions greater than 2.4) to control the write mode. If value `direct` is 
-       supplied then connector writes to BigQuery directly without first writing to GCS and the value indirect writes 
+       <td>Used in Java connector (for Spark versions greater than 2.4) to control the write mode. If value <code>direct</code> is
+       supplied then connector writes to BigQuery directly without first writing to GCS and the value <code>indirect</code> writes
        via GCS.
        <br/>(Optional, defaults to <code>direct</code>)
      </td>
@@ -673,6 +673,16 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
      This preserves <code>NUMERIC</code>'s full 38 digits of precision and 9 digits of scope.
    </td>
   </tr>
+  <tr valign="top">
+     <td><strong><code>BIGNUMERIC</code></strong>
+     </td>
+     <td><strong><code>BigNumericUDT (UserDefinedType)</code></strong>
+     </td>
+     <td>
+       Scala/Java: BigNumericUDT DataType internally uses java.math.BigDecimal to hold the BigNumeric data.
+       <p> Python: BigNumericUDT DataType internally used python's Decimal class to hold the BigNumeric data.
+     </td>
+    </tr>
   <tr valign="top">
    <td><strong><code>STRING</code></strong>
    </td>
