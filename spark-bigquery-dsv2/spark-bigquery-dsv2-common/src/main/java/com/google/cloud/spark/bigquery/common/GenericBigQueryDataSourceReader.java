@@ -13,10 +13,7 @@ import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.StructField;
@@ -33,7 +30,7 @@ public class GenericBigQueryDataSourceReader implements Serializable {
   private final TableId tableId;
   private final ReadSessionCreatorConfig readSessionCreatorConfig;
   private final BigQueryClient bigQueryClient;
-  private final BigQueryReadClientFactory bigQueryReadClientFactory;
+  private final BigQueryClientFactory bigQueryReadClientFactory;
   private final BigQueryTracerFactory bigQueryTracerFactory;
   private final ReadSessionCreator readSessionCreator;
   private final Optional<String> globalFilter;
@@ -53,7 +50,7 @@ public class GenericBigQueryDataSourceReader implements Serializable {
       TableInfo table,
       ReadSessionCreatorConfig readSessionCreatorConfig,
       BigQueryClient bigQueryClient,
-      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory bigQueryTracerFactory,
       Optional<String> globalFilter,
       Optional<StructType> schema,
@@ -132,7 +129,7 @@ public class GenericBigQueryDataSourceReader implements Serializable {
     return bigQueryClient;
   }
 
-  public BigQueryReadClientFactory getBigQueryReadClientFactory() {
+  public BigQueryClientFactory getBigQueryReadClientFactory() {
     return bigQueryReadClientFactory;
   }
 
