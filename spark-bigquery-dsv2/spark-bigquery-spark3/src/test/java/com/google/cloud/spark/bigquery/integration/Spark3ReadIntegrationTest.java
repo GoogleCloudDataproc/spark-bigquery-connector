@@ -16,13 +16,61 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertThrows;
 
 import java.util.List;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
 
 public class Spark3ReadIntegrationTest extends ReadIntegrationTestBase {
+  @Test
+  public void testKnownSizeInBytes() {
+    Dataset<Row> allTypesTable = readAllTypesTable();
+    allTypesTable.show();
+    System.out.println(allTypesTable.queryExecution().analyzed().stats().sizeInBytes().longValue());
+    //    allTypesTable.persist(StorageLevel.MEMORY_AND_DISK());
+    //    System.out.println(allTypesTable.count());
+    //    long actualTableSize =
+    //        allTypesTable.queryExecution().analyzed().stats().sizeInBytes().longValue();
+    //    assertThat(actualTableSize).isEqualTo(TestConstants.ALL_TYPES_TABLE_SIZE);
+  }
+
+  @Test
+  public void testArrowCompressionCodec() {
+    List<Row> avroResults =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("filter", "word_count = 1 OR corpus_date = 0")
+            .option("readDataFormat", "AVRO")
+            .load()
+            .collectAsList();
+
+    List<Row> arrowResultsForZstdCodec =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("readDataFormat", "ARROW")
+            .option("arrowCompressionCodec", "ZSTD")
+            .load()
+            .where("word_count = 1 OR corpus_date = 0")
+            .collectAsList();
+
+    assertThat(avroResults).isEqualTo(arrowResultsForZstdCodec);
+
+    List<Row> arrowResultsForLZ4FrameCodec =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("readDataFormat", "ARROW")
+            .option("arrowCompressionCodec", "LZ4_FRAME")
+            .load()
+            .where("word_count = 1 OR corpus_date = 0")
+            .collectAsList();
+
+    assertThat(avroResults).isEqualTo(arrowResultsForLZ4FrameCodec);
+  }
 }

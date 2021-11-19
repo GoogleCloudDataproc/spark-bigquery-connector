@@ -15,251 +15,396 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_API_ALL_TYPES_ROWS;
+import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_API_ALL_TYPES_SCHEMA;
+import static com.google.cloud.spark.bigquery.integration.TestConstants.STORAGE_API_ALL_TYPES_SCHEMA_BIGQUERY_REPRESENTATION;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.fail;
 
-import com.google.cloud.bigquery.StandardTableDefinition;
-import com.google.cloud.spark.bigquery.integration.model.Data;
-import java.sql.Timestamp;
+import com.google.cloud.RetryOption;
+import com.google.cloud.ServiceOptions;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.DatasetInfo;
+import com.google.cloud.bigquery.Job;
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.inject.ProvisionException;
+import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
-import org.apache.spark.sql.*;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.Metadata;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
+import java.util.Collection;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.SparkSession;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.threeten.bp.Duration;
 
+@RunWith(Parameterized.class)
 public class Spark3WriteIntegrationTest extends WriteIntegrationTestBase {
 
-  // tests are from the super-class
-  @Override
-  @Test
-  public void testWriteToBigQuery_AppendSaveMode() {
-    // initial write
-    Dataset<Row> df = initialData();
-    writeToBigQuery(df, SaveMode.Append);
-    assertThat(testTableNumberOfRows()).isEqualTo(2);
-    assertThat(initialDataValuesExist()).isTrue();
-    // second write
-    writeToBigQuery(additonalData(), SaveMode.Append);
-    assertThat(testTableNumberOfRows()).isEqualTo(4);
-    assertThat(additionalDataValuesExist()).isTrue();
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<Boolean[]> formats() {
+    return Arrays.asList(new Boolean[][] {{Boolean.TRUE}, {Boolean.FALSE}});
   }
 
-  @Test
-  public void testWriteToBigQuery_ErrorIfExistsSaveMode() {
-    // initial write
-    assertThrows(
-        org.apache.spark.sql.AnalysisException.class,
-        () -> {
-          writeToBigQuery(additonalData(), SaveMode.ErrorIfExists);
-        });
+  private final boolean isDirectWrite;
+
+  public Spark3WriteIntegrationTest(Boolean isDirectWrite) {
+    super(isDirectWrite);
+    this.isDirectWrite = isDirectWrite;
   }
 
-  @Test
-  public void testWriteToBigQuery_IgnoreSaveMode() {
-    // initial write
-    assertThrows(
-        org.apache.spark.sql.AnalysisException.class,
-        () -> {
-          writeToBigQuery(additonalData(), SaveMode.Ignore);
-        });
-  }
+  // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
+  // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
+  public static final Logger logger = LogManager.getLogger("com.google.cloud");
 
-  @Test
-  public void testWriteToBigQuery_OverwriteSaveMode() {
-    // initial write
-    writeToBigQuery(initialData(), SaveMode.Overwrite);
-    assertThat(testTableNumberOfRows()).isEqualTo(2);
-    assertThat(initialDataValuesExist()).isTrue();
-    // second write
-    writeToBigQuery(additonalData(), SaveMode.Overwrite);
-    assertThat(testTableNumberOfRows()).isEqualTo(2);
-    assertThat(initialDataValuesExist()).isFalse();
-    assertThat(additionalDataValuesExist()).isTrue();
-  }
+  public static final String PROJECT = ServiceOptions.getDefaultProjectId();
+  public static final String DATASET = "spark_bigquery_storage_write_it_" + System.nanoTime();
+  public static final String OVERWRITE_TABLE = "testTable";
+  public static final String DESCRIPTION = "Spark BigQuery connector write session tests.";
 
-  @Test
-  public void testWriteToBigQuery_AvroFormat() {
-    assertThrows(
-        org.apache.spark.sql.AnalysisException.class,
-        () -> {
-          writeToBigQuery(additonalData(), SaveMode.ErrorIfExists, "avro");
-        });
-  }
+  public static final String BIGQUERY_PUBLIC_DATA = "bigquery-public-data";
+  public static final String SMALL_DATA_DATASET = "san_francisco_bikeshare";
+  public static final String SMALL_DATA_TABLE = "bikeshare_station_status";
+  public static final String SMALL_DATA_ID =
+      BIGQUERY_PUBLIC_DATA + ":" + SMALL_DATA_DATASET + "." + SMALL_DATA_TABLE;
+  public static final String MB20_DATASET = "baseball";
+  public static final String MB20_TABLE = "games_post_wide";
+  public static final String MB20_ID = BIGQUERY_PUBLIC_DATA + ":" + MB20_DATASET + "." + MB20_TABLE;
+  public static final String MB100_DATASET = "open_images";
+  public static final String MB100_TABLE = "annotations_bbox";
+  public static final String MB100_ID =
+      BIGQUERY_PUBLIC_DATA + ":" + MB100_DATASET + "." + MB100_TABLE; // 156 MB
 
-  @Test
-  public void testWriteToBigQuerySimplifiedApi() {
-    Dataset<Row> df = initialData();
-    df.write()
-        .format("bigquery")
-        .option("temporaryGcsBucket", temporaryGcsBucket)
-        .option("schema", df.schema().toDDL())
-        .mode(SaveMode.Append)
-        .save(fullTableName());
-    assertThat(testTableNumberOfRows()).isEqualTo(2);
-    assertThat(initialDataValuesExist()).isTrue();
-  }
+  public static SparkSession spark;
+  public static BigQuery bigquery;
 
-  @Test
-  public void testWriteToBigQueryAddingTheSettingsToSparkConf() {
-    spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
-    Dataset<Row> df = initialData();
-    df.write()
-        .format("bigquery")
-        .option("table", fullTableName())
-        .option("schema", df.schema().toDDL())
-        .mode(SaveMode.Append)
-        .save();
-    assertThat(testTableNumberOfRows()).isEqualTo(2);
-    assertThat(initialDataValuesExist()).isTrue();
-  }
+  public static Dataset<Row> allTypesDf;
+  public static Dataset<Row> twiceAsBigDf;
+  public static Dataset<Row> smallDataDf;
+  public static Dataset<Row> MB20Df;
+  public static Dataset<Row> MB100Df;
 
-  @Test
-  public void testWriteToBigQueryPartitionedAndClusteredTable() {
-    Dataset<Row> df =
+  @BeforeClass
+  public static void init() throws Exception {
+    logger.setLevel(Level.DEBUG);
+    spark =
+        SparkSession.builder()
+            .appName("Application Name")
+            .config("some-config", "some-value")
+            .master("local[*]")
+            .getOrCreate();
+    allTypesDf =
+        spark.createDataFrame(
+            Arrays.asList(STORAGE_API_ALL_TYPES_ROWS), STORAGE_API_ALL_TYPES_SCHEMA);
+    smallDataDf = spark.read().format("bigquery").option("table", SMALL_DATA_ID).load();
+    twiceAsBigDf = smallDataDf.unionAll(smallDataDf);
+    MB20Df =
         spark
             .read()
             .format("bigquery")
-            .option("table", TestConstants.LIBRARIES_PROJECTS_TABLE)
-            .option("filter", "platform = 'Sublime'")
-            .load();
+            .option("table", MB20_ID)
+            .load()
+            .drop("startTime")
+            .drop("createdAt")
+            .drop("updatedAt") /*.coalesce(20)*/
+            .toDF();
+    MB100Df =
+        spark.read().format("bigquery").option("table", MB100_ID).load() /*.coalesce(20).toDF()*/;
 
-    df.write()
-        .format("bigquery")
-        .option("table", fullTableNamePartitioned())
-        .option("temporaryGcsBucket", temporaryGcsBucket)
-        .option("partitionField", "created_timestamp")
-        .option("clusteredFields", "platform")
-        .option("schema", df.schema().toDDL())
-        .mode(SaveMode.Overwrite)
-        .save();
+    bigquery = BigQueryOptions.getDefaultInstance().getService();
+    DatasetInfo datasetInfo =
+        DatasetInfo.newBuilder(/* datasetId = */ DATASET).setDescription(DESCRIPTION).build();
+    bigquery.create(datasetInfo);
+    logger.info("Created test dataset: " + DATASET);
 
-    StandardTableDefinition tableDefinition = super.testPartitionedTableDefinition();
-    assertThat(tableDefinition.getTimePartitioning().getField()).isEqualTo("created_timestamp");
-    assertThat(tableDefinition.getClustering().getFields()).contains("platform");
+    // create small data frame inside of our test data-set (to be over-written by the twice-as-big
+    // dataframe in
+    // testSparkOverWriteSaveMode()
+    TableId overWriteTableId = TableId.of(PROJECT, DATASET, OVERWRITE_TABLE);
+    TableId smallDataTableId =
+        TableId.of(BIGQUERY_PUBLIC_DATA, SMALL_DATA_DATASET, SMALL_DATA_TABLE);
+    bigquery.create(
+        TableInfo.of(overWriteTableId, bigquery.getTable(smallDataTableId).getDefinition()));
+    copyTable(smallDataTableId, overWriteTableId);
   }
 
-  @Test
-  public void testPartition_Hourly() {
-    testPartition("HOUR");
-  }
+  public static void copyTable(TableId from, TableId to) {
+    String queryFormat = "INSERT INTO `%s`\n" + "SELECT * FROM `%s`";
+    QueryJobConfiguration queryConfig =
+        QueryJobConfiguration.newBuilder(sqlFromFormat(queryFormat, to, from))
+            .setUseLegacySql(false)
+            .build();
 
-  @Test
-  public void testPartition_Daily() {
-    testPartition("DAY");
-  }
+    Job copy = bigquery.create(JobInfo.newBuilder(queryConfig).build());
 
-  @Test
-  public void testPartition_Monthly() {
-    testPartition("MONTH");
-  }
-
-  @Test
-  public void testPartition_Yearly() {
-    testPartition("YEAR");
-  }
-
-  private void testPartition(String partitionType) {
-    List<Data> data =
-        Arrays.asList(
-            new Data("a", Timestamp.valueOf("2020-01-01 01:01:01")),
-            new Data("b", Timestamp.valueOf("2020-01-02 02:02:02")),
-            new Data("c", Timestamp.valueOf("2020-01-03 03:03:03")));
-    Dataset<Row> df = spark.createDataset(data, Encoders.bean(Data.class)).toDF();
-    String table = testDataset.toString() + "." + testTable + "_" + partitionType;
-    df.write()
-        .format("bigquery")
-        .option("temporaryGcsBucket", temporaryGcsBucket)
-        .option("partitionField", "ts")
-        .option("partitionType", partitionType)
-        .option("partitionRequireFilter", "true")
-        .option("table", table)
-        .option("schema", df.schema().toDDL())
-        .mode(SaveMode.Append)
-        .save();
-
-    Dataset<Row> readDF = spark.read().format("bigquery").load(table);
-    assertThat(readDF.count()).isEqualTo(3);
-  }
-
-  @Test
-  public void testWriteToBigQueryWithDescription() {
-    String testDescription = "test description";
-    String testComment = "test comment";
-
-    Metadata metadata = Metadata.fromJson("{\"description\": \"" + testDescription + "\"}");
-
-    StructType[] schemas =
-        new StructType[] {
-          structType(new StructField("c1", DataTypes.IntegerType, true, metadata)),
-          structType(
-              new StructField("c1", DataTypes.IntegerType, true, Metadata.empty())
-                  .withComment(testComment)),
-          structType(
-              new StructField("c1", DataTypes.IntegerType, true, metadata)
-                  .withComment(testComment)),
-          structType(new StructField("c1", DataTypes.IntegerType, true, Metadata.empty()))
-        };
-
-    String[] readValues = new String[] {testDescription, testComment, testComment, null};
-
-    for (int i = 0; i < schemas.length; i++) {
-      List<Row> data = Arrays.asList(RowFactory.create(100), RowFactory.create(200));
-
-      Dataset<Row> descriptionDF = spark.createDataFrame(data, schemas[i]);
-
-      //      writeToBigQuery(descriptionDF, SaveMode.Overwrite);
-      descriptionDF
-          .write()
-          .format("bigquery")
-          .mode(SaveMode.Append)
-          .option("table", fullTableName())
-          .option("temporaryGcsBucket", temporaryGcsBucket)
-          .option("intermediateFormat", "parquet")
-          .option("schema", descriptionDF.schema().toDDL())
-          .save();
-      //      Dataset<Row> readDF =
-      //              spark
-      //                      .read()
-      //                      .format("bigquery")
-      //                      .option("dataset", testDataset.toString())
-      //                      .option("table", testTable)
-      //                      .load();
-      //
-      //      Optional<String> description =
-      //              SchemaConverters.getDescriptionOrCommentOfField(readDF.schema().fields()[0]);
-      //
-      //      if (readValues[i] != null) {
-      //        assertThat(description.isPresent()).isTrue();
-      //        assertThat(description.orElse("")).isEqualTo(readValues[i]);
-      //      } else {
-      //        assertThat(description.isPresent()).isFalse();
-      //      }
+    try {
+      Job completedJob =
+          copy.waitFor(
+              RetryOption.initialRetryDelay(Duration.ofSeconds(1)),
+              RetryOption.totalTimeout(Duration.ofMinutes(3)));
+      if (completedJob == null && completedJob.getStatus().getError() != null) {
+        throw new IOException(completedJob.getStatus().getError().toString());
+      }
+    } catch (InterruptedException | IOException e) {
+      throw new RuntimeException(
+          "Could not copy table from temporary sink to destination table.", e);
     }
   }
 
-  @Override
-  @Test
-  public void testCacheDataFrameInDataSource() {
-    Dataset<Row> allTypesTable = readAllTypesTable();
-    writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro");
+  static String sqlFromFormat(
+      String queryFormat, TableId destinationTableId, TableId temporaryTableId) {
+    return String.format(
+        queryFormat,
+        BigQueryClient.fullTableName(destinationTableId),
+        BigQueryClient.fullTableName(temporaryTableId));
+  }
 
-    Dataset<Row> df =
+  @AfterClass
+  public static void close() throws Exception {
+    if (bigquery != null) {
+      bigquery.delete(DATASET, BigQuery.DatasetDeleteOption.deleteContents());
+      logger.info("Deleted test dataset: " + DATASET);
+    }
+  }
+
+  @Test
+  public void testSparkBigQueryWriteAllTypes() throws Exception {
+    String writeTo = "all_types";
+
+    Dataset<Row> expectedDF = allTypesDf;
+
+    expectedDF
+        .write()
+        .format("bigquery")
+        .option("table", writeTo)
+        .option("writePath", "direct")
+        .option("dataset", DATASET)
+        .option("project", PROJECT)
+        .mode(SaveMode.Overwrite)
+        .save();
+
+    Dataset<Row> actualDF =
         spark
             .read()
             .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", testTable)
-            .option("readDataFormat", "arrow")
-            .load()
-            .cache();
+            .option("table", writeTo)
+            .option("dataset", DATASET)
+            .option("project", PROJECT)
+            .load();
 
-    assertThat(df.head()).isEqualTo(allTypesTable.head());
+    assertThat(actualDF.schema()).isEqualTo(STORAGE_API_ALL_TYPES_SCHEMA_BIGQUERY_REPRESENTATION);
 
-    // read from cache
-    assertThat(df.head()).isEqualTo(allTypesTable.head());
-    assertThat(df.schema()).isEqualTo(allTypesTable.schema());
+    Dataset<Row> intersection = actualDF.intersectAll(expectedDF);
+    assertThat(
+        intersection.count() == actualDF.count() && intersection.count() == expectedDF.count());
+  }
+
+  @Test
+  public void testSparkAppendSaveMode() throws Exception {
+    String writeTo = "testSparkAppendSaveMode" + System.currentTimeMillis();
+
+    Dataset<Row> expectedDF = twiceAsBigDf;
+
+    smallDataDf
+        .write()
+        .format("bigquery")
+        .option("table", writeTo)
+        .option("dataset", DATASET)
+        .option("project", PROJECT)
+        .save();
+
+    smallDataDf
+        .write()
+        .format("bigquery")
+        .option("table", writeTo)
+        .option("dataset", DATASET)
+        .option("project", PROJECT)
+        .mode(SaveMode.Append)
+        .save();
+
+    Dataset<Row> actualDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", writeTo)
+            .option("dataset", DATASET)
+            .option("project", PROJECT)
+            .load();
+
+    Dataset<Row> intersection = actualDF.intersectAll(expectedDF);
+    // append was successful:
+    assertThat(
+        intersection.count() == actualDF.count() && intersection.count() == expectedDF.count());
+  }
+
+  @Test
+  public void testSparkOverWriteSaveMode() throws Exception {
+    String writeTo = OVERWRITE_TABLE;
+
+    Dataset<Row> expectedDF = twiceAsBigDf;
+
+    twiceAsBigDf
+        .write()
+        .format("bigquery")
+        .option("table", writeTo)
+        .option("dataset", DATASET)
+        .option("project", PROJECT)
+        .mode(SaveMode.Overwrite)
+        .save();
+
+    Dataset<Row> actualDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", writeTo)
+            .option("dataset", DATASET)
+            .option("project", PROJECT)
+            .load();
+
+    Dataset<Row> intersection = actualDF.intersectAll(expectedDF);
+    // overwrite was successful:
+    assertThat(
+        intersection.count() == actualDF.count() && intersection.count() == expectedDF.count());
+  }
+
+  @Test
+  public void testSparkWriteIgnoreSaveMode() throws Exception {
+    String writeTo = "testSparkWriteIgnoreSaveMode" + System.currentTimeMillis();
+
+    Dataset<Row> expectedDF = smallDataDf;
+
+    smallDataDf
+        .write()
+        .format("bigquery")
+        .option("table", writeTo)
+        .option("dataset", DATASET)
+        .option("project", PROJECT)
+        .save();
+
+    twiceAsBigDf
+        .write()
+        .format("bigquery")
+        .option("table", writeTo)
+        .option("dataset", DATASET)
+        .option("project", PROJECT)
+        .mode(SaveMode.Ignore)
+        .save();
+
+    Dataset<Row> actualDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", writeTo)
+            .option("dataset", DATASET)
+            .option("project", PROJECT)
+            .load();
+
+    Dataset<Row> intersection = actualDF.intersectAll(expectedDF);
+    // ignore was successful:
+    assertThat(
+        intersection.count() == actualDF.count() && intersection.count() == expectedDF.count());
+  }
+
+  @Test
+  public void testSparkWriteErrorSaveMode() throws Exception {
+    String writeTo = "testSparkWriteErrorSaveMode" + System.currentTimeMillis();
+
+    smallDataDf
+        .write()
+        .format("bigquery")
+        .option("table", writeTo)
+        .option("dataset", DATASET)
+        .option("project", PROJECT)
+        .save();
+
+    try {
+      smallDataDf
+          .write()
+          .format("bigquery")
+          .option("table", writeTo)
+          .option("dataset", DATASET)
+          .option("project", PROJECT)
+          .mode(SaveMode.ErrorIfExists)
+          .save();
+      fail("Did not throw an error for ErrorIfExists");
+    } catch (RuntimeException e) {
+      // Successfully threw an exception for ErrorIfExists
+    }
+  }
+
+  @Test
+  public void testSparkBigQueryWrite20MB() throws Exception {
+    String writeTo = "20MB";
+
+    MB20Df.write()
+        .format("bigquery")
+        .option("table", writeTo)
+        .option("dataset", DATASET)
+        .option("project", PROJECT)
+        .mode(SaveMode.Overwrite)
+        .save();
+
+    // TODO: simple num bytes print line
+
+    assertThat(
+        bigquery
+            .getTable(TableId.of(PROJECT, DATASET, writeTo))
+            .getNumBytes()
+            .equals(
+                bigquery
+                    .getTable(TableId.of(BIGQUERY_PUBLIC_DATA, MB20_DATASET, MB20_TABLE))
+                    .getNumBytes()));
+  }
+
+  @Test
+  public void testSparkBigQueryWrite100MB() throws Exception {
+    String writeTo = "100MB";
+
+    MB100Df.write()
+        .format("bigquery")
+        .option("table", writeTo)
+        .option("dataset", DATASET)
+        .option("project", PROJECT)
+        .mode(SaveMode.Overwrite)
+        .save();
+
+    assertThat(
+        bigquery
+            .getTable(TableId.of(PROJECT, DATASET, writeTo))
+            .getNumBytes()
+            .equals(
+                bigquery
+                    .getTable(TableId.of(BIGQUERY_PUBLIC_DATA, MB100_DATASET, MB100_TABLE))
+                    .getNumBytes()));
+  }
+
+  @Test
+  public void testWriteToBigQuery_ErrorIfExistsSaveMode() throws InterruptedException {
+    // initial write
+    writeToBigQuery(initialData(), SaveMode.ErrorIfExists);
+    assertThat(testTableNumberOfRows()).isEqualTo(2);
+    assertThat(initialDataValuesExist()).isTrue();
+    // second write
+    if (isDirectWrite) {
+      assertThrows(
+          ProvisionException.class, () -> writeToBigQuery(additonalData(), SaveMode.ErrorIfExists));
+    } else {
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> writeToBigQuery(additonalData(), SaveMode.ErrorIfExists));
+    }
   }
 }

@@ -30,7 +30,7 @@ public class GenericBigQueryDataSourceReader implements Serializable {
   private final TableId tableId;
   private final ReadSessionCreatorConfig readSessionCreatorConfig;
   private final BigQueryClient bigQueryClient;
-  private final BigQueryReadClientFactory bigQueryReadClientFactory;
+  private final BigQueryClientFactory bigQueryReadClientFactory;
   private final BigQueryTracerFactory bigQueryTracerFactory;
   private final ReadSessionCreator readSessionCreator;
   private final Optional<String> globalFilter;
@@ -50,7 +50,7 @@ public class GenericBigQueryDataSourceReader implements Serializable {
       TableInfo table,
       ReadSessionCreatorConfig readSessionCreatorConfig,
       BigQueryClient bigQueryClient,
-      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory bigQueryTracerFactory,
       Optional<String> globalFilter,
       Optional<StructType> schema,
@@ -156,7 +156,7 @@ public class GenericBigQueryDataSourceReader implements Serializable {
     return bigQueryClient;
   }
 
-  public BigQueryReadClientFactory getBigQueryReadClientFactory() {
+  public BigQueryClientFactory getBigQueryReadClientFactory() {
     return bigQueryReadClientFactory;
   }
 

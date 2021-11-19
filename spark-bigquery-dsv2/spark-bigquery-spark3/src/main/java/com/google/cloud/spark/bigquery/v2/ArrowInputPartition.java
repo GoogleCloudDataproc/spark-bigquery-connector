@@ -1,9 +1,11 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.*;
+import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.common.GenericArrowInputPartition;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import org.apache.spark.sql.connector.read.InputPartition;
@@ -19,7 +21,7 @@ public class ArrowInputPartition implements InputPartition {
   private GenericArrowInputPartition arrowInputPartitionHelper;
 
   public ArrowInputPartition(
-      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory tracerFactory,
       List<String> names,
       ReadRowsHelper.Options options,
@@ -38,7 +40,7 @@ public class ArrowInputPartition implements InputPartition {
   }
 
   public ArrowInputPartition(
-      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory tracerFactory,
       String name,
       ReadRowsHelper.Options options,
@@ -64,7 +66,7 @@ public class ArrowInputPartition implements InputPartition {
     return this.arrowInputPartitionHelper.getStreamName();
   }
 
-  public BigQueryReadClientFactory getBigQueryReadClientFactory() {
+  public BigQueryClientFactory getBigQueryReadClientFactory() {
     return this.arrowInputPartitionHelper.getBigQueryReadClientFactory();
   }
 
@@ -78,5 +80,21 @@ public class ArrowInputPartition implements InputPartition {
 
   public List<String> getSelectedFields() {
     return this.arrowInputPartitionHelper.getSelectedFields();
+  }
+
+  public void createPartitionReader() {
+    this.arrowInputPartitionHelper.createPartitionReaderByName();
+  }
+
+  public Iterator<ReadRowsResponse> getReadRowsResponses() {
+    return this.arrowInputPartitionHelper.getReadRowsResponses();
+  }
+
+  public ReadRowsHelper getReadRowsHelper() {
+    return this.arrowInputPartitionHelper.getReadRowsHelper();
+  }
+
+  public BigQueryStorageReadRowsTracer getTracer() {
+    return this.arrowInputPartitionHelper.getTracer();
   }
 }

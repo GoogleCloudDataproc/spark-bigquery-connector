@@ -13,8 +13,8 @@
   <name>BigQuery DataSource v2 implementation</name>
   <packaging>pom</packaging>
   <modules>
-    <module>spark-bigquery-dsv2-common</module>
     <module>spark-bigquery-dsv2-parent</module>
+    <module>spark-bigquery-dsv2-common</module>
     <module>spark-bigquery-spark24</module>
     <module>spark-bigquery-spark3</module>
   </modules>

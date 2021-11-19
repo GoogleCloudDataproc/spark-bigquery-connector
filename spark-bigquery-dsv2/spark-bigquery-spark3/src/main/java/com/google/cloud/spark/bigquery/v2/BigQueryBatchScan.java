@@ -19,6 +19,7 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.collection.JavaConversions;
 
 public class BigQueryBatchScan implements Scan, Batch, SupportsReportStatistics {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryBatchScan.class);
@@ -39,7 +40,7 @@ public class BigQueryBatchScan implements Scan, Batch, SupportsReportStatistics 
   private final TableId tableId;
   private final ReadSessionCreatorConfig readSessionCreatorConfig;
   private final BigQueryClient bigQueryClient;
-  private final BigQueryReadClientFactory bigQueryReadClientFactory;
+  private final BigQueryClientFactory bigQueryReadClientFactory;
   private final BigQueryTracerFactory bigQueryTracerFactory;
   private final ReadSessionCreator readSessionCreator;
   private final Optional<String> globalFilter;
@@ -58,14 +59,14 @@ public class BigQueryBatchScan implements Scan, Batch, SupportsReportStatistics 
       Map<String, StructField> fields,
       ReadSessionCreatorConfig readSessionCreatorConfig,
       BigQueryClient bigQueryClient,
-      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory bigQueryTracerFactory,
       ReadSessionCreator readSessionCreator,
       Optional<String> globalFilter,
       Filter[] pushedFilters,
       String applicationId) {
     this.table = table;
-    this.tableId = table.getTableId();
+    this.tableId = tableId;
     this.readSessionCreatorConfig = readSessionCreatorConfig;
     this.bigQueryClient = bigQueryClient;
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
@@ -74,26 +75,21 @@ public class BigQueryBatchScan implements Scan, Batch, SupportsReportStatistics 
     this.readSessionCreator =
         new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
     this.globalFilter = globalFilter;
-    this.schema = schema;
-    this.userProvidedSchema = userProvidedSchema;
-    this.pushedFilters = pushedFilters;
-    this.fields = fields;
-    //    StructType convertedSchema =
-    //        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table));
-    //    if (schema.isPresent()) {
-    //      this.schema = schema;
-    //      this.userProvidedSchema = schema;
-    //    } else {
-    //      this.schema = Optional.of(convertedSchema);
-    //      this.userProvidedSchema = Optional.empty();
-    //    }
+    StructType convertedSchema =
+        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table));
+    if (schema.isPresent()) {
+      this.schema = schema;
+      this.userProvidedSchema = schema;
+    } else {
+      this.schema = Optional.of(convertedSchema);
+      this.userProvidedSchema = Optional.empty();
+    }
     // We want to keep the key order
-    //    this.fields = new LinkedHashMap<>();
-    //    for (StructField field : JavaConversions.seqAsJavaList(convertedSchema)) {
-    //      fields.put(field.name(), field);
-    //    }
-    //    schemaHelper = new GenericBigQuerySchemaHelper();
-    //    this.bqIPHelper = new GenericBigQueryInputPartition(bigQueryReadClientFactory,)
+    this.fields = new LinkedHashMap<>();
+    for (StructField field : JavaConversions.seqAsJavaList(convertedSchema)) {
+      this.fields.put(field.name(), field);
+    }
+    this.pushedFilters = pushedFilters;
   }
 
   public boolean isEmptySchema(Optional<StructType> schema) {
@@ -122,16 +118,19 @@ public class BigQueryBatchScan implements Scan, Batch, SupportsReportStatistics 
     //        applicationId);
     List<ReadStream> streamList;
     if (isEnableBatchRead(readSessionCreatorConfig, schema)) {
-      System.out.println(2);
+      System.out.println("HERE arrow");
       selectedFields =
-          this.schema
+          schema
               .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
               .orElse(ImmutableList.copyOf(fields.keySet()));
       filter = getCombinedFilter();
+      System.out.println(selectedFields);
       readSessionResponse = readSessionCreator.create(tableId, selectedFields, filter);
       readSession = readSessionResponse.getReadSession();
       streamList = readSession.getStreamsList();
-      System.out.println(selectedFields);
+      if (selectedFields.isEmpty()) {
+        selectedFields = emptySchemaForPartition(selectedFields, readSessionResponse);
+      }
       InputPartition[] arrowInputPartition = new InputPartition[streamList.size()];
       for (int i = 0; i < streamList.size(); i++) {
         arrowInputPartition[i] =
@@ -146,6 +145,7 @@ public class BigQueryBatchScan implements Scan, Batch, SupportsReportStatistics 
       }
       return arrowInputPartition;
     }
+    System.out.println("HERE big");
     selectedFields =
         schema
             .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
@@ -205,6 +205,7 @@ public class BigQueryBatchScan implements Scan, Batch, SupportsReportStatistics 
   }
 
   public InputPartition[] createEmptyProjectionPartitions() {
+    System.out.println("EMPTY");
     Optional<String> filter = getCombinedFilter();
     long rowCount = bigQueryClient.calculateTableSize(tableId, filter);
     logger.info("Used optimized BQ count(*) path. Count: " + rowCount);
@@ -248,6 +249,16 @@ public class BigQueryBatchScan implements Scan, Batch, SupportsReportStatistics 
     return table.getDefinition().getType() == TableDefinition.Type.TABLE
         ? new StandardTableStatistics(table.getDefinition())
         : UNKNOWN_STATISTICS;
+  }
+
+  public ImmutableList<String> emptySchemaForPartition(
+      ImmutableList<String> selectedFields, ReadSessionResponse readSessionResponse) {
+    // means select *
+    Schema tableSchema =
+        SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
+    return tableSchema.getFields().stream()
+        .map(Field::getName)
+        .collect(ImmutableList.toImmutableList());
   }
 }
 

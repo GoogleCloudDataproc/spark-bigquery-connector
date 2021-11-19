@@ -2,6 +2,7 @@ package com.google.cloud.spark.bigquery.common;
 
 import com.google.cloud.bigquery.connector.common.*;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.spark.bigquery.ArrowSchemaConverter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.protobuf.ByteString;
@@ -25,11 +26,15 @@ import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.vectorized.ColumnVector;
+import org.apache.spark.sql.vectorized.ColumnarBatch;
 
 public class GenericArrowColumnBatchPartitionReader implements Serializable {
   private static final long maxAllocation = 500 * 1024 * 1024;
 
   private final ReadRowsHelper readRowsHelper;
+  private ColumnarBatch currentBatch;
+  private boolean closed = false;
 
   public ArrowReaderAdapter getReader() {
     return reader;
@@ -57,6 +62,14 @@ public class GenericArrowColumnBatchPartitionReader implements Serializable {
 
   public BigQueryStorageReadRowsTracer getTracer() {
     return tracer;
+  }
+
+  public ColumnarBatch getCurrentBatch() {
+    return currentBatch;
+  }
+
+  public boolean isClosed() {
+    return closed;
   }
 
   public List<AutoCloseable> getCloseables() {
@@ -128,6 +141,58 @@ public class GenericArrowColumnBatchPartitionReader implements Serializable {
       // Zero background threads.
       InputStream fullStream = makeSingleInputStream(readRowsResponses, schema, tracer);
       this.reader = new SimpleAdapter(newArrowStreamReader(fullStream));
+    }
+  }
+
+  public boolean next() throws IOException {
+    this.tracer.nextBatchNeeded();
+    if (closed) {
+      return false;
+    }
+    this.tracer.rowsParseStarted();
+
+    closed = !this.reader.loadNextBatch();
+
+    if (closed) {
+      return false;
+    }
+
+    VectorSchemaRoot root = this.reader.root();
+    if (currentBatch == null) {
+      // trying to verify from dev@spark but this object
+      // should only need to get created once.  The underlying
+      // vectors should stay the same.
+      ColumnVector[] columns =
+          this.namesInOrder.stream()
+              .map(root::getVector)
+              .map(
+                  vector ->
+                      new ArrowSchemaConverter(
+                          vector, this.userProvidedFieldMap.get(vector.getName())))
+              .toArray(ColumnVector[]::new);
+
+      currentBatch = new ColumnarBatch(columns);
+    }
+    currentBatch.setNumRows(root.getRowCount());
+    this.tracer.rowsParseFinished(currentBatch.numRows());
+    return true;
+  }
+
+  public void close() throws IOException {
+    closed = true;
+    try {
+      this.tracer.finished();
+      this.closeables.set(0, this.reader);
+      this.closeables.add(this.allocator);
+      AutoCloseables.close(this.closeables);
+    } catch (Exception e) {
+      throw new IOException("Failure closing arrow components. stream: " + this.readRowsHelper, e);
+    } finally {
+      try {
+        this.readRowsHelper.close();
+      } catch (Exception e) {
+        throw new IOException("Failure closing stream: " + this.readRowsHelper, e);
+      }
     }
   }
 

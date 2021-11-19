@@ -22,7 +22,7 @@ public class BigQueryScanBuilder
   private final TableId tableId;
   private final ReadSessionCreatorConfig readSessionCreatorConfig;
   private final BigQueryClient bigQueryClient;
-  private final BigQueryReadClientFactory bigQueryReadClientFactory;
+  private final BigQueryClientFactory bigQueryReadClientFactory;
   private final BigQueryTracerFactory bigQueryTracerFactory;
   private final ReadSessionCreator readSessionCreator;
   private final Optional<String> globalFilter;
@@ -36,7 +36,7 @@ public class BigQueryScanBuilder
   BigQueryScanBuilder(
       TableInfo table,
       BigQueryClient bigQueryClient,
-      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory tracerFactory,
       ReadSessionCreatorConfig readSessionCreatorConfig,
       Optional<String> globalFilter,
@@ -85,8 +85,6 @@ public class BigQueryScanBuilder
     }
     pushedFilters = handledFilters.stream().toArray(Filter[]::new);
     return unhandledFilters.stream().toArray(Filter[]::new);
-    //    return filterHelper.pushFilters(filters, readSessionCreatorConfig,
-    // filterHelper.getFields());
   }
 
   @Override

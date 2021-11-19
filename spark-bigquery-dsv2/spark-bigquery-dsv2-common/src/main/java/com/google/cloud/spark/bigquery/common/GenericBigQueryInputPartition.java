@@ -1,6 +1,6 @@
 package com.google.cloud.spark.bigquery.common;
 
-import com.google.cloud.bigquery.connector.common.BigQueryReadClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
@@ -10,7 +10,7 @@ import java.util.Iterator;
 import org.apache.spark.sql.catalyst.InternalRow;
 
 public class GenericBigQueryInputPartition implements Serializable {
-  private BigQueryReadClientFactory bigQueryReadClientFactory;
+  private BigQueryClientFactory bigQueryReadClientFactory;
   private String streamName;
   private ReadRowsHelper.Options options;
   private ReadRowsResponseToInternalRowIteratorConverter converter;
@@ -19,7 +19,7 @@ public class GenericBigQueryInputPartition implements Serializable {
   private int currentIndex;
 
   public GenericBigQueryInputPartition(
-      BigQueryReadClientFactory bigQueryReadClientFactory,
+      BigQueryClientFactory bigQueryReadClientFactory,
       String streamName,
       ReadRowsHelper.Options options,
       ReadRowsResponseToInternalRowIteratorConverter converter) {
@@ -42,7 +42,7 @@ public class GenericBigQueryInputPartition implements Serializable {
     return readRowsHelper;
   }
 
-  public BigQueryReadClientFactory getBigQueryReadClientFactory() {
+  public BigQueryClientFactory getBigQueryReadClientFactory() {
     return bigQueryReadClientFactory;
   }
 
