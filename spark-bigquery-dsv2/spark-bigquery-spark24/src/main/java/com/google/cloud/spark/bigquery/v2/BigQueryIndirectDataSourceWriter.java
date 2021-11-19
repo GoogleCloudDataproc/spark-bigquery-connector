@@ -22,7 +22,6 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectDataSourceWriter;
 import com.google.cloud.spark.bigquery.common.IntermediateDataCleaner;
 import java.io.IOException;
-import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Optional;
@@ -45,7 +44,7 @@ import org.slf4j.LoggerFactory;
  * format, and then triggering a BigQuery load job on this data. Hence the "indirect" - the data
  * goes through an intermediate storage.
  */
-public class BigQueryIndirectDataSourceWriter implements DataSourceWriter, Serializable {
+public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
 
   private static final Logger logger =
       LoggerFactory.getLogger(BigQueryIndirectDataSourceWriter.class);

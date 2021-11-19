@@ -15,25 +15,13 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.connector.common.BigQueryClient;
-import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
-import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
-import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
-import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
-import com.google.cloud.bigquery.storage.v1.DataFormat;
-import com.google.cloud.bigquery.storage.v1.ReadSession;
+import com.google.cloud.bigquery.connector.common.*;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
-import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
-import com.google.cloud.spark.bigquery.SchemaConverters;
-import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.cloud.spark.bigquery.common.GenericBigQueryDataSourceReader;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import java.util.*;
@@ -75,7 +63,6 @@ public class BigQueryDataSourceReader
           return OptionalLong.empty();
         }
       };
-  private Filter[] pushedFilters = new Filter[] {};
 
   public BigQueryDataSourceReader(
       TableInfo table,
@@ -106,9 +93,7 @@ public class BigQueryDataSourceReader
 
   @Override
   public boolean enableBatchRead() {
-    return this.dataSourceReaderHelper.getReadSessionCreatorConfig().getReadDataFormat()
-            == DataFormat.ARROW
-        && !this.dataSourceReaderHelper.isEmptySchema();
+    return this.dataSourceReaderHelper.enableBatchRead();
   }
 
   @Override
@@ -117,26 +102,13 @@ public class BigQueryDataSourceReader
       // create empty projection
       return createEmptyProjectionPartitions();
     }
-
-    ImmutableList<String> selectedFields =
-        this.dataSourceReaderHelper
-            .getSchema()
-            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-            .orElse(ImmutableList.of());
-    Optional<String> filter = getCombinedFilter();
-    ReadSessionResponse readSessionResponse =
-        this.dataSourceReaderHelper
-            .getReadSessionCreator()
-            .create(this.dataSourceReaderHelper.getTableId(), selectedFields, filter);
-    ReadSession readSession = readSessionResponse.getReadSession();
-
+    this.dataSourceReaderHelper.createReadSession(false);
     logger.info(
         "Created read session for {}: {} for application id: {}",
         this.dataSourceReaderHelper.getTableId().toString(),
-        readSession.getName(),
+        this.dataSourceReaderHelper.getReadSession().getName(),
         this.dataSourceReaderHelper.getApplicationId());
-
-    return readSession.getStreamsList().stream()
+    return this.dataSourceReaderHelper.getReadSession().getStreamsList().stream()
         .map(
             stream ->
                 new BigQueryInputPartition(
@@ -145,58 +117,31 @@ public class BigQueryDataSourceReader
                     this.dataSourceReaderHelper
                         .getReadSessionCreatorConfig()
                         .toReadRowsHelperOptions(),
-                    createConverter(
-                        selectedFields,
-                        readSessionResponse,
-                        this.dataSourceReaderHelper.getUserProvidedSchema())))
+                    this.dataSourceReaderHelper.createConverter()))
         .collect(Collectors.toList());
-  }
-
-  private Optional<String> getCombinedFilter() {
-    return emptyIfNeeded(
-        SparkFilterUtils.getCompiledFilter(
-            this.dataSourceReaderHelper.getReadSessionCreatorConfig().getPushAllFilters(),
-            this.dataSourceReaderHelper.getReadSessionCreatorConfig().getReadDataFormat(),
-            this.dataSourceReaderHelper.getGlobalFilter(),
-            pushedFilters));
   }
 
   @Override
   public List<InputPartition<ColumnarBatch>> planBatchInputPartitions() {
-    if (!enableBatchRead()) {
+    if (!this.dataSourceReaderHelper.enableBatchRead()) {
       throw new IllegalStateException("Batch reads should not be enabled");
     }
-    ImmutableList<String> selectedFields =
-        this.dataSourceReaderHelper
-            .getSchema()
-            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-            .orElse(ImmutableList.copyOf(this.dataSourceReaderHelper.getFields().keySet()));
-    Optional<String> filter = getCombinedFilter();
-    ReadSessionResponse readSessionResponse =
-        this.dataSourceReaderHelper
-            .getReadSessionCreator()
-            .create(this.dataSourceReaderHelper.getTableId(), selectedFields, filter);
-    ReadSession readSession = readSessionResponse.getReadSession();
-    //    this.dataSourceReaderHelper.createReadSession(true);
+    this.dataSourceReaderHelper.createReadSession(true);
     logger.info(
         "Created read session for {}: {} for application id: {}",
         this.dataSourceReaderHelper.getTableId().toString(),
-        readSession.getName(),
+        this.dataSourceReaderHelper.getReadSession().getName(),
         this.dataSourceReaderHelper.getApplicationId());
 
     if (this.dataSourceReaderHelper.getSelectedFields().isEmpty()) {
       // means select *
-      Schema tableSchema =
-          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
-      selectedFields =
-          tableSchema.getFields().stream()
-              .map(Field::getName)
-              .collect(ImmutableList.toImmutableList());
+      this.dataSourceReaderHelper.emptySchemaForPartition();
     }
-    ImmutableList<String> partitionSelectedFields = selectedFields;
+
+    ImmutableList<String> partitionSelectedFields = this.dataSourceReaderHelper.getSelectedFields();
     return Streams.stream(
             Iterables.partition(
-                readSession.getStreamsList(),
+                this.dataSourceReaderHelper.getReadSession().getStreamsList(),
                 this.dataSourceReaderHelper.getReadSessionCreatorConfig().streamsPerPartition()))
         .map(
             streams ->
@@ -211,103 +156,39 @@ public class BigQueryDataSourceReader
                         .getReadSessionCreatorConfig()
                         .toReadRowsHelperOptions(),
                     partitionSelectedFields,
-                    readSessionResponse,
+                    this.dataSourceReaderHelper.getReadSessionResponse(),
                     this.dataSourceReaderHelper.getUserProvidedSchema()))
         .collect(Collectors.toList());
   }
 
-  public boolean isEmptySchema() {
-    return this.dataSourceReaderHelper.getSchema().map(StructType::isEmpty).orElse(false);
-  }
-
-  // this method should move into the spark bigquery connector common
-  private ReadRowsResponseToInternalRowIteratorConverter createConverter(
-      ImmutableList<String> selectedFields,
-      ReadSessionResponse readSessionResponse,
-      Optional<StructType> userProvidedSchema) {
-    ReadRowsResponseToInternalRowIteratorConverter converter;
-    DataFormat format =
-        this.dataSourceReaderHelper.getReadSessionCreatorConfig().getReadDataFormat();
-    if (format == DataFormat.AVRO) {
-      Schema schema =
-          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
-      if (selectedFields.isEmpty()) {
-        // means select *
-        selectedFields =
-            schema.getFields().stream()
-                .map(Field::getName)
-                .collect(ImmutableList.toImmutableList());
-      } else {
-        Set<String> requiredColumnSet = ImmutableSet.copyOf(selectedFields);
-        schema =
-            Schema.of(
-                schema.getFields().stream()
-                    .filter(field -> requiredColumnSet.contains(field.getName()))
-                    .collect(Collectors.toList()));
-      }
-      return ReadRowsResponseToInternalRowIteratorConverter.avro(
-          schema,
-          selectedFields,
-          readSessionResponse.getReadSession().getAvroSchema().getSchema(),
-          userProvidedSchema);
-    }
-    throw new IllegalArgumentException(
-        "No known converted for "
-            + this.dataSourceReaderHelper.getReadSessionCreatorConfig().getReadDataFormat());
-  }
-
   List<InputPartition<InternalRow>> createEmptyProjectionPartitions() {
-    Optional<String> filter = getCombinedFilter();
-    long rowCount =
-        this.dataSourceReaderHelper
-            .getBigQueryClient()
-            .calculateTableSize(this.dataSourceReaderHelper.getTableId(), filter);
-    logger.info("Used optimized BQ count(*) path. Count: " + rowCount);
-    int partitionsCount =
-        this.dataSourceReaderHelper.getReadSessionCreatorConfig().getDefaultParallelism();
-    int partitionSize = (int) (rowCount / partitionsCount);
+    this.dataSourceReaderHelper.createEmptyProjectionPartitions();
     InputPartition<InternalRow>[] partitions =
-        IntStream.range(0, partitionsCount)
-            .mapToObj(ignored -> new BigQueryEmptyProjectionInputPartition(partitionSize))
+        IntStream.range(0, this.dataSourceReaderHelper.getPartitionsCount())
+            .mapToObj(
+                ignored ->
+                    new BigQueryEmptyProjectionInputPartition(
+                        this.dataSourceReaderHelper.getPartitionSize()))
             .toArray(BigQueryEmptyProjectionInputPartition[]::new);
-    int firstPartitionSize = partitionSize + (int) (rowCount % partitionsCount);
-    partitions[0] = new BigQueryEmptyProjectionInputPartition(firstPartitionSize);
+    partitions[0] =
+        new BigQueryEmptyProjectionInputPartition(
+            this.dataSourceReaderHelper.getFirstPartitionSize());
     return ImmutableList.copyOf(partitions);
   }
 
   @Override
   public Filter[] pushFilters(Filter[] filters) {
-    List<Filter> handledFilters = new ArrayList<>();
-    List<Filter> unhandledFilters = new ArrayList<>();
-    for (Filter filter : filters) {
-      if (SparkFilterUtils.isTopLevelFieldHandled(
-          this.dataSourceReaderHelper.getReadSessionCreatorConfig().getPushAllFilters(),
-          filter,
-          this.dataSourceReaderHelper.getReadSessionCreatorConfig().getReadDataFormat(),
-          this.dataSourceReaderHelper.getFields())) {
-        handledFilters.add(filter);
-      } else {
-        unhandledFilters.add(filter);
-      }
-    }
-    pushedFilters = handledFilters.stream().toArray(Filter[]::new);
-    return unhandledFilters.stream().toArray(Filter[]::new);
-    //    return this.dataSourceReaderHelper.pushFilters(filters);
+    return this.dataSourceReaderHelper.pushFilters(filters);
   }
 
   @Override
   public Filter[] pushedFilters() {
-    return pushedFilters;
+    return this.dataSourceReaderHelper.getPushedFilters();
   }
 
   @Override
   public void pruneColumns(StructType requiredSchema) {
-    //    this.schema = Optional.ofNullable(requiredSchema);
     this.dataSourceReaderHelper.pruneColumns(requiredSchema);
-  }
-
-  Optional<String> emptyIfNeeded(String value) {
-    return (value == null || value.length() == 0) ? Optional.empty() : Optional.of(value);
   }
 
   @Override

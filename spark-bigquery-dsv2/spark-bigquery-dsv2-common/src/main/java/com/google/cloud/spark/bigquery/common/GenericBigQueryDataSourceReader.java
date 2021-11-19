@@ -45,6 +45,10 @@ public class GenericBigQueryDataSourceReader implements Serializable {
   private Optional<String> filter;
   private ReadSessionResponse readSessionResponse;
   private GenericBigQuerySparkFilterHelper sparkFilterHelper;
+  private ReadSessionResponse readSessionResponse;
+  private int partitionSize;
+  private int partitionsCount;
+  private int firstPartitionSize;
 
   public GenericBigQueryDataSourceReader(
       TableInfo table,
@@ -125,6 +129,7 @@ public class GenericBigQueryDataSourceReader implements Serializable {
   }
 
   private void populateSchema(TableInfo table) {
+    this.schema = schema;
     StructType convertedSchema =
         SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table));
     if (schema.isPresent()) {
@@ -137,6 +142,37 @@ public class GenericBigQueryDataSourceReader implements Serializable {
     this.fields = new LinkedHashMap<>();
     for (StructField field : JavaConversions.seqAsJavaList(convertedSchema)) {
       fields.put(field.name(), field);
+    }
+  }
+
+  public Optional<StructType> getSchema() {
+    return schema;
+  }
+
+  public void createReadSession(boolean batch) {
+    this.selectedFields =
+        batch
+            ? this.schema
+                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+                .orElse(ImmutableList.copyOf(fields.keySet()))
+            : this.schema
+                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+                .orElse(ImmutableList.of());
+    Optional<String> filter = getCombinedFilter();
+    this.readSessionResponse =
+        this.readSessionCreator.create(this.tableId, this.selectedFields, filter);
+    this.readSession = readSessionResponse.getReadSession();
+  }
+
+  public void emptySchemaForPartition() {
+    if (this.selectedFields.isEmpty()) {
+      // means select *
+      Schema tableSchema =
+          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
+      this.selectedFields =
+          tableSchema.getFields().stream()
+              .map(Field::getName)
+              .collect(ImmutableList.toImmutableList());
     }
   }
 
@@ -196,8 +232,20 @@ public class GenericBigQueryDataSourceReader implements Serializable {
     return this.fields;
   }
 
-  public Optional<String> getFilter() {
-    return filter;
+  public Filter[] getPushedFilters() {
+    return pushedFilters;
+  }
+
+  public int getPartitionSize() {
+    return partitionSize;
+  }
+
+  public int getPartitionsCount() {
+    return partitionsCount;
+  }
+
+  public int getFirstPartitionSize() {
+    return firstPartitionSize;
   }
 
   public StructType readSchema() {
@@ -266,31 +314,29 @@ public class GenericBigQueryDataSourceReader implements Serializable {
   }
 
   public Filter[] pushFilters(Filter[] filters) {
-    return this.pushFilters(filters, this.readSessionCreatorConfig, this.fields);
-  }
-
-  public Filter[] pushFilters(
-      Filter[] filters,
-      ReadSessionCreatorConfig readSessionCreatorConfig,
-      Map<String, StructField> fields) {
     List<Filter> handledFilters = new ArrayList<>();
     List<Filter> unhandledFilters = new ArrayList<>();
     for (Filter filter : filters) {
       if (SparkFilterUtils.isTopLevelFieldHandled(
-          readSessionCreatorConfig.getPushAllFilters(),
+          this.readSessionCreatorConfig.getPushAllFilters(),
           filter,
-          readSessionCreatorConfig.getReadDataFormat(),
-          fields)) {
+          this.readSessionCreatorConfig.getReadDataFormat(),
+          this.fields)) {
         handledFilters.add(filter);
       } else {
         unhandledFilters.add(filter);
       }
     }
-    this.pushedFilters = handledFilters.stream().toArray(Filter[]::new);
+    pushedFilters = handledFilters.stream().toArray(Filter[]::new);
     return unhandledFilters.stream().toArray(Filter[]::new);
   }
 
-  public Filter[] getPushedFilters() {
-    return this.pushedFilters;
+  public void createEmptyProjectionPartitions() {
+    Optional<String> filter = getCombinedFilter();
+    long rowCount = this.bigQueryClient.calculateTableSize(this.tableId, filter);
+    logger.info("Used optimized BQ count(*) path. Count: " + rowCount);
+    this.partitionsCount = this.readSessionCreatorConfig.getDefaultParallelism();
+    int partitionSize = (int) (rowCount / this.partitionsCount);
+    this.firstPartitionSize = partitionSize + (int) (rowCount % partitionsCount);
   }
 }

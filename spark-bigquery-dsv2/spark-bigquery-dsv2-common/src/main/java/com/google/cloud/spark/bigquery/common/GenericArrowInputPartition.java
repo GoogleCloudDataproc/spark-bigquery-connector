@@ -150,6 +150,18 @@ public class GenericArrowInputPartition implements Serializable {
     //  for each inputPartition reader
     this.tracer = this.getBQTracerByStreamNames(this.tracerFactory, this.streamName);
     this.readRowsRequests = this.getListOfReadRowsRequestsByStreamNames(this.streamName);
+    this.readRowsHelper =
+    new ReadRowsHelper(this.bigQueryReadClientFactory, readRowsRequests, this.options);
+    tracer.startStream();
+    // iterator to read data from bigquery read rows object
+    this.readRowsResponses = this.readRowsHelper.readRows();
+  }
+  
+  public void createPartitionReader() {
+    // using generic helper class from dsv 2 parent library to create tracer,read row request object
+    //  for each inputPartition reader
+    this.tracer = this.getBQTracerByStreamNames(this.tracerFactory, this.streamNames);
+    this.readRowsRequests = this.getListOfReadRowsRequestsByStreamNames(this.streamNames);
 
     this.readRowsHelper =
         new ReadRowsHelper(this.bigQueryReadClientFactory, readRowsRequests, this.options);
