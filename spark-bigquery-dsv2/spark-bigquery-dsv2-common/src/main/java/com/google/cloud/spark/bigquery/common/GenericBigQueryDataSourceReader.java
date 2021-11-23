@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Google Inc. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.google.cloud.spark.bigquery.common;
 
 import com.google.cloud.bigquery.Field;
@@ -45,7 +60,6 @@ public class GenericBigQueryDataSourceReader implements Serializable {
   private Optional<String> filter;
   private ReadSessionResponse readSessionResponse;
   private GenericBigQuerySparkFilterHelper sparkFilterHelper;
-  private ReadSessionResponse readSessionResponse;
   private int partitionSize;
   private int partitionsCount;
   private int firstPartitionSize;
@@ -126,54 +140,6 @@ public class GenericBigQueryDataSourceReader implements Serializable {
 
   public Optional<StructType> getSchema() {
     return this.schema;
-  }
-
-  private void populateSchema(TableInfo table) {
-    this.schema = schema;
-    StructType convertedSchema =
-        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table));
-    if (schema.isPresent()) {
-      this.userProvidedSchema = schema;
-    } else {
-      this.schema = Optional.of(convertedSchema);
-      this.userProvidedSchema = Optional.empty();
-    }
-    // We want to keep the key order
-    this.fields = new LinkedHashMap<>();
-    for (StructField field : JavaConversions.seqAsJavaList(convertedSchema)) {
-      fields.put(field.name(), field);
-    }
-  }
-
-  public Optional<StructType> getSchema() {
-    return schema;
-  }
-
-  public void createReadSession(boolean batch) {
-    this.selectedFields =
-        batch
-            ? this.schema
-                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-                .orElse(ImmutableList.copyOf(fields.keySet()))
-            : this.schema
-                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-                .orElse(ImmutableList.of());
-    Optional<String> filter = getCombinedFilter();
-    this.readSessionResponse =
-        this.readSessionCreator.create(this.tableId, this.selectedFields, filter);
-    this.readSession = readSessionResponse.getReadSession();
-  }
-
-  public void emptySchemaForPartition() {
-    if (this.selectedFields.isEmpty()) {
-      // means select *
-      Schema tableSchema =
-          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
-      this.selectedFields =
-          tableSchema.getFields().stream()
-              .map(Field::getName)
-              .collect(ImmutableList.toImmutableList());
-    }
   }
 
   public TableInfo getTable() {

@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Google Inc. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.google.cloud.spark.bigquery.common;
 
 import static com.google.common.base.Optional.fromJavaUtil;
@@ -151,12 +166,12 @@ public class GenericArrowInputPartition implements Serializable {
     this.tracer = this.getBQTracerByStreamNames(this.tracerFactory, this.streamName);
     this.readRowsRequests = this.getListOfReadRowsRequestsByStreamNames(this.streamName);
     this.readRowsHelper =
-    new ReadRowsHelper(this.bigQueryReadClientFactory, readRowsRequests, this.options);
+        new ReadRowsHelper(this.bigQueryReadClientFactory, readRowsRequests, this.options);
     tracer.startStream();
     // iterator to read data from bigquery read rows object
     this.readRowsResponses = this.readRowsHelper.readRows();
   }
-  
+
   public void createPartitionReader() {
     // using generic helper class from dsv 2 parent library to create tracer,read row request object
     //  for each inputPartition reader

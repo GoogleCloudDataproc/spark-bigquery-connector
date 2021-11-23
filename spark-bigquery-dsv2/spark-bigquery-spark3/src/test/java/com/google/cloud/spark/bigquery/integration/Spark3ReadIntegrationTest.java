@@ -26,13 +26,9 @@ public class Spark3ReadIntegrationTest extends ReadIntegrationTestBase {
   @Test
   public void testKnownSizeInBytes() {
     Dataset<Row> allTypesTable = readAllTypesTable();
-    allTypesTable.show();
-    System.out.println(allTypesTable.queryExecution().analyzed().stats().sizeInBytes().longValue());
-    //    allTypesTable.persist(StorageLevel.MEMORY_AND_DISK());
-    //    System.out.println(allTypesTable.count());
-    //    long actualTableSize =
-    //        allTypesTable.queryExecution().analyzed().stats().sizeInBytes().longValue();
-    //    assertThat(actualTableSize).isEqualTo(TestConstants.ALL_TYPES_TABLE_SIZE);
+    long actualTableSize =
+        allTypesTable.queryExecution().analyzed().stats().sizeInBytes().longValue();
+    assertThat(actualTableSize).isEqualTo(TestConstants.ALL_TYPES_TABLE_SIZE);
   }
 
   @Test

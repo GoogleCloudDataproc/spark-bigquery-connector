@@ -13,11 +13,7 @@ import org.apache.spark.sql.vectorized.ColumnarBatch;
 
 public class BigQueryPartitionReaderFactory implements PartitionReaderFactory {
 
-  //  private final GenericBigQuerySchemaHelper schemaHelper;
-
-  BigQueryPartitionReaderFactory() {
-    //    schemaHelper = new GenericBigQuerySchemaHelper();
-  }
+  BigQueryPartitionReaderFactory() {}
 
   @Override
   public PartitionReader<InternalRow> createReader(InputPartition partition) {
@@ -47,26 +43,7 @@ public class BigQueryPartitionReaderFactory implements PartitionReaderFactory {
       ArrowInputPartition arrowInputPartition = (ArrowInputPartition) partition;
       GenericArrowBigQueryInputPartitionHelper bqInputPartitionHelper =
           new GenericArrowBigQueryInputPartitionHelper();
-      // using generic helper class from dsv 2 parent library to create tracer,read row request
-      // object
-      //  for each inputPartition reader
-      //      BigQueryStorageReadRowsTracer tracer =
-      //          bqInputPartitionHelper.getBQTracerByStreamNames(
-      //              arrowInputPartition.getTracerFactory(), arrowInputPartition.getStreamName());
-      //      List<ReadRowsRequest.Builder> readRowsRequests =
-      //          bqInputPartitionHelper.getListOfReadRowsRequestsByStreamNames(
-      //              arrowInputPartition.getStreamName());
-      //
-      //      ReadRowsHelper readRowsHelper =
-      //          new ReadRowsHelper(
-      //              arrowInputPartition.getBigQueryReadClientFactory(),
-      //              readRowsRequests,
-      //              arrowInputPartition.getOptions());
-      //      tracer.startStream();
-      //      // iterator to read data from bigquery read rows object
-      //      Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
       arrowInputPartition.createPartitionReader();
-      System.out.println(arrowInputPartition.getSerializedArrowSchema().toString());
       return new ArrowColumnBatchPartitionReader(
           arrowInputPartition.getReadRowsResponses(),
           arrowInputPartition.getSerializedArrowSchema(),

@@ -118,13 +118,11 @@ public class BigQueryBatchScan implements Scan, Batch, SupportsReportStatistics 
     //        applicationId);
     List<ReadStream> streamList;
     if (isEnableBatchRead(readSessionCreatorConfig, schema)) {
-      System.out.println("HERE arrow");
       selectedFields =
           schema
               .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
               .orElse(ImmutableList.copyOf(fields.keySet()));
       filter = getCombinedFilter();
-      System.out.println(selectedFields);
       readSessionResponse = readSessionCreator.create(tableId, selectedFields, filter);
       readSession = readSessionResponse.getReadSession();
       streamList = readSession.getStreamsList();
@@ -145,7 +143,6 @@ public class BigQueryBatchScan implements Scan, Batch, SupportsReportStatistics 
       }
       return arrowInputPartition;
     }
-    System.out.println("HERE big");
     selectedFields =
         schema
             .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
@@ -205,7 +202,6 @@ public class BigQueryBatchScan implements Scan, Batch, SupportsReportStatistics 
   }
 
   public InputPartition[] createEmptyProjectionPartitions() {
-    System.out.println("EMPTY");
     Optional<String> filter = getCombinedFilter();
     long rowCount = bigQueryClient.calculateTableSize(tableId, filter);
     logger.info("Used optimized BQ count(*) path. Count: " + rowCount);
