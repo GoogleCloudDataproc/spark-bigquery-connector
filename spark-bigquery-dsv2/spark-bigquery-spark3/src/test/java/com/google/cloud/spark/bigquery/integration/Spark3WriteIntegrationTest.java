@@ -193,7 +193,7 @@ public class Spark3WriteIntegrationTest extends WriteIntegrationTestBase {
         .option("writePath", "direct")
         .option("dataset", DATASET)
         .option("project", PROJECT)
-            .option("schema",expectedDF.schema().toDDL())
+        .option("schema", expectedDF.schema().toDDL())
         .mode(SaveMode.Overwrite)
         .save();
 
@@ -263,7 +263,7 @@ public class Spark3WriteIntegrationTest extends WriteIntegrationTestBase {
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
-            .option("temporaryGcsBucket", temporaryGcsBucket)
+        .option("temporaryGcsBucket", temporaryGcsBucket)
         .mode(SaveMode.Overwrite)
         .save();
 
