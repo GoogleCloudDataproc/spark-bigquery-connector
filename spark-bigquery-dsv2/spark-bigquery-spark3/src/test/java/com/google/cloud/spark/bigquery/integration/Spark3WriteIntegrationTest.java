@@ -225,6 +225,7 @@ public class Spark3WriteIntegrationTest extends WriteIntegrationTestBase {
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
+        .option("schema", smallDataDf.schema().toDDL())
         .save();
 
     smallDataDf
@@ -233,6 +234,7 @@ public class Spark3WriteIntegrationTest extends WriteIntegrationTestBase {
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
+        .option("schema", smallDataDf.schema().toDDL())
         .mode(SaveMode.Append)
         .save();
 
@@ -294,6 +296,7 @@ public class Spark3WriteIntegrationTest extends WriteIntegrationTestBase {
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
+        .option("schema", smallDataDf.schema().toDDL())
         .save();
 
     twiceAsBigDf
@@ -302,6 +305,7 @@ public class Spark3WriteIntegrationTest extends WriteIntegrationTestBase {
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
+        .option("schema", twiceAsBigDf.schema().toDDL())
         .mode(SaveMode.Ignore)
         .save();
 
@@ -330,6 +334,7 @@ public class Spark3WriteIntegrationTest extends WriteIntegrationTestBase {
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
+        .option("schema", smallDataDf.schema().toDDL())
         .save();
 
     try {
@@ -356,6 +361,7 @@ public class Spark3WriteIntegrationTest extends WriteIntegrationTestBase {
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
+        .option("schema", MB20Df.schema().toDDL())
         .mode(SaveMode.Overwrite)
         .save();
 
@@ -380,6 +386,7 @@ public class Spark3WriteIntegrationTest extends WriteIntegrationTestBase {
         .option("table", writeTo)
         .option("dataset", DATASET)
         .option("project", PROJECT)
+        .option("schema", MB100Df.schema().toDDL())
         .mode(SaveMode.Overwrite)
         .save();
 

@@ -7,6 +7,7 @@ import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryConnectorModule;
+import com.google.cloud.spark.bigquery.common.BigQueryDataSourceHelper;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
@@ -23,38 +24,15 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 
 public class BigQueryDataSourceV2 implements TableProvider, DataSourceRegister {
 
-  private static CaseInsensitiveStringMap options;
-
+  private BigQueryDataSourceHelper dataSourceHelper = new BigQueryDataSourceHelper();
   @Override
   public StructType inferSchema(final CaseInsensitiveStringMap options) {
     if (options.get("schema") != null) {
       return getTable(StructType.fromDDL(options.get("schema")), null, options.asCaseSensitiveMap())
           .schema();
     }
-    //    return getTable(null, null, options.asCaseSensitiveMap()).schema();
     StructField[] structFields = new StructField[0];
     return getTable(new StructType(structFields), null, options).schema();
-    //    StructField[] structFields = new StructField[0];
-    //    return new StructType(structFields);
-    //    return null;
-  }
-
-  public DataType getDataType(String type, long precision, long scale) {
-    switch (type) {
-      case "INTEGER":
-        return DataTypes.IntegerType;
-      case "DOUBLE":
-        return DataTypes.DoubleType;
-      case "FLOAT":
-        return DataTypes.FloatType;
-      case "NUMERIC":
-        return DataTypes.createDecimalType((int) precision, (int) scale);
-      case "VARCHAR":
-      case "CHAR":
-      case "STRING":
-      default:
-        return DataTypes.StringType;
-    }
   }
 
   @Override

@@ -41,6 +41,12 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-catalyst_2.12</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>spark-bigquery-tests</artifactId>
       <version>${project.parent.version}</version>
@@ -78,7 +84,7 @@
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.2.4</version>
         <configuration>
-          <shadedArtifactAttached>false</shadedArtifactAttached>
+          <shadedArtifactAttached>true</shadedArtifactAttached>
           <relocations>
             <relocation>
               <pattern>android</pattern>
