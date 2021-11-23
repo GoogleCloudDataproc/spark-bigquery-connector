@@ -49,7 +49,7 @@ public class BigQueryClientFactory implements Serializable {
       if (!endpointToReadClientMap.containsKey(endpointKey)) {
         // add a shutdown hook only once
         if (endpointToReadClientMap.isEmpty()) {
-          Runtime.getRuntime().addShutdownHook(new Thread(this::closeActiveBigQueryReadClients));
+          Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownActiveBigQueryReadClients));
         }
         endpointToReadClientMap.put(endpointKey, createBigQueryReadClient(endpoint));
       }
@@ -62,7 +62,7 @@ public class BigQueryClientFactory implements Serializable {
     synchronized (this) {
       if (writeClient == null) {
         writeClient = createBigQueryWriteClient();
-        Runtime.getRuntime().addShutdownHook(new Thread(this::closeActiveBigQueryWriteClient));
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownActiveBigQueryWriteClient));
       }
     }
 
@@ -117,15 +117,15 @@ public class BigQueryClientFactory implements Serializable {
     }
   }
 
-  private void closeActiveBigQueryReadClients() {
-    for (BigQueryReadClient client : endpointToReadClientMap.values()) {
-      if (!client.isShutdown()) {
-        client.close();
+  private void shutdownActiveBigQueryReadClients() {
+    for (BigQueryReadClient readClient : endpointToReadClientMap.values()) {
+      if (readClient != null && !readClient.isShutdown()) {
+        readClient.shutdown();
       }
     }
   }
 
-  private void closeActiveBigQueryWriteClient() {
+  private void shutdownActiveBigQueryWriteClient() {
     if (writeClient != null && !writeClient.isShutdown()) {
       writeClient.shutdown();
     }
