@@ -126,8 +126,8 @@ public class BigQueryClientFactory implements Serializable {
   }
 
   private void closeActiveBigQueryWriteClient() {
-    if (!writeClient.isShutdown()) {
-      writeClient.close();
+    if (writeClient != null && !writeClient.isShutdown()) {
+      writeClient.shutdown();
     }
   }
 }
