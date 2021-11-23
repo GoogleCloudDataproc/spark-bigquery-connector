@@ -82,51 +82,50 @@ public class ReadSessionCreator {
     TableInfo actualTable = getActualTable(tableDetails, selectedFields, filter);
     StandardTableDefinition tableDefinition = actualTable.getDefinition();
 
-    try (BigQueryReadClient bigQueryReadClient =
-        bigQueryReadClientFactory.createBigQueryReadClient(config.endpoint())) {
+    BigQueryReadClient bigQueryReadClient =
+        bigQueryReadClientFactory.getBigQueryReadClient(config.endpoint());
 
-      String tablePath = toTablePath(actualTable.getTableId());
-      CreateReadSessionRequest request =
-          config
-              .getRequestEncodedBase()
-              .map(
-                  value -> {
-                    try {
-                      return com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest
-                          .parseFrom(java.util.Base64.getDecoder().decode(value));
-                    } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                      throw new RuntimeException("Couldn't decode:" + value, e);
-                    }
-                  })
-              .orElse(CreateReadSessionRequest.newBuilder().build());
-      ReadSession.Builder requestedSession = request.getReadSession().toBuilder();
-      TableReadOptions.Builder readOptions = requestedSession.getReadOptionsBuilder();
-      if (!isInputTableAView(tableDetails)) {
-        filter.ifPresent(readOptions::setRowRestriction);
-      }
-      readOptions.addAllSelectedFields(selectedFields);
-      readOptions.setArrowSerializationOptions(
-          ArrowSerializationOptions.newBuilder()
-              .setBufferCompression(config.getArrowCompressionCodec())
-              .build());
-
-      ReadSession readSession =
-          bigQueryReadClient.createReadSession(
-              request
-                  .newBuilder()
-                  .setParent("projects/" + bigQueryClient.getProjectId())
-                  .setReadSession(
-                      requestedSession
-                          .setDataFormat(config.getReadDataFormat())
-                          .setReadOptions(readOptions)
-                          .setTable(tablePath)
-                          .build())
-                  .setMaxStreamCount(
-                      getMaxNumPartitionsRequested(config.getMaxParallelism(), tableDefinition))
-                  .build());
-
-      return new ReadSessionResponse(readSession, actualTable);
+    String tablePath = toTablePath(actualTable.getTableId());
+    CreateReadSessionRequest request =
+        config
+            .getRequestEncodedBase()
+            .map(
+                value -> {
+                  try {
+                    return com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest.parseFrom(
+                        java.util.Base64.getDecoder().decode(value));
+                  } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+                    throw new RuntimeException("Couldn't decode:" + value, e);
+                  }
+                })
+            .orElse(CreateReadSessionRequest.newBuilder().build());
+    ReadSession.Builder requestedSession = request.getReadSession().toBuilder();
+    TableReadOptions.Builder readOptions = requestedSession.getReadOptionsBuilder();
+    if (!isInputTableAView(tableDetails)) {
+      filter.ifPresent(readOptions::setRowRestriction);
     }
+    readOptions.addAllSelectedFields(selectedFields);
+    readOptions.setArrowSerializationOptions(
+        ArrowSerializationOptions.newBuilder()
+            .setBufferCompression(config.getArrowCompressionCodec())
+            .build());
+
+    ReadSession readSession =
+        bigQueryReadClient.createReadSession(
+            request
+                .newBuilder()
+                .setParent("projects/" + bigQueryClient.getProjectId())
+                .setReadSession(
+                    requestedSession
+                        .setDataFormat(config.getReadDataFormat())
+                        .setReadOptions(readOptions)
+                        .setTable(tablePath)
+                        .build())
+                .setMaxStreamCount(
+                    getMaxNumPartitionsRequested(config.getMaxParallelism(), tableDefinition))
+                .build());
+
+    return new ReadSessionResponse(readSession, actualTable);
   }
 
   String toTablePath(TableId tableId) {

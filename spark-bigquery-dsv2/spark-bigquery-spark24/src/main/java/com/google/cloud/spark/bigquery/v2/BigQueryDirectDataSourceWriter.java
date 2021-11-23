@@ -91,7 +91,7 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
         bigQueryClient.createTablePathForBigQueryStorage(temporaryTableId);
 
     if (!writingMode.equals(WritingMode.IGNORE_INPUTS)) {
-      this.writeClient = writeClientFactory.createBigQueryWriteClient();
+      this.writeClient = writeClientFactory.getBigQueryWriteClient();
     }
   }
 

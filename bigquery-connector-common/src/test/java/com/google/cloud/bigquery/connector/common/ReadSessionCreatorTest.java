@@ -54,7 +54,7 @@ public class ReadSessionCreatorTest {
         new ReadSessionCreatorConfigBuilder().setRequestEncodedBase(encodedBase).build();
     ReadSessionCreator creator =
         new ReadSessionCreator(config, bigQueryClient, bigQueryReadClientFactory);
-    when(bigQueryReadClientFactory.createBigQueryReadClient(eq(Optional.empty())))
+    when(bigQueryReadClientFactory.getBigQueryReadClient(eq(Optional.empty())))
         .thenReturn(readClient);
     when(bigQueryClient.getTable(any())).thenReturn(table);
     when(stub.createReadSessionCallable()).thenReturn(createReadSessionCall);

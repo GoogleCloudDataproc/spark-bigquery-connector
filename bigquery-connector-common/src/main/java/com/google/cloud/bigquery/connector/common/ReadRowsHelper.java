@@ -68,7 +68,6 @@ public class ReadRowsHelper implements AutoCloseable {
 
   private final BigQueryClientFactory bigQueryReadClientFactory;
   private final List<ReadRowsRequest.Builder> requests;
-  private BigQueryReadClient client;
   private StreamCombiningIterator incomingStream;
 
   public ReadRowsHelper(
@@ -92,10 +91,8 @@ public class ReadRowsHelper implements AutoCloseable {
   }
 
   public Iterator<ReadRowsResponse> readRows() {
-    if (client != null) {
-      client.close();
-    }
-    client = bigQueryReadClientFactory.createBigQueryReadClient(options.getEndpoint());
+    BigQueryReadClient client =
+        bigQueryReadClientFactory.getBigQueryReadClient(options.getEndpoint());
     incomingStream =
         new StreamCombiningIterator(
             client, requests, options.prebufferResponses, options.getMaxReadRowsRetries());
@@ -120,9 +117,6 @@ public class ReadRowsHelper implements AutoCloseable {
         logger.debug("Error on cancel call", e);
       }
       incomingStream = null;
-    }
-    if (!client.isShutdown()) {
-      client.close();
     }
   }
 }

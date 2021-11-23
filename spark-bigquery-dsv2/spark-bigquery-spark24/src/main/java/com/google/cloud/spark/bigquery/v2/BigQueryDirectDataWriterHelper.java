@@ -59,7 +59,7 @@ public class BigQueryDirectDataWriterHelper {
       String tablePath,
       ProtoSchema protoSchema,
       RetrySettings bigqueryDataWriterHelperRetrySettings) {
-    this.writeClient = writeClientFactory.createBigQueryWriteClient();
+    this.writeClient = writeClientFactory.getBigQueryWriteClient();
     this.tablePath = tablePath;
     this.protoSchema = protoSchema;
     this.retrySettings = bigqueryDataWriterHelperRetrySettings;
