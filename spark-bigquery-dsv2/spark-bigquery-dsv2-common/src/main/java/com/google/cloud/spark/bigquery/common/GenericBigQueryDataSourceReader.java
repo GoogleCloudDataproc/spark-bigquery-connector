@@ -59,7 +59,6 @@ public class GenericBigQueryDataSourceReader implements Serializable {
   private ImmutableList<String> selectedBatchFields;
   private Optional<String> filter;
   private ReadSessionResponse readSessionResponse;
-  private GenericBigQuerySparkFilterHelper sparkFilterHelper;
   private int partitionSize;
   private int partitionsCount;
   private int firstPartitionSize;
@@ -101,7 +100,35 @@ public class GenericBigQueryDataSourceReader implements Serializable {
         this.schema
             .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
             .orElse(ImmutableList.of());
-    this.sparkFilterHelper = new GenericBigQuerySparkFilterHelper(table);
+  }
+
+  public GenericBigQueryDataSourceReader(
+      TableInfo table,
+      TableId tableId,
+      Optional<StructType> schema,
+      Optional<StructType> userProvidedSchema,
+      Map<String, StructField> fields,
+      ReadSessionCreatorConfig readSessionCreatorConfig,
+      BigQueryClient bigQueryClient,
+      BigQueryClientFactory bigQueryReadClientFactory,
+      BigQueryTracerFactory bigQueryTracerFactory,
+      ReadSessionCreator readSessionCreator,
+      Optional<String> globalFilter,
+      Filter[] pushedFilters,
+      String applicationId) {
+    this.table = table;
+    this.tableId = tableId;
+    this.readSessionCreatorConfig = readSessionCreatorConfig;
+    this.bigQueryClient = bigQueryClient;
+    this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+    this.bigQueryTracerFactory = bigQueryTracerFactory;
+    this.applicationId = applicationId;
+    this.readSessionCreator = readSessionCreator;
+    this.globalFilter = globalFilter;
+    this.schema = schema;
+    this.userProvidedSchema = userProvidedSchema;
+    this.fields = fields;
+    this.pushedFilters = pushedFilters;
   }
 
   public void createReadSession(boolean batch) {
@@ -216,7 +243,7 @@ public class GenericBigQueryDataSourceReader implements Serializable {
 
   public StructType readSchema() {
     return schema.orElse(
-        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(this.getTable())));
+        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(this.table)));
   }
 
   public ReadRowsResponseToInternalRowIteratorConverter createConverter() {

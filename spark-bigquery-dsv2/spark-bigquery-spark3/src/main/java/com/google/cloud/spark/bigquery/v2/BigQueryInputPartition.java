@@ -18,40 +18,37 @@ package com.google.cloud.spark.bigquery.v2;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
+import com.google.cloud.spark.bigquery.common.GenericBigQueryInputPartition;
 import java.io.Serializable;
 import org.apache.spark.sql.connector.read.InputPartition;
 
 public class BigQueryInputPartition implements InputPartition, Serializable {
 
-  private BigQueryClientFactory bigQueryReadClientFactory;
-  private String streamName;
-  private ReadRowsHelper.Options options;
-  private ReadRowsResponseToInternalRowIteratorConverter converter;
+  private GenericBigQueryInputPartition inputPartitionHelper;
 
   public BigQueryInputPartition(
       BigQueryClientFactory bigQueryReadClientFactory,
       String streamName,
       ReadRowsHelper.Options options,
       ReadRowsResponseToInternalRowIteratorConverter converter) {
-    this.bigQueryReadClientFactory = bigQueryReadClientFactory;
-    this.streamName = streamName;
-    this.options = options;
-    this.converter = converter;
+    this.inputPartitionHelper =
+        new GenericBigQueryInputPartition(
+            bigQueryReadClientFactory, streamName, options, converter);
   }
 
   public BigQueryClientFactory getBigQueryReadClientFactory() {
-    return bigQueryReadClientFactory;
+    return this.inputPartitionHelper.getBigQueryReadClientFactory();
   }
 
   public String getStreamName() {
-    return streamName;
+    return this.inputPartitionHelper.getStreamName();
   }
 
   public ReadRowsHelper.Options getOptions() {
-    return options;
+    return this.inputPartitionHelper.getOptions();
   }
 
   public ReadRowsResponseToInternalRowIteratorConverter getConverter() {
-    return converter;
+    return this.inputPartitionHelper.getConverter();
   }
 }

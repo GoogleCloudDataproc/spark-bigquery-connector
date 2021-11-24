@@ -26,6 +26,7 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConnectorModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
@@ -56,6 +57,17 @@ public class BigQueryDataSourceHelper {
             new BigQueryClientModule(),
             new SparkBigQueryConnectorModule(
                 spark, options.asMap(), Optional.ofNullable(schema), DataSourceVersion.V2),
+            module);
+    return getTableInformation(injector, mode);
+  }
+
+  public Injector createInjector(StructType schema, Map<String, String> options, Module module) {
+    SparkSession spark = getDefaultSparkSessionOrCreate();
+    Injector injector =
+        Guice.createInjector(
+            new BigQueryClientModule(),
+            new SparkBigQueryConnectorModule(
+                spark, options, Optional.ofNullable(schema), DataSourceVersion.V2),
             module);
     return getTableInformation(injector, null);
   }
