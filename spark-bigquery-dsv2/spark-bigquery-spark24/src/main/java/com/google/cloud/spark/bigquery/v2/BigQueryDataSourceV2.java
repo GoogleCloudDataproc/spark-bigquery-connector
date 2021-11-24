@@ -37,26 +37,27 @@ public class BigQueryDataSourceV2
 
   private BigQueryDataSourceHelper bigQueryDataSourceHelper = new BigQueryDataSourceHelper();
 
-  private enum WriteMethod {
-    DIRECT("direct"),
-    INDIRECT("indirect");
-
-    private final String writePath;
-
-    WriteMethod(String writePath) {
-      this.writePath = writePath;
-    }
-
-    static WriteMethod getWriteMethod(Optional<String> path) {
-      if (!path.isPresent() || path.get().equalsIgnoreCase("direct")) {
-        return DIRECT;
-      } else if (path.get().equalsIgnoreCase("indirect")) {
-        return INDIRECT;
-      } else {
-        throw new IllegalArgumentException("Unknown writePath Provided for writing the DataFrame");
-      }
-    }
-  }
+  //  private enum WriteMethod {
+  //    DIRECT("direct"),
+  //    INDIRECT("indirect");
+  //
+  //    private final String writePath;
+  //
+  //    WriteMethod(String writePath) {
+  //      this.writePath = writePath;
+  //    }
+  //
+  //    static WriteMethod getWriteMethod(Optional<String> path) {
+  //      if (!path.isPresent() || path.get().equalsIgnoreCase("direct")) {
+  //        return DIRECT;
+  //      } else if (path.get().equalsIgnoreCase("indirect")) {
+  //        return INDIRECT;
+  //      } else {
+  //        throw new IllegalArgumentException("Unknown writePath Provided for writing the
+  // DataFrame");
+  //      }
+  //    }
+  //  }
 
   @Override
   public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
@@ -79,14 +80,10 @@ public class BigQueryDataSourceV2
   @Override
   public Optional<DataSourceWriter> createWriter(
       String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
-    WriteMethod path = WriteMethod.getWriteMethod(options.get("writePath"));
-
-    if (path.equals(WriteMethod.DIRECT)) {
+    if (this.bigQueryDataSourceHelper.isDirectWrite(options.get("writePath"))) {
       return createDirectDataSourceWriter(writeUUID, schema, mode, options);
-    } else if (path.equals(WriteMethod.INDIRECT)) {
-      return createIndirectDataSourceWriter(writeUUID, schema, mode, options);
     } else {
-      throw new IllegalArgumentException("Unknown writePath Provided for writing the DataFrame");
+      return createIndirectDataSourceWriter(writeUUID, schema, mode, options);
     }
   }
 

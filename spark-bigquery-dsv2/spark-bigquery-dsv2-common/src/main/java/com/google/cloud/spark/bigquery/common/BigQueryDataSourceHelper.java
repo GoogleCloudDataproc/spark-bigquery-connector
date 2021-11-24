@@ -18,6 +18,27 @@ import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.apache.spark.sql.types.StructType;
 
 public class BigQueryDataSourceHelper {
+  private enum WriteMethod {
+    DIRECT("direct"),
+    INDIRECT("indirect");
+
+    private final String writePath;
+
+    WriteMethod(String writePath) {
+      this.writePath = writePath;
+    }
+
+    static WriteMethod getWriteMethod(Optional<String> path) {
+      if (!path.isPresent() || path.get().equalsIgnoreCase("direct")) {
+        return DIRECT;
+      } else if (path.get().equalsIgnoreCase("indirect")) {
+        return INDIRECT;
+      } else {
+        throw new IllegalArgumentException("Unknown writePath Provided for writing the DataFrame");
+      }
+    }
+  }
+
   private StructType schema;
 
   public StructType getSchema() {
@@ -42,7 +63,7 @@ public class BigQueryDataSourceHelper {
             new SparkBigQueryConnectorModule(
                 spark, options.asMap(), Optional.ofNullable(schema), DataSourceVersion.V2),
             module);
-    return getTableInformation(injector, null);
+    return getTableInformation(injector, mode);
   }
 
   public Injector getTableInformation(Injector injector, SaveMode mode) {
@@ -73,5 +94,16 @@ public class BigQueryDataSourceHelper {
       new GenericDataSourceHelperClass().checkCreateDisposition(config);
     }
     return injector;
+  }
+
+  public boolean isDirectWrite(Optional<String> writeType) {
+    WriteMethod path = WriteMethod.getWriteMethod(writeType);
+    if (path.equals(WriteMethod.DIRECT)) {
+      return true;
+    } else if (path.equals(WriteMethod.INDIRECT)) {
+      return false;
+    } else {
+      throw new IllegalArgumentException("Unknown writePath Provided for writing the DataFrame");
+    }
   }
 }
