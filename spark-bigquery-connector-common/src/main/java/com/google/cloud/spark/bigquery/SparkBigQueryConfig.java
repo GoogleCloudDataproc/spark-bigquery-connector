@@ -637,6 +637,11 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   }
 
   @Override
+  public Optional<String> getEndpoint() {
+    return storageReadEndpoint.toJavaUtil();
+  }
+
+  @Override
   public RetrySettings getBigQueryClientRetrySettings() {
     return RetrySettings.newBuilder()
         .setMaxAttempts(

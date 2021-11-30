@@ -91,8 +91,8 @@ public class ReadRowsHelper implements AutoCloseable {
   }
 
   public Iterator<ReadRowsResponse> readRows() {
-    BigQueryReadClient client =
-        bigQueryReadClientFactory.getBigQueryReadClient(options.getEndpoint());
+    BigQueryReadClient client = bigQueryReadClientFactory.getBigQueryReadClient();
+
     incomingStream =
         new StreamCombiningIterator(
             client, requests, options.prebufferResponses, options.getMaxReadRowsRetries());

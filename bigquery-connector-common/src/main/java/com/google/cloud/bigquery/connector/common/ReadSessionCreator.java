@@ -82,8 +82,7 @@ public class ReadSessionCreator {
     TableInfo actualTable = getActualTable(tableDetails, selectedFields, filter);
     StandardTableDefinition tableDefinition = actualTable.getDefinition();
 
-    BigQueryReadClient bigQueryReadClient =
-        bigQueryReadClientFactory.getBigQueryReadClient(config.endpoint());
+    BigQueryReadClient bigQueryReadClient = bigQueryReadClientFactory.getBigQueryReadClient();
 
     String tablePath = toTablePath(actualTable.getTableId());
     CreateReadSessionRequest request =

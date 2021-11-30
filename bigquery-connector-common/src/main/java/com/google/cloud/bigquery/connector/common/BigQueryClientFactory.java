@@ -3,13 +3,18 @@ package com.google.cloud.bigquery.connector.common;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.auth.Credentials;
+import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadSettings;
 import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteSettings;
+import com.google.common.base.Objects;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -24,8 +29,10 @@ import org.slf4j.LoggerFactory;
  */
 public class BigQueryClientFactory implements Serializable {
   private static final Logger log = LoggerFactory.getLogger(BigQueryClientFactory.class);
-  private static final Map<String, BigQueryReadClient> endpointToReadClientMap = new HashMap<>();
-  private static BigQueryWriteClient writeClient = null;
+  private static final Map<BigQueryClientFactory, BigQueryReadClient> readClientMap =
+      new HashMap<>();
+  private static final Map<BigQueryClientFactory, BigQueryWriteClient> writeClientMap =
+      new HashMap<>();
 
   private final Credentials credentials;
   // using the user agent as HeaderProvider is not serializable
@@ -43,30 +50,68 @@ public class BigQueryClientFactory implements Serializable {
     this.bqConfig = bqConfig;
   }
 
-  public BigQueryReadClient getBigQueryReadClient(Optional<String> endpoint) {
-    String endpointKey = endpoint.orElse(null);
-    synchronized (this) {
-      if (!endpointToReadClientMap.containsKey(endpointKey)) {
-        // add a shutdown hook only once
-        if (endpointToReadClientMap.isEmpty()) {
-          Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownActiveBigQueryReadClients));
-        }
-        endpointToReadClientMap.put(endpointKey, createBigQueryReadClient(endpoint));
+  public BigQueryReadClient getBigQueryReadClient() {
+    synchronized (readClientMap) {
+      if (!readClientMap.containsKey(this)) {
+        BigQueryReadClient bigQueryReadClient =
+            createBigQueryReadClient(this.bqConfig.getEndpoint());
+        Runtime.getRuntime()
+            .addShutdownHook(new Thread(() -> shutdownBigQueryReadClient(bigQueryReadClient)));
+        readClientMap.put(this, bigQueryReadClient);
       }
     }
 
-    return endpointToReadClientMap.get(endpointKey);
+    return readClientMap.get(this);
   }
 
   public BigQueryWriteClient getBigQueryWriteClient() {
-    synchronized (this) {
-      if (writeClient == null) {
-        writeClient = createBigQueryWriteClient();
-        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownActiveBigQueryWriteClient));
+    synchronized (writeClientMap) {
+      if (!writeClientMap.containsKey(this)) {
+        BigQueryWriteClient bigQueryWriteClient = createBigQueryWriteClient();
+        Runtime.getRuntime()
+            .addShutdownHook(new Thread(() -> shutdownBigQueryWriteClient(bigQueryWriteClient)));
+        writeClientMap.put(this, bigQueryWriteClient);
       }
     }
 
-    return writeClient;
+    return writeClientMap.get(this);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(credentials, userAgentHeaderProvider, bqConfig);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof BigQueryClientFactory)) {
+      return false;
+    }
+
+    BigQueryClientFactory that = (BigQueryClientFactory) o;
+
+    // Here, credentials is an instance of GoogleCredentials which can be one out of
+    // UserCredentials, ServiceAccountCredentials, ExternalAccountCredentials or
+    // ImpersonatedCredentials (See the method GoogleCredentials.fromStream()).
+    // ExternalAccountCredentials does not have an equals method defined on it and hence we
+    // serialize and compare byte arrays if both credentials are instances of
+    // ExternalAccountCredentials
+    if (!Objects.equal(credentials, that.credentials)) {
+      if (credentials instanceof ExternalAccountCredentials
+          && that.credentials instanceof ExternalAccountCredentials) {
+        if (!deepCompareCredentials(credentials, that.credentials)) {
+          return false;
+        }
+      }
+    }
+
+    return Objects.equal(userAgentHeaderProvider, that.userAgentHeaderProvider)
+        && Objects.equal(
+            BigQueryClientFactoryConfig.from(bqConfig),
+            BigQueryClientFactoryConfig.from(that.bqConfig));
   }
 
   private BigQueryReadClient createBigQueryReadClient(Optional<String> endpoint) {
@@ -117,17 +162,34 @@ public class BigQueryClientFactory implements Serializable {
     }
   }
 
-  private void shutdownActiveBigQueryReadClients() {
-    for (BigQueryReadClient readClient : endpointToReadClientMap.values()) {
-      if (readClient != null && !readClient.isShutdown()) {
-        readClient.shutdown();
-      }
+  private void shutdownBigQueryReadClient(BigQueryReadClient bigQueryReadClient) {
+    if (bigQueryReadClient != null && !bigQueryReadClient.isShutdown()) {
+      bigQueryReadClient.shutdown();
     }
   }
 
-  private void shutdownActiveBigQueryWriteClient() {
-    if (writeClient != null && !writeClient.isShutdown()) {
-      writeClient.shutdown();
+  private void shutdownBigQueryWriteClient(BigQueryWriteClient bigQueryWriteClient) {
+    if (bigQueryWriteClient != null && !bigQueryWriteClient.isShutdown()) {
+      bigQueryWriteClient.shutdown();
+    }
+  }
+
+  private boolean deepCompareCredentials(Credentials credentials1, Credentials credentials2) {
+    try {
+      ByteArrayOutputStream byteArrayOutputStream1 = new ByteArrayOutputStream();
+      ObjectOutputStream objectOutputStream1 = new ObjectOutputStream(byteArrayOutputStream1);
+      objectOutputStream1.writeObject(credentials1);
+      objectOutputStream1.close();
+
+      ByteArrayOutputStream byteArrayOutputStream2 = new ByteArrayOutputStream();
+      ObjectOutputStream objectOutputStream2 = new ObjectOutputStream(byteArrayOutputStream2);
+      objectOutputStream2.writeObject(credentials2);
+      objectOutputStream2.close();
+
+      return Arrays.equals(
+          byteArrayOutputStream1.toByteArray(), byteArrayOutputStream2.toByteArray());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }

@@ -16,6 +16,7 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.gax.rpc.HeaderProvider;
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import java.io.Serializable;
 import java.util.Map;
@@ -31,5 +32,22 @@ public class UserAgentHeaderProvider implements HeaderProvider, Serializable {
   @Override
   public Map<String, String> getHeaders() {
     return ImmutableMap.of("user-agent", userAgent);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof UserAgentHeaderProvider)) {
+      return false;
+    }
+    UserAgentHeaderProvider that = (UserAgentHeaderProvider) o;
+    return Objects.equal(userAgent, that.userAgent);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(userAgent);
   }
 }

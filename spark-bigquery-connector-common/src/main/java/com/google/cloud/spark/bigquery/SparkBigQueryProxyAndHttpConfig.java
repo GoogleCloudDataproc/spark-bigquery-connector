@@ -8,6 +8,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyTransporterBuilder;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import java.io.Serializable;
@@ -201,5 +202,28 @@ public class SparkBigQueryProxyAndHttpConfig implements BigQueryProxyConfig, Ser
 
   Optional<Integer> getHttpReadTimeout() {
     return httpReadTimeout.toJavaUtil();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof SparkBigQueryProxyAndHttpConfig)) {
+      return false;
+    }
+    SparkBigQueryProxyAndHttpConfig that = (SparkBigQueryProxyAndHttpConfig) o;
+    return Objects.equal(proxyUri, that.proxyUri)
+        && Objects.equal(proxyUsername, that.proxyUsername)
+        && Objects.equal(proxyPassword, that.proxyPassword)
+        && Objects.equal(httpMaxRetry, that.httpMaxRetry)
+        && Objects.equal(httpConnectTimeout, that.httpConnectTimeout)
+        && Objects.equal(httpReadTimeout, that.httpReadTimeout);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(
+        proxyUri, proxyUsername, proxyPassword, httpMaxRetry, httpConnectTimeout, httpReadTimeout);
   }
 }

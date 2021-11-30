@@ -2,7 +2,6 @@ package com.google.cloud.bigquery.connector.common;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -54,8 +53,7 @@ public class ReadSessionCreatorTest {
         new ReadSessionCreatorConfigBuilder().setRequestEncodedBase(encodedBase).build();
     ReadSessionCreator creator =
         new ReadSessionCreator(config, bigQueryClient, bigQueryReadClientFactory);
-    when(bigQueryReadClientFactory.getBigQueryReadClient(eq(Optional.empty())))
-        .thenReturn(readClient);
+    when(bigQueryReadClientFactory.getBigQueryReadClient()).thenReturn(readClient);
     when(bigQueryClient.getTable(any())).thenReturn(table);
     when(stub.createReadSessionCallable()).thenReturn(createReadSessionCall);
 
