@@ -62,6 +62,7 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
     this.dataSourceWriterHelper =
         new GenericBigQueryIndirectDataSourceWriter(
             bigQueryClient,
+            null,
             config,
             hadoopConfiguration,
             sparkSchema,

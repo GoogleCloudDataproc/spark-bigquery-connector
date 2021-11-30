@@ -1,18 +1,3 @@
-/*
- * Copyright 2021 Google Inc. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.google.cloud.spark.bigquery.common;
 
 import com.google.cloud.bigquery.TableInfo;
@@ -30,11 +15,43 @@ import java.util.Map;
 import java.util.Optional;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.apache.spark.sql.types.StructType;
 
 public class BigQueryDataSourceHelper {
+  private enum WriteMethod {
+    DIRECT("direct"),
+    INDIRECT("indirect");
+
+    private final String writePath;
+
+    WriteMethod(String writePath) {
+      this.writePath = writePath;
+    }
+
+    static WriteMethod getWriteMethod(Optional<String> path) {
+      if (!path.isPresent() || path.get().equalsIgnoreCase("direct")) {
+        return DIRECT;
+      } else if (path.get().equalsIgnoreCase("indirect")) {
+        return INDIRECT;
+      } else {
+        throw new IllegalArgumentException("Unknown writePath Provided for writing the DataFrame");
+      }
+    }
+
+    static WriteMethod getWriteMethod(String path) {
+      if (path == null || path.equalsIgnoreCase("direct")) {
+        return DIRECT;
+      } else if (path.equalsIgnoreCase("indirect")) {
+        return INDIRECT;
+      } else {
+        throw new IllegalArgumentException("Unknown writePath Provided for writing the DataFrame");
+      }
+    }
+  }
+
+  private boolean isDirectWrite = false;
   private StructType schema;
+  private boolean tableExists = false;
 
   public StructType getSchema() {
     return schema;
@@ -48,20 +65,12 @@ public class BigQueryDataSourceHelper {
     return SparkSession.builder().appName("spark-bigquery-connector").getOrCreate();
   }
 
-  // This method is used to create injection by providing
   public Injector createInjector(
-      StructType schema, DataSourceOptions options, SaveMode mode, Module module) {
-    SparkSession spark = getDefaultSparkSessionOrCreate();
-    Injector injector =
-        Guice.createInjector(
-            new BigQueryClientModule(),
-            new SparkBigQueryConnectorModule(
-                spark, options.asMap(), Optional.ofNullable(schema), DataSourceVersion.V2),
-            module);
-    return getTableInformation(injector, mode);
-  }
-
-  public Injector createInjector(StructType schema, Map<String, String> options, Module module) {
+      StructType schema,
+      Map<String, String> options,
+      boolean isDirectWrite,
+      SaveMode mode,
+      Module module) {
     SparkSession spark = getDefaultSparkSessionOrCreate();
     Injector injector =
         Guice.createInjector(
@@ -69,15 +78,16 @@ public class BigQueryDataSourceHelper {
             new SparkBigQueryConnectorModule(
                 spark, options, Optional.ofNullable(schema), DataSourceVersion.V2),
             module);
-    return getTableInformation(injector, null);
+    return getTableInformation(injector, mode, isDirectWrite);
   }
 
-  public Injector getTableInformation(Injector injector, SaveMode mode) {
+  public Injector getTableInformation(Injector injector, SaveMode mode, boolean isDirectWrite) {
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
     TableInfo table = bigQueryClient.getTable(config.getTableId());
     if (table != null) {
-      if (mode != null) {
+      this.tableExists = true;
+      if (mode != null && !isDirectWrite) {
         if (mode == SaveMode.Ignore) {
           //                    return Optional.empty();
         }
@@ -100,5 +110,39 @@ public class BigQueryDataSourceHelper {
       new GenericDataSourceHelperClass().checkCreateDisposition(config);
     }
     return injector;
+  }
+
+  public boolean isDirectWrite(Optional<String> writeType) {
+    WriteMethod path = WriteMethod.getWriteMethod(writeType);
+    if (path.equals(WriteMethod.DIRECT)) {
+      this.isDirectWrite = true;
+      return true;
+    } else if (path.equals(WriteMethod.INDIRECT)) {
+      this.isDirectWrite = false;
+      return false;
+    } else {
+      throw new IllegalArgumentException("Unknown writePath Provided for writing the DataFrame");
+    }
+  }
+
+  public boolean isDirectWrite(String writeType) {
+    WriteMethod path = WriteMethod.getWriteMethod(writeType);
+    if (path.equals(WriteMethod.DIRECT)) {
+      this.isDirectWrite = true;
+      return true;
+    } else if (path.equals(WriteMethod.INDIRECT)) {
+      this.isDirectWrite = false;
+      return false;
+    } else {
+      throw new IllegalArgumentException("Unknown writePath Provided for writing the DataFrame");
+    }
+  }
+
+  public boolean isDirectWrite() {
+    return isDirectWrite;
+  }
+
+  public boolean isTableExists() {
+    return tableExists;
   }
 }

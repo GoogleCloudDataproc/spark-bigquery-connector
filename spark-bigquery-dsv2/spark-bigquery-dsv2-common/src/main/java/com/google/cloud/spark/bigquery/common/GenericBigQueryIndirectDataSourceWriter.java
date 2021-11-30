@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery.common;
 
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.http.BaseHttpServiceException;
 import com.google.cloud.spark.bigquery.*;
@@ -44,9 +45,11 @@ public class GenericBigQueryIndirectDataSourceWriter implements Serializable {
   private SaveMode saveMode;
   private final Optional<IntermediateDataCleaner> intermediateDataCleaner;
   private final org.apache.avro.Schema avroSchema;
+  private BigQueryClientFactory bigQueryWriteClientFactory;
 
   public GenericBigQueryIndirectDataSourceWriter(
       BigQueryClient bigQueryClient,
+      BigQueryClientFactory bigQueryWriteClientFactory,
       SparkBigQueryConfig config,
       Configuration hadoopConfiguration,
       StructType sparkSchema,
@@ -55,6 +58,7 @@ public class GenericBigQueryIndirectDataSourceWriter implements Serializable {
       Path gcsPath,
       Optional<IntermediateDataCleaner> intermediateDataCleaner) {
     this.bigQueryClient = bigQueryClient;
+    this.bigQueryWriteClientFactory = bigQueryWriteClientFactory;
     this.config = config;
     this.hadoopConfiguration = hadoopConfiguration;
     this.sparkSchema = sparkSchema;
@@ -95,6 +99,10 @@ public class GenericBigQueryIndirectDataSourceWriter implements Serializable {
 
   public Optional<IntermediateDataCleaner> getIntermediateDataCleaner() {
     return intermediateDataCleaner;
+  }
+
+  public BigQueryClientFactory getBigQueryWriteClientFactory() {
+    return bigQueryWriteClientFactory;
   }
 
   public void setMode(SaveMode mode) {

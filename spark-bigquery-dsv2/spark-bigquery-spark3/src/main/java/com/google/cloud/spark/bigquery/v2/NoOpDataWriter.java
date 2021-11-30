@@ -15,17 +15,23 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectWriterCommitMessage;
-import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
+import java.io.IOException;
+import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.connector.write.DataWriter;
+import org.apache.spark.sql.connector.write.WriterCommitMessage;
 
-class BigQueryIndirectWriterCommitMessage implements WriterCommitMessage {
-  private final GenericBigQueryIndirectWriterCommitMessage commitMessage;
+public class NoOpDataWriter implements DataWriter<InternalRow> {
+  @Override
+  public void write(InternalRow internalRow) throws IOException {}
 
-  public BigQueryIndirectWriterCommitMessage(String uri) {
-    this.commitMessage = new GenericBigQueryIndirectWriterCommitMessage(uri);
+  @Override
+  public WriterCommitMessage commit() throws IOException {
+    return null;
   }
 
-  public String getUri() {
-    return this.commitMessage.getUri();
-  }
+  @Override
+  public void abort() throws IOException {}
+
+  @Override
+  public void close() throws IOException {}
 }

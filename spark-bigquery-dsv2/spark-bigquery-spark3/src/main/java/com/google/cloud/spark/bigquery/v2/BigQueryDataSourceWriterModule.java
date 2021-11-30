@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.common.GenericBigQueryDataSourceWriterModule;
 import com.google.inject.Binder;
@@ -31,14 +32,14 @@ import org.apache.spark.sql.types.StructType;
 class BigQueryDataSourceWriterModule implements Module {
   private GenericBigQueryDataSourceWriterModule dataSourceWriterModuleHelper;
   private final LogicalWriteInfo logicalWriteInfo;
-  private BigQueryClient bigQueryClient;
-  private SparkBigQueryConfig config;
   private SaveMode mode;
+  private boolean isDirectWrite;
 
   BigQueryDataSourceWriterModule(
       String writeUUID,
       StructType sparkSchema,
       SaveMode mode,
+      boolean isDirectWrite,
       LogicalWriteInfo logicalWriteInfo,
       BigQueryClient bigQueryClient,
       SparkBigQueryConfig config) {
@@ -46,6 +47,7 @@ class BigQueryDataSourceWriterModule implements Module {
     this.dataSourceWriterModuleHelper =
         new GenericBigQueryDataSourceWriterModule(writeUUID, sparkSchema, this.mode);
     this.logicalWriteInfo = logicalWriteInfo;
+    this.isDirectWrite = isDirectWrite;
   }
 
   @Override
@@ -56,12 +58,17 @@ class BigQueryDataSourceWriterModule implements Module {
   @Singleton
   @Provides
   public BigQueryWriteBuilder provideDataSourceWriter(
-      BigQueryClient bigQueryClient, SparkBigQueryConfig config, SparkSession spark)
+      BigQueryClient bigQueryClient,
+      BigQueryClientFactory bigQueryWriteClientFactory,
+      SparkBigQueryConfig config,
+      SparkSession spark)
       throws IOException {
-    this.dataSourceWriterModuleHelper.createIntermediateCleaner(
-        config, spark.sparkContext().hadoopConfiguration(), spark.sparkContext().applicationId());
+    if (!isDirectWrite)
+      this.dataSourceWriterModuleHelper.createIntermediateCleaner(
+          config, spark.sparkContext().hadoopConfiguration(), spark.sparkContext().applicationId());
     return new BigQueryWriteBuilder(
         bigQueryClient,
+        bigQueryWriteClientFactory,
         config,
         spark.sparkContext().hadoopConfiguration(),
         this.dataSourceWriterModuleHelper.getSparkSchema(),
@@ -69,6 +76,7 @@ class BigQueryDataSourceWriterModule implements Module {
         this.dataSourceWriterModuleHelper.getMode(),
         this.dataSourceWriterModuleHelper.getGcsPath(),
         this.dataSourceWriterModuleHelper.getIntermediateDataCleaner(),
+        this.isDirectWrite,
         this.logicalWriteInfo);
   }
 }

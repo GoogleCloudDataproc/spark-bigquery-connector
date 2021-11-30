@@ -1,6 +1,9 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import org.apache.spark.sql.*;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 
 public class WriteTest {
 
@@ -39,11 +42,17 @@ public class WriteTest {
     //        .option("temporaryGcsBucket", "sample-allan-bucket")
     //        .mode(SaveMode.Append)
     //        .save();
-
+    StructType schemaStructType =
+        DataTypes.createStructType(
+            new StructField[] {
+              DataTypes.createStructField("name", DataTypes.StringType, true),
+              DataTypes.createStructField("age", DataTypes.LongType, true)
+            });
     Dataset<Row> readDf =
         spark
             .read()
             .option("table", "tidy-tine-318906.wordcount_dataset.sample")
+            //                        .option("inferSchema","true")
             .format("bigquery")
             .load();
     readDf.show();

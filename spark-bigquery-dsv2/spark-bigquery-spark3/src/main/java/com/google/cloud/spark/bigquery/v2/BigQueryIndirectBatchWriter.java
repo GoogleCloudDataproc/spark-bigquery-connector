@@ -53,6 +53,7 @@ public class BigQueryIndirectBatchWriter implements BatchWrite {
     this.dataSourceWriterHelper =
         new GenericBigQueryIndirectDataSourceWriter(
             bigQueryClient,
+            null,
             config,
             conf,
             sparkSchema,

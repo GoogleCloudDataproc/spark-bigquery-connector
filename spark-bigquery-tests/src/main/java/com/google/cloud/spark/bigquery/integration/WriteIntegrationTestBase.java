@@ -259,6 +259,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("partitionField", "created_timestamp")
         .option("clusteredFields", "platform")
         .option("writePath", getWritePath())
+        .option("schema", df.schema().toDDL())
         .mode(SaveMode.Overwrite)
         .save();
 
@@ -375,6 +376,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
           .option("temporaryGcsBucket", temporaryGcsBucket)
           .option("intermediateFormat", "parquet")
           .option("writePath", getWritePath())
+          .option("schema", descriptionDF.schema().toDDL())
           .save();
 
       Dataset<Row> readDF =
@@ -440,6 +442,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("partitionType", partitionType)
         .option("partitionRequireFilter", "true")
         .option("table", table)
+        .option("schema", df.schema().toDDL())
         .option("writePath", getWritePath())
         .save();
 

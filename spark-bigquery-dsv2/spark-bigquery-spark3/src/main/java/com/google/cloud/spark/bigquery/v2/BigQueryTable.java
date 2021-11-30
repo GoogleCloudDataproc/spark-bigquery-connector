@@ -68,7 +68,8 @@ public class BigQueryTable implements SupportsRead, SupportsWrite {
   public ScanBuilder newScanBuilder(CaseInsensitiveStringMap options) {
     Map<String, String> props = new HashMap<>(options);
     Injector injector =
-        this.dataSourceHelper.createInjector(this.schema, props, new BigQueryScanBuilderModule());
+        this.dataSourceHelper.createInjector(
+            this.schema, props, false, null, new BigQueryScanBuilderModule());
     BigQueryScanBuilder bqScanBuilder = injector.getInstance(BigQueryScanBuilder.class);
     return bqScanBuilder;
   }
@@ -99,17 +100,22 @@ public class BigQueryTable implements SupportsRead, SupportsWrite {
   @Override
   public WriteBuilder newWriteBuilder(LogicalWriteInfo logicalWriteInfo) {
     Map<String, String> props = new HashMap<>(logicalWriteInfo.options());
-    Injector injector =
+    Injector injector;
+    injector =
         this.dataSourceHelper.createInjector(
             logicalWriteInfo.schema(),
             props,
+            this.dataSourceHelper.isDirectWrite(props.get("writePath")),
+            null,
             new BigQueryDataSourceWriterModule(
                 logicalWriteInfo.queryId(),
                 logicalWriteInfo.schema(),
                 SaveMode.Append,
+                this.dataSourceHelper.isDirectWrite(props.get("writePath")),
                 logicalWriteInfo,
                 this.bigQueryClient,
                 this.config));
+
     BigQueryWriteBuilder writer = injector.getInstance(BigQueryWriteBuilder.class);
     return writer;
   }

@@ -20,8 +20,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.common.BigQueryDataSourceHelper;
 import com.google.inject.Injector;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.TableProvider;
 import org.apache.spark.sql.connector.expressions.Transform;
@@ -32,9 +31,11 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 public class BigQueryDataSourceV2 implements TableProvider, DataSourceRegister {
 
   private BigQueryDataSourceHelper dataSourceHelper = new BigQueryDataSourceHelper();
+  CaseInsensitiveStringMap options;
 
   @Override
   public StructType inferSchema(final CaseInsensitiveStringMap options) {
+    this.options = options;
     if (options.get("schema") != null) {
       return getTable(StructType.fromDDL(options.get("schema")), null, options.asCaseSensitiveMap())
           .schema();
@@ -49,7 +50,8 @@ public class BigQueryDataSourceV2 implements TableProvider, DataSourceRegister {
     Map<String, String> props = new HashMap<>(properties);
     Injector injector;
     injector =
-        this.dataSourceHelper.createInjector(schema, props, new BigQueryTableModule(schema, props));
+        this.dataSourceHelper.createInjector(
+            schema, props, false, null, new BigQueryTableModule(schema, props));
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
     TableInfo table = bigQueryClient.getTable(config.getTableId());
@@ -57,7 +59,7 @@ public class BigQueryDataSourceV2 implements TableProvider, DataSourceRegister {
       schema = this.dataSourceHelper.getSchema();
       injector =
           this.dataSourceHelper.createInjector(
-              schema, props, new BigQueryTableModule(schema, props));
+              schema, props, false, null, new BigQueryTableModule(schema, props));
     }
     return injector.getInstance(BigQueryTable.class);
   }

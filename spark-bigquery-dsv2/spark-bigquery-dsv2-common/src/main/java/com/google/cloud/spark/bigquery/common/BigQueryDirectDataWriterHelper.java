@@ -13,7 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.common;
+
+import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessage;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
 
 import com.google.api.client.util.Sleeper;
 import com.google.api.core.ApiFuture;
@@ -25,9 +28,12 @@ import com.google.cloud.bigquery.storage.v1.stub.readrows.ApiResultRetryAlgorith
 import com.google.cloud.bigquery.storage.v1beta2.*;
 import com.google.cloud.bigquery.storage.v1beta2.WriteStream;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Descriptors;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +51,7 @@ public class BigQueryDirectDataWriterHelper {
   private final String tablePath;
   private final ProtoSchema protoSchema;
   private final RetrySettings retrySettings;
+  private final Descriptors.Descriptor schemaDescriptor;
 
   private String writeStreamName;
   private StreamWriterV2 streamWriter;
@@ -54,14 +61,24 @@ public class BigQueryDirectDataWriterHelper {
   private long appendRequestSizeBytes = 0; // number of bytes waiting for the next append request
   private long writeStreamRowCount = 0; // total offset / rows of the current write-stream
 
-  BigQueryDirectDataWriterHelper(
+  private final StructType sparkSchema;
+
+  public BigQueryDirectDataWriterHelper(
       BigQueryClientFactory writeClientFactory,
       String tablePath,
+      StructType sparkSchema,
       ProtoSchema protoSchema,
       RetrySettings bigqueryDataWriterHelperRetrySettings) {
     this.writeClient = writeClientFactory.createBigQueryWriteClient();
     this.tablePath = tablePath;
+    this.sparkSchema = sparkSchema;
     this.protoSchema = protoSchema;
+    try {
+      this.schemaDescriptor = toDescriptor(sparkSchema);
+    } catch (Descriptors.DescriptorValidationException e) {
+      throw new BigQueryConnectorException.InvalidSchemaException(
+          "Could not convert spark-schema to descriptor object", e);
+    }
     this.retrySettings = bigqueryDataWriterHelperRetrySettings;
 
     try {
@@ -138,10 +155,12 @@ public class BigQueryDirectDataWriterHelper {
    * it will, sends an append rows request first.
    *
    * @see this#sendAppendRowsRequest()
-   * @param message The row, in a ByteString message, to be added to protoRows.
+   * @param record The row, in a ByteString message, to be added to protoRows.
    * @throws IOException If sendAppendRowsRequest fails.
    */
-  public void addRow(ByteString message) throws IOException {
+  public void addRow(InternalRow record) throws IOException {
+    ByteString message =
+        buildSingleRowMessage(sparkSchema, schemaDescriptor, record).toByteString();
     int messageSize = message.size();
 
     if (appendRequestSizeBytes + messageSize > MAX_APPEND_ROWS_REQUEST_SIZE) {
@@ -308,5 +327,9 @@ public class BigQueryDirectDataWriterHelper {
 
   public String getWriteStreamName() {
     return writeStreamName;
+  }
+
+  public String getTablePath() {
+    return tablePath;
   }
 }

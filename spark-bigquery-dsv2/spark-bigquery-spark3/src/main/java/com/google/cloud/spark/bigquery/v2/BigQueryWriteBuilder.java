@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.common.GenericBigQueryIndirectDataSourceWriter;
 import com.google.cloud.spark.bigquery.common.IntermediateDataCleaner;
@@ -33,9 +34,11 @@ import org.apache.spark.sql.types.StructType;
 public class BigQueryWriteBuilder implements WriteBuilder, SupportsOverwrite {
   private GenericBigQueryIndirectDataSourceWriter dataSourceWriterHelper;
   private final LogicalWriteInfo logicalWriteInfo;
+  private boolean isDirectWrite;
 
   public BigQueryWriteBuilder(
       BigQueryClient bigQueryClient,
+      BigQueryClientFactory bigQueryWriteClientFactory,
       SparkBigQueryConfig config,
       Configuration conf,
       StructType sparkSchema,
@@ -43,11 +46,13 @@ public class BigQueryWriteBuilder implements WriteBuilder, SupportsOverwrite {
       SaveMode mode,
       Path gcsPath,
       Optional<IntermediateDataCleaner> intermediateDataCleaner,
+      boolean isDirectWrite,
       LogicalWriteInfo logicalWriteInfo) {
     this.logicalWriteInfo = logicalWriteInfo;
     this.dataSourceWriterHelper =
         new GenericBigQueryIndirectDataSourceWriter(
             bigQueryClient,
+            bigQueryWriteClientFactory,
             config,
             conf,
             sparkSchema,
@@ -55,20 +60,31 @@ public class BigQueryWriteBuilder implements WriteBuilder, SupportsOverwrite {
             mode,
             gcsPath,
             intermediateDataCleaner);
+    this.isDirectWrite = isDirectWrite;
   }
 
   @Override
   public BatchWrite buildForBatch() {
-    return new BigQueryIndirectBatchWriter(
-        this.dataSourceWriterHelper.getBigQueryClient(),
-        this.dataSourceWriterHelper.getConfig(),
-        this.dataSourceWriterHelper.getHadoopConfiguration(),
-        this.dataSourceWriterHelper.getSparkSchema(),
-        this.dataSourceWriterHelper.getWriteUUID(),
-        this.dataSourceWriterHelper.getSaveMode(),
-        this.dataSourceWriterHelper.getGcsPath(),
-        this.dataSourceWriterHelper.getIntermediateDataCleaner(),
-        this.logicalWriteInfo);
+    if (this.isDirectWrite) {
+      return new BigQueryDirectBatchWriter(
+          this.dataSourceWriterHelper.getBigQueryClient(),
+          this.dataSourceWriterHelper.getBigQueryWriteClientFactory(),
+          this.dataSourceWriterHelper.getConfig().getTableId(),
+          this.dataSourceWriterHelper.getWriteUUID(),
+          this.dataSourceWriterHelper.getSaveMode(),
+          this.dataSourceWriterHelper.getSparkSchema(),
+          this.dataSourceWriterHelper.getConfig());
+    } else
+      return new BigQueryIndirectBatchWriter(
+          this.dataSourceWriterHelper.getBigQueryClient(),
+          this.dataSourceWriterHelper.getConfig(),
+          this.dataSourceWriterHelper.getHadoopConfiguration(),
+          this.dataSourceWriterHelper.getSparkSchema(),
+          this.dataSourceWriterHelper.getWriteUUID(),
+          this.dataSourceWriterHelper.getSaveMode(),
+          this.dataSourceWriterHelper.getGcsPath(),
+          this.dataSourceWriterHelper.getIntermediateDataCleaner(),
+          this.logicalWriteInfo);
   }
 
   @Override

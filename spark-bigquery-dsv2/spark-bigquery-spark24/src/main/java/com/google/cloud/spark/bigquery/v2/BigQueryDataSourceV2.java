@@ -15,10 +15,16 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.connector.common.BigQueryClientModule;
+import com.google.cloud.spark.bigquery.DataSourceVersion;
+import com.google.cloud.spark.bigquery.SparkBigQueryConnectorModule;
 import com.google.cloud.spark.bigquery.common.BigQueryDataSourceHelper;
+import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.Module;
 import java.util.Optional;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.sources.DataSourceRegister;
 import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.apache.spark.sql.sources.v2.DataSourceV2;
@@ -37,32 +43,10 @@ public class BigQueryDataSourceV2
 
   private BigQueryDataSourceHelper bigQueryDataSourceHelper = new BigQueryDataSourceHelper();
 
-  private enum WriteMethod {
-    DIRECT("direct"),
-    INDIRECT("indirect");
-
-    private final String writePath;
-
-    WriteMethod(String writePath) {
-      this.writePath = writePath;
-    }
-
-    static WriteMethod getWriteMethod(Optional<String> path) {
-      if (!path.isPresent() || path.get().equalsIgnoreCase("direct")) {
-        return DIRECT;
-      } else if (path.get().equalsIgnoreCase("indirect")) {
-        return INDIRECT;
-      } else {
-        throw new IllegalArgumentException("Unknown writePath Provided for writing the DataFrame");
-      }
-    }
-  }
-
   @Override
   public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
     Injector injector =
-        this.bigQueryDataSourceHelper.createInjector(
-            schema, options, null, new BigQueryDataSourceReaderModule());
+        createInjector(schema, options, false, null, new BigQueryDataSourceReaderModule());
     BigQueryDataSourceReader reader = injector.getInstance(BigQueryDataSourceReader.class);
     return reader;
   }
@@ -79,39 +63,63 @@ public class BigQueryDataSourceV2
   @Override
   public Optional<DataSourceWriter> createWriter(
       String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
-    WriteMethod path = WriteMethod.getWriteMethod(options.get("writePath"));
-
-    if (path.equals(WriteMethod.DIRECT)) {
+    if (this.bigQueryDataSourceHelper.isDirectWrite(options.get("writePath"))) {
       return createDirectDataSourceWriter(writeUUID, schema, mode, options);
-    } else if (path.equals(WriteMethod.INDIRECT)) {
-      return createIndirectDataSourceWriter(writeUUID, schema, mode, options);
     } else {
-      throw new IllegalArgumentException("Unknown writePath Provided for writing the DataFrame");
+      return createIndirectDataSourceWriter(writeUUID, schema, mode, options);
     }
   }
 
   private Optional<DataSourceWriter> createDirectDataSourceWriter(
       String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
     Injector injector =
-        this.bigQueryDataSourceHelper.createInjector(
+        createInjector(
             schema,
             options,
+            true,
             mode,
             new BigQueryDirectDataSourceWriterModule(writeUUID, mode, schema));
 
     BigQueryDirectDataSourceWriter writer =
         injector.getInstance(BigQueryDirectDataSourceWriter.class);
+    if (this.bigQueryDataSourceHelper.isTableExists() && mode == SaveMode.Ignore) {
+      return Optional.empty();
+    }
     return Optional.of(writer);
   }
 
   private Optional<DataSourceWriter> createIndirectDataSourceWriter(
       String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
     Injector injector =
-        bigQueryDataSourceHelper.createInjector(
-            schema, options, mode, new BigQueryDataSourceWriterModule(writeUUID, schema, mode));
+        createInjector(
+            schema,
+            options,
+            false,
+            mode,
+            new BigQueryDataSourceWriterModule(writeUUID, schema, mode));
     BigQueryIndirectDataSourceWriter writer =
         injector.getInstance(BigQueryIndirectDataSourceWriter.class);
+    if (this.bigQueryDataSourceHelper.isTableExists() && mode == SaveMode.Ignore) {
+      return Optional.empty();
+    }
     return Optional.of(writer);
+  }
+
+  // This method is used to create injection by providing
+  public Injector createInjector(
+      StructType schema,
+      DataSourceOptions options,
+      boolean isDirectWrite,
+      SaveMode mode,
+      Module module) {
+    SparkSession spark = this.bigQueryDataSourceHelper.getDefaultSparkSessionOrCreate();
+    Injector injector =
+        Guice.createInjector(
+            new BigQueryClientModule(),
+            new SparkBigQueryConnectorModule(
+                spark, options.asMap(), Optional.ofNullable(schema), DataSourceVersion.V2),
+            module);
+    return this.bigQueryDataSourceHelper.getTableInformation(injector, mode, isDirectWrite);
   }
 
   @Override
