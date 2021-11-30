@@ -99,6 +99,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryClientRetrySettings().getMaxAttempts()).isEqualTo(10);
     assertThat(config.getArrowCompressionCodec())
         .isEqualTo(CompressionCodec.COMPRESSION_UNSPECIFIED);
+    assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.INDIRECT);
   }
 
   @Test
@@ -134,6 +135,7 @@ public class SparkBigQueryConfigTest {
                 .put("httpReadTimeout", "20000")
                 .put("httpMaxRetry", "5")
                 .put("arrowCompressionCodec", "ZSTD")
+                .put("writeMethod", "direct")
                 .build());
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -173,6 +175,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryClientReadTimeout()).isEqualTo(20000);
     assertThat(config.getBigQueryClientRetrySettings().getMaxAttempts()).isEqualTo(5);
     assertThat(config.getArrowCompressionCodec()).isEqualTo(CompressionCodec.ZSTD);
+    assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.DIRECT);
   }
 
   @Test
@@ -220,6 +223,7 @@ public class SparkBigQueryConfigTest {
             .put("spark.datasource.bigquery.temporaryGcsBucket", "bucket")
             .put("bqStorageReadEndpoint", "ep")
             .put("bqEncodedCreateReadSessionRequest", "ec")
+            .put("writeMethod", "direct")
             .build();
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -235,6 +239,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("bucket"));
     assertThat(config.toReadSessionCreatorConfig().endpoint().get()).isEqualTo("ep");
     assertThat(config.toReadSessionCreatorConfig().getRequestEncodedBase().get()).isEqualTo("ec");
+    assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.DIRECT);
   }
 
   @Test

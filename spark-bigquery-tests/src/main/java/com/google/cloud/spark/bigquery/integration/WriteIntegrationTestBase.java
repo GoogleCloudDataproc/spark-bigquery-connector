@@ -16,6 +16,9 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assume.assumeThat;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
@@ -28,6 +31,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.integration.model.Data;
 import com.google.cloud.spark.bigquery.integration.model.Friend;
 import com.google.cloud.spark.bigquery.integration.model.Link;
@@ -59,8 +63,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   private static final String TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
   protected static AtomicInteger id = new AtomicInteger(0);
+  protected final SparkBigQueryConfig.WriteMethod writeMethod;
   protected BigQuery bq;
-  private final boolean isDirectWrite;
 
   protected String temporaryGcsBucket =
       Preconditions.checkNotNull(
@@ -68,9 +72,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
           "Please set the %s env variable to point to a write enabled GCS bucket",
           TEMPORARY_GCS_BUCKET_ENV_VARIABLE);
 
-  public WriteIntegrationTestBase(boolean isDirectWrite) {
+  public WriteIntegrationTestBase(SparkBigQueryConfig.WriteMethod writeMethod) {
     super();
-    this.isDirectWrite = isDirectWrite;
+    this.writeMethod = writeMethod;
     this.bq = BigQueryOptions.getDefaultInstance().getService();
   }
 
@@ -139,12 +143,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("table", fullTableName())
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("intermediateFormat", format)
-        .option("writePath", getWritePath())
+        .option("writeMethod", writeMethod.toString())
         .save();
-  }
-
-  protected String getWritePath() {
-    return isDirectWrite ? "direct" : "indirect";
   }
 
   Dataset<Row> readAllTypesTable() {
@@ -168,10 +168,28 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(additionalDataValuesExist()).isTrue();
   }
 
-  // Making this abstract because both V1 and V2 throws different exceptions.
-  // V1 throws IllegalArgumentException and V2 throws ProvisionException as in V2 the code breaks at
-  // Guice.
-  public abstract void testWriteToBigQuery_ErrorIfExistsSaveMode() throws InterruptedException;
+  @Test
+  public void testWriteToBigQuery_ErrorIfExistsSaveMode() throws InterruptedException {
+    // initial write
+    writeToBigQuery(initialData(), SaveMode.ErrorIfExists);
+    assertThat(testTableNumberOfRows()).isEqualTo(2);
+    assertThat(initialDataValuesExist()).isTrue();
+    // second write
+    //    switch (writeMethod) {
+    //      case DIRECT:
+    //        assertThrows(
+    //            ProvisionException.class,
+    //            () -> writeToBigQuery(additonalData(), SaveMode.ErrorIfExists));
+    //        break;
+    //      case INDIRECT:
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> writeToBigQuery(additonalData(), SaveMode.ErrorIfExists));
+    //        break;
+    //      default:
+    //        throw new IllegalArgumentException("Unknown WriteMethod " + writeMethod);
+    //    }
+  }
 
   @Test
   public void testWriteToBigQuery_IgnoreSaveMode() throws InterruptedException {
@@ -231,7 +249,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .write()
         .format("bigquery")
         .option("table", fullTableName())
-        .option("writePath", getWritePath())
+        .option("writeMethod", writeMethod.toString())
         .save();
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
@@ -240,9 +258,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   @Test
   public void testWriteToBigQueryPartitionedAndClusteredTable() {
     // partition write not supported in BQ Storage Write API
-    if (isDirectWrite) {
-      return;
-    }
+    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
+
     Dataset<Row> df =
         spark
             .read()
@@ -257,7 +274,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("partitionField", "created_timestamp")
         .option("clusteredFields", "platform")
-        .option("writePath", getWritePath())
+        .option("writeMethod", writeMethod.toString())
         .mode(SaveMode.Overwrite)
         .save();
 
@@ -373,7 +390,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
           .option("table", fullTableName() + "_" + i)
           .option("temporaryGcsBucket", temporaryGcsBucket)
           .option("intermediateFormat", "parquet")
-          .option("writePath", getWritePath())
+          .option("writeMethod", writeMethod.toString())
           .save();
 
       Dataset<Row> readDF =
@@ -422,9 +439,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   private void testPartition(String partitionType) {
     // partition write not supported in BQ Storage Write API
-    if (isDirectWrite) {
-      return;
-    }
+    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
+
     List<Data> data =
         Arrays.asList(
             new Data("a", Timestamp.valueOf("2020-01-01 01:01:01")),
@@ -439,7 +455,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("partitionType", partitionType)
         .option("partitionRequireFilter", "true")
         .option("table", table)
-        .option("writePath", getWritePath())
+        .option("writeMethod", writeMethod.toString())
         .save();
 
     Dataset<Row> readDF = spark.read().format("bigquery").load(table);
@@ -452,9 +468,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     // has been written
     // using the Storage Write API hence this test becomes flaky!
     // Thus ignoring this for V2
-    if (isDirectWrite) {
-      return;
-    }
+    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
+
     Dataset<Row> allTypesTable = readAllTypesTable();
     writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro");
 

@@ -45,27 +45,6 @@ import org.apache.spark.sql.types.StructType;
 public class BigQueryDataSourceV2
     implements DataSourceV2, DataSourceRegister, ReadSupport, WriteSupport {
 
-  private enum WriteMethod {
-    DIRECT("direct"),
-    INDIRECT("indirect");
-
-    private final String writePath;
-
-    WriteMethod(String writePath) {
-      this.writePath = writePath;
-    }
-
-    static WriteMethod getWriteMethod(Optional<String> path) {
-      if (!path.isPresent() || path.get().equalsIgnoreCase("direct")) {
-        return DIRECT;
-      } else if (path.get().equalsIgnoreCase("indirect")) {
-        return INDIRECT;
-      } else {
-        throw new IllegalArgumentException("Unknown writePath Provided for writing the DataFrame");
-      }
-    }
-  }
-
   @Override
   public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
     Injector injector = createInjector(schema, options, new BigQueryDataSourceReaderModule());
@@ -102,33 +81,9 @@ public class BigQueryDataSourceV2
   @Override
   public Optional<DataSourceWriter> createWriter(
       String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
-    WriteMethod path = WriteMethod.getWriteMethod(options.get("writePath"));
-
-    if (path.equals(WriteMethod.DIRECT)) {
-      return createDirectDataSourceWriter(writeUUID, schema, mode, options);
-    } else if (path.equals(WriteMethod.INDIRECT)) {
-      return createIndirectDataSourceWriter(writeUUID, schema, mode, options);
-    } else {
-      throw new IllegalArgumentException("Unknown writePath Provided for writing the DataFrame");
-    }
-  }
-
-  private Optional<DataSourceWriter> createDirectDataSourceWriter(
-      String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
     Injector injector =
         createInjector(
-            schema, options, new BigQueryDirectDataSourceWriterModule(writeUUID, mode, schema));
-
-    BigQueryDirectDataSourceWriter writer =
-        injector.getInstance(BigQueryDirectDataSourceWriter.class);
-    return Optional.of(writer);
-  }
-
-  private Optional<DataSourceWriter> createIndirectDataSourceWriter(
-      String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
-    Injector injector =
-        createInjector(
-            schema, options, new BigQueryInDirectDataSourceWriterModule(writeUUID, schema, mode));
+            schema, options, new BigQueryDataSourceWriterModule(writeUUID, schema, mode));
     // first verify if we need to do anything at all, based on the table existence and the save
     // mode.
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
@@ -165,9 +120,17 @@ public class BigQueryDataSourceV2
                 BigQueryUtil.friendlyTableName(config.getTableId())));
       }
     }
-    BigQueryIndirectDataSourceWriter writer =
-        injector.getInstance(BigQueryIndirectDataSourceWriter.class);
-    return Optional.of(writer);
+    DataSourceWriter dataSourceWriter = null;
+    switch (config.getWriteMethod()) {
+      case DIRECT:
+        dataSourceWriter = injector.getInstance(BigQueryDirectDataSourceWriter.class);
+        break;
+      case INDIRECT:
+        dataSourceWriter = injector.getInstance(BigQueryIndirectDataSourceWriter.class);
+        break;
+    }
+
+    return Optional.of(dataSourceWriter);
   }
 
   @Override

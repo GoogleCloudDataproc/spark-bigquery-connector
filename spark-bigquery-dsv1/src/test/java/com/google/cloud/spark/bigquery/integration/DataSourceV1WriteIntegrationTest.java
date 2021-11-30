@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -37,7 +38,7 @@ import scala.collection.Seq;
 public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
 
   public DataSourceV1WriteIntegrationTest() {
-    super(false);
+    super(SparkBigQueryConfig.WriteMethod.INDIRECT);
   }
 
   // DSv2 does not support BigNumeric yet
@@ -128,20 +129,6 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
     writeStream.stop();
     assertThat(testTableNumberOfRows()).isEqualTo(4);
     assertThat(additionalDataValuesExist()).isTrue();
-  }
-
-  @Test
-  public void testWriteToBigQuery_ErrorIfExistsSaveMode() throws InterruptedException {
-    // initial write
-    writeToBigQuery(initialData(), SaveMode.ErrorIfExists);
-    assertThat(testTableNumberOfRows()).isEqualTo(2);
-    assertThat(initialDataValuesExist()).isTrue();
-    // second write
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> {
-          writeToBigQuery(additonalData(), SaveMode.ErrorIfExists);
-        });
   }
 
   private static <T> Seq<T> toSeq(List<T> list) {

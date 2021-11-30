@@ -15,7 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.api.gax.retrying.RetrySettings;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.base.Preconditions;
 import com.google.inject.Binder;
@@ -32,13 +35,13 @@ import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructType;
 
-class BigQueryInDirectDataSourceWriterModule implements Module {
+class BigQueryDataSourceWriterModule implements Module {
 
   private final String writeUUID;
   private final StructType sparkSchema;
   private final SaveMode mode;
 
-  BigQueryInDirectDataSourceWriterModule(String writeUUID, StructType sparkSchema, SaveMode mode) {
+  BigQueryDataSourceWriterModule(String writeUUID, StructType sparkSchema, SaveMode mode) {
     this.writeUUID = writeUUID;
     this.sparkSchema = sparkSchema;
     this.mode = mode;
@@ -51,7 +54,26 @@ class BigQueryInDirectDataSourceWriterModule implements Module {
 
   @Singleton
   @Provides
-  public BigQueryIndirectDataSourceWriter provideDataSourceWriter(
+  public BigQueryDirectDataSourceWriter provideDirectDataSourceWriter(
+      BigQueryClient bigQueryClient,
+      BigQueryClientFactory bigQueryWriteClientFactory,
+      SparkBigQueryConfig config) {
+    TableId tableId = config.getTableId();
+    RetrySettings bigqueryDataWriteHelperRetrySettings =
+        config.getBigqueryDataWriteHelperRetrySettings();
+    return new BigQueryDirectDataSourceWriter(
+        bigQueryClient,
+        bigQueryWriteClientFactory,
+        tableId,
+        writeUUID,
+        mode,
+        sparkSchema,
+        bigqueryDataWriteHelperRetrySettings);
+  }
+
+  @Singleton
+  @Provides
+  public BigQueryIndirectDataSourceWriter provideIndirectDataSourceWriter(
       BigQueryClient bigQueryClient, SparkBigQueryConfig config, SparkSession spark)
       throws IOException {
     Path gcsPath =

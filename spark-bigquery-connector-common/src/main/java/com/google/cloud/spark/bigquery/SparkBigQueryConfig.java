@@ -36,14 +36,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.OptionalLong;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -52,9 +45,24 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.sql.execution.datasources.DataSource;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.types.StructType;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.threeten.bp.Duration;
 
 public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
+
+  public enum WriteMethod {
+    DIRECT,
+    INDIRECT;
+
+    public static WriteMethod from(@Nullable String writeMethod) {
+      try {
+        return WriteMethod.valueOf(writeMethod.toUpperCase(Locale.ENGLISH));
+      } catch (RuntimeException e) {
+        throw new IllegalArgumentException(
+            "WriteMethod can be only " + Arrays.toString(WriteMethod.values()));
+      }
+    }
+  }
 
   public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
   public static final String USE_AVRO_LOGICAL_TYPES_OPTION = "useAvroLogicalTypes";
@@ -89,6 +97,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   public static final int MIN_STREAMS_PER_PARTITION = 1;
   private static final int DEFAULT_BIGQUERY_CLIENT_RETRIES = 10;
   private static final String ARROW_COMPRESSION_CODEC_OPTION = "arrowCompressionCodec";
+  private static final WriteMethod DEFAULT_WRITE_METHOD = WriteMethod.INDIRECT;
 
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
@@ -131,6 +140,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private int numStreamsPerPartition = MIN_STREAMS_PER_PARTITION;
   private SparkBigQueryProxyAndHttpConfig sparkBigQueryProxyAndHttpConfig;
   private CompressionCodec arrowCompressionCodec = DEFAULT_ARROW_COMPRESSION_CODEC;
+  private WriteMethod writeMethod = DEFAULT_WRITE_METHOD;
   // for V2 write with BigQuery Storage Write API
   RetrySettings bigqueryDataWriteHelperRetrySettings =
       RetrySettings.newBuilder().setMaxAttempts(5).build();
@@ -311,6 +321,11 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         getAnyOption(globalOptions, options, ARROW_COMPRESSION_CODEC_OPTION)
             .transform(String::toUpperCase)
             .or(DEFAULT_ARROW_COMPRESSION_CODEC.toString());
+
+    config.writeMethod =
+        getAnyOption(globalOptions, options, "writeMethod")
+            .transform(WriteMethod::from)
+            .or(DEFAULT_WRITE_METHOD);
 
     try {
       config.arrowCompressionCodec = CompressionCodec.valueOf(arrowCompressionCodecParam);
@@ -640,6 +655,10 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   public RetrySettings getBigqueryDataWriteHelperRetrySettings() {
     return bigqueryDataWriteHelperRetrySettings;
+  }
+
+  public WriteMethod getWriteMethod() {
+    return writeMethod;
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
