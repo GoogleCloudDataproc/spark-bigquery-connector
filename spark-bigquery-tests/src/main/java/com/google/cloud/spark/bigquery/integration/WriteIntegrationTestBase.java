@@ -174,21 +174,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     writeToBigQuery(initialData(), SaveMode.ErrorIfExists);
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
-    // second write
-    //    switch (writeMethod) {
-    //      case DIRECT:
-    //        assertThrows(
-    //            ProvisionException.class,
-    //            () -> writeToBigQuery(additonalData(), SaveMode.ErrorIfExists));
-    //        break;
-    //      case INDIRECT:
     assertThrows(
         IllegalArgumentException.class,
         () -> writeToBigQuery(additonalData(), SaveMode.ErrorIfExists));
-    //        break;
-    //      default:
-    //        throw new IllegalArgumentException("Unknown WriteMethod " + writeMethod);
-    //    }
   }
 
   @Test
