@@ -70,6 +70,10 @@ The latest version of the connector is publicly available in the following links
 | --- | --- |
 | Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.22.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.22.0.jar)) |
 | Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.22.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.22.0.jar)) |
+| Spark 2.4  | `gs://spark-lib/bigquery/spark-bigquery-spark24-0.22.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-spark24-0.22.0.jar)) |
+
+**Note:** If you are using scala jars please use the jar as per the scala version. From Spark 2.4 onwards there is an
+option to use the Java only jar.
 
 The connector is also available from the
 [Maven Central](https://repo1.maven.org/maven2/com/google/cloud/spark/)
@@ -80,6 +84,7 @@ repository. It can be used using the `--packages` option or the
 | --- | --- |
 | Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.22.0` |
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.22.0` |
+| Spark 2.4  | `com.google.cloud.spark:spark-bigquery:spark24-0.22.0` |
 
 If you want to keep up with the latest version of the connector the following links can be used. Notice that for production
 environments where the connector version should be pinned, one of the above links should be used.
@@ -88,7 +93,7 @@ environments where the connector version should be pinned, one of the above link
 | --- | --- |
 | Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-latest_2.11.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.11.jar)) |
 | Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar)) |
-
+| Spark 2.4  | `gs://spark-lib/bigquery/spark-bigquery-latest-spark24.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest-spark24.jar)) |
 
 ## Hello World Example
 
@@ -232,7 +237,25 @@ the `materializationDataset` should be in same location as the view.
 
 ### Writing data to BigQuery
 
-Writing a DataFrame to BigQuery is done in a similar manner. Notice that the process writes the data first to GCS and then loads it to BigQuery, a GCS bucket must be configured to indicate the temporary data location.
+#### Direct write using the BigQuery Storage Write API
+The Spark 2.4 dedicated connector supports writing directly to BigQuery without first writing to GCS, using
+the [BigQuery Storage Write API](https://cloud.google.com/bigquery/docs/write-api)
+to write data directly to BigQuery. In order to enable this option, please set the `writeMethod` option
+to `direct`, as shown below:
+
+```
+df.write \
+  .format("bigquery") \
+  .option("writeMethod", "direct") \
+  .save("dataset.table")
+```
+
+**Important:** Please refer to the [data ingestion pricing](https://cloud.google.com/bigquery/pricing#data_ingestion_pricing)
+page regarding the BigQuery Storage Write API pricing.
+
+#### Indirect write
+This method is supported by all the connector. In this method the data is written first  to GCS and then 
+it is loaded it to BigQuery. A GCS bucket must be configured to indicate the temporary data location.
 
 ```
 df.write \
@@ -241,7 +264,8 @@ df.write \
   .save("dataset.table")
 ```
 
-The data is temporarily stored using the [Apache parquet](https://parquet.apache.org/) format. An alternative format is [Apache ORC](https://orc.apache.org/).
+The data is temporarily stored using the [Apache Parquet](https://parquet.apache.org/),  
+[Apache ORC](https://orc.apache.org/) or [Apache Avro](https://avro.apache.org/) formats.
 
 The GCS bucket and the format can also be set globally using Spark's RuntimeConfig like this:
 ```
@@ -418,6 +442,18 @@ The API Supports a number of options to configure the read
       <td>Write</td>
    </tr>
 
+  <tr valign="top">
+   <td><code>writeMethod</code>
+     </td>
+       <td>Used only by the Spark 2.4 dedicated connector. Controls the method
+       in which the data is written to BigQuery. Available values are <code>direct</code>
+       to use the BigQuery Storage Write API and <code>indirect</code> which writes the
+       data first to GCS and then triggers a BigQuery load operation. See more
+       <a href="#writing-data-to-bigquery">here</a> 
+       <br/>(Optional, defaults to <code>indirect</code>)
+     </td>
+   <td>Write (supported only by the Spark 2.4 dedicated connector)</td>
+  </tr>
   <tr valign="top">
    <td><code>temporaryGcsBucket</code>
    </td>
@@ -638,6 +674,16 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
      This preserves <code>NUMERIC</code>'s full 38 digits of precision and 9 digits of scope.
    </td>
   </tr>
+  <tr valign="top">
+     <td><strong><code>BIGNUMERIC</code></strong>
+     </td>
+     <td><strong><code>BigNumericUDT (UserDefinedType)</code></strong>
+     </td>
+     <td>
+       Scala/Java: BigNumericUDT DataType internally uses java.math.BigDecimal to hold the BigNumeric data.
+       <p> Python: BigNumericUDT DataType internally used python's Decimal class to hold the BigNumeric data.
+     </td>
+    </tr>
   <tr valign="top">
    <td><strong><code>STRING</code></strong>
    </td>
