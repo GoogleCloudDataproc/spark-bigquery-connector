@@ -407,4 +407,17 @@ public class Spark24WriteIntegrationTest extends WriteIntegrationTestBase {
           () -> writeToBigQuery(additonalData(), SaveMode.ErrorIfExists));
     }
   }
+
+  @Test
+  public void testWriteToBigQuery_IgnoreSaveMode() throws InterruptedException {
+    // initial write
+    writeToBigQuery(initialData(), SaveMode.Ignore);
+    assertThat(testTableNumberOfRows()).isEqualTo(2);
+    assertThat(initialDataValuesExist()).isTrue();
+    // second write
+    writeToBigQuery(additonalData(), SaveMode.Ignore);
+    assertThat(testTableNumberOfRows()).isEqualTo(2);
+    assertThat(initialDataValuesExist()).isTrue();
+    assertThat(additionalDataValuesExist()).isFalse();
+  }
 }

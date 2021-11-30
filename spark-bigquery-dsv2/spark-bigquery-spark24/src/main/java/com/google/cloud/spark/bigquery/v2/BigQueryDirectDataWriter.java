@@ -15,15 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessage;
-import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
-
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
-import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Descriptors;
+import com.google.cloud.spark.bigquery.common.BigQueryDirectDataWriterHelper;
 import java.io.IOException;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.v2.writer.DataWriter;
@@ -38,9 +33,6 @@ public class BigQueryDirectDataWriter implements DataWriter<InternalRow> {
   private final int partitionId;
   private final long taskId;
   private final long epochId;
-  private final String tablePath;
-  private final StructType sparkSchema;
-  private final Descriptors.Descriptor schemaDescriptor;
 
   /**
    * A helper object to assist the BigQueryDataWriter with all the writing: essentially does all the
@@ -60,25 +52,19 @@ public class BigQueryDirectDataWriter implements DataWriter<InternalRow> {
     this.partitionId = partitionId;
     this.taskId = taskId;
     this.epochId = epochId;
-    this.tablePath = tablePath;
-    this.sparkSchema = sparkSchema;
-    try {
-      this.schemaDescriptor = toDescriptor(sparkSchema);
-    } catch (Descriptors.DescriptorValidationException e) {
-      throw new BigQueryConnectorException.InvalidSchemaException(
-          "Could not convert spark-schema to descriptor object", e);
-    }
 
     this.writerHelper =
         new BigQueryDirectDataWriterHelper(
-            writeClientFactory, tablePath, protoSchema, bigqueryDataWriterHelperRetrySettings);
+            writeClientFactory,
+            tablePath,
+            sparkSchema,
+            protoSchema,
+            bigqueryDataWriterHelperRetrySettings);
   }
 
   @Override
   public void write(InternalRow record) throws IOException {
-    ByteString message =
-        buildSingleRowMessage(sparkSchema, schemaDescriptor, record).toByteString();
-    writerHelper.addRow(message);
+    writerHelper.addRow(record);
   }
 
   @Override
@@ -92,7 +78,7 @@ public class BigQueryDirectDataWriter implements DataWriter<InternalRow> {
         "Data Writer {}'s write-stream has finalized with row count: {}", partitionId, rowCount);
 
     return new BigQueryDirectWriterCommitMessage(
-        writeStreamName, partitionId, taskId, epochId, tablePath, rowCount);
+        writeStreamName, partitionId, taskId, epochId, writerHelper.getTablePath(), rowCount);
   }
 
   @Override

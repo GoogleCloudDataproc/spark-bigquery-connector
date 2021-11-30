@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Google Inc. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.google.cloud.spark.bigquery.common;
 
 import com.google.cloud.bigquery.Field;
@@ -41,6 +56,8 @@ public class GenericBigQueryDataSourceReader implements Serializable {
   private Map<String, StructField> fields;
   private ReadSession readSession;
   private ImmutableList<String> selectedFields;
+  private ImmutableList<String> selectedBatchFields;
+  private Optional<String> filter;
   private ReadSessionResponse readSessionResponse;
   private int partitionSize;
   private int partitionsCount;
@@ -65,7 +82,6 @@ public class GenericBigQueryDataSourceReader implements Serializable {
     this.readSessionCreator =
         new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
     this.globalFilter = globalFilter;
-    this.schema = schema;
     StructType convertedSchema =
         SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table));
     if (schema.isPresent()) {
@@ -78,12 +94,41 @@ public class GenericBigQueryDataSourceReader implements Serializable {
     // We want to keep the key order
     this.fields = new LinkedHashMap<>();
     for (StructField field : JavaConversions.seqAsJavaList(convertedSchema)) {
-      fields.put(field.name(), field);
+      this.fields.put(field.name(), field);
     }
+    this.selectedFields =
+        this.schema
+            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+            .orElse(ImmutableList.of());
   }
 
-  public Optional<StructType> getSchema() {
-    return schema;
+  public GenericBigQueryDataSourceReader(
+      TableInfo table,
+      TableId tableId,
+      Optional<StructType> schema,
+      Optional<StructType> userProvidedSchema,
+      Map<String, StructField> fields,
+      ReadSessionCreatorConfig readSessionCreatorConfig,
+      BigQueryClient bigQueryClient,
+      BigQueryClientFactory bigQueryReadClientFactory,
+      BigQueryTracerFactory bigQueryTracerFactory,
+      ReadSessionCreator readSessionCreator,
+      Optional<String> globalFilter,
+      Filter[] pushedFilters,
+      String applicationId) {
+    this.table = table;
+    this.tableId = tableId;
+    this.readSessionCreatorConfig = readSessionCreatorConfig;
+    this.bigQueryClient = bigQueryClient;
+    this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+    this.bigQueryTracerFactory = bigQueryTracerFactory;
+    this.applicationId = applicationId;
+    this.readSessionCreator = readSessionCreator;
+    this.globalFilter = globalFilter;
+    this.schema = schema;
+    this.userProvidedSchema = userProvidedSchema;
+    this.fields = fields;
+    this.pushedFilters = pushedFilters;
   }
 
   public void createReadSession(boolean batch) {
@@ -91,7 +136,7 @@ public class GenericBigQueryDataSourceReader implements Serializable {
         batch
             ? this.schema
                 .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-                .orElse(ImmutableList.copyOf(fields.keySet()))
+                .orElse(ImmutableList.copyOf(this.fields.keySet()))
             : this.schema
                 .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
                 .orElse(ImmutableList.of());
@@ -102,6 +147,13 @@ public class GenericBigQueryDataSourceReader implements Serializable {
   }
 
   public void emptySchemaForPartition() {
+    this.selectedFields =
+        schema
+            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+            .orElse(ImmutableList.copyOf(fields.keySet()));
+    this.filter = getCombinedFilter();
+    this.readSessionResponse = this.readSessionCreator.create(tableId, selectedFields, filter);
+    this.readSession = readSessionResponse.getReadSession();
     if (this.selectedFields.isEmpty()) {
       // means select *
       Schema tableSchema =
@@ -111,6 +163,10 @@ public class GenericBigQueryDataSourceReader implements Serializable {
               .map(Field::getName)
               .collect(ImmutableList.toImmutableList());
     }
+  }
+
+  public Optional<StructType> getSchema() {
+    return this.schema;
   }
 
   public TableInfo getTable() {
@@ -166,7 +222,7 @@ public class GenericBigQueryDataSourceReader implements Serializable {
   }
 
   public Map<String, StructField> getFields() {
-    return fields;
+    return this.fields;
   }
 
   public Filter[] getPushedFilters() {
@@ -187,7 +243,7 @@ public class GenericBigQueryDataSourceReader implements Serializable {
 
   public StructType readSchema() {
     return schema.orElse(
-        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(this.getTable())));
+        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(this.table)));
   }
 
   public ReadRowsResponseToInternalRowIteratorConverter createConverter() {
