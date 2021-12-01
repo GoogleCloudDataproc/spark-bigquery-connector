@@ -5,7 +5,7 @@
   <parent>
     <groupId>com.google.cloud.spark</groupId>
     <artifactId>spark-bigquery-parent</artifactId>
-    <version>0.30.0-SNAPSHOT</version>
+    <version>0.23.0</version>
     <relativePath>spark-bigquery-parent</relativePath>
   </parent>
 
@@ -51,7 +51,6 @@
     <module>spark-bigquery-tests</module>
     <module>spark-bigquery-connector-common</module>
     <module>spark-bigquery-python-lib</module>
-    <module>coverage</module>
   </modules>
 
   <profiles>
@@ -131,6 +130,15 @@
       <modules>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
         <module>spark-bigquery-dsv2/spark-bigquery-spark3</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>coverage</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>coverage</module>
       </modules>
     </profile>
   </profiles>

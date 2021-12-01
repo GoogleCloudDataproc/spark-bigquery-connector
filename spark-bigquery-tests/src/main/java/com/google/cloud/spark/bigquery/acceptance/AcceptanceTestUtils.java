@@ -46,8 +46,8 @@ public class AcceptanceTestUtils {
   static Storage storage =
       new StorageOptions.DefaultStorageFactory().create(StorageOptions.getDefaultInstance());
 
-  public static Path getArtifact(Path targetDir, String suffix) {
-    Predicate<Path> prefixSuffixChecker = prefixSuffixChecker("spark-bigquery", suffix);
+  public static Path getArtifact(Path targetDir, String prefix, String suffix) {
+    Predicate<Path> prefixSuffixChecker = prefixSuffixChecker(prefix, suffix);
     try {
       return Files.list(targetDir)
           .filter(Files::isRegularFile)
@@ -62,7 +62,7 @@ public class AcceptanceTestUtils {
   private static Predicate<Path> prefixSuffixChecker(final String prefix, final String suffix) {
     return path -> {
       String name = path.toFile().getName();
-      return name.startsWith(prefix) && name.endsWith(suffix);
+      return name.startsWith(prefix) && name.endsWith(suffix) && name.indexOf("-javadoc") == -1;
     };
   }
 

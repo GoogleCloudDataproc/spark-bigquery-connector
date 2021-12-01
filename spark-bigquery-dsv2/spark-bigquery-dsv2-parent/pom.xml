@@ -5,7 +5,7 @@
   <parent>
     <groupId>com.google.cloud.spark</groupId>
     <artifactId>spark-bigquery-parent</artifactId>
-    <version>0.30.0-SNAPSHOT</version>
+    <version>0.23.0</version>
     <relativePath>../../spark-bigquery-parent</relativePath>
   </parent>
 
@@ -216,7 +216,7 @@
         </configuration>
         <executions>
           <execution>
-            <phase>install</phase>
+            <phase>package</phase>
             <goals>
               <goal>shade</goal>
             </goals>

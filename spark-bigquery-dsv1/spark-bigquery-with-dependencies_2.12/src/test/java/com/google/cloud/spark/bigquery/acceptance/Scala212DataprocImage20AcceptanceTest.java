@@ -28,7 +28,7 @@ public class Scala212DataprocImage20AcceptanceTest extends DataprocAcceptanceTes
 
   @BeforeClass
   public static void setup() throws Exception {
-    context = DataprocAcceptanceTestBase.setup("2.0-debian10");
+    context = DataprocAcceptanceTestBase.setup("2.0-debian10", "spark-bigquery");
   }
 
   @AfterClass

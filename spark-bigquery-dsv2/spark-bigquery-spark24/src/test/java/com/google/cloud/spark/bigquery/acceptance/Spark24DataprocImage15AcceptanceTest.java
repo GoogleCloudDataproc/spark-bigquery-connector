@@ -28,7 +28,7 @@ public class Spark24DataprocImage15AcceptanceTest extends DataprocAcceptanceTest
 
   @BeforeClass
   public static void setup() throws Exception {
-    context = DataprocAcceptanceTestBase.setup("1.5-debian10");
+    context = DataprocAcceptanceTestBase.setup("1.5-debian10", "spark-2.4-bigquery");
   }
 
   @AfterClass

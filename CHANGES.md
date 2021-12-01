@@ -1,5 +1,25 @@
 # Release Notes
 
+## 0.23.0 - 2021-12-06
+* New connector: A Java only connector implementing the Spark 2.4 APIs
+* PR #469: Added support for the BigQuery Storage Write API, allowing faster
+  writes (Spark 2.4 connector only)
+* Issue #481: Added configuration option to use compression from the READ API
+  for Arrow
+* BigQuery API has been upgraded to version 2.1.8
+* BigQuery Storage API has been upgraded to version 2.1.2
+* gRPC has been upgraded to version 1.41.0
+
+## 0.22.2 - 2021-09-22
+* Issue #446: BigNumeric values are properly written to BigQuery
+* Issue #452: Adding the option to clean BigQueryClient.destinationTableCache
+* BigQuery API has been upgraded to version 2.1.12
+* BigQuery Storage API has been upgraded to version 2.3.1
+* gRPC has been upgraded to version 1.40.0
+
+## 0.22.1 - 2021-09-08
+* Issue #444: allowing unpartitioned clustered table
+
 ## 0.22.0 - 2021-06-22
 * PR #404: Added support for BigNumeric
 * PR #430: Added HTTP and gRPC proxy support

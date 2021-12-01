@@ -4,9 +4,12 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery-parent</artifactId>
-  <version>0.30.0-SNAPSHOT</version>
+  <version>0.23.0</version>
   <packaging>pom</packaging>
   <name>Spark BigQuery Connector Build Parent</name>
+  <description>Parent project for all the Spark BigQuery Connector artifacts
+  </description>
+  <url>https://github.com/GoogleCloudDataproc/spark-bigquery-connector</url>
 
   <licenses>
     <license>
@@ -15,6 +18,23 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
+
+  <developers>
+    <developer>
+      <organization>Google Inc.</organization>
+      <organizationUrl>http://www.google.com</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>
+      scm:git:git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git
+    </connection>
+    <developerConnection>
+      scm:git:git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git
+    </developerConnection>
+    <url>git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git</url>
+  </scm>
 
   <distributionManagement>
     <snapshotRepository>
@@ -473,8 +493,8 @@
             <extensions>true</extensions>
             <configuration>
               <serverId>ossrh</serverId>
-              <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-              <autoReleaseAfterClose>true</autoReleaseAfterClose>
+              <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+              <autoReleaseAfterClose>false</autoReleaseAfterClose>
             </configuration>
           </plugin>
           <plugin>
@@ -494,6 +514,9 @@
           <plugin>
             <artifactId>maven-source-plugin</artifactId>
             <version>3.2.1</version>
+            <configuration>
+              <forceCreation>true</forceCreation>
+            </configuration>
             <executions>
               <execution>
                 <id>attach-sources</id>

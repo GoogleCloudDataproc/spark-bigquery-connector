@@ -54,7 +54,8 @@ public class DataprocAcceptanceTestBase {
     this.sparkStreamingSupported = sparkStreamingSupported;
   }
 
-  protected static AcceptanceTestContext setup(String dataprocImageVersion) throws Exception {
+  protected static AcceptanceTestContext setup(
+      String dataprocImageVersion, String connectorJarPrefix) throws Exception {
     String testId =
         String.format(
             "%s-%s%s",
@@ -63,7 +64,8 @@ public class DataprocAcceptanceTestBase {
             dataprocImageVersion.charAt(2));
     String clusterName = createClusterIfNeeded(dataprocImageVersion, testId);
     AcceptanceTestContext acceptanceTestContext = new AcceptanceTestContext(testId, clusterName);
-    uploadConnectorJar(CONNECTOR_JAR_DIRECTORY, acceptanceTestContext.connectorJarUri);
+    uploadConnectorJar(
+        CONNECTOR_JAR_DIRECTORY, connectorJarPrefix, acceptanceTestContext.connectorJarUri);
     createBqDataset(acceptanceTestContext.bqDataset);
     return acceptanceTestContext;
   }
@@ -137,10 +139,10 @@ public class DataprocAcceptanceTestBase {
         .build();
   }
 
-  private static void uploadConnectorJar(String targetDir, String connectorJarUri)
+  private static void uploadConnectorJar(String targetDir, String prefix, String connectorJarUri)
       throws Exception {
     Path targetDirPath = Paths.get(targetDir);
-    Path assemblyJar = AcceptanceTestUtils.getArtifact(targetDirPath, ".jar");
+    Path assemblyJar = AcceptanceTestUtils.getArtifact(targetDirPath, prefix, ".jar");
     AcceptanceTestUtils.copyToGcs(assemblyJar, connectorJarUri, "application/java-archive");
   }
 
@@ -193,7 +195,8 @@ public class DataprocAcceptanceTestBase {
   public void testBigNumeric() throws Exception {
     String testName = "test-big-numeric";
     Path pythonLibTargetDir = Paths.get("../../spark-bigquery-python-lib/target");
-    Path pythonLibZip = AcceptanceTestUtils.getArtifact(pythonLibTargetDir, ".zip");
+    Path pythonLibZip =
+        AcceptanceTestUtils.getArtifact(pythonLibTargetDir, "spark-bigquery", ".zip");
     String zipFileUri =
         context.testBaseGcsDir + "/" + testName + "/big_numeric_acceptance_test.zip";
     AcceptanceTestUtils.uploadToGcs(
