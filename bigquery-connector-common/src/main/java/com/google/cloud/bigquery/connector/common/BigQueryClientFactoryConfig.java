@@ -6,39 +6,32 @@ import java.util.Optional;
 
 public class BigQueryClientFactoryConfig implements BigQueryConfig {
 
-  private Optional<String> credentialsKey;
-  private Optional<String> credentialsFile;
-  private Optional<String> accessToken;
-  private String parentProjectId;
-  private boolean viewsEnabled;
-  private Optional<String> materializationProject;
-  private Optional<String> materializationDataset;
-  private int bigQueryClientConnectTimeout;
-  private int bigQueryClientReadTimeout;
-  private RetrySettings bigQueryClientRetrySettings;
-  private BigQueryProxyConfig bigQueryProxyConfig;
-  private Optional<String> endpoint;
+  private final Optional<String> credentialsKey;
+  private final Optional<String> credentialsFile;
+  private final Optional<String> accessToken;
+  private final String parentProjectId;
+  private final boolean viewsEnabled;
+  private final Optional<String> materializationProject;
+  private final Optional<String> materializationDataset;
+  private final int bigQueryClientConnectTimeout;
+  private final int bigQueryClientReadTimeout;
+  private final RetrySettings bigQueryClientRetrySettings;
+  private final BigQueryProxyConfig bigQueryProxyConfig;
+  private final Optional<String> endpoint;
 
-  BigQueryClientFactoryConfig() {
-    // empty
-  }
-
-  public static BigQueryClientFactoryConfig from(BigQueryConfig bigQueryConfig) {
-    BigQueryClientFactoryConfig config = new BigQueryClientFactoryConfig();
-    config.credentialsKey = bigQueryConfig.getCredentialsKey();
-    config.credentialsFile = bigQueryConfig.getCredentialsFile();
-    config.accessToken = bigQueryConfig.getAccessToken();
-    config.parentProjectId = bigQueryConfig.getParentProjectId();
-    config.viewsEnabled = bigQueryConfig.isViewsEnabled();
-    config.materializationProject = bigQueryConfig.getMaterializationProject();
-    config.materializationDataset = bigQueryConfig.getMaterializationDataset();
-    config.bigQueryClientConnectTimeout = bigQueryConfig.getBigQueryClientConnectTimeout();
-    config.bigQueryClientReadTimeout = bigQueryConfig.getBigQueryClientReadTimeout();
-    config.bigQueryClientRetrySettings = bigQueryConfig.getBigQueryClientRetrySettings();
-    config.bigQueryProxyConfig = bigQueryConfig.getBigQueryProxyConfig();
-    config.endpoint = bigQueryConfig.getEndpoint();
-
-    return config;
+  BigQueryClientFactoryConfig(BigQueryConfig bigQueryConfig) {
+    this.credentialsKey = bigQueryConfig.getCredentialsKey();
+    this.credentialsFile = bigQueryConfig.getCredentialsFile();
+    this.accessToken = bigQueryConfig.getAccessToken();
+    this.parentProjectId = bigQueryConfig.getParentProjectId();
+    this.viewsEnabled = bigQueryConfig.isViewsEnabled();
+    this.materializationProject = bigQueryConfig.getMaterializationProject();
+    this.materializationDataset = bigQueryConfig.getMaterializationDataset();
+    this.bigQueryClientConnectTimeout = bigQueryConfig.getBigQueryClientConnectTimeout();
+    this.bigQueryClientReadTimeout = bigQueryConfig.getBigQueryClientReadTimeout();
+    this.bigQueryClientRetrySettings = bigQueryConfig.getBigQueryClientRetrySettings();
+    this.bigQueryProxyConfig = bigQueryConfig.getBigQueryProxyConfig();
+    this.endpoint = bigQueryConfig.getEndpoint();
   }
 
   @Override

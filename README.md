@@ -254,7 +254,7 @@ df.write \
 page regarding the BigQuery Storage Write API pricing.
 
 #### Indirect write
-This method is supported by all the connector. In this method the data is written first  to GCS and then 
+This method is supported by all the connector. In this method the data is written first  to GCS and then
 it is loaded it to BigQuery. A GCS bucket must be configured to indicate the temporary data location.
 
 ```
@@ -264,7 +264,7 @@ df.write \
   .save("dataset.table")
 ```
 
-The data is temporarily stored using the [Apache Parquet](https://parquet.apache.org/),  
+The data is temporarily stored using the [Apache Parquet](https://parquet.apache.org/),
 [Apache ORC](https://orc.apache.org/) or [Apache Avro](https://avro.apache.org/) formats.
 
 The GCS bucket and the format can also be set globally using Spark's RuntimeConfig like this:
@@ -449,7 +449,7 @@ The API Supports a number of options to configure the read
        in which the data is written to BigQuery. Available values are <code>direct</code>
        to use the BigQuery Storage Write API and <code>indirect</code> which writes the
        data first to GCS and then triggers a BigQuery load operation. See more
-       <a href="#writing-data-to-bigquery">here</a> 
+       <a href="#writing-data-to-bigquery">here</a>
        <br/>(Optional, defaults to <code>indirect</code>)
      </td>
    <td>Write (supported only by the Spark 2.4 dedicated connector)</td>

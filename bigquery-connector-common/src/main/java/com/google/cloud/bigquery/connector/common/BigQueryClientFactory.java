@@ -3,7 +3,6 @@ package com.google.cloud.bigquery.connector.common;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.auth.Credentials;
-import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadSettings;
 import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteClient;
@@ -25,7 +24,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Since Guice recommends to avoid injecting closeable resources (see
  * https://github.com/google/guice/wiki/Avoid-Injecting-Closable-Resources), this factory creates
- * short lived clients that can be closed independently.
+ * and caches clients and also closes them during JVM shutdown.
  */
 public class BigQueryClientFactory implements Serializable {
   private static final Logger log = LoggerFactory.getLogger(BigQueryClientFactory.class);
@@ -97,21 +96,16 @@ public class BigQueryClientFactory implements Serializable {
     // UserCredentials, ServiceAccountCredentials, ExternalAccountCredentials or
     // ImpersonatedCredentials (See the method GoogleCredentials.fromStream()).
     // ExternalAccountCredentials does not have an equals method defined on it and hence we
-    // serialize and compare byte arrays if both credentials are instances of
-    // ExternalAccountCredentials
-    if (!Objects.equal(credentials, that.credentials)) {
-      if (credentials instanceof ExternalAccountCredentials
-          && that.credentials instanceof ExternalAccountCredentials) {
-        if (!deepCompareCredentials(credentials, that.credentials)) {
-          return false;
-        }
-      }
+    // serialize and compare byte arrays if the credentials are not equal using Objects.equal
+    if (!Objects.equal(credentials, that.credentials)
+        && !deepCompareCredentials(credentials, that.credentials)) {
+      return false;
     }
 
     return Objects.equal(userAgentHeaderProvider, that.userAgentHeaderProvider)
         && Objects.equal(
-            BigQueryClientFactoryConfig.from(bqConfig),
-            BigQueryClientFactoryConfig.from(that.bqConfig));
+            new BigQueryClientFactoryConfig(bqConfig),
+            new BigQueryClientFactoryConfig(that.bqConfig));
   }
 
   private BigQueryReadClient createBigQueryReadClient(Optional<String> endpoint) {
