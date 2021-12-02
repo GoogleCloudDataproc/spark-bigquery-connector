@@ -3,6 +3,7 @@ package com.google.cloud.bigquery.connector.common;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.auth.Credentials;
+import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadSettings;
 import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteClient;
@@ -78,6 +79,17 @@ public class BigQueryClientFactory implements Serializable {
 
   @Override
   public int hashCode() {
+    // Here, credentials is an instance of GoogleCredentials which can be one out of
+    // GoogleCredentials, UserCredentials, ServiceAccountCredentials, ExternalAccountCredentials or
+    // ImpersonatedCredentials (See the class BigQueryCredentialsSupplier which supplies these
+    // Credentials). Subclasses of the abstract class ExternalAccountCredentials do not have the
+    // hashCode method defined on them and hence we only compute the hashcode using
+    // userAgentHeaderProvider and bqConfig here. In the equals implementation, we serialize and
+    // compare byte arrays if either of the credentials are instances of ExternalAccountCredentials
+    if (credentials instanceof ExternalAccountCredentials) {
+      return Objects.hashCode(userAgentHeaderProvider, bqConfig);
+    }
+
     return Objects.hashCode(credentials, userAgentHeaderProvider, bqConfig);
   }
 
@@ -92,20 +104,21 @@ public class BigQueryClientFactory implements Serializable {
 
     BigQueryClientFactory that = (BigQueryClientFactory) o;
 
-    // Here, credentials is an instance of GoogleCredentials which can be one out of
-    // UserCredentials, ServiceAccountCredentials, ExternalAccountCredentials or
-    // ImpersonatedCredentials (See the method GoogleCredentials.fromStream()).
-    // ExternalAccountCredentials does not have an equals method defined on it and hence we
-    // serialize and compare byte arrays if the credentials are not equal using Objects.equal
-    if (!Objects.equal(credentials, that.credentials)
-        && !deepCompareCredentials(credentials, that.credentials)) {
-      return false;
-    }
-
-    return Objects.equal(userAgentHeaderProvider, that.userAgentHeaderProvider)
+    if (Objects.equal(userAgentHeaderProvider, that.userAgentHeaderProvider)
         && Objects.equal(
             new BigQueryClientFactoryConfig(bqConfig),
-            new BigQueryClientFactoryConfig(that.bqConfig));
+            new BigQueryClientFactoryConfig(that.bqConfig))) {
+      // Here, credentials and that.credentials are instances of GoogleCredentials which can be one
+      // of GoogleCredentials, UserCredentials, ServiceAccountCredentials,
+      // ExternalAccountCredentials or ImpersonatedCredentials (See the class
+      // BigQueryCredentialsSupplier which supplies these Credentials). Subclasses of
+      // ExternalAccountCredentials do not have an equals method defined on them and hence we
+      // serialize and compare byte arrays if either of the credentials are instances of
+      // ExternalAccountCredentials
+      return areCredentialsEqual(credentials, that.credentials);
+    }
+
+    return false;
   }
 
   private BigQueryReadClient createBigQueryReadClient(Optional<String> endpoint) {
@@ -168,7 +181,12 @@ public class BigQueryClientFactory implements Serializable {
     }
   }
 
-  private boolean deepCompareCredentials(Credentials credentials1, Credentials credentials2) {
+  private boolean areCredentialsEqual(Credentials credentials1, Credentials credentials2) {
+    if (!(credentials1 instanceof ExternalAccountCredentials)
+        && !(credentials2 instanceof ExternalAccountCredentials)) {
+      return Objects.equal(credentials1, credentials2);
+    }
+
     try {
       ByteArrayOutputStream byteArrayOutputStream1 = new ByteArrayOutputStream();
       ObjectOutputStream objectOutputStream1 = new ObjectOutputStream(byteArrayOutputStream1);
