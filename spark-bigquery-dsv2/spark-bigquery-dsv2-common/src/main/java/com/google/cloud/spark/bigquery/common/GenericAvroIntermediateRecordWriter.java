@@ -24,6 +24,7 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
 
+/** Helper class to create an intermediate avro file in Google Cloud Storage */
 public class GenericAvroIntermediateRecordWriter implements Serializable, IntermediateRecordWriter {
   private final OutputStream outputStream;
   private final DatumWriter<GenericRecord> writer;
@@ -41,11 +42,22 @@ public class GenericAvroIntermediateRecordWriter implements Serializable, Interm
     return this.dataFileWriter;
   }
 
+  /**
+   * Method to write avro record
+   *
+   * @param avroRecord record of avro type that needs to bwritten
+   * @throws IOException
+   */
   @Override
   public void write(GenericRecord avroRecord) throws IOException {
     this.dataFileWriter.append(avroRecord);
   }
 
+  /**
+   * Method to close the file writer connection
+   *
+   * @throws IOException
+   */
   @Override
   public void close() throws IOException {
     try {

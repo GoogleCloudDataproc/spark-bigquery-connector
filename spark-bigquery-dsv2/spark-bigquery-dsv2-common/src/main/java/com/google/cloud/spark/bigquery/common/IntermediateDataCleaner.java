@@ -22,6 +22,10 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Responsible for recursively deleting the intermediate path. Implementing Runnable in order to act
+ * as shutdown hook.
+ */
 public class IntermediateDataCleaner extends Thread implements Serializable {
   private static final Logger logger = LoggerFactory.getLogger(IntermediateDataCleaner.class);
 

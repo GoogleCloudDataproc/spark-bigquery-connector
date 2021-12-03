@@ -20,6 +20,7 @@ import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 
+/** Helper class to enable direct write to bigquery from a Spark request */
 public class GenericBigQueryDirectDataSourceWriter {
   private final BigQueryClient bigQueryClient;
   private final BigQueryClientFactory writeClientFactory;
@@ -126,7 +127,7 @@ public class GenericBigQueryDirectDataSourceWriter {
 
   /**
    * This function will determine, based on the WritingMode: if in IGNORE_INPUTS mode, no work is to
-   * be done; otherwise all streams will be batch committed using the BigQuery Storage Write API,
+   * be done; otherwise all streams will be batch committed using the BigQuery Stora2ge Write API,
    * and then: if in OVERWRITE mode, the overwriteDestinationWithTemporary function from
    * BigQueryClient will be called to replace the destination table with all the data from the
    * temporary table; if in ALL_ELSE mode no more work needs to be done.

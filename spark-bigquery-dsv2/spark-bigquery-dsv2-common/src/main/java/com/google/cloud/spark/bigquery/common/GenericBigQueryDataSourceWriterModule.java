@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.StructType;
 
+/** A helper class to enable write operation in the connector */
 public class GenericBigQueryDataSourceWriterModule implements Serializable {
   private final String writeUUID;
   private final StructType sparkSchema;
@@ -45,6 +46,31 @@ public class GenericBigQueryDataSourceWriterModule implements Serializable {
     return writeUUID;
   }
 
+  public StructType getSparkSchema() {
+    return sparkSchema;
+  }
+
+  public SaveMode getMode() {
+    return mode;
+  }
+
+  public Optional<IntermediateDataCleaner> getIntermediateDataCleaner() {
+    return intermediateDataCleaner;
+  }
+
+  public Path getGcsPath() {
+    return gcsPath;
+  }
+
+  /**
+   * Method to create a gcs path to store the temporary avro file
+   *
+   * @param config Spark and Bigquery integrated configuration with bigquery details
+   * @param conf Hadoop configuration to initiate the Google Cloud Storage environment
+   * @param applicationId application id of the spark application
+   * @return returns Hadoop Path for the created file
+   * @throws IOException
+   */
   public Path createGcsPath(SparkBigQueryConfig config, Configuration conf, String applicationId)
       throws IOException {
     Preconditions.checkArgument(
@@ -79,6 +105,14 @@ public class GenericBigQueryDataSourceWriterModule implements Serializable {
     return gcsPath;
   }
 
+  /**
+   * Method to remove the temporary gcs path created to hold the intermediate avro file
+   *
+   * @param config
+   * @param conf
+   * @param applicationId
+   * @throws IOException
+   */
   public void createIntermediateCleaner(
       SparkBigQueryConfig config, Configuration conf, String applicationId) throws IOException {
     this.gcsPath = createGcsPath(config, conf, applicationId);
@@ -87,21 +121,5 @@ public class GenericBigQueryDataSourceWriterModule implements Serializable {
     // based on pmkc's suggestion at https://git.io/JeWRt
     this.intermediateDataCleaner.ifPresent(
         cleaner -> Runtime.getRuntime().addShutdownHook(cleaner));
-  }
-
-  public StructType getSparkSchema() {
-    return sparkSchema;
-  }
-
-  public SaveMode getMode() {
-    return mode;
-  }
-
-  public Optional<IntermediateDataCleaner> getIntermediateDataCleaner() {
-    return intermediateDataCleaner;
-  }
-
-  public Path getGcsPath() {
-    return gcsPath;
   }
 }

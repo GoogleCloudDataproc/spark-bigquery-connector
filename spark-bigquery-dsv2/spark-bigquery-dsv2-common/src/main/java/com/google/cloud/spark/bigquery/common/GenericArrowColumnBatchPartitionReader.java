@@ -44,16 +44,17 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 
+/**
+ * Helper class to instantiate ArrowColumnBatchPartitioner. It enables usage of ArrowReaderAdapter
+ * to read the data in arrow format.
+ */
 public class GenericArrowColumnBatchPartitionReader implements Serializable {
+  // maximum bytes to be allocated
   private static final long maxAllocation = 500 * 1024 * 1024;
 
   private final ReadRowsHelper readRowsHelper;
   private ColumnarBatch currentBatch;
   private boolean closed = false;
-
-  public ArrowReaderAdapter getReader() {
-    return reader;
-  }
 
   private final ArrowReaderAdapter reader;
   private final BufferAllocator allocator;
@@ -62,6 +63,10 @@ public class GenericArrowColumnBatchPartitionReader implements Serializable {
   private final Map<String, StructField> userProvidedFieldMap;
 
   private final List<AutoCloseable> closeables = new ArrayList<>();
+
+  public ArrowReaderAdapter getReader() {
+    return reader;
+  }
 
   public ReadRowsHelper getReadRowsHelper() {
     return readRowsHelper;
@@ -89,6 +94,10 @@ public class GenericArrowColumnBatchPartitionReader implements Serializable {
 
   public List<AutoCloseable> getCloseables() {
     return closeables;
+  }
+
+  public Map<String, StructField> getUserProvidedFieldMap() {
+    return userProvidedFieldMap;
   }
 
   public GenericArrowColumnBatchPartitionReader(
@@ -159,6 +168,12 @@ public class GenericArrowColumnBatchPartitionReader implements Serializable {
     }
   }
 
+  /**
+   * Method to return if the read is completed by loading the next batch of data
+   *
+   * @return if the next batch is available for read
+   * @throws IOException if next batch is accessed without proper initiation
+   */
   public boolean next() throws IOException {
     this.tracer.nextBatchNeeded();
     if (closed) {
@@ -193,6 +208,11 @@ public class GenericArrowColumnBatchPartitionReader implements Serializable {
     return true;
   }
 
+  /**
+   * Closes the existing reader connection
+   *
+   * @throws IOException if next batch is accessed without proper initiation
+   */
   public void close() throws IOException {
     closed = true;
     try {
@@ -211,10 +231,7 @@ public class GenericArrowColumnBatchPartitionReader implements Serializable {
     }
   }
 
-  public Map<String, StructField> getUserProvidedFieldMap() {
-    return userProvidedFieldMap;
-  }
-
+  /** Interface to define methods for reading arrow data */
   public interface ArrowReaderAdapter extends AutoCloseable {
     public boolean loadNextBatch() throws IOException;
 

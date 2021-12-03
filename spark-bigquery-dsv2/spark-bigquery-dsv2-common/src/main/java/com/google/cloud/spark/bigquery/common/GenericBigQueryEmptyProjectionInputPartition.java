@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery.common;
 
 import java.io.Serializable;
 
+/** Helper class to create an empty input partition if the schema is empty */
 public class GenericBigQueryEmptyProjectionInputPartition implements Serializable {
   final int partitionSize;
 

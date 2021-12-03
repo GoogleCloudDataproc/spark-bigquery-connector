@@ -37,6 +37,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.collection.JavaConversions;
 
+/**
+ * Helper class to initiate reader operation, dealing with filters, columns and to plan input
+ * partitions
+ */
 public class GenericBigQueryDataSourceReader implements Serializable {
 
   private static final Logger logger =
@@ -131,40 +135,6 @@ public class GenericBigQueryDataSourceReader implements Serializable {
     this.pushedFilters = pushedFilters;
   }
 
-  public void createReadSession(boolean batch) {
-    this.selectedFields =
-        batch
-            ? this.schema
-                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-                .orElse(ImmutableList.copyOf(this.fields.keySet()))
-            : this.schema
-                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-                .orElse(ImmutableList.of());
-    Optional<String> filter = getCombinedFilter();
-    this.readSessionResponse =
-        this.readSessionCreator.create(this.tableId, this.selectedFields, filter);
-    this.readSession = readSessionResponse.getReadSession();
-  }
-
-  public void emptySchemaForPartition() {
-    this.selectedFields =
-        schema
-            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-            .orElse(ImmutableList.copyOf(fields.keySet()));
-    this.filter = getCombinedFilter();
-    this.readSessionResponse = this.readSessionCreator.create(tableId, selectedFields, filter);
-    this.readSession = readSessionResponse.getReadSession();
-    if (this.selectedFields.isEmpty()) {
-      // means select *
-      Schema tableSchema =
-          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
-      this.selectedFields =
-          tableSchema.getFields().stream()
-              .map(Field::getName)
-              .collect(ImmutableList.toImmutableList());
-    }
-  }
-
   public Optional<StructType> getSchema() {
     return this.schema;
   }
@@ -246,6 +216,51 @@ public class GenericBigQueryDataSourceReader implements Serializable {
         SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(this.table)));
   }
 
+  /**
+   * Method to create read session based on type of read request
+   *
+   * @param batch if the read request is a batch request or not
+   */
+  public void createReadSession(boolean batch) {
+    this.selectedFields =
+        batch
+            ? this.schema
+                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+                .orElse(ImmutableList.copyOf(this.fields.keySet()))
+            : this.schema
+                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+                .orElse(ImmutableList.of());
+    Optional<String> filter = getCombinedFilter();
+    this.readSessionResponse =
+        this.readSessionCreator.create(this.tableId, this.selectedFields, filter);
+    this.readSession = readSessionResponse.getReadSession();
+  }
+
+  /** Method to create empty schema if the fields list is empty */
+  public void emptySchemaForPartition() {
+    this.selectedFields =
+        schema
+            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+            .orElse(ImmutableList.copyOf(fields.keySet()));
+    this.filter = getCombinedFilter();
+    this.readSessionResponse = this.readSessionCreator.create(tableId, selectedFields, filter);
+    this.readSession = readSessionResponse.getReadSession();
+    if (this.selectedFields.isEmpty()) {
+      // means select *
+      Schema tableSchema =
+          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
+      this.selectedFields =
+          tableSchema.getFields().stream()
+              .map(Field::getName)
+              .collect(ImmutableList.toImmutableList());
+    }
+  }
+
+  /**
+   * Method to create a converter to convert ReadRowsResponse to Internal Row
+   *
+   * @return ReadRowsResponse to Internal Row converter for avro data format
+   */
   public ReadRowsResponseToInternalRowIteratorConverter createConverter() {
     logger.info(
         "Created read session for {}: {} for application id: {}",
@@ -280,6 +295,11 @@ public class GenericBigQueryDataSourceReader implements Serializable {
         "No known converter for " + this.readSessionCreatorConfig.getReadDataFormat());
   }
 
+  /**
+   * Method to return compiled filter from all filters
+   *
+   * @return
+   */
   private Optional<String> getCombinedFilter() {
     return emptyIfNeeded(
         SparkFilterUtils.getCompiledFilter(
@@ -289,23 +309,50 @@ public class GenericBigQueryDataSourceReader implements Serializable {
             pushedFilters));
   }
 
+  /**
+   * Method to verify if a given schema is empty or has fields
+   *
+   * @return if schema is empty
+   */
   public boolean isEmptySchema() {
     return schema.map(StructType::isEmpty).orElse(false);
   }
 
+  /**
+   * Method to toggle batch read based on the dta format and schema
+   *
+   * @return
+   */
   public boolean enableBatchRead() {
     return this.readSessionCreatorConfig.getReadDataFormat() == DataFormat.ARROW
         && !isEmptySchema();
   }
 
+  /**
+   * Return Optional object of a given value based on content presence
+   *
+   * @param value
+   * @return
+   */
   Optional<String> emptyIfNeeded(String value) {
     return (value == null || value.length() == 0) ? Optional.empty() : Optional.of(value);
   }
 
+  /**
+   * Helper method to facilitate column pruning for a given requiredSchema
+   *
+   * @param requiredSchema updated schema based on the requested columns
+   */
   public void pruneColumns(StructType requiredSchema) {
     this.schema = Optional.ofNullable(requiredSchema);
   }
 
+  /**
+   * Helper method to push down filters and return filters that need to be evaluated for scanning
+   *
+   * @param filters list of filters from the read request
+   * @return list of filters that are required for evaluation
+   */
   public Filter[] pushFilters(Filter[] filters) {
     List<Filter> handledFilters = new ArrayList<>();
     List<Filter> unhandledFilters = new ArrayList<>();
@@ -324,6 +371,7 @@ public class GenericBigQueryDataSourceReader implements Serializable {
     return unhandledFilters.stream().toArray(Filter[]::new);
   }
 
+  /** Method to enable creation of empty project partition if the schema is empty */
   public void createEmptyProjectionPartitions() {
     Optional<String> filter = getCombinedFilter();
     long rowCount = this.bigQueryClient.calculateTableSize(this.tableId, filter);

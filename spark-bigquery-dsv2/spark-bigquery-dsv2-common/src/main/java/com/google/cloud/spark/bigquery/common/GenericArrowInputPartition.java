@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.spark.sql.types.StructType;
 
+/** Helper class to create an input partition instance for Arrow data format */
 public class GenericArrowInputPartition implements Serializable {
   private final BigQueryClientFactory bigQueryReadClientFactory;
   private final BigQueryTracerFactory tracerFactory;
@@ -129,6 +130,12 @@ public class GenericArrowInputPartition implements Serializable {
     return readRowsResponses;
   }
 
+  /**
+   * Method to get list of read rows request builder from a list of stream names
+   *
+   * @param streamNames list of stream names
+   * @return list of read rows request builder
+   */
   public List<ReadRowsRequest.Builder> getListOfReadRowsRequestsByStreamNames(
       List<String> streamNames) {
     List<ReadRowsRequest.Builder> readRowsRequests =
@@ -138,11 +145,13 @@ public class GenericArrowInputPartition implements Serializable {
     return readRowsRequests;
   }
 
+  /**
+   * Method to get list of read rows request builder from a stream name
+   *
+   * @param streamName name of the stream
+   * @return list of read rows request builder
+   */
   public List<ReadRowsRequest.Builder> getListOfReadRowsRequestsByStreamNames(String streamName) {
-    //    List<ReadRowsRequest.Builder> readRowsRequests =
-    //            streamNames.stream()
-    //                    .map(name -> ReadRowsRequest.newBuilder().setReadStream(name))
-    //                    .collect(Collectors.toList());
     ReadRowsRequest.Builder readRowsRequest =
         ReadRowsRequest.newBuilder().setReadStream(streamName);
     List<ReadRowsRequest.Builder> readRowsRequests = new ArrayList<ReadRowsRequest.Builder>();
@@ -150,16 +159,31 @@ public class GenericArrowInputPartition implements Serializable {
     return readRowsRequests;
   }
 
+  /**
+   * Method to create a bigquery storage read rows tracer
+   *
+   * @param tracerFactory create application level tracers for read operation
+   * @param streamNames list of stream names
+   * @return
+   */
   public BigQueryStorageReadRowsTracer getBQTracerByStreamNames(
       BigQueryTracerFactory tracerFactory, List<String> streamNames) {
     return tracerFactory.newReadRowsTracer(Joiner.on(",").join(streamNames));
   }
 
+  /**
+   * Method to create a bigquery storage read rows tracer
+   *
+   * @param tracerFactory create application level tracers for read operation
+   * @param streamName name of the stream
+   * @return
+   */
   public BigQueryStorageReadRowsTracer getBQTracerByStreamNames(
       BigQueryTracerFactory tracerFactory, String streamName) {
     return tracerFactory.newReadRowsTracer(streamName);
   }
 
+  /** Method to enable creation of partition reader with stream name */
   public void createPartitionReaderByName() {
     // using generic helper class from dsv 2 parent library to create tracer,read row request object
     //  for each inputPartition reader
@@ -172,6 +196,7 @@ public class GenericArrowInputPartition implements Serializable {
     this.readRowsResponses = this.readRowsHelper.readRows();
   }
 
+  /** Method to enable creation of partition reader with a list stream names */
   public void createPartitionReader() {
     // using generic helper class from dsv 2 parent library to create tracer,read row request object
     //  for each inputPartition reader

@@ -10,14 +10,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>spark-bigquery-dsv2-common</artifactId>
-    <name>DSV2 BigQuery Connector Common Library</name>
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
+    <name>BigQuery DataSource v2 Common Library</name>
     <dependencies>
         <dependency>
             <groupId>org.apache.beam</groupId>

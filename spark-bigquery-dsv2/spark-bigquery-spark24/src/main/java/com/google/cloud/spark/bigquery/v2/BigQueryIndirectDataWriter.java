@@ -63,5 +63,6 @@ class BigQueryIndirectDataWriter implements DataWriter<InternalRow> {
         helperDataWriter.getPartitionId(),
         helperDataWriter.getPath());
     helperDataWriter.writeAbort();
+    helperDataWriter.close();
   }
 }

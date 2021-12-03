@@ -35,6 +35,7 @@ import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
+/** The helper class to enable indirect write to bigquery from spark request */
 public class GenericBigQueryIndirectDataSourceWriter implements Serializable {
   private final BigQueryClient bigQueryClient;
   private final SparkBigQueryConfig config;
@@ -109,6 +110,12 @@ public class GenericBigQueryIndirectDataSourceWriter implements Serializable {
     this.saveMode = mode;
   }
 
+  /**
+   * Method to create job configuration to help load data into bigquery
+   *
+   * @param sourceUris list of source uris for initiating data load
+   * @return
+   */
   public LoadJobConfiguration.Builder createJobConfiguration(List<String> sourceUris) {
     return LoadJobConfiguration.newBuilder(
             this.config.getTableId(),
@@ -118,6 +125,12 @@ public class GenericBigQueryIndirectDataSourceWriter implements Serializable {
         .setAutodetect(true);
   }
 
+  /**
+   * Method to prepare a job configuration by updating the time partition builder and the fields
+   *
+   * @param jobConfiguration enables data load to bigquery
+   * @return updated LoadJobConfiguration.Builder
+   */
   public LoadJobConfiguration.Builder prepareJobConfiguration(
       LoadJobConfiguration.Builder jobConfiguration) {
     this.config.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
@@ -146,6 +159,12 @@ public class GenericBigQueryIndirectDataSourceWriter implements Serializable {
     return jobConfiguration;
   }
 
+  /**
+   * Method to evaluate if a job is successful or not
+   *
+   * @param finishedJob finished job
+   * @return String status
+   */
   public String validateJobStatus(Job finishedJob) {
     if (finishedJob.getStatus().getError() != null) {
       throw new BigQueryException(
@@ -165,10 +184,18 @@ public class GenericBigQueryIndirectDataSourceWriter implements Serializable {
     return this.avroSchema.toString();
   }
 
+  /** Method to remove the intermediate gcs path after successful write */
   public void cleanTemporaryGcsPathIfNeeded() {
     this.intermediateDataCleaner.ifPresent(cleaner -> cleaner.run());
   }
 
+  /**
+   * Method to load data to bigquery by creating a job configuration
+   *
+   * @param sourceUris list of source uris from which data needs to be loaded to bigquery
+   * @return finished job
+   * @throws IOException
+   */
   public Job loadDataToBigQuery(List<String> sourceUris) throws IOException {
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
@@ -181,6 +208,12 @@ public class GenericBigQueryIndirectDataSourceWriter implements Serializable {
     return finishedJob;
   }
 
+  /**
+   * Method to determine write disposition based on the save mode
+   *
+   * @param saveMode save mode obtained from the request
+   * @return write disposition for the job
+   */
   JobInfo.WriteDisposition saveModeToWriteDisposition(SaveMode saveMode) {
     if (saveMode == SaveMode.ErrorIfExists) {
       return JobInfo.WriteDisposition.WRITE_EMPTY;
@@ -197,6 +230,13 @@ public class GenericBigQueryIndirectDataSourceWriter implements Serializable {
         "SaveMode " + saveMode + " is currently not supported.");
   }
 
+  /**
+   * Method to update bigquery fields from spark fields
+   *
+   * @param field bigquery fields
+   * @param sparkSchemaField spark struct field
+   * @return
+   */
   Field updatedField(Field field, StructField sparkSchemaField) {
     Field.Builder newField = field.toBuilder();
     Optional<String> bqDescription =
@@ -217,6 +257,11 @@ public class GenericBigQueryIndirectDataSourceWriter implements Serializable {
     return newField.build();
   }
 
+  /**
+   * Method to update the metadata if the fields to be updated are not empty
+   *
+   * @return list of fields that are updated
+   */
   public String updateMetadataIfNeeded() {
     Map<String, StructField> fieldsToUpdate =
         Stream.of(sparkSchema.fields())

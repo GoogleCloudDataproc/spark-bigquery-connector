@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Google Inc. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.google.cloud.spark.bigquery.common;
 
 import com.google.cloud.bigquery.TableInfo;
@@ -17,7 +32,14 @@ import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructType;
 
+/** The class acts as a helper class to set up DSV2 for initiating the read and write processes */
 public class BigQueryDataSourceHelper {
+
+  private boolean isDirectWrite = false;
+  private StructType schema;
+  private boolean tableExists = false;
+
+  // enum to track type of write
   private enum WriteMethod {
     DIRECT("direct"),
     INDIRECT("indirect");
@@ -28,6 +50,12 @@ public class BigQueryDataSourceHelper {
       this.writePath = writePath;
     }
 
+    /**
+     * Method to extract the write type from options
+     *
+     * @param path option passed by the end-user during write
+     * @return the write method
+     */
     static WriteMethod getWriteMethod(Optional<String> path) {
       if (!path.isPresent() || path.get().equalsIgnoreCase("direct")) {
         return DIRECT;
@@ -38,6 +66,12 @@ public class BigQueryDataSourceHelper {
       }
     }
 
+    /**
+     * Method to extract the write type from options
+     *
+     * @param path option passed by the end-user during write
+     * @return the write method
+     */
     static WriteMethod getWriteMethod(String path) {
       if (path == null || path.equalsIgnoreCase("direct")) {
         return DIRECT;
@@ -49,14 +83,15 @@ public class BigQueryDataSourceHelper {
     }
   }
 
-  private boolean isDirectWrite = false;
-  private StructType schema;
-  private boolean tableExists = false;
-
   public StructType getSchema() {
     return schema;
   }
 
+  /**
+   * Method to initiate a new spark session or retrieve an existing spark session
+   *
+   * @return spark session for carrying out the operations
+   */
   public SparkSession getDefaultSparkSessionOrCreate() {
     scala.Option<SparkSession> defaultSpareSession = SparkSession.getActiveSession();
     if (defaultSpareSession.isDefined()) {
@@ -65,6 +100,17 @@ public class BigQueryDataSourceHelper {
     return SparkSession.builder().appName("spark-bigquery-connector").getOrCreate();
   }
 
+  /**
+   * Method to create an injector to help integration with Spark and BigQuery components, and to
+   * initiate the model
+   *
+   * @param schema schema of the table
+   * @param options options from the end-user for the spark request
+   * @param isDirectWrite if the write type is direct or indirect
+   * @param mode mode of the spark write
+   * @param module module to be instantiated
+   * @return injector to instantiate the module class
+   */
   public Injector createInjector(
       StructType schema,
       Map<String, String> options,
@@ -81,6 +127,14 @@ public class BigQueryDataSourceHelper {
     return getTableInformation(injector, mode, isDirectWrite);
   }
 
+  /**
+   * Method to retrieve table information from BigQuery
+   *
+   * @param injector pre-constructed injector with dependencies of already-constructed instances
+   * @param mode save mode of write, null if read
+   * @param isDirectWrite indicates if it is a direct read or not
+   * @return injector to instantiate the module class
+   */
   public Injector getTableInformation(Injector injector, SaveMode mode, boolean isDirectWrite) {
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
@@ -112,6 +166,12 @@ public class BigQueryDataSourceHelper {
     return injector;
   }
 
+  /**
+   * Method to evaluate the write type from option
+   *
+   * @param writeType indicates if the write type is direct or indirect
+   * @return if the write request is a direct write request or not
+   */
   public boolean isDirectWrite(Optional<String> writeType) {
     WriteMethod path = WriteMethod.getWriteMethod(writeType);
     if (path.equals(WriteMethod.DIRECT)) {
@@ -125,6 +185,12 @@ public class BigQueryDataSourceHelper {
     }
   }
 
+  /**
+   * Method to evaluate the write type from option
+   *
+   * @param writeType indicates if the write type is direct or indirect
+   * @return if the write request is a direct write request or not
+   */
   public boolean isDirectWrite(String writeType) {
     WriteMethod path = WriteMethod.getWriteMethod(writeType);
     if (path.equals(WriteMethod.DIRECT)) {
