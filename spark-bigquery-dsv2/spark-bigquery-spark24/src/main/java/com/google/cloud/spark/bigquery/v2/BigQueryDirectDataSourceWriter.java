@@ -91,7 +91,7 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
         bigQueryClient.createTablePathForBigQueryStorage(temporaryTableId);
 
     if (!writingMode.equals(WritingMode.IGNORE_INPUTS)) {
-      this.writeClient = writeClientFactory.createBigQueryWriteClient();
+      this.writeClient = writeClientFactory.getBigQueryWriteClient();
     }
   }
 
@@ -200,8 +200,6 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
               String.format(
                   "Could not delete temporary table %s from BigQuery", temporaryTableId)));
     }
-
-    writeClient.shutdown();
   }
 
   /**
@@ -214,9 +212,7 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
   public void abort(WriterCommitMessage[] messages) {
     logger.warn("BigQuery Data Source writer {} aborted", writeUUID);
     if (writingMode.equals(WritingMode.IGNORE_INPUTS)) return;
-    if (writeClient != null && !writeClient.isShutdown()) {
-      writeClient.shutdown();
-    }
+
     // Deletes the preliminary table we wrote to (if it exists):
     if (bigQueryClient.tableExists(temporaryTableId)) {
       bigQueryClient.deleteTable(temporaryTableId);

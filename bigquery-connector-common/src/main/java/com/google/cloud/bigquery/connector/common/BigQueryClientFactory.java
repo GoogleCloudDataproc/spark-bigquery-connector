@@ -3,13 +3,17 @@ package com.google.cloud.bigquery.connector.common;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.auth.Credentials;
+import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadSettings;
 import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteSettings;
+import com.google.common.base.Objects;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
 import org.slf4j.Logger;
@@ -18,10 +22,14 @@ import org.slf4j.LoggerFactory;
 /**
  * Since Guice recommends to avoid injecting closeable resources (see
  * https://github.com/google/guice/wiki/Avoid-Injecting-Closable-Resources), this factory creates
- * short lived clients that can be closed independently.
+ * and caches clients and also closes them during JVM shutdown.
  */
 public class BigQueryClientFactory implements Serializable {
   private static final Logger log = LoggerFactory.getLogger(BigQueryClientFactory.class);
+  private static final Map<BigQueryClientFactory, BigQueryReadClient> readClientMap =
+      new HashMap<>();
+  private static final Map<BigQueryClientFactory, BigQueryWriteClient> writeClientMap =
+      new HashMap<>();
 
   private final Credentials credentials;
   // using the user agent as HeaderProvider is not serializable
@@ -39,7 +47,78 @@ public class BigQueryClientFactory implements Serializable {
     this.bqConfig = bqConfig;
   }
 
-  public BigQueryReadClient createBigQueryReadClient(Optional<String> endpoint) {
+  public BigQueryReadClient getBigQueryReadClient() {
+    synchronized (readClientMap) {
+      if (!readClientMap.containsKey(this)) {
+        BigQueryReadClient bigQueryReadClient =
+            createBigQueryReadClient(this.bqConfig.getEndpoint());
+        Runtime.getRuntime()
+            .addShutdownHook(new Thread(() -> shutdownBigQueryReadClient(bigQueryReadClient)));
+        readClientMap.put(this, bigQueryReadClient);
+      }
+    }
+
+    return readClientMap.get(this);
+  }
+
+  public BigQueryWriteClient getBigQueryWriteClient() {
+    synchronized (writeClientMap) {
+      if (!writeClientMap.containsKey(this)) {
+        BigQueryWriteClient bigQueryWriteClient = createBigQueryWriteClient();
+        Runtime.getRuntime()
+            .addShutdownHook(new Thread(() -> shutdownBigQueryWriteClient(bigQueryWriteClient)));
+        writeClientMap.put(this, bigQueryWriteClient);
+      }
+    }
+
+    return writeClientMap.get(this);
+  }
+
+  @Override
+  public int hashCode() {
+    // Here, credentials is an instance of GoogleCredentials which can be one out of
+    // GoogleCredentials, UserCredentials, ServiceAccountCredentials, ExternalAccountCredentials or
+    // ImpersonatedCredentials (See the class BigQueryCredentialsSupplier which supplies these
+    // Credentials). Subclasses of the abstract class ExternalAccountCredentials do not have the
+    // hashCode method defined on them and hence we get the byte array of the
+    // ExternalAccountCredentials first and then compare their hashCodes.
+    if (credentials instanceof ExternalAccountCredentials) {
+      return Objects.hashCode(
+          BigQueryUtil.getCredentialsByteArray(credentials), userAgentHeaderProvider, bqConfig);
+    }
+
+    return Objects.hashCode(credentials, userAgentHeaderProvider, bqConfig);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof BigQueryClientFactory)) {
+      return false;
+    }
+
+    BigQueryClientFactory that = (BigQueryClientFactory) o;
+
+    if (Objects.equal(userAgentHeaderProvider, that.userAgentHeaderProvider)
+        && Objects.equal(
+            new BigQueryClientFactoryConfig(bqConfig),
+            new BigQueryClientFactoryConfig(that.bqConfig))) {
+      // Here, credentials and that.credentials are instances of GoogleCredentials which can be one
+      // of GoogleCredentials, UserCredentials, ServiceAccountCredentials,
+      // ExternalAccountCredentials or ImpersonatedCredentials (See the class
+      // BigQueryCredentialsSupplier which supplies these Credentials). Subclasses of
+      // ExternalAccountCredentials do not have an equals method defined on them and hence we
+      // serialize and compare byte arrays if either of the credentials are instances of
+      // ExternalAccountCredentials
+      return BigQueryUtil.areCredentialsEqual(credentials, that.credentials);
+    }
+
+    return false;
+  }
+
+  private BigQueryReadClient createBigQueryReadClient(Optional<String> endpoint) {
     try {
       InstantiatingGrpcChannelProvider.Builder transportBuilder =
           BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
@@ -60,7 +139,7 @@ public class BigQueryClientFactory implements Serializable {
     }
   }
 
-  public BigQueryWriteClient createBigQueryWriteClient() {
+  private BigQueryWriteClient createBigQueryWriteClient() {
     try {
       InstantiatingGrpcChannelProvider.Builder transportBuilder =
           BigQueryWriteSettings.defaultGrpcTransportProviderBuilder()
@@ -76,7 +155,7 @@ public class BigQueryClientFactory implements Serializable {
     }
   }
 
-  public void setProxyConfig(InstantiatingGrpcChannelProvider.Builder transportBuilder) {
+  private void setProxyConfig(InstantiatingGrpcChannelProvider.Builder transportBuilder) {
     BigQueryProxyConfig proxyConfig = bqConfig.getBigQueryProxyConfig();
     if (proxyConfig.getProxyUri().isPresent()) {
       transportBuilder.setChannelConfigurator(
@@ -84,6 +163,18 @@ public class BigQueryClientFactory implements Serializable {
               proxyConfig.getProxyUri(),
               proxyConfig.getProxyUsername(),
               proxyConfig.getProxyPassword()));
+    }
+  }
+
+  private void shutdownBigQueryReadClient(BigQueryReadClient bigQueryReadClient) {
+    if (bigQueryReadClient != null && !bigQueryReadClient.isShutdown()) {
+      bigQueryReadClient.shutdown();
+    }
+  }
+
+  private void shutdownBigQueryWriteClient(BigQueryWriteClient bigQueryWriteClient) {
+    if (bigQueryWriteClient != null && !bigQueryWriteClient.isShutdown()) {
+      bigQueryWriteClient.shutdown();
     }
   }
 }

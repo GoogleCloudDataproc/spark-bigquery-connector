@@ -59,7 +59,7 @@ public class BigQueryDirectDataWriterHelper {
       String tablePath,
       ProtoSchema protoSchema,
       RetrySettings bigqueryDataWriterHelperRetrySettings) {
-    this.writeClient = writeClientFactory.createBigQueryWriteClient();
+    this.writeClient = writeClientFactory.getBigQueryWriteClient();
     this.tablePath = tablePath;
     this.protoSchema = protoSchema;
     this.retrySettings = bigqueryDataWriterHelperRetrySettings;
@@ -245,8 +245,6 @@ public class BigQueryDirectDataWriterHelper {
               writeStreamName, expectedFinalizedRowCount, responseFinalizedRowCount));
     }
 
-    writeClient.shutdown();
-
     logger.debug(
         "Write-stream {} finalized with row-count {}", writeStreamName, responseFinalizedRowCount);
 
@@ -293,9 +291,7 @@ public class BigQueryDirectDataWriterHelper {
     if (streamWriter != null) {
       streamWriter.close();
     }
-    if (writeClient != null && !writeClient.isShutdown()) {
-      writeClient.shutdown();
-    }
+
     this.protoRows = null;
     this.writeStreamName = null;
   }

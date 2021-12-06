@@ -19,16 +19,23 @@ import static com.google.cloud.http.BaseHttpServiceException.UNKNOWN_CODE;
 import static com.google.common.base.Throwables.getCausalChain;
 import static java.lang.String.format;
 
+import com.google.auth.Credentials;
+import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.TableId;
+import com.google.common.base.Objects;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -74,6 +81,30 @@ public class BigQueryUtil {
 
   static BigQueryException convertToBigQueryException(BigQueryError error) {
     return new BigQueryException(UNKNOWN_CODE, error.getMessage(), error);
+  }
+
+  static boolean areCredentialsEqual(Credentials credentials1, Credentials credentials2) {
+    if (!(credentials1 instanceof ExternalAccountCredentials)
+        && !(credentials2 instanceof ExternalAccountCredentials)) {
+      return Objects.equal(credentials1, credentials2);
+    }
+
+    return Arrays.equals(
+        getCredentialsByteArray(credentials1), getCredentialsByteArray(credentials2));
+  }
+
+  static byte[] getCredentialsByteArray(Credentials credentials) {
+    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+    try {
+      ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+      objectOutputStream.writeObject(credentials);
+      objectOutputStream.close();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    return byteArrayOutputStream.toByteArray();
   }
 
   // returns the first present optional, empty if all parameters are empty

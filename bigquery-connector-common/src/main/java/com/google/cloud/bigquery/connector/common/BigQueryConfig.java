@@ -41,4 +41,6 @@ public interface BigQueryConfig {
   RetrySettings getBigQueryClientRetrySettings();
 
   BigQueryProxyConfig getBigQueryProxyConfig();
+
+  Optional<String> getEndpoint();
 }
