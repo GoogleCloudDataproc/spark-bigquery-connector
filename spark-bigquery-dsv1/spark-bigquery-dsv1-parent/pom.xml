@@ -62,6 +62,7 @@
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-avro_${scala.binary.version}</artifactId>
       <version>${spark.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.scalatest</groupId>
