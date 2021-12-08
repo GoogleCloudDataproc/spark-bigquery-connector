@@ -1,5 +1,8 @@
 # Release Notes
 
+## 0.23.1 - 2021-12-08
+* Issue #501: Fixed using avro as an intermediate type for writing.
+
 ## 0.23.0 - 2021-12-06
 * New connector: A Java only connector implementing the Spark 2.4 APIs
 * PR #469: Added support for the BigQuery Storage Write API, allowing faster
