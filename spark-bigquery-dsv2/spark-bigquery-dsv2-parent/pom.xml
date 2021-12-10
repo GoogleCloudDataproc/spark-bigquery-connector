@@ -25,7 +25,7 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>spark-bigquery-connector-common</artifactId>
+      <artifactId>spark-bigquery-dsv2-common</artifactId>
       <version>${project.parent.version}</version>
     </dependency>
     <dependency>
