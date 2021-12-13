@@ -35,9 +35,6 @@ import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
 import java.math.BigDecimal;
 import java.math.MathContext;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
@@ -63,12 +60,8 @@ public class ProtobufUtilsTest {
   // The maximum nesting depth of a BigQuery RECORD:
   private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
 
-  private final Logger logger = LogManager.getLogger("com.google.cloud.spark");
-
   @Test
   public void testBigQueryRecordToDescriptor() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     DescriptorProtos.DescriptorProto expected = NESTED_STRUCT_DESCRIPTOR.setName("Struct").build();
     DescriptorProtos.DescriptorProto converted =
         buildDescriptorProtoWithFields(
@@ -81,8 +74,6 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testBigQueryToProtoSchema() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     ProtoSchema converted = toProtoSchema(BIG_BIGQUERY_SCHEMA);
     ProtoSchema expected =
         ProtoSchemaConverter.convert(
@@ -112,9 +103,6 @@ public class ProtobufUtilsTest {
                 .getMessageTypes()
                 .get(0));
 
-    logger.debug("Expected schema: " + expected.getProtoDescriptor());
-    logger.debug("Actual schema: " + converted.getProtoDescriptor());
-
     for (int i = 0; i < expected.getProtoDescriptor().getFieldList().size(); i++) {
       assertThat(converted.getProtoDescriptor().getField(i))
           .isEqualTo(expected.getProtoDescriptor().getField(i));
@@ -123,8 +111,6 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testSparkStructRowToDynamicMessage() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     StructType schema = new StructType().add(SPARK_NESTED_STRUCT_FIELD);
     Descriptors.Descriptor schemaDescriptor = toDescriptor(schema);
     Message converted = buildSingleRowMessage(schema, schemaDescriptor, STRUCT_INTERNAL_ROW);
@@ -135,8 +121,6 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testSparkRowToProtoRow() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     ProtoRows converted =
         toProtoRows(
             BIG_SPARK_SCHEMA,
@@ -171,8 +155,6 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testSettingARequiredFieldAsNull() throws Exception {
-    logger.setLevel(Level.DEBUG);
-
     try {
       ProtoRows converted =
           toProtoRows(
