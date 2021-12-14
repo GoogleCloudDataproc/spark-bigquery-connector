@@ -14,7 +14,7 @@
   <packaging>pom</packaging>
   <modules>
     <module>spark-bigquery-dsv2-parent</module>
-    <module>spark-bigquery-spark24</module>
-    <module>spark-bigquery-spark3</module>
+    <module>spark-2.4-bigquery</module>
+    <module>spark-3.1-bigquery</module>
   </modules>
 </project>

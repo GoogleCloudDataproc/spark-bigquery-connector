@@ -119,17 +119,17 @@
       </activation>
       <modules>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
-        <module>spark-bigquery-dsv2/spark-bigquery-spark24</module>
+        <module>spark-bigquery-dsv2/spark-2.4-bigquery</module>
       </modules>
     </profile>
     <profile>
-      <id>dsv2_3</id>
+      <id>dsv2_3.1</id>
       <activation>
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
-        <module>spark-bigquery-dsv2/spark-bigquery-spark3</module>
+        <module>spark-bigquery-dsv2/spark-3.1-bigquery</module>
       </modules>
     </profile>
     <profile>

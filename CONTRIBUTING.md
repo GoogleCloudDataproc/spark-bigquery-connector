@@ -35,9 +35,9 @@ connectors, sharing some of the code among them. The connectors are:
   2.4 using Scala 2.11.
 * spark-bigquery_2.12 - a Scala 2.12 based connector, targeting Spark 2.4 and
   3.x using Scala 2.12.
-* spark-bigquery:spark2.4 - a Java only connector, targeting Spark 2.4 (of all
+* spark-2.4-bigquery - a Java only connector, targeting Spark 2.4 (of all
   Scala versions), using the new DataSource APIs.
-* spark-bigquery:spark3 - a Java only connector, targeting Spark 3 (of all
+* spark-3.1-bigquery - a Java only connector, targeting Spark 3.1 (of all
   Scala versions), using the new DataSource APIs. Still under development.
 
 The project's artifacts are:
@@ -67,10 +67,10 @@ The project's artifacts are:
   distributable of the connector, containing all the dependencies.
 * `spark-bigquery-dsv2/spark-bigquery-dsv2-parent` - Common settings for the
   Java only DataSource V2 implementations.
-* `spark-bigquery-dsv2/spark-bigquery-spark24` - A Java only DataSource V2
+* `spark-bigquery-dsv2/spark-2.4-bigquery` - A Java only DataSource V2
   connector implementing the Spark 2.4 APIs.
-* `spark-bigquery-dsv2/spark-bigquery-spark3` - A Java only DataSource V2
-  connector implementing the Spark 3 APIs. Under development.
+* `spark-bigquery-dsv2/spark-3.1-bigquery` - A Java only DataSource V2
+  connector implementing the Spark 3.1 APIs. Under development.
 * `spark-bigquery-python-lib` - The python support library, adding BigQuery
   types not supported by Spark.
 
@@ -83,7 +83,7 @@ each building only a subset of the project's artifacts. The profiles are:
 * `dsv1_2.12` - Running just the Scala 2.12 connector.
 * `dsv2` - Running both Java/DSv2 connectors.
 * `dsv2_2.4` - Running just the Java Spark 2.4 connector.
-* `dsv2_3` - Running just the Java Spark 3 connector.
+* `dsv2_3.1` - Running just the Java Spark 3.1 connector.
 * `all` - Running all the connectors.
 
 Example: In order to compile **just** the Scala 2.12 connector run
