@@ -28,8 +28,6 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
 import java.util.Optional;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.types.*;
 import org.junit.Test;
@@ -44,8 +42,6 @@ public class SchemaConverterTest {
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   // The maximum nesting depth of a BigQuery RECORD:
   private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
-
-  private final Logger logger = LogManager.getLogger("com.google.cloud.spark");
 
   /*
   BigQuery -> Spark tests, translated from SchemaConvertersSuite.scala
