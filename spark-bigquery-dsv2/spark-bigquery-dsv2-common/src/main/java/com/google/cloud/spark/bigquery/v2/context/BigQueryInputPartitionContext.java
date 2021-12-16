@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
@@ -22,17 +22,15 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import java.util.Iterator;
 import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.sources.v2.reader.InputPartition;
-import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
-public class BigQueryInputPartition implements InputPartition<InternalRow> {
+public class BigQueryInputPartitionContext implements InputPartitionContext<InternalRow> {
 
   private final BigQueryClientFactory bigQueryReadClientFactory;
   private final String streamName;
   private final ReadRowsHelper.Options options;
   private final ReadRowsResponseToInternalRowIteratorConverter converter;
 
-  public BigQueryInputPartition(
+  public BigQueryInputPartitionContext(
       BigQueryClientFactory bigQueryReadClientFactory,
       String streamName,
       ReadRowsHelper.Options options,
@@ -44,12 +42,12 @@ public class BigQueryInputPartition implements InputPartition<InternalRow> {
   }
 
   @Override
-  public InputPartitionReader<InternalRow> createPartitionReader() {
+  public InputPartitionReaderContext<InternalRow> createPartitionReaderContext() {
     ReadRowsRequest.Builder readRowsRequest =
         ReadRowsRequest.newBuilder().setReadStream(streamName);
     ReadRowsHelper readRowsHelper =
         new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequest, options);
     Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
-    return new BigQueryInputPartitionReader(readRowsResponses, converter, readRowsHelper);
+    return new BigQueryInputPartitionReaderContext(readRowsResponses, converter, readRowsHelper);
   }
 }

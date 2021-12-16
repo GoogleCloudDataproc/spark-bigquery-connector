@@ -13,22 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
-import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.sources.v2.reader.InputPartition;
-import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
+import com.google.cloud.bigquery.StandardTableDefinition;
+import java.util.OptionalLong;
 
-public class BigQueryEmptyProjectionInputPartition implements InputPartition<InternalRow> {
+public class StandardTableStatisticsContext implements StatisticsContext {
 
-  final int partitionSize;
+  private StandardTableDefinition tableDefinition;
 
-  public BigQueryEmptyProjectionInputPartition(int partitionSize) {
-    this.partitionSize = partitionSize;
+  public StandardTableStatisticsContext(StandardTableDefinition tableDefinition) {
+    this.tableDefinition = tableDefinition;
   }
 
   @Override
-  public InputPartitionReader<InternalRow> createPartitionReader() {
-    return new BigQueryEmptyProjectionInputPartitionReader(partitionSize);
+  public OptionalLong sizeInBytes() {
+    return OptionalLong.of(tableDefinition.getNumBytes());
+  }
+
+  @Override
+  public OptionalLong numRows() {
+    return OptionalLong.of(tableDefinition.getNumRows());
   }
 }

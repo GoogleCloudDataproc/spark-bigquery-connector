@@ -20,6 +20,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provides;
@@ -42,13 +43,14 @@ public class BigQueryDataSourceReaderModule implements Module {
       SparkSession sparkSession) {
     TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
     return new BigQueryDataSourceReader(
-        tableInfo,
-        bigQueryClient,
-        bigQueryReadClientFactory,
-        tracerFactory,
-        config.toReadSessionCreatorConfig(),
-        config.getFilter(),
-        config.getSchema(),
-        sparkSession.sparkContext().applicationId());
+        new BigQueryDataSourceReaderContext(
+            tableInfo,
+            bigQueryClient,
+            bigQueryReadClientFactory,
+            tracerFactory,
+            config.toReadSessionCreatorConfig(),
+            config.getFilter(),
+            config.getSchema(),
+            sparkSession.sparkContext().applicationId()));
   }
 }
