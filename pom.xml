@@ -118,6 +118,7 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
+        <module>spark-bigquery-dsv2/spark-bigquery-dsv2-common</module>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
         <module>spark-bigquery-dsv2/spark-2.4-bigquery</module>
       </modules>
@@ -128,6 +129,7 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
+        <module>spark-bigquery-dsv2/spark-bigquery-dsv2-common</module>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
         <module>spark-bigquery-dsv2/spark-3.1-bigquery</module>
       </modules>

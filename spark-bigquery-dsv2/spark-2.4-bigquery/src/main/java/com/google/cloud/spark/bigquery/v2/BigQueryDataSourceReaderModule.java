@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Google Inc. All Rights Reserved.
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *       https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,6 +20,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provides;
@@ -42,13 +43,14 @@ public class BigQueryDataSourceReaderModule implements Module {
       SparkSession sparkSession) {
     TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
     return new BigQueryDataSourceReader(
-        tableInfo,
-        bigQueryClient,
-        bigQueryReadClientFactory,
-        tracerFactory,
-        config.toReadSessionCreatorConfig(),
-        config.getFilter(),
-        config.getSchema(),
-        sparkSession.sparkContext().applicationId());
+        new BigQueryDataSourceReaderContext(
+            tableInfo,
+            bigQueryClient,
+            bigQueryReadClientFactory,
+            tracerFactory,
+            config.toReadSessionCreatorConfig(),
+            config.getFilter(),
+            config.getSchema(),
+            sparkSession.sparkContext().applicationId()));
   }
 }

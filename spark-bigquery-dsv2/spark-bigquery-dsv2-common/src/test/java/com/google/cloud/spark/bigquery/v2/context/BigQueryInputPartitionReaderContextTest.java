@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Google Inc. All Rights Reserved.
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *       https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
 import static com.google.common.truth.Truth.*;
 
@@ -27,7 +27,7 @@ import java.util.Optional;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.junit.Test;
 
-public class BigQueryInputPartitionReaderTest {
+public class BigQueryInputPartitionReaderContextTest {
 
   private static final String ALL_TYPES_TABLE_AVRO_RAW_SCHEMA =
       "{\"type\":\"record\",\"name\":\"__root__\",\"fields\":[{\"name\":\"string_f\",\"type\":[\"null\",\"string\"]},{\"name\":\"bytes_f\",\"type\":[\"null\",\"bytes\"]},{\"name\":\"int_f\",\"type\":[\"null\",\"long\"]},{\"name\":\"float_f\",\"type\":[\"null\",\"double\"]},{\"name\":\"numeric_f\",\"type\":[\"null\",{\"type\":\"bytes\",\"logicalType\":\"decimal\",\"precision\":38,\"scale\":9}]},{\"name\":\"boolean_f\",\"type\":[\"null\",\"boolean\"]},{\"name\":\"timestamp_f\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-micros\"}]},{\"name\":\"date_f\",\"type\":[\"null\",{\"type\":\"int\",\"logicalType\":\"date\"}]},{\"name\":\"time_f\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"time-micros\"}]},{\"name\":\"datetime_f\",\"type\":[\"null\",{\"type\":\"string\",\"logicalType\":\"datetime\"}]},{\"name\":\"geo_f\",\"type\":[\"null\",{\"type\":\"string\",\"sqlType\":\"GEOGRAPHY\"}]},{\"name\":\"record_f\",\"type\":[\"null\",{\"type\":\"record\",\"name\":\"__s_0\",\"fields\":[{\"name\":\"s\",\"type\":[\"null\",\"string\"]},{\"name\":\"i\",\"type\":[\"null\",\"long\"]}]}]},{\"name\":\"null_f\",\"type\":[\"null\",\"string\"]},{\"name\":\"sarray_f\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"iarray_f\",\"type\":[\"null\",\"long\"]}]}";
@@ -101,8 +101,8 @@ public class BigQueryInputPartitionReaderTest {
             ALL_TYPES_TABLE_AVRO_RAW_SCHEMA,
             Optional.empty());
 
-    BigQueryInputPartitionReader reader =
-        new BigQueryInputPartitionReader(readRowsResponses, converter, null);
+    BigQueryInputPartitionReaderContext reader =
+        new BigQueryInputPartitionReaderContext(readRowsResponses, converter, null);
 
     assertThat(reader.next()).isTrue();
     InternalRow row = reader.get();

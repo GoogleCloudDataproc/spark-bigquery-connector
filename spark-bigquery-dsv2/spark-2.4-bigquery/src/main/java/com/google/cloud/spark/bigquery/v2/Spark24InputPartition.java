@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Google Inc. All Rights Reserved.
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *       https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,20 +15,20 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import org.apache.spark.sql.catalyst.InternalRow;
+import com.google.cloud.spark.bigquery.v2.context.InputPartitionContext;
 import org.apache.spark.sql.sources.v2.reader.InputPartition;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 
-public class BigQueryEmptyProjectionInputPartition implements InputPartition<InternalRow> {
+class Spark24InputPartition<T> implements InputPartition<T> {
 
-  final int partitionSize;
+  private InputPartitionContext<T> context;
 
-  public BigQueryEmptyProjectionInputPartition(int partitionSize) {
-    this.partitionSize = partitionSize;
+  public Spark24InputPartition(InputPartitionContext<T> context) {
+    this.context = context;
   }
 
   @Override
-  public InputPartitionReader<InternalRow> createPartitionReader() {
-    return new BigQueryEmptyProjectionInputPartitionReader(partitionSize);
+  public InputPartitionReader<T> createPartitionReader() {
+    return new Spark24InputPartitionReader(context.createPartitionReaderContext());
   }
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Google Inc. All Rights Reserved.
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *       https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
 import com.google.cloud.bigquery.connector.common.ArrowUtil;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
@@ -49,13 +49,13 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowReader;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.arrow.vector.types.pojo.Schema;
-import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 
-class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader<ColumnarBatch> {
+public class ArrowColumnBatchPartitionReaderContext
+    implements InputPartitionReaderContext<ColumnarBatch> {
   private static final long maxAllocation = 500 * 1024 * 1024;
 
   interface ArrowReaderAdapter extends AutoCloseable {
@@ -155,7 +155,7 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
   private final Map<String, StructField> userProvidedFieldMap;
   private final List<AutoCloseable> closeables = new ArrayList<>();
 
-  ArrowColumnBatchPartitionColumnBatchReader(
+  ArrowColumnBatchPartitionReaderContext(
       Iterator<ReadRowsResponse> readRowsResponses,
       ByteString schema,
       ReadRowsHelper readRowsHelper,
@@ -237,7 +237,6 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     return new SequenceInputStream(schema.newInput(), batchStream);
   }
 
-  @Override
   public boolean next() throws IOException {
     tracer.nextBatchNeeded();
     if (closed) {
@@ -270,12 +269,10 @@ class ArrowColumnBatchPartitionColumnBatchReader implements InputPartitionReader
     return true;
   }
 
-  @Override
   public ColumnarBatch get() {
     return currentBatch;
   }
 
-  @Override
   public void close() throws IOException {
     closed = true;
     try {
