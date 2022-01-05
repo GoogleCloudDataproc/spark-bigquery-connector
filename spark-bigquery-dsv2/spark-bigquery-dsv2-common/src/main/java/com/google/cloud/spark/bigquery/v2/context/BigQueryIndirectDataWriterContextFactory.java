@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -23,18 +23,16 @@ import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.sources.v2.writer.DataWriter;
-import org.apache.spark.sql.sources.v2.writer.DataWriterFactory;
 import org.apache.spark.sql.types.StructType;
 
-class BigQueryIndirectDataWriterFactory implements DataWriterFactory<InternalRow> {
+class BigQueryIndirectDataWriterContextFactory implements DataWriterContextFactory<InternalRow> {
 
   SerializableConfiguration conf;
   String gcsDirPath;
   StructType sparkSchema;
   String avroSchemaJson;
 
-  public BigQueryIndirectDataWriterFactory(
+  public BigQueryIndirectDataWriterContextFactory(
       SerializableConfiguration conf,
       String gcsDirPath,
       StructType sparkSchema,
@@ -46,7 +44,8 @@ class BigQueryIndirectDataWriterFactory implements DataWriterFactory<InternalRow
   }
 
   @Override
-  public DataWriter<InternalRow> createDataWriter(int partitionId, long taskId, long epochId) {
+  public DataWriterContext<InternalRow> createDataWriterContext(
+      int partitionId, long taskId, long epochId) {
     try {
       Schema avroSchema = new Schema.Parser().parse(avroSchemaJson);
       UUID uuid = new UUID(taskId, epochId);
@@ -55,7 +54,7 @@ class BigQueryIndirectDataWriterFactory implements DataWriterFactory<InternalRow
       FileSystem fs = path.getFileSystem(conf.get());
       IntermediateRecordWriter intermediateRecordWriter =
           new AvroIntermediateRecordWriter(avroSchema, fs.create(path));
-      return new BigQueryIndirectDataWriter(
+      return new BigQueryIndirectDataWriterContext(
           partitionId, path, fs, sparkSchema, avroSchema, intermediateRecordWriter);
     } catch (IOException e) {
       throw new UncheckedIOException(e);

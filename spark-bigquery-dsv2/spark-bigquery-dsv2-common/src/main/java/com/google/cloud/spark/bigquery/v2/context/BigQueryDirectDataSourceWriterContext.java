@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
 import static com.google.cloud.spark.bigquery.SchemaConverters.toBigQuerySchema;
@@ -31,16 +31,13 @@ import com.google.common.base.Preconditions;
 import java.util.Arrays;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.sources.v2.writer.DataSourceWriter;
-import org.apache.spark.sql.sources.v2.writer.DataWriterFactory;
-import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
+public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterContext {
 
-  final Logger logger = LoggerFactory.getLogger(BigQueryDirectDataSourceWriter.class);
+  final Logger logger = LoggerFactory.getLogger(BigQueryDirectDataSourceWriterContext.class);
 
   private final BigQueryClient bigQueryClient;
   private final BigQueryClientFactory writeClientFactory;
@@ -63,7 +60,7 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
 
   private WritingMode writingMode = WritingMode.ALL_ELSE;
 
-  public BigQueryDirectDataSourceWriter(
+  public BigQueryDirectDataSourceWriterContext(
       BigQueryClient bigQueryClient,
       BigQueryClientFactory bigQueryWriteClientFactory,
       TableId destinationTableId,
@@ -139,8 +136,8 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
   }
 
   @Override
-  public DataWriterFactory<InternalRow> createWriterFactory() {
-    return new BigQueryDirectDataWriterFactory(
+  public DataWriterContextFactory<InternalRow> createWriterContextFactory() {
+    return new BigQueryDirectDataWriterContextFactory(
         writeClientFactory,
         tablePathForBigQueryStorage,
         sparkSchema,
@@ -150,7 +147,7 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
   }
 
   @Override
-  public void onDataWriterCommit(WriterCommitMessage message) {}
+  public void onDataWriterCommit(WriterCommitMessageContext message) {}
 
   /**
    * This function will determine, based on the WritingMode: if in IGNORE_INPUTS mode, no work is to
@@ -165,7 +162,7 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
    * @param messages the BigQueryWriterCommitMessage array returned by the BigQueryDataWriter's.
    */
   @Override
-  public void commit(WriterCommitMessage[] messages) {
+  public void commit(WriterCommitMessageContext[] messages) {
     if (writingMode.equals(WritingMode.IGNORE_INPUTS)) return;
     logger.info(
         "BigQuery DataSource writer {} committed with messages:\n{}",
@@ -174,9 +171,9 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
 
     BatchCommitWriteStreamsRequest.Builder batchCommitWriteStreamsRequest =
         BatchCommitWriteStreamsRequest.newBuilder().setParent(tablePathForBigQueryStorage);
-    for (WriterCommitMessage message : messages) {
+    for (WriterCommitMessageContext message : messages) {
       batchCommitWriteStreamsRequest.addWriteStreams(
-          ((BigQueryDirectWriterCommitMessage) message).getWriteStreamName());
+          ((BigQueryDirectWriterCommitMessageContext) message).getWriteStreamName());
     }
     BatchCommitWriteStreamsResponse batchCommitWriteStreamsResponse =
         writeClient.batchCommitWriteStreams(batchCommitWriteStreamsRequest.build());
@@ -209,7 +206,7 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
    * @param messages the BigQueryWriterCommitMessage array returned by the BigQueryDataWriter's.
    */
   @Override
-  public void abort(WriterCommitMessage[] messages) {
+  public void abort(WriterCommitMessageContext[] messages) {
     logger.warn("BigQuery Data Source writer {} aborted", writeUUID);
     if (writingMode.equals(WritingMode.IGNORE_INPUTS)) return;
 

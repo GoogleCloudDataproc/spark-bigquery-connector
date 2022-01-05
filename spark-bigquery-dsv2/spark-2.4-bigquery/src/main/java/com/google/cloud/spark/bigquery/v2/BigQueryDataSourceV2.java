@@ -23,6 +23,9 @@ import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryConnectorModule;
+import com.google.cloud.spark.bigquery.v2.context.BigQueryDirectDataSourceWriterContext;
+import com.google.cloud.spark.bigquery.v2.context.BigQueryIndirectDataSourceWriterContext;
+import com.google.cloud.spark.bigquery.v2.context.DataSourceWriterContext;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
@@ -120,17 +123,18 @@ public class BigQueryDataSourceV2
                 BigQueryUtil.friendlyTableName(config.getTableId())));
       }
     }
-    DataSourceWriter dataSourceWriter = null;
+    DataSourceWriterContext dataSourceWriterContext = null;
     switch (config.getWriteMethod()) {
       case DIRECT:
-        dataSourceWriter = injector.getInstance(BigQueryDirectDataSourceWriter.class);
+        dataSourceWriterContext = injector.getInstance(BigQueryDirectDataSourceWriterContext.class);
         break;
       case INDIRECT:
-        dataSourceWriter = injector.getInstance(BigQueryIndirectDataSourceWriter.class);
+        dataSourceWriterContext =
+            injector.getInstance(BigQueryIndirectDataSourceWriterContext.class);
         break;
     }
 
-    return Optional.of(dataSourceWriter);
+    return Optional.of(new BigQueryDataSourceWriter(dataSourceWriterContext));
   }
 
   @Override

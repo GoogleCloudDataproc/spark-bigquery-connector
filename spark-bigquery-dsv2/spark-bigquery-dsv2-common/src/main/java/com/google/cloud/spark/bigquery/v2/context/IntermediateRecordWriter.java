@@ -13,20 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
-import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
+import java.io.Closeable;
+import java.io.IOException;
+import org.apache.avro.generic.GenericRecord;
 
-class BigQueryIndirectWriterCommitMessage implements WriterCommitMessage {
+public interface IntermediateRecordWriter extends Closeable {
 
-  private static final long serialVersionUID = -6646939344980582239L;
-  private final String uri;
-
-  public BigQueryIndirectWriterCommitMessage(String uri) {
-    this.uri = uri;
-  }
-
-  public String getUri() {
-    return uri;
-  }
+  void write(GenericRecord avroRecord) throws IOException;
 }

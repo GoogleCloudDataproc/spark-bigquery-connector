@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
 import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessage;
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
@@ -26,14 +26,12 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
 import java.io.IOException;
 import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.sources.v2.writer.DataWriter;
-import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BigQueryDirectDataWriter implements DataWriter<InternalRow> {
-  final Logger logger = LoggerFactory.getLogger(BigQueryDirectDataWriter.class);
+public class BigQueryDirectDataWriterContext implements DataWriterContext<InternalRow> {
+  final Logger logger = LoggerFactory.getLogger(BigQueryDirectDataWriterContext.class);
 
   private final int partitionId;
   private final long taskId;
@@ -48,7 +46,7 @@ public class BigQueryDirectDataWriter implements DataWriter<InternalRow> {
    */
   private BigQueryDirectDataWriterHelper writerHelper;
 
-  public BigQueryDirectDataWriter(
+  public BigQueryDirectDataWriterContext(
       int partitionId,
       long taskId,
       long epochId,
@@ -82,7 +80,7 @@ public class BigQueryDirectDataWriter implements DataWriter<InternalRow> {
   }
 
   @Override
-  public WriterCommitMessage commit() throws IOException {
+  public WriterCommitMessageContext commit() throws IOException {
     logger.debug("Data Writer {} commit()", partitionId);
 
     long rowCount = writerHelper.commit();
@@ -91,7 +89,7 @@ public class BigQueryDirectDataWriter implements DataWriter<InternalRow> {
     logger.debug(
         "Data Writer {}'s write-stream has finalized with row count: {}", partitionId, rowCount);
 
-    return new BigQueryDirectWriterCommitMessage(
+    return new BigQueryDirectWriterCommitMessageContext(
         writeStreamName, partitionId, taskId, epochId, tablePath, rowCount);
   }
 
