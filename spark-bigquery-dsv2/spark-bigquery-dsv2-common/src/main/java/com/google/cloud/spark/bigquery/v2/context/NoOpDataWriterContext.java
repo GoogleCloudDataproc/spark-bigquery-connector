@@ -13,19 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
 import java.io.IOException;
 import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.sources.v2.writer.DataWriter;
-import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 
-public class NoOpDataWriter implements DataWriter<InternalRow> {
+public class NoOpDataWriterContext implements DataWriterContext<InternalRow> {
   @Override
   public void write(InternalRow record) throws IOException {}
 
   @Override
-  public WriterCommitMessage commit() throws IOException {
+  public WriterCommitMessageContext commit() throws IOException {
     return null;
   }
 

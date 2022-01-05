@@ -20,6 +20,9 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.v2.context.BigQueryDirectDataSourceWriterContext;
+import com.google.cloud.spark.bigquery.v2.context.BigQueryIndirectDataSourceWriterContext;
+import com.google.cloud.spark.bigquery.v2.context.IntermediateDataCleaner;
 import com.google.common.base.Preconditions;
 import com.google.inject.Binder;
 import com.google.inject.Module;
@@ -54,14 +57,14 @@ class BigQueryDataSourceWriterModule implements Module {
 
   @Singleton
   @Provides
-  public BigQueryDirectDataSourceWriter provideDirectDataSourceWriter(
+  public BigQueryDirectDataSourceWriterContext provideDirectDataSourceWriterContext(
       BigQueryClient bigQueryClient,
       BigQueryClientFactory bigQueryWriteClientFactory,
       SparkBigQueryConfig config) {
     TableId tableId = config.getTableId();
     RetrySettings bigqueryDataWriteHelperRetrySettings =
         config.getBigqueryDataWriteHelperRetrySettings();
-    return new BigQueryDirectDataSourceWriter(
+    return new BigQueryDirectDataSourceWriterContext(
         bigQueryClient,
         bigQueryWriteClientFactory,
         tableId,
@@ -73,7 +76,7 @@ class BigQueryDataSourceWriterModule implements Module {
 
   @Singleton
   @Provides
-  public BigQueryIndirectDataSourceWriter provideIndirectDataSourceWriter(
+  public BigQueryIndirectDataSourceWriterContext provideIndirectDataSourceWriterContext(
       BigQueryClient bigQueryClient, SparkBigQueryConfig config, SparkSession spark)
       throws IOException {
     Path gcsPath =
@@ -90,7 +93,7 @@ class BigQueryDataSourceWriterModule implements Module {
                         gcsPath, spark.sparkContext().hadoopConfiguration()));
     // based on pmkc's suggestion at https://git.io/JeWRt
     intermediateDataCleaner.ifPresent(cleaner -> Runtime.getRuntime().addShutdownHook(cleaner));
-    return new BigQueryIndirectDataSourceWriter(
+    return new BigQueryIndirectDataSourceWriterContext(
         bigQueryClient,
         config,
         spark.sparkContext().hadoopConfiguration(),

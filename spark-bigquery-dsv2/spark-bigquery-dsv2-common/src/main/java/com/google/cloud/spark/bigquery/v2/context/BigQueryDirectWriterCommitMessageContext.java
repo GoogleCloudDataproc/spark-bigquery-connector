@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
-import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
-
-public class BigQueryDirectWriterCommitMessage implements WriterCommitMessage {
+public class BigQueryDirectWriterCommitMessageContext implements WriterCommitMessageContext {
 
   private static final long serialVersionUID = -1562914502592461805L;
   private final String writeStreamName;
@@ -27,7 +25,7 @@ public class BigQueryDirectWriterCommitMessage implements WriterCommitMessage {
   private final String tablePath;
   private final long rowCount;
 
-  public BigQueryDirectWriterCommitMessage(
+  public BigQueryDirectWriterCommitMessageContext(
       String writeStreamName /*List<String> writeStreamNames*/,
       int partitionId,
       long taskId,

@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Google Inc. All Rights Reserved.
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *       https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,16 +15,17 @@
  */
 package com.google.cloud.spark.bigquery.v2.context;
 
-class BigQueryIndirectWriterCommitMessageContext implements WriterCommitMessageContext {
+import java.io.IOException;
 
-  private static final long serialVersionUID = -6646939344980582239L;
-  private final String uri;
+/**
+ * An internal version to Spark DataSource DataWriter interface
+ *
+ * @param <T>
+ */
+public interface DataWriterContext<T> {
+  void write(T row) throws IOException;
 
-  public BigQueryIndirectWriterCommitMessageContext(String uri) {
-    this.uri = uri;
-  }
+  WriterCommitMessageContext commit() throws IOException;
 
-  public String getUri() {
-    return uri;
-  }
+  void abort() throws IOException;
 }

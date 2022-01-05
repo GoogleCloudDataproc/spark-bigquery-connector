@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
  * Responsible for recursively deleting the intermediate path. Implementing Runnable in order to act
  * as shutdown hook.
  */
-class IntermediateDataCleaner extends Thread {
+public class IntermediateDataCleaner extends Thread {
   private static final Logger logger = LoggerFactory.getLogger(IntermediateDataCleaner.class);
 
   /** the path to delete */
@@ -33,7 +33,7 @@ class IntermediateDataCleaner extends Thread {
   /** the hadoop configuration */
   private final Configuration conf;
 
-  IntermediateDataCleaner(Path path, Configuration conf) {
+  public IntermediateDataCleaner(Path path, Configuration conf) {
     this.path = path;
     this.conf = conf;
   }

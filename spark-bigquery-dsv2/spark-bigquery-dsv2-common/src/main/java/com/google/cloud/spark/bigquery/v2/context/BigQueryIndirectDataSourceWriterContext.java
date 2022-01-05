@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Clustering;
@@ -48,9 +48,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.sources.v2.writer.DataSourceWriter;
-import org.apache.spark.sql.sources.v2.writer.DataWriterFactory;
-import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
@@ -61,10 +58,10 @@ import org.slf4j.LoggerFactory;
  * format, and then triggering a BigQuery load job on this data. Hence the "indirect" - the data
  * goes through an intermediate storage.
  */
-public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
+public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriterContext {
 
   private static final Logger logger =
-      LoggerFactory.getLogger(BigQueryIndirectDataSourceWriter.class);
+      LoggerFactory.getLogger(BigQueryIndirectDataSourceWriterContext.class);
 
   private final BigQueryClient bigQueryClient;
   private final SparkBigQueryConfig config;
@@ -75,7 +72,7 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
   private final Path gcsPath;
   private final Optional<IntermediateDataCleaner> intermediateDataCleaner;
 
-  public BigQueryIndirectDataSourceWriter(
+  public BigQueryIndirectDataSourceWriterContext(
       BigQueryClient bigQueryClient,
       SparkBigQueryConfig config,
       Configuration hadoopConfiguration,
@@ -118,9 +115,9 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
   }
 
   @Override
-  public DataWriterFactory<InternalRow> createWriterFactory() {
+  public DataWriterContextFactory<InternalRow> createWriterContextFactory() {
     org.apache.avro.Schema avroSchema = AvroSchemaConverter.sparkSchemaToAvroSchema(sparkSchema);
-    return new BigQueryIndirectDataWriterFactory(
+    return new BigQueryIndirectDataWriterContextFactory(
         new SerializableConfiguration(hadoopConfiguration),
         gcsPath.toString(),
         sparkSchema,
@@ -128,14 +125,14 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
   }
 
   @Override
-  public void commit(WriterCommitMessage[] messages) {
+  public void commit(WriterCommitMessageContext[] messages) {
     logger.info(
         "Data has been successfully written to GCS. Going to load {} files to BigQuery",
         messages.length);
     try {
       List<String> sourceUris =
           Stream.of(messages)
-              .map(msg -> ((BigQueryIndirectWriterCommitMessage) msg).getUri())
+              .map(msg -> ((BigQueryIndirectWriterCommitMessageContext) msg).getUri())
               .collect(Collectors.toList());
       loadDataToBigQuery(sourceUris);
       updateMetadataIfNeeded();
@@ -148,7 +145,7 @@ public class BigQueryIndirectDataSourceWriter implements DataSourceWriter {
   }
 
   @Override
-  public void abort(WriterCommitMessage[] messages) {
+  public void abort(WriterCommitMessageContext[] messages) {
     try {
       logger.warn(
           "Aborting write {} for table {}",

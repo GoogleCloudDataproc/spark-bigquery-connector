@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import java.io.IOException;
@@ -23,15 +23,14 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.sources.v2.writer.DataWriter;
-import org.apache.spark.sql.sources.v2.writer.WriterCommitMessage;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class BigQueryIndirectDataWriter implements DataWriter<InternalRow> {
+class BigQueryIndirectDataWriterContext implements DataWriterContext<InternalRow> {
 
-  private static final Logger logger = LoggerFactory.getLogger(BigQueryIndirectDataWriter.class);
+  private static final Logger logger =
+      LoggerFactory.getLogger(BigQueryIndirectDataWriterContext.class);
   Path path;
   FileSystem fs;
   FSDataOutputStream outputStream;
@@ -40,7 +39,7 @@ class BigQueryIndirectDataWriter implements DataWriter<InternalRow> {
   IntermediateRecordWriter intermediateRecordWriter;
   private int partitionId;
 
-  protected BigQueryIndirectDataWriter(
+  protected BigQueryIndirectDataWriterContext(
       int partitionId,
       Path path,
       FileSystem fs,
@@ -63,9 +62,9 @@ class BigQueryIndirectDataWriter implements DataWriter<InternalRow> {
   }
 
   @Override
-  public WriterCommitMessage commit() throws IOException {
+  public WriterCommitMessageContext commit() throws IOException {
     intermediateRecordWriter.close();
-    return new BigQueryIndirectWriterCommitMessage(path.toString());
+    return new BigQueryIndirectWriterCommitMessageContext(path.toString());
   }
 
   @Override

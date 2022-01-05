@@ -13,17 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
 import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.sources.v2.writer.DataWriter;
-import org.apache.spark.sql.sources.v2.writer.DataWriterFactory;
 import org.apache.spark.sql.types.StructType;
 
-public class BigQueryDirectDataWriterFactory implements DataWriterFactory<InternalRow> {
+public class BigQueryDirectDataWriterContextFactory
+    implements DataWriterContextFactory<InternalRow> {
   private final BigQueryClientFactory writeClientFactory;
   private final String tablePath;
   private final StructType sparkSchema;
@@ -31,7 +30,7 @@ public class BigQueryDirectDataWriterFactory implements DataWriterFactory<Intern
   private final boolean ignoreInputs;
   private final RetrySettings bigqueryDataWriterHelperRetrySettings;
 
-  public BigQueryDirectDataWriterFactory(
+  public BigQueryDirectDataWriterContextFactory(
       BigQueryClientFactory writeClientFactory,
       String tablePath,
       StructType sparkSchema,
@@ -50,19 +49,20 @@ public class BigQueryDirectDataWriterFactory implements DataWriterFactory<Intern
    * If ignoreInputs is true, return a NoOpDataWriter, a stub class that performs no operations upon
    * the call of its methods; otherwise return BigQueryDataWriter.
    *
-   * @see NoOpDataWriter
-   * @see BigQueryDirectDataWriter
+   * @see NoOpDataWriterContext
+   * @see BigQueryDirectDataWriterContext
    * @param partitionId The partitionId of the DataWriter to be created
    * @param taskId the taskId
    * @param epochId the epochId
    * @return The DataWriter to be used.
    */
   @Override
-  public DataWriter<InternalRow> createDataWriter(int partitionId, long taskId, long epochId) {
+  public DataWriterContext<InternalRow> createDataWriterContext(
+      int partitionId, long taskId, long epochId) {
     if (ignoreInputs) {
-      return new NoOpDataWriter();
+      return new NoOpDataWriterContext();
     }
-    return new BigQueryDirectDataWriter(
+    return new BigQueryDirectDataWriterContext(
         partitionId,
         taskId,
         epochId,
