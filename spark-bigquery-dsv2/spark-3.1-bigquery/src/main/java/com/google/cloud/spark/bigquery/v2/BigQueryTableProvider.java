@@ -18,13 +18,12 @@ package com.google.cloud.spark.bigquery.v2;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderModule;
 import com.google.inject.Injector;
+import java.util.Map;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.TableProvider;
 import org.apache.spark.sql.connector.expressions.Transform;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
-
-import java.util.Map;
 
 public class BigQueryTableProvider extends BaseBigQuerySource implements TableProvider {
 

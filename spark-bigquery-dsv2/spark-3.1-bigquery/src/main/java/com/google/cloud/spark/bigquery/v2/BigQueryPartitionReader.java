@@ -16,9 +16,8 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.v2.context.InputPartitionReaderContext;
-import org.apache.spark.sql.connector.read.PartitionReader;
-
 import java.io.IOException;
+import org.apache.spark.sql.connector.read.PartitionReader;
 
 public class BigQueryPartitionReader<T> implements PartitionReader<T> {
 

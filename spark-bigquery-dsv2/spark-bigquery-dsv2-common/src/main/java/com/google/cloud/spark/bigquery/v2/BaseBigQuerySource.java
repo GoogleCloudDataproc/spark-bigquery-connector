@@ -21,12 +21,11 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConnectorModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.sources.DataSourceRegister;
 import org.apache.spark.sql.types.StructType;
-
-import java.util.Map;
-import java.util.Optional;
 
 public abstract class BaseBigQuerySource implements DataSourceRegister {
 

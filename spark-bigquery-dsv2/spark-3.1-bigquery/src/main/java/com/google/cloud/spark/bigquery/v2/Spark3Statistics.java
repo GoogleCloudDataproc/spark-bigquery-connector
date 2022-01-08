@@ -16,9 +16,8 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.v2.context.StatisticsContext;
-import org.apache.spark.sql.connector.read.Statistics;
-
 import java.util.OptionalLong;
+import org.apache.spark.sql.connector.read.Statistics;
 
 public class Spark3Statistics implements Statistics {
 
