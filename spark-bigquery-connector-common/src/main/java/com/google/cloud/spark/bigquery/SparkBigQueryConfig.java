@@ -354,11 +354,11 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   }
 
   private static ImmutableMap<String, String> toLowerCaseKeysMap(Map<String, String> map) {
-    ImmutableMap.Builder<String, String> result = ImmutableMap.<String, String>builder();
+    Map<String, String> result = new HashMap<>();
     for (Map.Entry<String, String> enrty : map.entrySet()) {
       result.put(enrty.getKey().toLowerCase(Locale.ROOT), enrty.getValue());
     }
-    return result.build();
+    return ImmutableMap.copyOf(result);
   }
 
   @VisibleForTesting
