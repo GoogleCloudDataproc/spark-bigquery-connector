@@ -13,13 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2.context;
+package com.google.cloud.spark.bigquery.v2;
 
-import java.io.Serializable;
+import com.google.cloud.spark.bigquery.v2.context.InputPartitionContext;
+import org.apache.spark.sql.connector.read.InputPartition;
 
-public interface InputPartitionContext<T> extends Serializable {
+public class BigQueryInputPartition implements InputPartition {
 
-  InputPartitionReaderContext<T> createPartitionReaderContext();
+  private static final long serialVersionUID = -8318843699265025053L;
+  InputPartitionContext ctx;
 
-  boolean supportColumnarReads();
+  public BigQueryInputPartition(InputPartitionContext ctx) {
+    this.ctx = ctx;
+  }
+
+  public InputPartitionContext getContext() {
+    return ctx;
+  }
 }

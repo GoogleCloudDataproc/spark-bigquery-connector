@@ -26,7 +26,12 @@ import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
-import com.google.cloud.bigquery.connector.common.*;
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryConfig;
+import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
+import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
+import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
+import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.annotations.VisibleForTesting;
@@ -36,7 +41,15 @@ import com.google.common.collect.ImmutableMap;
 import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -152,7 +165,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   @VisibleForTesting
   public static SparkBigQueryConfig from(
-      Map<String, String> options,
+      Map<String, String> optionsInput,
       ImmutableMap<String, String> originalGlobalOptions,
       Configuration hadoopConfiguration,
       int defaultParallelism,
@@ -161,6 +174,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
       Optional<StructType> schema) {
     SparkBigQueryConfig config = new SparkBigQueryConfig();
 
+    ImmutableMap<String, String> options = toLowerCaseKeysMap(optionsInput);
     ImmutableMap<String, String> globalOptions = normalizeConf(originalGlobalOptions);
     config.sparkBigQueryProxyAndHttpConfig =
         SparkBigQueryProxyAndHttpConfig.from(options, globalOptions, hadoopConfiguration);
@@ -337,6 +351,14 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     }
 
     return config;
+  }
+
+  private static ImmutableMap<String, String> toLowerCaseKeysMap(Map<String, String> map) {
+    ImmutableMap.Builder<String, String> result = ImmutableMap.<String, String>builder();
+    for (Map.Entry<String, String> enrty : map.entrySet()) {
+      result.put(enrty.getKey().toLowerCase(Locale.ROOT), enrty.getValue());
+    }
+    return result.build();
   }
 
   @VisibleForTesting

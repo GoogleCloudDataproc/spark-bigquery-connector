@@ -50,4 +50,9 @@ public class BigQueryInputPartitionContext implements InputPartitionContext<Inte
     Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
     return new BigQueryInputPartitionReaderContext(readRowsResponses, converter, readRowsHelper);
   }
+
+  @Override
+  public boolean supportColumnarReads() {
+    return false;
+  }
 }

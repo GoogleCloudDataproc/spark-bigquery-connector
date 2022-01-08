@@ -24,6 +24,7 @@ import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.spark.sql.SparkSession;
@@ -61,7 +62,7 @@ public class SparkBigQueryConnectorModule implements Module {
   @Singleton
   @Provides
   public SparkBigQueryConfig provideSparkBigQueryConfig() {
-    Map<String, String> optionsMap = options;
+    Map<String, String> optionsMap = new HashMap<>(options);
     dataSourceVersion.updateOptionsMap(optionsMap);
     return SparkBigQueryConfig.from(
         ImmutableMap.copyOf(optionsMap),

@@ -13,25 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2.context;
+package com.google.cloud.spark.bigquery.v2;
 
-import org.apache.spark.sql.catalyst.InternalRow;
+import com.google.cloud.spark.bigquery.v2.context.InputPartitionReaderContext;
+import org.apache.spark.sql.connector.read.PartitionReader;
 
-public class EmptyProjectionInputPartitionContext implements InputPartitionContext<InternalRow> {
+import java.io.IOException;
 
-  final int partitionSize;
+public class BigQueryPartitionReader<T> implements PartitionReader<T> {
 
-  public EmptyProjectionInputPartitionContext(int partitionSize) {
-    this.partitionSize = partitionSize;
+  private InputPartitionReaderContext<T> context;
+
+  public BigQueryPartitionReader(InputPartitionReaderContext<T> context) {
+    this.context = context;
   }
 
   @Override
-  public InputPartitionReaderContext<InternalRow> createPartitionReaderContext() {
-    return new EmptyProjectionInputPartitionReaderContext(partitionSize);
+  public boolean next() throws IOException {
+    return context.next();
   }
 
   @Override
-  public boolean supportColumnarReads() {
-    return false;
+  public T get() {
+    return context.get();
+  }
+
+  @Override
+  public void close() throws IOException {
+    context.close();
   }
 }

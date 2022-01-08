@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provides;
@@ -35,22 +34,21 @@ public class BigQueryDataSourceReaderModule implements Module {
 
   @Singleton
   @Provides
-  public BigQueryDataSourceReader provideDataSourceReader(
+  public BigQueryDataSourceReaderContext provideDataSourceReaderContext(
       BigQueryClient bigQueryClient,
       BigQueryClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory tracerFactory,
       SparkBigQueryConfig config,
       SparkSession sparkSession) {
     TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
-    return new BigQueryDataSourceReader(
-        new BigQueryDataSourceReaderContext(
-            tableInfo,
-            bigQueryClient,
-            bigQueryReadClientFactory,
-            tracerFactory,
-            config.toReadSessionCreatorConfig(),
-            config.getFilter(),
-            config.getSchema(),
-            sparkSession.sparkContext().applicationId()));
+    return new BigQueryDataSourceReaderContext(
+        tableInfo,
+        bigQueryClient,
+        bigQueryReadClientFactory,
+        tracerFactory,
+        config.toReadSessionCreatorConfig(),
+        config.getFilter(),
+        config.getSchema(),
+        sparkSession.sparkContext().applicationId());
   }
 }

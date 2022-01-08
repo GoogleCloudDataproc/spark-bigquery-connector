@@ -13,13 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2.context;
+package com.google.cloud.spark.bigquery.integration;
 
-import java.io.Serializable;
+public class Spark31ReadFromQueryIntegrationTest extends ReadFromQueryIntegrationTestBase {
 
-public interface InputPartitionContext<T> extends Serializable {
+  // tests are from the super-class
 
-  InputPartitionReaderContext<T> createPartitionReaderContext();
-
-  boolean supportColumnarReads();
 }

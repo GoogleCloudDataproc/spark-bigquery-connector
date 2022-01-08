@@ -83,4 +83,9 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
         userProvidedSchema.toJavaUtil(),
         options.numBackgroundThreads());
   }
+
+  @Override
+  public boolean supportColumnarReads() {
+    return true;
+  }
 }

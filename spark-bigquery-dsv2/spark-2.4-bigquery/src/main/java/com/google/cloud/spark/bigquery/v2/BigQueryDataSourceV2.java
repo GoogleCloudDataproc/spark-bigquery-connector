@@ -18,21 +18,17 @@ package com.google.cloud.spark.bigquery.v2;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
-import com.google.cloud.bigquery.connector.common.BigQueryClientModule;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
-import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import com.google.cloud.spark.bigquery.SparkBigQueryConnectorModule;
+import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
+import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderModule;
+import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceWriterModule;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDirectDataSourceWriterContext;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryIndirectDataSourceWriterContext;
 import com.google.cloud.spark.bigquery.v2.context.DataSourceWriterContext;
-import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.Module;
 import java.util.Optional;
 import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.sources.DataSourceRegister;
 import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.apache.spark.sql.sources.v2.DataSourceV2;
 import org.apache.spark.sql.sources.v2.ReadSupport;
@@ -45,31 +41,16 @@ import org.apache.spark.sql.types.StructType;
  * A DataSourceV2 implementation, providing efficient reader and writer for the Google Cloud
  * Platform BigQuery.
  */
-public class BigQueryDataSourceV2
-    implements DataSourceV2, DataSourceRegister, ReadSupport, WriteSupport {
+public class BigQueryDataSourceV2 extends BaseBigQuerySource
+    implements DataSourceV2, ReadSupport, WriteSupport {
 
   @Override
   public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
-    Injector injector = createInjector(schema, options, new BigQueryDataSourceReaderModule());
-    BigQueryDataSourceReader reader = injector.getInstance(BigQueryDataSourceReader.class);
+    Injector injector =
+        createInjector(schema, options.asMap(), new BigQueryDataSourceReaderModule());
+    BigQueryDataSourceReader reader =
+        new BigQueryDataSourceReader(injector.getInstance(BigQueryDataSourceReaderContext.class));
     return reader;
-  }
-
-  private Injector createInjector(StructType schema, DataSourceOptions options, Module module) {
-    SparkSession spark = getDefaultSparkSessionOrCreate();
-    return Guice.createInjector(
-        new BigQueryClientModule(),
-        new SparkBigQueryConnectorModule(
-            spark, options.asMap(), Optional.ofNullable(schema), DataSourceVersion.V2),
-        module);
-  }
-
-  private SparkSession getDefaultSparkSessionOrCreate() {
-    scala.Option<SparkSession> defaultSpareSession = SparkSession.getActiveSession();
-    if (defaultSpareSession.isDefined()) {
-      return defaultSpareSession.get();
-    }
-    return SparkSession.builder().appName("spark-bigquery-connector").getOrCreate();
   }
 
   @Override
@@ -86,7 +67,7 @@ public class BigQueryDataSourceV2
       String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
     Injector injector =
         createInjector(
-            schema, options, new BigQueryDataSourceWriterModule(writeUUID, schema, mode));
+            schema, options.asMap(), new BigQueryDataSourceWriterModule(writeUUID, schema, mode));
     // first verify if we need to do anything at all, based on the table existence and the save
     // mode.
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
@@ -135,10 +116,5 @@ public class BigQueryDataSourceV2
     }
 
     return Optional.of(new BigQueryDataSourceWriter(dataSourceWriterContext));
-  }
-
-  @Override
-  public String shortName() {
-    return "bigquery";
   }
 }
