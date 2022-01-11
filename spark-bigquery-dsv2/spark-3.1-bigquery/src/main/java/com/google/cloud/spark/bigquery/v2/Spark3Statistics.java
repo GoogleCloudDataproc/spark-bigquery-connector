@@ -13,13 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2.context;
+package com.google.cloud.spark.bigquery.v2;
 
-import java.io.Serializable;
+import com.google.cloud.spark.bigquery.v2.context.StatisticsContext;
+import java.util.OptionalLong;
+import org.apache.spark.sql.connector.read.Statistics;
 
-public interface InputPartitionContext<T> extends Serializable {
+public class Spark3Statistics implements Statistics {
 
-  InputPartitionReaderContext<T> createPartitionReaderContext();
+  private StatisticsContext context;
 
-  boolean supportColumnarReads();
+  public Spark3Statistics(StatisticsContext context) {
+    this.context = context;
+  }
+
+  @Override
+  public OptionalLong sizeInBytes() {
+    return context.sizeInBytes();
+  }
+
+  @Override
+  public OptionalLong numRows() {
+    return context.numRows();
+  }
 }

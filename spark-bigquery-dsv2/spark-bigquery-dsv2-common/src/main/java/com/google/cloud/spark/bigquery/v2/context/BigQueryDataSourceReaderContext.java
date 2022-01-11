@@ -23,6 +23,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
@@ -142,7 +143,7 @@ public class BigQueryDataSourceReaderContext {
     ImmutableList<String> selectedFields =
         schema
             .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-            .orElse(ImmutableList.of());
+            .orElse(ImmutableList.copyOf(fields.keySet()));
     Optional<String> filter = getCombinedFilter();
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(tableId, selectedFields, filter);
@@ -304,5 +305,13 @@ public class BigQueryDataSourceReaderContext {
     return table.getDefinition().getType() == TableDefinition.Type.TABLE
         ? new StandardTableStatisticsContext(table.getDefinition())
         : UNKNOWN_STATISTICS;
+  }
+
+  public String getTableName() {
+    return tableId.getTable();
+  }
+
+  public String getFullTableName() {
+    return BigQueryUtil.friendlyTableName(tableId);
   }
 }

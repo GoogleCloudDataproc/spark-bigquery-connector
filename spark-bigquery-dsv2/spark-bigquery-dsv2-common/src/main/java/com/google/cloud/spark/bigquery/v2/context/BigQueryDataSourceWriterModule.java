@@ -13,16 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.v2.context;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import com.google.cloud.spark.bigquery.v2.context.BigQueryDirectDataSourceWriterContext;
-import com.google.cloud.spark.bigquery.v2.context.BigQueryIndirectDataSourceWriterContext;
-import com.google.cloud.spark.bigquery.v2.context.IntermediateDataCleaner;
 import com.google.common.base.Preconditions;
 import com.google.inject.Binder;
 import com.google.inject.Module;
@@ -38,13 +35,13 @@ import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructType;
 
-class BigQueryDataSourceWriterModule implements Module {
+public class BigQueryDataSourceWriterModule implements Module {
 
   private final String writeUUID;
   private final StructType sparkSchema;
   private final SaveMode mode;
 
-  BigQueryDataSourceWriterModule(String writeUUID, StructType sparkSchema, SaveMode mode) {
+  public BigQueryDataSourceWriterModule(String writeUUID, StructType sparkSchema, SaveMode mode) {
     this.writeUUID = writeUUID;
     this.sparkSchema = sparkSchema;
     this.mode = mode;
