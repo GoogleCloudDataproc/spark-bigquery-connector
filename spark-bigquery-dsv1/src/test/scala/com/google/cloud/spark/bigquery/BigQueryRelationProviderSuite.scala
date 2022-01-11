@@ -128,7 +128,7 @@ class BigQueryRelationProviderSuite
     val defaultProvider = new BigQueryRelationProvider()
     val invalidCredentials = Base64.encodeBase64String("{}".getBytes)
 
-    val caught = intercept[ProvisionException] {
+    val caught = intercept[Exception] {
       defaultProvider.createRelation(sqlCtx, Map("parentProject" -> ID.getProject,
         "credentials" -> invalidCredentials, "table" -> TABLE_NAME))
     }

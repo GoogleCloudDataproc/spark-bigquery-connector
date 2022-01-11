@@ -21,7 +21,7 @@ import java.util.concurrent.{Callable, TimeUnit}
 import com.google.api.gax.core.CredentialsProvider
 import com.google.api.gax.rpc.{FixedHeaderProvider}
 import com.google.auth.Credentials
-import com.google.cloud.bigquery.connector.common.{BigQueryProxyTransporterBuilder, BigQueryUtil, UserAgentHeaderProvider}
+import com.google.cloud.bigquery.connector.common.{BigQueryProxyTransporterBuilder, BigQueryUtil}
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions
 import com.google.cloud.bigquery.storage.v1.{BigQueryReadClient, BigQueryReadSettings, CreateReadSessionRequest, DataFormat, ReadSession}
 import com.google.cloud.bigquery.{BigQuery, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}

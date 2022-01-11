@@ -26,7 +26,12 @@ import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
-import com.google.cloud.bigquery.connector.common.*;
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryConfig;
+import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
+import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
+import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
+import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.annotations.VisibleForTesting;
@@ -36,7 +41,15 @@ import com.google.common.collect.ImmutableMap;
 import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -104,6 +117,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
   com.google.common.base.Optional<String> query = empty();
   String parentProjectId;
+  boolean useParentProjectForMetadataOperations;
   com.google.common.base.Optional<String> credentialsKey;
   com.google.common.base.Optional<String> credentialsFile;
   com.google.common.base.Optional<String> accessToken;
@@ -228,6 +242,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
     config.parentProjectId =
         getAnyOption(globalOptions, options, "parentProject").or(defaultBilledProject());
+    config.useParentProjectForMetadataOperations =
+        getAnyBooleanOption(globalOptions, options, "useParentProjectForMetadataOperations", false);
     config.credentialsKey = getAnyOption(globalOptions, options, "credentials");
     config.credentialsFile =
         fromJavaUtil(
@@ -485,6 +501,11 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   @Override
   public String getParentProjectId() {
     return parentProjectId;
+  }
+
+  @Override
+  public boolean useParentProjectForMetadataOperations() {
+    return useParentProjectForMetadataOperations;
   }
 
   @Override
