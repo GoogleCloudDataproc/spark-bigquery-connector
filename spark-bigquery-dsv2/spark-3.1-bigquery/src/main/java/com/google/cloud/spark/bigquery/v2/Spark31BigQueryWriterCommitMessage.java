@@ -15,12 +15,18 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import org.apache.spark.sql.sources.DataSourceRegister;
+import com.google.cloud.spark.bigquery.v2.context.WriterCommitMessageContext;
+import org.apache.spark.sql.connector.write.WriterCommitMessage;
 
-public abstract class BaseBigQuerySource implements DataSourceRegister {
+public class Spark31BigQueryWriterCommitMessage implements WriterCommitMessage {
 
-  @Override
-  public String shortName() {
-    return "bigquery";
+  WriterCommitMessageContext ctx;
+
+  public Spark31BigQueryWriterCommitMessage(WriterCommitMessageContext ctx) {
+    this.ctx = ctx;
+  }
+
+  public WriterCommitMessageContext getContext() {
+    return ctx;
   }
 }

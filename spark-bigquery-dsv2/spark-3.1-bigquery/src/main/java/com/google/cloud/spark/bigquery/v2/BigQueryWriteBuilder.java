@@ -15,12 +15,18 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import org.apache.spark.sql.sources.DataSourceRegister;
+import com.google.cloud.spark.bigquery.v2.context.DataSourceWriterContext;
+import org.apache.spark.sql.connector.write.BatchWrite;
+import org.apache.spark.sql.connector.write.WriteBuilder;
 
-public abstract class BaseBigQuerySource implements DataSourceRegister {
+public class BigQueryWriteBuilder implements WriteBuilder {
+    private DataSourceWriterContext ctx;
+    public BigQueryWriteBuilder(DataSourceWriterContext ctx) {
+        this.ctx = ctx;
+    }
 
-  @Override
-  public String shortName() {
-    return "bigquery";
-  }
+    @Override
+    public BatchWrite buildForBatch() {
+        return new BigQueryBatchWrite(ctx);
+    }
 }

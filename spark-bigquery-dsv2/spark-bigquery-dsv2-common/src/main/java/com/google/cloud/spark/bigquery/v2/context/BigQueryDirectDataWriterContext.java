@@ -15,9 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.v2.context;
 
-import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessage;
-import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
-
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
@@ -26,11 +23,15 @@ import com.google.cloud.bigquery.storage.v1.ProtoSchema;
 import com.google.common.base.Optional;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
-import java.io.IOException;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+
+import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessage;
+import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
 
 public class BigQueryDirectDataWriterContext implements DataWriterContext<InternalRow> {
   final Logger logger = LoggerFactory.getLogger(BigQueryDirectDataWriterContext.class);
@@ -104,5 +105,10 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
   public void abort() throws IOException {
     logger.debug("Data Writer {} abort()", partitionId);
     writerHelper.abort();
+  }
+
+  @Override
+  public void close() throws IOException {
+    // empty
   }
 }

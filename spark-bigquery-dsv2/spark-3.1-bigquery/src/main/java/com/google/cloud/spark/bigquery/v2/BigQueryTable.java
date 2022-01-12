@@ -16,16 +16,23 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
+import com.google.cloud.spark.bigquery.v2.context.DataSourceWriterContext;
 import com.google.common.collect.ImmutableSet;
-import java.util.Set;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
+import org.apache.spark.sql.connector.catalog.SupportsWrite;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.TableCapability;
 import org.apache.spark.sql.connector.read.ScanBuilder;
+import org.apache.spark.sql.connector.write.LogicalWriteInfo;
+import org.apache.spark.sql.connector.write.WriteBuilder;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 
-public class BigQueryTable implements Table, SupportsRead {
+import java.util.Optional;
+import java.util.Set;
+
+public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
 
   private BigQueryDataSourceReaderContext ctx;
 
@@ -51,5 +58,14 @@ public class BigQueryTable implements Table, SupportsRead {
   @Override
   public Set<TableCapability> capabilities() {
     return ImmutableSet.<TableCapability>of(TableCapability.BATCH_READ);
+  }
+
+  @Override
+  public WriteBuilder newWriteBuilder(LogicalWriteInfo info) {
+    CaseInsensitiveStringMap options = info.options();
+    SaveMode mode = SaveMode.valueOf(options.get("mode"));
+    Optional<DataSourceWriterContext> dataSourceWriterContext =
+        DataSourceWriterContext.create(info.queryId(), info.schema(), mode, options);
+    return new BigQueryWriteBuilder(dataSourceWriterContext.get());
   }
 }

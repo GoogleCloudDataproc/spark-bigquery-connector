@@ -15,8 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.v2.context;
 
-import java.io.IOException;
 import org.apache.spark.sql.catalyst.InternalRow;
+
+import java.io.IOException;
 
 public class NoOpDataWriterContext implements DataWriterContext<InternalRow> {
   @Override
@@ -29,4 +30,9 @@ public class NoOpDataWriterContext implements DataWriterContext<InternalRow> {
 
   @Override
   public void abort() throws IOException {}
+
+  @Override
+  public void close() throws IOException {
+    // empty
+  }
 }
