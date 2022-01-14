@@ -19,11 +19,11 @@ import java.sql.{Date, Timestamp}
 import java.util.UUID
 import java.util.concurrent.{Callable, TimeUnit}
 import com.google.api.gax.core.CredentialsProvider
-import com.google.api.gax.rpc.{FixedHeaderProvider}
+import com.google.api.gax.rpc.FixedHeaderProvider
 import com.google.auth.Credentials
 import com.google.cloud.bigquery.connector.common.{BigQueryProxyTransporterBuilder, BigQueryUtil, UserAgentHeaderProvider}
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions
-import com.google.cloud.bigquery.storage.v1.{BigQueryReadClient, BigQueryReadSettings, CreateReadSessionRequest, DataFormat, ReadSession}
+import com.google.cloud.bigquery.storage.v1.{ArrowSerializationOptions, BigQueryReadClient, BigQueryReadSettings, CreateReadSessionRequest, DataFormat, ReadSession}
 import com.google.cloud.bigquery.{BigQuery, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
 import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryUtilScala, SchemaConverters, SparkBigQueryConfig, SparkBigQueryConnectorUserAgentProvider}
 import com.google.common.cache.{Cache, CacheBuilder}
@@ -116,6 +116,7 @@ private[bigquery] class DirectBigQueryRelation(
       val actualTablePath = DirectBigQueryRelation.toTablePath(actualTable.getTableId)
       val readOptions = TableReadOptions.newBuilder()
         .addAllSelectedFields(requiredColumns.toList.asJava)
+        .setArrowSerializationOptions(ArrowSerializationOptions.newBuilder().setBufferCompression(options.getArrowCompressionCodec))
         .setRowRestriction(getActualFilter(filter))
         .build()
       val requiredColumnSet = requiredColumns.toSet
