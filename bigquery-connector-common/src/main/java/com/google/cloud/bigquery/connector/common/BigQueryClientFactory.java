@@ -2,6 +2,7 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
+import com.google.api.gax.rpc.HeaderProvider;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
@@ -33,17 +34,17 @@ public class BigQueryClientFactory implements Serializable {
 
   private final Credentials credentials;
   // using the user agent as HeaderProvider is not serializable
-  private final UserAgentHeaderProvider userAgentHeaderProvider;
+  private final HeaderProvider headerProvider;
   private final BigQueryConfig bqConfig;
 
   @Inject
   public BigQueryClientFactory(
       BigQueryCredentialsSupplier bigQueryCredentialsSupplier,
-      UserAgentHeaderProvider userAgentHeaderProvider,
+      HeaderProvider headerProvider,
       BigQueryConfig bqConfig) {
     // using Guava's optional as it is serializable
     this.credentials = bigQueryCredentialsSupplier.getCredentials();
-    this.userAgentHeaderProvider = userAgentHeaderProvider;
+    this.headerProvider = headerProvider;
     this.bqConfig = bqConfig;
   }
 
@@ -84,10 +85,10 @@ public class BigQueryClientFactory implements Serializable {
     // ExternalAccountCredentials first and then compare their hashCodes.
     if (credentials instanceof ExternalAccountCredentials) {
       return Objects.hashCode(
-          BigQueryUtil.getCredentialsByteArray(credentials), userAgentHeaderProvider, bqConfig);
+          BigQueryUtil.getCredentialsByteArray(credentials), headerProvider, bqConfig);
     }
 
-    return Objects.hashCode(credentials, userAgentHeaderProvider, bqConfig);
+    return Objects.hashCode(credentials, headerProvider, bqConfig);
   }
 
   @Override
@@ -101,7 +102,7 @@ public class BigQueryClientFactory implements Serializable {
 
     BigQueryClientFactory that = (BigQueryClientFactory) o;
 
-    if (Objects.equal(userAgentHeaderProvider, that.userAgentHeaderProvider)
+    if (Objects.equal(headerProvider, that.headerProvider)
         && Objects.equal(
             new BigQueryClientFactoryConfig(bqConfig),
             new BigQueryClientFactoryConfig(that.bqConfig))) {
@@ -122,7 +123,7 @@ public class BigQueryClientFactory implements Serializable {
     try {
       InstantiatingGrpcChannelProvider.Builder transportBuilder =
           BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
-              .setHeaderProvider(userAgentHeaderProvider);
+              .setHeaderProvider(headerProvider);
       setProxyConfig(transportBuilder);
       endpoint.ifPresent(
           e -> {
@@ -143,7 +144,7 @@ public class BigQueryClientFactory implements Serializable {
     try {
       InstantiatingGrpcChannelProvider.Builder transportBuilder =
           BigQueryWriteSettings.defaultGrpcTransportProviderBuilder()
-              .setHeaderProvider(userAgentHeaderProvider);
+              .setHeaderProvider(headerProvider);
       setProxyConfig(transportBuilder);
       BigQueryWriteSettings.Builder clientSettings =
           BigQueryWriteSettings.newBuilder()
