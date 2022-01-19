@@ -16,8 +16,10 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
+import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderModule;
 import com.google.cloud.spark.bigquery.v2.context.DataSourceWriterContext;
 import com.google.common.collect.ImmutableSet;
+import com.google.inject.Injector;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.catalog.SupportsWrite;
@@ -34,30 +36,36 @@ import java.util.Set;
 
 public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
 
-  private BigQueryDataSourceReaderContext ctx;
+  public static final ImmutableSet<TableCapability> TABLE_CAPABILITIES =
+      ImmutableSet.of(TableCapability.BATCH_READ, TableCapability.BATCH_WRITE);
 
-  public BigQueryTable(BigQueryDataSourceReaderContext ctx) {
-    this.ctx = ctx;
+  private Injector injector;
+
+  public BigQueryTable(Injector injector) {
+    this.injector = injector;
   }
 
   @Override
   public ScanBuilder newScanBuilder(CaseInsensitiveStringMap options) {
+    Injector readerInjector = injector.createChildInjector(new BigQueryDataSourceReaderModule());
+    BigQueryDataSourceReaderContext ctx =
+        readerInjector.getInstance(BigQueryDataSourceReaderContext.class);
     return new BigQueryScanBuilder(ctx);
   }
 
   @Override
   public String name() {
-    return ctx.getTableName();
+    return "hello";
   }
 
   @Override
   public StructType schema() {
-    return ctx.readSchema();
+    return injector.getInstance(StructType.class);
   }
 
   @Override
   public Set<TableCapability> capabilities() {
-    return ImmutableSet.<TableCapability>of(TableCapability.BATCH_READ);
+    return TABLE_CAPABILITIES;
   }
 
   @Override
@@ -65,7 +73,9 @@ public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
     CaseInsensitiveStringMap options = info.options();
     SaveMode mode = SaveMode.valueOf(options.get("mode"));
     Optional<DataSourceWriterContext> dataSourceWriterContext =
-        DataSourceWriterContext.create(info.queryId(), info.schema(), mode, options);
+        DataSourceWriterContext.create(injector, info.queryId(), info.schema(), mode, options);
+    // The case where mode == SaveMode.Ignore is handled by Spark, so we can assume we can get the
+    // context
     return new BigQueryWriteBuilder(dataSourceWriterContext.get());
   }
 }

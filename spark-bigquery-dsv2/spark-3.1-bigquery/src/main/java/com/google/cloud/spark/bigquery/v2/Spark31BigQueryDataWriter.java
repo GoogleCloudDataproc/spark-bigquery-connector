@@ -16,11 +16,10 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.v2.context.DataWriterContext;
+import java.io.IOException;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.connector.write.DataWriter;
 import org.apache.spark.sql.connector.write.WriterCommitMessage;
-
-import java.io.IOException;
 
 public class Spark31BigQueryDataWriter implements DataWriter<InternalRow> {
 

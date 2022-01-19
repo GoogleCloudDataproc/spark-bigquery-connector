@@ -20,13 +20,14 @@ import org.apache.spark.sql.connector.write.BatchWrite;
 import org.apache.spark.sql.connector.write.WriteBuilder;
 
 public class BigQueryWriteBuilder implements WriteBuilder {
-    private DataSourceWriterContext ctx;
-    public BigQueryWriteBuilder(DataSourceWriterContext ctx) {
-        this.ctx = ctx;
-    }
+  private DataSourceWriterContext ctx;
 
-    @Override
-    public BatchWrite buildForBatch() {
-        return new BigQueryBatchWrite(ctx);
-    }
+  public BigQueryWriteBuilder(DataSourceWriterContext ctx) {
+    this.ctx = ctx;
+  }
+
+  @Override
+  public BatchWrite buildForBatch() {
+    return new BigQueryBatchWrite(ctx);
+  }
 }

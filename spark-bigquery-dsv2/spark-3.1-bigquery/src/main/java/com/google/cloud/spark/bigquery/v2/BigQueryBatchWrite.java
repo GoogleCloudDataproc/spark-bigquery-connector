@@ -17,12 +17,11 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.v2.context.DataSourceWriterContext;
 import com.google.cloud.spark.bigquery.v2.context.WriterCommitMessageContext;
+import java.util.stream.Stream;
 import org.apache.spark.sql.connector.write.BatchWrite;
 import org.apache.spark.sql.connector.write.DataWriterFactory;
 import org.apache.spark.sql.connector.write.PhysicalWriteInfo;
 import org.apache.spark.sql.connector.write.WriterCommitMessage;
-
-import java.util.stream.Stream;
 
 public class BigQueryBatchWrite implements BatchWrite {
 

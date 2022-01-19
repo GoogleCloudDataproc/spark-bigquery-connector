@@ -40,7 +40,8 @@ public class BigQueryDataSourceV2 extends BaseBigQuerySource
   @Override
   public DataSourceReader createReader(StructType schema, DataSourceOptions options) {
     Injector injector =
-        InjectorFactory.createInjector(schema, options.asMap(), new BigQueryDataSourceReaderModule());
+        InjectorFactory.createInjector(schema, options.asMap())
+            .createChildInjector(new BigQueryDataSourceReaderModule());
     BigQueryDataSourceReader reader =
         new BigQueryDataSourceReader(injector.getInstance(BigQueryDataSourceReaderContext.class));
     return reader;
@@ -58,8 +59,9 @@ public class BigQueryDataSourceV2 extends BaseBigQuerySource
   @Override
   public Optional<DataSourceWriter> createWriter(
       String writeUUID, StructType schema, SaveMode mode, DataSourceOptions options) {
+    Injector injector = InjectorFactory.createInjector(schema, options.asMap());
     Optional<DataSourceWriterContext> dataSourceWriterContext =
-            DataSourceWriterContext.create(writeUUID, schema, mode, options.asMap());
+        DataSourceWriterContext.create(injector, writeUUID, schema, mode, options.asMap());
     return dataSourceWriterContext.map(ctx -> new BigQueryDataSourceWriter(ctx));
   }
 }

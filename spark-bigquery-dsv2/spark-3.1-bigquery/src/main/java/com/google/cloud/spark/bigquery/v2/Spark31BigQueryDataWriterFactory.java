@@ -22,13 +22,16 @@ import org.apache.spark.sql.connector.write.DataWriterFactory;
 
 public class Spark31BigQueryDataWriterFactory implements DataWriterFactory {
 
-  private  DataWriterContextFactory<InternalRow> writerContextFactory;
-    public Spark31BigQueryDataWriterFactory(DataWriterContextFactory<InternalRow> writerContextFactory) {
-      this.writerContextFactory = writerContextFactory;
-    }
+  private DataWriterContextFactory<InternalRow> writerContextFactory;
+
+  public Spark31BigQueryDataWriterFactory(
+      DataWriterContextFactory<InternalRow> writerContextFactory) {
+    this.writerContextFactory = writerContextFactory;
+  }
 
   @Override
   public DataWriter<InternalRow> createWriter(int partitionId, long taskId) {
-    return new Spark31BigQueryDataWriter(writerContextFactory.createDataWriterContext(partitionId, taskId, 0));
+    return new Spark31BigQueryDataWriter(
+        writerContextFactory.createDataWriterContext(partitionId, taskId, 0));
   }
 }

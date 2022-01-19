@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.v2.context;
 
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
+import java.io.IOException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -25,8 +26,6 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 
 class BigQueryIndirectDataWriterContext implements DataWriterContext<InternalRow> {
 
