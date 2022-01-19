@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.api.gax.rpc.HeaderProvider;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.http.HttpTransportOptions;
 import com.google.inject.Binder;
@@ -26,9 +27,9 @@ public class BigQueryClientModule implements com.google.inject.Module {
 
   @Provides
   @Singleton
-  public static UserAgentHeaderProvider createUserAgentHeaderProvider(
-      UserAgentProvider versionProvider) {
-    return new UserAgentHeaderProvider(versionProvider.getUserAgent());
+  public static HeaderProvider createtHeaderProvider(
+      BigQueryConfig config, UserAgentProvider userAgentProvider) {
+    return HttpUtil.createHeaderProvider(config, userAgentProvider.getUserAgent());
   }
 
   @Override
@@ -57,11 +58,11 @@ public class BigQueryClientModule implements com.google.inject.Module {
   @Singleton
   public BigQueryClient provideBigQueryClient(
       BigQueryConfig config,
-      UserAgentHeaderProvider userAgentHeaderProvider,
+      HeaderProvider headerProvider,
       BigQueryCredentialsSupplier bigQueryCredentialsSupplier) {
     BigQueryOptions.Builder options =
         BigQueryOptions.newBuilder()
-            .setHeaderProvider(userAgentHeaderProvider)
+            .setHeaderProvider(headerProvider)
             .setProjectId(config.getParentProjectId())
             .setCredentials(bigQueryCredentialsSupplier.getCredentials())
             .setRetrySettings(config.getBigQueryClientRetrySettings());

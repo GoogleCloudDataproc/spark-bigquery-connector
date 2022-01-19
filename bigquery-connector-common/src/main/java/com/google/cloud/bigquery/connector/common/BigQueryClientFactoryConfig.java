@@ -10,6 +10,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final Optional<String> credentialsFile;
   private final Optional<String> accessToken;
   private final String parentProjectId;
+  private final boolean useParentProjectForMetadataOperations;
   private final boolean viewsEnabled;
   private final Optional<String> materializationProject;
   private final Optional<String> materializationDataset;
@@ -24,6 +25,8 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.credentialsFile = bigQueryConfig.getCredentialsFile();
     this.accessToken = bigQueryConfig.getAccessToken();
     this.parentProjectId = bigQueryConfig.getParentProjectId();
+    this.useParentProjectForMetadataOperations =
+        bigQueryConfig.useParentProjectForMetadataOperations();
     this.viewsEnabled = bigQueryConfig.isViewsEnabled();
     this.materializationProject = bigQueryConfig.getMaterializationProject();
     this.materializationDataset = bigQueryConfig.getMaterializationDataset();
@@ -52,6 +55,11 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   @Override
   public String getParentProjectId() {
     return parentProjectId;
+  }
+
+  @Override
+  public boolean useParentProjectForMetadataOperations() {
+    return useParentProjectForMetadataOperations;
   }
 
   @Override
@@ -110,6 +118,8 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
         && Objects.equal(credentialsFile, that.credentialsFile)
         && Objects.equal(accessToken, that.accessToken)
         && Objects.equal(parentProjectId, that.parentProjectId)
+        && Objects.equal(
+            useParentProjectForMetadataOperations, that.useParentProjectForMetadataOperations)
         && Objects.equal(materializationProject, that.materializationProject)
         && Objects.equal(materializationDataset, that.materializationDataset)
         && Objects.equal(bigQueryClientRetrySettings, that.bigQueryClientRetrySettings)
@@ -124,6 +134,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
         credentialsFile,
         accessToken,
         parentProjectId,
+        useParentProjectForMetadataOperations,
         viewsEnabled,
         materializationProject,
         materializationDataset,

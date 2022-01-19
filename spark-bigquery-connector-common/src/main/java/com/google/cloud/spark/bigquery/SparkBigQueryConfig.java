@@ -117,6 +117,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
   com.google.common.base.Optional<String> query = empty();
   String parentProjectId;
+  boolean useParentProjectForMetadataOperations;
   com.google.common.base.Optional<String> credentialsKey;
   com.google.common.base.Optional<String> credentialsFile;
   com.google.common.base.Optional<String> accessToken;
@@ -242,6 +243,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
     config.parentProjectId =
         getAnyOption(globalOptions, options, "parentProject").or(defaultBilledProject());
+    config.useParentProjectForMetadataOperations =
+        getAnyBooleanOption(globalOptions, options, "useParentProjectForMetadataOperations", false);
     config.credentialsKey = getAnyOption(globalOptions, options, "credentials");
     config.credentialsFile =
         fromJavaUtil(
@@ -507,6 +510,11 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   @Override
   public String getParentProjectId() {
     return parentProjectId;
+  }
+
+  @Override
+  public boolean useParentProjectForMetadataOperations() {
+    return useParentProjectForMetadataOperations;
   }
 
   @Override

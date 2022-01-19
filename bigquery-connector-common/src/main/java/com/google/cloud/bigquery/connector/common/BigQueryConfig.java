@@ -28,6 +28,8 @@ public interface BigQueryConfig {
 
   String getParentProjectId();
 
+  boolean useParentProjectForMetadataOperations();
+
   boolean isViewsEnabled();
 
   Optional<String> getMaterializationProject();
