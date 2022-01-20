@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.google.cloud.spark</groupId>
     <artifactId>spark-bigquery-parent</artifactId>
-    <version>0.23.2-SNAPSHOT</version>
+    <version>0.23.2</version>
     <packaging>pom</packaging>
     <name>Spark BigQuery Connector Build Parent</name>
     <description>Parent project for all the Spark BigQuery Connector artifacts
@@ -58,9 +58,7 @@
         <grpc.version>1.42.1</grpc.version>
         <guava.version>30.1.1-jre</guava.version>
         <jackson.version>2.12.3</jackson.version>
-        <netty.version>4.1.65.Final</netty.version>
         <netty-tcnative-boringssl-static.version>2.0.46.Final</netty-tcnative-boringssl-static.version>
-        <protobuf.version>3.17.3</protobuf.version>
         <netty.version>4.1.70.Final</netty.version>
         <paranamer.version>2.8</paranamer.version>
         <protobuf.version>3.19.1</protobuf.version>

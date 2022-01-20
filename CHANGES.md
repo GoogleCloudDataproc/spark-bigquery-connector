@@ -1,5 +1,15 @@
 # Release Notes
 
+## 0.23.2 - 2022-01-19
+* PR #521: Added Arrow compression options to the
+  spark-bigquery-with-dependencies_2.* connectors
+* PR #526: Added the option to use parent project for the metadata/jobs API as
+  well
+* BigQuery API has been upgraded to version 2.3.3
+* BigQuery Storage API has been upgraded to version 2.4.2
+* gRPC has been upgraded to version 1.42.1
+* Netty has been upgraded to version 4.1.70.Final
+
 ## 0.23.1 - 2021-12-08
 * Issue #501: Fixed using avro as an intermediate type for writing.
 
