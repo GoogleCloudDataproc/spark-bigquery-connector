@@ -108,10 +108,10 @@ case class ArrowConverter(columnsInOrder: Seq[String],
  * @param rowResponseIterator Iterator over rows read from big query
  */
 case class AvroConverter (bqSchema: Schema,
-                 columnsInOrder: Seq[String],
-                 rawAvroSchema: String,
-                 rowResponseIterator : Iterator[ReadRowsResponse],
-                 userProvidedSchema: Optional[StructType])
+                          columnsInOrder: Seq[String],
+                          rawAvroSchema: String,
+                          rowResponseIterator : Iterator[ReadRowsResponse],
+                          userProvidedSchema: Optional[StructType])
 {
   @transient private lazy val avroSchema = new AvroSchema.Parser().parse(rawAvroSchema)
 
@@ -190,8 +190,8 @@ case class ReadRowsHelper(
   java.util.Iterator[
     ReadRowsResponse] =
     client.readRowsCallable
-    .call(readRowsRequest.build)
-    .iterator
+      .call(readRowsRequest.build)
+      .iterator
 
 }
 
