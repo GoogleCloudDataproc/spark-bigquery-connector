@@ -1,5 +1,15 @@
 # Release Notes
 
+## 0.23.2 - 2022-01-19
+* PR #521: Added Arrow compression options to the
+  spark-bigquery-with-dependencies_2.* connectors
+* PR #526: Added the option to use parent project for the metadata/jobs API as
+  well
+* BigQuery API has been upgraded to version 2.3.3
+* BigQuery Storage API has been upgraded to version 2.4.2
+* gRPC has been upgraded to version 1.42.1
+* Netty has been upgraded to version 4.1.70.Final
+
 ## 0.23.1 - 2021-12-08
 * Issue #501: Fixed using avro as an intermediate type for writing.
 
@@ -81,10 +91,10 @@
 ## 0.18.0 - 2020-11-12
 * Issue #226: Adding support for HOUR, MONTH, DAY TimePartitions
 * Issue #260: Increasing connection timeout to the BigQuery service, and
-              configuring the request retry settings.
+  configuring the request retry settings.
 * Issue #263: Fixed `select *` error when ColumnarBatch is used (DataSource v2)
 * Issue #266: Fixed the external configuration not working regression bug
-              (Introduced in version 0.17.2)
+  (Introduced in version 0.17.2)
 * PR #262: Filters on BigQuery DATE and TIMESTAMP now use the right type.
 * BigQuery API has been upgraded to version 1.123.2
 * BigQuery Storage API has been upgraded to version 1.6.0

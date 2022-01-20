@@ -4,11 +4,12 @@
   <parent>
     <groupId>com.google.cloud.spark</groupId>
     <artifactId>spark-bigquery-dsv2-parent</artifactId>
-    <version>0.23.2-SNAPSHOT</version>
+    <version>0.24.0-SNAPSHOT</version>
     <relativePath>../spark-bigquery-dsv2-parent</relativePath>
   </parent>
 
   <artifactId>spark-3.1-bigquery</artifactId>
+  <version>0.24.0-SNAPSHOT-preview</version>
   <name>BigQuery DataSource v2 for Spark 3.1</name>
   <properties>
     <spark.version>3.1.0</spark.version>
