@@ -24,8 +24,8 @@ import org.apache.spark.sql.types.StructType
 
 /** Base BigQuery relation that uses google-cloud-bigquery to get table metadata */
 private[bigquery] case class BigQueryRelation(options: SparkBigQueryConfig, table: TableInfo)
-                                             (@transient val sqlContext: SQLContext)
-  extends BaseRelation with Logging {
+    (@transient val sqlContext: SQLContext)
+    extends BaseRelation with Logging {
 
   val tableId: TableId = table.getTableId
   val tableName: String = BigQueryUtil.friendlyTableName(tableId)

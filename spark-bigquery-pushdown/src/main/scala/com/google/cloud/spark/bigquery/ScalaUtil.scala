@@ -7,7 +7,7 @@ import org.apache.spark.internal.Logging
 
 import java.util.Optional
 
-object BigQueryRelationUtil extends Logging {
+object ScalaUtil extends Logging {
 
   def createBigQuery(options: SparkBigQueryConfig): BigQuery = {
     val credentials = options.createCredentials()

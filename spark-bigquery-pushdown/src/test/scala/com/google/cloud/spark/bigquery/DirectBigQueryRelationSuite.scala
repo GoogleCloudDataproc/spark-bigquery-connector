@@ -237,11 +237,11 @@ class DirectBigQueryRelationSuite
   }
 
   def checkFilters(
-                    relation: DirectBigQueryRelation,
-                    resultWithoutFilters: String,
-                    filters: Array[Filter],
-                    resultWithFilters: String
-                  ): Unit = {
+        relation: DirectBigQueryRelation,
+        resultWithoutFilters: String,
+        filters: Array[Filter],
+        resultWithFilters: String
+      ): Unit = {
     val result1 = relation.getCompiledFilter(Array())
     result1 shouldBe resultWithoutFilters
     val result2 = relation.getCompiledFilter(filters)

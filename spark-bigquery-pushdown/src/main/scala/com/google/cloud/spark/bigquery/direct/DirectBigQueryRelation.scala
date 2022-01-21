@@ -25,7 +25,7 @@ import com.google.cloud.bigquery.connector.common.{BigQueryProxyTransporterBuild
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions
 import com.google.cloud.bigquery.storage.v1.{ArrowSerializationOptions, BigQueryReadClient, BigQueryReadSettings, CreateReadSessionRequest, DataFormat, ReadSession}
 import com.google.cloud.bigquery.{BigQuery, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
-import com.google.cloud.spark.bigquery.{BigQueryRelation, BigQueryRelationUtil, SchemaConverters, SparkBigQueryConfig, SparkBigQueryConnectorUserAgentProvider}
+import com.google.cloud.spark.bigquery.{BigQueryRelation, ScalaUtil, SchemaConverters, SparkBigQueryConfig, SparkBigQueryConnectorUserAgentProvider}
 import com.google.common.cache.{Cache, CacheBuilder}
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
@@ -37,15 +37,15 @@ import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
 import scala.collection.JavaConverters._
 
 private[bigquery] class DirectBigQueryRelation(
-                                                options: SparkBigQueryConfig,
-                                                table: TableInfo,
-                                                getClient: SparkBigQueryConfig => BigQueryReadClient =
-                                                DirectBigQueryRelation.createReadClient,
-                                                bigQueryClient: SparkBigQueryConfig => BigQuery =
-                                                BigQueryRelationUtil.createBigQuery)
-                                              (@transient override val sqlContext: SQLContext)
-  extends BigQueryRelation(options, table)(sqlContext)
-    with TableScan with PrunedScan with PrunedFilteredScan {
+    options: SparkBigQueryConfig,
+    table: TableInfo,
+    getClient: SparkBigQueryConfig => BigQueryReadClient =
+         DirectBigQueryRelation.createReadClient,
+    bigQueryClient: SparkBigQueryConfig => BigQuery =
+         ScalaUtil.createBigQuery)
+    (@transient override val sqlContext: SQLContext)
+    extends BigQueryRelation(options, table)(sqlContext)
+        with TableScan with PrunedScan with PrunedFilteredScan {
 
   val tablePath: String =
     DirectBigQueryRelation.toTablePath(tableId)
@@ -121,7 +121,7 @@ private[bigquery] class DirectBigQueryRelation(
         .build()
       val requiredColumnSet = requiredColumns.toSet
       val prunedSchema = Schema.of(
-        SchemaConverters.getSchemaWithPseudoColumns(actualTable).getFields().asScala
+	SchemaConverters.getSchemaWithPseudoColumns(actualTable).getFields().asScala
           .filter(f => requiredColumnSet.contains(f.getName)).asJava)
 
       val client = getClient(options)
@@ -137,7 +137,7 @@ private[bigquery] class DirectBigQueryRelation(
               .setDataFormat(readDataFormat)
               .setReadOptions(readOptions)
               .setTable(actualTablePath
-              ))
+            ))
             .setMaxStreamCount(maxNumPartitionsRequested)
             .build())
         val partitions = session.getStreamsList.asScala.map(_.getName)
@@ -195,9 +195,9 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   def getActualTable(
-                      requiredColumns: Array[String],
-                      filtersString: String
-                    ): TableInfo = {
+      requiredColumns: Array[String],
+      filtersString: String
+    ): TableInfo = {
     val tableDefinition = table.getDefinition[TableDefinition]
     if(isInputTableAView) {
       // get it from the view
@@ -270,7 +270,7 @@ private[bigquery] class DirectBigQueryRelation(
 
   // return empty if no filters are used
   def createWhereClause(filtersString: String): Option[String] = {
-    BigQueryRelationUtil.noneIfEmpty(filtersString)
+    ScalaUtil.noneIfEmpty(filtersString)
   }
 
   def createDestinationTable: TableId = {
@@ -302,7 +302,7 @@ private[bigquery] class DirectBigQueryRelation(
     if (TableDefinition.Type.EXTERNAL == tableType ||
       (options.isViewsEnabled &&
         (TableDefinition.Type.VIEW == tableType ||
-          TableDefinition.Type.MATERIALIZED_VIEW == tableType))) {
+        TableDefinition.Type.MATERIALIZED_VIEW == tableType))) {
       sqlContext.sparkSession.sessionState.conf.defaultSizeInBytes
     } else {
       tableDefinition.asInstanceOf[StandardTableDefinition].getNumBytes
@@ -315,8 +315,8 @@ private[bigquery] class DirectBigQueryRelation(
       // new behaviour, fixing
       // https://github.com/GoogleCloudPlatform/spark-bigquery-connector/issues/74
       Seq(
-        BigQueryRelationUtil.toOption(options.getFilter),
-        BigQueryRelationUtil.noneIfEmpty(DirectBigQueryRelation.compileFilters(
+        ScalaUtil.toOption(options.getFilter),
+        ScalaUtil.noneIfEmpty(DirectBigQueryRelation.compileFilters(
           handledFilters(filters)))
       )
         .flatten
@@ -374,10 +374,10 @@ object DirectBigQueryRelation {
     }
     var clientSettings = BigQueryReadSettings.newBuilder()
       .setTransportChannelProvider(settingsBuilder.build())
-    clientSettings.setCredentialsProvider(
-      new CredentialsProvider {
-        override def getCredentials: Credentials = options.createCredentials
-      })
+     clientSettings.setCredentialsProvider(
+        new CredentialsProvider {
+          override def getCredentials: Credentials = options.createCredentials
+        })
 
     BigQueryReadClient.create(clientSettings.build)
   }
@@ -387,10 +387,10 @@ object DirectBigQueryRelation {
       new SparkBigQueryConnectorUserAgentProvider("v1").getUserAgent)
 
   def isTopLevelFieldFilterHandled(
-                                    pushAllFilters: Boolean,
-                                    filter: Filter,
-                                    readDataFormat: DataFormat,
-                                    fields: Map[String, StructField]): Boolean = {
+      pushAllFilters: Boolean,
+      filter: Filter,
+      readDataFormat: DataFormat,
+      fields: Map[String, StructField]): Boolean = {
     if (pushAllFilters) {
       return true
     }
@@ -413,11 +413,11 @@ object DirectBigQueryRelation {
         isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
       case And(lhs, rhs) =>
         isTopLevelFieldFilterHandled(pushAllFilters, lhs, readDataFormat, fields) &&
-          isTopLevelFieldFilterHandled(pushAllFilters, rhs, readDataFormat, fields)
+        isTopLevelFieldFilterHandled(pushAllFilters, rhs, readDataFormat, fields)
       case Or(lhs, rhs) =>
         readDataFormat == DataFormat.AVRO &&
-          isTopLevelFieldFilterHandled(pushAllFilters, lhs, readDataFormat, fields) &&
-          isTopLevelFieldFilterHandled(pushAllFilters, rhs, readDataFormat, fields)
+        isTopLevelFieldFilterHandled(pushAllFilters, lhs, readDataFormat, fields) &&
+        isTopLevelFieldFilterHandled(pushAllFilters, rhs, readDataFormat, fields)
       case Not(child) => isTopLevelFieldFilterHandled(pushAllFilters, child, readDataFormat, fields)
       case StringStartsWith(attr, _) =>
         isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
@@ -431,10 +431,10 @@ object DirectBigQueryRelation {
 
   // BigQuery Storage API does not handle RECORD/STRUCT fields at the moment
   def isFilterWithNamedFieldHandled(
-                                     filter: Filter,
-                                     readDataFormat: DataFormat,
-                                     fields: Map[String, StructField],
-                                     fieldName: String): Boolean = {
+      filter: Filter,
+      readDataFormat: DataFormat,
+      fields: Map[String, StructField],
+      fieldName: String): Boolean = {
     fields.get(fieldName)
       .filter(f => (f.dataType.isInstanceOf[StructType] || f.dataType.isInstanceOf[ArrayType]))
       .map(_ => false)
