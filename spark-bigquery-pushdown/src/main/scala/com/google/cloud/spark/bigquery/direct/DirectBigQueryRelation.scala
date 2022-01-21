@@ -21,7 +21,7 @@ import java.util.concurrent.{Callable, TimeUnit}
 import com.google.api.gax.core.CredentialsProvider
 import com.google.api.gax.rpc.FixedHeaderProvider
 import com.google.auth.Credentials
-import com.google.cloud.bigquery.connector.common.{BigQueryProxyTransporterBuilder, BigQueryUtil}
+import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryProxyTransporterBuilder, BigQueryUtil}
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions
 import com.google.cloud.bigquery.storage.v1.{ArrowSerializationOptions, BigQueryReadClient, BigQueryReadSettings, CreateReadSessionRequest, DataFormat, ReadSession}
 import com.google.cloud.bigquery.{BigQuery, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
@@ -39,18 +39,15 @@ import scala.collection.JavaConverters._
 private[bigquery] class DirectBigQueryRelation(
     options: SparkBigQueryConfig,
     table: TableInfo,
+    bigQueryClient: BigQueryClient,
     getClient: SparkBigQueryConfig => BigQueryReadClient =
-         DirectBigQueryRelation.createReadClient,
-    bigQueryClient: SparkBigQueryConfig => BigQuery =
-         ScalaUtil.createBigQuery)
+         DirectBigQueryRelation.createReadClient)
     (@transient override val sqlContext: SQLContext)
     extends BigQueryRelation(options, table)(sqlContext)
         with TableScan with PrunedScan with PrunedFilteredScan {
 
   val tablePath: String =
     DirectBigQueryRelation.toTablePath(tableId)
-
-  lazy val bigQuery = bigQueryClient(options)
 
   val topLevelFields = SchemaConverters
     .toSpark(SchemaConverters.getSchemaWithPseudoColumns(table))
@@ -166,8 +163,7 @@ private[bigquery] class DirectBigQueryRelation(
           prunedSchema,
           requiredColumns,
           options,
-          getClient,
-          bigQueryClient).asInstanceOf[RDD[Row]]
+          getClient).asInstanceOf[RDD[Row]]
 
       } finally {
         // scanTable returns immediately not after the actual data is read.
@@ -185,7 +181,7 @@ private[bigquery] class DirectBigQueryRelation(
       // run a query
       val table = DirectBigQueryRelation.toSqlTableReference(tableInfo.getTableId)
       val sql = s"SELECT COUNT(*) from `$table` WHERE $filter"
-      val result = bigQuery.query(QueryJobConfiguration.of(sql))
+      val result = bigQueryClient.query(sql)
       result.iterateAll.iterator.next.get(0).getLongValue
     }
     logInfo(s"Used optimized BQ count(*) path. Count: $numberOfRows")
@@ -232,22 +228,21 @@ private[bigquery] class DirectBigQueryRelation(
   def createTableFromQuery(querySql: String): TableInfo = {
     val destinationTable = createDestinationTable
     logDebug(s"destinationTable is $destinationTable")
-    val jobInfo = JobInfo.of(
-      QueryJobConfiguration
+    val jobInfo = QueryJobConfiguration
         .newBuilder(querySql)
         .setDestinationTable(destinationTable)
-        .build())
+        .build()
     logDebug(s"running query $jobInfo")
-    val job = bigQuery.create(jobInfo).waitFor()
+    val job = bigQueryClient.createAndWaitFor(jobInfo)
     logDebug(s"job has finished. $job")
     if(job.getStatus.getError != null) {
       BigQueryUtil.convertAndThrow(job.getStatus.getError)
     }
     // add expiration time to the table
-    val createdTable = bigQuery.getTable(destinationTable)
+    val createdTable = bigQueryClient.getTable(destinationTable)
     val expirationTime = createdTable.getCreationTime +
       TimeUnit.MINUTES.toMillis(options.getMaterializationExpirationTimeInMinutes)
-    val updatedTable = bigQuery.update(createdTable.toBuilder
+    val updatedTable = bigQueryClient.update(createdTable.toBuilder
       .setExpirationTime(expirationTime)
       .build())
     updatedTable
