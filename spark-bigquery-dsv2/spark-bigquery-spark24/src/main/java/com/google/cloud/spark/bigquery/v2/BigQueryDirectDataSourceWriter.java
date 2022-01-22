@@ -19,10 +19,13 @@ import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
 import static com.google.cloud.spark.bigquery.SchemaConverters.toBigQuerySchema;
 
 import com.google.api.gax.retrying.RetrySettings;
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.Job;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.storage.v1beta2.BatchCommitWriteStreamsRequest;
 import com.google.cloud.bigquery.storage.v1beta2.BatchCommitWriteStreamsResponse;
 import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteClient;
@@ -112,12 +115,9 @@ public class BigQueryDirectDataSourceWriter implements DataSourceWriter {
       SaveMode saveMode, TableId destinationTableId, Schema bigQuerySchema)
       throws IllegalArgumentException {
     if (bigQueryClient.tableExists(destinationTableId)) {
+      Schema tableSchema = bigQueryClient.getTable(destinationTableId).getDefinition().getSchema();
       Preconditions.checkArgument(
-          bigQueryClient
-              .getTable(destinationTableId)
-              .getDefinition()
-              .getSchema()
-              .equals(bigQuerySchema),
+          BigQueryUtil.schemaEquals(tableSchema, bigQuerySchema, /* regardFieldOrder */ false),
           new BigQueryConnectorException.InvalidSchemaException(
               "Destination table's schema is not compatible with dataframe's schema"));
       switch (saveMode) {
