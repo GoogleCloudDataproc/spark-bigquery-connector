@@ -23,7 +23,11 @@ import com.google.auth.Credentials;
 import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -38,9 +42,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class BigQueryUtil {
   static final ImmutableSet<String> INTERNAL_ERROR_MESSAGES =
@@ -203,5 +210,84 @@ public class BigQueryUtil {
       trimmedUriMap.put(trimmedUri, uri);
     }
     return trimmedUriMap;
+  }
+
+  /**
+   * Compares to Schema instances for equality. Unlike Schema.equals(), here the caller can
+   * disregard the schema's field order.
+   *
+   * @param s1 the first schema to compare
+   * @param s2 the second schema to compare
+   * @param regardFieldOrder whether to regard the field order in the comparison
+   * @return true is the two schema equal each other, false otherwise
+   */
+  public static boolean schemaEquals(Schema s1, Schema s2, boolean regardFieldOrder) {
+    if (s1 == s2) {
+      return true;
+    }
+    // if both are null we would have caught it earlier
+    if (s1 == null || s2 == null) {
+      return false;
+    }
+    if (regardFieldOrder) {
+      return s1.equals(s2);
+    }
+    // compare field by field
+    return fieldListEquals(s1.getFields(), s2.getFields());
+  }
+
+  // We need this method as the BigQuery API may leave the mode field as null in case of NULLABLE
+  @VisibleForTesting
+  static boolean fieldEquals(Field f1, Field f2) {
+    if (f1 == f2) {
+      return true;
+    }
+    // if both are null we would have caught it earlier
+    if (f1 == null || f2 == null) {
+      return false;
+    }
+
+    if (!fieldListEquals(f1.getSubFields(), f2.getSubFields())) {
+      return false;
+    }
+
+    return Objects.equal(f1.getName(), f2.getName())
+        && Objects.equal(f1.getType(), f2.getType())
+        && Objects.equal(nullableIfNull(f1.getMode()), nullableIfNull(f2.getMode()))
+        && Objects.equal(f1.getDescription(), f2.getDescription())
+        && Objects.equal(f1.getPolicyTags(), f2.getPolicyTags())
+        && Objects.equal(f1.getMaxLength(), f2.getMaxLength())
+        && Objects.equal(f1.getScale(), f2.getScale())
+        && Objects.equal(f1.getPrecision(), f2.getPrecision());
+  }
+
+  @VisibleForTesting
+  static boolean fieldListEquals(FieldList fl1, FieldList fl2) {
+    if (fl1 == fl2) {
+      return true;
+    }
+    // if both are null we would have caught it earlier
+    if (fl1 == null || fl2 == null) {
+      return false;
+    }
+
+    Map<String, Field> fieldsMap1 =
+        fl1.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
+    Map<String, Field> fieldsMap2 =
+        fl2.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
+
+    for (Map.Entry<String, Field> e : fieldsMap1.entrySet()) {
+      Field f1 = e.getValue();
+      Field f2 = fieldsMap2.get(e.getKey());
+      if (!fieldEquals(f1, f2)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  static Field.Mode nullableIfNull(Field.Mode mode) {
+    return mode == null ? Field.Mode.NULLABLE : mode;
   }
 }
