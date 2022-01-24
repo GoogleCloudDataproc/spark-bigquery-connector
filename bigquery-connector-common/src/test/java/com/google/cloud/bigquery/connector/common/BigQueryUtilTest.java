@@ -20,6 +20,9 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.TableId;
 import java.util.Optional;
 import org.junit.Test;
@@ -143,5 +146,62 @@ public class BigQueryUtilTest {
     assertThat(BigQueryUtil.firstPresent(Optional.of("a"), Optional.empty()))
         .isEqualTo(Optional.of("a"));
     assertThat(BigQueryUtil.firstPresent(Optional.empty())).isEqualTo(Optional.empty());
+  }
+
+  @Test
+  public void testSchemaEqualsWithFieldOrder() {
+    Schema s1 =
+        Schema.of(
+            Field.newBuilder("foo", StandardSQLTypeName.INT64).build(),
+            Field.newBuilder("bar", StandardSQLTypeName.STRING).build());
+    Schema s2 =
+        Schema.of(
+            Field.newBuilder("foo", StandardSQLTypeName.INT64).build(),
+            Field.newBuilder("bar", StandardSQLTypeName.STRING).build());
+
+    assertThat(BigQueryUtil.schemaEquals(s1, s2, true)).isTrue();
+    assertThat(BigQueryUtil.schemaEquals(s1, s2, false)).isTrue();
+  }
+
+  @Test
+  public void testSchemaEqualsNoFieldOrder() {
+    Schema s1 =
+        Schema.of(
+            Field.newBuilder("foo", StandardSQLTypeName.INT64).build(),
+            Field.newBuilder("bar", StandardSQLTypeName.STRING).build());
+    Schema s2 =
+        Schema.of(
+            Field.newBuilder("bar", StandardSQLTypeName.STRING).build(),
+            Field.newBuilder("foo", StandardSQLTypeName.INT64).build());
+
+    assertThat(BigQueryUtil.schemaEquals(s1, s2, true)).isFalse();
+    assertThat(BigQueryUtil.schemaEquals(s1, s2, false)).isTrue();
+  }
+
+  @Test
+  public void testNullableField() {
+    Field f1 = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
+    Field f2 =
+        Field.newBuilder("foo", StandardSQLTypeName.INT64).setMode(Field.Mode.NULLABLE).build();
+    assertThat(BigQueryUtil.fieldEquals(f1, f2)).isTrue();
+  }
+
+  @Test
+  public void testSchemaEqualsWithNulls() {
+    Schema s =
+        Schema.of(
+            Field.newBuilder("foo", StandardSQLTypeName.INT64).build(),
+            Field.newBuilder("bar", StandardSQLTypeName.STRING).build());
+    assertThat(BigQueryUtil.schemaEquals(s, null, false)).isFalse();
+    // two nulls
+    assertThat(BigQueryUtil.schemaEquals(null, null, false)).isTrue();
+  }
+
+  @Test
+  public void testFieldEqualsWithNulls() {
+    Field f = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
+    assertThat(BigQueryUtil.fieldEquals(f, null)).isFalse();
+    // two nulls
+    assertThat(BigQueryUtil.fieldEquals(null, null)).isTrue();
   }
 }

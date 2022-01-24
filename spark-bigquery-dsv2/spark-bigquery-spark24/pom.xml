@@ -10,7 +10,7 @@
   </parent>
 
   <artifactId>spark-2.4-bigquery</artifactId>
-  <version>0.23.3-preview-SNAPSHOT</version>
+  <version>0.23.3-SNAPSHOT-preview</version>
   <name>BigQuery DataSource v2 for Spark 2.4</name>
   <properties>
     <spark.version>2.4.0</spark.version>
