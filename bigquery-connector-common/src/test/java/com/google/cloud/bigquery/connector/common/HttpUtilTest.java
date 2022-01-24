@@ -15,13 +15,14 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.api.gax.rpc.HeaderProvider;
+import org.junit.Test;
+
+import java.util.Map;
+
 import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import com.google.api.gax.rpc.HeaderProvider;
-import java.util.Map;
-import org.junit.Test;
 
 public class HttpUtilTest {
 
