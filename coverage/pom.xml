@@ -88,7 +88,7 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.1-bigquery</artifactId>
-          <version>${project.version}</version>
+          <version>${project.version}-preview</version>
         </dependency>
       </dependencies>
     </profile>
@@ -185,7 +185,7 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.1-bigquery</artifactId>
-          <version>${project.version}</version>
+          <version>${project.version}-preview</version>
         </dependency>
       </dependencies>
     </profile>
@@ -211,7 +211,7 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.1-bigquery</artifactId>
-          <version>${project.version}</version>
+          <version>${project.version}-preview</version>
         </dependency>
       </dependencies>
     </profile>

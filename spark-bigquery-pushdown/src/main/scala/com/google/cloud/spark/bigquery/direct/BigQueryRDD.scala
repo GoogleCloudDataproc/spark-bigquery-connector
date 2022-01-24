@@ -39,8 +39,7 @@ class BigQueryRDD(sc: SparkContext,
                   columnsInOrder: Seq[String],
                   bqSchema: Schema,
                   options: SparkBigQueryConfig,
-                  getClient: SparkBigQueryConfig => BigQueryReadClient,
-                  bigQueryClient: SparkBigQueryConfig => BigQuery)
+                  getClient: SparkBigQueryConfig => BigQueryReadClient)
   extends RDD[InternalRow](sc, Nil) {
 
   override def compute(split: Partition, context: TaskContext): Iterator[InternalRow] = {
@@ -202,15 +201,13 @@ object BigQueryRDD {
                 bqSchema: Schema,
                 columnsInOrder: Seq[String],
                 options: SparkBigQueryConfig,
-                getClient: SparkBigQueryConfig => BigQueryReadClient,
-                bigQueryClient: SparkBigQueryConfig => BigQuery): BigQueryRDD = {
+                getClient: SparkBigQueryConfig => BigQueryReadClient): BigQueryRDD = {
     new BigQueryRDD(sqlContext.sparkContext,
       parts,
       session,
       columnsInOrder: Seq[String],
       bqSchema,
       options,
-      getClient,
-      bigQueryClient)
+      getClient)
   }
 }
