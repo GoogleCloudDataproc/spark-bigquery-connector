@@ -72,6 +72,12 @@ The latest version of the connector is publicly available in the following links
 | Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.23.2.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.23.2.jar)) |
 | Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-0.23.2-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-0.23.2-preview.jar)) |
 
+The only difference between first two connectors is that the former is a Scala 2.11 based connector, targeting Spark 2.3
+and 2.4 using Scala 2.11 whereas the latter is a Scala 2.12 based connector, targeting Spark 2.4 and 3.x using Scala 2.12.
+There should not be any code differences between the 2 connectors.
+
+Third version is a Java based connector targeting Spark 2.4 of all Scala versions built on the new Data Source APIs(Data Source API v2) of Spark.
+
 **Note:** If you are using scala jars please use the jar relevant to your Spark installation. Starting from Spark 2.4 onwards there is an
 option to use the Java only jar.
 
@@ -500,6 +506,11 @@ The API Supports a number of options to configure the read
        <br/>&nbsp;&nbsp;.mode("overwrite")
        <br/>&nbsp;&nbsp;.save("table")</code>
        <br/>(Optional). On write only.
+        <br/> Can also be used with diffrent partition types like:
+        <br/> HOUR: <code>YYYYMMDDHH</code>
+        <br/> MONTH: <code>YYYYMM</code>
+        <br/> YEAR: <code>YYYY</code>
+
    </td>
    <td>Write</td>
   </tr>
@@ -528,8 +539,8 @@ The API Supports a number of options to configure the read
    <tr valign="top">
        <td><code>partitionType</code>
         </td>
-        <td>The only type supported is DAY, which will generate one partition per day. This option is <b>mandatory</b>
-            for a target table to be partitioned.
+        <td>Supported types are: <code>HOUR, DAY, MONTH, YEAR</code> 
+            <br/> This option is <b>mandatory</b> for a target table to be partitioned.
             <br/>(Optional. Defaults to DAY if PartitionField is specified).
         </td>
         <td>Write</td>
