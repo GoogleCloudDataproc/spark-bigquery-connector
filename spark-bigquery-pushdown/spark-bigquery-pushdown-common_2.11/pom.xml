@@ -10,23 +10,25 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>spark-bigquery-pushdown_2.11</artifactId>
+  <artifactId>spark-bigquery-pushdown-common_2.11</artifactId>
   <properties>
     <scala.binary.version>2.11</scala.binary.version>
     <scala.version>2.11.8</scala.version>
     <spark.version>2.4.0</spark.version>
   </properties>
-  <licenses>
-    <license>
-      <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>spark-bigquery-dsv1-relation_${scala.binary.version}</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
   <build>
     <plugins>
-      <!-- make sure we don't have any _2.10 or _2.12 dependencies when building
-      for Scala 2.11 -->
+      <!-- make sure we don't have any _2.10 or _2.11 dependencies when building
+      for Scala 2.12 -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
@@ -52,4 +54,5 @@
       </plugin>
     </plugins>
   </build>
+
 </project>
