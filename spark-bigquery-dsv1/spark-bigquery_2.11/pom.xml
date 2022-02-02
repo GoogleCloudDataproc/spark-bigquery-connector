@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.google.cloud.spark</groupId>
     <artifactId>spark-bigquery-dsv1-parent</artifactId>
-    <version>0.24.0-SNAPSHOT</version>
+    <version>${revision}</version>
     <relativePath>../spark-bigquery-dsv1-parent</relativePath>
   </parent>
 
