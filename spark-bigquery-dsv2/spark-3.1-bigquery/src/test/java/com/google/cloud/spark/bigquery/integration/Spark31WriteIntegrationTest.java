@@ -16,11 +16,10 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import java.util.Arrays;
 import java.util.Collection;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class Spark31WriteIntegrationTest extends WriteIntegrationTestBase {
