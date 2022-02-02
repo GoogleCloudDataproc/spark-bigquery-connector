@@ -21,12 +21,11 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.inject.Injector;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
-
-import java.util.Map;
-import java.util.Optional;
 
 public interface DataSourceWriterContext {
 

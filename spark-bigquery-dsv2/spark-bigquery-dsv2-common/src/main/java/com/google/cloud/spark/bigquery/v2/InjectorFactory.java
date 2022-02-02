@@ -5,29 +5,19 @@ import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConnectorModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.types.StructType;
-
 import java.util.Map;
 import java.util.Optional;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.StructType;
 
 public class InjectorFactory {
   private InjectorFactory() {}
 
-  public static Injector createInjector(
-      StructType schema, Map<String, String> options) {
-    SparkSession spark = getDefaultSparkSessionOrCreate();
+  public static Injector createInjector(StructType schema, Map<String, String> options) {
+    SparkSession spark = SparkSession.active();
     return Guice.createInjector(
         new BigQueryClientModule(),
         new SparkBigQueryConnectorModule(
             spark, options, Optional.ofNullable(schema), DataSourceVersion.V2));
-  }
-
-  protected static SparkSession getDefaultSparkSessionOrCreate() {
-    scala.Option<SparkSession> defaultSpareSession = SparkSession.getActiveSession();
-    if (defaultSpareSession.isDefined()) {
-      return defaultSpareSession.get();
-    }
-    return SparkSession.builder().appName("spark-bigquery-connector").getOrCreate();
   }
 }

@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -40,7 +39,4 @@ public class Spark31WriteIntegrationTest extends WriteIntegrationTestBase {
 
   // tests from superclass
 
-  @Test public void foo() throws Exception {
-    this.testWriteToBigQuery_AppendSaveMode();
-  }
 }

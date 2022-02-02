@@ -15,11 +15,14 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderModule;
 import com.google.cloud.spark.bigquery.v2.context.DataSourceWriterContext;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Injector;
+import java.util.Optional;
+import java.util.Set;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.catalog.SupportsWrite;
@@ -30,9 +33,6 @@ import org.apache.spark.sql.connector.write.LogicalWriteInfo;
 import org.apache.spark.sql.connector.write.WriteBuilder;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
-
-import java.util.Optional;
-import java.util.Set;
 
 public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
 
@@ -55,7 +55,7 @@ public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
 
   @Override
   public String name() {
-    return "hello";
+    return injector.getInstance(SparkBigQueryConfig.class).getTableId().getTable();
   }
 
   @Override
