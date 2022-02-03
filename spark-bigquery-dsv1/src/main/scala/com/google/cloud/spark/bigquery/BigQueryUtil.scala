@@ -27,7 +27,7 @@ object BigQueryUtilScala extends Logging{
   // validating that the connector's scala version and the runtime's scala
   // version are the same
   def validateScalaVersionCompatibility(): Unit = {
-    val runtimeScalaVersion = getRuntimeScalaVersion
+    val runtimeScalaVersion = trimVersion(scala.util.Properties.versionNumberString)
     val buildProperties = new Properties
     buildProperties.load(getClass.getResourceAsStream("/spark-bigquery-connector.properties"))
     val connectorScalaVersion = buildProperties.getProperty("scala.binary.version")
@@ -38,10 +38,6 @@ object BigQueryUtilScala extends Logging{
            |it was not meant to run on Scala $runtimeScalaVersion"""
           .stripMargin.replace('\n', ' '))
     }
-  }
-
-  def getRuntimeScalaVersion: String = {
-    trimVersion(scala.util.Properties.versionNumberString)
   }
 
   private def trimVersion(version: String) =
