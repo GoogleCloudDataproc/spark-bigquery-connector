@@ -539,7 +539,7 @@ The API Supports a number of options to configure the read
    <tr valign="top">
        <td><code>partitionType</code>
         </td>
-        <td>Supported types are: <code>HOUR, DAY, MONTH, YEAR</code> 
+        <td>Supported types are: <code>HOUR, DAY, MONTH, YEAR</code>
             <br/> This option is <b>mandatory</b> for a target table to be partitioned.
             <br/>(Optional. Defaults to DAY if PartitionField is specified).
         </td>
