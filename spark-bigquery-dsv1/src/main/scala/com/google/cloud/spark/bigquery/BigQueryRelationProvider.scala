@@ -26,7 +26,7 @@ import org.apache.spark.sql.execution.streaming.Sink
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode, SparkSession}
+import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
 import scala.collection.JavaConverters._
 
@@ -72,7 +72,6 @@ class BigQueryRelationProvider(
                                         schema: Option[StructType] = None): BigQueryRelation = {
     val injector = getGuiceInjectorCreator().createGuiceInjector(sqlContext, parameters, schema)
     val opts = injector.getInstance(classOf[SparkBigQueryConfig])
-    setQueryPushdownSession(sqlContext.sparkSession, opts.isQueryPushdownEnabled)
     val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
     val tableInfo = bigQueryClient.getReadTable(opts.toReadTableOptions)
     val tableName = BigQueryUtil.friendlyTableName(opts.getTableId)
@@ -91,16 +90,6 @@ class BigQueryRelationProvider(
       }
       case unsupported => throw new UnsupportedOperationException(
         s"The type of table $tableName is currently not supported: $unsupported")
-    }
-  }
-
-  private def setQueryPushdownSession(session: SparkSession, enabled: Boolean): Unit = {
-    if (BigQueryUtilScala.getRuntimeScalaVersion == "2.12") {
-      if (enabled) {
-        SparkBigQueryPushdownUtil.enablePushdownSession(session)
-      } else {
-        SparkBigQueryPushdownUtil.disablePushdownSession(session)
-      }
     }
   }
 

@@ -24,16 +24,6 @@
       <artifactId>spark-bigquery-dsv1-relation_${scala.binary.version}</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>spark-2.4-bigquery-pushdown_${scala.binary.version}</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>spark-3.1-bigquery-pushdown_${scala.binary.version}</artifactId>
-      <version>${project.version}</version>
-    </dependency>
   </dependencies>
 
   <build>
@@ -54,8 +44,8 @@
               <rules>
                 <bannedDependencies>
                   <excludes combine.children="append">
-                    <exclude>*:*_2.11</exclude>
                     <exclude>*:*_2.10</exclude>
+                    <exclude>*:*_2.11</exclude>
                   </excludes>
                 </bannedDependencies>
               </rules>

@@ -78,7 +78,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   }
 
   public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
-  public static final String QUERY_PUSHDOWN_ENABLED_OPTION = "queryPushdownEnabled";
   public static final String USE_AVRO_LOGICAL_TYPES_OPTION = "useAvroLogicalTypes";
   public static final String DATE_PARTITION_PARAM = "datePartition";
   public static final String VALIDATE_SPARK_AVRO_PARAM = "validateSparkAvroInternalParam";
@@ -134,7 +133,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   DataFormat readDataFormat = DEFAULT_READ_DATA_FORMAT;
   boolean combinePushedDownFilters = true;
   boolean viewsEnabled = false;
-  boolean queryPushdownEnabled = false;
   com.google.common.base.Optional<String> materializationProject = empty();
   com.google.common.base.Optional<String> materializationDataset = empty();
   com.google.common.base.Optional<String> partitionField = empty();
@@ -204,8 +202,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
               + " is "
               + config.materializationExpirationTimeInMinutes);
     }
-    config.queryPushdownEnabled =
-        getAnyBooleanOption(globalOptions, options, QUERY_PUSHDOWN_ENABLED_OPTION, false);
     // get the table details
     Optional<String> tableParam =
         getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
@@ -586,10 +582,6 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
   public boolean isViewsEnabled() {
     return viewsEnabled;
-  }
-
-  public boolean isQueryPushdownEnabled() {
-    return queryPushdownEnabled;
   }
 
   @Override

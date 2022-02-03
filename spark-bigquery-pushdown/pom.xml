@@ -18,6 +18,7 @@
     <module>spark-bigquery-pushdown-parent</module>
     <module>spark-bigquery-dsv1-relation_2.11</module>
     <module>spark-bigquery-dsv1-relation_2.12</module>
+    <module>spark-2.4-bigquery-pushdown_2.11</module>
     <module>spark-2.4-bigquery-pushdown_2.12</module>
     <module>spark-3.1-bigquery-pushdown_2.12</module>
     <module>spark-bigquery-pushdown-common_2.11</module>
