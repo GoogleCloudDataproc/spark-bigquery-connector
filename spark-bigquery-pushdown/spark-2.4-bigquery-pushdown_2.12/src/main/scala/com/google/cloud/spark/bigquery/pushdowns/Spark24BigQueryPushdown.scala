@@ -2,7 +2,7 @@ package com.google.cloud.spark.bigquery.pushdowns
 
 import org.apache.spark.sql.SparkSession
 
-class BigQueryPushdownService extends BigQueryPushdown {
+class Spark24BigQueryPushdown extends SparkBigQueryPushdown {
   override def enable(session: SparkSession): Unit = {
     // TODO
   }
@@ -12,6 +12,6 @@ class BigQueryPushdownService extends BigQueryPushdown {
   }
 
   override def supportsSparkVersion(sparkVersion: String): Boolean = {
-    sparkVersion.startsWith("3.1")
+    sparkVersion.startsWith("2.4")
   }
 }
