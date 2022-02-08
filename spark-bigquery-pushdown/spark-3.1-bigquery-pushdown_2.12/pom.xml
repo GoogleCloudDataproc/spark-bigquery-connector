@@ -10,19 +10,27 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>spark-bigquery-pushdown_2.12</artifactId>
+  <artifactId>spark-3.1-bigquery-pushdown_2.12</artifactId>
+
   <properties>
     <scala.binary.version>2.12</scala.binary.version>
-    <scala.version>2.12.7</scala.version>
-    <spark.version>2.4.0</spark.version>
+    <spark.version>3.1.0</spark.version>
   </properties>
-  <licenses>
-    <license>
-      <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>spark-bigquery-pushdown-common_${scala.binary.version}</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-sql_${scala.binary.version}</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
   <build>
     <plugins>
       <!-- make sure we don't have any _2.10 or _2.11 dependencies when building
@@ -41,8 +49,8 @@
               <rules>
                 <bannedDependencies>
                   <excludes combine.children="append">
-                    <exclude>*:*_2.11</exclude>
                     <exclude>*:*_2.10</exclude>
+                    <exclude>*:*_2.11</exclude>
                   </excludes>
                 </bannedDependencies>
               </rules>

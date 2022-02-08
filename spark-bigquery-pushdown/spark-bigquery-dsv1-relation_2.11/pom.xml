@@ -10,10 +10,9 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>spark-bigquery-pushdown_2.11</artifactId>
+  <artifactId>spark-bigquery-dsv1-relation_2.11</artifactId>
   <properties>
     <scala.binary.version>2.11</scala.binary.version>
-    <scala.version>2.11.8</scala.version>
     <spark.version>2.4.0</spark.version>
   </properties>
   <licenses>
@@ -41,8 +40,8 @@
               <rules>
                 <bannedDependencies>
                   <excludes combine.children="append">
-                    <exclude>*:*_2.12</exclude>
                     <exclude>*:*_2.10</exclude>
+                    <exclude>*:*_2.12</exclude>
                   </excludes>
                 </bannedDependencies>
               </rules>
