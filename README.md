@@ -831,6 +831,7 @@ pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.2
 2) Adding python files in Jupyter Notebook
 ```
 from pyspark.sql import SparkSession
+from pyspark import SparkFiles
 # use appropriate version for jar depending on the scala version
 spark = SparkSession.builder\
   .appName('BigNumeric')\
@@ -838,6 +839,11 @@ spark = SparkSession.builder\
   .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support-0.23.2.zip')\
   .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support-0.23.2.zip')\
   .getOrCreate()
+
+# extract the spark-bigquery-support zip file  
+import zipfile
+with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.23.2.zip")) as zf:
+  zf.extractall()  
 ```
 
 3) Adding Python files during runtime
