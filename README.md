@@ -840,10 +840,10 @@ spark = SparkSession.builder\
   .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support-0.23.2.zip')\
   .getOrCreate()
 
-# extract the spark-bigquery-support zip file  
+# extract the spark-bigquery-support zip file
 import zipfile
 with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.23.2.zip")) as zf:
-  zf.extractall()  
+  zf.extractall()
 ```
 
 3) Adding Python files during runtime
