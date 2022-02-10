@@ -110,18 +110,30 @@ public class BigQueryDataSourceWriterModule implements Module {
 
     // Throw exception if persistentGcsPath already exists in persistentGcsBucket
     if (config.getPersistentGcsBucket().isPresent() && config.getPersistentGcsPath().isPresent()) {
-      gcsPath = new Path(String.format("gs://%s/%s", config.getPersistentGcsBucket().get(), config.getPersistentGcsPath().get()));
+      gcsPath =
+          new Path(
+              String.format(
+                  "gs://%s/%s",
+                  config.getPersistentGcsBucket().get(), config.getPersistentGcsPath().get()));
       FileSystem fs = gcsPath.getFileSystem(conf);
       if (fs.exists(gcsPath)) {
-        throw new IllegalArgumentException(String.format("Path %s already exists in %s bucket",
-            config.getPersistentGcsPath().get(), config.getPersistentGcsBucket().get()));
+        throw new IllegalArgumentException(
+            String.format(
+                "Path %s already exists in %s bucket",
+                config.getPersistentGcsPath().get(), config.getPersistentGcsBucket().get()));
       }
-    }
-    else if (config.getTemporaryGcsBucket().isPresent()) {
-      gcsPath = new Path(String.format("gs://%s/.spark-bigquery-%s-%s", config.getTemporaryGcsBucket().get(), applicationId, UUID.randomUUID()));
-    }
-    else {
-      gcsPath = new Path(String.format("gs://%s/.spark-bigquery-%s-%s", config.getPersistentGcsBucket().get(), applicationId, UUID.randomUUID()));
+    } else if (config.getTemporaryGcsBucket().isPresent()) {
+      gcsPath =
+          new Path(
+              String.format(
+                  "gs://%s/.spark-bigquery-%s-%s",
+                  config.getTemporaryGcsBucket().get(), applicationId, UUID.randomUUID()));
+    } else {
+      gcsPath =
+          new Path(
+              String.format(
+                  "gs://%s/.spark-bigquery-%s-%s",
+                  config.getPersistentGcsBucket().get(), applicationId, UUID.randomUUID()));
     }
 
     return gcsPath;
