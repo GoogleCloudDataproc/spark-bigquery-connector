@@ -1,9 +1,9 @@
 package com.google.cloud.spark.bigquery
 
-import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdown
+import com.google.cloud.spark.bigquery.pushdowns.{BigQueryStrategy, SparkBigQueryPushdown}
 import org.apache.spark.sql.SparkSession
-import scala.collection.JavaConverters._
 
+import scala.collection.JavaConverters._
 import java.util.ServiceLoader
 
 object BigQueryConnectorUtils {
@@ -12,8 +12,8 @@ object BigQueryConnectorUtils {
     val sparkBigQueryPushdown = ServiceLoader.load(classOf[SparkBigQueryPushdown])
       .iterator().asScala.find(p => p.supportsSparkVersion(session.version))
       .getOrElse(sys.error(s"Query pushdown not supported for Spark version ${session.version}"))
-    // TODO: pass BigQueryStrategy with any required dependencies injected
-    sparkBigQueryPushdown.enable(session)
+    // TODO: Inject dependencies in BigQueryStrategy
+    sparkBigQueryPushdown.enable(session, new BigQueryStrategy)
   }
 
   def disablePushdownSession(session: SparkSession): Unit = {
