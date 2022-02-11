@@ -34,7 +34,6 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.http.BaseHttpServiceException;
 import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -58,20 +57,20 @@ import org.threeten.bp.Duration;
 public class BigQueryClient {
   private static final Logger log = LoggerFactory.getLogger(BigQueryClient.class);
 
-  private static Cache<String, TableInfo> destinationTableCache =
-      CacheBuilder.newBuilder().expireAfterWrite(15, TimeUnit.MINUTES).maximumSize(1000).build();
-
   private final BigQuery bigQuery;
+  private final Cache<String, TableInfo> destinationTableCache;
   private final Optional<String> materializationProject;
   private final Optional<String> materializationDataset;
 
   public BigQueryClient(
       BigQuery bigQuery,
       Optional<String> materializationProject,
-      Optional<String> materializationDataset) {
+      Optional<String> materializationDataset,
+      Cache<String, TableInfo> destinationTableCache) {
     this.bigQuery = bigQuery;
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
+    this.destinationTableCache = destinationTableCache;
   }
 
   /**

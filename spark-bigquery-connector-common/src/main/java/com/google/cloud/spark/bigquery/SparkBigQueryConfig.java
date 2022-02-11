@@ -111,6 +111,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   private static final int DEFAULT_BIGQUERY_CLIENT_RETRIES = 10;
   private static final String ARROW_COMPRESSION_CODEC_OPTION = "arrowCompressionCodec";
   private static final WriteMethod DEFAULT_WRITE_METHOD = WriteMethod.INDIRECT;
+  public static final int DEFAULT_CACHE_EXPIRATION_IN_MINUTES = 15;
 
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
@@ -158,6 +159,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   // for V2 write with BigQuery Storage Write API
   RetrySettings bigqueryDataWriteHelperRetrySettings =
       RetrySettings.newBuilder().setMaxAttempts(5).build();
+  private int cacheExpirationTimeInMinutes = DEFAULT_CACHE_EXPIRATION_IN_MINUTES;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -351,6 +353,16 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
           format(
               "Compression codec '%s' for Arrow is not supported. Supported formats are %s",
               arrowCompressionCodecParam, Arrays.toString(CompressionCodec.values())));
+    }
+
+    config.cacheExpirationTimeInMinutes =
+        getAnyOption(globalOptions, options, "cacheExpirationTimeInMinutes")
+            .transform(Integer::parseInt)
+            .or(DEFAULT_CACHE_EXPIRATION_IN_MINUTES);
+    if (config.cacheExpirationTimeInMinutes < 1) {
+      throw new IllegalArgumentException(
+          "cacheExpirationTimeInMinutes must have a positive value, the configured value is "
+              + config.cacheExpirationTimeInMinutes);
     }
 
     return config;
@@ -669,6 +681,11 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   @Override
   public Optional<String> getEndpoint() {
     return storageReadEndpoint.toJavaUtil();
+  }
+
+  @Override
+  public int getCacheExpirationTimeInMinutes() {
+    return cacheExpirationTimeInMinutes;
   }
 
   @Override

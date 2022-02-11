@@ -17,13 +17,25 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.gax.rpc.HeaderProvider;
 import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.http.HttpTransportOptions;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.inject.Binder;
 import com.google.inject.Provides;
 import com.google.inject.Scopes;
 import com.google.inject.Singleton;
+import java.util.concurrent.TimeUnit;
 
 public class BigQueryClientModule implements com.google.inject.Module {
+
+  private static final int DESTINATION_TABLE_CACHE_MAX_SIZE = 1000;
+
+  /*
+   * In order to parameterize the cache expiration time, the instance needs to be loaded lazily.
+   * The instance is marked as static so that the instance is a singleton.
+   */
+  private static Cache<String, TableInfo> cacheInstance;
 
   @Provides
   @Singleton
@@ -56,10 +68,29 @@ public class BigQueryClientModule implements com.google.inject.Module {
 
   @Provides
   @Singleton
+  public Cache<String, TableInfo> provideDestinationTableCache(BigQueryConfig config) {
+    if (cacheInstance == null) {
+      synchronized (BigQueryClientModule.class) {
+        if (cacheInstance == null) {
+          cacheInstance =
+              CacheBuilder.newBuilder()
+                  .expireAfterWrite(config.getCacheExpirationTimeInMinutes(), TimeUnit.MINUTES)
+                  .maximumSize(DESTINATION_TABLE_CACHE_MAX_SIZE)
+                  .build();
+        }
+      }
+    }
+
+    return cacheInstance;
+  }
+
+  @Provides
+  @Singleton
   public BigQueryClient provideBigQueryClient(
       BigQueryConfig config,
       HeaderProvider headerProvider,
-      BigQueryCredentialsSupplier bigQueryCredentialsSupplier) {
+      BigQueryCredentialsSupplier bigQueryCredentialsSupplier,
+      Cache<String, TableInfo> destinationTableCache) {
     BigQueryOptions.Builder options =
         BigQueryOptions.newBuilder()
             .setHeaderProvider(headerProvider)
@@ -84,6 +115,7 @@ public class BigQueryClientModule implements com.google.inject.Module {
     return new BigQueryClient(
         options.build().getService(),
         config.getMaterializationProject(),
-        config.getMaterializationDataset());
+        config.getMaterializationDataset(),
+        destinationTableCache);
   }
 }
