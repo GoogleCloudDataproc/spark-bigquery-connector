@@ -45,4 +45,6 @@ public interface BigQueryConfig {
   BigQueryProxyConfig getBigQueryProxyConfig();
 
   Optional<String> getEndpoint();
+
+  int getCacheExpirationTimeInMinutes();
 }

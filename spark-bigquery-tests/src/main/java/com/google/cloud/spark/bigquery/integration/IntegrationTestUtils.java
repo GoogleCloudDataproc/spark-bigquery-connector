@@ -25,7 +25,10 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.Metadata;
@@ -38,6 +41,9 @@ import org.slf4j.LoggerFactory;
 public class IntegrationTestUtils {
 
   static Logger logger = LoggerFactory.getLogger(IntegrationTestUtils.class);
+
+  private static Cache<String, TableInfo> destinationTableCache =
+      CacheBuilder.newBuilder().expireAfterWrite(15, TimeUnit.MINUTES).maximumSize(1000).build();
 
   public static BigQuery getBigquery() {
     return BigQueryOptions.getDefaultInstance().getService();
@@ -52,7 +58,8 @@ public class IntegrationTestUtils {
 
   public static void runQuery(String query) {
     BigQueryClient bigQueryClient =
-        new BigQueryClient(getBigquery(), Optional.empty(), Optional.empty());
+        new BigQueryClient(
+            getBigquery(), Optional.empty(), Optional.empty(), destinationTableCache);
     bigQueryClient.query(query);
   }
 

@@ -390,6 +390,11 @@ public class BigQueryClientFactoryTest {
     }
 
     @Override
+    public int getCacheExpirationTimeInMinutes() {
+      return 0;
+    }
+
+    @Override
     public boolean equals(Object o) {
       if (this == o) {
         return true;

@@ -641,6 +641,14 @@ The API Supports a number of options to configure the read
      </td>
      <td>Read</td>
    </tr>
+   <tr valign="top">
+     <td><code>cacheExpirationTimeInMinutes</code>
+     </td>
+     <td>  The expiration time of the in-memory cache storing query information.
+          <br/> (Optional. Defaults to 15 minutes)
+     </td>
+     <td>Read</td>
+   </tr>
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter

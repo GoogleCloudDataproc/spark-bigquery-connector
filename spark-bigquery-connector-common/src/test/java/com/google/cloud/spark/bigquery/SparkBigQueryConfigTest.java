@@ -100,6 +100,8 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getArrowCompressionCodec())
         .isEqualTo(CompressionCodec.COMPRESSION_UNSPECIFIED);
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.INDIRECT);
+    assertThat(config.getCacheExpirationTimeInMinutes())
+        .isEqualTo(SparkBigQueryConfig.DEFAULT_CACHE_EXPIRATION_IN_MINUTES);
   }
 
   @Test
@@ -136,6 +138,7 @@ public class SparkBigQueryConfigTest {
                 .put("httpMaxRetry", "5")
                 .put("arrowCompressionCodec", "ZSTD")
                 .put("writeMethod", "direct")
+                .put("cacheExpirationTimeInMinutes", "100")
                 .build());
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -176,6 +179,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryClientRetrySettings().getMaxAttempts()).isEqualTo(5);
     assertThat(config.getArrowCompressionCodec()).isEqualTo(CompressionCodec.ZSTD);
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.DIRECT);
+    assertThat(config.getCacheExpirationTimeInMinutes()).isEqualTo(100);
   }
 
   @Test

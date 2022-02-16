@@ -19,6 +19,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final RetrySettings bigQueryClientRetrySettings;
   private final BigQueryProxyConfig bigQueryProxyConfig;
   private final Optional<String> endpoint;
+  private final int cacheExpirationTimeInMinutes;
 
   BigQueryClientFactoryConfig(BigQueryConfig bigQueryConfig) {
     this.credentialsKey = bigQueryConfig.getCredentialsKey();
@@ -35,6 +36,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.bigQueryClientRetrySettings = bigQueryConfig.getBigQueryClientRetrySettings();
     this.bigQueryProxyConfig = bigQueryConfig.getBigQueryProxyConfig();
     this.endpoint = bigQueryConfig.getEndpoint();
+    this.cacheExpirationTimeInMinutes = bigQueryConfig.getCacheExpirationTimeInMinutes();
   }
 
   @Override
@@ -103,6 +105,11 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   }
 
   @Override
+  public int getCacheExpirationTimeInMinutes() {
+    return cacheExpirationTimeInMinutes;
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -124,7 +131,8 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
         && Objects.equal(materializationDataset, that.materializationDataset)
         && Objects.equal(bigQueryClientRetrySettings, that.bigQueryClientRetrySettings)
         && Objects.equal(bigQueryProxyConfig, that.bigQueryProxyConfig)
-        && Objects.equal(endpoint, that.endpoint);
+        && Objects.equal(endpoint, that.endpoint)
+        && Objects.equal(cacheExpirationTimeInMinutes, that.cacheExpirationTimeInMinutes);
   }
 
   @Override
@@ -142,6 +150,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
         bigQueryClientReadTimeout,
         bigQueryClientRetrySettings,
         bigQueryProxyConfig,
-        endpoint);
+        endpoint,
+        cacheExpirationTimeInMinutes);
   }
 }
