@@ -20,6 +20,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.common.base.Preconditions;
 import com.google.inject.Binder;
 import com.google.inject.Module;
@@ -77,7 +78,7 @@ public class BigQueryDataSourceWriterModule implements Module {
       BigQueryClient bigQueryClient, SparkBigQueryConfig config, SparkSession spark)
       throws IOException {
     Path gcsPath =
-        createGcsPath(
+        SparkBigQueryUtil.createGcsPath(
             config,
             spark.sparkContext().hadoopConfiguration(),
             spark.sparkContext().applicationId());

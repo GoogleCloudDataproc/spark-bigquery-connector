@@ -41,35 +41,7 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
 
   val conf = sqlContext.sparkContext.hadoopConfiguration
 
-  val gcsPath = {
-
-    var gcsPath: Path = null
-    val applicationId = sqlContext.sparkContext.applicationId
-
-    // Throw exception if persistentGcsPath already exists in persistentGcsBucket
-    if (options.getPersistentGcsBucket.isPresent && options.getPersistentGcsPath.isPresent) {
-      gcsPath = new Path(s"gs://${options.getPersistentGcsBucket.get}/${options.getPersistentGcsPath.get}")
-      val fs = gcsPath.getFileSystem(conf)
-      if (fs.exists(gcsPath)) {
-        throw new IllegalArgumentException(s"Path ${options.getPersistentGcsPath.get} already exists in ${options.getPersistentGcsBucket.get} bucket")
-      }
-    }
-    else {
-        val uuid = UUID.randomUUID()
-        val temporaryGcsBucketOption = BigQueryUtilScala.toOption(options.getTemporaryGcsBucket)
-        val gcsPathOption = temporaryGcsBucketOption match {
-          case Some(bucket) => s"gs://$bucket/.spark-bigquery-${applicationId}-${uuid}"
-          case None if options.getPersistentGcsBucket.isPresent =>
-            s"gs://${options.getPersistentGcsBucket.get}/.spark-bigquery-${applicationId}-${uuid}"
-          case _ =>
-            throw new IllegalArgumentException("Temporary or persistent GCS bucket must be informed.")
-        }
-
-        gcsPath = new Path(gcsPathOption)
-    }
-
-    gcsPath
-  }
+  val gcsPath = SparkBigQueryUtil.createGcsPath(options, conf, sqlContext.sparkContext.applicationId)
 
   def writeDataFrameToBigQuery: Unit = {
     // If the CreateDisposition is CREATE_NEVER, and the table does not exist,
