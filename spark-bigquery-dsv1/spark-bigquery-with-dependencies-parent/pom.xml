@@ -50,6 +50,7 @@
             <relocation>
               <pattern>com.github</pattern>
               <shadedPattern>com.google.cloud.spark.bigquery.repackaged.com.github</shadedPattern>
+              <!-- Need to exclude the zstd library from being repackaged because of https://github.com/luben/zstd-jni#limitations -->
               <excludes>
                 <exclude>com.github.luben.zstd.**</exclude>
               </excludes>
