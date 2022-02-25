@@ -50,6 +50,9 @@
             <relocation>
               <pattern>com.github</pattern>
               <shadedPattern>com.google.cloud.spark.bigquery.repackaged.com.github</shadedPattern>
+              <excludes>
+                <exclude>com.github.luben.zstd.**</exclude>
+              </excludes>
             </relocation>
             <relocation>
               <pattern>com.google</pattern>
