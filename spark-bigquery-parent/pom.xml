@@ -70,10 +70,6 @@
         <!-- checkstyle
         <checkstyle.header.file>${reactor.project.basedir}/java.header</checkstyle.header.file>
         -->
-
-        <!-- SonarCloud properties -->
-        <sonar.organization>a39a261937d5591098bcbd3b925a1ec072f9f8dcc82ea9d42ce4a706d0c97ce6f9097894583108aa2d034b6f8688c62b1e9c52aeb3a0c905ab51756ac281999b</sonar.organization>
-        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     </properties>
     <dependencyManagement>
         <dependencies>
