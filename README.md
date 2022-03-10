@@ -1,20 +1,9 @@
-# Apache Spark SQL connector for Google BigQuery (Beta)
+# Apache Spark SQL connector for Google BigQuery
 
 <!--- TODO(#2): split out into more documents. -->
 
 The connector supports reading [Google BigQuery](https://cloud.google.com/bigquery/) tables into Spark's DataFrames, and writing DataFrames back into BigQuery.
 This is done by using the [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources) to communicate with BigQuery.
-
-## Beta Disclaimer
-
-The BigQuery Storage API and this connector are in Beta and are subject to change.
-
-Changes may include, but are not limited to:
-* Type conversion
-* Partitioning
-* Parameters
-
-Breaking changes will be restricted to major and minor versions.
 
 ## BigQuery Storage API
 The [Storage API](https://cloud.google.com/bigquery/docs/reference/storage) streams data in parallel directly from BigQuery via gRPC without using Google Cloud Storage as an intermediary.
@@ -76,7 +65,8 @@ The only difference between first two connectors is that the former is a Scala 2
 and 2.4 using Scala 2.11 whereas the latter is a Scala 2.12 based connector, targeting Spark 2.4 and 3.x using Scala 2.12.
 There should not be any code differences between the 2 connectors.
 
-Third version is a Java based connector targeting Spark 2.4 of all Scala versions built on the new Data Source APIs(Data Source API v2) of Spark.
+Third version is a Java based connector targeting Spark 2.4 of all Scala versions built on the new Data Source APIs
+(Data Source API v2) of Spark. It is still in preview mode.
 
 **Note:** If you are using scala jars please use the jar relevant to your Spark installation. Starting from Spark 2.4 onwards there is an
 option to use the Java only jar.
@@ -92,8 +82,8 @@ repository. It can be used using the `--packages` option or the
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.23.2` |
 | Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:0.23.2-preview` |
 
-If you want to keep up with the latest version of the connector the following links can be used. Notice that for production
-environments where the connector version should be pinned, one of the above links should be used.
+If you want to keep up with the latest version of the connector the following links can be used. Notice that for
+production  environments where the connector version should be pinned, one of the above links should be used.
 
 | version | Link |
 | --- | --- |
@@ -255,6 +245,9 @@ df.write \
   .option("writeMethod", "direct") \
   .save("dataset.table")
 ```
+
+Partition overwriting and the use of `datePartition`, `partitionField` and `partitionType` as described below is not
+supported at this moment by the direct write method.
 
 **Important:** Please refer to the [data ingestion pricing](https://cloud.google.com/bigquery/pricing#data_ingestion_pricing)
 page regarding the BigQuery Storage Write API pricing.
@@ -466,6 +459,7 @@ The API Supports a number of options to configure the read
    <td>The GCS bucket that temporarily holds the data before it is loaded to
        BigQuery. Required unless set in the Spark configuration
        (<code>spark.conf.set(...)</code>).
+       <br/><i>Not supported by the `DIRECT` write method.</i>
    </td>
    <td>Write</td>
   </tr>
@@ -475,6 +469,7 @@ The API Supports a number of options to configure the read
    <td>The GCS bucket that holds the data before it is loaded to
        BigQuery. If informed, the data won't be deleted after write data
        into BigQuery.
+       <br/><i>Not supported by the `DIRECT` write method.</i>
    </td>
    <td>Write</td>
   </tr>
@@ -483,6 +478,7 @@ The API Supports a number of options to configure the read
    </td>
    <td>The GCS path that holds the data before it is loaded to
        BigQuery. Used only with <code>persistentGcsBucket</code>.
+       <br/><i>Not supported by the `DIRECT` write method.</i>
    </td>
    <td>Write</td>
   </tr>
@@ -493,6 +489,7 @@ The API Supports a number of options to configure the read
        either "parquet","orc" or "avro". In order to use the Avro format, the
        spark-avro package must be added in runtime.
        <br/>(Optional. Defaults to <code>parquet</code>). On write only.
+       <br/><i>Not supported by the `DIRECT` write method.</i>
    </td>
    <td>Write</td>
   </tr>
@@ -510,7 +507,7 @@ The API Supports a number of options to configure the read
         <br/> HOUR: <code>YYYYMMDDHH</code>
         <br/> MONTH: <code>YYYYMM</code>
         <br/> YEAR: <code>YYYY</code>
-
+        <br/><i>Not supported by the `DIRECT` write method.</i>
    </td>
    <td>Write</td>
   </tr>
@@ -524,6 +521,7 @@ The API Supports a number of options to configure the read
          column, referenced via either<code>'_PARTITIONTIME' as TIMESTAMP</code> type, or
          <code>'_PARTITIONDATE' as DATE</code> type.
          <br/>(Optional).
+         <br/><i>Not supported by the `DIRECT` write method.</i>
      </td>
      <td>Write</td>
     </tr>
@@ -533,6 +531,7 @@ The API Supports a number of options to configure the read
      <td>Number of milliseconds for which to keep the storage for partitions in the table.
          The storage in a partition will have an expiration time of its partition time plus this value.
         <br/>(Optional).
+        <br/><i>Not supported by the `DIRECT` write method.</i>
      </td>
      <td>Write</td>
    </tr>
@@ -542,7 +541,8 @@ The API Supports a number of options to configure the read
         <td>Supported types are: <code>HOUR, DAY, MONTH, YEAR</code>
             <br/> This option is <b>mandatory</b> for a target table to be partitioned.
             <br/>(Optional. Defaults to DAY if PartitionField is specified).
-        </td>
+            <br/><i>Not supported by the `DIRECT` write method.</i>
+       </td>
         <td>Write</td>
      </tr>
     <tr valign="top">
