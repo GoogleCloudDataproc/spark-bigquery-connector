@@ -26,10 +26,10 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
-import com.google.cloud.bigquery.storage.v1beta2.BatchCommitWriteStreamsRequest;
-import com.google.cloud.bigquery.storage.v1beta2.BatchCommitWriteStreamsResponse;
-import com.google.cloud.bigquery.storage.v1beta2.BigQueryWriteClient;
-import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
+import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsRequest;
+import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsResponse;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
+import com.google.cloud.bigquery.storage.v1.ProtoSchema;
 import com.google.common.base.Preconditions;
 import java.util.Arrays;
 import org.apache.spark.sql.SaveMode;
@@ -49,6 +49,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   private final ProtoSchema protoSchema;
   private final String writeUUID;
   private final RetrySettings bigqueryDataWriterHelperRetrySettings;
+  private final String traceId;
 
   private final TableId temporaryTableId;
   private final String tablePathForBigQueryStorage;
@@ -70,7 +71,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       String writeUUID,
       SaveMode saveMode,
       StructType sparkSchema,
-      RetrySettings bigqueryDataWriterHelperRetrySettings)
+      RetrySettings bigqueryDataWriterHelperRetrySettings,
+      String traceId)
       throws IllegalArgumentException {
     this.bigQueryClient = bigQueryClient;
     this.writeClientFactory = bigQueryWriteClientFactory;
@@ -78,6 +80,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     this.writeUUID = writeUUID;
     this.sparkSchema = sparkSchema;
     this.bigqueryDataWriterHelperRetrySettings = bigqueryDataWriterHelperRetrySettings;
+    this.traceId = traceId;
     Schema bigQuerySchema = toBigQuerySchema(sparkSchema);
     try {
       this.protoSchema = toProtoSchema(sparkSchema);
@@ -143,7 +146,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
         sparkSchema,
         protoSchema,
         writingMode.equals(WritingMode.IGNORE_INPUTS),
-        bigqueryDataWriterHelperRetrySettings);
+        bigqueryDataWriterHelperRetrySettings,
+        traceId);
   }
 
   @Override

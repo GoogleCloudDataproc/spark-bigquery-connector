@@ -119,6 +119,7 @@ public class ReadSessionCreator {
                         .setDataFormat(config.getReadDataFormat())
                         .setReadOptions(readOptions)
                         .setTable(tablePath)
+                        .setTraceId(config.getTraceId())
                         .build())
                 .setMaxStreamCount(
                     getMaxNumPartitionsRequested(config.getMaxParallelism(), tableDefinition))

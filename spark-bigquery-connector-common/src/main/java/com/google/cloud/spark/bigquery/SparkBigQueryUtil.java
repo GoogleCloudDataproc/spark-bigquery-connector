@@ -16,15 +16,18 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.spark.sql.internal.SQLConf;
 
 /** Spark related utilities */
 public class SparkBigQueryUtil {
@@ -109,5 +112,20 @@ public class SparkBigQueryUtil {
     }
 
     return gcsPath;
+  }
+
+  public static String getJobId(SQLConf sqlConf) {
+    return getJobIdInternal(
+        sqlConf.getConfString("spark.yarn.tags", "missing"),
+        sqlConf.getConfString("spark.app.id", ""));
+  }
+
+  @VisibleForTesting
+  // try to extract the dataproc job first, if not than use the applicationId
+  static String getJobIdInternal(String yarnTags, String applicationId) {
+    return Stream.of(yarnTags.split(","))
+        .filter(tag -> tag.startsWith("dataproc_job_"))
+        .findFirst()
+        .orElseGet(() -> applicationId);
   }
 }

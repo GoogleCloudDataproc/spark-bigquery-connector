@@ -37,6 +37,7 @@ public class ReadSessionCreatorConfig {
   private final int prebufferResponses;
   private final int streamsPerPartition;
   private final CompressionCodec arrowCompressionCodec;
+  private final String traceId;
 
   ReadSessionCreatorConfig(
       boolean viewsEnabled,
@@ -54,7 +55,8 @@ public class ReadSessionCreatorConfig {
       boolean pushAllFilters,
       int prebufferResponses,
       int streamsPerPartition,
-      CompressionCodec arrowCompressionCodec) {
+      CompressionCodec arrowCompressionCodec,
+      String traceId) {
     this.viewsEnabled = viewsEnabled;
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
@@ -71,6 +73,7 @@ public class ReadSessionCreatorConfig {
     this.prebufferResponses = prebufferResponses;
     this.streamsPerPartition = streamsPerPartition;
     this.arrowCompressionCodec = arrowCompressionCodec;
+    this.traceId = traceId;
   }
 
   public boolean isViewsEnabled() {
@@ -140,5 +143,9 @@ public class ReadSessionCreatorConfig {
 
   public int getPrebufferResponses() {
     return prebufferResponses;
+  }
+
+  public String getTraceId() {
+    return traceId;
   }
 }

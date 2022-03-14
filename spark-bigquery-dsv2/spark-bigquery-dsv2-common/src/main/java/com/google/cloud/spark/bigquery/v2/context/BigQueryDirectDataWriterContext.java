@@ -22,7 +22,7 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryDirectDataWriterHelper;
-import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
+import com.google.cloud.bigquery.storage.v1.ProtoSchema;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
 import java.io.IOException;
@@ -55,7 +55,8 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
       String tablePath,
       StructType sparkSchema,
       ProtoSchema protoSchema,
-      RetrySettings bigqueryDataWriterHelperRetrySettings) {
+      RetrySettings bigqueryDataWriterHelperRetrySettings,
+      String traceId) {
     this.partitionId = partitionId;
     this.taskId = taskId;
     this.epochId = epochId;
@@ -70,7 +71,11 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
 
     this.writerHelper =
         new BigQueryDirectDataWriterHelper(
-            writeClientFactory, tablePath, protoSchema, bigqueryDataWriterHelperRetrySettings);
+            writeClientFactory,
+            tablePath,
+            protoSchema,
+            bigqueryDataWriterHelperRetrySettings,
+            traceId);
   }
 
   @Override

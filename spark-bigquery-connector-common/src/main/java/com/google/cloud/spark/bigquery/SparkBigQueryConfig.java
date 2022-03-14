@@ -63,6 +63,8 @@ import org.threeten.bp.Duration;
 
 public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
+  public static final int MAX_TRACE_ID_LENGTH = 256;
+
   public enum WriteMethod {
     DIRECT,
     INDIRECT;
@@ -160,6 +162,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   RetrySettings bigqueryDataWriteHelperRetrySettings =
       RetrySettings.newBuilder().setMaxAttempts(5).build();
   private int cacheExpirationTimeInMinutes = DEFAULT_CACHE_EXPIRATION_IN_MINUTES;
+  // used to create BigQuery ReadSessions
+  private String traceId;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -365,6 +369,16 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
               + config.cacheExpirationTimeInMinutes);
     }
 
+    String traceIdParam =
+        getAnyOption(globalOptions, options, "traceId").or(SparkBigQueryUtil.getJobId(sqlConf));
+    if (traceIdParam.length() > MAX_TRACE_ID_LENGTH) {
+      throw new IllegalArgumentException(
+          String.format(
+              "traceId cannot longer than %d. Provided value was [%s]",
+              MAX_TRACE_ID_LENGTH, traceIdParam));
+    } else {
+      config.traceId = traceIdParam;
+    }
     return config;
   }
 
@@ -713,6 +727,10 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     return writeMethod;
   }
 
+  public String getTraceId() {
+    return traceId;
+  }
+
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
     return new ReadSessionCreatorConfigBuilder()
         .setViewsEnabled(viewsEnabled)
@@ -731,6 +749,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         .setPrebufferReadRowsResponses(numPrebufferReadRowsResponses)
         .setStreamsPerPartition(numStreamsPerPartition)
         .setArrowCompressionCodec(arrowCompressionCodec)
+        .setTraceId(traceId)
         .build();
   }
 

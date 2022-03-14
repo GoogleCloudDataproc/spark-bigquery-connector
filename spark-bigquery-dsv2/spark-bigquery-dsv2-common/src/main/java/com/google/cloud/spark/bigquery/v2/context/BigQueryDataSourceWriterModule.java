@@ -65,7 +65,8 @@ public class BigQueryDataSourceWriterModule implements Module {
         writeUUID,
         mode,
         sparkSchema,
-        bigqueryDataWriteHelperRetrySettings);
+        bigqueryDataWriteHelperRetrySettings,
+        config.getTraceId());
   }
 
   @Singleton
