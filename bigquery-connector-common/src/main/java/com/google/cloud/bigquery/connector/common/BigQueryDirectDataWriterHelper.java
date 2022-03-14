@@ -13,14 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2.context;
+package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.client.util.Sleeper;
 import com.google.api.core.ApiFuture;
 import com.google.api.core.NanoClock;
 import com.google.api.gax.retrying.*;
-import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
-import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.storage.v1.stub.readrows.ApiResultRetryAlgorithm;
 import com.google.cloud.bigquery.storage.v1beta2.*;
 import com.google.cloud.bigquery.storage.v1beta2.WriteStream;
@@ -54,7 +52,7 @@ public class BigQueryDirectDataWriterHelper {
   private long appendRequestSizeBytes = 0; // number of bytes waiting for the next append request
   private long writeStreamRowCount = 0; // total offset / rows of the current write-stream
 
-  BigQueryDirectDataWriterHelper(
+  public BigQueryDirectDataWriterHelper(
       BigQueryClientFactory writeClientFactory,
       String tablePath,
       ProtoSchema protoSchema,
