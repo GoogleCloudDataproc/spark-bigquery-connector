@@ -21,6 +21,7 @@ import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
+import com.google.cloud.bigquery.connector.common.BigQueryDirectDataWriterHelper;
 import com.google.cloud.bigquery.storage.v1beta2.ProtoSchema;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
