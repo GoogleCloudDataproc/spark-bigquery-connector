@@ -87,17 +87,25 @@ public class SparkBigQueryUtil {
                 config.getPersistentGcsPath().get(), config.getPersistentGcsBucket().get()));
       }
     } else if (config.getTemporaryGcsBucket().isPresent()) {
-      gcsPath =
-          new Path(
-              String.format(
-                  "gs://%s/.spark-bigquery-%s-%s",
-                  config.getTemporaryGcsBucket().get(), applicationId, UUID.randomUUID()));
+      gcsPath = getUniqueGcsPath(config.getTemporaryGcsBucket().get(), applicationId, conf);
     } else {
+      gcsPath = getUniqueGcsPath(config.getPersistentGcsBucket().get(), applicationId, conf);
+    }
+
+    return gcsPath;
+  }
+
+  private static Path getUniqueGcsPath(String gcsBucket, String applicationId, Configuration conf)
+      throws IOException {
+    boolean needNewPath = true;
+    Path gcsPath = null;
+    while (needNewPath) {
       gcsPath =
           new Path(
               String.format(
-                  "gs://%s/.spark-bigquery-%s-%s",
-                  config.getPersistentGcsBucket().get(), applicationId, UUID.randomUUID()));
+                  "gs://%s/.spark-bigquery-%s-%s", gcsBucket, applicationId, UUID.randomUUID()));
+      FileSystem fs = gcsPath.getFileSystem(conf);
+      needNewPath = fs.exists(gcsPath);
     }
 
     return gcsPath;
