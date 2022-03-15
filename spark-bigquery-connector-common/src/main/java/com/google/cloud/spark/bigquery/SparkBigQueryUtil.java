@@ -70,7 +70,7 @@ public class SparkBigQueryUtil {
     Path gcsPath;
     Preconditions.checkArgument(
         config.getTemporaryGcsBucket().isPresent() || config.getPersistentGcsBucket().isPresent(),
-        "Temporary or persistent GCS bucket must be informed.");
+        "Either temporary or persistent GCS bucket must be set");
 
     // Throw exception if persistentGcsPath already exists in persistentGcsBucket
     if (config.getPersistentGcsBucket().isPresent() && config.getPersistentGcsPath().isPresent()) {
