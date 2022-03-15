@@ -2,9 +2,12 @@ package com.google.cloud.spark.bigquery;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import org.apache.spark.sql.internal.SQLConf;
 import org.junit.Test;
 
 public class SparkBigQueryUtilTest {
+
+  private SQLConf sqlConf;
 
   @Test
   public void testGetJobIdInternal_hasTagsAndAppId() {
@@ -25,5 +28,28 @@ public class SparkBigQueryUtilTest {
   public void testGetJobIdInternal_missingBoth() {
     String jobId = SparkBigQueryUtil.getJobIdInternal("missing", "");
     assertThat(jobId).isEqualTo("");
+  }
+
+  @Test
+  public void testGetApplicationName_fromConf() {
+    SQLConf sqlConf = new SQLConf();
+    sqlConf.setConfString("spark.app.name", "test");
+    String appName = SparkBigQueryUtil.getApplicationName(sqlConf);
+    assertThat(appName).isEqualTo("test");
+  }
+
+  @Test
+  public void testGetApplicationName_emptyStringInConf() {
+    SQLConf sqlConf = new SQLConf();
+    sqlConf.setConfString("spark.app.name", "");
+    String appName = SparkBigQueryUtil.getApplicationName(sqlConf);
+    assertThat(appName).isEqualTo("UnknownSparkApplication");
+  }
+
+  @Test
+  public void testGetApplicationName_notInConf() {
+    SQLConf sqlConf = new SQLConf();
+    String appName = SparkBigQueryUtil.getApplicationName(sqlConf);
+    assertThat(appName).isEqualTo("UnknownSparkApplication");
   }
 }

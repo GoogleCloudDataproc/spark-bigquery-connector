@@ -369,12 +369,16 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
               + config.cacheExpirationTimeInMinutes);
     }
 
-    String traceIdParam =
-        getAnyOption(globalOptions, options, "traceId").or(SparkBigQueryUtil.getJobId(sqlConf));
+    String traceJobIdParam =
+        getAnyOption(globalOptions, options, "traceJobId").or(SparkBigQueryUtil.getJobId(sqlConf));
+    String traceApplicationNameParam =
+        getAnyOption(globalOptions, options, "traceApplicationName")
+            .or(SparkBigQueryUtil.getApplicationName(sqlConf));
+    String traceIdParam = traceApplicationNameParam + ":" + traceJobIdParam;
     if (traceIdParam.length() > MAX_TRACE_ID_LENGTH) {
       throw new IllegalArgumentException(
           String.format(
-              "traceId cannot longer than %d. Provided value was [%s]",
+              "trace ID cannot longer than %d. Provided value was [%s]",
               MAX_TRACE_ID_LENGTH, traceIdParam));
     } else {
       config.traceId = traceIdParam;

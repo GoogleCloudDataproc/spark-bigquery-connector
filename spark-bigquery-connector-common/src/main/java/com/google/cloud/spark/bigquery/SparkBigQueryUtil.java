@@ -117,7 +117,7 @@ public class SparkBigQueryUtil {
   public static String getJobId(SQLConf sqlConf) {
     return getJobIdInternal(
         sqlConf.getConfString("spark.yarn.tags", "missing"),
-        sqlConf.getConfString("spark.app.id", ""));
+        sqlConf.getConfString("spark.app.id", "generated-" + UUID.randomUUID()));
   }
 
   @VisibleForTesting
@@ -127,5 +127,10 @@ public class SparkBigQueryUtil {
         .filter(tag -> tag.startsWith("dataproc_job_"))
         .findFirst()
         .orElseGet(() -> applicationId);
+  }
+
+  public static String getApplicationName(SQLConf sqlConf) {
+    String appName = sqlConf.getConfString("spark.app.name", "");
+    return appName.length() > 0 ? appName : "UnknownSparkApplication";
   }
 }
