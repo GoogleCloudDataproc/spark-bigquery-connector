@@ -5,6 +5,7 @@
 .cache/
 .history/
 .lib/
+.flattened-pom.xml
 dist/*
 target/
 lib_managed/
