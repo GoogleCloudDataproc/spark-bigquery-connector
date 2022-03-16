@@ -102,7 +102,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.INDIRECT);
     assertThat(config.getCacheExpirationTimeInMinutes())
         .isEqualTo(SparkBigQueryConfig.DEFAULT_CACHE_EXPIRATION_IN_MINUTES);
-    assertThat(config.getTraceId()).startsWith("UnknownSparkApplication:generated-");
+    assertThat(config.getTraceId().isPresent()).isFalse();
   }
 
   @Test
@@ -183,7 +183,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getArrowCompressionCodec()).isEqualTo(CompressionCodec.ZSTD);
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.DIRECT);
     assertThat(config.getCacheExpirationTimeInMinutes()).isEqualTo(100);
-    assertThat(config.getTraceId()).isEqualTo("traceApplicationName:traceJobId");
+    assertThat(config.getTraceId()).isEqualTo(Optional.of("traceApplicationName:traceJobId"));
   }
 
   @Test

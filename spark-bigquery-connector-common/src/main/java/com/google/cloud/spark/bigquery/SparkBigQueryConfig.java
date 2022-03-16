@@ -163,7 +163,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
       RetrySettings.newBuilder().setMaxAttempts(5).build();
   private int cacheExpirationTimeInMinutes = DEFAULT_CACHE_EXPIRATION_IN_MINUTES;
   // used to create BigQuery ReadSessions
-  private String traceId;
+  private com.google.common.base.Optional<String> traceId;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -369,20 +369,24 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
               + config.cacheExpirationTimeInMinutes);
     }
 
-    String traceJobIdParam =
-        getAnyOption(globalOptions, options, "traceJobId").or(SparkBigQueryUtil.getJobId(sqlConf));
-    String traceApplicationNameParam =
-        getAnyOption(globalOptions, options, "traceApplicationName")
-            .or(SparkBigQueryUtil.getApplicationName(sqlConf));
-    String traceIdParam = traceApplicationNameParam + ":" + traceJobIdParam;
-    if (traceIdParam.length() > MAX_TRACE_ID_LENGTH) {
-      throw new IllegalArgumentException(
-          String.format(
-              "trace ID cannot longer than %d. Provided value was [%s]",
-              MAX_TRACE_ID_LENGTH, traceIdParam));
-    } else {
-      config.traceId = traceIdParam;
-    }
+    com.google.common.base.Optional<String> traceApplicationNameParam =
+        getAnyOption(globalOptions, options, "traceApplicationName");
+    config.traceId =
+        traceApplicationNameParam.transform(
+            traceApplicationName -> {
+              String traceJobIdParam =
+                  getAnyOption(globalOptions, options, "traceJobId")
+                      .or(SparkBigQueryUtil.getJobId(sqlConf));
+              String traceIdParam = traceApplicationName + ":" + traceJobIdParam;
+              if (traceIdParam.length() > MAX_TRACE_ID_LENGTH) {
+                throw new IllegalArgumentException(
+                    String.format(
+                        "trace ID cannot longer than %d. Provided value was [%s]",
+                        MAX_TRACE_ID_LENGTH, traceIdParam));
+              }
+              return traceIdParam;
+            });
+
     return config;
   }
 
@@ -731,8 +735,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     return writeMethod;
   }
 
-  public String getTraceId() {
-    return traceId;
+  public Optional<String> getTraceId() {
+    return traceId.toJavaUtil();
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
@@ -753,7 +757,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         .setPrebufferReadRowsResponses(numPrebufferReadRowsResponses)
         .setStreamsPerPartition(numStreamsPerPartition)
         .setArrowCompressionCodec(arrowCompressionCodec)
-        .setTraceId(traceId)
+        .setTraceId(traceId.toJavaUtil())
         .build();
   }
 

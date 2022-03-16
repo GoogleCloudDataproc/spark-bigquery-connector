@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery.v2.context;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.storage.v1.ProtoSchema;
+import com.google.common.base.Optional;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
 
@@ -29,7 +30,7 @@ public class BigQueryDirectDataWriterContextFactory
   private final ProtoSchema protoSchema;
   private final boolean ignoreInputs;
   private final RetrySettings bigqueryDataWriterHelperRetrySettings;
-  private final String traceId;
+  private final Optional<String> traceId;
 
   public BigQueryDirectDataWriterContextFactory(
       BigQueryClientFactory writeClientFactory,
@@ -38,7 +39,7 @@ public class BigQueryDirectDataWriterContextFactory
       ProtoSchema protoSchema,
       boolean ignoreInputs,
       RetrySettings bigqueryDataWriterHelperRetrySettings,
-      String traceId) {
+      Optional<String> traceId) {
     this.writeClientFactory = writeClientFactory;
     this.tablePath = tablePath;
     this.sparkSchema = sparkSchema;

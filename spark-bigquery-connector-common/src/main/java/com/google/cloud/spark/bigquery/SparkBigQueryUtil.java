@@ -128,9 +128,4 @@ public class SparkBigQueryUtil {
         .findFirst()
         .orElseGet(() -> applicationId);
   }
-
-  public static String getApplicationName(SQLConf sqlConf) {
-    String appName = sqlConf.getConfString("spark.app.name", "");
-    return appName.length() > 0 ? appName : "UnknownSparkApplication";
-  }
 }

@@ -23,7 +23,7 @@ public class ReadSessionCreatorConfigBuilder {
   int prebufferResponses = 1;
   int streamsPerPartition = 1;
   private CompressionCodec arrowCompressionCodec = CompressionCodec.COMPRESSION_UNSPECIFIED;
-  private String traceId = "";
+  private Optional<String> traceId = Optional.empty();
 
   public ReadSessionCreatorConfigBuilder setViewsEnabled(boolean viewsEnabled) {
     this.viewsEnabled = viewsEnabled;
@@ -110,7 +110,7 @@ public class ReadSessionCreatorConfigBuilder {
     return this;
   }
 
-  public ReadSessionCreatorConfigBuilder setTraceId(String traceId) {
+  public ReadSessionCreatorConfigBuilder setTraceId(Optional<String> traceId) {
     this.traceId = traceId;
     return this;
   }

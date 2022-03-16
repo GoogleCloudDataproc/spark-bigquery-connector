@@ -29,6 +29,7 @@ import com.google.cloud.bigquery.storage.v1.ProtoSchema;
 import com.google.cloud.bigquery.storage.v1.StreamWriter;
 import com.google.cloud.bigquery.storage.v1.WriteStream;
 import com.google.cloud.bigquery.storage.v1.stub.readrows.ApiResultRetryAlgorithm;
+import com.google.common.base.Optional;
 import com.google.protobuf.ByteString;
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -50,7 +51,7 @@ public class BigQueryDirectDataWriterHelper {
   private final String tablePath;
   private final ProtoSchema protoSchema;
   private final RetrySettings retrySettings;
-  private final String traceId;
+  private final Optional<String> traceId;
 
   private String writeStreamName;
   private StreamWriter streamWriter;
@@ -65,7 +66,7 @@ public class BigQueryDirectDataWriterHelper {
       String tablePath,
       ProtoSchema protoSchema,
       RetrySettings bigqueryDataWriterHelperRetrySettings,
-      String traceId) {
+      Optional<String> traceId) {
     this.writeClient = writeClientFactory.getBigQueryWriteClient();
     this.tablePath = tablePath;
     this.protoSchema = protoSchema;
@@ -132,10 +133,12 @@ public class BigQueryDirectDataWriterHelper {
 
   private StreamWriter createStreamWriter(String writeStreamName) {
     try {
-      return StreamWriter.newBuilder(writeStreamName, writeClient)
-          .setWriterSchema(this.protoSchema)
-          .setTraceId(traceId)
-          .build();
+      StreamWriter.Builder streamWriter =
+          StreamWriter.newBuilder(writeStreamName, writeClient).setWriterSchema(this.protoSchema);
+      if (traceId.isPresent()) {
+        streamWriter.setTraceId(traceId.get());
+      }
+      return streamWriter.build();
     } catch (IOException e) {
       throw new BigQueryConnectorException("Could not build stream-writer", e);
     }
