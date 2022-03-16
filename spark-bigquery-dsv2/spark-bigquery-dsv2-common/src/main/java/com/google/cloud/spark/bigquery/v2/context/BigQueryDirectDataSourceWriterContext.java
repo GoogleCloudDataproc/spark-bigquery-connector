@@ -50,7 +50,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   private final String writeUUID;
   private final RetrySettings bigqueryDataWriterHelperRetrySettings;
 
-  private final BigQueryTable writtenTable;
+  private final BigQueryTable tableToWrite;
   private final String tablePathForBigQueryStorage;
 
   private BigQueryWriteClient writeClient;
@@ -86,9 +86,9 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
           "Could not convert Spark schema to protobuf descriptor", e);
     }
 
-    this.writtenTable = getOrCreateTable(saveMode, destinationTableId, bigQuerySchema);
+    this.tableToWrite = getOrCreateTable(saveMode, destinationTableId, bigQuerySchema);
     this.tablePathForBigQueryStorage =
-        bigQueryClient.createTablePathForBigQueryStorage(writtenTable.getTableId());
+        bigQueryClient.createTablePathForBigQueryStorage(tableToWrite.getTableId());
 
     if (!writingMode.equals(WritingMode.IGNORE_INPUTS)) {
       this.writeClient = writeClientFactory.getBigQueryWriteClient();
@@ -96,11 +96,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   }
 
   /**
-   * This function determines whether the destination table exists: if it doesn't, Spark will do the
-   * writing directly to it; otherwise, if SaveMode = SaveMode.OVERWRITE then a temporary table will
-   * be created, where the writing results will be stored before replacing the destination table
-   * upon commit; this function also validates the destination table's schema matches the expected
-   * schema, if applicable.
+   * This function determines whether the destination table exists: if it doesn't, we will create a
+   * table and Spark will directly write to it.
    *
    * @param saveMode the SaveMode supplied by the user.
    * @param destinationTableId the TableId, as was supplied by the user
@@ -193,12 +190,12 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     if (writingMode.equals(WritingMode.OVERWRITE)) {
       Job overwriteJob =
           bigQueryClient.overwriteDestinationWithTemporary(
-              writtenTable.getTableId(), destinationTableId);
+              tableToWrite.getTableId(), destinationTableId);
       BigQueryClient.waitForJob(overwriteJob);
       Preconditions.checkState(
-          bigQueryClient.deleteTable(writtenTable.getTableId()),
+          bigQueryClient.deleteTable(tableToWrite.getTableId()),
           new BigQueryConnectorException(
-              String.format("Could not delete temporary table %s from BigQuery", writtenTable)));
+              String.format("Could not delete temporary table %s from BigQuery", tableToWrite)));
     }
   }
 
@@ -214,8 +211,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     if (writingMode.equals(WritingMode.IGNORE_INPUTS)) return;
 
     // Deletes the preliminary table we wrote to (if it exists):
-    if (writtenTable.toDeleteOnAbort()) {
-      bigQueryClient.deleteTable(writtenTable.getTableId());
+    if (tableToWrite.toDeleteOnAbort()) {
+      bigQueryClient.deleteTable(tableToWrite.getTableId());
     }
   }
 
