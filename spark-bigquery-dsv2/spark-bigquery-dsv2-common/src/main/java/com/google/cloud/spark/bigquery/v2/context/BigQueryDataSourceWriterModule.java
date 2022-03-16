@@ -20,16 +20,13 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import com.google.common.base.Preconditions;
+import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import java.io.IOException;
 import java.util.Optional;
-import java.util.UUID;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
@@ -68,7 +65,9 @@ public class BigQueryDataSourceWriterModule implements Module {
         writeUUID,
         mode,
         sparkSchema,
-        bigqueryDataWriteHelperRetrySettings);
+        bigqueryDataWriteHelperRetrySettings,
+        com.google.common.base.Optional.fromJavaUtil(
+            config.getTraceId())); // needs to be serializable
   }
 
   @Singleton
@@ -77,7 +76,7 @@ public class BigQueryDataSourceWriterModule implements Module {
       BigQueryClient bigQueryClient, SparkBigQueryConfig config, SparkSession spark)
       throws IOException {
     Path gcsPath =
-        createGcsPath(
+        SparkBigQueryUtil.createGcsPath(
             config,
             spark.sparkContext().hadoopConfiguration(),
             spark.sparkContext().applicationId());
@@ -99,39 +98,5 @@ public class BigQueryDataSourceWriterModule implements Module {
         mode,
         gcsPath,
         intermediateDataCleaner);
-  }
-
-  Path createGcsPath(SparkBigQueryConfig config, Configuration conf, String applicationId)
-      throws IOException {
-    Preconditions.checkArgument(
-        config.getTemporaryGcsBucket().isPresent() || config.getPersistentGcsBucket().isPresent(),
-        "Temporary or persistent GCS bucket must be informed.");
-    boolean needNewPath = true;
-    Path gcsPath = null;
-    while (needNewPath) {
-      String gcsPathOption =
-          config
-              .getTemporaryGcsBucket()
-              .map(
-                  bucket ->
-                      String.format(
-                          "gs://%s/.spark-bigquery-%s-%s",
-                          bucket, applicationId, UUID.randomUUID()))
-              .orElseGet(
-                  () -> {
-                    // if we are here it means that the PersistentGcsBucket is set
-                    String path =
-                        config
-                            .getPersistentGcsPath()
-                            .orElse(
-                                String.format(
-                                    ".spark-bigquery-%s-%s", applicationId, UUID.randomUUID()));
-                    return String.format("gs://%s/%s", config.getPersistentGcsBucket().get(), path);
-                  });
-      gcsPath = new Path(gcsPathOption);
-      FileSystem fs = gcsPath.getFileSystem(conf);
-      needNewPath = fs.exists(gcsPath); // if the path exists for some reason, then retry
-    }
-    return gcsPath;
   }
 }

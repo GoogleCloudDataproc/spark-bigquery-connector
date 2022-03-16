@@ -63,6 +63,8 @@ import org.threeten.bp.Duration;
 
 public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
 
+  public static final int MAX_TRACE_ID_LENGTH = 256;
+
   public enum WriteMethod {
     DIRECT,
     INDIRECT;
@@ -160,6 +162,8 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
   RetrySettings bigqueryDataWriteHelperRetrySettings =
       RetrySettings.newBuilder().setMaxAttempts(5).build();
   private int cacheExpirationTimeInMinutes = DEFAULT_CACHE_EXPIRATION_IN_MINUTES;
+  // used to create BigQuery ReadSessions
+  private com.google.common.base.Optional<String> traceId;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -364,6 +368,24 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
           "cacheExpirationTimeInMinutes must have a positive value, the configured value is "
               + config.cacheExpirationTimeInMinutes);
     }
+
+    com.google.common.base.Optional<String> traceApplicationNameParam =
+        getAnyOption(globalOptions, options, "traceApplicationName");
+    config.traceId =
+        traceApplicationNameParam.transform(
+            traceApplicationName -> {
+              String traceJobIdParam =
+                  getAnyOption(globalOptions, options, "traceJobId")
+                      .or(SparkBigQueryUtil.getJobId(sqlConf));
+              String traceIdParam = traceApplicationName + ":" + traceJobIdParam;
+              if (traceIdParam.length() > MAX_TRACE_ID_LENGTH) {
+                throw new IllegalArgumentException(
+                    String.format(
+                        "trace ID cannot longer than %d. Provided value was [%s]",
+                        MAX_TRACE_ID_LENGTH, traceIdParam));
+              }
+              return traceIdParam;
+            });
 
     return config;
   }
@@ -713,6 +735,10 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     return writeMethod;
   }
 
+  public Optional<String> getTraceId() {
+    return traceId.toJavaUtil();
+  }
+
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
     return new ReadSessionCreatorConfigBuilder()
         .setViewsEnabled(viewsEnabled)
@@ -731,6 +757,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
         .setPrebufferReadRowsResponses(numPrebufferReadRowsResponses)
         .setStreamsPerPartition(numStreamsPerPartition)
         .setArrowCompressionCodec(arrowCompressionCodec)
+        .setTraceId(traceId.toJavaUtil())
         .build();
   }
 

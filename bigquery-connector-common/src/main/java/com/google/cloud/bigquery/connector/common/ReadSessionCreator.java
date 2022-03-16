@@ -99,6 +99,8 @@ public class ReadSessionCreator {
                 })
             .orElse(CreateReadSessionRequest.newBuilder().build());
     ReadSession.Builder requestedSession = request.getReadSession().toBuilder();
+    config.getTraceId().ifPresent(traceId -> requestedSession.setTraceId(traceId));
+
     TableReadOptions.Builder readOptions = requestedSession.getReadOptionsBuilder();
     if (!isInputTableAView(tableDetails)) {
       filter.ifPresent(readOptions::setRowRestriction);

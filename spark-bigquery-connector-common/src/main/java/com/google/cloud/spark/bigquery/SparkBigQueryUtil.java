@@ -16,10 +16,18 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
+import java.util.stream.Stream;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.spark.sql.internal.SQLConf;
 
 /** Spark related utilities */
 public class SparkBigQueryUtil {
@@ -47,5 +55,77 @@ public class SparkBigQueryUtil {
    */
   public static List<String> optimizeLoadUriListForSpark(List<String> uris) {
     return BigQueryUtil.optimizeLoadUriList(uris, ".*/part-", "-[-\\w\\.]+");
+  }
+
+  /**
+   * Checks whether temporaryGcsBucket or persistentGcsBucket parameters are present in the config
+   * and creates a org.apache.hadoop.fs.Path object backed by GCS. When the indirect write method in
+   * dsv1 is used, the data is written first to this GCS path and is then loaded into BigQuery
+   *
+   * @param config SparkBigQueryConfig
+   * @param conf Hadoop configuration parameters
+   * @param applicationId A unique identifier for the Spark application
+   * @return org.apache.hadoop.fs.Path object backed by GCS
+   * @throws IOException
+   */
+  public static Path createGcsPath(
+      SparkBigQueryConfig config, Configuration conf, String applicationId) throws IOException {
+    Path gcsPath;
+    Preconditions.checkArgument(
+        config.getTemporaryGcsBucket().isPresent() || config.getPersistentGcsBucket().isPresent(),
+        "Either temporary or persistent GCS bucket must be set");
+
+    // Throw exception if persistentGcsPath already exists in persistentGcsBucket
+    if (config.getPersistentGcsBucket().isPresent() && config.getPersistentGcsPath().isPresent()) {
+      gcsPath =
+          new Path(
+              String.format(
+                  "gs://%s/%s",
+                  config.getPersistentGcsBucket().get(), config.getPersistentGcsPath().get()));
+      FileSystem fs = gcsPath.getFileSystem(conf);
+      if (fs.exists(gcsPath)) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Path %s already exists in %s bucket",
+                config.getPersistentGcsPath().get(), config.getPersistentGcsBucket().get()));
+      }
+    } else if (config.getTemporaryGcsBucket().isPresent()) {
+      gcsPath = getUniqueGcsPath(config.getTemporaryGcsBucket().get(), applicationId, conf);
+    } else {
+      gcsPath = getUniqueGcsPath(config.getPersistentGcsBucket().get(), applicationId, conf);
+    }
+
+    return gcsPath;
+  }
+
+  private static Path getUniqueGcsPath(String gcsBucket, String applicationId, Configuration conf)
+      throws IOException {
+    boolean needNewPath = true;
+    Path gcsPath = null;
+    while (needNewPath) {
+      gcsPath =
+          new Path(
+              String.format(
+                  "gs://%s/.spark-bigquery-%s-%s", gcsBucket, applicationId, UUID.randomUUID()));
+      FileSystem fs = gcsPath.getFileSystem(conf);
+      needNewPath = fs.exists(gcsPath);
+    }
+
+    return gcsPath;
+  }
+
+  public static String getJobId(SQLConf sqlConf) {
+    return getJobIdInternal(
+        sqlConf.getConfString("spark.yarn.tags", "missing"),
+        sqlConf.getConfString("spark.app.id", "generated-" + UUID.randomUUID()));
+  }
+
+  @VisibleForTesting
+  // try to extract the dataproc job first, if not than use the applicationId
+  static String getJobIdInternal(String yarnTags, String applicationId) {
+    return Stream.of(yarnTags.split(","))
+        .filter(tag -> tag.startsWith("dataproc_job_"))
+        .findFirst()
+        .orElseGet(() -> applicationId);
   }
 }

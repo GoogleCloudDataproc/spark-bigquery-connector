@@ -127,10 +127,14 @@ private[bigquery] class DirectBigQueryRelation(
       val readDataFormat = options.getReadDataFormat
 
       try {
+        val requestedSession = ReadSession.newBuilder()
+        if(options.getTraceId.isPresent) {
+          requestedSession.setTraceId(options.getTraceId.get())
+        }
         val session = client.createReadSession(
           CreateReadSessionRequest.newBuilder()
             .setParent(s"projects/${options.getParentProjectId}")
-            .setReadSession(ReadSession.newBuilder()
+            .setReadSession(requestedSession
               .setDataFormat(readDataFormat)
               .setReadOptions(readOptions)
               .setTable(actualTablePath
