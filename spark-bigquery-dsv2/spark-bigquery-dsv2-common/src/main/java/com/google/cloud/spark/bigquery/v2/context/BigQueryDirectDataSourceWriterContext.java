@@ -50,7 +50,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   private final String writeUUID;
   private final RetrySettings bigqueryDataWriterHelperRetrySettings;
 
-  private final TableId temporaryTableId;
+  private final BigQueryTable writtenTable;
   private final String tablePathForBigQueryStorage;
 
   private BigQueryWriteClient writeClient;
@@ -86,9 +86,9 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
           "Could not convert Spark schema to protobuf descriptor", e);
     }
 
-    this.temporaryTableId = getOrCreateTable(saveMode, destinationTableId, bigQuerySchema);
+    this.writtenTable = getOrCreateTable(saveMode, destinationTableId, bigQuerySchema);
     this.tablePathForBigQueryStorage =
-        bigQueryClient.createTablePathForBigQueryStorage(temporaryTableId);
+        bigQueryClient.createTablePathForBigQueryStorage(writtenTable.getTableId());
 
     if (!writingMode.equals(WritingMode.IGNORE_INPUTS)) {
       this.writeClient = writeClientFactory.getBigQueryWriteClient();
@@ -108,7 +108,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
    * @return The TableId to which Spark will do the writing: whether that is the destinationTableID
    *     or the temporaryTableId.
    */
-  private TableId getOrCreateTable(
+  private BigQueryTable getOrCreateTable(
       SaveMode saveMode, TableId destinationTableId, Schema bigQuerySchema)
       throws IllegalArgumentException {
     if (bigQueryClient.tableExists(destinationTableId)) {
@@ -122,16 +122,19 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
           break;
         case Overwrite:
           writingMode = WritingMode.OVERWRITE;
-          return bigQueryClient.createTempTable(destinationTableId, bigQuerySchema).getTableId();
+          return new BigQueryTable(
+              bigQueryClient.createTempTable(destinationTableId, bigQuerySchema).getTableId(),
+              true);
         case Ignore:
           writingMode = WritingMode.IGNORE_INPUTS;
           break;
         case ErrorIfExists:
           throw new IllegalArgumentException("Table already exists in BigQuery");
       }
-      return bigQueryClient.getTable(destinationTableId).getTableId();
+      return new BigQueryTable(bigQueryClient.getTable(destinationTableId).getTableId(), false);
     } else {
-      return bigQueryClient.createTable(destinationTableId, bigQuerySchema).getTableId();
+      return new BigQueryTable(
+          bigQueryClient.createTable(destinationTableId, bigQuerySchema).getTableId(), true);
     }
   }
 
@@ -189,13 +192,13 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
 
     if (writingMode.equals(WritingMode.OVERWRITE)) {
       Job overwriteJob =
-          bigQueryClient.overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
+          bigQueryClient.overwriteDestinationWithTemporary(
+              writtenTable.getTableId(), destinationTableId);
       BigQueryClient.waitForJob(overwriteJob);
       Preconditions.checkState(
-          bigQueryClient.deleteTable(temporaryTableId),
+          bigQueryClient.deleteTable(writtenTable.getTableId()),
           new BigQueryConnectorException(
-              String.format(
-                  "Could not delete temporary table %s from BigQuery", temporaryTableId)));
+              String.format("Could not delete temporary table %s from BigQuery", writtenTable)));
     }
   }
 
@@ -211,8 +214,27 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     if (writingMode.equals(WritingMode.IGNORE_INPUTS)) return;
 
     // Deletes the preliminary table we wrote to (if it exists):
-    if (bigQueryClient.tableExists(temporaryTableId)) {
-      bigQueryClient.deleteTable(temporaryTableId);
+    if (writtenTable.shouldBeDeletedOnAbort()) {
+      bigQueryClient.deleteTable(writtenTable.getTableId());
+    }
+  }
+
+  // Used for the getOrCreateTable output, to indicate if the table should be deleted on abort
+  static class BigQueryTable {
+    private final TableId tableId;
+    private final boolean shouldBeDeletedOnAbort;
+
+    public BigQueryTable(TableId tableId, boolean shouldBeDeletedOnAbort) {
+      this.tableId = tableId;
+      this.shouldBeDeletedOnAbort = shouldBeDeletedOnAbort;
+    }
+
+    public TableId getTableId() {
+      return tableId;
+    }
+
+    public boolean shouldBeDeletedOnAbort() {
+      return shouldBeDeletedOnAbort;
     }
   }
 }
