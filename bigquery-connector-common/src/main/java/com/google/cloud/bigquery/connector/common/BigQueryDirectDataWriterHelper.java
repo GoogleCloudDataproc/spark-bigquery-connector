@@ -19,9 +19,17 @@ import com.google.api.client.util.Sleeper;
 import com.google.api.core.ApiFuture;
 import com.google.api.core.NanoClock;
 import com.google.api.gax.retrying.*;
+import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
+import com.google.cloud.bigquery.storage.v1.CreateWriteStreamRequest;
+import com.google.cloud.bigquery.storage.v1.FinalizeWriteStreamRequest;
+import com.google.cloud.bigquery.storage.v1.FinalizeWriteStreamResponse;
+import com.google.cloud.bigquery.storage.v1.ProtoRows;
+import com.google.cloud.bigquery.storage.v1.ProtoSchema;
+import com.google.cloud.bigquery.storage.v1.StreamWriter;
+import com.google.cloud.bigquery.storage.v1.WriteStream;
 import com.google.cloud.bigquery.storage.v1.stub.readrows.ApiResultRetryAlgorithm;
-import com.google.cloud.bigquery.storage.v1beta2.*;
-import com.google.cloud.bigquery.storage.v1beta2.WriteStream;
+import com.google.common.base.Optional;
 import com.google.protobuf.ByteString;
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -37,15 +45,16 @@ public class BigQueryDirectDataWriterHelper {
   final Logger logger = LoggerFactory.getLogger(BigQueryDirectDataWriterHelper.class);
 
   // multiplying with 0.95 so as to keep a buffer preventing the quota limits
-  final long MAX_APPEND_ROWS_REQUEST_SIZE = (long) (StreamWriterV2.getApiMaxRequestBytes() * 0.95);
+  final long MAX_APPEND_ROWS_REQUEST_SIZE = (long) (StreamWriter.getApiMaxRequestBytes() * 0.95);
 
   private final BigQueryWriteClient writeClient;
   private final String tablePath;
   private final ProtoSchema protoSchema;
   private final RetrySettings retrySettings;
+  private final Optional<String> traceId;
 
   private String writeStreamName;
-  private StreamWriterV2 streamWriter;
+  private StreamWriter streamWriter;
   private ProtoRows.Builder protoRows;
 
   private long appendRequestRowCount = 0; // number of rows waiting for the next append request
@@ -56,11 +65,13 @@ public class BigQueryDirectDataWriterHelper {
       BigQueryClientFactory writeClientFactory,
       String tablePath,
       ProtoSchema protoSchema,
-      RetrySettings bigqueryDataWriterHelperRetrySettings) {
+      RetrySettings bigqueryDataWriterHelperRetrySettings,
+      Optional<String> traceId) {
     this.writeClient = writeClientFactory.getBigQueryWriteClient();
     this.tablePath = tablePath;
     this.protoSchema = protoSchema;
     this.retrySettings = bigqueryDataWriterHelperRetrySettings;
+    this.traceId = traceId;
 
     try {
       this.writeStreamName = retryCreateWriteStream();
@@ -120,11 +131,14 @@ public class BigQueryDirectDataWriterHelper {
     return directRetryingExecutor.submit(retryingFuture).get();
   }
 
-  private StreamWriterV2 createStreamWriter(String writeStreamName) {
+  private StreamWriter createStreamWriter(String writeStreamName) {
     try {
-      return StreamWriterV2.newBuilder(writeStreamName, writeClient)
-          .setWriterSchema(this.protoSchema)
-          .build();
+      StreamWriter.Builder streamWriter =
+          StreamWriter.newBuilder(writeStreamName, writeClient).setWriterSchema(this.protoSchema);
+      if (traceId.isPresent()) {
+        streamWriter.setTraceId(traceId.get());
+      }
+      return streamWriter.build();
     } catch (IOException e) {
       throw new BigQueryConnectorException("Could not build stream-writer", e);
     }
@@ -256,7 +270,7 @@ public class BigQueryDirectDataWriterHelper {
    * @param finalizeWriteStreamRequest The request to send to the writeClient in order to finalize
    *     the write-stream.
    * @return The FinalizeWriteStreamResponse
-   * @see com.google.cloud.bigquery.storage.v1beta2.FinalizeWriteStreamResponse
+   * @see com.google.cloud.bigquery.storage.v1.FinalizeWriteStreamResponse
    */
   private FinalizeWriteStreamResponse retryFinalizeWriteStream(
       FinalizeWriteStreamRequest finalizeWriteStreamRequest) {
