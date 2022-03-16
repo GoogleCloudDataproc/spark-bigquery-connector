@@ -5,7 +5,7 @@
   <parent>
     <artifactId>spark-bigquery-pushdown-parent</artifactId>
     <groupId>com.google.cloud.spark</groupId>
-    <version>0.24.0-SNAPSHOT</version>
+    <version>${revision}</version>
     <relativePath>../spark-bigquery-pushdown-parent</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
