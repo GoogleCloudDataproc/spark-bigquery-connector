@@ -123,7 +123,7 @@ public class BigQueryClient {
    * @param schema The Schema of the table to be created.
    * @return The {@code Table} object representing the table that was created.
    */
-  public Table createTable(TableId tableId, Schema schema) {
+  public TableInfo createTable(TableId tableId, Schema schema) {
     TableInfo tableInfo = TableInfo.newBuilder(tableId, StandardTableDefinition.of(schema)).build();
     return bigQuery.create(tableInfo);
   }
@@ -139,7 +139,7 @@ public class BigQueryClient {
    * @param schema The Schema of the destination / temporary table.
    * @return The {@code Table} object representing the created temporary table.
    */
-  public Table createTempTable(TableId destinationTableId, Schema schema) {
+  public TableInfo createTempTable(TableId destinationTableId, Schema schema) {
     String tempProject = materializationProject.orElseGet(destinationTableId::getProject);
     String tempDataset = materializationDataset.orElseGet(destinationTableId::getDataset);
     String tableName = destinationTableId.getTable() + System.nanoTime();

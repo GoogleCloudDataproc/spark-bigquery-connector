@@ -131,7 +131,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
         case ErrorIfExists:
           throw new IllegalArgumentException("Table already exists in BigQuery");
       }
-      return new BigQueryTable(bigQueryClient.getTable(destinationTableId).getTableId(), false);
+      return new BigQueryTable(destinationTableId, false);
     } else {
       return new BigQueryTable(
           bigQueryClient.createTable(destinationTableId, bigQuerySchema).getTableId(), true);
@@ -214,7 +214,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     if (writingMode.equals(WritingMode.IGNORE_INPUTS)) return;
 
     // Deletes the preliminary table we wrote to (if it exists):
-    if (writtenTable.shouldBeDeletedOnAbort()) {
+    if (writtenTable.toDeleteOnAbort()) {
       bigQueryClient.deleteTable(writtenTable.getTableId());
     }
   }
@@ -222,19 +222,19 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   // Used for the getOrCreateTable output, to indicate if the table should be deleted on abort
   static class BigQueryTable {
     private final TableId tableId;
-    private final boolean shouldBeDeletedOnAbort;
+    private final boolean toDeleteOnAbort;
 
-    public BigQueryTable(TableId tableId, boolean shouldBeDeletedOnAbort) {
+    public BigQueryTable(TableId tableId, boolean toDeleteOnAbort) {
       this.tableId = tableId;
-      this.shouldBeDeletedOnAbort = shouldBeDeletedOnAbort;
+      this.toDeleteOnAbort = toDeleteOnAbort;
     }
 
     public TableId getTableId() {
       return tableId;
     }
 
-    public boolean shouldBeDeletedOnAbort() {
-      return shouldBeDeletedOnAbort;
+    public boolean toDeleteOnAbort() {
+      return toDeleteOnAbort;
     }
   }
 }
