@@ -33,6 +33,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.http.BaseHttpServiceException;
+import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -206,6 +207,8 @@ public class BigQueryClient {
    * @return The formatted String.
    */
   public String createTablePathForBigQueryStorage(TableId tableId) {
+    Preconditions.checkNotNull(tableId, "tableId cannot be null");
+    Preconditions.checkNotNull(tableId.getProject(), "tableId.project cannot be null");
     return String.format(
         "projects/%s/datasets/%s/tables/%s",
         tableId.getProject(), tableId.getDataset(), tableId.getTable());

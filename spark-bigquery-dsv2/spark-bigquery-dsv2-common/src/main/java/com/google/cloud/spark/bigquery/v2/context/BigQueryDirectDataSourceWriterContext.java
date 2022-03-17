@@ -22,6 +22,7 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
@@ -109,7 +110,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       SaveMode saveMode, TableId destinationTableId, Schema bigQuerySchema)
       throws IllegalArgumentException {
     if (bigQueryClient.tableExists(destinationTableId)) {
-      Schema tableSchema = bigQueryClient.getTable(destinationTableId).getDefinition().getSchema();
+      TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
+      Schema tableSchema = destinationTable.getDefinition().getSchema();
       Preconditions.checkArgument(
           BigQueryUtil.schemaEquals(tableSchema, bigQuerySchema, /* regardFieldOrder */ false),
           new BigQueryConnectorException.InvalidSchemaException(
@@ -128,7 +130,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
         case ErrorIfExists:
           throw new IllegalArgumentException("Table already exists in BigQuery");
       }
-      return new BigQueryTable(destinationTableId, false);
+      return new BigQueryTable(destinationTable.getTableId(), false);
     } else {
       return new BigQueryTable(
           bigQueryClient.createTable(destinationTableId, bigQuerySchema).getTableId(), true);
