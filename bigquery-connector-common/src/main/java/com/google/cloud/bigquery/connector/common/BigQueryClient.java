@@ -33,6 +33,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.http.BaseHttpServiceException;
+import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -123,7 +124,7 @@ public class BigQueryClient {
    * @param schema The Schema of the table to be created.
    * @return The {@code Table} object representing the table that was created.
    */
-  public Table createTable(TableId tableId, Schema schema) {
+  public TableInfo createTable(TableId tableId, Schema schema) {
     TableInfo tableInfo = TableInfo.newBuilder(tableId, StandardTableDefinition.of(schema)).build();
     return bigQuery.create(tableInfo);
   }
@@ -139,7 +140,7 @@ public class BigQueryClient {
    * @param schema The Schema of the destination / temporary table.
    * @return The {@code Table} object representing the created temporary table.
    */
-  public Table createTempTable(TableId destinationTableId, Schema schema) {
+  public TableInfo createTempTable(TableId destinationTableId, Schema schema) {
     String tempProject = materializationProject.orElseGet(destinationTableId::getProject);
     String tempDataset = materializationDataset.orElseGet(destinationTableId::getDataset);
     String tableName = destinationTableId.getTable() + System.nanoTime();
@@ -206,6 +207,8 @@ public class BigQueryClient {
    * @return The formatted String.
    */
   public String createTablePathForBigQueryStorage(TableId tableId) {
+    Preconditions.checkNotNull(tableId, "tableId cannot be null");
+    Preconditions.checkNotNull(tableId.getProject(), "tableId.project cannot be null");
     return String.format(
         "projects/%s/datasets/%s/tables/%s",
         tableId.getProject(), tableId.getDataset(), tableId.getTable());
