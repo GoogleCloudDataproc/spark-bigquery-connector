@@ -27,6 +27,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
+import com.google.common.base.Optional;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
@@ -143,6 +144,7 @@ public class BigQueryDirectDataSourceWriterContextTest {
         writeUUID,
         saveMode,
         sparkSchema,
-        bigqueryDataWriterHelperRetrySettings);
+        bigqueryDataWriterHelperRetrySettings,
+        Optional.absent());
   }
 }
