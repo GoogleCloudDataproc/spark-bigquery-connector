@@ -16,7 +16,7 @@
 package com.google.cloud.spark.bigquery.direct
 
 import java.sql.{Date, Timestamp}
-import java.util.UUID
+import java.util.{Optional, UUID}
 import java.util.concurrent.{Callable, TimeUnit}
 import com.google.api.gax.core.CredentialsProvider
 import com.google.api.gax.rpc.FixedHeaderProvider
@@ -230,7 +230,7 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   def createTableFromQuery(querySql: String): TableInfo = {
-    val destinationTable = createDestinationTable
+    val destinationTable = bigQueryClient.createDestinationTable(Optional.of(tableId.getProject), Optional.of(tableId.getDataset))
     logDebug(s"destinationTable is $destinationTable")
     val jobInfo = QueryJobConfiguration
         .newBuilder(querySql)
@@ -270,15 +270,6 @@ private[bigquery] class DirectBigQueryRelation(
   // return empty if no filters are used
   def createWhereClause(filtersString: String): Option[String] = {
     ScalaUtil.noneIfEmpty(filtersString)
-  }
-
-  def createDestinationTable: TableId = {
-    val project = options.getMaterializationProject.orElse(tableId.getProject)
-    val dataset = options.getMaterializationDataset.orElse(tableId.getDataset)
-    val uuid = UUID.randomUUID()
-    val name =
-      s"_sbc_${uuid.getMostSignificantBits.toHexString}${uuid.getLeastSignificantBits.toHexString}"
-    TableId.of(project, dataset, name)
   }
 
   /**
