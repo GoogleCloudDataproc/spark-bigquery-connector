@@ -25,6 +25,7 @@ import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobConfiguration;
+import com.google.cloud.bigquery.JobId;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
@@ -447,52 +448,78 @@ public class BigQueryClient {
       List<String> sourceUris,
       FormatOptions formatOptions,
       JobInfo.WriteDisposition writeDisposition) {
-    LoadJobConfiguration.Builder jobConfiguration =
-        LoadJobConfiguration.newBuilder(options.getTableId(), sourceUris, formatOptions)
-            .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
-            .setWriteDisposition(writeDisposition)
-            .setAutodetect(true);
+    Job finishedJob = null;
+    try {
+      LoadJobConfiguration.Builder jobConfiguration =
+          LoadJobConfiguration.newBuilder(options.getTableId(), sourceUris, formatOptions)
+              .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
+              .setWriteDisposition(writeDisposition)
+              .setAutodetect(true);
 
-    options.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
+      options.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
 
-    if (options.getPartitionField().isPresent() || options.getPartitionType().isPresent()) {
-      TimePartitioning.Builder timePartitionBuilder =
-          TimePartitioning.newBuilder(options.getPartitionTypeOrDefault());
-      options.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
-      options
-          .getPartitionRequireFilter()
-          .ifPresent(timePartitionBuilder::setRequirePartitionFilter);
-      options.getPartitionField().ifPresent(timePartitionBuilder::setField);
-      jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
-      options
-          .getClusteredFields()
-          .ifPresent(
-              clusteredFields -> {
-                Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
-                jobConfiguration.setClustering(clustering);
-              });
-    }
+      if (options.getPartitionField().isPresent() || options.getPartitionType().isPresent()) {
+        TimePartitioning.Builder timePartitionBuilder =
+            TimePartitioning.newBuilder(options.getPartitionTypeOrDefault());
+        options.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
+        options
+            .getPartitionRequireFilter()
+            .ifPresent(timePartitionBuilder::setRequirePartitionFilter);
+        options.getPartitionField().ifPresent(timePartitionBuilder::setField);
+        jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
+        options
+            .getClusteredFields()
+            .ifPresent(
+                clusteredFields -> {
+                  Clustering clustering =
+                      Clustering.newBuilder().setFields(clusteredFields).build();
+                  jobConfiguration.setClustering(clustering);
+                });
+      }
 
-    if (!options.getLoadSchemaUpdateOptions().isEmpty()) {
-      jobConfiguration.setSchemaUpdateOptions(options.getLoadSchemaUpdateOptions());
-    }
+      if (!options.getLoadSchemaUpdateOptions().isEmpty()) {
+        jobConfiguration.setSchemaUpdateOptions(options.getLoadSchemaUpdateOptions());
+      }
 
-    Job finishedJob = createAndWaitFor(jobConfiguration);
+      finishedJob = createAndWaitFor(jobConfiguration);
 
-    if (finishedJob.getStatus().getError() != null) {
-      throw new BigQueryException(
-          BaseHttpServiceException.UNKNOWN_CODE,
+      if (finishedJob.getStatus().getError() != null) {
+        throw new BigQueryException(
+            BaseHttpServiceException.UNKNOWN_CODE,
+            String.format(
+                "Failed to load to %s in job %s. BigQuery error was '%s'",
+                BigQueryUtil.friendlyTableName(options.getTableId()),
+                finishedJob.getJobId(),
+                finishedJob.getStatus().getError().getMessage()),
+            finishedJob.getStatus().getError());
+      } else {
+        log.info(
+            "Done loading to {}. jobId: {}",
+            BigQueryUtil.friendlyTableName(options.getTableId()),
+            finishedJob.getJobId());
+      }
+    } catch (Exception e) {
+      TimePartitioning.Type partitionType = options.getPartitionTypeOrDefault();
+
+      if (e.getMessage()
+              .equals(
+                  String.format("Cannot output %s partitioned data in LegacySQL", partitionType))
+          && formatOptions.equals(FormatOptions.parquet())) {
+        throw new BigQueryException(
+            0,
+            String.format(
+                "%s time partitioning is not available "
+                    + "for load jobs from PARQUET in this project yet. Please replace the intermediate "
+                    + "format to AVRO or contact your account manager to enable this.",
+                partitionType),
+            e);
+      }
+      JobId jobId = finishedJob.getJobId();
+      log.warn(
           String.format(
-              "Failed to load to %s in job %s. BigQuery error was '%s'",
-              BigQueryUtil.friendlyTableName(options.getTableId()),
-              finishedJob.getJobId(),
-              finishedJob.getStatus().getError().getMessage()),
-          finishedJob.getStatus().getError());
-    } else {
-      log.info(
-          "Done loading to {}. jobId: {}",
-          BigQueryUtil.friendlyTableName(options.getTableId()),
-          finishedJob.getJobId());
+              "Failed to load the data into BigQuery, JobId for debug purposes is [%s:%s.%s]",
+              jobId.getProject(), jobId.getLocation(), jobId.getJob()));
+      throw new BigQueryException(0, "Problem loading data into BigQuery", e);
     }
   }
 
