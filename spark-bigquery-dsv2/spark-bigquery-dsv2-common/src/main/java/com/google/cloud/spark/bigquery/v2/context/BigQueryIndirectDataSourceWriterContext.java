@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery.v2.context;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.LoadJobConfiguration;
@@ -159,55 +160,10 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   void loadDataToBigQuery(List<String> sourceUris) throws IOException {
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
+    JobInfo.WriteDisposition writeDisposition = saveModeToWriteDisposition(saveMode);
+    FormatOptions formatOptions = config.getIntermediateFormat().getFormatOptions();
 
-    LoadJobConfiguration.Builder jobConfiguration =
-        LoadJobConfiguration.newBuilder(
-                config.getTableId(),
-                optimizedSourceUris,
-                config.getIntermediateFormat().getFormatOptions())
-            .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
-            .setWriteDisposition(saveModeToWriteDisposition(saveMode))
-            .setAutodetect(true);
-
-    config.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
-
-    if (config.getPartitionField().isPresent() || config.getPartitionType().isPresent()) {
-      TimePartitioning.Builder timePartitionBuilder =
-          TimePartitioning.newBuilder(config.getPartitionTypeOrDefault());
-      config.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
-      config.getPartitionRequireFilter().ifPresent(timePartitionBuilder::setRequirePartitionFilter);
-      config.getPartitionField().ifPresent(timePartitionBuilder::setField);
-      jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
-      config
-          .getClusteredFields()
-          .ifPresent(
-              clusteredFields -> {
-                Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
-                jobConfiguration.setClustering(clustering);
-              });
-    }
-
-    if (!config.getLoadSchemaUpdateOptions().isEmpty()) {
-      jobConfiguration.setSchemaUpdateOptions(config.getLoadSchemaUpdateOptions());
-    }
-
-    Job finishedJob = bigQueryClient.createAndWaitFor(jobConfiguration);
-
-    if (finishedJob.getStatus().getError() != null) {
-      throw new BigQueryException(
-          BaseHttpServiceException.UNKNOWN_CODE,
-          String.format(
-              "Failed to load to %s in job %s. BigQuery error was '%s'",
-              BigQueryUtil.friendlyTableName(config.getTableId()),
-              finishedJob.getJobId(),
-              finishedJob.getStatus().getError().getMessage()),
-          finishedJob.getStatus().getError());
-    } else {
-      logger.info(
-          "Done loading to {}. jobId: {}",
-          BigQueryUtil.friendlyTableName(config.getTableId()),
-          finishedJob.getJobId());
-    }
+    bigQueryClient.loadDataIntoTable(config, optimizedSourceUris, formatOptions, writeDisposition);
   }
 
   JobInfo.WriteDisposition saveModeToWriteDisposition(SaveMode saveMode) {

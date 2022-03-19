@@ -19,11 +19,14 @@ import com.google.cloud.BaseServiceException;
 import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
+import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobConfiguration;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
@@ -32,6 +35,7 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.http.BaseHttpServiceException;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
@@ -39,8 +43,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -436,6 +442,60 @@ public class BigQueryClient {
     }
   }
 
+  public void loadDataIntoTable(
+      LoadDataOptions options,
+      List<String> sourceUris,
+      FormatOptions formatOptions,
+      JobInfo.WriteDisposition writeDisposition) {
+    LoadJobConfiguration.Builder jobConfiguration =
+        LoadJobConfiguration.newBuilder(options.getTableId(), sourceUris, formatOptions)
+            .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
+            .setWriteDisposition(writeDisposition)
+            .setAutodetect(true);
+
+    options.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
+
+    if (options.getPartitionField().isPresent() || options.getPartitionType().isPresent()) {
+      TimePartitioning.Builder timePartitionBuilder =
+          TimePartitioning.newBuilder(options.getPartitionTypeOrDefault());
+      options.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
+      options
+          .getPartitionRequireFilter()
+          .ifPresent(timePartitionBuilder::setRequirePartitionFilter);
+      options.getPartitionField().ifPresent(timePartitionBuilder::setField);
+      jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
+      options
+          .getClusteredFields()
+          .ifPresent(
+              clusteredFields -> {
+                Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
+                jobConfiguration.setClustering(clustering);
+              });
+    }
+
+    if (!options.getLoadSchemaUpdateOptions().isEmpty()) {
+      jobConfiguration.setSchemaUpdateOptions(options.getLoadSchemaUpdateOptions());
+    }
+
+    Job finishedJob = createAndWaitFor(jobConfiguration);
+
+    if (finishedJob.getStatus().getError() != null) {
+      throw new BigQueryException(
+          BaseHttpServiceException.UNKNOWN_CODE,
+          String.format(
+              "Failed to load to %s in job %s. BigQuery error was '%s'",
+              BigQueryUtil.friendlyTableName(options.getTableId()),
+              finishedJob.getJobId(),
+              finishedJob.getStatus().getError().getMessage()),
+          finishedJob.getStatus().getError());
+    } else {
+      log.info(
+          "Done loading to {}. jobId: {}",
+          BigQueryUtil.friendlyTableName(options.getTableId()),
+          finishedJob.getJobId());
+    }
+  }
+
   public interface ReadTableOptions {
     TableId tableId();
 
@@ -446,6 +506,26 @@ public class BigQueryClient {
     String viewEnabledParamName();
 
     int expirationTimeInMinutes();
+  }
+
+  public interface LoadDataOptions {
+    TableId getTableId();
+
+    Optional<JobInfo.CreateDisposition> getCreateDisposition();
+
+    Optional<String> getPartitionField();
+
+    Optional<TimePartitioning.Type> getPartitionType();
+
+    TimePartitioning.Type getPartitionTypeOrDefault();
+
+    OptionalLong getPartitionExpirationMs();
+
+    Optional<Boolean> getPartitionRequireFilter();
+
+    Optional<ImmutableList<String>> getClusteredFields();
+
+    List<JobInfo.SchemaUpdateOption> getLoadSchemaUpdateOptions();
   }
 
   static class DestinationTableBuilder implements Callable<TableInfo> {
