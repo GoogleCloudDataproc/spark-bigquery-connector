@@ -154,7 +154,8 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   void loadDataToBigQuery(List<String> sourceUris) throws IOException {
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
-    JobInfo.WriteDisposition writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
+    JobInfo.WriteDisposition writeDisposition =
+        SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
     FormatOptions formatOptions = config.getIntermediateFormat().getFormatOptions();
 
     bigQueryClient.loadDataIntoTable(config, optimizedSourceUris, formatOptions, writeDisposition);
