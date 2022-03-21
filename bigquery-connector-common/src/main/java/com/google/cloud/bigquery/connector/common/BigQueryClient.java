@@ -41,11 +41,13 @@ import com.google.cloud.http.BaseHttpServiceException;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -69,16 +71,19 @@ public class BigQueryClient {
   private final Cache<String, TableInfo> destinationTableCache;
   private final Optional<String> materializationProject;
   private final Optional<String> materializationDataset;
+  private final JobConfigurationFactory jobConfigurationFactory;
 
   public BigQueryClient(
       BigQuery bigQuery,
       Optional<String> materializationProject,
       Optional<String> materializationDataset,
-      Cache<String, TableInfo> destinationTableCache) {
+      Cache<String, TableInfo> destinationTableCache,
+      Map<String, String> labels) {
     this.bigQuery = bigQuery;
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
     this.destinationTableCache = destinationTableCache;
+    this.jobConfigurationFactory = new JobConfigurationFactory(labels);
   }
 
   /**
@@ -192,7 +197,8 @@ public class BigQueryClient {
             + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
 
     QueryJobConfiguration queryConfig =
-        QueryJobConfiguration.newBuilder(
+        jobConfigurationFactory
+            .createQueryJobConfigurationBuilder(
                 sqlFromFormat(queryFormat, destinationTableId, temporaryTableId))
             .setUseLegacySql(false)
             .build();
@@ -433,7 +439,12 @@ public class BigQueryClient {
     try {
       return destinationTableCache.get(
           querySql,
-          new DestinationTableBuilder(this, querySql, destinationTableId, expirationTimeInMinutes));
+          new DestinationTableBuilder(
+              this,
+              querySql,
+              destinationTableId,
+              expirationTimeInMinutes,
+              jobConfigurationFactory));
     } catch (Exception e) {
       throw new BigQueryConnectorException(
           BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
@@ -565,16 +576,19 @@ public class BigQueryClient {
     final String querySql;
     final TableId destinationTable;
     final int expirationTimeInMinutes;
+    final JobConfigurationFactory jobConfigurationFactory;
 
     DestinationTableBuilder(
         BigQueryClient bigQueryClient,
         String querySql,
         TableId destinationTable,
-        int expirationTimeInMinutes) {
+        int expirationTimeInMinutes,
+        JobConfigurationFactory jobConfigurationFactory) {
       this.bigQueryClient = bigQueryClient;
       this.querySql = querySql;
       this.destinationTable = destinationTable;
       this.expirationTimeInMinutes = expirationTimeInMinutes;
+      this.jobConfigurationFactory = jobConfigurationFactory;
     }
 
     @Override
@@ -586,7 +600,8 @@ public class BigQueryClient {
       log.debug("destinationTable is %s", destinationTable);
       JobInfo jobInfo =
           JobInfo.of(
-              QueryJobConfiguration.newBuilder(querySql)
+              jobConfigurationFactory
+                  .createQueryJobConfigurationBuilder(querySql)
                   .setDestinationTable(destinationTable)
                   .build());
       log.debug("running query %s", jobInfo);
@@ -614,6 +629,32 @@ public class BigQueryClient {
             String.format("Job %s has been interrupted", job.getJobId()),
             e);
       }
+    }
+  }
+
+  static class JobConfigurationFactory {
+    private final ImmutableMap<String, String> labels;
+
+    public JobConfigurationFactory(Map<String, String> labels) {
+      this.labels = ImmutableMap.copyOf(labels);
+    }
+
+    QueryJobConfiguration.Builder createQueryJobConfigurationBuilder(String querySql) {
+      QueryJobConfiguration.Builder builder = QueryJobConfiguration.newBuilder(querySql);
+      if (labels != null && !labels.isEmpty()) {
+        builder.setLabels(labels);
+      }
+      return builder;
+    }
+
+    LoadJobConfiguration.Builder createLoaJobConfigurationBuilder(
+        LoadDataOptions options, List<String> sourceUris, FormatOptions formatOptions) {
+      LoadJobConfiguration.Builder builder =
+          LoadJobConfiguration.newBuilder(options.getTableId(), sourceUris, formatOptions);
+      if (labels != null && !labels.isEmpty()) {
+        builder.setLabels(labels);
+      }
+      return builder;
     }
   }
 }

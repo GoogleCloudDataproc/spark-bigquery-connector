@@ -115,6 +115,7 @@ public class SparkBigQueryConfig
   private static final String ARROW_COMPRESSION_CODEC_OPTION = "arrowCompressionCodec";
   private static final WriteMethod DEFAULT_WRITE_METHOD = WriteMethod.INDIRECT;
   public static final int DEFAULT_CACHE_EXPIRATION_IN_MINUTES = 15;
+  static final String BIGQUERY_JOB_LABEL_PREFIX = "bigQueryJobLabel.";
 
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
@@ -165,6 +166,7 @@ public class SparkBigQueryConfig
   private int cacheExpirationTimeInMinutes = DEFAULT_CACHE_EXPIRATION_IN_MINUTES;
   // used to create BigQuery ReadSessions
   private com.google.common.base.Optional<String> traceId;
+  private ImmutableMap<String, String> bigQueryJobLabels = ImmutableMap.of();
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -388,7 +390,33 @@ public class SparkBigQueryConfig
               return traceIdParam;
             });
 
+    config.bigQueryJobLabels = parseBigQueryJobLabels(globalOptions, options);
     return config;
+  }
+
+  @VisibleForTesting
+  // takes only the options with the BIGQUERY_JOB_LABEL_PREFIX prefix, and strip them of this
+  // prefix.
+  // The `options` map overrides the `globalOptions` map.
+  static ImmutableMap<String, String> parseBigQueryJobLabels(
+      ImmutableMap<String, String> globalOptions, ImmutableMap<String, String> options) {
+
+    String lowerCasePrefix = BIGQUERY_JOB_LABEL_PREFIX.toLowerCase(Locale.ROOT);
+
+    ImmutableMap<String, String> allOptions =
+        ImmutableMap.<String, String>builder() //
+            .putAll(globalOptions) //
+            .putAll(options) //
+            .buildKeepingLast();
+
+    ImmutableMap.Builder<String, String> result = ImmutableMap.<String, String>builder();
+    for (Map.Entry<String, String> entry : allOptions.entrySet()) {
+      if (entry.getKey().toLowerCase(Locale.ROOT).startsWith(lowerCasePrefix)) {
+        result.put(entry.getKey().substring(BIGQUERY_JOB_LABEL_PREFIX.length()), entry.getValue());
+      }
+    }
+
+    return result.build();
   }
 
   private static ImmutableMap<String, String> toLowerCaseKeysMap(Map<String, String> map) {
@@ -739,6 +767,11 @@ public class SparkBigQueryConfig
 
   public Optional<String> getTraceId() {
     return traceId.toJavaUtil();
+  }
+
+  @Override
+  public ImmutableMap<String, String> getBigQueryJobLabels() {
+    return bigQueryJobLabels;
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {

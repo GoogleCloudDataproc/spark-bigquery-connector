@@ -103,6 +103,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getCacheExpirationTimeInMinutes())
         .isEqualTo(SparkBigQueryConfig.DEFAULT_CACHE_EXPIRATION_IN_MINUTES);
     assertThat(config.getTraceId().isPresent()).isFalse();
+    assertThat(config.getBigQueryJobLabels()).isEmpty();
   }
 
   @Test
@@ -142,6 +143,7 @@ public class SparkBigQueryConfigTest {
                 .put("cacheExpirationTimeInMinutes", "100")
                 .put("traceJobId", "traceJobId")
                 .put("traceApplicationName", "traceApplicationName")
+                .put("bigQueryJobLabel.foo", "bar")
                 .build());
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -184,6 +186,8 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.DIRECT);
     assertThat(config.getCacheExpirationTimeInMinutes()).isEqualTo(100);
     assertThat(config.getTraceId()).isEqualTo(Optional.of("Spark:traceApplicationName:traceJobId"));
+    assertThat(config.getBigQueryJobLabels()).hasSize(1);
+    assertThat(config.getBigQueryJobLabels()).containsEntry("foo", "bar");
   }
 
   @Test
@@ -307,5 +311,25 @@ public class SparkBigQueryConfigTest {
     assertThat(SparkBigQueryConfig.isQuery("SELECT\ta,b from table")).isTrue();
     assertThat(SparkBigQueryConfig.isQuery("WITH bar AS (SELECT * FROM foo)\nSELECT * FROM bar"))
         .isTrue();
+  }
+
+  @Test
+  public void testJobLabelOverride() {
+    ImmutableMap<String, String> globalOptions =
+        ImmutableMap.<String, String>builder()
+            .put("bigQueryJobLabel.foo", "1")
+            .put("bigQueryJobLabel.bar", "1")
+            .build();
+    ImmutableMap<String, String> options =
+        ImmutableMap.<String, String>builder()
+            .put("bigQueryJobLabel.foo", "2")
+            .put("bigQueryJobLabel.baz", "2")
+            .build();
+    ImmutableMap<String, String> labels =
+        SparkBigQueryConfig.parseBigQueryJobLabels(globalOptions, options);
+    assertThat(labels).hasSize(3);
+    assertThat(labels).containsEntry("foo", "2");
+    assertThat(labels).containsEntry("bar", "1");
+    assertThat(labels).containsEntry("baz", "2");
   }
 }
