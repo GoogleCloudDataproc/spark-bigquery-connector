@@ -15,19 +15,14 @@
  */
 package com.google.cloud.spark.bigquery.v2.context;
 
-import com.google.cloud.bigquery.BigQueryException;
-import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.Job;
+import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
-import com.google.cloud.http.BaseHttpServiceException;
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
@@ -159,71 +154,11 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   void loadDataToBigQuery(List<String> sourceUris) throws IOException {
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
+    JobInfo.WriteDisposition writeDisposition =
+        SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
+    FormatOptions formatOptions = config.getIntermediateFormat().getFormatOptions();
 
-    LoadJobConfiguration.Builder jobConfiguration =
-        LoadJobConfiguration.newBuilder(
-                config.getTableId(),
-                optimizedSourceUris,
-                config.getIntermediateFormat().getFormatOptions())
-            .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
-            .setWriteDisposition(saveModeToWriteDisposition(saveMode))
-            .setAutodetect(true);
-
-    config.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
-
-    if (config.getPartitionField().isPresent() || config.getPartitionType().isPresent()) {
-      TimePartitioning.Builder timePartitionBuilder =
-          TimePartitioning.newBuilder(config.getPartitionTypeOrDefault());
-      config.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
-      config.getPartitionRequireFilter().ifPresent(timePartitionBuilder::setRequirePartitionFilter);
-      config.getPartitionField().ifPresent(timePartitionBuilder::setField);
-      jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
-      config
-          .getClusteredFields()
-          .ifPresent(
-              clusteredFields -> {
-                Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
-                jobConfiguration.setClustering(clustering);
-              });
-    }
-
-    if (!config.getLoadSchemaUpdateOptions().isEmpty()) {
-      jobConfiguration.setSchemaUpdateOptions(config.getLoadSchemaUpdateOptions());
-    }
-
-    Job finishedJob = bigQueryClient.createAndWaitFor(jobConfiguration);
-
-    if (finishedJob.getStatus().getError() != null) {
-      throw new BigQueryException(
-          BaseHttpServiceException.UNKNOWN_CODE,
-          String.format(
-              "Failed to load to %s in job %s. BigQuery error was '%s'",
-              BigQueryUtil.friendlyTableName(config.getTableId()),
-              finishedJob.getJobId(),
-              finishedJob.getStatus().getError().getMessage()),
-          finishedJob.getStatus().getError());
-    } else {
-      logger.info(
-          "Done loading to {}. jobId: {}",
-          BigQueryUtil.friendlyTableName(config.getTableId()),
-          finishedJob.getJobId());
-    }
-  }
-
-  JobInfo.WriteDisposition saveModeToWriteDisposition(SaveMode saveMode) {
-    if (saveMode == SaveMode.ErrorIfExists) {
-      return JobInfo.WriteDisposition.WRITE_EMPTY;
-    }
-    // SaveMode.Ignore is handled in the data source level. If it has arrived here it means tha
-    // table does not exist
-    if (saveMode == SaveMode.Append || saveMode == SaveMode.Ignore) {
-      return JobInfo.WriteDisposition.WRITE_APPEND;
-    }
-    if (saveMode == SaveMode.Overwrite) {
-      return JobInfo.WriteDisposition.WRITE_TRUNCATE;
-    }
-    throw new UnsupportedOperationException(
-        "SaveMode " + saveMode + " is currently not supported.");
+    bigQueryClient.loadDataIntoTable(config, optimizedSourceUris, formatOptions, writeDisposition);
   }
 
   void updateMetadataIfNeeded() {

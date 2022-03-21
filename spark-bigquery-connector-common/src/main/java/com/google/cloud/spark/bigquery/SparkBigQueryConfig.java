@@ -61,7 +61,8 @@ import org.apache.spark.sql.types.StructType;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.threeten.bp.Duration;
 
-public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
+public class SparkBigQueryConfig
+    implements BigQueryConfig, BigQueryClient.LoadDataOptions, Serializable {
 
   public static final int MAX_TRACE_ID_LENGTH = 256;
 
@@ -610,6 +611,7 @@ public class SparkBigQueryConfig implements BigQueryConfig, Serializable {
     return combinePushedDownFilters;
   }
 
+  @Override
   public boolean isUseAvroLogicalTypes() {
     return useAvroLogicalTypes;
   }

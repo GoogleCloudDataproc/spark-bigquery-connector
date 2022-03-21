@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -27,6 +28,7 @@ import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.internal.SQLConf;
 
 /** Spark related utilities */
@@ -127,5 +129,21 @@ public class SparkBigQueryUtil {
         .filter(tag -> tag.startsWith("dataproc_job_"))
         .findFirst()
         .orElseGet(() -> applicationId);
+  }
+
+  public static JobInfo.WriteDisposition saveModeToWriteDisposition(SaveMode saveMode) {
+    if (saveMode == SaveMode.ErrorIfExists) {
+      return JobInfo.WriteDisposition.WRITE_EMPTY;
+    }
+    // SaveMode.Ignore is handled in the data source level. If it has arrived here it means tha
+    // table does not exist
+    if (saveMode == SaveMode.Append || saveMode == SaveMode.Ignore) {
+      return JobInfo.WriteDisposition.WRITE_APPEND;
+    }
+    if (saveMode == SaveMode.Overwrite) {
+      return JobInfo.WriteDisposition.WRITE_TRUNCATE;
+    }
+    throw new UnsupportedOperationException(
+        "SaveMode " + saveMode + " is currently not supported.");
   }
 }

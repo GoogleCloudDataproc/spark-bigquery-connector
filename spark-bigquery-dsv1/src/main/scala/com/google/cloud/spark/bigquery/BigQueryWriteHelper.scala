@@ -74,94 +74,17 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
 
   def loadDataToBigQuery(): Unit = {
     val fs = gcsPath.getFileSystem(conf)
+    val formatOptions = options.getIntermediateFormat.getFormatOptions
     val sourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(
       ToIterator(fs.listFiles(gcsPath, false))
       .map(_.getPath.toString)
       .filter(_.toLowerCase.endsWith(
-        s".${options.getIntermediateFormat.getFormatOptions.getType.toLowerCase}"))
+        s".${formatOptions.getType.toLowerCase}"))
       .toList
       .asJava)
+    val writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode)
 
-    val jobConfigurationBuilder = LoadJobConfiguration.newBuilder(
-      options.getTableId, sourceUris, options.getIntermediateFormat.getFormatOptions)
-      .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
-      .setWriteDisposition(saveModeToWriteDisposition(saveMode))
-      .setAutodetect(true)
-
-    if (options.getCreateDisposition.isPresent) {
-      jobConfigurationBuilder.setCreateDisposition(options.getCreateDisposition.get)
-    }
-
-    if (options.getPartitionField.isPresent || options.getPartitionType.isPresent) {
-      val timePartitionBuilder = TimePartitioning.newBuilder(options.getPartitionTypeOrDefault())
-
-      if (options.getPartitionExpirationMs.isPresent) {
-        timePartitionBuilder.setExpirationMs(options.getPartitionExpirationMs.getAsLong)
-      }
-
-      if (options.getPartitionRequireFilter.isPresent) {
-        timePartitionBuilder.setRequirePartitionFilter(options.getPartitionRequireFilter.get)
-      }
-
-      if (options.getPartitionField.isPresent) {
-        timePartitionBuilder.setField(options.getPartitionField.get)
-      }
-
-      jobConfigurationBuilder.setTimePartitioning(timePartitionBuilder.build())
-
-      if (options.getClusteredFields.isPresent) {
-        val clustering =
-          Clustering.newBuilder().setFields(options.getClusteredFields.get).build();
-        jobConfigurationBuilder.setClustering(clustering)
-      }
-    }
-
-    if (options.isUseAvroLogicalTypes) {
-      jobConfigurationBuilder.setUseAvroLogicalTypes(true)
-    }
-
-    if (!options.getLoadSchemaUpdateOptions.isEmpty) {
-      jobConfigurationBuilder.setSchemaUpdateOptions(options.getLoadSchemaUpdateOptions)
-    }
-
-    val jobConfiguration = jobConfigurationBuilder.build
-
-    lazy val finishedJob = bigQueryClient.createAndWaitFor(jobConfiguration)
-
-    logInfo(s"Submitted load to ${options.getTableId}. jobId: ${finishedJob.getJobId}")
-    // TODO(davidrab): add retry options
-    try {
-      if (finishedJob.getStatus.getError != null) {
-        throw new BigQueryException(
-          BaseHttpServiceException.UNKNOWN_CODE,
-          s"""Failed to load to ${friendlyTableName} in job ${finishedJob.getJobId}. BigQuery error
-             |was ${finishedJob.getStatus.getError.getMessage}""".stripMargin.replace('\n', ' '),
-          finishedJob.getStatus.getError)
-      }
-      logInfo(s"Done loading to ${friendlyTableName}. jobId: ${finishedJob.getJobId}")
-    } catch {
-      case e: Exception =>
-        val partitionType = options.getPartitionTypeOrDefault()
-
-        if (e.getMessage.equals(s"Cannot output $partitionType partitioned data in LegacySQL")
-          && options.getIntermediateFormat == SparkBigQueryConfig.IntermediateFormat.PARQUET) {
-          throw new BigQueryException(0, s"$partitionType time partitioning is not available " +
-            "for load jobs from PARQUET in this project yet. Please replace the intermediate "
-            + "format to AVRO or contact your account manager to enable this.",
-            e)
-        }
-        val jobId = finishedJob.getJobId
-        logWarning("Failed to load the data into BigQuery, JobId for debug purposes is " +
-          s"[${jobId.getProject}:${jobId.getLocation}.${jobId.getJob}]")
-        throw e
-    }
-  }
-
-  def saveModeToWriteDisposition(saveMode: SaveMode): JobInfo.WriteDisposition = saveMode match {
-    case SaveMode.Append => JobInfo.WriteDisposition.WRITE_APPEND
-    case SaveMode.Overwrite => JobInfo.WriteDisposition.WRITE_TRUNCATE
-    case unsupported => throw new UnsupportedOperationException(
-      s"SaveMode $unsupported is currently not supported.")
+    bigQueryClient.loadDataIntoTable(options, sourceUris, formatOptions, writeDisposition)
   }
 
   def friendlyTableName: String = BigQueryUtil.friendlyTableName(options.getTableId)
