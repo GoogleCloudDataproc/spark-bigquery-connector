@@ -611,6 +611,7 @@ public class SparkBigQueryConfig
     return combinePushedDownFilters;
   }
 
+  @Override
   public boolean isUseAvroLogicalTypes() {
     return useAvroLogicalTypes;
   }

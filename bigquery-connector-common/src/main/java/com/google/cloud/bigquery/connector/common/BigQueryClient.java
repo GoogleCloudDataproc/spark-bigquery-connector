@@ -448,39 +448,42 @@ public class BigQueryClient {
       List<String> sourceUris,
       FormatOptions formatOptions,
       JobInfo.WriteDisposition writeDisposition) {
+    LoadJobConfiguration.Builder jobConfiguration =
+        LoadJobConfiguration.newBuilder(options.getTableId(), sourceUris, formatOptions)
+            .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
+            .setWriteDisposition(writeDisposition)
+            .setAutodetect(true);
+
+    options.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
+
+    if (options.getPartitionField().isPresent() || options.getPartitionType().isPresent()) {
+      TimePartitioning.Builder timePartitionBuilder =
+          TimePartitioning.newBuilder(options.getPartitionTypeOrDefault());
+      options.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
+      options
+          .getPartitionRequireFilter()
+          .ifPresent(timePartitionBuilder::setRequirePartitionFilter);
+      options.getPartitionField().ifPresent(timePartitionBuilder::setField);
+      jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
+      options
+          .getClusteredFields()
+          .ifPresent(
+              clusteredFields -> {
+                Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
+                jobConfiguration.setClustering(clustering);
+              });
+    }
+
+    if (options.isUseAvroLogicalTypes()) {
+      jobConfiguration.setUseAvroLogicalTypes(true);
+    }
+
+    if (!options.getLoadSchemaUpdateOptions().isEmpty()) {
+      jobConfiguration.setSchemaUpdateOptions(options.getLoadSchemaUpdateOptions());
+    }
+
     Job finishedJob = null;
     try {
-      LoadJobConfiguration.Builder jobConfiguration =
-          LoadJobConfiguration.newBuilder(options.getTableId(), sourceUris, formatOptions)
-              .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
-              .setWriteDisposition(writeDisposition)
-              .setAutodetect(true);
-
-      options.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
-
-      if (options.getPartitionField().isPresent() || options.getPartitionType().isPresent()) {
-        TimePartitioning.Builder timePartitionBuilder =
-            TimePartitioning.newBuilder(options.getPartitionTypeOrDefault());
-        options.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
-        options
-            .getPartitionRequireFilter()
-            .ifPresent(timePartitionBuilder::setRequirePartitionFilter);
-        options.getPartitionField().ifPresent(timePartitionBuilder::setField);
-        jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
-        options
-            .getClusteredFields()
-            .ifPresent(
-                clusteredFields -> {
-                  Clustering clustering =
-                      Clustering.newBuilder().setFields(clusteredFields).build();
-                  jobConfiguration.setClustering(clustering);
-                });
-      }
-
-      if (!options.getLoadSchemaUpdateOptions().isEmpty()) {
-        jobConfiguration.setSchemaUpdateOptions(options.getLoadSchemaUpdateOptions());
-      }
-
       finishedJob = createAndWaitFor(jobConfiguration);
 
       if (finishedJob.getStatus().getError() != null) {
@@ -551,6 +554,8 @@ public class BigQueryClient {
     Optional<Boolean> getPartitionRequireFilter();
 
     Optional<ImmutableList<String>> getClusteredFields();
+
+    boolean isUseAvroLogicalTypes();
 
     List<JobInfo.SchemaUpdateOption> getLoadSchemaUpdateOptions();
   }

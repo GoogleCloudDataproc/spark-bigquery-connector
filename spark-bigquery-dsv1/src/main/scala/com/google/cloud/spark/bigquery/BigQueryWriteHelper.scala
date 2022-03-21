@@ -82,16 +82,9 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
         s".${formatOptions.getType.toLowerCase}"))
       .toList
       .asJava)
-    val writeDisposition = saveModeToWriteDisposition(saveMode)
+    val writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode)
 
     bigQueryClient.loadDataIntoTable(options, sourceUris, formatOptions, writeDisposition)
-  }
-
-  def saveModeToWriteDisposition(saveMode: SaveMode): JobInfo.WriteDisposition = saveMode match {
-    case SaveMode.Append => JobInfo.WriteDisposition.WRITE_APPEND
-    case SaveMode.Overwrite => JobInfo.WriteDisposition.WRITE_TRUNCATE
-    case unsupported => throw new UnsupportedOperationException(
-      s"SaveMode $unsupported is currently not supported.")
   }
 
   def friendlyTableName: String = BigQueryUtil.friendlyTableName(options.getTableId)
