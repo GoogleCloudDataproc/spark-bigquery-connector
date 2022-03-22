@@ -279,7 +279,7 @@ public class BigQueryClient {
         .collect(ImmutableList.toImmutableList());
   }
 
-  public TableId createDestinationTable(
+  TableId createDestinationTable(
       Optional<String> referenceProject, Optional<String> referenceDataset) {
     String project = materializationProject.orElse(referenceProject.orElse(null));
     String dataset = materializationDataset.orElse(referenceDataset.orElse(null));
