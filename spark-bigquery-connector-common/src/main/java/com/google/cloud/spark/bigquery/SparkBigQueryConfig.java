@@ -378,7 +378,7 @@ public class SparkBigQueryConfig
               String traceJobIdParam =
                   getAnyOption(globalOptions, options, "traceJobId")
                       .or(SparkBigQueryUtil.getJobId(sqlConf));
-              String traceIdParam = traceApplicationName + ":" + traceJobIdParam;
+              String traceIdParam = "Spark:" + traceApplicationName + ":" + traceJobIdParam;
               if (traceIdParam.length() > MAX_TRACE_ID_LENGTH) {
                 throw new IllegalArgumentException(
                     String.format(
