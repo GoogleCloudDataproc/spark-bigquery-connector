@@ -183,7 +183,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getArrowCompressionCodec()).isEqualTo(CompressionCodec.ZSTD);
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.DIRECT);
     assertThat(config.getCacheExpirationTimeInMinutes()).isEqualTo(100);
-    assertThat(config.getTraceId()).isEqualTo(Optional.of("traceApplicationName:traceJobId"));
+    assertThat(config.getTraceId()).isEqualTo(Optional.of("Spark:traceApplicationName:traceJobId"));
   }
 
   @Test
