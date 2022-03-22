@@ -16,17 +16,10 @@
 package com.google.cloud.spark.bigquery.direct
 
 import java.sql.{Date, Timestamp}
-import java.util.{Optional, UUID}
-import java.util.concurrent.{Callable, TimeUnit}
-import com.google.api.gax.core.CredentialsProvider
-import com.google.api.gax.rpc.FixedHeaderProvider
-import com.google.auth.Credentials
-import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryProxyTransporterBuilder, BigQueryUtil, ReadSessionCreator}
-import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions
-import com.google.cloud.bigquery.storage.v1.{ArrowSerializationOptions, BigQueryReadClient, BigQueryReadSettings, CreateReadSessionRequest, DataFormat, ReadSession}
-import com.google.cloud.bigquery.{BigQuery, JobInfo, QueryJobConfiguration, Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
-import com.google.cloud.spark.bigquery.{BigQueryRelation, ScalaUtil, SchemaConverters, SparkBigQueryConfig, SparkBigQueryConnectorUserAgentProvider, SparkFilterUtils}
-import com.google.common.cache.{Cache, CacheBuilder}
+import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, ReadSessionCreator}
+import com.google.cloud.bigquery.storage.v1.DataFormat
+import com.google.cloud.bigquery.{Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
+import com.google.cloud.spark.bigquery.{BigQueryRelation, ScalaUtil, SchemaConverters, SparkBigQueryConfig, SparkFilterUtils}
 import com.google.common.collect.ImmutableList
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
