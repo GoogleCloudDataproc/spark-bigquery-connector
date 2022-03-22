@@ -2,6 +2,7 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 
 public class BigQueryClientFactoryConfig implements BigQueryConfig {
@@ -20,6 +21,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final BigQueryProxyConfig bigQueryProxyConfig;
   private final Optional<String> endpoint;
   private final int cacheExpirationTimeInMinutes;
+  private final ImmutableMap<String, String> bigQueryJobLabels;
 
   BigQueryClientFactoryConfig(BigQueryConfig bigQueryConfig) {
     this.credentialsKey = bigQueryConfig.getCredentialsKey();
@@ -37,6 +39,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.bigQueryProxyConfig = bigQueryConfig.getBigQueryProxyConfig();
     this.endpoint = bigQueryConfig.getEndpoint();
     this.cacheExpirationTimeInMinutes = bigQueryConfig.getCacheExpirationTimeInMinutes();
+    this.bigQueryJobLabels = bigQueryConfig.getBigQueryJobLabels();
   }
 
   @Override
@@ -107,6 +110,11 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   @Override
   public int getCacheExpirationTimeInMinutes() {
     return cacheExpirationTimeInMinutes;
+  }
+
+  @Override
+  public ImmutableMap<String, String> getBigQueryJobLabels() {
+    return bigQueryJobLabels;
   }
 
   @Override

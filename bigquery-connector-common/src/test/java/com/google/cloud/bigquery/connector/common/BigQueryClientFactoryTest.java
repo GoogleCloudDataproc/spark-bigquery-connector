@@ -12,6 +12,7 @@ import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMap;
 import java.net.URI;
 import java.security.PrivateKey;
 import java.util.Collection;
@@ -392,6 +393,11 @@ public class BigQueryClientFactoryTest {
     @Override
     public int getCacheExpirationTimeInMinutes() {
       return 0;
+    }
+
+    @Override
+    public ImmutableMap<String, String> getBigQueryJobLabels() {
+      return ImmutableMap.<String, String>of();
     }
 
     @Override

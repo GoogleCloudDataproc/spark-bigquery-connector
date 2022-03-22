@@ -16,6 +16,7 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.gax.retrying.RetrySettings;
+import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 
 public interface BigQueryConfig {
@@ -47,4 +48,6 @@ public interface BigQueryConfig {
   Optional<String> getEndpoint();
 
   int getCacheExpirationTimeInMinutes();
+
+  ImmutableMap<String, String> getBigQueryJobLabels();
 }

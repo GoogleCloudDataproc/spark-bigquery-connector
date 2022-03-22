@@ -27,6 +27,7 @@ import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.spark.sql.Row;
@@ -59,7 +60,11 @@ public class IntegrationTestUtils {
   public static void runQuery(String query) {
     BigQueryClient bigQueryClient =
         new BigQueryClient(
-            getBigquery(), Optional.empty(), Optional.empty(), destinationTableCache);
+            getBigquery(),
+            Optional.empty(),
+            Optional.empty(),
+            destinationTableCache,
+            ImmutableMap.of());
     bigQueryClient.query(query);
   }
 
