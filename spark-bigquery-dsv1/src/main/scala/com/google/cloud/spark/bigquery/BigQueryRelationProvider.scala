@@ -16,10 +16,9 @@
 package com.google.cloud.spark.bigquery
 
 import java.util.Optional
-
 import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableDefinition.Type.{EXTERNAL, MATERIALIZED_VIEW, TABLE, VIEW}
-import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientModule, BigQueryUtil}
+import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryClientModule, BigQueryUtil}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.common.collect.ImmutableMap
 import com.google.inject.{Guice, Injector}
@@ -76,12 +75,13 @@ class BigQueryRelationProvider(
     val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
     val tableInfo = bigQueryClient.getReadTable(opts.toReadTableOptions)
     val tableName = BigQueryUtil.friendlyTableName(opts.getTableId)
+    val bigQueryReadClientFactory = injector.getInstance(classOf[BigQueryClientFactory])
     val table = Option(tableInfo)
       .getOrElse(sys.error(s"Table $tableName not found"))
     table.getDefinition[TableDefinition].getType match {
-      case TABLE | EXTERNAL => new DirectBigQueryRelation(opts, table, bigQueryClient)(sqlContext)
+      case TABLE | EXTERNAL => new DirectBigQueryRelation(opts, table, bigQueryClient, bigQueryReadClientFactory)(sqlContext)
       case VIEW | MATERIALIZED_VIEW => if (opts.isViewsEnabled) {
-        new DirectBigQueryRelation(opts, table, bigQueryClient)(sqlContext)
+        new DirectBigQueryRelation(opts, table, bigQueryClient, bigQueryReadClientFactory)(sqlContext)
       } else {
         sys.error(
           s"""Views were not enabled. You can enable views by setting

@@ -321,6 +321,10 @@ public class SparkFilterUtils {
     return value.toString();
   }
 
+  public static Optional<String> emptyIfNeeded(String value) {
+    return (value == null || value.length() == 0) ? Optional.empty() : Optional.of(value);
+  }
+
   static String escape(String value) {
     return value.replace("'", "\\'");
   }

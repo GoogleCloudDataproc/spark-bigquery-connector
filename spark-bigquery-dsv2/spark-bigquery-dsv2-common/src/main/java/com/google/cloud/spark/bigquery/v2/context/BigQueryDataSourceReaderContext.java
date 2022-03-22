@@ -164,7 +164,7 @@ public class BigQueryDataSourceReaderContext {
   }
 
   private Optional<String> getCombinedFilter() {
-    return emptyIfNeeded(
+    return SparkFilterUtils.emptyIfNeeded(
         SparkFilterUtils.getCompiledFilter(
             readSessionCreatorConfig.getPushAllFilters(),
             readSessionCreatorConfig.getReadDataFormat(),
@@ -295,10 +295,6 @@ public class BigQueryDataSourceReaderContext {
 
   public void pruneColumns(StructType requiredSchema) {
     this.schema = Optional.ofNullable(requiredSchema);
-  }
-
-  Optional<String> emptyIfNeeded(String value) {
-    return (value == null || value.length() == 0) ? Optional.empty() : Optional.of(value);
   }
 
   public StatisticsContext estimateStatistics() {
