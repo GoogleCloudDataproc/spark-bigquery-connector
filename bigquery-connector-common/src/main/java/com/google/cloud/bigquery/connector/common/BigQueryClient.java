@@ -460,7 +460,8 @@ public class BigQueryClient {
       FormatOptions formatOptions,
       JobInfo.WriteDisposition writeDisposition) {
     LoadJobConfiguration.Builder jobConfiguration =
-        LoadJobConfiguration.newBuilder(options.getTableId(), sourceUris, formatOptions)
+        jobConfigurationFactory
+            .createLoadJobConfigurationBuilder(options, sourceUris, formatOptions)
             .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
             .setWriteDisposition(writeDisposition)
             .setAutodetect(true);
@@ -647,7 +648,7 @@ public class BigQueryClient {
       return builder;
     }
 
-    LoadJobConfiguration.Builder createLoaJobConfigurationBuilder(
+    LoadJobConfiguration.Builder createLoadJobConfigurationBuilder(
         LoadDataOptions options, List<String> sourceUris, FormatOptions formatOptions) {
       LoadJobConfiguration.Builder builder =
           LoadJobConfiguration.newBuilder(options.getTableId(), sourceUris, formatOptions);
