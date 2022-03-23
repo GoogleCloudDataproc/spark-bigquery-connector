@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.google.cloud.spark</groupId>
     <artifactId>spark-bigquery-parent</artifactId>
-    <version>0.24.0-SNAPSHOT</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
     <name>Spark BigQuery Connector Build Parent</name>
     <description>Parent project for all the Spark BigQuery Connector artifacts
@@ -49,6 +49,7 @@
 
     <properties>
         <gpg.skip>true</gpg.skip>
+        <revision>0.0.1-SNAPSHOT</revision>
 
         <avro.version>1.8.2</avro.version>
         <arrow.version>6.0.1</arrow.version>
@@ -543,6 +544,31 @@
             </properties>
             <build>
                 <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>flatten-maven-plugin</artifactId>
+                        <version>1.2.7</version>
+                        <configuration>
+                            <updatePomFile>true</updatePomFile>
+                            <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>flatten</id>
+                                <phase>process-resources</phase>
+                                <goals>
+                                    <goal>flatten</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>flatten.clean</id>
+                                <phase>clean</phase>
+                                <goals>
+                                    <goal>clean</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
                         <artifactId>nexus-staging-maven-plugin</artifactId>
