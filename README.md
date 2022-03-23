@@ -57,9 +57,9 @@ The latest version of the connector is publicly available in the following links
 
 | version | Link |
 | --- | --- |
-| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.23.2.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.23.2.jar)) |
-| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.23.2.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.23.2.jar)) |
-| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-0.23.2-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-0.23.2-preview.jar)) |
+| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.24.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.24.0.jar)) |
+| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.24.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.24.0.jar)) |
+| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-0.24.0-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-0.24.0-preview.jar)) |
 
 The only difference between first two connectors is that the former is a Scala 2.11 based connector, targeting Spark 2.3
 and 2.4 using Scala 2.11 whereas the latter is a Scala 2.12 based connector, targeting Spark 2.4 and 3.x using Scala 2.12.
@@ -78,9 +78,9 @@ repository. It can be used using the `--packages` option or the
 
 | version | Connector Artifact |
 | --- | --- |
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.23.2` |
-| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.23.2` |
-| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:0.23.2-preview` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.24.0` |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.24.0` |
+| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:0.24.0-preview` |
 
 If you want to keep up with the latest version of the connector the following links can be used. Notice that for
 production  environments where the connector version should be pinned, one of the above links should be used.
@@ -252,6 +252,9 @@ supported at this moment by the direct write method.
 **Important:** Please refer to the [data ingestion pricing](https://cloud.google.com/bigquery/pricing#data_ingestion_pricing)
 page regarding the BigQuery Storage Write API pricing.
 
+**Important:** Please use version 0.24.0 and above for direct writes, as previous
+versions have a bug that may cause a table deletion in certain cases.
+
 #### Indirect write
 This method is supported by all the connector. In this method the data is written first  to GCS and then
 it is loaded it to BigQuery. A GCS bucket must be configured to indicate the temporary data location.
@@ -420,6 +423,34 @@ The API Supports a number of options to configure the read
        to BigQuery Storage API. This reduces amount of data that needs to be sent from
        BigQuery Storage API servers to Spark clients.
        <br/>(Optional, defaults to <code>true</code>)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr valign="top">
+   <td><code>bigQueryJobLabel</code>
+   </td>
+   <td>Can be used to add labels to the connector initiated query and load
+       BigQuery jobs. Multiple labels can be set.
+       <br/>(Optional)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr valign="top">
+   <td><code>traceApplicationName</code>
+   </td>
+   <td>Application name used to trace BigQuery Storage read and write sessions.
+       Setting the application name is required to set the trace ID on the
+       sessions.
+       <br/>(Optional)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr valign="top">
+   <td><code>traceJobId</code>
+   </td>
+   <td>Job ID used to trace BigQuery Storage read and write sessions.
+       <br/>(Optional, defaults to the Dataproc job ID is exists, otherwise uses
+       the Spark application ID)
    </td>
    <td>Read</td>
   </tr>
@@ -831,9 +862,9 @@ creating the job or added during runtime. See examples below:
 1) Adding python files while launching pyspark
 ```
 # use appropriate version for jar depending on the scala version
-pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.23.2.jar
-  --py-files gs://spark-lib/bigquery/spark-bigquery-support-0.23.2.zip
-  --files gs://spark-lib/bigquery/spark-bigquery-support-0.23.2.zip
+pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.24.0.jar
+  --py-files gs://spark-lib/bigquery/spark-bigquery-support-0.24.0.zip
+  --files gs://spark-lib/bigquery/spark-bigquery-support-0.24.0.zip
 ```
 
 2) Adding python files in Jupyter Notebook
@@ -843,14 +874,14 @@ from pyspark import SparkFiles
 # use appropriate version for jar depending on the scala version
 spark = SparkSession.builder\
   .appName('BigNumeric')\
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.23.2.jar')\
-  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support-0.23.2.zip')\
-  .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support-0.23.2.zip')\
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.24.0.jar')\
+  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support-0.24.0.zip')\
+  .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support-0.24.0.zip')\
   .getOrCreate()
 
 # extract the spark-bigquery-support zip file
 import zipfile
-with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.23.2.zip")) as zf:
+with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.24.0.zip")) as zf:
   zf.extractall()
 ```
 
@@ -859,10 +890,10 @@ with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.23.2.zip")) as zf:
 # use appropriate version for jar depending on the scala version
 spark = SparkSession.builder\
   .appName('BigNumeric')\
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.23.2.jar')\
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.24.0.jar')\
   .getOrCreate()
 
-spark.sparkContext.addPyFile("gs://spark-lib/bigquery/spark-bigquery-support-0.23.2.zip")
+spark.sparkContext.addPyFile("gs://spark-lib/bigquery/spark-bigquery-support-0.24.0.zip")
 ```
 
 Usage Example:
@@ -935,6 +966,31 @@ val df = spark.read.format("bigquery")
 By default the connector creates one partition per 400MB in the table being read (before filtering). This should roughly correspond to the maximum number of readers supported by the BigQuery Storage API.
 This can be configured explicitly with the <code>[maxParallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
 
+## Tagging BigQuery Resources
+
+In order to support tracking the usage of BigQuery resources the connectors
+offers the following options to tag BigQuery resources:
+
+### Adding BigQuery Jobs Labels
+
+The connector can launch BigQuery load and query jobs. Adding labels to the jobs
+is done in the following manner:
+```
+spark.conf.set("bigQueryJobLabel.cost_center", "analytics")
+spark.conf.set("bigQueryJobLabel.usage", "nightly_etl")
+```
+This will create labels `cost_center`=`analytics` and `usage`=`nightly_etl`.
+
+### Adding BigQuery Storage Trace ID
+
+Used to annotate the read and write sessions. The trace ID is of the format
+`Spark:ApplicationName:JobID`. This is an opt-in option, and to use it the user
+need to set the `traceApplicationName` property. JobID is auto generated by the
+Dataproc job ID, with a fallback to the Spark application ID (such as
+`application_1648082975639_0001`). The Job ID can be overridden by setting the
+`traceJobId` option. Notice that the total length of the trace ID cannot be over
+256 characters.
+
 ## Using in Jupyter Notebooks
 
 The connector can be used in [Jupyter notebooks](https://jupyter.org/) even if
@@ -945,7 +1001,7 @@ using the following code:
 ```python
 from pyspark.sql import SparkSession
 spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.23.2")
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.24.0")
   .getOrCreate()
 df = spark.read.format("bigquery")
   .load("dataset.table")
@@ -954,7 +1010,7 @@ df = spark.read.format("bigquery")
 **Scala:**
 ```python
 val spark = SparkSession.builder
-.config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.23.2")
+.config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.24.0")
 .getOrCreate()
 val df = spark.read.format("bigquery")
 .load("dataset.table")
@@ -962,7 +1018,7 @@ val df = spark.read.format("bigquery")
 
 In case Spark cluster is using Scala 2.12 (it's optional for Spark 2.4.x,
 mandatory in 3.0.x), then the relevant package is
-com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.23.2. In
+com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.24.0. In
 order to know which Scala version is used, please run the following code:
 
 **Python:**
@@ -986,14 +1042,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery-with-dependencies_${scala.version}</artifactId>
-  <version>0.23.2</version>
+  <version>0.24.0</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.23.2"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.24.0"
 ```
 
 ## FAQ
