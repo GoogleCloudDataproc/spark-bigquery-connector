@@ -16,10 +16,10 @@
 package com.google.cloud.spark.bigquery.direct
 
 import java.sql.{Date, Timestamp}
-import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, ReadSessionCreator}
+import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryUtil, ReadSessionCreator}
 import com.google.cloud.bigquery.storage.v1.DataFormat
 import com.google.cloud.bigquery.{Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
-import com.google.cloud.spark.bigquery.{BigQueryRelation, ScalaUtil, SchemaConverters, SparkBigQueryConfig, SparkFilterUtils}
+import com.google.cloud.spark.bigquery.{BigQueryRelation, ScalaUtil, SchemaConverters, SparkBigQueryConfig}
 import com.google.common.collect.ImmutableList
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
@@ -77,14 +77,14 @@ private[bigquery] class DirectBigQueryRelation(
     val readSessionCreator = new ReadSessionCreator(options.toReadSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory)
 
     if (options.isOptimizedEmptyProjection && requiredColumns.isEmpty) {
-      val actualTable = readSessionCreator.getActualTable(table, ImmutableList.copyOf(requiredColumns), SparkFilterUtils.emptyIfNeeded(filter))
+      val actualTable = readSessionCreator.getActualTable(table, ImmutableList.copyOf(requiredColumns), BigQueryUtil.emptyIfNeeded(filter))
       generateEmptyRowRDD(actualTable, if (readSessionCreator.isInputTableAView(table)) "" else filter)
     } else {
       if (requiredColumns.isEmpty) {
         logDebug(s"Not using optimized empty projection")
       }
 
-      val readSessionResponse = readSessionCreator.create(tableId, ImmutableList.copyOf(requiredColumns), SparkFilterUtils.emptyIfNeeded(filter))
+      val readSessionResponse = readSessionCreator.create(tableId, ImmutableList.copyOf(requiredColumns), BigQueryUtil.emptyIfNeeded(filter))
       val readSession = readSessionResponse.getReadSession
       val actualTable = readSessionResponse.getReadTableInfo
 
