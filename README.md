@@ -615,7 +615,7 @@ The API Supports a number of options to configure the read
      <td> The timeout in milliseconds to establish a connection with BigQuery. Can be alternatively set in the
           Spark configuration (<code>spark.conf.set("httpConnectTimeout", ...)</code>) or in Hadoop Configuration
           (<code>fs.gs.http.connect-timeout</code>).
-          <br/> (Optional. Default is 60000 ms. 0 for an infinite timeout, a negative number for 20000)
+          <br/> (Optional. Default is 20000 ms. 0 for an infinite timeout, a negative number for 20000)
      </td>
      <td>Read/Write</td>
    </tr>
@@ -625,7 +625,7 @@ The API Supports a number of options to configure the read
      <td> The timeout in milliseconds to read data from an established connection. Can be alternatively set in the
           Spark configuration (<code>spark.conf.set("httpReadTimeout", ...)</code>) or in Hadoop Configuration
           (<code>fs.gs.http.read-timeout</code>).
-          <br/> (Optional. Default is 60000 ms. 0 for an infinite timeout, a negative number for 20000)
+          <br/> (Optional. Default is 20000 ms. 0 for an infinite timeout, a negative number for 20000)
      </td>
      <td>Read</td>
    </tr>
