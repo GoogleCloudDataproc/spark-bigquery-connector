@@ -214,20 +214,20 @@ class DirectBigQueryRelationSuite
     val options = defaultOptions
     options.combinePushedDownFilters = false
     val r = new DirectBigQueryRelation(options, TABLE, bigQueryClient, bigQueryReadClientFactory)(sqlCtx)
-    checkFilters(r, "", Array(GreaterThan("a", 2)), "a > 2")
+    checkFilters(r, "", Array(GreaterThan("a", 2)), "`a` > 2")
   }
 
   test("new filter behaviour, with filter option") {
     val options = defaultOptions
     options.filter = com.google.common.base.Optional.of("f>1")
     val r = new DirectBigQueryRelation(options, TABLE, bigQueryClient, bigQueryReadClientFactory)(sqlCtx)
-    checkFilters(r, "(f>1)", Array(GreaterThan("a", 2)), "(f>1) AND (a > 2)")
+    checkFilters(r, "(f>1)", Array(GreaterThan("a", 2)), "(f>1) AND (`a` > 2)")
   }
 
   test("new filter behaviour, no filter option") {
     val r = new DirectBigQueryRelation(
       defaultOptions, TABLE, bigQueryClient, bigQueryReadClientFactory)(sqlCtx)
-    checkFilters(r, "", Array(GreaterThan("a", 2)), "(a > 2)")
+    checkFilters(r, "", Array(GreaterThan("a", 2)), "(`a` > 2)")
   }
 
   test("filter on date and timestamp fields") {
@@ -236,7 +236,7 @@ class DirectBigQueryRelationSuite
     val inFilter = In("datefield", Array(Date.valueOf("2020-09-01"), Date.valueOf("2020-11-03")))
     val equalFilter = EqualTo("tsField", Timestamp.valueOf("2020-01-25 02:10:10"))
     checkFilters(r, "", Array(inFilter, equalFilter),
-      "(`datefield` IN UNNEST([DATE '2020-09-01', DATE '2020-11-03']) AND " +
+      "(`datefield` IN (DATE '2020-09-01', DATE '2020-11-03') AND " +
         "`tsField` = TIMESTAMP '2020-01-25 02:10:10.0')")
   }
 
@@ -335,7 +335,7 @@ class DirectBigQueryRelationSuite
         "(((`c2` >= 150) OR (`c3` >= 100))))) OR (((((`c1` >= 50) OR " +
         "(`c1` <= 71))) AND (((`c2` >= 15) OR (`c3` >= 10)))))) AND " +
         "((`c1` >= 500) OR (`c1` <= 70)) AND ((`c1` >= 900) OR " +
-        "(((`c3` <= 50) AND (((`c2` >= 20) OR (c3 > 200)))))))")
+        "(((`c3` <= 50) AND (((`c2` >= 20) OR (`c3` > 200)))))))")
   }
 
 }

@@ -15,19 +15,17 @@
  */
 package com.google.cloud.spark.bigquery.direct
 
-import java.sql.{Date, Timestamp}
+import com.google.cloud.bigquery._
 import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryUtil, ReadSessionCreator}
-import com.google.cloud.bigquery.storage.v1.DataFormat
-import com.google.cloud.bigquery.{Schema, StandardTableDefinition, TableDefinition, TableId, TableInfo}
-import com.google.cloud.spark.bigquery.{BigQueryRelation, ScalaUtil, SchemaConverters, SparkBigQueryConfig}
+import com.google.cloud.spark.bigquery._
 import com.google.common.collect.ImmutableList
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources._
-import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
 
+import scala.collection.JavaConversions.iterableAsScalaIterable
 import scala.collection.JavaConverters._
 
 private[bigquery] class DirectBigQueryRelation(
@@ -176,8 +174,8 @@ private[bigquery] class DirectBigQueryRelation(
       // https://github.com/GoogleCloudPlatform/spark-bigquery-connector/issues/74
       Seq(
         ScalaUtil.toOption(options.getFilter),
-        ScalaUtil.noneIfEmpty(DirectBigQueryRelation.compileFilters(
-          handledFilters(filters)))
+        ScalaUtil.noneIfEmpty(SparkFilterUtils.compileFilters(
+          SparkFilterUtils.handledFilters(options.getPushAllFilters, options.getReadDataFormat, ImmutableList.copyOf(filters))))
       )
         .flatten
         .map(f => s"($f)")
@@ -187,14 +185,9 @@ private[bigquery] class DirectBigQueryRelation(
       // If a manual filter has been specified do not push down anything.
       options.getFilter.orElse {
         // TODO(pclay): Figure out why there are unhandled filters after we already listed them
-        DirectBigQueryRelation.compileFilters(handledFilters(filters))
+        SparkFilterUtils.compileFilters(SparkFilterUtils.handledFilters(options.getPushAllFilters, options.getReadDataFormat, ImmutableList.copyOf(filters)))
       }
     }
-  }
-
-  private def handledFilters(filters: Array[Filter]): Array[Filter] = {
-    filters.filter(filter => DirectBigQueryRelation.isTopLevelFieldFilterHandled(
-      options.getPushAllFilters, filter, options.getReadDataFormat, topLevelFields))
   }
 
   override def unhandledFilters(filters: Array[Filter]): Array[Filter] = {
@@ -203,7 +196,7 @@ private[bigquery] class DirectBigQueryRelation(
       return filters
     }
 
-    val unhandled = filters.filterNot(handledFilters(filters).contains)
+    val unhandled = SparkFilterUtils.unhandledFilters(options.getPushAllFilters, options.getReadDataFormat, ImmutableList.copyOf(filters)).toArray
     logDebug(s"unhandledFilters: ${unhandled.mkString(" ")}")
     unhandled
   }
@@ -212,125 +205,7 @@ private[bigquery] class DirectBigQueryRelation(
 object DirectBigQueryRelation {
 
   // used for testing
-  var emptyRowRDDsCreated = 0;
-
-  def isTopLevelFieldFilterHandled(
-      pushAllFilters: Boolean,
-      filter: Filter,
-      readDataFormat: DataFormat,
-      fields: Map[String, StructField]): Boolean = {
-    if (pushAllFilters) {
-      return true
-    }
-    filter match {
-      case EqualTo(attr, _) =>
-        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-      case GreaterThan(attr, _) =>
-        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-      case GreaterThanOrEqual(attr, _) =>
-        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-      case LessThan(attr, _) =>
-        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-      case LessThanOrEqual(attr, _) =>
-        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-      case In(attr, _) =>
-        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-      case IsNull(attr) =>
-        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-      case IsNotNull(attr) =>
-        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-      case And(lhs, rhs) =>
-        isTopLevelFieldFilterHandled(pushAllFilters, lhs, readDataFormat, fields) &&
-        isTopLevelFieldFilterHandled(pushAllFilters, rhs, readDataFormat, fields)
-      case Or(lhs, rhs) =>
-        readDataFormat == DataFormat.AVRO &&
-        isTopLevelFieldFilterHandled(pushAllFilters, lhs, readDataFormat, fields) &&
-        isTopLevelFieldFilterHandled(pushAllFilters, rhs, readDataFormat, fields)
-      case Not(child) => isTopLevelFieldFilterHandled(pushAllFilters, child, readDataFormat, fields)
-      case StringStartsWith(attr, _) =>
-        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-      case StringEndsWith(attr, _) =>
-        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-      case StringContains(attr, _) =>
-        isFilterWithNamedFieldHandled(filter, readDataFormat, fields, attr)
-      case _ => false
-    }
-  }
-
-  // BigQuery Storage API does not handle RECORD/STRUCT fields at the moment
-  def isFilterWithNamedFieldHandled(
-      filter: Filter,
-      readDataFormat: DataFormat,
-      fields: Map[String, StructField],
-      fieldName: String): Boolean = {
-    fields.get(fieldName)
-      .filter(f => (f.dataType.isInstanceOf[StructType] || f.dataType.isInstanceOf[ArrayType]))
-      .map(_ => false)
-      .getOrElse(isHandled(filter, readDataFormat))
-  }
-
-  def isHandled(filter: Filter, readDataFormat: DataFormat): Boolean = filter match {
-    case EqualTo(_, _) => true
-    // There is no direct equivalent of EqualNullSafe in Google standard SQL.
-    case EqualNullSafe(_, _) => false
-    case GreaterThan(_, _) => true
-    case GreaterThanOrEqual(_, _) => true
-    case LessThan(_, _) => true
-    case LessThanOrEqual(_, _) => true
-    case In(_, _) => true
-    case IsNull(_) => true
-    case IsNotNull(_) => true
-    case And(lhs, rhs) => isHandled(lhs, readDataFormat) && isHandled(rhs, readDataFormat)
-    case Or(lhs, rhs) => readDataFormat == DataFormat.AVRO &&
-      isHandled(lhs, readDataFormat) && isHandled(rhs, readDataFormat)
-    case Not(child) => isHandled(child, readDataFormat)
-    case StringStartsWith(_, _) => true
-    case StringEndsWith(_, _) => true
-    case StringContains(_, _) => true
-    case _ => false
-  }
-
-  // Mostly copied from JDBCRDD.scala
-  def compileFilter(filter: Filter): String = filter match {
-    case EqualTo(attr, value) => s"${quote(attr)} = ${compileValue(value)}"
-    case GreaterThan(attr, value) => s"$attr > ${compileValue(value)}"
-    case GreaterThanOrEqual(attr, value) => s"${quote(attr)} >= ${compileValue(value)}"
-    case LessThan(attr, value) => s"${quote(attr)} < ${compileValue(value)}"
-    case LessThanOrEqual(attr, value) => s"${quote(attr)} <= ${compileValue(value)}"
-    case In(attr, values) => s"${quote(attr)} IN UNNEST(${compileValue(values)})"
-    case IsNull(attr) => s"${quote(attr)} IS NULL"
-    case IsNotNull(attr) => s"${quote(attr)} IS NOT NULL"
-    case And(lhs, rhs) => Seq(lhs, rhs).map(compileFilter).map(p => s"($p)").mkString("(", " AND ", ")")
-    case Or(lhs, rhs) => Seq(lhs, rhs).map(compileFilter).map(p => s"($p)").mkString("(", " OR ", ")")
-    case Not(child) => Seq(child).map(compileFilter).map(p => s"(NOT ($p))").mkString
-    case StringStartsWith(attr, value) =>
-      s"${quote(attr)} LIKE '''${value.replace("'", "\\'")}%'''"
-    case StringEndsWith(attr, value) =>
-      s"${quote(attr)} LIKE '''%${value.replace("'", "\\'")}'''"
-    case StringContains(attr, value) =>
-      s"${quote(attr)} LIKE '''%${value.replace("'", "\\'")}%'''"
-    case _ => throw new IllegalArgumentException(s"Invalid filter: $filter")
-  }
-
-  def compileFilters(filters: Iterable[Filter]): String = {
-    filters.map(compileFilter).toSeq.sorted.mkString(" AND ")
-  }
-
-  /**
-   * Converts value to SQL expression.
-   */
-  private def compileValue(value: Any): Any = value match {
-    case null => "null"
-    case stringValue: String => s"'${stringValue.replace("'", "\\'")}'"
-    case timestampValue: Timestamp => "TIMESTAMP '" + timestampValue + "'"
-    case dateValue: Date => "DATE '" + dateValue + "'"
-    case arrayValue: Array[Any] => arrayValue.map(compileValue).mkString("[", ", ", "]")
-    case _ => value
-  }
-
-  private def quote(attr: String): String = {
-    s"""`$attr`"""
-  }
+  var emptyRowRDDsCreated = 0
 
   def toSqlTableReference(tableId: TableId): String =
     s"${tableId.getProject}.${tableId.getDataset}.${tableId.getTable}"
