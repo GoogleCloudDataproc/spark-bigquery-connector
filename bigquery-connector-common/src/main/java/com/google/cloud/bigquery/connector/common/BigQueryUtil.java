@@ -290,4 +290,8 @@ public class BigQueryUtil {
   static Field.Mode nullableIfNull(Field.Mode mode) {
     return mode == null ? Field.Mode.NULLABLE : mode;
   }
+
+  public static Optional<String> emptyIfNeeded(String value) {
+    return (value == null || value.length() == 0) ? Optional.empty() : Optional.of(value);
+  }
 }

@@ -17,7 +17,7 @@ package com.google.cloud.spark.bigquery
 
 import com.google.api.client.util.Base64
 import com.google.cloud.bigquery._
-import com.google.cloud.bigquery.connector.common.BigQueryClient
+import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.inject._
 import org.apache.hadoop.conf.Configuration
@@ -56,6 +56,8 @@ class BigQueryRelationProviderSuite
   private var readTableOptions: BigQueryClient.ReadTableOptions = _
   @Mock
   private var bigQueryClient: BigQueryClient = _
+  @Mock
+  private var bigQueryReadClientFactory: BigQueryClientFactory = _
   private var provider: BigQueryRelationProvider = _
 
   @Mock
@@ -70,6 +72,7 @@ class BigQueryRelationProviderSuite
       override def configure(binder: Binder): Unit = {
         binder.bind(classOf[SparkBigQueryConfig]).toInstance(config)
         binder.bind(classOf[BigQueryClient]).toInstance(bigQueryClient)
+        binder.bind(classOf[BigQueryClientFactory]).toInstance(bigQueryReadClientFactory)
       }
     })
     val guiceInjectorCreator = new GuiceInjectorCreator {

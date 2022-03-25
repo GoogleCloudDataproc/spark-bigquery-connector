@@ -135,7 +135,7 @@ public class ReadSessionCreator {
         tableId.getProject(), tableId.getDataset(), tableId.getTable());
   }
 
-  TableInfo getActualTable(
+  public TableInfo getActualTable(
       TableInfo table, ImmutableList<String> requiredColumns, Optional<String> filter) {
     String[] filters = filter.map(Stream::of).orElseGet(Stream::empty).toArray(String[]::new);
     return getActualTable(table, requiredColumns, filters);
@@ -164,7 +164,7 @@ public class ReadSessionCreator {
     }
   }
 
-  private boolean isInputTableAView(TableInfo table) {
+  public boolean isInputTableAView(TableInfo table) {
     TableDefinition tableDefinition = table.getDefinition();
     TableDefinition.Type tableType = tableDefinition.getType();
 
