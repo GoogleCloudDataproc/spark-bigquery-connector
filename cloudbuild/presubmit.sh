@@ -41,7 +41,7 @@ case $STEP in
 
   # Run integration tests
   integrationtest)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv2
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv2_2.4
     ;;
 
   *)
