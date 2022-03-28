@@ -31,6 +31,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.junit.Test;
@@ -55,14 +56,14 @@ public class DataprocAcceptanceTestBase {
   }
 
   protected static AcceptanceTestContext setup(
-      String dataprocImageVersion, String connectorJarPrefix) throws Exception {
+      String dataprocImageVersion, String connectorJarPrefix, Map<String, String> properties) throws Exception {
     String testId =
         String.format(
             "%s-%s%s",
             System.currentTimeMillis(),
             dataprocImageVersion.charAt(0),
             dataprocImageVersion.charAt(2));
-    String clusterName = createClusterIfNeeded(dataprocImageVersion, testId);
+    String clusterName = createClusterIfNeeded(dataprocImageVersion, testId, properties);
     AcceptanceTestContext acceptanceTestContext = new AcceptanceTestContext(testId, clusterName);
     uploadConnectorJar(
         CONNECTOR_JAR_DIRECTORY, connectorJarPrefix, acceptanceTestContext.connectorJarUri);
@@ -78,14 +79,14 @@ public class DataprocAcceptanceTestBase {
     }
   }
 
-  protected static String createClusterIfNeeded(String dataprocImageVersion, String testId)
+  protected static String createClusterIfNeeded(String dataprocImageVersion, String testId, Map<String, String> properties)
       throws Exception {
     String clusterName = generateClusterName(testId);
     cluster(
         client ->
             client
                 .createClusterAsync(
-                    PROJECT_ID, REGION, createCluster(clusterName, dataprocImageVersion))
+                    PROJECT_ID, REGION, createCluster(clusterName, dataprocImageVersion, properties))
                 .get());
     return clusterName;
   }
@@ -106,7 +107,7 @@ public class DataprocAcceptanceTestBase {
     return String.format("spark-bigquery-acceptance-test-%s", testId);
   }
 
-  private static Cluster createCluster(String clusterName, String dataprocImageVersion) {
+  private static Cluster createCluster(String clusterName, String dataprocImageVersion, Map<String, String> properties) {
     return Cluster.newBuilder()
         .setClusterName(clusterName)
         .setProjectId(PROJECT_ID)
@@ -135,7 +136,7 @@ public class DataprocAcceptanceTestBase {
                                 .setBootDiskSizeGb(300)
                                 .setNumLocalSsds(0)))
                 .setSoftwareConfig(
-                    SoftwareConfig.newBuilder().setImageVersion(dataprocImageVersion)))
+                    SoftwareConfig.newBuilder().setImageVersion(dataprocImageVersion).putAllProperties(properties)))
         .build();
   }
 
