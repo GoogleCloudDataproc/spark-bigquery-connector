@@ -91,6 +91,10 @@ production  environments where the connector version should be pinned, one of th
 | Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar)) |
 | Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-latest.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-latest.jar)) |
 
+⚠️ **NOTICE**: Pointing to the latest connector version is **strongly discouraged** to guarantee consistent usage
+of the previously working version of the connector and to ensure that any bugs/functionality in the latest version
+does not cause unintended consequences in your workloads.
+
 ## Hello World Example
 
 You can run a simple PySpark wordcount against the API without compilation by running
