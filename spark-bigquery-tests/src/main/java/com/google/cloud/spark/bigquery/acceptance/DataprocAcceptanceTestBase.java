@@ -45,7 +45,7 @@ public class DataprocAcceptanceTestBase {
   private static final String PROJECT_ID = System.getenv("GOOGLE_CLOUD_PROJECT");
   public static final String CONNECTOR_JAR_DIRECTORY = "target";
   protected static final ClusterProperty DISABLE_CONSCRYPT =
-      ClusterProperty.of("dataproc:dataproc.conscrypt.provider.enable", "false", " nc");
+      ClusterProperty.of("dataproc:dataproc.conscrypt.provider.enable", "false", "nc");
   protected static final ImmutableList<ClusterProperty> DISABLE_CONSCRYPT_LIST =
       ImmutableList.<ClusterProperty>builder().add(DISABLE_CONSCRYPT).build();
 
@@ -68,9 +68,11 @@ public class DataprocAcceptanceTestBase {
       List<ClusterProperty> clusterProperties)
       throws Exception {
     String clusterPropertiesMarkers =
-        clusterProperties.stream()
-            .map(ClusterProperty::getMarker)
-            .collect(Collectors.joining("-", "-", ""));
+        clusterProperties.isEmpty()
+            ? ""
+            : clusterProperties.stream()
+                .map(ClusterProperty::getMarker)
+                .collect(Collectors.joining("-", "-", ""));
     String testId =
         String.format(
             "%s-%s%s%s",
