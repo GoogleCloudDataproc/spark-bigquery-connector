@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.24.1 - 2022-03-29
+* PR #576: Fixed error running on Datapoc clusters where conscrypt is disabled
+  (the property`dataproc.conscrypt.provider.enable` set to `false`)
+
 ## 0.24.0 - 2022-03-23
 * Issue #530: Treating Field.mode==null as Nullable
 * PR #518: Cache expiration time can be configured now.
