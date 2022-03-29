@@ -15,22 +15,22 @@
  */
 package com.google.cloud.spark.bigquery.acceptance;
 
-import java.util.Collections;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-public class Scala211DataprocImage14AcceptanceTest extends DataprocAcceptanceTestBase {
+public class Scala211DataprocImage14DisableConscryptAcceptanceTest
+    extends DataprocAcceptanceTestBase {
 
   private static AcceptanceTestContext context;
 
-  public Scala211DataprocImage14AcceptanceTest() {
+  public Scala211DataprocImage14DisableConscryptAcceptanceTest() {
     super(context);
   }
 
   @BeforeClass
   public static void setup() throws Exception {
     context =
-        DataprocAcceptanceTestBase.setup("1.4-debian10", "spark-bigquery", Collections.emptyList());
+        DataprocAcceptanceTestBase.setup("1.4-debian10", "spark-bigquery", DISABLE_CONSCRYPT_LIST);
   }
 
   @AfterClass
