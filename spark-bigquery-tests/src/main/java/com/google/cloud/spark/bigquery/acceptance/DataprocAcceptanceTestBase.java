@@ -25,14 +25,17 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.google.cloud.dataproc.v1.*;
+import com.google.common.collect.ImmutableList;
 import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.junit.Test;
 
 public class DataprocAcceptanceTestBase {
@@ -41,6 +44,11 @@ public class DataprocAcceptanceTestBase {
   public static final String DATAPROC_ENDPOINT = REGION + "-dataproc.googleapis.com:443";
   private static final String PROJECT_ID = System.getenv("GOOGLE_CLOUD_PROJECT");
   public static final String CONNECTOR_JAR_DIRECTORY = "target";
+  protected static final ClusterProperty DISABLE_CONSCRYPT =
+      ClusterProperty.of("dataproc:dataproc.conscrypt.provider.enable", "false", "nc");
+  protected static final ImmutableList<ClusterProperty> DISABLE_CONSCRYPT_LIST =
+      ImmutableList.<ClusterProperty>builder().add(DISABLE_CONSCRYPT).build();
+
   private AcceptanceTestContext context;
   private boolean sparkStreamingSupported;
 
@@ -55,14 +63,27 @@ public class DataprocAcceptanceTestBase {
   }
 
   protected static AcceptanceTestContext setup(
-      String dataprocImageVersion, String connectorJarPrefix) throws Exception {
+      String dataprocImageVersion,
+      String connectorJarPrefix,
+      List<ClusterProperty> clusterProperties)
+      throws Exception {
+    String clusterPropertiesMarkers =
+        clusterProperties.isEmpty()
+            ? ""
+            : clusterProperties.stream()
+                .map(ClusterProperty::getMarker)
+                .collect(Collectors.joining("-", "-", ""));
     String testId =
         String.format(
-            "%s-%s%s",
+            "%s-%s%s%s",
             System.currentTimeMillis(),
             dataprocImageVersion.charAt(0),
-            dataprocImageVersion.charAt(2));
-    String clusterName = createClusterIfNeeded(dataprocImageVersion, testId);
+            dataprocImageVersion.charAt(2),
+            clusterPropertiesMarkers);
+    Map<String, String> properties =
+        clusterProperties.stream()
+            .collect(Collectors.toMap(ClusterProperty::getKey, ClusterProperty::getValue));
+    String clusterName = createClusterIfNeeded(dataprocImageVersion, testId, properties);
     AcceptanceTestContext acceptanceTestContext = new AcceptanceTestContext(testId, clusterName);
     uploadConnectorJar(
         CONNECTOR_JAR_DIRECTORY, connectorJarPrefix, acceptanceTestContext.connectorJarUri);
@@ -78,14 +99,16 @@ public class DataprocAcceptanceTestBase {
     }
   }
 
-  protected static String createClusterIfNeeded(String dataprocImageVersion, String testId)
-      throws Exception {
+  protected static String createClusterIfNeeded(
+      String dataprocImageVersion, String testId, Map<String, String> properties) throws Exception {
     String clusterName = generateClusterName(testId);
     cluster(
         client ->
             client
                 .createClusterAsync(
-                    PROJECT_ID, REGION, createCluster(clusterName, dataprocImageVersion))
+                    PROJECT_ID,
+                    REGION,
+                    createCluster(clusterName, dataprocImageVersion, properties))
                 .get());
     return clusterName;
   }
@@ -106,7 +129,8 @@ public class DataprocAcceptanceTestBase {
     return String.format("spark-bigquery-acceptance-test-%s", testId);
   }
 
-  private static Cluster createCluster(String clusterName, String dataprocImageVersion) {
+  private static Cluster createCluster(
+      String clusterName, String dataprocImageVersion, Map<String, String> properties) {
     return Cluster.newBuilder()
         .setClusterName(clusterName)
         .setProjectId(PROJECT_ID)
@@ -135,7 +159,9 @@ public class DataprocAcceptanceTestBase {
                                 .setBootDiskSizeGb(300)
                                 .setNumLocalSsds(0)))
                 .setSoftwareConfig(
-                    SoftwareConfig.newBuilder().setImageVersion(dataprocImageVersion)))
+                    SoftwareConfig.newBuilder()
+                        .setImageVersion(dataprocImageVersion)
+                        .putAllProperties(properties)))
         .build();
   }
 
@@ -297,5 +323,33 @@ public class DataprocAcceptanceTestBase {
   @FunctionalInterface
   private interface ThrowingConsumer<T> {
     void accept(T t) throws Exception;
+  }
+
+  protected static class ClusterProperty {
+    private String key;
+    private String value;
+    private String marker;
+
+    private ClusterProperty(String key, String value, String marker) {
+      this.key = key;
+      this.value = value;
+      this.marker = marker;
+    }
+
+    protected static ClusterProperty of(String key, String value, String marker) {
+      return new ClusterProperty(key, value, marker);
+    }
+
+    public String getKey() {
+      return key;
+    }
+
+    public String getValue() {
+      return value;
+    }
+
+    public String getMarker() {
+      return marker;
+    }
   }
 }

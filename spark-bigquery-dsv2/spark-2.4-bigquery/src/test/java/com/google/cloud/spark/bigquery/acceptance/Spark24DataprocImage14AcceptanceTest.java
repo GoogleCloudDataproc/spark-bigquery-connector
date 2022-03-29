@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.acceptance;
 
+import java.util.Collections;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
@@ -28,7 +29,9 @@ public class Spark24DataprocImage14AcceptanceTest extends DataprocAcceptanceTest
 
   @BeforeClass
   public static void setup() throws Exception {
-    context = DataprocAcceptanceTestBase.setup("1.4-debian10", "spark-2.4-bigquery");
+    context =
+        DataprocAcceptanceTestBase.setup(
+            "1.4-debian10", "spark-2.4-bigquery", Collections.emptyList());
   }
 
   @AfterClass
