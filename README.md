@@ -527,7 +527,7 @@ The API Supports a number of options to configure the read
   <tr valign="top">
    <td><code>datePartition</code>
    </td>
-   <td>The date partition the data is going to be written to. Should be a date string 
+   <td>The date partition the data is going to be written to. Should be a date string
        given in the format <code>YYYYMMDD</code>. Can be used to overwrite the data of
 	   a single partition, like this: <code><br/>df.write.format("bigquery")
        <br/>&nbsp;&nbsp;.option("datePartition", "20220331")
