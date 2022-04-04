@@ -91,6 +91,10 @@ production  environments where the connector version should be pinned, one of th
 | Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar)) |
 | Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-latest.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-latest.jar)) |
 
+⚠️ **NOTICE**: Pointing to the latest connector version is **strongly discouraged** to guarantee consistent usage
+of the previously working version of the connector and to ensure that any bugs/functionality in the latest version
+does not cause unintended consequences in your workloads.
+
 ## Hello World Example
 
 You can run a simple PySpark wordcount against the API without compilation by running
@@ -527,14 +531,14 @@ The API Supports a number of options to configure the read
   <tr valign="top">
    <td><code>datePartition</code>
    </td>
-   <td>The date partition the data is going to be written to. Should be given in the
-       format <code>YYYYMMDD</code>. Can be used to overwrite the data of a single
-       partition, like this: <code><br/>df.write.format("bigquery")
-       <br/>&nbsp;&nbsp;.option("datePartition", "YYYYMMDD")
+   <td>The date partition the data is going to be written to. Should be a date string
+       given in the format <code>YYYYMMDD</code>. Can be used to overwrite the data of
+	   a single partition, like this: <code><br/>df.write.format("bigquery")
+       <br/>&nbsp;&nbsp;.option("datePartition", "20220331")
        <br/>&nbsp;&nbsp;.mode("overwrite")
        <br/>&nbsp;&nbsp;.save("table")</code>
        <br/>(Optional). On write only.
-        <br/> Can also be used with diffrent partition types like:
+        <br/> Can also be used with different partition types like:
         <br/> HOUR: <code>YYYYMMDDHH</code>
         <br/> MONTH: <code>YYYYMM</code>
         <br/> YEAR: <code>YYYY</code>
