@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.24.2 - 2022-04-05
+* PR #580: Fixed shaded artifacts version flattening, the version appears
+  correctly in the released POM
+* PR #583: netty-tcnative is taken from the Netty BOM
+* PR #584: CVE-2020-36518 - Upgraded jackson
+
 ## 0.24.1 - 2022-03-29
 * PR #576: Fixed error running on Datapoc clusters where conscrypt is disabled
   (the property`dataproc.conscrypt.provider.enable` set to `false`)
