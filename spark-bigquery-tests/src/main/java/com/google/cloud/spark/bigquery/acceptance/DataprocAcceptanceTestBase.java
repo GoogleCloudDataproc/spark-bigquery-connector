@@ -15,12 +15,18 @@
  */
 package com.google.cloud.spark.bigquery.acceptance;
 
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.CONNECTOR_JAR_DIRECTORY;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.DATAPROC_ENDPOINT;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MAX_BIG_NUMERIC;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MIN_BIG_NUMERIC;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.PROJECT_ID;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.REGION;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.createBqDataset;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.deleteBqDatasetAndTables;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.generateClusterName;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.getNumOfRowsOfBqTable;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.runBqQuery;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.uploadConnectorJar;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assume.assumeTrue;
 
@@ -40,10 +46,6 @@ import org.junit.Test;
 
 public class DataprocAcceptanceTestBase {
 
-  private static final String REGION = "us-west1";
-  public static final String DATAPROC_ENDPOINT = REGION + "-dataproc.googleapis.com:443";
-  private static final String PROJECT_ID = System.getenv("GOOGLE_CLOUD_PROJECT");
-  public static final String CONNECTOR_JAR_DIRECTORY = "target";
   protected static final ClusterProperty DISABLE_CONSCRYPT =
       ClusterProperty.of("dataproc:dataproc.conscrypt.provider.enable", "false", "nc");
   protected static final ImmutableList<ClusterProperty> DISABLE_CONSCRYPT_LIST =
@@ -125,10 +127,6 @@ public class DataprocAcceptanceTestBase {
     }
   }
 
-  private static String generateClusterName(String testId) {
-    return String.format("spark-bigquery-acceptance-test-%s", testId);
-  }
-
   private static Cluster createCluster(
       String clusterName, String dataprocImageVersion, Map<String, String> properties) {
     return Cluster.newBuilder()
@@ -163,13 +161,6 @@ public class DataprocAcceptanceTestBase {
                         .setImageVersion(dataprocImageVersion)
                         .putAllProperties(properties)))
         .build();
-  }
-
-  private static void uploadConnectorJar(String targetDir, String prefix, String connectorJarUri)
-      throws Exception {
-    Path targetDirPath = Paths.get(targetDir);
-    Path assemblyJar = AcceptanceTestUtils.getArtifact(targetDirPath, prefix, ".jar");
-    AcceptanceTestUtils.copyToGcs(assemblyJar, connectorJarUri, "application/java-archive");
   }
 
   @Test

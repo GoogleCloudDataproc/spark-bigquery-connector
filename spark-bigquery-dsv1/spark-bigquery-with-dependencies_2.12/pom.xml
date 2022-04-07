@@ -1,31 +1,53 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>com.google.cloud.spark</groupId>
-    <artifactId>spark-bigquery-with-dependencies-parent</artifactId>
-    <version>${revision}</version>
-    <relativePath>../spark-bigquery-with-dependencies-parent</relativePath>
-  </parent>
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.google.cloud.spark</groupId>
+        <artifactId>spark-bigquery-with-dependencies-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../spark-bigquery-with-dependencies-parent</relativePath>
+    </parent>
 
-  <artifactId>spark-bigquery-with-dependencies_2.12</artifactId>
-  <name>BigQuery DataSource v1 shaded distributable for Scala 2.12</name>
-  <properties>
-    <scala.binary.version>2.12</scala.binary.version>
-  </properties>
-  <licenses>
-    <license>
-      <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-  <dependencies>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>spark-bigquery_${scala.binary.version}</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-  </dependencies>
+    <artifactId>spark-bigquery-with-dependencies_2.12</artifactId>
+    <name>BigQuery DataSource v1 shaded distributable for Scala 2.12</name>
+    <properties>
+        <scala.binary.version>2.12</scala.binary.version>
+    </properties>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>spark-bigquery_${scala.binary.version}</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>add-acceptance-test-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-test-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>src/test_2.12/java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
