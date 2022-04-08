@@ -7,6 +7,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.api.gax.longrunning.OperationSnapshot;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -26,8 +27,9 @@ public class BigNumericDataprocServerlessAcceptanceTestBase
         AcceptanceTestUtils.getArtifact(pythonLibTargetDir, "spark-bigquery", ".zip");
     String zipFileUri =
         context.testBaseGcsDir + "/" + testName + "/big_numeric_acceptance_test.zip";
-    AcceptanceTestUtils.uploadToGcs(
-        new FileInputStream(pythonLibZip.toFile()), zipFileUri, "application/zip");
+    try (InputStream pythonLib = new FileInputStream(pythonLibZip.toFile())) {
+      AcceptanceTestUtils.uploadToGcs(pythonLib, zipFileUri, "application/zip");
+    }
 
     runBqQuery(
         String.format(
