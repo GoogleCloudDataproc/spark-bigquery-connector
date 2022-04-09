@@ -8,4 +8,6 @@ trait SparkBigQueryPushdown {
   def enable(session: SparkSession, bigQueryStrategy: BigQueryStrategy): Unit
 
   def disable(session: SparkSession): Unit
+
+  def createSparkExpressionConverter: SparkExpressionConverter
 }
