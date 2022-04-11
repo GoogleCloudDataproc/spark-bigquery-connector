@@ -106,3 +106,4 @@ Setting the following environment variables is required to run the integration t
 * `GOOGLE_CLOUD_PROJECT` - The Google cloud platform project used to test the connector
 * `TEMPORARY_GCS_BUCKET` - The GCS bucked used to test writing to BigQuery during the integration tests
 * `ACCEPTANCE_TEST_BUCKET` - The GCS bucked used to test writing to BigQuery during the acceptance tests
+* `SERVERLESS_NETWORK_URI` - The network used by the serverless batches during the acceptance tests

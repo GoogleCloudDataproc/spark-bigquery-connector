@@ -32,6 +32,7 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.Comparator;
 import java.util.function.Predicate;
@@ -163,5 +164,16 @@ public class AcceptanceTestUtils {
 
   public static void deleteBqDatasetAndTables(String dataset) {
     bq.delete(DatasetId.of(dataset), DatasetDeleteOption.deleteContents());
+  }
+
+  static void uploadConnectorJar(String targetDir, String prefix, String connectorJarUri)
+      throws Exception {
+    Path targetDirPath = Paths.get(targetDir);
+    Path assemblyJar = AcceptanceTestUtils.getArtifact(targetDirPath, prefix, ".jar");
+    AcceptanceTestUtils.copyToGcs(assemblyJar, connectorJarUri, "application/java-archive");
+  }
+
+  public static String generateClusterName(String testId) {
+    return String.format("sbc-acceptance-test-%s", testId);
   }
 }
