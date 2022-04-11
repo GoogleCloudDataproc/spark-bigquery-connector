@@ -7,9 +7,7 @@ import com.google.api.gax.longrunning.OperationSnapshot;
 import java.util.Arrays;
 import org.junit.Test;
 
-/**
- * Test the writeStream support on an actual cluster.
- */
+/** Test the writeStream support on an actual cluster. */
 public class WriteStreamDataprocServerlessAcceptanceTestBase
     extends DataprocServerlessAcceptanceTestBase {
 

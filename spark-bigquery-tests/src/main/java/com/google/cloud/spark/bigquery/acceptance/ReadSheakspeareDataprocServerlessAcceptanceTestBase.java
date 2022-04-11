@@ -6,9 +6,7 @@ import com.google.api.gax.longrunning.OperationSnapshot;
 import java.util.Arrays;
 import org.junit.Test;
 
-/**
- * Tests basic functionality of the connector by reading a BigQuery table
- */
+/** Tests basic functionality of the connector by reading a BigQuery table */
 public class ReadSheakspeareDataprocServerlessAcceptanceTestBase
     extends DataprocServerlessAcceptanceTestBase {
 
