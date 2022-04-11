@@ -13,6 +13,9 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import org.junit.Test;
 
+/**
+ * Tests the correct behavior of the python support lib and the BigNumeric python custom data type
+ */
 public class BigNumericDataprocServerlessAcceptanceTestBase
     extends DataprocServerlessAcceptanceTestBase {
 
