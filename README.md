@@ -82,19 +82,6 @@ repository. It can be used using the `--packages` option or the
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.24.2` |
 | Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:0.24.2-preview` |
 
-If you want to keep up with the latest version of the connector the following links can be used. Notice that for
-production  environments where the connector version should be pinned, one of the above links should be used.
-
-| version | Link |
-| --- | --- |
-| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-latest_2.11.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.11.jar)) |
-| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar)) |
-| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-latest.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-latest.jar)) |
-
-⚠️ **NOTICE**: Pointing to the latest connector version is **strongly discouraged** to guarantee consistent usage
-of the previously working version of the connector and to ensure that any bugs/functionality in the latest version
-does not cause unintended consequences in your workloads.
-
 ## Hello World Example
 
 You can run a simple PySpark wordcount against the API without compilation by running
@@ -103,7 +90,7 @@ You can run a simple PySpark wordcount against the API without compilation by ru
 
 ```
 gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
-  --jars gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar \
+  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.24.2.jar \
   examples/python/shakespeare.py
 ```
 
@@ -111,7 +98,7 @@ gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
 
 ```
 gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
-  --jars gs://spark-lib/bigquery/spark-bigquery-latest_2.11.jar \
+  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.24.2.jar \
   examples/python/shakespeare.py
 ```
 
