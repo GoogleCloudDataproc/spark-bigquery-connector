@@ -17,7 +17,6 @@ package com.google.cloud.bigquery.connector.common;
 
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.BIGQUERY_INVALID_SCHEMA;
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNKNOWN;
-import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
 
 public class BigQueryConnectorException extends RuntimeException {
 
@@ -53,30 +52,6 @@ public class BigQueryConnectorException extends RuntimeException {
 
     public InvalidSchemaException(String message, Throwable t) {
       super(BIGQUERY_INVALID_SCHEMA, message, t);
-    }
-  }
-
-  /** Exception if query pushdown to BigQuery fails */
-  public static class PushdownException extends BigQueryConnectorException {
-
-    public PushdownException(String message) {
-      super(UNKNOWN, message);
-    }
-
-    public PushdownException(String message, Throwable t) {
-      super(UNKNOWN, message, t);
-    }
-  }
-
-  /** Exception if query pushdown is for an unsupported operation */
-  public static class PushdownUnsupportedException extends BigQueryConnectorException {
-
-    public PushdownUnsupportedException(String message) {
-      super(UNSUPPORTED, message);
-    }
-
-    public PushdownUnsupportedException(String message, Throwable t) {
-      super(UNSUPPORTED, message, t);
     }
   }
 }
