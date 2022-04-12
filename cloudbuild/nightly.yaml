@@ -6,41 +6,12 @@ steps:
 
 # 2. Fetch maven and dependencies
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly'
-    id: 'init'
-    waitFor: ['docker-build']
+    id: 'maven-build'
     entrypoint: 'bash'
-    args: ['/workspace/cloudbuild/presubmit.sh', 'init']
-    env:
-    - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
-
-# 3. Run unit tests
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly'
-    id: 'unit-tests'
-    waitFor: ['init']
-    entrypoint: 'bash'
-    args: ['/workspace/cloudbuild/presubmit.sh', 'unittest']
-    env:
-    - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
-
-  # 4. Run integration tests concurrently with unit tests
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly'
-    id: 'integration-tests'
-    waitFor: ['unit-tests']
-    entrypoint: 'bash'
-    args: ['/workspace/cloudbuild/presubmit.sh', 'integrationtest']
+    args: ['/workspace/cloudbuild/nightly.sh']
     env:
       - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
       - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
-      - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
-
-  # 5. Run integration tests concurrently with unit tests
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly'
-    id: 'acceptance-tests'
-    waitFor: ['integration-tests']
-    entrypoint: 'bash'
-    args: ['/workspace/cloudbuild/presubmit.sh', 'acceptancetest']
-    env:
-      - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
       - 'ACCEPTANCE_TEST_BUCKET=${_ACCEPTANCE_TEST_BUCKET}'
       - 'SERVERLESS_NETWORK_URI=${_SERVERLESS_NETWORK_URI}'
       - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
