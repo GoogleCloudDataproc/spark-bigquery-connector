@@ -1,7 +1,7 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
-import com.google.cloud.bigquery.connector.common.BigQueryConnectorException
-import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.{addAttributeStatement, blockStatement, mkStatement}
+import com.google.cloud.bigquery.connector.common.{BigQueryConnectorException, BigQueryPushdownUnsupportedException}
+import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.{addAttributeStatement, blockStatement, makeStatement}
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate._
 import org.apache.spark.sql.types.{BinaryType, BooleanType, ByteType, DataType, DateType, DecimalType, DoubleType, FloatType, IntegerType, LongType, StringType, TimestampType}
@@ -23,11 +23,11 @@ trait SparkExpressionConverter {
       .orElse(convertBasicExpressions(expression, fields))
       .orElse(convertBooleanExpressions(expression, fields))
       .orElse(convertMiscExpressions(expression, fields))
-      .getOrElse(throw new BigQueryConnectorException.PushdownUnsupportedException((s"Pushdown unsupported for ${expression.prettyName}")))
+      .getOrElse(throw new BigQueryPushdownUnsupportedException((s"Pushdown unsupported for ${expression.prettyName}")))
   }
 
   def convertStatements(fields: Seq[Attribute], expressions: Expression*): BigQuerySQLStatement =
-    mkStatement(expressions.map(convertStatement(_, fields)), ",")
+    makeStatement(expressions.map(convertStatement(_, fields)), ",")
 
   def convertAggregateExpressions(expression: Expression, fields: Seq[Attribute]): Option[BigQuerySQLStatement] = {
     expression match {
@@ -147,7 +147,7 @@ trait SparkExpressionConverter {
             (child.dataType, t) match {
               case (_: DateType | _: TimestampType,
               _: IntegerType | _: LongType | _: FloatType | _: DoubleType | _: DecimalType) => {
-                throw new BigQueryConnectorException.PushdownUnsupportedException(
+                throw new BigQueryPushdownUnsupportedException(
                   "pushdown failed for unsupported conversion")
               }
               case _ =>
