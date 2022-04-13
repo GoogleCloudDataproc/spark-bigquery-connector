@@ -54,10 +54,10 @@ object SparkBigQueryPushdownUtil {
    * @param delimiter
    * @return
    */
-  def mkStatement(seq: Seq[BigQuerySQLStatement], delimiter: String): BigQuerySQLStatement =
-    mkStatement(seq, ConstantString(delimiter).toStatement)
+  def makeStatement(seq: Seq[BigQuerySQLStatement], delimiter: String): BigQuerySQLStatement =
+    makeStatement(seq, ConstantString(delimiter).toStatement)
 
-  def mkStatement(seq: Seq[BigQuerySQLStatement], delimiter: BigQuerySQLStatement): BigQuerySQLStatement =
+  def makeStatement(seq: Seq[BigQuerySQLStatement], delimiter: BigQuerySQLStatement): BigQuerySQLStatement =
     seq.foldLeft(EmptyBigQuerySQLStatement()) {
       case (left, stmt) =>
         if (left.isEmpty) stmt else left + delimiter + stmt
