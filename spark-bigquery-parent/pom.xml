@@ -184,6 +184,11 @@
                 <version>${paranamer.version}</version>
             </dependency>
             <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>1.15</version>
+            </dependency>
+            <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-bom</artifactId>
                 <version>${grpc.version}</version>
@@ -243,6 +248,11 @@
                 <groupId>org.apache.arrow</groupId>
                 <artifactId>arrow-vector</artifactId>
                 <version>${arrow.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
