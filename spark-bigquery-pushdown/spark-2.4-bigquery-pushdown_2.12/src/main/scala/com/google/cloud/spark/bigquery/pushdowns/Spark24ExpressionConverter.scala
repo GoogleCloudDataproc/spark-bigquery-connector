@@ -16,22 +16,9 @@
 
 package com.google.cloud.spark.bigquery.pushdowns
 
-import org.apache.spark.sql.SparkSession
+/**
+ * Convert Spark 2.4 specific expressions to SQL
+ */
+class Spark24ExpressionConverter extends SparkExpressionConverter {
 
-class Spark24BigQueryPushdown extends SparkBigQueryPushdown {
-  override def enable(session: SparkSession, bigQueryStrategy: BigQueryStrategy): Unit = {
-    SparkBigQueryPushdownUtil.enableBigQueryStrategy(session, bigQueryStrategy)
-  }
-
-  override def disable(session: SparkSession): Unit = {
-    SparkBigQueryPushdownUtil.disableBigQueryStrategy(session)
-  }
-
-  override def supportsSparkVersion(sparkVersion: String): Boolean = {
-    sparkVersion.startsWith("2.4")
-  }
-
-  override def createSparkExpressionConverter: SparkExpressionConverter = {
-    new Spark24ExpressionConverter
-  }
 }
