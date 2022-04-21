@@ -514,6 +514,10 @@ public class BigQueryClient {
             finishedJob.getJobId());
       }
     } catch (Exception e) {
+      if (finishedJob == null) {
+        log.error("Unable to create the job to load to {}", BigQueryUtil.friendlyTableName(options.getTableId()));
+        throw e;
+      }
       TimePartitioning.Type partitionType = options.getPartitionTypeOrDefault();
 
       if (e.getMessage()
