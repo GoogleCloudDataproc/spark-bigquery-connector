@@ -11,7 +11,6 @@ import org.apache.spark.sql.types.DataType;
  * ML library to avoid run-time exception even though the code doesn't need Spark ML library.
  */
 public enum SupportedCustomDataTypeHelper {
-
   SPARK_ML_VECTOR("vector"),
   SPARK_ML_MATRIX("matrix");
 
