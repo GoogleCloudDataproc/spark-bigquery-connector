@@ -36,4 +36,12 @@ public class SupportedCustomDataTypeTest {
         SupportedCustomDataType.of(SQLDataTypes.MatrixType());
     assertThat(matrix.isPresent()).isTrue();
   }
+
+  @Test
+  public void testGetTypeMarker() {
+    assertThat(SupportedCustomDataType.SPARK_ML_MATRIX.getTypeMarker())
+        .isEqualTo("{spark.type=matrix}");
+    assertThat(SupportedCustomDataType.SPARK_ML_VECTOR.getTypeMarker())
+        .isEqualTo("{spark.type=vector}");
+  }
 }

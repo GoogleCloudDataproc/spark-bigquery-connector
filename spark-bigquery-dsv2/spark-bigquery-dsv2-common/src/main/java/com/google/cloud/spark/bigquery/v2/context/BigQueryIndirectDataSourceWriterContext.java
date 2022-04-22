@@ -27,7 +27,7 @@ import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
-import com.google.cloud.spark.bigquery.SupportedCustomDataType;
+import com.google.cloud.spark.bigquery.SupportedCustomDataTypeHelper;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Iterator;
@@ -166,7 +166,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
         Stream.of(sparkSchema.fields())
             .filter(
                 field ->
-                    SupportedCustomDataType.of(field.dataType()).isPresent()
+                    SupportedCustomDataTypeHelper.of(field.dataType()).isPresent()
                         || SchemaConverters.getDescriptionOrCommentOfField(field).isPresent())
             .collect(Collectors.toMap(StructField::name, Function.identity()));
 
@@ -202,7 +202,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
       newField.setDescription(bqDescription.get());
     } else {
       String description = field.getDescription();
-      String marker = SupportedCustomDataType.of(sparkSchemaField.dataType()).get().getTypeMarker();
+      String marker = SupportedCustomDataTypeHelper.of(sparkSchemaField.dataType()).get().getTypeMarker();
 
       if (description == null) {
         newField.setDescription(marker);

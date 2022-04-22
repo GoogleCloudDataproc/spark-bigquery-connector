@@ -93,7 +93,7 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
     val fieldsToUpdate = data.schema
       .filter {
         field =>
-          SupportedCustomDataType.of(field.dataType).isPresent ||
+          SupportedCustomDataTypeHelper.of(field.dataType).isPresent ||
             getDescriptionOrCommentOfField(field).isPresent}
       .map (field => (field.name, field))
       .toMap
@@ -119,10 +119,10 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
     val newField = field.toBuilder
     val bqDescription = getDescriptionOrCommentOfField(dataField)
 
-    if(bqDescription.isPresent){
+    if(bqDescription.isPresent) {
       newField.setDescription(bqDescription.get)
     } else {
-      val marker = SupportedCustomDataType.of(dataField.dataType).get.getTypeMarker
+      val marker = SupportedCustomDataTypeHelper.of(dataField.dataType).get.getTypeMarker
       val description = field.getDescription
       if (description == null) {
         newField.setDescription(marker)

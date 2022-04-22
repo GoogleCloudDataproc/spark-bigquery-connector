@@ -41,6 +41,12 @@ public enum SupportedCustomDataType {
     return typeMarker;
   }
 
+  /**
+   * @deprecated use {@link SupportedCustomDataTypeHelper#of(DataType)} instead to avoid unnecessary
+   *     dependency to Spark ML library
+   */
+  @SuppressWarnings({"unused", "java:S1133"})
+  @Deprecated
   public static Optional<SupportedCustomDataType> of(DataType dataType) {
     Preconditions.checkNotNull(dataType);
     return Stream.of(values())
@@ -48,6 +54,14 @@ public enum SupportedCustomDataType {
         .findFirst();
   }
 
+  /**
+   * Find the data type from its description.
+   *
+   * @deprecated use {@link SupportedCustomDataTypeHelper#forDescription(String)} instead to avoid
+   *     unnecessary dependency to Spark ML library
+   */
+  @SuppressWarnings({"unused", "java:S1133"})
+  @Deprecated
   public static Optional<SupportedCustomDataType> forDescription(String description) {
     Preconditions.checkNotNull(description, "description cannot be null");
     return Stream.of(values())

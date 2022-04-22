@@ -279,13 +279,11 @@ public class SchemaConverters {
   static Optional<DataType> getCustomDataType(Field field) {
     // metadata is kept in the description
     String description = field.getDescription();
-    if (description != null) {
-      // All supported types are serialized to records
-      if (LegacySQLTypeName.RECORD.equals(field.getType())) {
-        // we don't have many types, so we keep parsing to minimum
-        return SupportedCustomDataType.forDescription(description)
-            .map(SupportedCustomDataType::getSparkDataType);
-      }
+    // All supported types are serialized to record
+    if (description != null && LegacySQLTypeName.RECORD.equals(field.getType())) {
+      // we don't have many types, so we keep parsing to minimum
+      return SupportedCustomDataTypeHelper.forDescription(description)
+          .map(SupportedCustomDataType::getSparkDataType);
     }
     return Optional.empty();
   }
