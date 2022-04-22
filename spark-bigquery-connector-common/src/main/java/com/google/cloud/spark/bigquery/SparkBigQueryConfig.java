@@ -366,7 +366,7 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, "cacheExpirationTimeInMinutes")
             .transform(Integer::parseInt)
             .or(DEFAULT_CACHE_EXPIRATION_IN_MINUTES);
-    if (config.cacheExpirationTimeInMinutes < 1) {
+    if (config.cacheExpirationTimeInMinutes < 0) {
       throw new IllegalArgumentException(
           "cacheExpirationTimeInMinutes must have a positive value, the configured value is "
               + config.cacheExpirationTimeInMinutes);
