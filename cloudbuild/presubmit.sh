@@ -40,8 +40,18 @@ case $STEP in
     ;;
 
   # Run integration tests
-  integrationtest)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv2_2.4
+  integrationtest-2.12)
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12
+    ;;
+
+  # Run integration tests
+  integrationtest-2.4)
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_2.4
+    ;;
+
+  # Run integration tests
+  integrationtest-3.1)
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.1
     ;;
 
   *)
