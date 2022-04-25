@@ -4,7 +4,7 @@ steps:
     id: 'docker-build'
     args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit', '-f', 'cloudbuild/Dockerfile', '.']
 
-  # 2. Fetch maven and dependencies
+# 2. Fetch maven and dependencies
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
     id: 'init'
     waitFor: ['docker-build']
@@ -13,7 +13,7 @@ steps:
     env:
     - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
 
-  # 3. Run unit tests
+# 3. Run unit tests
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
     id: 'unit-tests'
     waitFor: ['init']
@@ -22,7 +22,7 @@ steps:
     env:
     - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
 
-  # 4a. Run integration tests concurrently with unit tests (DSv1, Scala 2.12)
+# 4a. Run integration tests concurrently with unit tests (DSv1, Scala 2.12)
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
     id: 'integration-tests-2.12'
     waitFor: ['unit-tests']
@@ -33,7 +33,7 @@ steps:
     - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
     - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
 
-  # 4b. Run integration tests concurrently with unit tests (DSv2, Spark 2.4)
+# 4b. Run integration tests concurrently with unit tests (DSv2, Spark 2.4)
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
     id: 'integration-tests-2.4'
     waitFor: ['unit-tests']
