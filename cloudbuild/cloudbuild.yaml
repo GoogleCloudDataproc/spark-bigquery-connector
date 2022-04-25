@@ -11,7 +11,7 @@ steps:
     entrypoint: 'bash'
     args: ['/workspace/cloudbuild/presubmit.sh', 'init']
     env:
-      - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
+    - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
 
   # 3. Run unit tests
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
@@ -20,7 +20,7 @@ steps:
     entrypoint: 'bash'
     args: ['/workspace/cloudbuild/presubmit.sh', 'unittest']
     env:
-      - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
+    - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
 
   # 4a. Run integration tests concurrently with unit tests (DSv1, Scala 2.12)
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
@@ -29,9 +29,9 @@ steps:
     entrypoint: 'bash'
     args: ['/workspace/cloudbuild/presubmit.sh', 'integrationtest-2.12']
     env:
-      - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
-      - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
-      - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
+    - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
+    - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
+    - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
 
   # 4b. Run integration tests concurrently with unit tests (DSv2, Spark 2.4)
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
@@ -40,9 +40,9 @@ steps:
     entrypoint: 'bash'
     args: ['/workspace/cloudbuild/presubmit.sh', 'integrationtest-2.4']
     env:
-      - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
-      - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
-      - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
+    - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
+    - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
+    - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
 
 # Tests take around 30 mins in general.
 timeout: 1800s
