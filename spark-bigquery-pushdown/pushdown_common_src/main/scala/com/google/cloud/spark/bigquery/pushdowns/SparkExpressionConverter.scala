@@ -16,11 +16,12 @@
 
 package com.google.cloud.spark.bigquery.pushdowns
 
-import com.google.cloud.bigquery.connector.common.{BigQueryConnectorException, BigQueryPushdownUnsupportedException}
+import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
 import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.{addAttributeStatement, blockStatement, makeStatement}
+import org.apache.spark.bigquery.BigNumericUDT
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate._
-import org.apache.spark.sql.types.{BinaryType, BooleanType, ByteType, DataType, DateType, DecimalType, DoubleType, FloatType, IntegerType, LongType, StringType, TimestampType}
+import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
 /** This interface performs the conversion from Spark expressions to SQL runnable by BigQuery.
@@ -164,7 +165,7 @@ trait SparkExpressionConverter {
               case (_: DateType | _: TimestampType,
               _: IntegerType | _: LongType | _: FloatType | _: DoubleType | _: DecimalType) => {
                 throw new BigQueryPushdownUnsupportedException(
-                  "pushdown failed for unsupported conversion")
+                  "Pushdown failed due to unsupported conversion")
               }
               case _ =>
             }
@@ -188,9 +189,8 @@ trait SparkExpressionConverter {
       case BooleanType => "BOOL"
       case DateType => "DATE"
       case TimestampType => "TIMESTAMP"
-      case d: DecimalType =>
-        "BIGDECIMAL(" + d.precision + ", " + d.scale + ")"
-      case IntegerType | LongType => "INT64"
+      case d: DecimalType => "BIGDECIMAL(" + d.precision + ", " + d.scale + ")"
+      case IntegerType | ShortType | LongType => "INT64"
       case FloatType | DoubleType => "FLOAT64"
       case _ => null
     })
