@@ -87,7 +87,7 @@ private[bigquery] class DirectBigQueryRelation(
       val actualTable = readSessionResponse.getReadTableInfo
 
       val partitions = readSession.getStreamsList.asScala.map(_.getName)
-        .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
+        .zipWithIndex.map { case (name, i) => new BigQueryPartition(name, i) }
         .toArray
 
       logInfo(s"Created read session for table '$tableName': ${readSession.getName}")
