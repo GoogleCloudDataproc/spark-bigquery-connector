@@ -67,6 +67,7 @@
         <protobuf.version>3.20.0</protobuf.version>
         <zstd.version>1.4.9-1</zstd.version>
         <deploy.skip>true</deploy.skip>
+        <nexus.remote.skip>false</nexus.remote.skip>
 
         <!-- checkstyle
         <checkstyle.header.file>${reactor.project.basedir}/java.header</checkstyle.header.file>
@@ -604,6 +605,7 @@
                             <serverId>ossrh</serverId>
                             <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                             <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                            <skipRemoteStaging>${nexus.remote.skip}</skipRemoteStaging>
                         </configuration>
                     </plugin>
                     <plugin>
