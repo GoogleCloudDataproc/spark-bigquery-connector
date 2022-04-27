@@ -619,6 +619,14 @@
                                 </goals>
                             </execution>
                         </executions>
+                        <configuration>
+                            <!--
+                            Expect the password to be passed as the
+                            gpg.passphrase property instead of provided over
+                            a tty by the gpg-agent process.
+                            -->
+                            <useAgent>false</useAgent>
+                        </configuration>
                     </plugin>
                     <plugin>
                         <artifactId>maven-source-plugin</artifactId>
