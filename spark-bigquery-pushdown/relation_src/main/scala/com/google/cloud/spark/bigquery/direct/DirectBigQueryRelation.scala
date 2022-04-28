@@ -34,7 +34,7 @@ private[bigquery] class DirectBigQueryRelation(
     bigQueryClient: BigQueryClient,
     bigQueryReadClientFactory: BigQueryClientFactory)
     (@transient override val sqlContext: SQLContext)
-    extends BigQueryRelation(options, table)(sqlContext)
+    extends BigQueryRelation(options, table, sqlContext)
         with TableScan with PrunedScan with PrunedFilteredScan {
 
   val topLevelFields = SchemaConverters
@@ -64,12 +64,12 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
-    logInfo(
-      s"""
-         |Querying table $tableName, parameters sent from Spark:
-         |requiredColumns=[${requiredColumns.mkString(",")}],
-         |filters=[${filters.map(_.toString).mkString(",")}]"""
-        .stripMargin.replace('\n', ' ').trim)
+//    logInfo(
+//      s"""
+//         |Querying table $tableName, parameters sent from Spark:
+//         |requiredColumns=[${requiredColumns.mkString(",")}],
+//         |filters=[${filters.map(_.toString).mkString(",")}]"""
+//        .stripMargin.replace('\n', ' ').trim)
     val filter = getCompiledFilter(filters)
 
     val readSessionCreator = new ReadSessionCreator(options.toReadSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory)
@@ -79,10 +79,10 @@ private[bigquery] class DirectBigQueryRelation(
       generateEmptyRowRDD(actualTable, if (readSessionCreator.isInputTableAView(table)) "" else filter)
     } else {
       if (requiredColumns.isEmpty) {
-        logDebug(s"Not using optimized empty projection")
+        //logDebug(s"Not using optimized empty projection")
       }
 
-      val readSessionResponse = readSessionCreator.create(tableId, ImmutableList.copyOf(requiredColumns), BigQueryUtil.emptyIfNeeded(filter))
+      val readSessionResponse = readSessionCreator.create(getTableId(), ImmutableList.copyOf(requiredColumns), BigQueryUtil.emptyIfNeeded(filter))
       val readSession = readSessionResponse.getReadSession
       val actualTable = readSessionResponse.getReadTableInfo
 
@@ -90,20 +90,20 @@ private[bigquery] class DirectBigQueryRelation(
         .zipWithIndex.map { case (name, i) => new BigQueryPartition(name, i) }
         .toArray
 
-      logInfo(s"Created read session for table '$tableName': ${readSession.getName}")
+      //logInfo(s"Created read session for table '$tableName': ${readSession.getName}")
 
       val maxNumPartitionsRequested = getMaxNumPartitionsRequested(actualTable.getDefinition[TableDefinition])
       // This is spammy, but it will make it clear to users the number of partitions they got and
       // why.
       if (!maxNumPartitionsRequested.equals(partitions.length)) {
-        logInfo(
-          s"""Requested $maxNumPartitionsRequested max partitions, but only
-             |received ${partitions.length} from the BigQuery Storage API for
-             |session ${readSession.getName}. Notice that the number of streams in
-             |actual may be lower than the requested number, depending on the
-             |amount parallelism that is reasonable for the table and the
-             |maximum amount of parallelism allowed by the system."""
-            .stripMargin.replace('\n', ' '))
+//        logInfo(
+//          s"""Requested $maxNumPartitionsRequested max partitions, but only
+//             |received ${partitions.length} from the BigQuery Storage API for
+//             |session ${readSession.getName}. Notice that the number of streams in
+//             |actual may be lower than the requested number, depending on the
+//             |amount parallelism that is reasonable for the table and the
+//             |maximum amount of parallelism allowed by the system."""
+//            .stripMargin.replace('\n', ' '))
       }
 
       val requiredColumnSet = requiredColumns.toSet
@@ -134,7 +134,7 @@ private[bigquery] class DirectBigQueryRelation(
       val result = bigQueryClient.query(sql)
       result.iterateAll.iterator.next.get(0).getLongValue
     }
-    logInfo(s"Used optimized BQ count(*) path. Count: $numberOfRows")
+    //logInfo(s"Used optimized BQ count(*) path. Count: $numberOfRows")
     sqlContext.sparkContext.range(0, numberOfRows)
       .map(_ => InternalRow.empty)
       .asInstanceOf[RDD[Row]]
@@ -197,7 +197,7 @@ private[bigquery] class DirectBigQueryRelation(
     }
 
     val unhandled = SparkFilterUtils.unhandledFilters(options.getPushAllFilters, options.getReadDataFormat, ImmutableList.copyOf(filters)).toArray
-    logDebug(s"unhandledFilters: ${unhandled.mkString(" ")}")
+    //logDebug(s"unhandledFilters: ${unhandled.mkString(" ")}")
     unhandled
   }
 }
