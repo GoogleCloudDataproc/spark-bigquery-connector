@@ -88,11 +88,12 @@ public interface DataSourceWriterContext {
     DataSourceWriterContext dataSourceWriterContext = null;
     switch (config.getWriteMethod()) {
       case DIRECT:
-        dataSourceWriterContext = injector.getInstance(BigQueryDirectDataSourceWriterContext.class);
+        dataSourceWriterContext =
+            writerInjector.getInstance(BigQueryDirectDataSourceWriterContext.class);
         break;
       case INDIRECT:
         dataSourceWriterContext =
-            injector.getInstance(BigQueryIndirectDataSourceWriterContext.class);
+            writerInjector.getInstance(BigQueryIndirectDataSourceWriterContext.class);
         break;
     }
     return Optional.of(dataSourceWriterContext);
