@@ -21,19 +21,10 @@ import java.util.Collection;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-@RunWith(Parameterized.class)
-public class Spark31WriteIntegrationTest extends WriteIntegrationTestBase {
+public class Spark31DirectWriteIntegrationTest extends WriteIntegrationTestBase {
 
-  @Parameterized.Parameters(name = "{0}")
-  public static Collection<SparkBigQueryConfig.WriteMethod[]> formats() {
-    return Arrays.asList(
-        new SparkBigQueryConfig.WriteMethod[][] {
-          {SparkBigQueryConfig.WriteMethod.DIRECT}, {SparkBigQueryConfig.WriteMethod.INDIRECT}
-        });
-  }
-
-  public Spark31WriteIntegrationTest(SparkBigQueryConfig.WriteMethod writeMethod) {
-    super(writeMethod);
+  public Spark31DirectWriteIntegrationTest() {
+    super(SparkBigQueryConfig.WriteMethod.DIRECT);
   }
 
   // tests from superclass
