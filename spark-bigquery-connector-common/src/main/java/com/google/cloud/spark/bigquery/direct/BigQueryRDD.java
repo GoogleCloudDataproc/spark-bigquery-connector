@@ -8,7 +8,7 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.spark.bigquery.InternalRowIterator;
-import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
+import com.google.cloud.spark.bigquery.ReadRowsResponseToRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,11 +19,12 @@ import org.apache.spark.Partition;
 import org.apache.spark.SparkContext;
 import org.apache.spark.TaskContext;
 import org.apache.spark.rdd.RDD;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.catalyst.InternalRow;
 import scala.collection.JavaConverters;
 
-public class BigQueryRDD extends RDD<InternalRow> {
+public class BigQueryRDD extends RDD<Row> {
 
   private final Partition[] partitions;
   private final ReadSession readSession;
@@ -56,7 +57,7 @@ public class BigQueryRDD extends RDD<InternalRow> {
   }
 
   @Override
-  public scala.collection.Iterator<InternalRow> compute(Partition split, TaskContext context) {
+  public scala.collection.Iterator<Row> compute(Partition split, TaskContext context) {
     BigQueryPartition bqPartition = (BigQueryPartition) split;
     ReadRowsRequest.Builder request =
         ReadRowsRequest.newBuilder().setReadStream(bqPartition.getStream());
@@ -66,23 +67,23 @@ public class BigQueryRDD extends RDD<InternalRow> {
             request,
             options.toReadSessionCreatorConfig().toReadRowsHelperOptions());
     Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
-    ReadRowsResponseToInternalRowIteratorConverter converter;
+    ReadRowsResponseToRowIteratorConverter converter;
     if (options.getReadDataFormat().equals(DataFormat.AVRO)) {
       converter =
-          ReadRowsResponseToInternalRowIteratorConverter.avro(
+          ReadRowsResponseToRowIteratorConverter.avro(
               bqSchema,
               Arrays.asList(columnsInOrder),
               readSession.getAvroSchema().getSchema(),
               options.getSchema());
     } else {
       converter =
-          ReadRowsResponseToInternalRowIteratorConverter.arrow(
+          ReadRowsResponseToRowIteratorConverter.arrow(
               Arrays.asList(columnsInOrder),
               readSession.getArrowSchema().getSerializedSchema(),
               options.getSchema());
     }
 
-    return new InterruptibleIterator<InternalRow>(
+    return new InterruptibleIterator<Row>(
         context,
         JavaConverters.asScalaIteratorConverter(
                 new InternalRowIterator(readRowsResponses, converter, readRowsHelper))
