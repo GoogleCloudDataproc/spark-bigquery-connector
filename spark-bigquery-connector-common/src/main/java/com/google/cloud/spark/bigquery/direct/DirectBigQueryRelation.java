@@ -51,7 +51,7 @@ public class DirectBigQueryRelation extends BigQueryRelation
    */
   private static long DEFAULT_BYTES_PER_PARTITION = 400L * 1000 * 1000;
 
-  static int emptyRowRDDsCreated = 0;
+  public static int emptyRowRDDsCreated = 0;
 
   public DirectBigQueryRelation(
       SparkBigQueryConfig options,
@@ -192,24 +192,18 @@ public class DirectBigQueryRelation extends BigQueryRelation
       numberOfRows = result.iterateAll().iterator().next().get(0).getLongValue();
     }
 
-    Function1<Object, InternalRow> f = new MyClass();
-
-    // Function1<Object, InternalRow> f =
-    //     new AbstractFunction1<Object, InternalRow>() {
-    //       @Override
-    //       public InternalRow apply(Object v1) {
-    //         return InternalRow.empty();
-    //       }
-    //     };
+    Function1<Object, InternalRow> objectToInternalRowConverter =
+        new ObjectToInternalRowConverter();
 
     // logInfo(s"Used optimized BQ count(*) path. Count: $numberOfRows")
     return sqlContext
         .sparkContext()
         .range(0, numberOfRows, 1, sqlContext.sparkContext().defaultParallelism())
-        .map(f, scala.reflect.ClassTag$.MODULE$.apply(InternalRow.class));
+        .map(
+            objectToInternalRowConverter, scala.reflect.ClassTag$.MODULE$.apply(InternalRow.class));
   }
 
-  private static class MyClass extends AbstractFunction1<Object, InternalRow>
+  private static class ObjectToInternalRowConverter extends AbstractFunction1<Object, InternalRow>
       implements Serializable {
 
     @Override
