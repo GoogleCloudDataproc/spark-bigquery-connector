@@ -17,6 +17,7 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import java.util.List;
 import java.util.Set;
@@ -143,6 +144,21 @@ public class DirectBigQueryRelation extends BigQueryRelation
             requiredColumns,
             options,
             bigQueryReadClientFactory);
+  }
+
+  @Override
+  public Filter[] unhandledFilters(Filter[] filters) {
+    // If a manual filter has been specified tell Spark they are all unhandled
+    if (options.getFilter().isPresent()) {
+      return filters;
+    }
+    // logDebug(s"unhandledFilters: ${unhandled.mkString(" ")}")
+    return Iterables.toArray(
+        SparkFilterUtils.unhandledFilters(
+            options.getPushAllFilters(),
+            options.getReadDataFormat(),
+            ImmutableList.copyOf(filters)),
+        Filter.class);
   }
 
   private long getNumBytes(TableDefinition tableDefinition) {
