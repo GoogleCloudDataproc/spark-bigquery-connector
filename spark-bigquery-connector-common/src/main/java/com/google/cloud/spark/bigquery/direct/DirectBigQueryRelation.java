@@ -5,6 +5,7 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
@@ -24,10 +25,14 @@ import java.util.stream.Stream;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.sources.PrunedFilteredScan;
 import org.apache.spark.sql.sources.PrunedScan;
 import org.apache.spark.sql.sources.TableScan;
+import scala.Function1;
+import scala.Serializable;
+import scala.runtime.AbstractFunction1;
 
 public class DirectBigQueryRelation extends BigQueryRelation
     implements TableScan, PrunedScan, PrunedFilteredScan {
@@ -91,13 +96,14 @@ public class DirectBigQueryRelation extends BigQueryRelation
     ReadSessionCreator readSessionCreator =
         new ReadSessionCreator(
             options.toReadSessionCreatorConfig(), bigQueryClient, bigQueryReadClientFactory);
-    // if (options.isOptimizedEmptyProjection() && requiredColumns.length == 0) {
-    //   TableInfo actualTable =
-    //       readSessionCreator.getActualTable(
-    //           table, ImmutableList.copyOf(requiredColumns), BigQueryUtil.emptyIfNeeded(filter));
-    //   return generateEmptyRowRDD(
-    //       actualTable, readSessionCreator.isInputTableAView(table) ? "" : filter);
-    // }
+    if (options.isOptimizedEmptyProjection() && requiredColumns.length == 0) {
+      TableInfo actualTable =
+          readSessionCreator.getActualTable(
+              table, ImmutableList.copyOf(requiredColumns), BigQueryUtil.emptyIfNeeded(filter));
+      return (RDD<Row>)
+          generateEmptyRowRDD(
+              actualTable, readSessionCreator.isInputTableAView(table) ? "" : filter);
+    }
 
     ReadSessionResponse readSessionResponse =
         readSessionCreator.create(
@@ -128,14 +134,15 @@ public class DirectBigQueryRelation extends BigQueryRelation
                 .filter(f -> requiredColumnSet.contains(f.getName()))
                 .collect(Collectors.toList()));
 
-    return BigQueryRDD.scanTable(
-        sqlContext,
-        partitions.toArray(new BigQueryPartition[0]),
-        readSession,
-        prunedSchema,
-        requiredColumns,
-        options,
-        bigQueryReadClientFactory);
+    return (RDD<Row>)
+        BigQueryRDD.scanTable(
+            sqlContext,
+            partitions.toArray(new BigQueryPartition[0]),
+            readSession,
+            prunedSchema,
+            requiredColumns,
+            options,
+            bigQueryReadClientFactory);
   }
 
   private long getNumBytes(TableDefinition tableDefinition) {
@@ -172,27 +179,44 @@ public class DirectBigQueryRelation extends BigQueryRelation
     }
   }
 
-  // private RDD<Row> generateEmptyRowRDD(TableInfo tableInfo, String filter) {
-  //   emptyRowRDDsCreated += 1;
-  //   long numberOfRows = 0;
-  //   if (filter.length() == 0) {
-  //     numberOfRows = tableInfo.getNumRows().longValue();
-  //   } else {
-  //     // run a query
-  //     String table = toSqlTableReference(tableInfo.getTableId());
-  //     String sql = "SELECT COUNT(*) from " + "`" + table + "` WHERE" + filter;
-  //     TableResult result = bigQueryClient.query(sql);
-  //     numberOfRows = result.iterateAll().iterator().next().get(0).getLongValue();
-  //   }
-  //
-  //   // logInfo(s"Used optimized BQ count(*) path. Count: $numberOfRows")
-  //   return sqlContext
-  //       .sparkContext()
-  //       .range(0, numberOfRows, 1, sqlContext.sparkContext().defaultParallelism())
-  //       .map(row -> InternalRow.empty(),
-  // scala.reflect.ClassTag$.MODULE$.apply(InternalRow.class))
-  //       .map(row -> (Row) row);
-  // }
+  private RDD<? extends Serializable> generateEmptyRowRDD(TableInfo tableInfo, String filter) {
+    emptyRowRDDsCreated += 1;
+    long numberOfRows;
+    if (filter.length() == 0) {
+      numberOfRows = tableInfo.getNumRows().longValue();
+    } else {
+      // run a query
+      String table = toSqlTableReference(tableInfo.getTableId());
+      String sql = "SELECT COUNT(*) from " + "`" + table + "` WHERE" + filter;
+      TableResult result = bigQueryClient.query(sql);
+      numberOfRows = result.iterateAll().iterator().next().get(0).getLongValue();
+    }
+
+    Function1<Object, InternalRow> f = new MyClass();
+
+    // Function1<Object, InternalRow> f =
+    //     new AbstractFunction1<Object, InternalRow>() {
+    //       @Override
+    //       public InternalRow apply(Object v1) {
+    //         return InternalRow.empty();
+    //       }
+    //     };
+
+    // logInfo(s"Used optimized BQ count(*) path. Count: $numberOfRows")
+    return sqlContext
+        .sparkContext()
+        .range(0, numberOfRows, 1, sqlContext.sparkContext().defaultParallelism())
+        .map(f, scala.reflect.ClassTag$.MODULE$.apply(InternalRow.class));
+  }
+
+  private static class MyClass extends AbstractFunction1<Object, InternalRow>
+      implements Serializable {
+
+    @Override
+    public InternalRow apply(Object v1) {
+      return InternalRow.empty();
+    }
+  }
 
   private int getMaxNumPartitionsRequested(TableDefinition tableDefinition) {
     return options

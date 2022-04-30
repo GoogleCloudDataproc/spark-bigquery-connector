@@ -106,6 +106,27 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   @Test
+  public void testAggregation() {
+    // spark.range(1, 100).createOrReplaceTempView("t1");
+    // Dataset<Row> df = spark.sql("select id from t1 where t1.id = 10");
+    // df.explain(true);
+
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "google.com:hadoop-cloud-dev:vinaylondhe_test.roster")
+            .option("materializationDataset", testDataset.toString())
+            .load()
+            .where("_SchoolID >= 51 and _SchoolID <= 75");
+
+    // df.show();
+    df.groupBy("_SchoolID").sum().show();
+    //
+    // df.groupBy("LastName").sum("_SchoolID").show();
+  }
+
+  @Test
   public void testReadWithOption() {
     testShakespeare(
         spark.read().format("bigquery").option("table", TestConstants.SHAKESPEARE_TABLE).load());

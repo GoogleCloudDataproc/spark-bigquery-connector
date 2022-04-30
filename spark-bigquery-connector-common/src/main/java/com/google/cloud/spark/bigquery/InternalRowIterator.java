@@ -4,17 +4,17 @@ import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
-import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.InternalRow;
 
-public class InternalRowIterator implements Iterator<Row> {
+public class InternalRowIterator implements Iterator<InternalRow> {
   private Iterator<ReadRowsResponse> readRowsResponses;
-  private ReadRowsResponseToRowIteratorConverter converter;
+  private ReadRowsResponseToInternalRowIteratorConverter converter;
   private ReadRowsHelper readRowsHelper;
-  private Iterator<Row> rows = ImmutableList.<Row>of().iterator();
+  private Iterator<InternalRow> rows = ImmutableList.<InternalRow>of().iterator();
 
   public InternalRowIterator(
       Iterator<ReadRowsResponse> readRowsResponses,
-      ReadRowsResponseToRowIteratorConverter converter,
+      ReadRowsResponseToInternalRowIteratorConverter converter,
       ReadRowsHelper readRowsHelper) {
     this.readRowsResponses = readRowsResponses;
     this.converter = converter;
@@ -36,7 +36,7 @@ public class InternalRowIterator implements Iterator<Row> {
   }
 
   @Override
-  public Row next() {
+  public InternalRow next() {
     return rows.next();
   }
 }
