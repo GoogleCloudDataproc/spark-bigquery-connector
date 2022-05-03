@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.24.2 - 2022-04-05
 * PR #580: Fixed shaded artifacts version flattening, the version appears
   correctly in the released POM
