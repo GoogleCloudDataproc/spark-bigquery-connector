@@ -89,6 +89,8 @@ each building only a subset of the project's artifacts. The profiles are:
 Example: In order to compile **just** the Scala 2.12 connector run
 `./mvnw install -Pdsv1_2.12`.
 
+**Note**: Need java 1.8 and make sure **/usr/libexec/java_home** set to java 1.8 before building any module.
+
 **Important**: If no profile is selected, then only the common artifacts are run.
 
 The integration and acceptance tests are disabled by default. In order to run it please add the

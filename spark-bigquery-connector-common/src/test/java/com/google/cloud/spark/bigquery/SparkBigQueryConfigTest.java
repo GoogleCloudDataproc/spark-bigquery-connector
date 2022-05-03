@@ -191,6 +191,60 @@ public class SparkBigQueryConfigTest {
   }
 
   @Test
+  public void testCacheExpirationSetToZero() {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options =
+        new DataSourceOptions(
+            ImmutableMap.<String, String>builder()
+                .put("table", "test_t")
+                .put("dataset", "test_d")
+                .put("project", "test_p")
+                .put("cacheExpirationTimeInMinutes", "0")
+                .build());
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            options.asMap(),
+            ImmutableMap.of(),
+            hadoopConfiguration,
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty());
+    assertThat(config.getCacheExpirationTimeInMinutes()).isEqualTo(0);
+  }
+
+  @Test
+  public void testCacheExpirationSetToNegative() {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options =
+        new DataSourceOptions(
+            ImmutableMap.<String, String>builder()
+                .put("table", "test_t")
+                .put("dataset", "test_d")
+                .put("project", "test_p")
+                .put("cacheExpirationTimeInMinutes", "-1")
+                .build());
+
+    IllegalArgumentException exception =
+        Assert.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                SparkBigQueryConfig.from(
+                    options.asMap(),
+                    ImmutableMap.of(),
+                    hadoopConfiguration,
+                    DEFAULT_PARALLELISM,
+                    new SQLConf(),
+                    SPARK_VERSION,
+                    Optional.empty()));
+
+    assertThat(exception)
+        .hasMessageThat()
+        .contains(
+            "cacheExpirationTimeInMinutes must have a positive value, the configured value is -1");
+  }
+
+  @Test
   public void testInvalidCompressionCodec() {
     Configuration hadoopConfiguration = new Configuration();
     DataSourceOptions options =

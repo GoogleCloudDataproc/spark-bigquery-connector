@@ -667,6 +667,7 @@ The API Supports a number of options to configure the read
      <td><code>cacheExpirationTimeInMinutes</code>
      </td>
      <td>  The expiration time of the in-memory cache storing query information.
+          <br/> To disable caching, set the value to 0.
           <br/> (Optional. Defaults to 15 minutes)
      </td>
      <td>Read</td>
