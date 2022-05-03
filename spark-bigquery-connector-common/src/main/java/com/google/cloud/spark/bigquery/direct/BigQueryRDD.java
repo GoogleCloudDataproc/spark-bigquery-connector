@@ -21,7 +21,6 @@ import org.apache.spark.TaskContext;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.catalyst.InternalRow;
-import scala.Serializable;
 import scala.collection.JavaConverters;
 
 public class BigQueryRDD extends RDD<InternalRow> {
@@ -95,7 +94,7 @@ public class BigQueryRDD extends RDD<InternalRow> {
     return partitions;
   }
 
-  public static RDD<? extends Serializable> scanTable(
+  public static RDD<?> scanTable(
       SQLContext sqlContext,
       Partition[] partitions,
       ReadSession readSession,
@@ -103,15 +102,14 @@ public class BigQueryRDD extends RDD<InternalRow> {
       String[] columnsInOrder,
       SparkBigQueryConfig options,
       BigQueryClientFactory bigQueryClientFactory) {
-    return (RDD<? extends Serializable>)
-        new BigQueryRDD(
-            sqlContext.sparkContext(),
-            partitions,
-            readSession,
-            bqSchema,
-            columnsInOrder,
-            options,
-            bigQueryClientFactory);
+    return new BigQueryRDD(
+        sqlContext.sparkContext(),
+        partitions,
+        readSession,
+        bqSchema,
+        columnsInOrder,
+        options,
+        bigQueryClientFactory);
   }
 }
 
