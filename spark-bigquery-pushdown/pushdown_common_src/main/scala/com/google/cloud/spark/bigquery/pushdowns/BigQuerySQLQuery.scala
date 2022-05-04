@@ -35,13 +35,13 @@ import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeRef
  * @param conjunctionStatement Conjunction phrase to be used in between subquery children,
  *                             or simple phrase when there are no subqueries.
  */
-abstract class BQSQLQuery(
-   expressionConverter: SparkExpressionConverter,
-   alias: String,
-   children: Seq[BQSQLQuery] = Seq.empty,
-   projections: Option[Seq[NamedExpression]] = None,
-   outputAttributes: Option[Seq[Attribute]] = None,
-   conjunctionStatement: BigQuerySQLStatement = EmptyBigQuerySQLStatement()) {
+abstract class BigQuerySQLQuery(
+  expressionConverter: SparkExpressionConverter,
+  alias: String,
+  children: Seq[BigQuerySQLQuery] = Seq.empty,
+  projections: Option[Seq[NamedExpression]] = None,
+  outputAttributes: Option[Seq[Attribute]] = None,
+  conjunctionStatement: BigQuerySQLStatement = EmptyBigQuerySQLStatement()) {
 
   /**
    * Creates the sql after the FROM clause by building the queries from its children.
@@ -170,7 +170,7 @@ case class SourceQuery(
   tableName: String,
   outputAttributes: Seq[Attribute],
   alias: String)
-  extends BQSQLQuery(
+  extends BigQuerySQLQuery(
     expressionConverter,
     alias,
     outputAttributes = Some(outputAttributes),
@@ -186,9 +186,9 @@ case class SourceQuery(
 case class FilterQuery(
   expressionConverter: SparkExpressionConverter,
   conditions: Seq[Expression],
-  child: BQSQLQuery,
+  child: BigQuerySQLQuery,
   alias: String)
-  extends BQSQLQuery(
+  extends BigQuerySQLQuery(
     expressionConverter,
     alias,
     children = Seq(child)) {
@@ -211,9 +211,9 @@ case class FilterQuery(
 case class ProjectQuery(
   expressionConverter: SparkExpressionConverter,
   projectionColumns: Seq[NamedExpression],
-  child: BQSQLQuery,
+  child: BigQuerySQLQuery,
   alias: String)
-  extends BQSQLQuery(
+  extends BigQuerySQLQuery(
     expressionConverter,
     alias, children = Seq(child),
     projections = Some(projectionColumns)) {}
@@ -230,9 +230,9 @@ case class AggregateQuery(
   expressionConverter: SparkExpressionConverter,
   projectionColumns: Seq[NamedExpression],
   groups: Seq[Expression],
-  child: BQSQLQuery,
+  child: BigQuerySQLQuery,
   alias: String
- ) extends BQSQLQuery(
+ ) extends BigQuerySQLQuery(
   expressionConverter,
   alias,
   children = Seq(child),
@@ -262,9 +262,9 @@ case class SortLimitQuery(
   expressionConverter: SparkExpressionConverter,
   limit: Option[Expression],
   orderBy: Seq[Expression],
-  child: BQSQLQuery,
+  child: BigQuerySQLQuery,
   alias: String)
-  extends BQSQLQuery(
+  extends BigQuerySQLQuery(
     expressionConverter,
     alias,
     children = Seq(child)) {
