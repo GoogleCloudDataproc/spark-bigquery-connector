@@ -33,16 +33,15 @@ import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.TableCapability;
 import org.apache.spark.sql.connector.read.ScanBuilder;
 import org.apache.spark.sql.connector.write.LogicalWriteInfo;
-import org.apache.spark.sql.connector.write.SupportsOverwrite;
 import org.apache.spark.sql.connector.write.WriteBuilder;
-import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 
 public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
 
   public static final ImmutableSet<TableCapability> TABLE_CAPABILITIES =
-      ImmutableSet.of(TableCapability.BATCH_READ, TableCapability.BATCH_WRITE, TableCapability.TRUNCATE);
+      ImmutableSet.of(
+          TableCapability.BATCH_READ, TableCapability.BATCH_WRITE, TableCapability.TRUNCATE);
 
   private Injector injector;
   private SparkBigQueryConfig config;
