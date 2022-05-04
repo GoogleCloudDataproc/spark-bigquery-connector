@@ -36,7 +36,7 @@ public class BigQueryTableProvider extends BaseBigQuerySource implements TablePr
   public Table getTable(
       StructType schema, Transform[] partitioning, Map<String, String> properties) {
     Injector injector = InjectorFactory.createInjector(schema, properties);
-    BigQueryTable table = new BigQueryTable(injector);
+    BigQueryTable table = new BigQueryTable(injector, schema);
     return table;
   }
 

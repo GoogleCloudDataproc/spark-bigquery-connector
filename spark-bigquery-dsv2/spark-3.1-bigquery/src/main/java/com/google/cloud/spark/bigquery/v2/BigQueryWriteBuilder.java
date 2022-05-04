@@ -17,9 +17,11 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.v2.context.DataSourceWriterContext;
 import org.apache.spark.sql.connector.write.BatchWrite;
+import org.apache.spark.sql.connector.write.SupportsOverwrite;
 import org.apache.spark.sql.connector.write.WriteBuilder;
+import org.apache.spark.sql.sources.Filter;
 
-public class BigQueryWriteBuilder implements WriteBuilder {
+public class BigQueryWriteBuilder implements WriteBuilder, SupportsOverwrite {
   private DataSourceWriterContext ctx;
 
   public BigQueryWriteBuilder(DataSourceWriterContext ctx) {
@@ -29,5 +31,10 @@ public class BigQueryWriteBuilder implements WriteBuilder {
   @Override
   public BatchWrite buildForBatch() {
     return new BigQueryBatchWrite(ctx);
+  }
+
+  @Override
+  public WriteBuilder overwrite(Filter[] filters) {
+    return null;
   }
 }
