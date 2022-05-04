@@ -44,6 +44,17 @@ steps:
     - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
     - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
 
+# 4c. Run integration tests concurrently with unit tests (DSv2, Spark 3.1)
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+    id: 'integration-tests-3.1'
+    waitFor: ['unit-tests']
+    entrypoint: 'bash'
+    args: ['/workspace/cloudbuild/presubmit.sh', 'integrationtest-3.1']
+    env:
+      - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
+      - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
+      - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
+
 # Tests take around 30 mins in general.
 timeout: 1800s
 
