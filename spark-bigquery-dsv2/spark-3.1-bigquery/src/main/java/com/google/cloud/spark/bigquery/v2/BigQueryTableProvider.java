@@ -15,8 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
-import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderModule;
 import com.google.inject.Injector;
 import java.util.Map;
 import org.apache.spark.sql.connector.catalog.Table;
@@ -37,9 +35,8 @@ public class BigQueryTableProvider extends BaseBigQuerySource implements TablePr
   @Override
   public Table getTable(
       StructType schema, Transform[] partitioning, Map<String, String> properties) {
-    Injector injector = createInjector(schema, properties, new BigQueryDataSourceReaderModule());
-    BigQueryTable table =
-        new BigQueryTable(injector.getInstance(BigQueryDataSourceReaderContext.class));
+    Injector injector = InjectorFactory.createInjector(schema, properties);
+    BigQueryTable table = new BigQueryTable(injector, schema);
     return table;
   }
 

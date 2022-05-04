@@ -29,4 +29,9 @@ public class NoOpDataWriterContext implements DataWriterContext<InternalRow> {
 
   @Override
   public void abort() throws IOException {}
+
+  @Override
+  public void close() throws IOException {
+    // empty
+  }
 }
