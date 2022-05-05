@@ -154,6 +154,10 @@ trait SparkExpressionConverter {
     Option(expression match {
       case Alias(child: Expression, name: String) =>
         blockStatement(convertStatement(child, fields), name)
+      case SortOrder(child, Ascending, _, _) =>
+        blockStatement(convertStatement(child, fields)) + "ASC"
+      case SortOrder(child, Descending, _, _) =>
+        blockStatement(convertStatement(child, fields)) + "DESC"
       case Cast(child, t, _) =>
         getCastType(t) match {
           case Some(cast) =>

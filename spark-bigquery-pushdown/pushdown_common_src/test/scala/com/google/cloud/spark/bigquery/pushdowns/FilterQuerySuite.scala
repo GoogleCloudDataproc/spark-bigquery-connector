@@ -22,11 +22,11 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class FilterQuerySuite extends AnyFunSuite {
 
-  private val sourceQuery = SourceQuery(expressionConverter, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SOURCE_QUERY_ALIAS)
+  private val sourceQuery = SourceQuery(expressionConverter, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
 
   private val greaterThanFilterCondition = GreaterThanOrEqual.apply(schoolIdAttributeReference, Literal(50))
   private val lessThanFilterCondition = LessThanOrEqual.apply(schoolIdAttributeReference, Literal(100))
-  private val filterQuery = FilterQuery(expressionConverter, Seq(greaterThanFilterCondition, lessThanFilterCondition), sourceQuery, FILTER_QUERY_ALIAS)
+  private val filterQuery = FilterQuery(expressionConverter, Seq(greaterThanFilterCondition, lessThanFilterCondition), sourceQuery, SUBQUERY_1_ALIAS)
 
   test("sourceStatement") {
     assert(filterQuery.sourceStatement.toString == "( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0")
@@ -38,8 +38,8 @@ class FilterQuerySuite extends AnyFunSuite {
 
   test("columnSet") {
     assert(filterQuery.columnSet.size == 2)
-    assert(filterQuery.columnSet == Seq(schoolIdAttributeReference.withQualifier(Seq(SOURCE_QUERY_ALIAS)),
-      schoolNameAttributeReference.withQualifier(Seq(SOURCE_QUERY_ALIAS))))
+    assert(filterQuery.columnSet == Seq(schoolIdAttributeReference.withQualifier(Seq(SUBQUERY_0_ALIAS)),
+      schoolNameAttributeReference.withQualifier(Seq(SUBQUERY_0_ALIAS))))
   }
 
   test("processedProjections") {
@@ -57,8 +57,8 @@ class FilterQuerySuite extends AnyFunSuite {
 
   test("outputWithQualifier") {
     assert(filterQuery.outputWithQualifier.size == 2)
-    assert(filterQuery.outputWithQualifier == Seq(schoolIdAttributeReference.withQualifier(Seq(FILTER_QUERY_ALIAS)),
-      schoolNameAttributeReference.withQualifier(Seq(FILTER_QUERY_ALIAS))))
+    assert(filterQuery.outputWithQualifier == Seq(schoolIdAttributeReference.withQualifier(Seq(SUBQUERY_1_ALIAS)),
+      schoolNameAttributeReference.withQualifier(Seq(SUBQUERY_1_ALIAS))))
   }
 
   test("getStatement") {

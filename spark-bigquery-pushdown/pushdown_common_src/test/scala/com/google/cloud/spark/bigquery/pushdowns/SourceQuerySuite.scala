@@ -5,7 +5,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class SourceQuerySuite extends AnyFunSuite{
 
-  private val sourceQuery = SourceQuery(expressionConverter, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SOURCE_QUERY_ALIAS)
+  private val sourceQuery = SourceQuery(expressionConverter, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
 
   test("sourceStatement") {
     assert(sourceQuery.sourceStatement.toString == "`test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS")
@@ -34,8 +34,8 @@ class SourceQuerySuite extends AnyFunSuite{
 
   test("outputWithQualifier") {
     assert(sourceQuery.outputWithQualifier.size == 2)
-    assert(sourceQuery.outputWithQualifier == Seq(schoolIdAttributeReference.withQualifier(Seq(SOURCE_QUERY_ALIAS)),
-      schoolNameAttributeReference.withQualifier(Seq(SOURCE_QUERY_ALIAS))))
+    assert(sourceQuery.outputWithQualifier == Seq(schoolIdAttributeReference.withQualifier(Seq(SUBQUERY_0_ALIAS)),
+      schoolNameAttributeReference.withQualifier(Seq(SUBQUERY_0_ALIAS))))
   }
 
   test("getStatement") {

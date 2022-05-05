@@ -18,8 +18,9 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
+import com.google.cloud.spark.bigquery.pushdowns.TestConstants.schoolIdAttributeReference
 import org.apache.spark.sql.catalyst.expressions.aggregate._
-import org.apache.spark.sql.catalyst.expressions.{Alias, And, AttributeReference, Cast, Contains, EndsWith, EqualTo, ExprId, GreaterThan, GreaterThanOrEqual, In, IsNotNull, IsNull, LessThan, LessThanOrEqual, Literal, Not, Or, StartsWith}
+import org.apache.spark.sql.catalyst.expressions.{Alias, And, Ascending, AttributeReference, Cast, Contains, Descending, EndsWith, EqualTo, ExprId, GreaterThan, GreaterThanOrEqual, In, IsNotNull, IsNull, LessThan, LessThanOrEqual, Literal, Not, Or, SortOrder, StartsWith}
 import org.apache.spark.sql.types._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
@@ -322,6 +323,20 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val bigQuerySQLStatement = converter.convertMiscExpressions(aliasExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "( SUBQUERY_2.SCHOOLID ) AS SCHOOL_ID_ALIAS")
+  }
+
+  test("convertMiscExpressions with Ascending sort") {
+    val sortExpression = SortOrder.apply(schoolIdAttributeReference, Ascending)
+    val bigQuerySQLStatement = converter.convertMiscExpressions(sortExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "( SUBQUERY_2.SCHOOLID ) ASC")
+  }
+
+  test("convertMiscExpressions with Descending sort") {
+    val sortExpression = SortOrder.apply(schoolIdAttributeReference, Descending)
+    val bigQuerySQLStatement = converter.convertMiscExpressions(sortExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "( SUBQUERY_2.SCHOOLID ) DESC")
   }
 
   test("convertMiscExpressions with unsupported casts") {

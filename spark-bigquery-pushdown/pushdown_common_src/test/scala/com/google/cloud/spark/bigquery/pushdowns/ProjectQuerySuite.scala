@@ -6,15 +6,15 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class ProjectQuerySuite extends AnyFunSuite{
 
-  private val sourceQuery = SourceQuery(expressionConverter, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SOURCE_QUERY_ALIAS)
+  private val sourceQuery = SourceQuery(expressionConverter, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
 
   // Conditions for filter query (> 50 AND < 100)
   private val greaterThanFilterCondition = GreaterThanOrEqual.apply(schoolIdAttributeReference, Literal(50))
   private val lessThanFilterCondition = LessThanOrEqual.apply(schoolIdAttributeReference, Literal(100))
-  private val filterQuery = FilterQuery(expressionConverter, Seq(greaterThanFilterCondition, lessThanFilterCondition), sourceQuery, FILTER_QUERY_ALIAS)
+  private val filterQuery = FilterQuery(expressionConverter, Seq(greaterThanFilterCondition, lessThanFilterCondition), sourceQuery, SUBQUERY_1_ALIAS)
 
   // Projecting the column SchoolId
-  private val projectQuery = ProjectQuery(expressionConverter, Seq(schoolIdAttributeReference), filterQuery, PROJECT_QUERY_ALIAS)
+  private val projectQuery = ProjectQuery(expressionConverter, Seq(schoolIdAttributeReference), filterQuery, SUBQUERY_2_ALIAS)
 
   test("sourceStatement") {
     assert(projectQuery.sourceStatement.toString == "( SELECT * FROM ( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 " +
@@ -27,13 +27,13 @@ class ProjectQuerySuite extends AnyFunSuite{
 
   test("columnSet") {
     assert(projectQuery.columnSet.size == 2)
-    assert(projectQuery.columnSet == Seq(schoolIdAttributeReference.withQualifier(Seq(FILTER_QUERY_ALIAS)),
-      schoolNameAttributeReference.withQualifier(Seq(FILTER_QUERY_ALIAS))))
+    assert(projectQuery.columnSet == Seq(schoolIdAttributeReference.withQualifier(Seq(SUBQUERY_1_ALIAS)),
+      schoolNameAttributeReference.withQualifier(Seq(SUBQUERY_1_ALIAS))))
   }
 
   test("processedProjections") {
     assert(projectQuery.processedProjections.isDefined)
-    assert(projectQuery.processedProjections.get == Seq(Alias(schoolIdAttributeReference, PROJECT_QUERY_ALIAS + "_COL_0")(schoolIdAttributeReference.exprId,
+    assert(projectQuery.processedProjections.get == Seq(Alias(schoolIdAttributeReference, SUBQUERY_2_ALIAS + "_COL_0")(schoolIdAttributeReference.exprId,
       schoolIdAttributeReference.qualifier, Some(schoolIdAttributeReference.metadata))))
   }
 
@@ -49,7 +49,7 @@ class ProjectQuerySuite extends AnyFunSuite{
 
   test("outputWithQualifier") {
     assert(projectQuery.outputWithQualifier.size == 1)
-    assert(projectQuery.outputWithQualifier == Seq(schoolIdAttributeReference.withName(PROJECT_QUERY_ALIAS + "_COL_0").withQualifier(Seq(PROJECT_QUERY_ALIAS))))
+    assert(projectQuery.outputWithQualifier == Seq(schoolIdAttributeReference.withName(SUBQUERY_2_ALIAS + "_COL_0").withQualifier(Seq(SUBQUERY_2_ALIAS))))
   }
 
   test("getStatement") {
