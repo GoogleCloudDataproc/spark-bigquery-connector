@@ -672,6 +672,15 @@ The API Supports a number of options to configure the read
      </td>
      <td>Read</td>
    </tr>
+   <tr valign="top">
+     <td><code>enableModeCheckForSchemaFields</code>
+     </td>
+     <td>  Checks the mode of every field in destination schema to be equal to the mode in corresponding source field schema, while writing from one big query table to another.
+          <br/> Default value is true i.e., the check is done by default. If set to false the mode check is ignored.
+          <br/> This property is respected only in indirect write. In direct write the check is always done.
+     </td>
+     <td>Write</td>
+   </tr>
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter

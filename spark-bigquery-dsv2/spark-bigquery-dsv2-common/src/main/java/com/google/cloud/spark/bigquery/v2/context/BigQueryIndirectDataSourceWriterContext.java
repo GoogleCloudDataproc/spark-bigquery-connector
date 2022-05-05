@@ -22,12 +22,14 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
+import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Iterator;
@@ -152,6 +154,17 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   }
 
   void loadDataToBigQuery(List<String> sourceUris) throws IOException {
+    TableInfo destinationTable = bigQueryClient.getTable(config.getTableId());
+    Schema destinationTableSchema = destinationTable.getDefinition().getSchema();
+    Schema sourceTableSchema = SchemaConverters.toBigQuerySchema(sparkSchema);
+    Preconditions.checkArgument(
+        BigQueryUtil.schemaEquals(
+            destinationTableSchema,
+            sourceTableSchema, /* regardFieldOrder */
+            false,
+            config.getEnableModeCheckForSchemaFields()),
+        new BigQueryConnectorException.InvalidSchemaException(
+            "Destination table's schema is not compatible with dataframe's schema"));
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
     JobInfo.WriteDisposition writeDisposition =

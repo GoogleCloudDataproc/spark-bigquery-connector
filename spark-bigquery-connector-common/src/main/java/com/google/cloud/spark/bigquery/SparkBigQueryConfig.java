@@ -152,6 +152,7 @@ public class SparkBigQueryConfig
   int materializationExpirationTimeInMinutes = DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES;
   int maxReadRowsRetries = 3;
   boolean pushAllFilters = true;
+  boolean enableModeCheckForSchemaFields = true;
   private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
   private com.google.common.base.Optional<String> storageReadEndpoint = empty();
   private int numBackgroundThreadsPerStream = 0;
@@ -334,6 +335,8 @@ public class SparkBigQueryConfig
             .transform(Integer::parseInt)
             .or(0);
     config.pushAllFilters = getAnyBooleanOption(globalOptions, options, "pushAllFilters", true);
+    config.enableModeCheckForSchemaFields =
+        getAnyBooleanOption(globalOptions, options, "enableModeCheckForSchemaFields", true);
     config.numPrebufferReadRowsResponses =
         getAnyOption(globalOptions, options, "bqPrebufferResponsesPerStream")
             .transform(Integer::parseInt)
@@ -706,6 +709,10 @@ public class SparkBigQueryConfig
 
   public boolean getPushAllFilters() {
     return pushAllFilters;
+  }
+
+  public boolean getEnableModeCheckForSchemaFields() {
+    return enableModeCheckForSchemaFields;
   }
 
   // in order to simplify the configuration, the BigQuery client settings are fixed. If needed

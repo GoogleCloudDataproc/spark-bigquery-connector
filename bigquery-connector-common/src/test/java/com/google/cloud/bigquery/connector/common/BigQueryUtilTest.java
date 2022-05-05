@@ -21,6 +21,7 @@ import static org.junit.Assert.assertThrows;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.TableId;
@@ -159,8 +160,8 @@ public class BigQueryUtilTest {
             Field.newBuilder("foo", StandardSQLTypeName.INT64).build(),
             Field.newBuilder("bar", StandardSQLTypeName.STRING).build());
 
-    assertThat(BigQueryUtil.schemaEquals(s1, s2, true)).isTrue();
-    assertThat(BigQueryUtil.schemaEquals(s1, s2, false)).isTrue();
+    assertThat(BigQueryUtil.schemaEquals(s1, s2, true, true)).isTrue();
+    assertThat(BigQueryUtil.schemaEquals(s1, s2, false, true)).isTrue();
   }
 
   @Test
@@ -174,8 +175,8 @@ public class BigQueryUtilTest {
             Field.newBuilder("bar", StandardSQLTypeName.STRING).build(),
             Field.newBuilder("foo", StandardSQLTypeName.INT64).build());
 
-    assertThat(BigQueryUtil.schemaEquals(s1, s2, true)).isFalse();
-    assertThat(BigQueryUtil.schemaEquals(s1, s2, false)).isTrue();
+    assertThat(BigQueryUtil.schemaEquals(s1, s2, true, true)).isFalse();
+    assertThat(BigQueryUtil.schemaEquals(s1, s2, false, true)).isTrue();
   }
 
   @Test
@@ -183,7 +184,7 @@ public class BigQueryUtilTest {
     Field f1 = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
     Field f2 =
         Field.newBuilder("foo", StandardSQLTypeName.INT64).setMode(Field.Mode.NULLABLE).build();
-    assertThat(BigQueryUtil.fieldEquals(f1, f2)).isTrue();
+    assertThat(BigQueryUtil.fieldEquals(f1, f2, true)).isTrue();
   }
 
   @Test
@@ -192,16 +193,50 @@ public class BigQueryUtilTest {
         Schema.of(
             Field.newBuilder("foo", StandardSQLTypeName.INT64).build(),
             Field.newBuilder("bar", StandardSQLTypeName.STRING).build());
-    assertThat(BigQueryUtil.schemaEquals(s, null, false)).isFalse();
+    assertThat(BigQueryUtil.schemaEquals(s, null, false, true)).isFalse();
     // two nulls
-    assertThat(BigQueryUtil.schemaEquals(null, null, false)).isTrue();
+    assertThat(BigQueryUtil.schemaEquals(null, null, false, true)).isTrue();
   }
 
   @Test
   public void testFieldEqualsWithNulls() {
     Field f = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
-    assertThat(BigQueryUtil.fieldEquals(f, null)).isFalse();
+    assertThat(BigQueryUtil.fieldEquals(f, null, true)).isFalse();
     // two nulls
-    assertThat(BigQueryUtil.fieldEquals(null, null)).isTrue();
+    assertThat(BigQueryUtil.fieldEquals(null, null, true)).isTrue();
+  }
+
+  @Test
+  public void testSchemaEqualsWithEnableModeCheckForSchemaFields() {
+    Schema s1 =
+        Schema.of(
+            Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.NULLABLE).build());
+    Schema s2 =
+        Schema.of(
+            Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.REQUIRED).build());
+    Schema s3 =
+        Schema.of(
+            Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.REPEATED).build());
+
+    assertThat(BigQueryUtil.schemaEquals(s1, s2, false, true)).isFalse();
+    assertThat(BigQueryUtil.schemaEquals(s1, s3, false, true)).isFalse();
+    assertThat(BigQueryUtil.schemaEquals(s2, s3, false, true)).isFalse();
+  }
+
+  @Test
+  public void testSchemaEqualsWithDisableNullableFieldCheck() {
+    Schema s1 =
+        Schema.of(
+            Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.NULLABLE).build());
+    Schema s2 =
+        Schema.of(
+            Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.REQUIRED).build());
+    Schema s3 =
+        Schema.of(
+            Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.REPEATED).build());
+
+    assertThat(BigQueryUtil.schemaEquals(s1, s2, false, false)).isTrue();
+    assertThat(BigQueryUtil.schemaEquals(s1, s3, false, false)).isTrue();
+    assertThat(BigQueryUtil.schemaEquals(s2, s3, false, false)).isTrue();
   }
 }
