@@ -54,7 +54,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter) extends St
   override def apply(plan: LogicalPlan): Seq[SparkPlan] = {
     val cleanedPlan = cleanUpLogicalPlan(plan)
 
-    val queryRoot: Option[BQSQLQuery] = {
+    val queryRoot: Option[BigQuerySQLQuery] = {
       try {
         generateQueryFromPlan(cleanedPlan)
       } catch {
@@ -94,7 +94,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter) extends St
    * @return An object of type Option[BQSQLQuery], which is None if the plan contains an
    *         unsupported node type.
    */
-  private def generateQueryFromPlan(plan: LogicalPlan): Option[BQSQLQuery] = {
+  private def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     plan match {
       case l@LogicalRelation(bqRelation: DirectBigQueryRelation, _, _, _) =>
         directBigQueryRelation = Some(bqRelation)
@@ -138,9 +138,9 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter) extends St
   /**
    * Generate SparkPlan from the output and RDD of the translated query
    */
-  private def generateSparkPlan(queryRoot: BQSQLQuery): Option[SparkPlan] = {
+  private def generateSparkPlan(queryRoot: BigQuerySQLQuery): Option[SparkPlan] = {
     try {
-      Some(BigQueryPlan(queryRoot.getOutput, getRdd(queryRoot)))
+      Some(BigQueryPlan(queryRoot.output, getRdd(queryRoot)))
     } catch {
       case e: Exception =>
         logInfo("Query pushdown failed: ", e)
@@ -151,7 +151,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter) extends St
   /**
    * Create RDD from the SQL statement of the translated query
    */
-  private def getRdd(queryRoot: BQSQLQuery): RDD[InternalRow] = {
+  private def getRdd(queryRoot: BigQuerySQLQuery): RDD[InternalRow] = {
     if (directBigQueryRelation.isEmpty) {
       throw new BigQueryPushdownException(
         "Cannot generate RDD from the logical plan since the base relation is not set"

@@ -1,8 +1,7 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, ExprId, Literal}
-import org.apache.spark.sql.catalyst.plans.JoinType
-import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, Filter, GlobalLimit, Join, LocalLimit, LogicalPlan, Project, Range, ReturnAnswer, Sort, SubqueryAlias, Window}
+import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, Filter, GlobalLimit, LocalLimit, LogicalPlan, Project, Range, ReturnAnswer, Sort, SubqueryAlias, Window}
 import org.apache.spark.sql.types.LongType
 import org.scalatest.funsuite.AnyFunSuite
 

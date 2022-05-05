@@ -139,15 +139,6 @@ abstract class BigQuerySQLQuery(
     }
   }
 
-  /** Fetch the output attributes for Spark. */
-  def getOutput: Seq[Attribute] = {
-    output.map { col => Alias(Cast(col, col.dataType), col.name)(
-      col.exprId,
-      Seq.empty[String],
-      Some(col.metadata)
-    ) }.map(_.toAttribute)
-  }
-
   /**
    * Convert Spark expression to BigQuerySQLStatement by using the passed in expressionConverter
    * @param expr
