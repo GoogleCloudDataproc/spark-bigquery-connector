@@ -1,19 +1,11 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
-import org.apache.spark.sql.catalyst.expressions.{AttributeReference, ExprId}
-import org.apache.spark.sql.types.{LongType, StringType}
+import com.google.cloud.spark.bigquery.pushdowns.TestConstants._
 import org.scalatest.funsuite.AnyFunSuite
 
 class SourceQuerySuite extends AnyFunSuite{
-  private val TABLE_NAME = "test_project:test_dataset.test_table"
-  private val ALIAS = "SUBQUERY_0"
 
-  private val expressionConverter = new SparkExpressionConverter {}
-  private val schoolIdAttributeReference = AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1))
-  private val lastNameAttributeReference = AttributeReference.apply("LastName", StringType)(ExprId.apply(2))
-
-  private val sourceQuery = SourceQuery(expressionConverter, TABLE_NAME,
-    Seq(schoolIdAttributeReference, lastNameAttributeReference), ALIAS)
+  private val sourceQuery = SourceQuery(expressionConverter, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SOURCE_QUERY_ALIAS)
 
   test("sourceStatement") {
     assert(sourceQuery.sourceStatement.toString == "`test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS")
@@ -37,13 +29,13 @@ class SourceQuerySuite extends AnyFunSuite{
 
   test("output") {
     assert(sourceQuery.output.size == 2)
-    assert(sourceQuery.output == Seq(schoolIdAttributeReference, lastNameAttributeReference))
+    assert(sourceQuery.output == Seq(schoolIdAttributeReference, schoolNameAttributeReference))
   }
 
   test("outputWithQualifier") {
     assert(sourceQuery.outputWithQualifier.size == 2)
-    assert(sourceQuery.outputWithQualifier == Seq(schoolIdAttributeReference.withQualifier(Seq(ALIAS)),
-      lastNameAttributeReference.withQualifier(Seq(ALIAS))))
+    assert(sourceQuery.outputWithQualifier == Seq(schoolIdAttributeReference.withQualifier(Seq(SOURCE_QUERY_ALIAS)),
+      schoolNameAttributeReference.withQualifier(Seq(SOURCE_QUERY_ALIAS))))
   }
 
   test("getStatement") {
