@@ -15,8 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import org.junit.Test;
-
 public class Spark31ReadIntegrationTest extends ReadIntegrationTestBase {
 
   // tests are from the super-class
