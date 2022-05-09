@@ -32,6 +32,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig.WriteMethod;
 import com.google.cloud.spark.bigquery.integration.model.Data;
 import com.google.cloud.spark.bigquery.integration.model.Friend;
 import com.google.cloud.spark.bigquery.integration.model.Link;
@@ -249,6 +250,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   @Test
   @Ignore("DSv2 only")
   public void testDirectWriteToBigQueryWithDiffInSchema() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
     Dataset<Row> df =
         spark
@@ -263,13 +265,14 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             df.write()
                 .format("bigquery")
                 .mode(SaveMode.Append)
-                .option("writeMethod", "direct")
+                .option("writeMethod", writeMethod.toString())
                 .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME));
   }
 
   @Test
   @Ignore("DSv2 only")
   public void testDirectWriteToBigQueryWithDiffInSchemaAndDisableModeCheck() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
     Dataset<Row> df =
         spark
@@ -284,7 +287,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             df.write()
                 .format("bigquery")
                 .mode(SaveMode.Append)
-                .option("writeMethod", "direct")
+                .option("writeMethod", writeMethod.toString())
                 .option("enableModeCheckForSchemaFields", false)
                 .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME));
   }
@@ -292,6 +295,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   @Test
   @Ignore("DSv2 only")
   public void testInDirectWriteToBigQueryWithDiffInSchemaAndModeCheck() {
+    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
     Dataset<Row> df =
         spark
@@ -306,13 +310,14 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             df.write()
                 .format("bigquery")
                 .mode(SaveMode.Append)
-                .option("writeMethod", "indirect")
+                .option("writeMethod", writeMethod.toString())
                 .option("enableModeCheckForSchemaFields", true)
                 .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME));
   }
 
   @Test
-  public void testIndirectWriteToBigQueryWithDiffInSchemaNullableFieldAndDisableModeCheckk() {
+  public void testIndirectWriteToBigQueryWithDiffInSchemaNullableFieldAndDisableModeCheck() {
+    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
     Dataset<Row> df =
         spark
@@ -324,7 +329,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     df.write()
         .format("bigquery")
         .mode(SaveMode.Append)
-        .option("writeMethod", "indirect")
+        .option("writeMethod", writeMethod.toString())
         .option("enableModeCheckForSchemaFields", false)
         .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
   }

@@ -154,17 +154,19 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   }
 
   void loadDataToBigQuery(List<String> sourceUris) throws IOException {
-    TableInfo destinationTable = bigQueryClient.getTable(config.getTableId());
-    Schema destinationTableSchema = destinationTable.getDefinition().getSchema();
-    Schema sourceTableSchema = SchemaConverters.toBigQuerySchema(sparkSchema);
-    Preconditions.checkArgument(
-        BigQueryUtil.schemaEquals(
-            destinationTableSchema,
-            sourceTableSchema, /* regardFieldOrder */
-            false,
-            config.getEnableModeCheckForSchemaFields()),
-        new BigQueryConnectorException.InvalidSchemaException(
-            "Destination table's schema is not compatible with dataframe's schema"));
+    if (bigQueryClient.tableExists(config.getTableId())) {
+      TableInfo destinationTable = bigQueryClient.getTable(config.getTableId());
+      Schema destinationTableSchema = destinationTable.getDefinition().getSchema();
+      Schema sourceTableSchema = SchemaConverters.toBigQuerySchema(sparkSchema);
+      Preconditions.checkArgument(
+          BigQueryUtil.schemaEquals(
+              destinationTableSchema,
+              sourceTableSchema, /* regardFieldOrder */
+              false,
+              config.getEnableModeCheckForSchemaFields()),
+          new BigQueryConnectorException.InvalidSchemaException(
+              "Destination table's schema is not compatible with dataframe's schema"));
+    }
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
     JobInfo.WriteDisposition writeDisposition =
