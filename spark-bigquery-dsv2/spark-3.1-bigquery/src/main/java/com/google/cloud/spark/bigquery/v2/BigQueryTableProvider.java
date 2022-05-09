@@ -17,24 +17,36 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.inject.Injector;
 import java.util.Map;
+import org.apache.spark.sql.connector.catalog.Identifier;
+import org.apache.spark.sql.connector.catalog.SupportsCatalogOptions;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.TableProvider;
 import org.apache.spark.sql.connector.expressions.Transform;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 
-public class BigQueryTableProvider extends BaseBigQuerySource implements TableProvider {
+public class BigQueryTableProvider extends BaseBigQuerySource
+    implements TableProvider, SupportsCatalogOptions {
 
   private static final Transform[] EMPTY_TRANSFORM_ARRAY = {};
 
   @Override
   public StructType inferSchema(CaseInsensitiveStringMap options) {
-    return getTable(null, EMPTY_TRANSFORM_ARRAY, options).schema();
+    return getBigQueryTableInternal(options).schema();
   }
 
   @Override
   public Table getTable(
       StructType schema, Transform[] partitioning, Map<String, String> properties) {
+    return getBigQueryTableInternal(schema, properties);
+  }
+
+  private BigQueryTable getBigQueryTableInternal(Map<String, String> properties) {
+    return getBigQueryTableInternal(null, properties);
+  }
+
+  private BigQueryTable getBigQueryTableInternal(
+      StructType schema, Map<String, String> properties) {
     Injector injector = InjectorFactory.createInjector(schema, properties);
     BigQueryTable table = new BigQueryTable(injector, schema);
     return table;
@@ -43,5 +55,15 @@ public class BigQueryTableProvider extends BaseBigQuerySource implements TablePr
   @Override
   public boolean supportsExternalMetadata() {
     return true;
+  }
+
+  @Override
+  public Identifier extractIdentifier(CaseInsensitiveStringMap options) {
+    return new BigQueryIdentifier(getBigQueryTableInternal(options).getTableId());
+  }
+
+  @Override
+  public String extractCatalog(CaseInsensitiveStringMap options) {
+    return SupportsCatalogOptions.super.extractCatalog(options);
   }
 }

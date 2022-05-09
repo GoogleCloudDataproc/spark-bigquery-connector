@@ -15,16 +15,15 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderModule;
-import com.google.cloud.spark.bigquery.v2.context.DataSourceWriterContext;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Injector;
-import java.util.Optional;
 import java.util.Set;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
@@ -84,13 +83,13 @@ public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
 
   @Override
   public WriteBuilder newWriteBuilder(LogicalWriteInfo info) {
-    CaseInsensitiveStringMap options = info.options();
     // SaveMode is not provided by spark 3, it is handled by the DataFrameWriter
-    SaveMode mode = SaveMode.Append;
-    Optional<DataSourceWriterContext> dataSourceWriterContext =
-        DataSourceWriterContext.create(injector, info.queryId(), info.schema(), mode, options);
     // The case where mode == SaveMode.Ignore is handled by Spark, so we can assume we can get the
     // context
-    return new BigQueryWriteBuilder(dataSourceWriterContext.get());
+    return new BigQueryWriteBuilder(injector, info, SaveMode.Append);
+  }
+
+  TableId getTableId() {
+    return tableInfo.getTableId();
   }
 }
