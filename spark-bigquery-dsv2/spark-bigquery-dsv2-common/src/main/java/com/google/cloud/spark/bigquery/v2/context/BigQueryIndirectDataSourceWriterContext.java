@@ -163,11 +163,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
       sourceTableSchema = SchemaConverters.toBigQuerySchema(sparkSchema);
     }
     bigQueryClient.loadDataIntoTable(
-        config,
-        optimizedSourceUris,
-        formatOptions,
-        writeDisposition,
-        sourceTableSchema);
+        config, optimizedSourceUris, formatOptions, writeDisposition, sourceTableSchema);
   }
 
   void updateMetadataIfNeeded() {
