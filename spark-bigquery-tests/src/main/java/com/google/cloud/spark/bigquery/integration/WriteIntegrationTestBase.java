@@ -47,7 +47,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.spark.SparkException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -137,7 +136,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   protected void writeToBigQuery(Dataset<Row> df, SaveMode mode) {
-    writeToBigQuery(df, mode, "parquet");
+    writeToBigQuery(df, mode, "avro");
   }
 
   protected void writeToBigQuery(Dataset<Row> df, SaveMode mode, String format) {
@@ -293,7 +292,6 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  @Ignore("DSv2 only")
   public void testInDirectWriteToBigQueryWithDiffInSchemaAndModeCheck() {
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
@@ -305,7 +303,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .load();
 
     assertThrows(
-        SparkException.class,
+        Exception.class,
         () ->
             df.write()
                 .format("bigquery")
