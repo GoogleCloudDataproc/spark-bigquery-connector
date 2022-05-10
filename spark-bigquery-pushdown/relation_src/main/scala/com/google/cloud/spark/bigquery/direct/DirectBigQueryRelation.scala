@@ -34,8 +34,8 @@ private[bigquery] class DirectBigQueryRelation(
     bigQueryClient: BigQueryClient,
     bigQueryReadClientFactory: BigQueryClientFactory)
     (@transient override val sqlContext: SQLContext)
-  extends BigQueryRelation(options, table)(sqlContext)
-    with TableScan with PrunedScan with PrunedFilteredScan {
+    extends BigQueryRelation(options, table)(sqlContext)
+        with TableScan with PrunedScan with PrunedFilteredScan {
 
   val topLevelFields = SchemaConverters
     .toSpark(SchemaConverters.getSchemaWithPseudoColumns(table))
@@ -43,6 +43,8 @@ private[bigquery] class DirectBigQueryRelation(
     .map(field => (field.name, field))
     .toMap
 
+  // Extracted the logic of creating RDD from the BigQuery table in this class
+  // so that it can be reused in the pushdown functionality as well
   val bigQueryRDDFactory = new BigQueryRDDFactory(bigQueryClient, bigQueryReadClientFactory, options, sqlContext)
 
   override val needConversion: Boolean = false
