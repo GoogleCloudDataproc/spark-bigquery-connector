@@ -87,12 +87,20 @@ private[bigquery] class DirectBigQueryRelation(
   }
 
   def buildScanFromSQL(sql: String): RDD[InternalRow] = {
-    val actualTable = bigQueryClient.materializeQueryToTable(sql, options.getMaterializationExpirationTimeInMinutes)
-    val readSessionCreator = new ReadSessionCreator(options.toReadSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory)
+    logInfo(s"""Materializing the following sql query to a BigQuery table: $sql""")
 
+    val actualTable = bigQueryClient.materializeQueryToTable(sql, options.getMaterializationExpirationTimeInMinutes)
     val actualTableDefinition = actualTable.getDefinition[TableDefinition]
+
     val requiredColumns = actualTableDefinition.getSchema.getFields.asScala.map(f => f.getName).toArray
 
+    logInfo(
+      s"""
+         |Querying table ${actualTable.getFriendlyName},
+         |requiredColumns=[${requiredColumns.mkString(",")}]"""
+        .stripMargin.replace('\n', ' ').trim)
+
+    val readSessionCreator = new ReadSessionCreator(options.toReadSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory)
     createRddFromTable(actualTable.getTableId, readSessionCreator, requiredColumns).asInstanceOf[RDD[InternalRow]]
   }
 
