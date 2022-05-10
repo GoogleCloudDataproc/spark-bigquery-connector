@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2.context;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 /**
@@ -22,7 +23,7 @@ import java.io.IOException;
  *
  * @param <T>
  */
-public interface DataWriterContext<T> {
+public interface DataWriterContext<T> extends Closeable {
   void write(T row) throws IOException;
 
   WriterCommitMessageContext commit() throws IOException;

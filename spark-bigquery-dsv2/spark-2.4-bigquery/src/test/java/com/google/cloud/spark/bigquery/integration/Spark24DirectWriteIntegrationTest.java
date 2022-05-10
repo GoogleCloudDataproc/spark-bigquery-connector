@@ -22,6 +22,4 @@ public class Spark24DirectWriteIntegrationTest extends WriteIntegrationTestBase 
   public Spark24DirectWriteIntegrationTest() {
     super(SparkBigQueryConfig.WriteMethod.DIRECT);
   }
-
-  // tests from superclass
 }

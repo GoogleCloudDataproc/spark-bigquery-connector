@@ -272,7 +272,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   @Test
-  public void testUnhandleFilterOnStruct() {
+  public void testUnhandledFilterOnStruct() {
     Dataset<Row> df =
         spark
             .read()

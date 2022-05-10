@@ -15,41 +15,82 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
+import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderModule;
+import com.google.cloud.spark.bigquery.v2.context.DataSourceWriterContext;
 import com.google.common.collect.ImmutableSet;
+import com.google.inject.Injector;
+import java.util.Optional;
 import java.util.Set;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
+import org.apache.spark.sql.connector.catalog.SupportsWrite;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.TableCapability;
 import org.apache.spark.sql.connector.read.ScanBuilder;
+import org.apache.spark.sql.connector.write.LogicalWriteInfo;
+import org.apache.spark.sql.connector.write.WriteBuilder;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 
-public class BigQueryTable implements Table, SupportsRead {
+public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
 
-  private BigQueryDataSourceReaderContext ctx;
+  public static final ImmutableSet<TableCapability> TABLE_CAPABILITIES =
+      ImmutableSet.of(
+          TableCapability.BATCH_READ, TableCapability.BATCH_WRITE, TableCapability.TRUNCATE);
 
-  public BigQueryTable(BigQueryDataSourceReaderContext ctx) {
-    this.ctx = ctx;
+  private Injector injector;
+  private SparkBigQueryConfig config;
+  private StructType schema;
+  private TableInfo tableInfo;
+
+  public BigQueryTable(Injector injector, StructType sparkProvidedSchema) {
+    this.injector = injector;
+    this.config = injector.getInstance(SparkBigQueryConfig.class);
+    BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
+    this.tableInfo = bigQueryClient.getTable(config.getTableId());
+    this.schema =
+        sparkProvidedSchema != null
+            ? sparkProvidedSchema
+            : SchemaConverters.toSpark(tableInfo.getDefinition().getSchema());
   }
 
   @Override
   public ScanBuilder newScanBuilder(CaseInsensitiveStringMap options) {
+    Injector readerInjector = injector.createChildInjector(new BigQueryDataSourceReaderModule());
+    BigQueryDataSourceReaderContext ctx =
+        readerInjector.getInstance(BigQueryDataSourceReaderContext.class);
     return new BigQueryScanBuilder(ctx);
   }
 
   @Override
   public String name() {
-    return ctx.getTableName();
+    return injector.getInstance(SparkBigQueryConfig.class).getTableId().getTable();
   }
 
   @Override
   public StructType schema() {
-    return ctx.readSchema();
+    return this.schema;
   }
 
   @Override
   public Set<TableCapability> capabilities() {
-    return ImmutableSet.<TableCapability>of(TableCapability.BATCH_READ);
+    return TABLE_CAPABILITIES;
+  }
+
+  @Override
+  public WriteBuilder newWriteBuilder(LogicalWriteInfo info) {
+    CaseInsensitiveStringMap options = info.options();
+    // SaveMode is not provided by spark 3, it is handled by the DataFrameWriter
+    SaveMode mode = SaveMode.Append;
+    Optional<DataSourceWriterContext> dataSourceWriterContext =
+        DataSourceWriterContext.create(injector, info.queryId(), info.schema(), mode, options);
+    // The case where mode == SaveMode.Ignore is handled by Spark, so we can assume we can get the
+    // context
+    return new BigQueryWriteBuilder(dataSourceWriterContext.get());
   }
 }

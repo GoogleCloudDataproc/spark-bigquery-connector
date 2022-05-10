@@ -15,6 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import org.junit.Ignore;
+
+// Not supported yet
+@Ignore
 public class Spark31ReadFromQueryIntegrationTest extends ReadFromQueryIntegrationTestBase {
 
   // tests are from the super-class

@@ -36,12 +36,12 @@ import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeRef
  *                             or simple phrase when there are no subqueries.
  */
 abstract class BigQuerySQLQuery(
-  expressionConverter: SparkExpressionConverter,
-  alias: String,
-  children: Seq[BigQuerySQLQuery] = Seq.empty,
-  projections: Option[Seq[NamedExpression]] = None,
-  outputAttributes: Option[Seq[Attribute]] = None,
-  conjunctionStatement: BigQuerySQLStatement = EmptyBigQuerySQLStatement()) {
+                                 expressionConverter: SparkExpressionConverter,
+                                 alias: String,
+                                 children: Seq[BigQuerySQLQuery] = Seq.empty,
+                                 projections: Option[Seq[NamedExpression]] = None,
+                                 outputAttributes: Option[Seq[Attribute]] = None,
+                                 conjunctionStatement: BigQuerySQLStatement = EmptyBigQuerySQLStatement()) {
 
   /**
    * Creates the sql after the FROM clause by building the queries from its children.

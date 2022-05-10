@@ -105,4 +105,9 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
     logger.debug("Data Writer {} abort()", partitionId);
     writerHelper.abort();
   }
+
+  @Override
+  public void close() throws IOException {
+    // empty
+  }
 }

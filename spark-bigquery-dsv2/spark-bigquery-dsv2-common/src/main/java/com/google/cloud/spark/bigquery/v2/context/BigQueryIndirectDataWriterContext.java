@@ -73,4 +73,9 @@ class BigQueryIndirectDataWriterContext implements DataWriterContext<InternalRow
         "Writing of partition {} has been aborted, attempting to delete {}", partitionId, path);
     fs.delete(path, false);
   }
+
+  @Override
+  public void close() throws IOException {
+    // empty
+  }
 }

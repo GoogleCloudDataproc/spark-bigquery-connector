@@ -13,10 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.integration;
+package com.google.cloud.spark.bigquery.v2;
 
-public class Spark31ReadIntegrationTest extends ReadIntegrationTestBase {
+import com.google.cloud.spark.bigquery.v2.context.WriterCommitMessageContext;
+import org.apache.spark.sql.connector.write.WriterCommitMessage;
 
-  // tests are from the super-class
+public class Spark31BigQueryWriterCommitMessage implements WriterCommitMessage {
 
+  WriterCommitMessageContext ctx;
+
+  public Spark31BigQueryWriterCommitMessage(WriterCommitMessageContext ctx) {
+    this.ctx = ctx;
+  }
+
+  public WriterCommitMessageContext getContext() {
+    return ctx;
+  }
 }
