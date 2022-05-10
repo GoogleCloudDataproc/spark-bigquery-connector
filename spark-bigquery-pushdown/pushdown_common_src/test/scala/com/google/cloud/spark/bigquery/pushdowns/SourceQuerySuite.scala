@@ -1,0 +1,48 @@
+package com.google.cloud.spark.bigquery.pushdowns
+
+import com.google.cloud.spark.bigquery.pushdowns.TestConstants._
+import org.scalatest.funsuite.AnyFunSuite
+
+class SourceQuerySuite extends AnyFunSuite{
+
+  private val sourceQuery = SourceQuery(expressionConverter, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
+
+  test("sourceStatement") {
+    assert(sourceQuery.sourceStatement.toString == "`test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS")
+  }
+
+  test("suffixStatement") {
+    assert(sourceQuery.suffixStatement.toString.isEmpty)
+  }
+
+  test("columnSet") {
+    assert(sourceQuery.columnSet.isEmpty)
+  }
+
+  test("processedProjections") {
+    assert(sourceQuery.processedProjections.isEmpty)
+  }
+
+  test("columns") {
+    assert(sourceQuery.columns.isEmpty)
+  }
+
+  test("output") {
+    assert(sourceQuery.output.size == 2)
+    assert(sourceQuery.output == Seq(schoolIdAttributeReference, schoolNameAttributeReference))
+  }
+
+  test("outputWithQualifier") {
+    assert(sourceQuery.outputWithQualifier.size == 2)
+    assert(sourceQuery.outputWithQualifier == Seq(schoolIdAttributeReference.withQualifier(Seq(SUBQUERY_0_ALIAS)),
+      schoolNameAttributeReference.withQualifier(Seq(SUBQUERY_0_ALIAS))))
+  }
+
+  test("getStatement") {
+    assert(sourceQuery.getStatement().toString == "SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS")
+  }
+
+  test("getStatement with alias") {
+    assert(sourceQuery.getStatement(useAlias = true).toString == "( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0")
+  }
+}

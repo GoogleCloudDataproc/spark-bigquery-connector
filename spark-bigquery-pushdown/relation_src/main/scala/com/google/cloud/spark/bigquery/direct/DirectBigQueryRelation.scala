@@ -82,44 +82,26 @@ private[bigquery] class DirectBigQueryRelation(
         logDebug(s"Not using optimized empty projection")
       }
 
-      val readSessionResponse = readSessionCreator.create(tableId, ImmutableList.copyOf(requiredColumns), BigQueryUtil.emptyIfNeeded(filter))
-      val readSession = readSessionResponse.getReadSession
-      val actualTable = readSessionResponse.getReadTableInfo
-
-      val partitions = readSession.getStreamsList.asScala.map(_.getName)
-        .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
-        .toArray
-
-      logInfo(s"Created read session for table '$tableName': ${readSession.getName}")
-
-      val maxNumPartitionsRequested = getMaxNumPartitionsRequested(actualTable.getDefinition[TableDefinition])
-      // This is spammy, but it will make it clear to users the number of partitions they got and
-      // why.
-      if (!maxNumPartitionsRequested.equals(partitions.length)) {
-        logInfo(
-          s"""Requested $maxNumPartitionsRequested max partitions, but only
-             |received ${partitions.length} from the BigQuery Storage API for
-             |session ${readSession.getName}. Notice that the number of streams in
-             |actual may be lower than the requested number, depending on the
-             |amount parallelism that is reasonable for the table and the
-             |maximum amount of parallelism allowed by the system."""
-            .stripMargin.replace('\n', ' '))
-      }
-
-      val requiredColumnSet = requiredColumns.toSet
-      val prunedSchema = Schema.of(
-        SchemaConverters.getSchemaWithPseudoColumns(actualTable).getFields().asScala
-          .filter(f => requiredColumnSet.contains(f.getName)).asJava)
-
-      BigQueryRDD.scanTable(
-        sqlContext,
-        partitions.asInstanceOf[Array[Partition]],
-        readSession,
-        prunedSchema,
-        requiredColumns,
-        options,
-        bigQueryReadClientFactory).asInstanceOf[RDD[Row]]
+      createRddFromTable(tableId, readSessionCreator, requiredColumns, filter).asInstanceOf[RDD[Row]]
     }
+  }
+
+  def buildScanFromSQL(sql: String): RDD[InternalRow] = {
+    logInfo(s"""Materializing the following sql query to a BigQuery table: $sql""")
+
+    val actualTable = bigQueryClient.materializeQueryToTable(sql, options.getMaterializationExpirationTimeInMinutes)
+    val actualTableDefinition = actualTable.getDefinition[TableDefinition]
+
+    val requiredColumns = actualTableDefinition.getSchema.getFields.asScala.map(f => f.getName).toArray
+
+    logInfo(
+      s"""
+         |Querying table ${actualTable.getFriendlyName},
+         |requiredColumns=[${requiredColumns.mkString(",")}]"""
+        .stripMargin.replace('\n', ' ').trim)
+
+    val readSessionCreator = new ReadSessionCreator(options.toReadSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory)
+    createRddFromTable(actualTable.getTableId, readSessionCreator, requiredColumns).asInstanceOf[RDD[InternalRow]]
   }
 
   def  generateEmptyRowRDD(tableInfo: TableInfo, filter: String) : RDD[Row] = {
@@ -138,6 +120,46 @@ private[bigquery] class DirectBigQueryRelation(
     sqlContext.sparkContext.range(0, numberOfRows)
       .map(_ => InternalRow.empty)
       .asInstanceOf[RDD[Row]]
+  }
+
+  def createRddFromTable(tableId: TableId, readSessionCreator: ReadSessionCreator, requiredColumns: Array[String], filter: String = ""): BigQueryRDD = {
+    val readSessionResponse = readSessionCreator.create(tableId, ImmutableList.copyOf(requiredColumns), BigQueryUtil.emptyIfNeeded(filter))
+    val readSession = readSessionResponse.getReadSession
+    val actualTable = readSessionResponse.getReadTableInfo
+
+    val partitions = readSession.getStreamsList.asScala.map(_.getName)
+      .zipWithIndex.map { case (name, i) => BigQueryPartition(name, i) }
+      .toArray
+
+    logInfo(s"Created read session for table '$tableName': ${readSession.getName}")
+
+    val maxNumPartitionsRequested = getMaxNumPartitionsRequested(actualTable.getDefinition[TableDefinition])
+    // This is spammy, but it will make it clear to users the number of partitions they got and
+    // why.
+    if (!maxNumPartitionsRequested.equals(partitions.length)) {
+      logInfo(
+        s"""Requested $maxNumPartitionsRequested max partitions, but only
+           |received ${partitions.length} from the BigQuery Storage API for
+           |session ${readSession.getName}. Notice that the number of streams in
+           |actual may be lower than the requested number, depending on the
+           |amount parallelism that is reasonable for the table and the
+           |maximum amount of parallelism allowed by the system."""
+          .stripMargin.replace('\n', ' '))
+    }
+
+    val requiredColumnSet = requiredColumns.toSet
+    val prunedSchema = Schema.of(
+      SchemaConverters.getSchemaWithPseudoColumns(actualTable).getFields.asScala
+        .filter(f => requiredColumnSet.contains(f.getName)).asJava)
+
+    BigQueryRDD.scanTable(
+      sqlContext,
+      partitions.asInstanceOf[Array[Partition]],
+      readSession,
+      prunedSchema,
+      requiredColumns,
+      options,
+      bigQueryReadClientFactory)
   }
 
   /**
