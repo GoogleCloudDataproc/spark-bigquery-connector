@@ -73,9 +73,6 @@ public class BigQueryRDDFactory {
   /**
    * Creates RDD from the SQL string that is passed in. This functionality is invoked from the query
    * pushdown module
-   *
-   * @param sql
-   * @return
    */
   public RDD<InternalRow> buildScanFromSQL(String sql) {
     TableInfo actualTable =
@@ -95,6 +92,7 @@ public class BigQueryRDDFactory {
         actualTable.getTableId(), readSessionCreator, requiredColumns.toArray(new String[0]), "");
   }
 
+  /** Creates BigQueryRDD from the BigQuery table that is passed in */
   public RDD<InternalRow> createRddFromTable(
       TableId tableId,
       ReadSessionCreator readSessionCreator,
@@ -149,14 +147,6 @@ public class BigQueryRDDFactory {
         bigQueryReadClientFactory);
   }
 
-  private int getMaxNumPartitionsRequested(TableDefinition tableDefinition) {
-    return options
-        .getMaxParallelism()
-        .orElse(
-            Math.max(
-                Math.toIntExact(getNumBytes(tableDefinition) / DEFAULT_BYTES_PER_PARTITION), 1));
-  }
-
   public long getNumBytes(TableDefinition tableDefinition) {
     TableDefinition.Type tableType = tableDefinition.getType();
     if (TableDefinition.Type.EXTERNAL == tableType
@@ -168,5 +158,13 @@ public class BigQueryRDDFactory {
       StandardTableDefinition standardTableDefinition = (StandardTableDefinition) tableDefinition;
       return standardTableDefinition.getNumBytes();
     }
+  }
+
+  private int getMaxNumPartitionsRequested(TableDefinition tableDefinition) {
+    return options
+        .getMaxParallelism()
+        .orElse(
+            Math.max(
+                Math.toIntExact(getNumBytes(tableDefinition) / DEFAULT_BYTES_PER_PARTITION), 1));
   }
 }

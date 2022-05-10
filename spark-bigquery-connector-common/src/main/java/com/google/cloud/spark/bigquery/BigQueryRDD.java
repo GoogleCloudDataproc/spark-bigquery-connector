@@ -36,6 +36,7 @@ import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.catalyst.InternalRow;
 import scala.collection.JavaConverters;
 
+// Ported this class from Scala to Java with no change in functionality
 public class BigQueryRDD extends RDD<InternalRow> {
 
   private final Partition[] partitions;
@@ -71,14 +72,17 @@ public class BigQueryRDD extends RDD<InternalRow> {
   @Override
   public scala.collection.Iterator<InternalRow> compute(Partition split, TaskContext context) {
     BigQueryPartition bqPartition = (BigQueryPartition) split;
+
     ReadRowsRequest.Builder request =
         ReadRowsRequest.newBuilder().setReadStream(bqPartition.getStream());
+
     ReadRowsHelper readRowsHelper =
         new ReadRowsHelper(
             bigQueryClientFactory,
             request,
             options.toReadSessionCreatorConfig().toReadRowsHelperOptions());
-    Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
+    Iterator<ReadRowsResponse> readRowsResponseIterator = readRowsHelper.readRows();
+
     ReadRowsResponseToInternalRowIteratorConverter converter;
     if (options.getReadDataFormat().equals(DataFormat.AVRO)) {
       converter =
@@ -98,7 +102,7 @@ public class BigQueryRDD extends RDD<InternalRow> {
     return new InterruptibleIterator<>(
         context,
         JavaConverters.asScalaIteratorConverter(
-                new InternalRowIterator(readRowsResponses, converter, readRowsHelper))
+                new InternalRowIterator(readRowsResponseIterator, converter, readRowsHelper))
             .asScala());
   }
 

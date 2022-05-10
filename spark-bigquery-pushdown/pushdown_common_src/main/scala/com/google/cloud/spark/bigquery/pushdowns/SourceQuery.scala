@@ -28,11 +28,11 @@ import org.apache.spark.sql.catalyst.expressions.Attribute
  * @param alias      Query alias.
  */
 case class SourceQuery(
-                        expressionConverter: SparkExpressionConverter,
-                        bigQueryRDDFactory: BigQueryRDDFactory,
-                        tableName: String,
-                        outputAttributes: Seq[Attribute],
-                        alias: String)
+    expressionConverter: SparkExpressionConverter,
+    bigQueryRDDFactory: BigQueryRDDFactory,
+    tableName: String,
+    outputAttributes: Seq[Attribute],
+    alias: String)
   extends BigQuerySQLQuery(
     expressionConverter,
     alias,

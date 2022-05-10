@@ -29,11 +29,11 @@ import scala.collection.JavaConversions.iterableAsScalaIterable
 import scala.collection.JavaConverters._
 
 private[bigquery] class DirectBigQueryRelation(
-                                                options: SparkBigQueryConfig,
-                                                table: TableInfo,
-                                                bigQueryClient: BigQueryClient,
-                                                bigQueryReadClientFactory: BigQueryClientFactory)
-                                              (@transient override val sqlContext: SQLContext)
+    options: SparkBigQueryConfig,
+    table: TableInfo,
+    bigQueryClient: BigQueryClient,
+    bigQueryReadClientFactory: BigQueryClientFactory)
+    (@transient override val sqlContext: SQLContext)
   extends BigQueryRelation(options, table)(sqlContext)
     with TableScan with PrunedScan with PrunedFilteredScan {
 

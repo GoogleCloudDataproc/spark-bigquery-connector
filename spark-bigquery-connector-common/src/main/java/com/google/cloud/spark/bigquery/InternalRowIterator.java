@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import org.apache.spark.sql.catalyst.InternalRow;
 
+/** Iterator on InternalRow that wraps the conversion from Avro/Arrow schema to InternalRow */
 public class InternalRowIterator implements Iterator<InternalRow> {
   private Iterator<ReadRowsResponse> readRowsResponses;
   private ReadRowsResponseToInternalRowIteratorConverter converter;
