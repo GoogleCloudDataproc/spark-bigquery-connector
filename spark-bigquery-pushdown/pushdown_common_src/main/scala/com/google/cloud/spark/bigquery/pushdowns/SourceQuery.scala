@@ -16,6 +16,7 @@
 
 package com.google.cloud.spark.bigquery.pushdowns
 
+import com.google.cloud.spark.bigquery.BigQueryRDDFactory
 import org.apache.spark.sql.catalyst.expressions.Attribute
 
 /** The base query representing a BigQuery table
@@ -28,6 +29,7 @@ import org.apache.spark.sql.catalyst.expressions.Attribute
  */
 case class SourceQuery(
     expressionConverter: SparkExpressionConverter,
+    bigQueryRDDFactory: BigQueryRDDFactory,
     tableName: String,
     outputAttributes: Seq[Attribute],
     alias: String)
@@ -35,4 +37,7 @@ case class SourceQuery(
     expressionConverter,
     alias,
     outputAttributes = Some(outputAttributes),
-    conjunctionStatement = ConstantString("`" + tableName + "`").toStatement + ConstantString("AS BQ_CONNECTOR_QUERY_ALIAS")) {}
+    conjunctionStatement = ConstantString("`" + tableName + "`").toStatement + ConstantString("AS BQ_CONNECTOR_QUERY_ALIAS")) {
+
+    override def find[T](query: PartialFunction[BigQuerySQLQuery, T]): Option[T] = query.lift(this)
+}

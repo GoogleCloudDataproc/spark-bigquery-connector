@@ -14,20 +14,25 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spark.bigquery.pushdowns
+package com.google.cloud.spark.bigquery;
 
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.Partition;
 
-trait SparkBigQueryPushdown {
-  def supportsSparkVersion(sparkVersion: String): Boolean
+public class BigQueryPartition implements Partition {
+  private final String stream;
+  private final int index;
 
-  def enable(session: SparkSession, bigQueryStrategy: BigQueryStrategy): Unit
+  public BigQueryPartition(String stream, int index) {
+    this.stream = stream;
+    this.index = index;
+  }
 
-  def disable(session: SparkSession): Unit
+  public String getStream() {
+    return stream;
+  }
 
-  def createBigQueryStrategy(expressionConverter: SparkExpressionConverter, sparkPlanFactory: SparkPlanFactory): BigQueryStrategy
-
-  def createSparkExpressionConverter: SparkExpressionConverter
-
-  def createSparkPlanFactory(): SparkPlanFactory
+  @Override
+  public int index() {
+    return index;
+  }
 }

@@ -1,7 +1,9 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
+import com.google.cloud.spark.bigquery.BigQueryRDDFactory
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, ExprId}
 import org.apache.spark.sql.types.{LongType, StringType}
+import org.mockito.Mock
 
 object TestConstants {
    val TABLE_NAME = "test_project:test_dataset.test_table"
@@ -12,4 +14,7 @@ object TestConstants {
    val expressionConverter: SparkExpressionConverter = new SparkExpressionConverter {}
    val schoolIdAttributeReference: AttributeReference = AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1))
    val schoolNameAttributeReference: AttributeReference = AttributeReference.apply("SchoolName", StringType)(ExprId.apply(2))
+
+   @Mock
+   var bigQueryRDDFactory: BigQueryRDDFactory = _
 }

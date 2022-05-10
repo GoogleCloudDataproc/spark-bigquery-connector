@@ -17,73 +17,69 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.{BigQueryPushdownException, BigQueryPushdownUnsupportedException}
+import com.google.cloud.spark.bigquery.BigQueryRDDFactory
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.internal.Logging
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Strategy
-import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 
 /**
  * Our hook into Spark that converts the logical plan into physical plan.
- * Tries to translate the Spark logical plan into SQL runnable on BigQuery.
+ * We try to translate the Spark logical plan into SQL runnable on BigQuery.
+ * If the query generation fails for any reason, we return Nil and let Spark
+ * run other strategies to compute the physical plan.
+ *
+ * Passing SparkPlanFactory as the constructor parameter here for ease of unit testing
  *
  */
-class BigQueryStrategy(expressionConverter: SparkExpressionConverter) extends Strategy with Logging {
+class BigQueryStrategy(expressionConverter: SparkExpressionConverter, sparkPlanFactory: SparkPlanFactory) extends Strategy with Logging {
 
   /** This iterator automatically increments every time it is used,
    * and is for aliasing subqueries.
    */
   private final val alias = Iterator.from(0).map(n => s"SUBQUERY_$n")
 
-  /**
-   * Relation at the base of the logical plan
-   */
-  private var directBigQueryRelation: Option[DirectBigQueryRelation] = None
-
-  /** Attempts to get a SparkPlan from the provided LogicalPlan. If the query
-   * generation fails for any reason, we return Nil and let Spark run other
-   * strategies to compute the physical plan
+  /** Attempts to generate a SparkPlan from the provided LogicalPlan.
    *
    * @param plan The LogicalPlan provided by Spark.
    * @return An Option of Seq[BigQueryPlan] that contains the PhysicalPlan if
    *         query generation was successful, None if not.
    */
   override def apply(plan: LogicalPlan): Seq[SparkPlan] = {
-    val cleanedPlan = cleanUpLogicalPlan(plan)
-
-    val queryRoot: Option[BigQuerySQLQuery] = {
-      try {
-        generateQueryFromPlan(cleanedPlan)
-      } catch {
-        case e: Exception =>
-          logInfo("Query pushdown failed: ", e)
-          None
-      }
+    try {
+      generateSparkPlanFromLogicalPlan(plan)
+    } catch {
+      case ue: BigQueryPushdownUnsupportedException =>
+        logWarning(s"BigQuery doesn't support this feature :${ue.getMessage}")
+        throw ue
+      case e: Exception =>
+        logInfo("Query pushdown failed: ", e)
+        Nil
     }
+  }
 
-    if (queryRoot.isEmpty) {
-      return Nil
-    }
+  def generateSparkPlanFromLogicalPlan(plan: LogicalPlan): Seq[SparkPlan] = {
+    val queryRoot = generateQueryFromPlan(plan)
+    val bigQueryRDDFactory = getRDDFactory(queryRoot.get)
 
-    val sparkPlan = generateSparkPlan(queryRoot.get)
-    if (sparkPlan.isEmpty) {
-      return Nil
-    }
-
+    val sparkPlan = sparkPlanFactory.createSparkPlan(queryRoot.get, bigQueryRDDFactory.get)
     Seq(sparkPlan.get)
   }
 
-  /**
-   * Remove redundant nodes from the plan
-   */
-  def cleanUpLogicalPlan(plan: LogicalPlan): LogicalPlan = {
-    plan.transform({
-      case Project(Nil, child) => child
-      case SubqueryAlias(_, child) => child
-    })
+  def getRDDFactory(queryRoot: BigQuerySQLQuery): Option[BigQueryRDDFactory] = {
+    val sourceQuery = queryRoot
+      .find {
+        case q: SourceQuery => q
+      }
+      .getOrElse(
+        throw new BigQueryPushdownException(
+          "Something went wrong: a query tree was generated with no SourceQuery found."
+        )
+      )
+
+    Some(sourceQuery.bigQueryRDDFactory)
   }
 
   /** Attempts to generate the query from the LogicalPlan by pattern matching recursively.
@@ -94,11 +90,10 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter) extends St
    * @return An object of type Option[BQSQLQuery], which is None if the plan contains an
    *         unsupported node type.
    */
-  private def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
+  def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     plan match {
       case l@LogicalRelation(bqRelation: DirectBigQueryRelation, _, _, _) =>
-        directBigQueryRelation = Some(bqRelation)
-        Some(SourceQuery(expressionConverter, bqRelation.tableName, l.output, alias.next))
+        Some(SourceQuery(expressionConverter, bqRelation.bigQueryRDDFactory, bqRelation.tableName, l.output, alias.next))
 
       case UnaryOperationExtractor(child) =>
         generateQueryFromPlan(child) map { subQuery =>
@@ -133,31 +128,5 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter) extends St
           s"Query pushdown failed in generateQueries for node ${plan.nodeName} in ${plan.getClass.getName}"
         )
     }
-  }
-
-  /**
-   * Generate SparkPlan from the output and RDD of the translated query
-   */
-  private def generateSparkPlan(queryRoot: BigQuerySQLQuery): Option[SparkPlan] = {
-    try {
-      Some(BigQueryPlan(queryRoot.output, getRdd(queryRoot)))
-    } catch {
-      case e: Exception =>
-        logInfo("Query pushdown failed: ", e)
-        None
-    }
-  }
-
-  /**
-   * Create RDD from the SQL statement of the translated query
-   */
-  private def getRdd(queryRoot: BigQuerySQLQuery): RDD[InternalRow] = {
-    if (directBigQueryRelation.isEmpty) {
-      throw new BigQueryPushdownException(
-        "Cannot generate RDD from the logical plan since the base relation is not set"
-      )
-    }
-
-    directBigQueryRelation.get.buildScanFromSQL(queryRoot.getStatement().toString)
   }
 }

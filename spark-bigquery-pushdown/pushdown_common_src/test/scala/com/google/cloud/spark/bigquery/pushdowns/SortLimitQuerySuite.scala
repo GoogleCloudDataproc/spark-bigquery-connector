@@ -1,13 +1,13 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
-import com.google.cloud.spark.bigquery.pushdowns.TestConstants.{SUBQUERY_0_ALIAS, SUBQUERY_1_ALIAS, TABLE_NAME, expressionConverter, schoolIdAttributeReference, schoolNameAttributeReference}
+import com.google.cloud.spark.bigquery.pushdowns.TestConstants.{SUBQUERY_0_ALIAS, SUBQUERY_1_ALIAS, TABLE_NAME, bigQueryRDDFactory, expressionConverter, schoolIdAttributeReference, schoolNameAttributeReference}
 import org.apache.spark.sql.catalyst.expressions.{Ascending, Literal, SortOrder}
 import org.scalatest.funsuite.AnyFunSuite
 
 // Testing only the suffixStatement here since it is the only variable that is
 // different from the other queries.
 class SortLimitQuerySuite extends AnyFunSuite{
-  private val sourceQuery = SourceQuery(expressionConverter, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
+  private val sourceQuery = SourceQuery(expressionConverter, bigQueryRDDFactory, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
 
   test("suffixStatement with only limit") {
     val sortLimitQuery = SortLimitQuery(expressionConverter, Some(Literal(10)), Seq(), sourceQuery, SUBQUERY_1_ALIAS)

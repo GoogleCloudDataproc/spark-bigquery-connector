@@ -1,5 +1,5 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
-class Spark31BigQueryStrategy(expressionConverter: SparkExpressionConverter) extends BigQueryStrategy(expressionConverter) {
+class Spark31BigQueryStrategy(expressionConverter: SparkExpressionConverter, sparkPlanFactory: SparkPlanFactory) extends BigQueryStrategy(expressionConverter, sparkPlanFactory) {
 
 }
