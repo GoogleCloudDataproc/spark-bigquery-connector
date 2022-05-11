@@ -104,6 +104,7 @@ public class SparkBigQueryConfigTest {
         .isEqualTo(SparkBigQueryConfig.DEFAULT_CACHE_EXPIRATION_IN_MINUTES);
     assertThat(config.getTraceId().isPresent()).isFalse();
     assertThat(config.getBigQueryJobLabels()).isEmpty();
+    assertThat(config.getEnableModeCheckForSchemaFields()).isTrue();
   }
 
   @Test
@@ -144,6 +145,7 @@ public class SparkBigQueryConfigTest {
                 .put("traceJobId", "traceJobId")
                 .put("traceApplicationName", "traceApplicationName")
                 .put("bigQueryJobLabel.foo", "bar")
+                .put("enableModeCheckForSchemaFields", "false")
                 .build());
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -188,6 +190,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getTraceId()).isEqualTo(Optional.of("Spark:traceApplicationName:traceJobId"));
     assertThat(config.getBigQueryJobLabels()).hasSize(1);
     assertThat(config.getBigQueryJobLabels()).containsEntry("foo", "bar");
+    assertThat(config.getEnableModeCheckForSchemaFields()).isFalse();
   }
 
   @Test

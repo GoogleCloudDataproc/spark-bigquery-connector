@@ -117,7 +117,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
       Schema tableSchema = destinationTable.getDefinition().getSchema();
       Preconditions.checkArgument(
-          BigQueryUtil.schemaEquals(tableSchema, bigQuerySchema, /* regardFieldOrder */ false),
+          BigQueryUtil.schemaEquals(
+              tableSchema, bigQuerySchema, /* regardFieldOrder */ false, true),
           new BigQueryConnectorException.InvalidSchemaException(
               "Destination table's schema is not compatible with dataframe's schema"));
       switch (saveMode) {

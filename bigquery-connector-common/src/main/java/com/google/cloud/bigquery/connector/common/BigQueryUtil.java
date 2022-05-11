@@ -221,7 +221,8 @@ public class BigQueryUtil {
    * @param regardFieldOrder whether to regard the field order in the comparison
    * @return true is the two schema equal each other, false otherwise
    */
-  public static boolean schemaEquals(Schema s1, Schema s2, boolean regardFieldOrder) {
+  public static boolean schemaEquals(
+      Schema s1, Schema s2, boolean regardFieldOrder, boolean enableModeCheckForSchemaFields) {
     if (s1 == s2) {
       return true;
     }
@@ -233,12 +234,12 @@ public class BigQueryUtil {
       return s1.equals(s2);
     }
     // compare field by field
-    return fieldListEquals(s1.getFields(), s2.getFields());
+    return fieldListEquals(s1.getFields(), s2.getFields(), enableModeCheckForSchemaFields);
   }
 
   // We need this method as the BigQuery API may leave the mode field as null in case of NULLABLE
   @VisibleForTesting
-  static boolean fieldEquals(Field f1, Field f2) {
+  static boolean fieldEquals(Field f1, Field f2, boolean enableModeCheckForSchemaFields) {
     if (f1 == f2) {
       return true;
     }
@@ -247,13 +248,14 @@ public class BigQueryUtil {
       return false;
     }
 
-    if (!fieldListEquals(f1.getSubFields(), f2.getSubFields())) {
+    if (!fieldListEquals(f1.getSubFields(), f2.getSubFields(), enableModeCheckForSchemaFields)) {
       return false;
     }
 
     return Objects.equal(f1.getName(), f2.getName())
         && Objects.equal(f1.getType(), f2.getType())
-        && Objects.equal(nullableIfNull(f1.getMode()), nullableIfNull(f2.getMode()))
+        && (!enableModeCheckForSchemaFields
+            || Objects.equal(nullableIfNull(f1.getMode()), nullableIfNull(f2.getMode())))
         && Objects.equal(f1.getDescription(), f2.getDescription())
         && Objects.equal(f1.getPolicyTags(), f2.getPolicyTags())
         && Objects.equal(f1.getMaxLength(), f2.getMaxLength())
@@ -262,7 +264,8 @@ public class BigQueryUtil {
   }
 
   @VisibleForTesting
-  static boolean fieldListEquals(FieldList fl1, FieldList fl2) {
+  static boolean fieldListEquals(
+      FieldList fl1, FieldList fl2, boolean enableModeCheckForSchemaFields) {
     if (fl1 == fl2) {
       return true;
     }
@@ -279,7 +282,7 @@ public class BigQueryUtil {
     for (Map.Entry<String, Field> e : fieldsMap1.entrySet()) {
       Field f1 = e.getValue();
       Field f2 = fieldsMap2.get(e.getKey());
-      if (!fieldEquals(f1, f2)) {
+      if (!fieldEquals(f1, f2, enableModeCheckForSchemaFields)) {
         return false;
       }
     }
