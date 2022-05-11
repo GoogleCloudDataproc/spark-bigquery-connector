@@ -689,8 +689,9 @@ The API Supports a number of options to configure the read
   </tr>
      <td><code>enableListInference</code>
      </td>
-     <td>  Indicates whether to use schema inference specifically for Parquet LIST logical type.
+     <td>  Indicates whether to use schema inference specifically when the mode is Parquet (https://cloud.google.com/bigquery/docs/reference/rest/v2/tables#parquetoptions).
         <br/> Defaults to false.
+        <br/> 
      </td>
      <td>Write</td>
    </tr>
