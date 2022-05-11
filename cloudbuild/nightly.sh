@@ -36,8 +36,7 @@ $MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv2
 $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv2_2.4
 # Run acceptance tests
 $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.12,dsv2_2.4
-# Upload test coverage report to Codecov
-bash <(curl -s https://codecov.io/bash) -K -F "${STEP}"
+
 # Upload daily artifacts to the snapshot bucket
 gsutil cp \
   "spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.11/target/spark-bigquery-with-dependencies_2.11-${REVISION}.jar" \
