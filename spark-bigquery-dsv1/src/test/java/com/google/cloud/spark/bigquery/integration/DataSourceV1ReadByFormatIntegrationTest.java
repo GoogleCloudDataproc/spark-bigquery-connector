@@ -38,7 +38,7 @@ public class DataSourceV1ReadByFormatIntegrationTest extends ReadByFormatIntegra
 
   @Test
   public void testOptimizedCountStarWithFilter() {
-    DirectBigQueryRelation.emptyRowRDDsCreated_$eq(0);
+    DirectBigQueryRelation.emptyRowRDDsCreated = 0;
     long oldMethodCount =
         spark
             .read()
@@ -51,7 +51,7 @@ public class DataSourceV1ReadByFormatIntegrationTest extends ReadByFormatIntegra
             .where("corpus_date > 0")
             .count();
 
-    assertThat(DirectBigQueryRelation.emptyRowRDDsCreated()).isEqualTo(0);
+    assertThat(DirectBigQueryRelation.emptyRowRDDsCreated).isEqualTo(0);
 
     long optimizedCount =
         spark
@@ -64,12 +64,12 @@ public class DataSourceV1ReadByFormatIntegrationTest extends ReadByFormatIntegra
             .count();
 
     assertThat(optimizedCount).isEqualTo(oldMethodCount);
-    assertThat(DirectBigQueryRelation.emptyRowRDDsCreated()).isEqualTo(1);
+    assertThat(DirectBigQueryRelation.emptyRowRDDsCreated).isEqualTo(1);
   }
 
   @Test
   public void testOptimizedCountStar() {
-    DirectBigQueryRelation.emptyRowRDDsCreated_$eq(0);
+    DirectBigQueryRelation.emptyRowRDDsCreated = 0;
     long oldMethodCount =
         spark
             .read()
@@ -81,7 +81,7 @@ public class DataSourceV1ReadByFormatIntegrationTest extends ReadByFormatIntegra
             .select("corpus_date")
             .count();
 
-    assertThat(DirectBigQueryRelation.emptyRowRDDsCreated()).isEqualTo(0);
+    assertThat(DirectBigQueryRelation.emptyRowRDDsCreated).isEqualTo(0);
 
     long optimizedCount =
         spark
@@ -93,7 +93,7 @@ public class DataSourceV1ReadByFormatIntegrationTest extends ReadByFormatIntegra
             .count();
 
     assertThat(optimizedCount).isEqualTo(oldMethodCount);
-    assertThat(DirectBigQueryRelation.emptyRowRDDsCreated()).isEqualTo(1);
+    assertThat(DirectBigQueryRelation.emptyRowRDDsCreated).isEqualTo(1);
   }
 
   // additional tests are from the super-class
