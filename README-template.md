@@ -691,7 +691,7 @@ The API Supports a number of options to configure the read
      </td>
      <td>  Indicates whether to use schema inference specifically when the mode is Parquet (https://cloud.google.com/bigquery/docs/reference/rest/v2/tables#parquetoptions).
         <br/> Defaults to false.
-        <br/> 
+        <br/>
      </td>
      <td>Write</td>
    </tr>

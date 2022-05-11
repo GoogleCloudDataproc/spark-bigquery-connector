@@ -173,7 +173,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQuery_AppendSaveMode_EnableListInference() throws InterruptedException {
+  public void testWriteToBigQuery_EnableListInference() throws InterruptedException {
     Dataset<Row> df = initialData();
     df.write()
         .format("bigquery")
