@@ -466,8 +466,8 @@ public class BigQueryClient {
       Preconditions.checkArgument(
           BigQueryUtil.schemaEquals(
               destinationTableSchema,
-              sourceTableSchema, /* regardFieldOrder */
-              false,
+              sourceTableSchema,
+              /* regardFieldOrder */ false,
               options.getEnableModeCheckForSchemaFields()),
           new BigQueryConnectorException.InvalidSchemaException(
               "Destination table's schema is not compatible with dataframe's schema"));
