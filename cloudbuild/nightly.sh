@@ -24,7 +24,6 @@ fi
 readonly DATE="$(date +%Y%m%d)"
 readonly REVISION="0.0.${DATE}"
 readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository -Drevision=${REVISION}"
-readonly STEP=$1
 
 cd /workspace
 
@@ -37,7 +36,7 @@ $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggre
 # Run acceptance tests
 $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.12,dsv2_2.4
 # Upload test coverage report to Codecov
-bash <(curl -s https://codecov.io/bash) -K -F "${STEP}"
+bash <(curl -s https://codecov.io/bash) -K -F "nightly"
 
 # Upload daily artifacts to the snapshot bucket
 gsutil cp \
