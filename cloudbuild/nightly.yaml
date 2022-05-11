@@ -8,7 +8,7 @@ steps:
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly'
     id: 'maven-build'
     entrypoint: 'bash'
-    args: ['/workspace/cloudbuild/nightly.sh']
+    args: ['/workspace/cloudbuild/nightly.sh', 'all-tests']
     env:
       - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
       - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
