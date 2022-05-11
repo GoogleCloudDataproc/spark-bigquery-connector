@@ -103,6 +103,8 @@ public class TestConstants {
   static final String STRUCT_COLUMN_ORDER_TEST_TABLE_NAME = "struct_column_order";
   static final String ALL_TYPES_TABLE_NAME = "all_types";
   static final String ALL_TYPES_VIEW_NAME = "all_types_view";
+  static final String DIFF_IN_SCHEMA_SRC_TABLE_NAME = "src_table";
+  static final String DIFF_IN_SCHEMA_DEST_TABLE_NAME = "dest_table";
   static DataType BQ_NUMERIC = DataTypes.createDecimalType(38, 9);
   public static int BIG_NUMERIC_COLUMN_POSITION = 11;
 
@@ -223,6 +225,22 @@ public class TestConstants {
               "   struct(\"1:str1\" as str1, \"1:str2\" as str2, \"1:str3\" as str3)",
               " ] as string_struct_arr",
               ") as nums")
+          .collect(Collectors.joining("\n"));
+
+  public static String DIFF_IN_SCHEMA_SRC_TABLE =
+      Stream.of(
+              "create table %s.%s (",
+              "int_req int64 not null,",
+              "int_null int64,",
+              ") as",
+              "",
+              "select",
+              "42 as int_req,",
+              "null as int_null")
+          .collect(Collectors.joining("\n"));
+
+  public static String DIFF_IN_SCHEMA_DEST_TABLE =
+      Stream.of("create table %s.%s (", "int_req int64,", "int_null int64,", ")", "")
           .collect(Collectors.joining("\n"));
 
   public static List<Column> ALL_TYPES_TABLE_COLS =

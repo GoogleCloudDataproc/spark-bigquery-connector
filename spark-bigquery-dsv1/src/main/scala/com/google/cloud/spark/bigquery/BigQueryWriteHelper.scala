@@ -22,6 +22,7 @@ import com.google.cloud.bigquery._
 import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryUtil}
 import com.google.cloud.http.BaseHttpServiceException
 import com.google.cloud.spark.bigquery.SchemaConverters.getDescriptionOrCommentOfField
+import com.google.cloud.spark.bigquery.SchemaConverters.toBigQuerySchema
 import com.google.common.collect.ImmutableList
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
@@ -84,7 +85,11 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
       .asJava)
     val writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode)
 
-    bigQueryClient.loadDataIntoTable(options, sourceUris, formatOptions, writeDisposition)
+    var sourceSchema: Schema = null
+    if (options.schema.isPresent) {
+      sourceSchema = toBigQuerySchema(options.schema.get())
+    }
+    bigQueryClient.loadDataIntoTable(options, sourceUris, formatOptions, writeDisposition, sourceSchema)
   }
 
   def friendlyTableName: String = BigQueryUtil.friendlyTableName(options.getTableId)
