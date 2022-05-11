@@ -686,6 +686,13 @@ The API Supports a number of options to configure the read
           <br/> This property is respected only in indirect write. In direct write the check is always done.
      </td>
      <td>Write</td>
+  </tr>
+     <td><code>enableListInference</code>
+     </td>
+     <td>  Indicates whether to use schema inference specifically for Parquet LIST logical type.
+        <br/> Defaults to false.
+     </td>
+     <td>Write</td>
    </tr>
 </table>
 

@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeThat;
 
@@ -169,6 +170,31 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     writeToBigQuery(additonalData(), SaveMode.Append);
     assertThat(testTableNumberOfRows()).isEqualTo(4);
     assertThat(additionalDataValuesExist()).isTrue();
+  }
+
+  @Test
+  public void testWriteToBigQuery_AppendSaveMode_EnableListInference() throws InterruptedException {
+    Dataset<Row> df = initialData();
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("table", fullTableName())
+        .option("temporaryGcsBucket", temporaryGcsBucket)
+        .option("intermediateFormat", "parquet")
+        .option("writeMethod", writeMethod.toString())
+        .option("enableListInference", true)
+        .save();
+
+    Dataset<Row> readDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    Schema initialSchema = SchemaConverters.toBigQuerySchema(df.schema());
+    Schema readSchema = SchemaConverters.toBigQuerySchema(readDF.schema());
+    assertEquals(initialSchema, readSchema);
   }
 
   @Test
