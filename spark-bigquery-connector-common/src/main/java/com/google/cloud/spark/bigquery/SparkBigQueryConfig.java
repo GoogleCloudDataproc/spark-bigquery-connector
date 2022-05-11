@@ -24,6 +24,7 @@ import com.google.auth.Credentials;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.ParquetOptions;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
@@ -84,6 +85,7 @@ public class SparkBigQueryConfig
   public static final String USE_AVRO_LOGICAL_TYPES_OPTION = "useAvroLogicalTypes";
   public static final String DATE_PARTITION_PARAM = "datePartition";
   public static final String VALIDATE_SPARK_AVRO_PARAM = "validateSparkAvroInternalParam";
+  public static final String ENABLE_LIST_INFERENCE = "enableListInference";
   public static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
   public static final int DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES = 24 * 60;
   @VisibleForTesting static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.ARROW;
@@ -277,11 +279,19 @@ public class SparkBigQueryConfig
     config.persistentGcsPath = getOption(options, "persistentGcsPath");
     boolean validateSparkAvro =
         Boolean.valueOf(getRequiredOption(options, VALIDATE_SPARK_AVRO_PARAM, () -> "true"));
+    boolean enableListInferenceForParquetMode =
+        getAnyBooleanOption(globalOptions, options, ENABLE_LIST_INFERENCE, false);
     config.intermediateFormat =
         getAnyOption(globalOptions, options, INTERMEDIATE_FORMAT_OPTION)
             .transform(String::toLowerCase)
             .transform(
-                format -> IntermediateFormat.from(format, sparkVersion, sqlConf, validateSparkAvro))
+                format ->
+                    IntermediateFormat.from(
+                        format,
+                        sparkVersion,
+                        sqlConf,
+                        validateSparkAvro,
+                        enableListInferenceForParquetMode))
             .or(DEFAULT_INTERMEDIATE_FORMAT);
     String readDataFormatParam =
         getAnyOption(globalOptions, options, READ_DATA_FORMAT_OPTION)
@@ -836,7 +846,9 @@ public class SparkBigQueryConfig
     AVRO("avro", FormatOptions.avro()),
     AVRO_2_3("com.databricks.spark.avro", FormatOptions.avro()),
     ORC("orc", FormatOptions.orc()),
-    PARQUET("parquet", FormatOptions.parquet());
+    PARQUET("parquet", FormatOptions.parquet()),
+    PARQUET_LIST_INFERENCE_ENABLED(
+        "parquet", ParquetOptions.newBuilder().setEnableListInference(true).build());
 
     private static Set<String> PERMITTED_DATA_SOURCES =
         Stream.of(values())
@@ -853,7 +865,11 @@ public class SparkBigQueryConfig
     }
 
     public static IntermediateFormat from(
-        String format, String sparkVersion, SQLConf sqlConf, boolean validateSparkAvro) {
+        String format,
+        String sparkVersion,
+        SQLConf sqlConf,
+        boolean validateSparkAvro,
+        boolean enableListInferenceForParquetMode) {
       Preconditions.checkArgument(
           PERMITTED_DATA_SOURCES.contains(format.toLowerCase()),
           "Data write format '%s' is not supported. Supported formats are %s",
@@ -870,6 +886,10 @@ public class SparkBigQueryConfig
         }
 
         return intermediateFormat;
+      }
+
+      if (enableListInferenceForParquetMode && format.equalsIgnoreCase("parquet")) {
+        return PARQUET_LIST_INFERENCE_ENABLED;
       }
 
       // we have made sure that the format exist in the precondition, so findFirst() will
