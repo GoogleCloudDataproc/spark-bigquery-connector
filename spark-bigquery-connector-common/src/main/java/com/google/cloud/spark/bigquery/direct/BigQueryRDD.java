@@ -23,7 +23,6 @@ import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
-import com.google.cloud.spark.bigquery.BigQueryPartition;
 import com.google.cloud.spark.bigquery.InternalRowIterator;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
@@ -41,7 +40,7 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import scala.collection.JavaConverters;
 
 // Ported this class from Scala to Java with no change in functionality
-public class BigQueryRDD extends RDD<InternalRow> {
+class BigQueryRDD extends RDD<InternalRow> {
 
   private final Partition[] partitions;
   private final ReadSession readSession;
@@ -75,10 +74,10 @@ public class BigQueryRDD extends RDD<InternalRow> {
 
   @Override
   public scala.collection.Iterator<InternalRow> compute(Partition split, TaskContext context) {
-    BigQueryPartition bqPartition = (BigQueryPartition) split;
+    BigQueryPartition bigQueryPartition = (BigQueryPartition) split;
 
     ReadRowsRequest.Builder request =
-        ReadRowsRequest.newBuilder().setReadStream(bqPartition.getStream());
+        ReadRowsRequest.newBuilder().setReadStream(bigQueryPartition.getStream());
 
     ReadRowsHelper readRowsHelper =
         new ReadRowsHelper(

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spark.bigquery;
+package com.google.cloud.spark.bigquery.direct;
 
 import org.apache.spark.Partition;
 

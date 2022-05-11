@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spark.bigquery;
+package com.google.cloud.spark.bigquery.direct;
 
-import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
@@ -28,7 +27,8 @@ import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
-import com.google.cloud.spark.bigquery.direct.BigQueryRDD;
+import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.List;
@@ -81,27 +81,15 @@ public class BigQueryRDDFactory {
     TableInfo actualTable =
         bigQueryClient.materializeQueryToTable(
             sql, options.getMaterializationExpirationTimeInMinutes());
-    TableDefinition actualTableDefinition = actualTable.getDefinition();
 
-    List<String> requiredColumns =
-        actualTableDefinition.getSchema().getFields().stream()
-            .map(Field::getName)
-            .collect(Collectors.toList());
-    log.info(
-        "Querying table {}, requiredColumns=[{}]",
-        actualTable.getFriendlyName(),
-        String.join(",", requiredColumns));
+    log.info("Querying table {}", actualTable.getFriendlyName());
 
     ReadSessionCreator readSessionCreator =
         new ReadSessionCreator(
             options.toReadSessionCreatorConfig(), bigQueryClient, bigQueryReadClientFactory);
 
     return (RDD<InternalRow>)
-        createRddFromTable(
-            actualTable.getTableId(),
-            readSessionCreator,
-            requiredColumns.toArray(new String[0]),
-            "");
+        createRddFromTable(actualTable.getTableId(), readSessionCreator, new String[0], "");
   }
 
   // Creates BigQueryRDD from the BigQuery table that is passed in. Note that we return RDD<?>
