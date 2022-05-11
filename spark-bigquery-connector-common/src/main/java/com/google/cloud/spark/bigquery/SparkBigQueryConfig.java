@@ -15,13 +15,21 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.DEFAULT_FALLBACK;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.defaultBilledProject;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.empty;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.fromJavaUtil;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getAnyBooleanOption;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getAnyOption;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getOption;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getOptionFromMultipleParams;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getRequiredOption;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
 import static java.lang.String.format;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
-import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.ParquetOptions;
@@ -29,6 +37,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
+import com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
@@ -43,7 +52,6 @@ import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -51,7 +59,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -103,8 +110,6 @@ public class SparkBigQueryConfig
   private static final String READ_DATA_FORMAT_OPTION = "readDataFormat";
   private static final ImmutableList<String> PERMITTED_READ_DATA_FORMATS =
       ImmutableList.of(DataFormat.ARROW.toString(), DataFormat.AVRO.toString());
-  private static final Supplier<com.google.common.base.Optional<String>> DEFAULT_FALLBACK =
-      () -> empty();
   private static final String CONF_PREFIX = "spark.datasource.bigquery.";
   private static final int DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT = 60 * 1000;
   private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
@@ -215,17 +220,19 @@ public class SparkBigQueryConfig
               + config.materializationExpirationTimeInMinutes);
     }
     // get the table details
-    Optional<String> tableParam =
-        getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
-            .toJavaUtil();
-    Optional<String> datasetParam =
-        getOption(options, "dataset").or(config.materializationDataset).toJavaUtil();
-    Optional<String> projectParam =
-        firstPresent(
-            getOption(options, "project").toJavaUtil(),
-            com.google.common.base.Optional.fromNullable(
+    com.google.common.base.Optional<String> fallbackDataset = config.materializationDataset;
+    Optional<String> fallbackProject = com.google.common.base.Optional.fromNullable(
                     hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY))
-                .toJavaUtil());
+            .toJavaUtil();
+    Optional<String> tableParam =
+            getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
+                    .toJavaUtil();
+    Optional<String> datasetParam =
+            getOption(options, "dataset").or(fallbackDataset).toJavaUtil();
+    Optional<String> projectParam =
+            firstPresent(
+                    getOption(options, "project").toJavaUtil(),
+                    fallbackProject);
     config.partitionType =
         getOption(options, "partitionType").transform(TimePartitioning.Type::valueOf);
     Optional<String> datePartitionParam = getOption(options, DATE_PARTITION_PARAM).toJavaUtil();
@@ -463,73 +470,6 @@ public class SparkBigQueryConfig
     }
   }
 
-  private static com.google.common.base.Supplier<String> defaultBilledProject() {
-    return () -> BigQueryOptions.getDefaultInstance().getProjectId();
-  }
-
-  private static String getRequiredOption(Map<String, String> options, String name) {
-    return getOption(options, name, DEFAULT_FALLBACK)
-        .toJavaUtil()
-        .orElseThrow(() -> new IllegalArgumentException(format("Option %s required.", name)));
-  }
-
-  private static String getRequiredOption(
-      Map<String, String> options, String name, com.google.common.base.Supplier<String> fallback) {
-    return getOption(options, name, DEFAULT_FALLBACK).or(fallback);
-  }
-
-  private static com.google.common.base.Optional<String> getOption(
-      Map<String, String> options, String name) {
-    return getOption(options, name, DEFAULT_FALLBACK);
-  }
-
-  private static com.google.common.base.Optional<String> getOption(
-      Map<String, String> options,
-      String name,
-      Supplier<com.google.common.base.Optional<String>> fallback) {
-    return fromJavaUtil(
-        firstPresent(
-            Optional.ofNullable(options.get(name.toLowerCase())), fallback.get().toJavaUtil()));
-  }
-
-  private static com.google.common.base.Optional<String> getOptionFromMultipleParams(
-      Map<String, String> options,
-      Collection<String> names,
-      Supplier<com.google.common.base.Optional<String>> fallback) {
-    return names.stream()
-        .map(name -> getOption(options, name))
-        .filter(com.google.common.base.Optional::isPresent)
-        .findFirst()
-        .orElseGet(fallback);
-  }
-
-  private static com.google.common.base.Optional<String> getAnyOption(
-      ImmutableMap<String, String> globalOptions, Map<String, String> options, String name) {
-    return com.google.common.base.Optional.fromNullable(options.get(name.toLowerCase()))
-        .or(com.google.common.base.Optional.fromNullable(globalOptions.get(name)));
-  }
-
-  // gives the option to support old configurations as fallback
-  // Used to provide backward compatibility
-  private static com.google.common.base.Optional<String> getAnyOption(
-      ImmutableMap<String, String> globalOptions,
-      Map<String, String> options,
-      Collection<String> names) {
-    return names.stream()
-        .map(name -> getAnyOption(globalOptions, options, name))
-        .filter(optional -> optional.isPresent())
-        .findFirst()
-        .orElse(empty());
-  }
-
-  private static boolean getAnyBooleanOption(
-      ImmutableMap<String, String> globalOptions,
-      Map<String, String> options,
-      String name,
-      boolean defaultValue) {
-    return getAnyOption(globalOptions, options, name).transform(Boolean::valueOf).or(defaultValue);
-  }
-
   static ImmutableMap<String, String> normalizeConf(Map<String, String> conf) {
     Map<String, String> normalizeConf =
         conf.entrySet().stream()
@@ -540,14 +480,6 @@ public class SparkBigQueryConfig
     Map<String, String> result = new HashMap<>(conf);
     result.putAll(normalizeConf);
     return ImmutableMap.copyOf(result);
-  }
-
-  private static com.google.common.base.Optional empty() {
-    return com.google.common.base.Optional.absent();
-  }
-
-  private static com.google.common.base.Optional fromJavaUtil(Optional o) {
-    return com.google.common.base.Optional.fromJavaUtil(o);
   }
 
   public Credentials createCredentials() {

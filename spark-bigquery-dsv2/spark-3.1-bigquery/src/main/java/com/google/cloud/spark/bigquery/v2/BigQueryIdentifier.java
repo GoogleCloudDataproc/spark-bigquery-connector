@@ -14,12 +14,14 @@ public class BigQueryIdentifier implements Identifier {
 
   @Override
   public String[] namespace() {
-    return new String[0];
+    return tableId.getProject() == null
+        ? new String[] {tableId.getDataset()}
+        : new String[] {tableId.getProject(), tableId.getDataset()};
   }
 
   @Override
   public String name() {
-    return BigQueryUtil.friendlyTableName(tableId);
+    return tableId.getTable();
   }
 
   @Override

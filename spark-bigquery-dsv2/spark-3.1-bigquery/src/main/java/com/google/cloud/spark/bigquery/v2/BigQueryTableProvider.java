@@ -15,8 +15,11 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil;
 import com.google.inject.Injector;
 import java.util.Map;
+
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.connector.catalog.Identifier;
 import org.apache.spark.sql.connector.catalog.SupportsCatalogOptions;
 import org.apache.spark.sql.connector.catalog.Table;
@@ -28,6 +31,8 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 public class BigQueryTableProvider extends BaseBigQuerySource
     implements TableProvider, SupportsCatalogOptions {
 
+  private static final String DEFAULT_CATALOG_NAME = "bigquery";
+  private static final String DEFAULT_CATALOG = "spark.sql.catalog." + DEFAULT_CATALOG_NAME;
   private static final Transform[] EMPTY_TRANSFORM_ARRAY = {};
 
   @Override
@@ -59,11 +64,26 @@ public class BigQueryTableProvider extends BaseBigQuerySource
 
   @Override
   public Identifier extractIdentifier(CaseInsensitiveStringMap options) {
-    return new BigQueryIdentifier(getBigQueryTableInternal(options).getTableId());
+    return new BigQueryIdentifier(BigQueryConfigurationUtil.parseSimpleTableId(options));
   }
 
   @Override
   public String extractCatalog(CaseInsensitiveStringMap options) {
-    return SupportsCatalogOptions.super.extractCatalog(options);
+    setupDefaultSparkCatalog(SparkSession.active());
+    return DEFAULT_CATALOG;
+  }
+
+  private static void setupDefaultSparkCatalog(SparkSession spark) {
+    if (spark.conf().contains(DEFAULT_CATALOG)) {
+      return;
+    }
+    ImmutableMap<String, String> config =
+        ImmutableMap.of(
+            "type", "hive",
+            "default-namespace", "default",
+            "cache-enabled", "false" // the source should not use a cache
+            );
+    spark.conf().set(DEFAULT_CATALOG, BigQueryCatalog.class.getCanonicalName());
+    config.forEach((key, value) -> spark.conf().set(DEFAULT_CATALOG + "." + key, value));
   }
 }
