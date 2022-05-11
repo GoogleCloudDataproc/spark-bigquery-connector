@@ -1,6 +1,6 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
-import com.google.cloud.spark.bigquery.BigQueryRDDFactory
+import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, ExprId}
 import org.apache.spark.sql.types.{LongType, StringType}
 import org.mockito.Mock

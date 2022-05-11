@@ -17,7 +17,7 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.{BigQueryPushdownException, BigQueryPushdownUnsupportedException}
-import com.google.cloud.spark.bigquery.BigQueryRDDFactory
+import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Strategy
@@ -93,7 +93,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, sparkPlanF
   def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     plan match {
       case l@LogicalRelation(bqRelation: DirectBigQueryRelation, _, _, _) =>
-        Some(SourceQuery(expressionConverter, bqRelation.bigQueryRDDFactory, bqRelation.tableName, l.output, alias.next))
+        Some(SourceQuery(expressionConverter, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))
 
       case UnaryOperationExtractor(child) =>
         generateQueryFromPlan(child) map { subQuery =>
