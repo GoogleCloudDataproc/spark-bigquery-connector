@@ -24,6 +24,7 @@ fi
 readonly DATE="$(date +%Y%m%d)"
 readonly REVISION="0.0.${DATE}"
 readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository -Drevision=${REVISION}"
+readonly BUCKET="spark-lib-daily-snapshots"
 
 cd /workspace
 
