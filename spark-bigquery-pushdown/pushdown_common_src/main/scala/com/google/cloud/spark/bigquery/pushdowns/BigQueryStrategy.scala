@@ -34,7 +34,7 @@ import org.apache.spark.sql.execution.datasources.LogicalRelation
  * Passing SparkPlanFactory as the constructor parameter here for ease of unit testing
  *
  */
-class BigQueryStrategy(expressionConverter: SparkExpressionConverter, sparkPlanFactory: SparkPlanFactory) extends Strategy with Logging {
+class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) extends Strategy with Logging {
 
   /** This iterator automatically increments every time it is used,
    * and is for aliasing subqueries.
@@ -94,31 +94,31 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, sparkPlanF
   def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     plan match {
       case l@LogicalRelation(bqRelation: DirectBigQueryRelation, _, _, _) =>
-        Some(SourceQuery(expressionConverter, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))
+        Some(SourceQuery(expressionConverter, expressionFactory, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))
 
       case UnaryOperationExtractor(child) =>
         generateQueryFromPlan(child) map { subQuery =>
           plan match {
             case Filter(condition, _) =>
-              FilterQuery(expressionConverter, Seq(condition), subQuery, alias.next)
+              FilterQuery(expressionConverter, expressionFactory, Seq(condition), subQuery, alias.next)
 
             case Project(fields, _) =>
-              ProjectQuery(expressionConverter, fields, subQuery, alias.next)
+              ProjectQuery(expressionConverter, expressionFactory, fields, subQuery, alias.next)
 
             case Aggregate(groups, fields, _) =>
-              AggregateQuery(expressionConverter, fields, groups, subQuery, alias.next)
+              AggregateQuery(expressionConverter, expressionFactory, fields, groups, subQuery, alias.next)
 
             case Limit(limitExpr, Sort(orderExpr, true, _)) =>
-              SortLimitQuery(expressionConverter, Some(limitExpr), orderExpr, subQuery, alias.next)
+              SortLimitQuery(expressionConverter, expressionFactory, Some(limitExpr), orderExpr, subQuery, alias.next)
 
             case Limit(limitExpr, _) =>
-              SortLimitQuery(expressionConverter, Some(limitExpr), Seq.empty, subQuery, alias.next)
+              SortLimitQuery(expressionConverter, expressionFactory, Some(limitExpr), Seq.empty, subQuery, alias.next)
 
             case Sort(orderExpr, true, Limit(limitExpr, _)) =>
-              SortLimitQuery(expressionConverter, Some(limitExpr), orderExpr, subQuery, alias.next)
+              SortLimitQuery(expressionConverter, expressionFactory, Some(limitExpr), orderExpr, subQuery, alias.next)
 
             case Sort(orderExpr, true, _) =>
-              SortLimitQuery(expressionConverter, None, orderExpr, subQuery, alias.next)
+              SortLimitQuery(expressionConverter, expressionFactory, None, orderExpr, subQuery, alias.next)
 
             case _ => subQuery
           }

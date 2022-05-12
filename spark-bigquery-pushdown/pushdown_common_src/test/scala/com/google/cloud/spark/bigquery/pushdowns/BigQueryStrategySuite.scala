@@ -21,14 +21,14 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
   @Mock
   var sparkPlanFactoryMock: SparkPlanFactory = _
 
-  private val sourceQuery = SourceQuery(expressionConverter, bigQueryRDDFactoryMock, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
+  private val sourceQuery = SourceQuery(expressionConverter, expressionFactory, bigQueryRDDFactoryMock, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
 
   before {
     MockitoAnnotations.initMocks(this)
   }
 
   test("getRDDFactory") {
-    val returnedRDDFactory = new BigQueryStrategy(expressionConverter, sparkPlanFactoryMock).getRDDFactory(sourceQuery)
+    val returnedRDDFactory = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock).getRDDFactory(sourceQuery)
     assert(returnedRDDFactory.isDefined)
     assert(returnedRDDFactory.get == bigQueryRDDFactoryMock)
   }
@@ -36,7 +36,7 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
   test("unsupported exception thrown in apply method") {
     val unsupportedPlan = Intersect(childPlan, childPlan, isAll = true)
     assertThrows[BigQueryPushdownUnsupportedException] {
-      new BigQueryStrategy(expressionConverter, sparkPlanFactoryMock).apply(unsupportedPlan)
+      new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock).apply(unsupportedPlan)
     }
   }
 
@@ -46,7 +46,7 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
       any(classOf[BigQueryRDDFactory]))).thenThrow(new RuntimeException("Unable to create spark plan"))
 
     val logicalRelation = LogicalRelation(directBigQueryRelationMock)
-    val returnedPlan = new BigQueryStrategy(expressionConverter, sparkPlanFactoryMock).apply(logicalRelation)
+    val returnedPlan = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock).apply(logicalRelation)
 
     assert(returnedPlan == Nil)
   }
@@ -62,7 +62,7 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     val sortPlan = Sort(Seq(SortOrder.apply(schoolIdAttributeReference, Ascending)), global = true, projectPlan)
     val limitPlan = Limit(Literal(10), sortPlan)
 
-    val returnedQueryOption = new BigQueryStrategy(expressionConverter, sparkPlanFactoryMock).generateQueryFromPlan(limitPlan)
+    val returnedQueryOption = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock).generateQueryFromPlan(limitPlan)
     assert(returnedQueryOption.isDefined)
 
     val returnedQuery = returnedQueryOption.get
@@ -83,7 +83,7 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     val aggregatePlan = Aggregate(Seq(schoolNameAttributeReference), Seq(aggregateExpression), logicalRelation)
 
     // Need to create a new BigQueryStrategy object so as to start from the original alias
-    val returnedQueryOption = new BigQueryStrategy(expressionConverter, sparkPlanFactoryMock).generateQueryFromPlan(aggregatePlan)
+    val returnedQueryOption = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock).generateQueryFromPlan(aggregatePlan)
     assert(returnedQueryOption.isDefined)
 
     val returnedQuery = returnedQueryOption.get

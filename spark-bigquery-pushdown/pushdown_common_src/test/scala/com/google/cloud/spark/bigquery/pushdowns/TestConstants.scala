@@ -22,7 +22,9 @@ object TestConstants {
    @Mock
    var bigQueryRDDFactoryMock: BigQueryRDDFactory = _
 
-   val expressionFactory: SparkExpressionFactory = (child: Expression, name: String, exprId: ExprId, qualifier: Seq[String], explicitMetadata: Option[Metadata]) => {
-      Alias(child, name)(exprId, qualifier, explicitMetadata)
+   val expressionFactory: SparkExpressionFactory = new SparkExpressionFactory {
+      override def createAlias(child: Expression, name: String, exprId: ExprId, qualifier: Seq[String], explicitMetadata: Option[Metadata]): Alias = {
+         Alias(child, name)(exprId, qualifier, explicitMetadata)
+      }
    }
 }

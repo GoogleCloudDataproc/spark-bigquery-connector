@@ -1,20 +1,14 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
-<<<<<<< HEAD
-import com.google.cloud.spark.bigquery.pushdowns.TestConstants.{SUBQUERY_0_ALIAS, TABLE_NAME, bigQueryRDDFactoryMock, expressionConverter, schoolIdAttributeReference, schoolNameAttributeReference}
-=======
-import com.google.cloud.spark.bigquery.pushdowns.TestConstants.{SUBQUERY_0_ALIAS, TABLE_NAME, expressionConverter, expressionFactory, schoolIdAttributeReference, schoolNameAttributeReference}
->>>>>>> master
+
+import com.google.cloud.spark.bigquery.pushdowns.TestConstants.{SUBQUERY_0_ALIAS, TABLE_NAME, bigQueryRDDFactoryMock, expressionConverter, expressionFactory, schoolIdAttributeReference, schoolNameAttributeReference}
 import org.scalatest.funsuite.AnyFunSuite
 
 // Testing only the suffixStatement here since it is the only variable that is
 // different from the other queries.
 class AggregateQuerySuite extends AnyFunSuite{
-<<<<<<< HEAD
-  private val sourceQuery = SourceQuery(expressionConverter, bigQueryRDDFactoryMock, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
-=======
-  private val sourceQuery = SourceQuery(expressionConverter, expressionFactory, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
->>>>>>> master
+
+  private val sourceQuery = SourceQuery(expressionConverter, expressionFactory, bigQueryRDDFactoryMock, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
 
   test("suffixStatement with groups") {
     // Passing projectionColumns parameter as empty list for simplicity
@@ -29,7 +23,7 @@ class AggregateQuerySuite extends AnyFunSuite{
   }
 
   test("find") {
-    val aggregateQuery = AggregateQuery(expressionConverter, projectionColumns = Seq(), groups = Seq(), sourceQuery, SUBQUERY_0_ALIAS)
+    val aggregateQuery = AggregateQuery(expressionConverter, expressionFactory, projectionColumns = Seq(), groups = Seq(), sourceQuery, SUBQUERY_0_ALIAS)
     val returnedQuery = aggregateQuery.find({ case q: SourceQuery => q })
     assert(returnedQuery.isDefined)
     assert(returnedQuery.get == sourceQuery)
