@@ -95,7 +95,7 @@ object SparkBigQueryPushdownUtil {
    * @param alias
    * @return
    */
-  def renameColumns(origOutput: Seq[NamedExpression], alias: String): Seq[NamedExpression] = {
+  def renameColumns(origOutput: Seq[NamedExpression], alias: String, expressionFactory: SparkExpressionFactory): Seq[NamedExpression] = {
     val col_names = Iterator.from(0).map(n => s"COL_$n")
 
     origOutput.map { expr =>
@@ -105,9 +105,9 @@ object SparkBigQueryPushdownUtil {
 
       expr match {
         case a@Alias(child: Expression, name: String) =>
-          Alias(child, altName)(a.exprId, Seq.empty[String], Some(metadata))
+          expressionFactory.createAlias(child, altName, a.exprId, Seq.empty[String], Some(metadata))
         case _ =>
-          Alias(expr, altName)(expr.exprId, Seq.empty[String], Some(metadata))
+          expressionFactory.createAlias(expr, altName, expr.exprId, Seq.empty[String], Some(metadata))
       }
     }
   }
