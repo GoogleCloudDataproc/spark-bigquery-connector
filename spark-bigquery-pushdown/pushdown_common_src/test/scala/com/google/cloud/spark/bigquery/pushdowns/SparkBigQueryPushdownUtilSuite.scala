@@ -16,6 +16,7 @@
 
 package com.google.cloud.spark.bigquery.pushdowns
 
+import com.google.cloud.spark.bigquery.pushdowns.TestConstants.expressionFactory
 import org.apache.spark.sql.catalyst.expressions.{Alias, AttributeReference, ExprId}
 import org.apache.spark.sql.types.LongType
 import org.scalatest.funsuite.AnyFunSuite
@@ -68,7 +69,7 @@ class SparkBigQueryPushdownUtilSuite extends AnyFunSuite {
   test("renameColumns") {
     val namedExpr1 = AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1))
     val namedExpr2 = Alias.apply(namedExpr1, "SID")(ExprId.apply(2))
-    val returnedExpressions = SparkBigQueryPushdownUtil.renameColumns(List(namedExpr1, namedExpr2), "SUBQUERY_2")
+    val returnedExpressions = SparkBigQueryPushdownUtil.renameColumns(List(namedExpr1, namedExpr2), "SUBQUERY_2", expressionFactory)
     assert(2 == returnedExpressions.size)
     assert("SUBQUERY_2_COL_0" == returnedExpressions.head.name)
     assert(namedExpr1.exprId == returnedExpressions.head.exprId)

@@ -29,12 +29,14 @@ import org.apache.spark.sql.catalyst.expressions.Expression
  */
 case class SortLimitQuery(
    expressionConverter: SparkExpressionConverter,
+   expressionFactory: SparkExpressionFactory,
    limit: Option[Expression],
    orderBy: Seq[Expression],
    child: BigQuerySQLQuery,
    alias: String)
   extends BigQuerySQLQuery(
     expressionConverter,
+    expressionFactory,
     alias,
     children = Seq(child)) {
 

@@ -6,15 +6,15 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class ProjectQuerySuite extends AnyFunSuite{
 
-  private val sourceQuery = SourceQuery(expressionConverter, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
+  private val sourceQuery = SourceQuery(expressionConverter, expressionFactory, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
 
   // Conditions for filter query (> 50 AND < 100)
   private val greaterThanFilterCondition = GreaterThanOrEqual.apply(schoolIdAttributeReference, Literal(50))
   private val lessThanFilterCondition = LessThanOrEqual.apply(schoolIdAttributeReference, Literal(100))
-  private val filterQuery = FilterQuery(expressionConverter, Seq(greaterThanFilterCondition, lessThanFilterCondition), sourceQuery, SUBQUERY_1_ALIAS)
+  private val filterQuery = FilterQuery(expressionConverter, expressionFactory, Seq(greaterThanFilterCondition, lessThanFilterCondition), sourceQuery, SUBQUERY_1_ALIAS)
 
   // Projecting the column SchoolId
-  private val projectQuery = ProjectQuery(expressionConverter, Seq(schoolIdAttributeReference), filterQuery, SUBQUERY_2_ALIAS)
+  private val projectQuery = ProjectQuery(expressionConverter, expressionFactory, Seq(schoolIdAttributeReference), filterQuery, SUBQUERY_2_ALIAS)
 
   test("sourceStatement") {
     assert(projectQuery.sourceStatement.toString == "( SELECT * FROM ( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 " +

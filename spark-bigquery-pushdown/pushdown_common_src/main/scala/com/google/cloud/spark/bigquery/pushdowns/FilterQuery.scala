@@ -28,11 +28,13 @@ import org.apache.spark.sql.catalyst.expressions.Expression
  */
 case class FilterQuery(
     expressionConverter: SparkExpressionConverter,
+    expressionFactory: SparkExpressionFactory,
     conditions: Seq[Expression],
     child: BigQuerySQLQuery,
     alias: String)
   extends BigQuerySQLQuery(
     expressionConverter,
+    expressionFactory,
     alias,
     children = Seq(child)) {
 

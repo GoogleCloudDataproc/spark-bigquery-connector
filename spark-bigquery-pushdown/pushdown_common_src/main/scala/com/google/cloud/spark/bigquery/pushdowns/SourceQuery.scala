@@ -28,11 +28,13 @@ import org.apache.spark.sql.catalyst.expressions.Attribute
  */
 case class SourceQuery(
     expressionConverter: SparkExpressionConverter,
+    expressionFactory: SparkExpressionFactory,
     tableName: String,
     outputAttributes: Seq[Attribute],
     alias: String)
   extends BigQuerySQLQuery(
     expressionConverter,
+    expressionFactory,
     alias,
     outputAttributes = Some(outputAttributes),
     conjunctionStatement = ConstantString("`" + tableName + "`").toStatement + ConstantString("AS BQ_CONNECTOR_QUERY_ALIAS")) {}
