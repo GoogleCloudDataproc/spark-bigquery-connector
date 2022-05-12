@@ -6,7 +6,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class ProjectQuerySuite extends AnyFunSuite{
 
-  private val sourceQuery = SourceQuery(expressionConverter, bigQueryRDDFactory, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
+  private val sourceQuery = SourceQuery(expressionConverter, bigQueryRDDFactoryMock, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
 
   // Conditions for filter query (> 50 AND < 100)
   private val greaterThanFilterCondition = GreaterThanOrEqual.apply(schoolIdAttributeReference, Literal(50))
@@ -62,5 +62,11 @@ class ProjectQuerySuite extends AnyFunSuite{
     assert(projectQuery.getStatement(useAlias = true).toString == "( SELECT ( SUBQUERY_1.SCHOOLID ) AS SUBQUERY_2_COL_0 FROM " +
       "( SELECT * FROM ( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 " +
       "WHERE ( SUBQUERY_0.SCHOOLID >= 50 ) AND ( SUBQUERY_0.SCHOOLID <= 100 ) ) AS SUBQUERY_1 ) AS SUBQUERY_2")
+  }
+
+  test("find") {
+    val returnedQuery = projectQuery.find({ case q: SourceQuery => q })
+    assert(returnedQuery.isDefined)
+    assert(returnedQuery.get == sourceQuery)
   }
 }

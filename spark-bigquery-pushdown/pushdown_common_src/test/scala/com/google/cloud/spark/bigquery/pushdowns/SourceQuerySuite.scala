@@ -5,7 +5,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class SourceQuerySuite extends AnyFunSuite{
 
-  private val sourceQuery = SourceQuery(expressionConverter, bigQueryRDDFactory, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
+  private val sourceQuery = SourceQuery(expressionConverter, bigQueryRDDFactoryMock, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
 
   test("sourceStatement") {
     assert(sourceQuery.sourceStatement.toString == "`test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS")
@@ -44,5 +44,11 @@ class SourceQuerySuite extends AnyFunSuite{
 
   test("getStatement with alias") {
     assert(sourceQuery.getStatement(useAlias = true).toString == "( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0")
+  }
+
+  test("find") {
+    val returnedQuery = sourceQuery.find({ case q: SourceQuery => q })
+    assert(returnedQuery.isDefined)
+    assert(returnedQuery.get == sourceQuery)
   }
 }

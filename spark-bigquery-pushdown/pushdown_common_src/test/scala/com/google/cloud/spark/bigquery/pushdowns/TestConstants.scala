@@ -2,6 +2,7 @@ package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, ExprId}
+import org.apache.spark.sql.catalyst.plans.logical.Range
 import org.apache.spark.sql.types.{LongType, StringType}
 import org.mockito.Mock
 
@@ -15,6 +16,9 @@ object TestConstants {
    val schoolIdAttributeReference: AttributeReference = AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1))
    val schoolNameAttributeReference: AttributeReference = AttributeReference.apply("SchoolName", StringType)(ExprId.apply(2))
 
+   // create the simplest possible plan to use as a childPlan
+   val childPlan: Range = Range.apply(2L, 100L, 4L, 8)
+
    @Mock
-   var bigQueryRDDFactory: BigQueryRDDFactory = _
+   var bigQueryRDDFactoryMock: BigQueryRDDFactory = _
 }

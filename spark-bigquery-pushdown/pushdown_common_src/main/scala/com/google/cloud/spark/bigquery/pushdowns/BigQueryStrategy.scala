@@ -73,9 +73,10 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, sparkPlanF
       .find {
         case q: SourceQuery => q
       }
+      // this should ideally never happen
       .getOrElse(
         throw new BigQueryPushdownException(
-          "Something went wrong: a query tree was generated with no SourceQuery found."
+          "Something went wrong: a query tree was generated with no SourceQuery."
         )
       )
 

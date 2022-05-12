@@ -1,5 +1,6 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
+import com.google.cloud.spark.bigquery.pushdowns.TestConstants.childPlan
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, ExprId, Literal}
 import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, Filter, GlobalLimit, LocalLimit, LogicalPlan, Project, Range, ReturnAnswer, Sort, SubqueryAlias, Window}
 import org.apache.spark.sql.types.LongType
@@ -7,9 +8,6 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class UnaryOperationExtractorSuite extends AnyFunSuite {
   private val schoolIdAttributeReference = AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1))
-
-  // Need a childPlan to pass. So, create the simplest possible
-  private val childPlan = Range.apply(2L, 100L, 4L, 8)
 
   test("Filter") {
     val filterExpression = EqualTo.apply(schoolIdAttributeReference, Literal(1234L))
