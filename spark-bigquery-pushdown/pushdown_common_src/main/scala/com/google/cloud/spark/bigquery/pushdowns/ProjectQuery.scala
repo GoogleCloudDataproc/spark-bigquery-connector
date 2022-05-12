@@ -27,10 +27,12 @@ import org.apache.spark.sql.catalyst.expressions.NamedExpression
  */
 case class ProjectQuery(
      expressionConverter: SparkExpressionConverter,
+     expressionFactory: SparkExpressionFactory,
      projectionColumns: Seq[NamedExpression],
      child: BigQuerySQLQuery,
      alias: String)
   extends BigQuerySQLQuery(
     expressionConverter,
+    expressionFactory,
     alias, children = Seq(child),
     projections = Some(projectionColumns)) {}

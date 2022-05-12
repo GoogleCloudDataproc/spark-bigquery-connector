@@ -1,9 +1,9 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
-import org.apache.spark.sql.catalyst.expressions.{AttributeReference, ExprId}
+import org.apache.spark.sql.catalyst.expressions.{Alias, AttributeReference, ExprId, Expression}
 import org.apache.spark.sql.catalyst.plans.logical.Range
-import org.apache.spark.sql.types.{LongType, StringType}
+import org.apache.spark.sql.types.{LongType, Metadata, StringType}
 import org.mockito.Mock
 
 object TestConstants {
@@ -21,4 +21,8 @@ object TestConstants {
 
    @Mock
    var bigQueryRDDFactoryMock: BigQueryRDDFactory = _
+
+   val expressionFactory: SparkExpressionFactory = (child: Expression, name: String, exprId: ExprId, qualifier: Seq[String], explicitMetadata: Option[Metadata]) => {
+      Alias(child, name)(exprId, qualifier, explicitMetadata)
+   }
 }

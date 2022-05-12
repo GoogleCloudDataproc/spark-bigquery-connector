@@ -37,6 +37,7 @@ import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeRef
  */
 abstract class BigQuerySQLQuery(
   expressionConverter: SparkExpressionConverter,
+  expressionFactory: SparkExpressionFactory,
   alias: String,
   children: Seq[BigQuerySQLQuery] = Seq.empty,
   projections: Option[Seq[NamedExpression]] = None,
@@ -86,7 +87,7 @@ abstract class BigQuerySQLQuery(
             }
         )
     )
-    .map(p => renameColumns(p, alias))
+    .map(p => renameColumns(p, alias, expressionFactory))
 
   /** Convert processedProjections into a BigQuerySQLStatement */
   val columns: Option[BigQuerySQLStatement] =

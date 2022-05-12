@@ -29,12 +29,14 @@ import org.apache.spark.sql.catalyst.expressions.{Expression, NamedExpression}
  */
 case class AggregateQuery(
    expressionConverter: SparkExpressionConverter,
+   expressionFactory: SparkExpressionFactory,
    projectionColumns: Seq[NamedExpression],
    groups: Seq[Expression],
    child: BigQuerySQLQuery,
    alias: String
  ) extends BigQuerySQLQuery(
   expressionConverter,
+  expressionFactory,
   alias,
   children = Seq(child),
   projections = if (projectionColumns.isEmpty) None else Some(projectionColumns)) {
