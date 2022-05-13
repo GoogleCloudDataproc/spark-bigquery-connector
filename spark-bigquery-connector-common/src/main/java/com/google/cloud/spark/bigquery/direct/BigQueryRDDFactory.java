@@ -16,6 +16,7 @@
 
 package com.google.cloud.spark.bigquery.direct;
 
+import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
@@ -82,14 +83,27 @@ public class BigQueryRDDFactory {
         bigQueryClient.materializeQueryToTable(
             sql, options.getMaterializationExpirationTimeInMinutes());
 
-    log.info("Querying table {}", actualTable.getFriendlyName());
+    TableDefinition actualTableDefinition = actualTable.getDefinition();
+    List<String> requiredColumns =
+        actualTableDefinition.getSchema().getFields().stream()
+            .map(Field::getName)
+            .collect(Collectors.toList());
+
+    log.info(
+        "Querying table {}, requiredColumns=[{}]",
+        actualTable.getFriendlyName(),
+        String.join(",", requiredColumns));
 
     ReadSessionCreator readSessionCreator =
         new ReadSessionCreator(
             options.toReadSessionCreatorConfig(), bigQueryClient, bigQueryReadClientFactory);
 
     return (RDD<InternalRow>)
-        createRddFromTable(actualTable.getTableId(), readSessionCreator, new String[0], "");
+        createRddFromTable(
+            actualTable.getTableId(),
+            readSessionCreator,
+            requiredColumns.toArray(new String[0]),
+            "");
   }
 
   // Creates BigQueryRDD from the BigQuery table that is passed in. Note that we return RDD<?>
