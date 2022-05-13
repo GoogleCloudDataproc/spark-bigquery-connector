@@ -147,4 +147,18 @@ abstract class BigQuerySQLQuery(
    */
   def expressionToStatement(expr: Expression): BigQuerySQLStatement =
     expressionConverter.convertStatement(expr, columnSet)
+
+  /** Finds a particular query type in the overall tree.
+   *
+   * @param query PartialFunction defining a positive result.
+   * @param T BigQuerySQLQuery type
+   * @return Option[T] for one positive match, or None if nothing found.
+   */
+  def find[T](query: PartialFunction[BigQuerySQLQuery, T]): Option[T] =
+    query
+      .lift(this)
+      .orElse(
+        if (this.children.isEmpty) None
+        else this.children.head.find(query)
+      )
 }

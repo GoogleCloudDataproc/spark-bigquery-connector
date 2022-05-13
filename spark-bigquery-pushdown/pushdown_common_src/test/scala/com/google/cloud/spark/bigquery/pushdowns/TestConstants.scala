@@ -1,7 +1,9 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
+import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import org.apache.spark.sql.catalyst.expressions.{Alias, AttributeReference, ExprId, Expression}
 import org.apache.spark.sql.types.{LongType, Metadata, StringType}
+import org.mockito.Mock
 
 object TestConstants {
    val TABLE_NAME = "test_project:test_dataset.test_table"
@@ -18,4 +20,7 @@ object TestConstants {
          Alias(child, name)(exprId, qualifier, explicitMetadata)
       }
    }
+
+   @Mock
+   var bigQueryRDDFactoryMock: BigQueryRDDFactory = _
 }
