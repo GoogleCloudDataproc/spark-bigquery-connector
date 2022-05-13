@@ -29,5 +29,7 @@ trait SparkBigQueryPushdown {
 
   def createSparkExpressionFactory: SparkExpressionFactory
 
-  def createBigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory): BigQueryStrategy
+  def createSparkPlanFactory(): SparkPlanFactory
+
+  def createBigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory): BigQueryStrategy
 }
