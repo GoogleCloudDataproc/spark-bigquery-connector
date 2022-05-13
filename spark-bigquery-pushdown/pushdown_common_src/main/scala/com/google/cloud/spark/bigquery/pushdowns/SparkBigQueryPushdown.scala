@@ -26,4 +26,8 @@ trait SparkBigQueryPushdown {
   def disable(session: SparkSession): Unit
 
   def createSparkExpressionConverter: SparkExpressionConverter
+
+  def createSparkExpressionFactory: SparkExpressionFactory
+
+  def createBigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory): BigQueryStrategy
 }
