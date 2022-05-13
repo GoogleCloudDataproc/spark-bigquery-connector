@@ -34,4 +34,12 @@ class Spark24BigQueryPushdown extends SparkBigQueryPushdown {
   override def createSparkExpressionConverter: SparkExpressionConverter = {
     new Spark24ExpressionConverter
   }
+
+  override def createSparkExpressionFactory: SparkExpressionFactory = {
+    new Spark24ExpressionFactory
+  }
+
+  override def createBigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory): BigQueryStrategy = {
+    new Spark24BigQueryStrategy(expressionConverter, expressionFactory)
+  }
 }
