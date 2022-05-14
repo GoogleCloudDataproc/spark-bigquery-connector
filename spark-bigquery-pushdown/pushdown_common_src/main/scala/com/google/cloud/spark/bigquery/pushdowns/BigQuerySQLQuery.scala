@@ -158,7 +158,10 @@ abstract class BigQuerySQLQuery(
     query
       .lift(this)
       .orElse(
-        if (this.children.isEmpty) None
-        else this.children.head.find(query)
+        if (this.children.isEmpty) {
+          None
+        } else {
+          this.children.head.find(query)
+        }
       )
 }
