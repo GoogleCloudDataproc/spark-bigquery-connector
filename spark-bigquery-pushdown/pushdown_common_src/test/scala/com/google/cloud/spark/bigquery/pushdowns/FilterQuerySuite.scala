@@ -22,7 +22,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class FilterQuerySuite extends AnyFunSuite {
 
-  private val sourceQuery = SourceQuery(expressionConverter, expressionFactory, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
+  private val sourceQuery = SourceQuery(expressionConverter, expressionFactory, bigQueryRDDFactoryMock, TABLE_NAME, Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS)
 
   private val greaterThanFilterCondition = GreaterThanOrEqual.apply(schoolIdAttributeReference, Literal(50))
   private val lessThanFilterCondition = LessThanOrEqual.apply(schoolIdAttributeReference, Literal(100))
@@ -69,5 +69,11 @@ class FilterQuerySuite extends AnyFunSuite {
   test("getStatement with alias") {
     assert(filterQuery.getStatement(useAlias = true).toString == "( SELECT * FROM ( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) " +
       "AS SUBQUERY_0 WHERE ( SUBQUERY_0.SCHOOLID >= 50 ) AND ( SUBQUERY_0.SCHOOLID <= 100 ) ) AS SUBQUERY_1")
+  }
+
+  test("find") {
+    val returnedQuery = filterQuery.find({ case q: SourceQuery => q })
+    assert(returnedQuery.isDefined)
+    assert(returnedQuery.get == sourceQuery)
   }
 }
