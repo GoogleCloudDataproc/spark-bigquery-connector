@@ -296,7 +296,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   @Ignore("DSv2 only")
-  public void testDirectWriteToBigQueryWithDiffInSchemaAndDisableModeCheck() {
+  public void testDirectWriteToBigQueryWithDiffInSchemaAndDisableModeCheck()
+      throws InterruptedException {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
     Dataset<Row> df =
@@ -306,15 +307,18 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .option("table", testDataset + "." + TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME)
             .load();
 
-    assertThrows(
-        ProvisionException.class,
-        () ->
-            df.write()
-                .format("bigquery")
-                .mode(SaveMode.Append)
-                .option("writeMethod", writeMethod.toString())
-                .option("enableModeCheckForSchemaFields", false)
-                .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME));
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("writeMethod", writeMethod.toString())
+        .option("enableModeCheckForSchemaFields", false)
+        .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
+    String query =
+        String.format(
+            "select * from %s.%s",
+            testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
+    int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
+    assertThat(numOfRows).isEqualTo(1);
   }
 
   @Test
@@ -340,7 +344,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testIndirectWriteToBigQueryWithDiffInSchemaNullableFieldAndDisableModeCheck() {
+  public void testIndirectWriteToBigQueryWithDiffInSchemaNullableFieldAndDisableModeCheck()
+      throws InterruptedException {
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
     Dataset<Row> df =
@@ -356,6 +361,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("writeMethod", writeMethod.toString())
         .option("enableModeCheckForSchemaFields", false)
         .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
+    String query =
+        String.format(
+            "select * from %s.%s",
+            testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
+    int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
+    assertThat(numOfRows).isEqualTo(1);
   }
 
   @Test
