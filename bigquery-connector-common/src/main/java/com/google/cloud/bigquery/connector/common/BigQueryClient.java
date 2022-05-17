@@ -144,6 +144,7 @@ public class BigQueryClient {
 
   /**
    * Creates a Dataset in BigQuery
+   *
    * @return the created Dataset
    */
   public Dataset createDataset() {
