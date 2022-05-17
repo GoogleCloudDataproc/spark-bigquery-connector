@@ -296,8 +296,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   @Ignore("DSv2 only")
-  public void testDirectWriteToBigQueryWithDiffInSchemaAndDisableModeCheck()
-      throws Exception {
+  public void testDirectWriteToBigQueryWithDiffInSchemaAndDisableModeCheck() throws Exception {
     assertThat(writeMethod).isEqualTo(WriteMethod.DIRECT);
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
     Dataset<Row> df =
