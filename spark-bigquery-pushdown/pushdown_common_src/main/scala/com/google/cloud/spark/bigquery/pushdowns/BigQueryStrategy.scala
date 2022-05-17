@@ -51,9 +51,6 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
     try {
       generateSparkPlanFromLogicalPlan(plan)
     } catch {
-      case ue: BigQueryPushdownUnsupportedException =>
-        logWarning(s"BigQuery doesn't support this feature :${ue.getMessage}")
-        throw ue
       case e: Exception =>
         logInfo("Query pushdown failed: ", e)
         Nil

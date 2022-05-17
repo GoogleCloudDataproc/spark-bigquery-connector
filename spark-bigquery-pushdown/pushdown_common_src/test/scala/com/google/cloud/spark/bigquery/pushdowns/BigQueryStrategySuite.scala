@@ -36,13 +36,6 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     assert(returnedRDDFactory.get == bigQueryRDDFactoryMock)
   }
 
-  test("unsupported exception thrown in apply method") {
-    val unsupportedPlan = Intersect(childPlan, childPlan, isAll = true)
-    assertThrows[BigQueryPushdownUnsupportedException] {
-      new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock).apply(unsupportedPlan)
-    }
-  }
-
   test("exception thrown in apply method") {
     when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
     when(sparkPlanFactoryMock.createSparkPlan(any(classOf[BigQuerySQLQuery]),
