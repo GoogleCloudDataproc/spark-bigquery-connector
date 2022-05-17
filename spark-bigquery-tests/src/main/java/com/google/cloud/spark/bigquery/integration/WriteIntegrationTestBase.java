@@ -275,7 +275,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   @Test
   @Ignore("DSv2 only")
   public void testDirectWriteToBigQueryWithDiffInSchema() {
-    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    assertThat(writeMethod).isEqualTo(WriteMethod.DIRECT);
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
     Dataset<Row> df =
         spark
@@ -298,7 +298,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   @Ignore("DSv2 only")
   public void testDirectWriteToBigQueryWithDiffInSchemaAndDisableModeCheck()
       throws Exception {
-    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    assertThat(writeMethod).isEqualTo(WriteMethod.DIRECT);
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
     Dataset<Row> df =
         spark
@@ -323,7 +323,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testInDirectWriteToBigQueryWithDiffInSchemaAndModeCheck() {
-    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
+    assertThat(writeMethod).isEqualTo(SparkBigQueryConfig.WriteMethod.INDIRECT);
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
     Dataset<Row> df =
         spark
@@ -346,7 +346,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   @Test
   public void testIndirectWriteToBigQueryWithDiffInSchemaNullableFieldAndDisableModeCheck()
       throws Exception {
-    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
+    assertThat(writeMethod).isEqualTo(SparkBigQueryConfig.WriteMethod.INDIRECT);
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
     Dataset<Row> df =
         spark
