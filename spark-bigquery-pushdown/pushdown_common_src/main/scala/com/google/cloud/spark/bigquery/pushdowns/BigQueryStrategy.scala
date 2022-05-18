@@ -21,6 +21,7 @@ import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Strategy
+import org.apache.spark.sql.catalyst.plans.{FullOuter, Inner, LeftOuter, RightOuter}
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.LogicalRelation
@@ -121,6 +122,20 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
               SortLimitQuery(expressionConverter, expressionFactory, None, orderExpr, subQuery, alias.next)
 
             case _ => subQuery
+          }
+        }
+
+      case BinaryOperationExtractor(left, right) =>
+        generateQueryFromPlan(left).flatMap { l =>
+          generateQueryFromPlan(right) map { r =>
+            plan match {
+              case JoinExtractor(joinType, condition) =>
+                joinType match {
+                  case Inner | LeftOuter | RightOuter | FullOuter =>
+                    JoinQuery(expressionConverter, expressionFactory, l, r, condition, joinType, alias.next)
+                  case _ => throw new MatchError
+                }
+            }
           }
         }
 
