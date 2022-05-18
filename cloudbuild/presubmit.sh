@@ -41,24 +41,23 @@ case $STEP in
 
   # Run integration tests
   integrationtest-2.12)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate \
-    org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=GoogleCloudDataproc_spark-bigquery-connector \
-    -Pcoverage,integration,dsv1_2.12
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12
     ;;
 
   # Run integration tests
   integrationtest-2.4)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate \
-         org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=GoogleCloudDataproc_spark-bigquery-connector \
-         -Pcoverage,integration,dsv2_2.4
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_2.4
     ;;
 
   # Run integration tests
   integrationtest-3.1)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate \
-         org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=GoogleCloudDataproc_spark-bigquery-connector \
-         -Pcoverage,integration,dsv2_3.1
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.1
     ;;
+
+  # Run Sonar scanning
+  sonar)
+    $MVN org.sonarsource.scanner.maven:sonar-maven-plugin:3.8.0.2131:sonar -Dsonar.projectKey=GoogleCloudDataproc_spark-bigquery-connector \
+         -Pintegration,dsv1_2.12,dsv2
 
   *)
     echo "Unknown step $STEP"
