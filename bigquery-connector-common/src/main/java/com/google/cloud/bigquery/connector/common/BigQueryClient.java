@@ -22,7 +22,6 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
-import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobConfiguration;
@@ -140,18 +139,6 @@ public class BigQueryClient {
   public TableInfo createTable(TableId tableId, Schema schema) {
     TableInfo tableInfo = TableInfo.newBuilder(tableId, StandardTableDefinition.of(schema)).build();
     return bigQuery.create(tableInfo);
-  }
-
-  /**
-   * Creates a Dataset in BigQuery
-   *
-   * @return the created Dataset
-   */
-  public Dataset createDataset() {
-    String dataset =
-        String.format("spark_bigquery_%d_%d", System.currentTimeMillis(), System.nanoTime());
-    DatasetId datasetId = DatasetId.of(dataset);
-    return bigQuery.create(DatasetInfo.of(datasetId));
   }
 
   /**
@@ -308,9 +295,7 @@ public class BigQueryClient {
   TableId createDestinationTable(
       Optional<String> referenceProject, Optional<String> referenceDataset) {
     String project = materializationProject.orElse(referenceProject.orElse(null));
-    String dataset =
-        materializationDataset.orElse(
-            referenceDataset.orElse(createDataset().getDatasetId().getDataset()));
+    String dataset = materializationDataset.orElse(referenceDataset.orElse(null));
     String name =
         String.format(
             "_bqc_%s", UUID.randomUUID().toString().toLowerCase(Locale.ENGLISH).replace("-", ""));

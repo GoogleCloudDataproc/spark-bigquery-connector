@@ -51,6 +51,9 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
     try {
       generateSparkPlanFromLogicalPlan(plan)
     } catch {
+      // We catch all exceptions here (including BigQueryPushdownUnsupportedException)
+      // and return Nil because if we are not able to translate the plan, then
+      // we let Spark handle it
       case e: Exception =>
         logInfo("Query pushdown failed: ", e)
         Nil
