@@ -52,6 +52,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   private final String writeUUID;
   private final RetrySettings bigqueryDataWriterHelperRetrySettings;
   private final Optional<String> traceId;
+  private final boolean enableModeCheckForSchemaFields;
 
   private final BigQueryTable tableToWrite;
   private final String tablePathForBigQueryStorage;
@@ -74,7 +75,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       SaveMode saveMode,
       StructType sparkSchema,
       RetrySettings bigqueryDataWriterHelperRetrySettings,
-      Optional<String> traceId)
+      Optional<String> traceId,
+      boolean enableModeCheckForSchemaFields)
       throws IllegalArgumentException {
     this.bigQueryClient = bigQueryClient;
     this.writeClientFactory = bigQueryWriteClientFactory;
@@ -83,6 +85,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     this.sparkSchema = sparkSchema;
     this.bigqueryDataWriterHelperRetrySettings = bigqueryDataWriterHelperRetrySettings;
     this.traceId = traceId;
+    this.enableModeCheckForSchemaFields = enableModeCheckForSchemaFields;
     Schema bigQuerySchema = toBigQuerySchema(sparkSchema);
     try {
       this.protoSchema = toProtoSchema(sparkSchema);
@@ -118,7 +121,10 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       Schema tableSchema = destinationTable.getDefinition().getSchema();
       Preconditions.checkArgument(
           BigQueryUtil.schemaEquals(
-              tableSchema, bigQuerySchema, /* regardFieldOrder */ false, true),
+              tableSchema,
+              bigQuerySchema, /* regardFieldOrder */
+              false,
+              enableModeCheckForSchemaFields),
           new BigQueryConnectorException.InvalidSchemaException(
               "Destination table's schema is not compatible with dataframe's schema"));
       switch (saveMode) {
