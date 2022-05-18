@@ -33,7 +33,9 @@ $MVN install -DskipTests -Pdsv1_2.12,dsv2
 #coverage report
 $MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv2
 # Run integration tests
-$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv2_2.4
+$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate \
+     org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=GoogleCloudDataproc_spark-bigquery-connector \
+     -Pcoverage,integration,dsv1_2.12,dsv2_2.4
 # Run acceptance tests
 $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.12,dsv2_2.4
 # Upload test coverage report to Codecov

@@ -32,6 +32,7 @@ steps:
     - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
     - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
     - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
+    - 'SONAR_TOKEN=${_SONAR_TOKEN}'
 
 # 4b. Run integration tests concurrently with unit tests (DSv2, Spark 2.4)
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
@@ -43,6 +44,7 @@ steps:
     - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
     - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
     - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
+    - 'SONAR_TOKEN=${_SONAR_TOKEN}'
 
 # 4c. Run integration tests concurrently with unit tests (DSv2, Spark 3.1)
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
@@ -54,6 +56,7 @@ steps:
       - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
       - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
       - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
+      - 'SONAR_TOKEN=${_SONAR_TOKEN}'
 
 # Tests take around 30 mins in general.
 timeout: 1800s
