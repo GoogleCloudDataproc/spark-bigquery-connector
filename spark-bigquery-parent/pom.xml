@@ -68,6 +68,7 @@
         <zstd.version>1.4.9-1</zstd.version>
         <deploy.skip>true</deploy.skip>
         <nexus.remote.skip>false</nexus.remote.skip>
+        <nexus.auto.release>false</nexus.auto.release>
 
         <!-- checkstyle
         <checkstyle.header.file>${reactor.project.basedir}/java.header</checkstyle.header.file>
@@ -604,7 +605,7 @@
                         <configuration>
                             <serverId>ossrh</serverId>
                             <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                            <autoReleaseAfterClose>${nexus.auto.release}</autoReleaseAfterClose>
                             <skipRemoteStaging>${nexus.remote.skip}</skipRemoteStaging>
                         </configuration>
                     </plugin>
