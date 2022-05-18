@@ -58,6 +58,7 @@ case $STEP in
   sonar)
     $MVN org.sonarsource.scanner.maven:sonar-maven-plugin:3.8.0.2131:sonar -Dsonar.projectKey=GoogleCloudDataproc_spark-bigquery-connector \
          -Pintegration,dsv1_2.12,dsv2
+    ;;
 
   *)
     echo "Unknown step $STEP"
