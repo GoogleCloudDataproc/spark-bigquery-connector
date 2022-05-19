@@ -69,7 +69,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
 
   def hasUnsupportedNodes(plan: LogicalPlan): Boolean = {
     plan.foreach {
-      case UnaryOperationExtractor(_) | LogicalRelation(_, _, _, _) =>
+      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) | LogicalRelation(_, _, _, _) =>
       case subPlan =>
         logInfo(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
         return true
