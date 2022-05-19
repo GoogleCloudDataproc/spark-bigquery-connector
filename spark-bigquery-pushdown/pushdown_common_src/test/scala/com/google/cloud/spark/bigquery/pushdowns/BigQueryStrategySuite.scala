@@ -1,11 +1,10 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
-import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
 import com.google.cloud.spark.bigquery.direct.{BigQueryRDDFactory, DirectBigQueryRelation}
 import com.google.cloud.spark.bigquery.pushdowns.TestConstants._
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateExpression, Complete, Count}
 import org.apache.spark.sql.catalyst.expressions.{Alias, Ascending, EqualTo, Literal, SortOrder}
-import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, Filter, Intersect, Limit, Project, Range, Sort}
+import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, Filter, Intersect, Limit, Project, Range, ReturnAnswer, Sort}
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.types.StructType
 import org.mockito.ArgumentMatchers.any
@@ -36,13 +35,6 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     assert(returnedRDDFactory.get == bigQueryRDDFactoryMock)
   }
 
-  test("unsupported exception thrown in apply method") {
-    val unsupportedPlan = Intersect(childPlan, childPlan, isAll = true)
-    assertThrows[BigQueryPushdownUnsupportedException] {
-      new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock).apply(unsupportedPlan)
-    }
-  }
-
   test("exception thrown in apply method") {
     when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
     when(sparkPlanFactoryMock.createSparkPlan(any(classOf[BigQuerySQLQuery]),
@@ -52,6 +44,28 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     val returnedPlan = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock).apply(logicalRelation)
 
     assert(returnedPlan == Nil)
+  }
+
+  test("hasUnsupportedNodes with unsupported node") {
+    val unsupportedNode = Intersect(childPlan, childPlan, isAll = true)
+    val returnAnswerPlan = ReturnAnswer(unsupportedNode)
+
+    assert(new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock).hasUnsupportedNodes(returnAnswerPlan))
+  }
+
+  test("hasUnsupportedNodes with supported nodes") {
+    when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
+    when(directBigQueryRelationMock.getTableName).thenReturn("MY_BIGQUERY_TABLE")
+
+    val logicalRelation = LogicalRelation(directBigQueryRelationMock)
+
+    val filterPlan = Filter(EqualTo.apply(schoolIdAttributeReference, Literal(1234L)), logicalRelation)
+    val projectPlan = Project(Seq(schoolNameAttributeReference), filterPlan)
+    val sortPlan = Sort(Seq(SortOrder.apply(schoolIdAttributeReference, Ascending)), global = true, projectPlan)
+    val limitPlan = Limit(Literal(10), sortPlan)
+    val returnAnswerPlan = ReturnAnswer(limitPlan)
+
+    assert(!new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock).hasUnsupportedNodes(returnAnswerPlan))
   }
 
   test("generateQueryFromPlan with filter, project, limit and sort plans") {
