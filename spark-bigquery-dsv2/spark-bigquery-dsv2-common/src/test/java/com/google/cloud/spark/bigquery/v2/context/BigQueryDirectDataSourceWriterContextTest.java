@@ -145,6 +145,7 @@ public class BigQueryDirectDataSourceWriterContextTest {
         saveMode,
         sparkSchema,
         bigqueryDataWriterHelperRetrySettings,
-        Optional.absent());
+        Optional.absent(),
+        true);
   }
 }

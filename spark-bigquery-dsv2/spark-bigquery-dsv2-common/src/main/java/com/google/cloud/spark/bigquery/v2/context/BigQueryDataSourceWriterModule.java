@@ -66,8 +66,8 @@ public class BigQueryDataSourceWriterModule implements Module {
         mode,
         sparkSchema,
         bigqueryDataWriteHelperRetrySettings,
-        com.google.common.base.Optional.fromJavaUtil(
-            config.getTraceId())); // needs to be serializable
+        com.google.common.base.Optional.fromJavaUtil(config.getTraceId()),
+        config.getEnableModeCheckForSchemaFields()); // needs to be serializable
   }
 
   @Singleton
