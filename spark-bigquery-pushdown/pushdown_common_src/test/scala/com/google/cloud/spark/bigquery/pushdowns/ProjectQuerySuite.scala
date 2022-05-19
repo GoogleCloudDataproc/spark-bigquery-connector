@@ -52,6 +52,12 @@ class ProjectQuerySuite extends AnyFunSuite{
     assert(projectQuery.outputWithQualifier == Seq(schoolIdAttributeReference.withName(SUBQUERY_2_ALIAS + "_COL_0").withQualifier(Seq(SUBQUERY_2_ALIAS))))
   }
 
+  test("nullableOutputWithQualifier") {
+    val nullableOutputWithQualifier = projectQuery.nullableOutputWithQualifier
+    assert(nullableOutputWithQualifier.size == 1)
+    assert(nullableOutputWithQualifier == Seq(schoolIdAttributeReference.withName(SUBQUERY_2_ALIAS + "_COL_0").withQualifier(Seq(SUBQUERY_2_ALIAS)).withNullability(true)))
+  }
+
   test("getStatement") {
     assert(projectQuery.getStatement().toString == "SELECT ( SUBQUERY_1.SCHOOLID ) AS SUBQUERY_2_COL_0 FROM " +
       "( SELECT * FROM ( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 " +
