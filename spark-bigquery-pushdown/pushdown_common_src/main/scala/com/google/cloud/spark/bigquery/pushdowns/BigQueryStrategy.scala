@@ -21,6 +21,7 @@ import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Strategy
+import org.apache.spark.sql.catalyst.plans.{FullOuter, Inner, LeftOuter, RightOuter}
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.LogicalRelation
@@ -48,6 +49,12 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
    *         query generation was successful, None if not.
    */
   override def apply(plan: LogicalPlan): Seq[SparkPlan] = {
+    // Check if we have any unsupported nodes in the plan. If we do, we return
+    // Nil and let Spark try other strategies
+    if(hasUnsupportedNodes(plan)) {
+      return Nil
+    }
+
     try {
       generateSparkPlanFromLogicalPlan(plan)
     } catch {
@@ -58,6 +65,17 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
         logInfo("Query pushdown failed: ", e)
         Nil
     }
+  }
+
+  def hasUnsupportedNodes(plan: LogicalPlan): Boolean = {
+    plan.foreach {
+      case UnaryOperationExtractor(_) | LogicalRelation(_, _, _, _) =>
+      case subPlan =>
+        logInfo(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
+        return true
+    }
+
+    false
   }
 
   def generateSparkPlanFromLogicalPlan(plan: LogicalPlan): Seq[SparkPlan] = {
