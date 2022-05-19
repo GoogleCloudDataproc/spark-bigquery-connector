@@ -69,7 +69,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
 
   def hasUnsupportedNodes(plan: LogicalPlan): Boolean = {
     plan.foreach {
-      case UnaryOperationExtractor(_) | LogicalRelation(_, _, _, _) =>
+      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) | LogicalRelation(_, _, _, _) =>
       case subPlan =>
         logInfo(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
         return true
@@ -139,6 +139,20 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
               SortLimitQuery(expressionConverter, expressionFactory, None, orderExpr, subQuery, alias.next)
 
             case _ => subQuery
+          }
+        }
+
+      case BinaryOperationExtractor(left, right) =>
+        generateQueryFromPlan(left).flatMap { l =>
+          generateQueryFromPlan(right) map { r =>
+            plan match {
+              case JoinExtractor(joinType, condition) =>
+                joinType match {
+                  case Inner | LeftOuter | RightOuter | FullOuter =>
+                    JoinQuery(expressionConverter, expressionFactory, l, r, condition, joinType, alias.next)
+                  case _ => throw new MatchError
+                }
+            }
           }
         }
 
