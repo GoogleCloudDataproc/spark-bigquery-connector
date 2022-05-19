@@ -29,6 +29,7 @@ object JoinExtractor {
       case _: Join =>
         Some(node.joinType, node.condition)
 
+      // We should never reach here
       case _ => None
     }
 }
