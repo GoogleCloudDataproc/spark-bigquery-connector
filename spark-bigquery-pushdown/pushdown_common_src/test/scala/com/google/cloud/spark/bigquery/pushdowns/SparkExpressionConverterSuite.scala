@@ -413,7 +413,7 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val regExpExtractExpression = RegExpExtract.apply(schoolIdAttributeReference, Literal("[0-9]"), Literal(1))
     val bigQuerySQLStatement = converter.convertStringExpressions(regExpExtractExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "REGEXP_EXTRACT ( SUBQUERY_2.SCHOOLID , '[0-9]' , 1 )")
+    assert(bigQuerySQLStatement.get.toString == "REGEXP_EXTRACT ( SUBQUERY_2.SCHOOLID , r'[0-9]' , 1 )")
   }
 
   test("convertMiscExpressions with Alias") {

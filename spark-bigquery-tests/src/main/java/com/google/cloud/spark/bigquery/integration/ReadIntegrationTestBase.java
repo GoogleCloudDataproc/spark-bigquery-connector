@@ -364,4 +364,41 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
     assertThat(avroResults).isEqualTo(arrowResultsForLZ4FrameCodec);
   }
+
+  @Test
+  public void testStringExpressions() {
+    Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
+    df = df.selectExpr("word",
+        "ASCII(word) as ascii",
+        "LENGTH(word) as length",
+        "LOWER(word) as lower",
+        "LPAD(word, 10, '*') as lpad",
+        "RPAD(word, 10, '*') as rpad",
+        "TRANSLATE(word, 'a', '*') as translate",
+        "TRIM(concat('    ', word, '    ')) as trim",
+        "LTRIM(concat('    ', word, '    ')) as ltrim",
+        "RTRIM(concat('    ', word, '    ')) as rtrim",
+        "UPPER(word) as upper",
+        "INSTR(word, 'a') as instr",
+        "INITCAP(word) as initcap",
+        "CONCAT(word, '*', '!!') as concat");
+    df = df.limit(2);
+    List<Row> result = df.collectAsList();
+    assertThat(result.size()).isEqualTo(2);
+    Row r1 = result.get(1);
+    assertThat(r1.get(0)).isEqualTo("augurs"); //word
+    assertThat(r1.get(1)).isEqualTo(97); //ASCII(word)
+    assertThat(r1.get(2)).isEqualTo(6); //LENGTH(word)
+    assertThat(r1.get(3)).isEqualTo("augurs"); //LOWER(word)
+    assertThat(r1.get(4)).isEqualTo("****augurs"); //LPAD(word, 10, '*')
+    assertThat(r1.get(5)).isEqualTo("augurs****"); //LPAD(word, 10, '*')
+    assertThat(r1.get(6)).isEqualTo("*ugurs"); //TRANSLATE(word, 'a', '*')
+    assertThat(r1.get(7)).isEqualTo("augurs"); //TRIM(concat('    ', word, '    '))
+    assertThat(r1.get(8)).isEqualTo("augurs    "); //LTRIM(concat('    ', word, '    '))
+    assertThat(r1.get(9)).isEqualTo("    augurs"); //RTRIM(concat('    ', word, '    '))
+    assertThat(r1.get(10)).isEqualTo("AUGURS"); //UPPER(word)
+    assertThat(r1.get(11)).isEqualTo(1); //INSTR(word, 'a')
+    assertThat(r1.get(12)).isEqualTo("Augurs"); //INITCAP(word)
+    assertThat(r1.get(13)).isEqualTo("augurs*!!"); //CONCAT(word, '*', '!!')
+  }
 }

@@ -189,8 +189,10 @@ trait SparkExpressionConverter {
       case _: Ascii | _: Concat | _: Length | _: Lower |
            _: StringLPad | _: StringRPad | _: StringTranslate |
            _: StringTrim | _: StringTrimLeft | _: StringTrimRight |
-           _: Upper | _: StringInstr | _: InitCap | _: RegExpExtract =>
+           _: Upper | _: StringInstr | _: InitCap =>
         ConstantString(expression.prettyName.toUpperCase()) + blockStatement(convertStatements(fields, expression.children: _*))
+      case RegExpExtract(child, Literal(pattern: UTF8String, StringType), idx) =>
+        ConstantString("REGEXP_EXTRACT") + blockStatement(convertStatement(child, fields) + "," + s"r'${pattern.toString}'" + "," + convertStatement(idx, fields))
       case _ => null
     })
   }
