@@ -40,6 +40,7 @@ trait SparkExpressionConverter {
       .orElse(convertBasicExpressions(expression, fields))
       .orElse(convertBooleanExpressions(expression, fields))
       .orElse(convertMiscExpressions(expression, fields))
+      .orElse(convertStringExpressions(expression, fields))
       .getOrElse(throw new BigQueryPushdownUnsupportedException((s"Pushdown unsupported for ${expression.prettyName}")))
   }
 
@@ -179,6 +180,17 @@ trait SparkExpressionConverter {
           case _ => convertStatement(child, fields)
         }
 
+      case _ => null
+    })
+  }
+
+  def convertStringExpressions(expression: Expression, fields: Seq[Attribute]): Option[BigQuerySQLStatement] = {
+    Option(expression match {
+      case _: Ascii | _: Concat | _: Length | _: Lower |
+           _: StringLPad | _: StringRPad | _: StringTranslate |
+           _: StringTrim | _: StringTrimLeft | _: StringTrimRight |
+           _: Upper | _: StringInstr | _: InitCap | _: RegExpExtract =>
+        ConstantString(expression.prettyName.toUpperCase()) + blockStatement(convertStatements(fields, expression.children: _*))
       case _ => null
     })
   }
