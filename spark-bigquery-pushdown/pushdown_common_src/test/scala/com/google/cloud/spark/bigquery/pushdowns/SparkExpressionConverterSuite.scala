@@ -20,7 +20,7 @@ package com.google.cloud.spark.bigquery.pushdowns
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
 import com.google.cloud.spark.bigquery.pushdowns.TestConstants.schoolIdAttributeReference
 import org.apache.spark.sql.catalyst.expressions.aggregate._
-import org.apache.spark.sql.catalyst.expressions.{Alias, And, Ascending, Ascii, AttributeReference, Cast, Concat, Contains, Descending, EndsWith, EqualTo, ExprId, GreaterThan, GreaterThanOrEqual, In, InitCap, IsNotNull, IsNull, Length, LessThan, LessThanOrEqual, Literal, Lower, Not, Or, RegExpExtract, SortOrder, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Upper}
+import org.apache.spark.sql.catalyst.expressions.{Alias, And, Ascending, Ascii, AttributeReference, Base64, Cast, Concat, Contains, Descending, EndsWith, EqualTo, ExprId, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, In, InitCap, IsNotNull, IsNull, Length, LessThan, LessThanOrEqual, Literal, Lower, Not, Or, RegExpExtract, RegExpReplace, SortOrder, SoundEx, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, UnBase64, Upper}
 import org.apache.spark.sql.types._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
@@ -409,11 +409,60 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     assert(bigQuerySQLStatement.get.toString == "INITCAP ( SUBQUERY_2.SCHOOLID )")
   }
 
+  test("convertStringExpressions with Base64") {
+    val base64Expression = Base64.apply(schoolIdAttributeReference)
+    val bigQuerySQLStatement = converter.convertStringExpressions(base64Expression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "BASE64 ( SUBQUERY_2.SCHOOLID )")
+  }
+
+  test("convertStringExpressions with UnBase64") {
+    val unBase64Expression = UnBase64.apply(schoolIdAttributeReference)
+    val bigQuerySQLStatement = converter.convertStringExpressions(unBase64Expression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "UNBASE64 ( SUBQUERY_2.SCHOOLID )")
+  }
+
+  test("convertStringExpressions with Substring") {
+    val substrExpression = Substring.apply(schoolIdAttributeReference, Literal(2), Literal(3))
+    val bigQuerySQLStatement = converter.convertStringExpressions(substrExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "SUBSTRING ( SUBQUERY_2.SCHOOLID , 2 , 3 )")
+  }
+
+  test("convertStringExpressions with SoundEx") {
+    val soundexExpression = SoundEx.apply(schoolIdAttributeReference)
+    val bigQuerySQLStatement = converter.convertStringExpressions(soundexExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "SOUNDEX ( SUBQUERY_2.SCHOOLID )")
+  }
+
   test("convertStringExpressions with RegExpExtract") {
     val regExpExtractExpression = RegExpExtract.apply(schoolIdAttributeReference, Literal("[0-9]"), Literal(1))
     val bigQuerySQLStatement = converter.convertStringExpressions(regExpExtractExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "REGEXP_EXTRACT ( SUBQUERY_2.SCHOOLID , r'[0-9]' , 1 )")
+  }
+
+  test("convertStringExpressions with RegExpReplace") {
+    val regExpReplaceExpression = RegExpReplace.apply(schoolIdAttributeReference, Literal("[0-9]"), Literal("replace"))
+    val bigQuerySQLStatement = converter.convertStringExpressions(regExpReplaceExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "REGEXP_REPLACE ( SUBQUERY_2.SCHOOLID , r'[0-9]' , 'replace' )")
+  }
+
+  test("convertStringExpressions with FormatString") {
+    val formatStringExpression = FormatString.apply(Literal("*%s*"), schoolIdAttributeReference)
+    val bigQuerySQLStatement = converter.convertStringExpressions(formatStringExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "FORMAT ( '*%s*' , SUBQUERY_2.SCHOOLID )")
+  }
+
+  test("convertStringExpressions with FormatNumber") {
+    val formatNumberExpression = FormatNumber.apply(Literal(12.3456), Literal(2))
+    val bigQuerySQLStatement = converter.convertStringExpressions(formatNumberExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "FORMAT ( 12.3456 , 2 )")
   }
 
   test("convertMiscExpressions with Alias") {
