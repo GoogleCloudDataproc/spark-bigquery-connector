@@ -38,6 +38,13 @@ class SourceQuerySuite extends AnyFunSuite{
       schoolNameAttributeReference.withQualifier(Seq(SUBQUERY_0_ALIAS))))
   }
 
+  test("nullableOutputWithQualifier") {
+    val nullableOutputWithQualifier = sourceQuery.nullableOutputWithQualifier
+    assert(nullableOutputWithQualifier.size == 2)
+    assert(nullableOutputWithQualifier == Seq(schoolIdAttributeReference.withQualifier(Seq(SUBQUERY_0_ALIAS)).withNullability(true),
+      schoolNameAttributeReference.withQualifier(Seq(SUBQUERY_0_ALIAS)).withNullability(true)))
+  }
+
   test("getStatement") {
     assert(sourceQuery.getStatement().toString == "SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS")
   }

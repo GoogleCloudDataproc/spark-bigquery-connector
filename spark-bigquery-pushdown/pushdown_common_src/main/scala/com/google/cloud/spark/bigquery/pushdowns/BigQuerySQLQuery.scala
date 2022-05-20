@@ -115,7 +115,7 @@ abstract class BigQuerySQLQuery(
   }
 
   /** Add the query alias as a qualifier for each output attribute */
-  val outputWithQualifier: Seq[AttributeReference] = output.map(
+  var outputWithQualifier: Seq[AttributeReference] = output.map(
     a =>
       AttributeReference(a.name, a.dataType, a.nullable, a.metadata)(
         a.exprId,
@@ -164,4 +164,13 @@ abstract class BigQuerySQLQuery(
           this.children.head.find(query)
         }
       )
+
+  // For OUTER JOIN, the column's nullability may need to be modified as true
+  def nullableOutputWithQualifier: Seq[AttributeReference] = output.map(
+    a =>
+      AttributeReference(a.name, a.dataType, nullable = true, a.metadata)(
+        a.exprId,
+        Seq[String](alias)
+      )
+  )
 }

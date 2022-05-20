@@ -21,6 +21,7 @@ import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Strategy
+import org.apache.spark.sql.catalyst.plans.{FullOuter, Inner, LeftOuter, RightOuter}
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.LogicalRelation
@@ -48,16 +49,33 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
    *         query generation was successful, None if not.
    */
   override def apply(plan: LogicalPlan): Seq[SparkPlan] = {
+    // Check if we have any unsupported nodes in the plan. If we do, we return
+    // Nil and let Spark try other strategies
+    if(hasUnsupportedNodes(plan)) {
+      return Nil
+    }
+
     try {
       generateSparkPlanFromLogicalPlan(plan)
     } catch {
-      case ue: BigQueryPushdownUnsupportedException =>
-        logWarning(s"BigQuery doesn't support this feature :${ue.getMessage}")
-        throw ue
+      // We catch all exceptions here (including BigQueryPushdownUnsupportedException)
+      // and return Nil because if we are not able to translate the plan, then
+      // we let Spark handle it
       case e: Exception =>
         logInfo("Query pushdown failed: ", e)
         Nil
     }
+  }
+
+  def hasUnsupportedNodes(plan: LogicalPlan): Boolean = {
+    plan.foreach {
+      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) | LogicalRelation(_, _, _, _) =>
+      case subPlan =>
+        logInfo(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
+        return true
+    }
+
+    false
   }
 
   def generateSparkPlanFromLogicalPlan(plan: LogicalPlan): Seq[SparkPlan] = {
@@ -121,6 +139,20 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
               SortLimitQuery(expressionConverter, expressionFactory, None, orderExpr, subQuery, alias.next)
 
             case _ => subQuery
+          }
+        }
+
+      case BinaryOperationExtractor(left, right) =>
+        generateQueryFromPlan(left).flatMap { l =>
+          generateQueryFromPlan(right) map { r =>
+            plan match {
+              case JoinExtractor(joinType, condition) =>
+                joinType match {
+                  case Inner | LeftOuter | RightOuter | FullOuter =>
+                    JoinQuery(expressionConverter, expressionFactory, l, r, condition, joinType, alias.next)
+                  case _ => throw new MatchError
+                }
+            }
           }
         }
 

@@ -95,7 +95,11 @@ public class BigQueryRDDFactory {
 
     log.info(
         "Querying table {}, requiredColumns=[{}]",
-        actualTable.getFriendlyName(),
+        actualTable.getTableId().getProject()
+            + ":"
+            + actualTable.getTableId().getDataset()
+            + ":"
+            + actualTable.getTableId().getTable(),
         requiredColumns.toString());
 
     ReadSessionCreator readSessionCreator =

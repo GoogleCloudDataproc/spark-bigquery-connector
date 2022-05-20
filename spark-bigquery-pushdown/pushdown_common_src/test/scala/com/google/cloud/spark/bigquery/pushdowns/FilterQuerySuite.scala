@@ -61,6 +61,13 @@ class FilterQuerySuite extends AnyFunSuite {
       schoolNameAttributeReference.withQualifier(Seq(SUBQUERY_1_ALIAS))))
   }
 
+  test("nullableOutputWithQualifier") {
+    val nullableOutputWithQualifier = filterQuery.nullableOutputWithQualifier
+    assert(nullableOutputWithQualifier.size == 2)
+    assert(nullableOutputWithQualifier == Seq(schoolIdAttributeReference.withQualifier(Seq(SUBQUERY_1_ALIAS)).withNullability(true),
+      schoolNameAttributeReference.withQualifier(Seq(SUBQUERY_1_ALIAS)).withNullability(true)))
+  }
+
   test("getStatement") {
     assert(filterQuery.getStatement().toString == "SELECT * FROM ( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 " +
       "WHERE ( SUBQUERY_0.SCHOOLID >= 50 ) AND ( SUBQUERY_0.SCHOOLID <= 100 )")
