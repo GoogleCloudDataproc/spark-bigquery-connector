@@ -17,7 +17,7 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.makeStatement
-import org.apache.spark.sql.catalyst.expressions.Expression
+import org.apache.spark.sql.catalyst.expressions.{Attribute, Expression}
 
 /** Query for filter operations.
  *
@@ -31,12 +31,14 @@ case class FilterQuery(
     expressionFactory: SparkExpressionFactory,
     conditions: Seq[Expression],
     child: BigQuerySQLQuery,
-    alias: String)
+    alias: String,
+    fields: Option[Seq[Attribute]] = None)
   extends BigQuerySQLQuery(
     expressionConverter,
     expressionFactory,
     alias,
-    children = Seq(child)) {
+    children = Seq(child),
+    fields = fields) {
 
   /** Builds the WHERE statement of the filter query */
   override val suffixStatement: BigQuerySQLStatement =

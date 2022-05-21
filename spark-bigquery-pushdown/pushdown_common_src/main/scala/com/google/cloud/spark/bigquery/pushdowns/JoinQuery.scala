@@ -38,7 +38,7 @@ case class JoinQuery(
                       joinType: JoinType,
                       alias: String)
   extends BigQuerySQLQuery(expressionConverter, expressionFactory, alias, Seq(left, right), Some(
-    left.outputWithQualifier ++ right.outputWithQualifier), outputAttributes = None, ConstantString(getConjunctionStatement(joinType, left, right)).toStatement) {
+    left.outputWithQualifier ++ right.outputWithQualifier), outputAttributes = None, conjunctionStatement = ConstantString(getConjunctionStatement(joinType, left, right)).toStatement) {
 
   override val suffixStatement: BigQuerySQLStatement =
     conditions

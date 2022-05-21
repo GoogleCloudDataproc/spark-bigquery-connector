@@ -88,4 +88,46 @@ class JoinQuerySuite extends AnyFunSuite {
       "( SELECT * FROM `test_project:test_dataset.school` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 FULL OUTER JOIN " +
       "( SELECT * FROM `test_project:test_dataset.student` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_2 ON ( SUBQUERY_0.SCHOOLID = SUBQUERY_2._SCHOOLID )")
   }
+
+  test("getStatement with LEFT SEMI JOIN") {
+    val alias = Iterator.from(0).map(n => s"SUBQUERY_$n")
+    val joinQuery = LeftSemiJoinQuery(expressionConverter, expressionFactory, leftSourceQuery, rightSourceQuery, Option.apply(joinExpression), isAntiJoin = false, alias)
+    assert(joinQuery.getStatement().toString == "SELECT ( SUBQUERY_0.SCHOOLID ) AS SUBQUERY_0_COL_0 , ( SUBQUERY_0.SCHOOLNAME ) AS SUBQUERY_0_COL_1 FROM " +
+      "( SELECT * FROM `test_project:test_dataset.school` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 WHERE  EXISTS " +
+      "( SELECT * FROM ( SELECT * FROM `test_project:test_dataset.student` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_2 WHERE " +
+      "( SUBQUERY_0.SCHOOLID = SUBQUERY_2._SCHOOLID ) )")
+  }
+
+  test("getStatement with LEFT ANTI JOIN") {
+    val alias = Iterator.from(0).map(n => s"SUBQUERY_$n")
+    val joinQuery = LeftSemiJoinQuery(expressionConverter, expressionFactory, leftSourceQuery, rightSourceQuery, Option.apply(joinExpression), isAntiJoin = true, alias)
+    assert(joinQuery.getStatement().toString == "SELECT ( SUBQUERY_0.SCHOOLID ) AS SUBQUERY_0_COL_0 , ( SUBQUERY_0.SCHOOLNAME ) AS SUBQUERY_0_COL_1 FROM " +
+      "( SELECT * FROM `test_project:test_dataset.school` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 WHERE  NOT EXISTS " +
+      "( SELECT * FROM ( SELECT * FROM `test_project:test_dataset.student` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_2 WHERE " +
+      "( SUBQUERY_0.SCHOOLID = SUBQUERY_2._SCHOOLID ) )")
+  }
+
+  test("find for left semi join") {
+    val alias = Iterator.from(0).map(n => s"SUBQUERY_$n")
+    val joinQuery = LeftSemiJoinQuery(expressionConverter, expressionFactory, leftSourceQuery, rightSourceQuery, Option.apply(joinExpression), isAntiJoin = true, alias)
+    val returnedQuery = joinQuery.find({ case q: SourceQuery => q })
+    assert(returnedQuery.isDefined)
+    assert(returnedQuery.get == leftSourceQuery)
+  }
+
+  test("suffixStatement for left semi join") {
+    val alias = Iterator.from(0).map(n => s"SUBQUERY_$n")
+    val joinQuery = LeftSemiJoinQuery(expressionConverter, expressionFactory, leftSourceQuery, rightSourceQuery, Option.apply(joinExpression), isAntiJoin = false, alias)
+    assert(joinQuery.suffixStatement.toString == "WHERE  EXISTS " +
+      "( SELECT * FROM ( SELECT * FROM `test_project:test_dataset.student` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_2 WHERE " +
+      "( SUBQUERY_0.SCHOOLID = SUBQUERY_2._SCHOOLID ) )")
+  }
+
+  test("suffixStatement for left anti join") {
+    val alias = Iterator.from(0).map(n => s"SUBQUERY_$n")
+    val joinQuery = LeftSemiJoinQuery(expressionConverter, expressionFactory, leftSourceQuery, rightSourceQuery, Option.apply(joinExpression), isAntiJoin = true, alias)
+    assert(joinQuery.suffixStatement.toString == "WHERE  NOT EXISTS " +
+      "( SELECT * FROM ( SELECT * FROM `test_project:test_dataset.student` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_2 WHERE " +
+      "( SUBQUERY_0.SCHOOLID = SUBQUERY_2._SCHOOLID ) )")
+  }
 }

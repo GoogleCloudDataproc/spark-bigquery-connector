@@ -42,7 +42,8 @@ abstract class BigQuerySQLQuery(
   children: Seq[BigQuerySQLQuery] = Seq.empty,
   projections: Option[Seq[NamedExpression]] = None,
   outputAttributes: Option[Seq[Attribute]] = None,
-  conjunctionStatement: BigQuerySQLStatement = EmptyBigQuerySQLStatement()) {
+  conjunctionStatement: BigQuerySQLStatement = EmptyBigQuerySQLStatement(),
+  fields: Option[Seq[Attribute]] = None) {
 
   /**
    * Creates the sql after the FROM clause by building the queries from its children.
@@ -61,13 +62,19 @@ abstract class BigQuerySQLQuery(
   val suffixStatement: BigQuerySQLStatement = EmptyBigQuerySQLStatement()
 
   /** Gets columns from the child query */
-  val columnSet: Seq[Attribute] =
-    children.foldLeft(Seq.empty[Attribute])(
-      (x, y) => {
-        val attrs = y.outputWithQualifier
-        x ++ attrs
-      }
-    )
+  val columnSet: Seq[Attribute] = {
+    if (fields.isEmpty) {
+      children.foldLeft(Seq.empty[Attribute])(
+        (x, y) => {
+          val attrs = y.outputWithQualifier
+          x ++ attrs
+        }
+      )
+    } else {
+      fields.get
+    }
+
+  }
 
   /**
    * Checks if we have already seen the AttributeReference before based on the exprId and
