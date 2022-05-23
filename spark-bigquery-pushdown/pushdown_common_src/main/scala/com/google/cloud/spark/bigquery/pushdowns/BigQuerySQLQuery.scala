@@ -34,6 +34,7 @@ import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeRef
  * @param outputAttributes Optional manual override for output. Currently, set in SourceQuery and will be later used in UnionQuery
  * @param conjunctionStatement Conjunction phrase to be used in between subquery children,
  *                             or simple phrase when there are no subqueries.
+ * @param fields Contains output from the left + right query for left semi and left anti joins
  */
 abstract class BigQuerySQLQuery(
   expressionConverter: SparkExpressionConverter,
@@ -61,7 +62,7 @@ abstract class BigQuerySQLQuery(
    */
   val suffixStatement: BigQuerySQLStatement = EmptyBigQuerySQLStatement()
 
-  /** Gets columns from the child query */
+  /** Gets columns from the fields list if not empty or from the child query */
   val columnSet: Seq[Attribute] = {
     if (fields.isEmpty) {
       children.foldLeft(Seq.empty[Attribute])(

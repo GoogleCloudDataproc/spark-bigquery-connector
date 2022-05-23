@@ -25,6 +25,7 @@ import org.apache.spark.sql.catalyst.expressions.{Attribute, Expression}
  * @param conditions The filter condition.
  * @param child      The child node.
  * @param alias      Query alias.
+ * @param fields Contains output from the left + right query for left semi and left anti joins
  */
 case class FilterQuery(
     expressionConverter: SparkExpressionConverter,
