@@ -38,4 +38,5 @@ $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggre
 # Upload test coverage report to Codecov
 bash <(curl -s https://codecov.io/bash) -K -F "nightly"
 
+# Save the REVISION variable to use in the next build step
 echo "${REVISION}" > /workspace/revision.txt
