@@ -26,9 +26,6 @@ steps:
         revision="$(cat /workspace/revision.txt)"
         
         # Upload daily artifacts to the snapshot bucket and mark nightly snapshot
-        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.11/$revision/spark-bigquery-with-dependencies_2.11-$revision.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.11-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.11-daily-snapshot.jar"
-        
         gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.12/$revision/spark-bigquery-with-dependencies_2.12-$revision.jar" "gs://$bucket"
         gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.12-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.12-daily-snapshot.jar"
         
