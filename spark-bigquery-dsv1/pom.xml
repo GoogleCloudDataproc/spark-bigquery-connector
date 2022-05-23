@@ -17,8 +17,10 @@
     <module>spark-bigquery-dsv1-parent</module>
     <module>spark-bigquery_2.11</module>
     <module>spark-bigquery_2.12</module>
+    <module>spark-bigquery_2.13</module>
     <module>spark-bigquery-with-dependencies-parent</module>
     <module>spark-bigquery-with-dependencies_2.11</module>
     <module>spark-bigquery-with-dependencies_2.12</module>
+    <module>spark-bigquery-with-dependencies_2.13</module>
   </modules>
 </project>

@@ -77,21 +77,6 @@ private[bigquery] object BigQueryStreamWriter extends Logging {
     }
   }
 
-  class Spark2DataFrameToRDDConverter extends DataFrameToRDDConverter {
-
-    override def convertToRDD(data: Dataset[Row]): RDD[Row] = {
-      val schema: StructType = data.schema
-      val expressionEncoder = RowEncoder(schema).resolveAndBind()
-
-      val rowRdd: RDD[Row] =
-        data.queryExecution.toRdd.mapPartitions(
-          iter =>
-            iter.map(internalRow => expressionEncoder.fromRow(internalRow)))
-
-      rowRdd
-    }
-  }
-
   def dataFrameToRDDConverterFactory(sparkVersion: String): DataFrameToRDDConverter = {
     val version = sparkVersion.charAt(0) - '0'
     if (version < 3) {
