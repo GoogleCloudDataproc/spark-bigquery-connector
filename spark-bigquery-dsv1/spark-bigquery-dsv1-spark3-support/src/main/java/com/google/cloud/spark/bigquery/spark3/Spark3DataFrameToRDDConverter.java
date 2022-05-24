@@ -31,7 +31,6 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.catalyst.expressions.Attribute;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.Iterator;
-import scala.collection.JavaConversions;
 import scala.collection.JavaConverters;
 import scala.reflect.ClassTag;
 import scala.reflect.ClassTag$;
@@ -44,7 +43,7 @@ public class Spark3DataFrameToRDDConverter implements DataFrameToRDDConverter {
     StructType schema = data.schema();
 
     List<Attribute> attributes =
-        JavaConversions.asJavaCollection(schema.toAttributes()).stream()
+        JavaConverters.asJavaCollection(schema.toAttributes()).stream()
             .map(Attribute::toAttribute)
             .collect(Collectors.toList());
 
