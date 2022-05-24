@@ -9,8 +9,8 @@
     <relativePath>../../spark-bigquery-parent</relativePath>
   </parent>
 
-  <artifactId>spark-bigquery-dsv1-spark3-support</artifactId>
-  <name>Spark BigQuery Connector Spark 3 Support</name>
+  <artifactId>spark-bigquery-dsv1-spark2-support</artifactId>
+  <name>Spark BigQuery Connector Spark 2 Support</name>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
@@ -27,7 +27,7 @@
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-sql_2.12</artifactId>
-      <version>3.0.0</version>
+      <version>2.4.0</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>

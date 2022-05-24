@@ -13,6 +13,7 @@
   <name>BigQuery DataSource v1 implementation</name>
   <packaging>pom</packaging>
   <modules>
+    <module>spark-bigquery-dsv1-spark2-support</module>
     <module>spark-bigquery-dsv1-spark3-support</module>
     <module>spark-bigquery-dsv1-parent</module>
     <module>spark-bigquery_2.11</module>
