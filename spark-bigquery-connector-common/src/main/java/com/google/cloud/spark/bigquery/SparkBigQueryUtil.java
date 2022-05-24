@@ -35,12 +35,21 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.Stream;
+
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
+import scala.collection.Iterator;
 
 /** Spark related utilities */
 public class SparkBigQueryUtil {
@@ -185,14 +194,15 @@ public class SparkBigQueryUtil {
     return (int) sparkDate.toLocalDate().toEpochDay();
   }
 
-  public static String getTableNameFromOptions(Map<String, String> options) {
-    // options.get("table") when the "table" option is used, options.get("path") is set when
-    // .load("table_name) is used
-    Optional<String> tableParam =
-        getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
-            .toJavaUtil();
-    String tableParamStr = tableParam.get().trim().replaceAll("\\s+", " ");
-    TableId tableId = BigQueryUtil.parseTableId(tableParamStr);
-    return BigQueryUtil.friendlyTableName(tableId);
+  // scala version agnostic conversion, that's why no JavaConverters are used
+  public static <K, V> ImmutableMap<K, V> scalaMapToJavaMap(
+      scala.collection.immutable.Map<K, V> map) {
+    ImmutableMap.Builder<K, V> result = ImmutableMap.<K, V>builder();
+    Iterator<K> keysIterator = map.keys().iterator();
+    while (keysIterator.hasNext()) {
+      K key = keysIterator.next();
+      result.put(key, map.get(key).get());
+    }
+    return result.build();
   }
 }

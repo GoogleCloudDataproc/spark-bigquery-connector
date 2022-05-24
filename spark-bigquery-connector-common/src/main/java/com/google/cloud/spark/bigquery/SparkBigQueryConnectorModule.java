@@ -37,12 +37,12 @@ public class SparkBigQueryConnectorModule implements Module {
   private final boolean tableIsMandatory;
 
   public SparkBigQueryConnectorModule(
-      SparkSession spark,
-      Map<String, String> options,
-      Map<String, String> customDefaults,
-      Optional<StructType> schema,
-      DataSourceVersion dataSourceVersion,
-      boolean tableIsMandatory) {
+          SparkSession spark,
+          Map<String, String> options,
+          Map<String, String> customDefaults,
+          Optional<StructType> schema,
+          DataSourceVersion dataSourceVersion,
+          boolean tableIsMandatory) {
     this.spark = spark;
     this.options = options;
     this.customDefaults = customDefaults;
@@ -72,12 +72,12 @@ public class SparkBigQueryConnectorModule implements Module {
   @Provides
   public SparkBigQueryConfig provideSparkBigQueryConfig() {
     return SparkBigQueryConfig.from(
-        options,
-        ImmutableMap.copyOf(customDefaults),
-        dataSourceVersion,
-        spark,
-        schema,
-        tableIsMandatory);
+            options,
+            ImmutableMap.copyOf(customDefaults),
+            dataSourceVersion,
+            spark,
+            schema,
+            tableIsMandatory);
   }
 
   @Singleton
