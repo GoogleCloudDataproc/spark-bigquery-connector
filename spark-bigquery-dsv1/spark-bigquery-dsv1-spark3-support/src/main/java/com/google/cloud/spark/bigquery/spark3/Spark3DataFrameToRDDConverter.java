@@ -15,11 +15,11 @@
  */
 package com.google.cloud.spark.bigquery.spark3;
 
+import com.google.cloud.spark.bigquery.DataFrameToRDDConverter;
 import java.io.Serializable;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import com.google.cloud.spark.bigquery.DataFrameToRDDConverter;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;

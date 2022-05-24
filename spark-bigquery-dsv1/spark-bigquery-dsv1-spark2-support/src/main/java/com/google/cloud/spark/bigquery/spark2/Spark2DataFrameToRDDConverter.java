@@ -16,6 +16,9 @@
 package com.google.cloud.spark.bigquery.spark2;
 
 import com.google.cloud.spark.bigquery.DataFrameToRDDConverter;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -26,10 +29,6 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.catalyst.expressions.Attribute;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.JavaConverters;
-
-import java.util.Iterator;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class Spark2DataFrameToRDDConverter implements DataFrameToRDDConverter {
 
