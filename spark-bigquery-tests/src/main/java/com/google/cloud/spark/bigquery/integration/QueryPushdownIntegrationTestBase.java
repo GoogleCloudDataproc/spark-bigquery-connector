@@ -61,4 +61,35 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(20)).isEqualTo("ug"); // SUBSTR(word, 2, 2)
     assertThat(r1.get(21)).isEqualTo("A262"); // SOUNDEX(word)
   }
+
+  @Test
+  public void testBasicExpressions() {
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(TestConstants.SHAKESPEARE_TABLE);
+
+    df.createOrReplaceTempView("shakespeare");
+
+    List<Row> result =
+        spark
+            .sql(
+                "SELECT "
+                    + "word_count & corpus_date, "
+                    + "word_count | corpus_date, "
+                    + "word_count ^ corpus_date, "
+                    + "~ word_count "
+                    + "FROM shakespeare "
+                    + "WHERE word = 'augurs' AND corpus = 'sonnets'")
+            .collectAsList();
+
+    // Note that for this row, word_count equals 1 and corpus_date equals 0
+    Row r1 = result.get(0);
+    assertThat(r1.get(0).toString()).isEqualTo("0"); // 1 & 0
+    assertThat(r1.get(1).toString()).isEqualTo("1"); // 1 | 0
+    assertThat(r1.get(2).toString()).isEqualTo("1"); // 1 ^ 0
+    assertThat(r1.get(3).toString()).isEqualTo("-2"); // ~1
+  }
 }

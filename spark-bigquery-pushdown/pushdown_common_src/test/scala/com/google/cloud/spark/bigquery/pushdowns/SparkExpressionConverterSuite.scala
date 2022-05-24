@@ -20,7 +20,7 @@ package com.google.cloud.spark.bigquery.pushdowns
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
 import com.google.cloud.spark.bigquery.pushdowns.TestConstants.schoolIdAttributeReference
 import org.apache.spark.sql.catalyst.expressions.aggregate._
-import org.apache.spark.sql.catalyst.expressions.{Alias, And, Ascending, Ascii, AttributeReference, Base64, Cast, Concat, Contains, Descending, EndsWith, EqualTo, ExprId, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, In, InitCap, IsNotNull, IsNull, Length, LessThan, LessThanOrEqual, Literal, Lower, Not, Or, RegExpExtract, RegExpReplace, SortOrder, SoundEx, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, UnBase64, Upper}
+import org.apache.spark.sql.catalyst.expressions.{Alias, And, Ascending, Ascii, AttributeReference, Base64, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Cast, Concat, Contains, Descending, EndsWith, EqualTo, ExprId, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, In, InitCap, IsNotNull, IsNull, Length, LessThan, LessThanOrEqual, Literal, Lower, Not, Or, RegExpExtract, RegExpReplace, SortOrder, SoundEx, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, UnBase64, Upper}
 import org.apache.spark.sql.types._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
@@ -176,6 +176,41 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     assert(bigQuerySQLStatement.get.toString == "( ( SUBQUERY_2.SCHOOLID <= 25 ) OR ( SUBQUERY_2.SCHOOLID >= 75 ) )")
   }
 
+  test("convertBasicExpressions with BitwiseAnd") {
+    val left = Literal.apply(0)
+    val right = Literal.apply(1)
+    val bitwiseAndExpression = BitwiseAnd.apply(left, right)
+    val bigQuerySQLStatement = converter.convertBasicExpressions(bitwiseAndExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "( 0 & 1 )")
+  }
+
+  test("convertBasicExpressions with BitwiseOr") {
+    val left = Literal.apply(0)
+    val right = Literal.apply(1)
+    val bitwiseOrExpression = BitwiseOr.apply(left, right)
+    val bigQuerySQLStatement = converter.convertBasicExpressions(bitwiseOrExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "( 0 | 1 )")
+  }
+
+  test("convertBasicExpressions with BitwiseXor") {
+    val left = Literal.apply(0)
+    val right = Literal.apply(1)
+    val bitwiseXorExpression = BitwiseXor.apply(left, right)
+    val bigQuerySQLStatement = converter.convertBasicExpressions(bitwiseXorExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "( 0 ^ 1 )")
+  }
+
+  test("convertBasicExpressions with BitwiseNot") {
+    val child = Literal.apply(1)
+    val bitwiseXorExpression = BitwiseNot.apply(child)
+    val bigQuerySQLStatement = converter.convertBasicExpressions(bitwiseXorExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "~ ( 1 )")
+  }
+
   test("convertBasicExpressions with String literal") {
     val bigQuerySQLStatement = converter.convertBasicExpressions(Literal("MY_STRING_LITERAL"), fields)
     assert(bigQuerySQLStatement.isDefined)
@@ -186,6 +221,20 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val bigQuerySQLStatement = converter.convertBasicExpressions(Literal(null, StringType), fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "NULL")
+  }
+
+  test("convertBasicExpressions with Date literal") {
+    // Spark represents DateType as number of days after 1970-01-01
+    val bigQuerySQLStatement = converter.convertBasicExpressions(Literal(17007, DateType), fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "DATE_ADD(DATE \"1970-01-01\", INTERVAL 17007  DAY)")
+  }
+
+  test("convertBasicExpressions with Timestamp literal") {
+    // Internally, a timestamp is stored as the number of microseconds from the epoch of 1970-01-01T00
+    val bigQuerySQLStatement = converter.convertBasicExpressions(Literal(1230219000000000L, TimestampType), fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "TIMESTAMP_MICROS( 1230219000000000 )")
   }
 
   test("convertBasicExpressions with Integer literal") {
