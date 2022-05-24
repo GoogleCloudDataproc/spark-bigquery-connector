@@ -100,8 +100,7 @@ public class DataSourceV1WriteIntegrationTestBase extends WriteIntegrationTestBa
   }
 
   @Test(timeout = 120_000)
-  public void testStreamingToBigQueryWriteAppend() throws InterruptedException {
-    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
+  public void testStreamingToBigQueryWriteAppend() throws Exception {
     StructType schema = initialData().schema();
     ExpressionEncoder<Row> expressionEncoder = RowEncoder.apply(schema);
     MemoryStream<Row> stream = MemoryStream.apply(expressionEncoder, spark.sqlContext());
