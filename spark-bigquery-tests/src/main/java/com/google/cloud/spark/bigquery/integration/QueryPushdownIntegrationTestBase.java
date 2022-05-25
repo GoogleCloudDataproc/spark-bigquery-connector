@@ -61,41 +61,4 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(20)).isEqualTo("ug"); // SUBSTR(word, 2, 2)
     assertThat(r1.get(21)).isEqualTo("A262"); // SOUNDEX(word)
   }
-
-  @Test
-  public void testDateFunctionExpressions() {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("materializationDataset", testDataset.toString())
-            .load(TestConstants.SHAKESPEARE_TABLE);
-
-    df.createOrReplaceTempView("shakespeare");
-
-    List<Row> result =
-        spark
-            .sql(
-                "SELECT "
-                    + "DATE_ADD('2016-07-30', 1), "
-                    + "DATE_SUB('2016-07-30', 5), "
-                    + "cast('2017-07-30' AS date) + INTERVAL '30' day,"
-                    + "MONTH('2016-07-30'), "
-                    + "QUARTER('2016-07-30'), "
-                    + "YEAR('2016-07-30'), "
-                    + "TRUNC('2015-03-05', 'YEAR') "
-                    + "FROM shakespeare "
-                    + "WHERE word = 'augurs'")
-            .collectAsList();
-
-    Row r1 = result.get(0);
-    assertThat(r1.get(0).toString()).isEqualTo("2016-07-31"); // DATE_ADD('2016-07-30', 1)
-    assertThat(r1.get(1).toString()).isEqualTo("2016-07-25"); // DATE_SUB('2016-07-30', 5)
-    assertThat(r1.get(2).toString())
-        .isEqualTo("2017-08-29"); // cast('2017-07-30' AS date) + INTERVAL '30' day
-    assertThat(r1.get(3).toString()).isEqualTo("7"); // MONTH('2016-07-30')
-    assertThat(r1.get(4).toString()).isEqualTo("3"); // QUARTER('2016-07-30')
-    assertThat(r1.get(5).toString()).isEqualTo("2016"); // YEAR('2016-07-30')
-    assertThat(r1.get(6).toString()).isEqualTo("2015-01-01"); // TRUNC('2015-03-05', 'YEAR')
-  }
 }

@@ -157,40 +157,37 @@ trait SparkExpressionConverter {
       case DateAdd(startDate, days) =>
         ConstantString(expression.prettyName.toUpperCase) +
           blockStatement(
-            ConstantString("DATE ") +
               convertStatement(startDate, fields) + ", INTERVAL " +
               convertStatement(days, fields) + "DAY"
           )
       case DateSub(startDate, days) =>
         ConstantString(expression.prettyName.toUpperCase) +
           blockStatement(
-            ConstantString("DATE ") +
               convertStatement(startDate, fields) + ", INTERVAL " +
               convertStatement(days, fields) + "DAY"
           )
       case Month(child) =>
         ConstantString("EXTRACT") +
           blockStatement(
-            ConstantString(expression.prettyName.toUpperCase) + " FROM DATE " +
+            ConstantString(expression.prettyName.toUpperCase) + " FROM " +
               convertStatement(child, fields)
           )
       case Quarter(child) =>
         ConstantString("EXTRACT") +
           blockStatement(
-            ConstantString(expression.prettyName.toUpperCase) + " FROM DATE " +
+            ConstantString(expression.prettyName.toUpperCase) + " FROM " +
               convertStatement(child, fields)
           )
       case Year(child) =>
         ConstantString("EXTRACT") +
           blockStatement(
-            ConstantString(expression.prettyName.toUpperCase) + " FROM DATE " +
+            ConstantString(expression.prettyName.toUpperCase) + " FROM " +
               convertStatement(child, fields)
           )
       case TruncDate(date, format) =>
         ConstantString("DATE_TRUNC") +
           blockStatement(
-            ConstantString("DATE ") + convertStatement(date, fields) + "," +
-              convertStatement(format, fields)
+            convertStatement(date, fields) + s", ${format.toString()}"
           )
 
       case _ => null
