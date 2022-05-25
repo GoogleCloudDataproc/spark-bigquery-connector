@@ -67,6 +67,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
   @Test
   public void testDateFunctionExpressions() {
+    // This table only has one row and one column which is today's date
     Dataset<Row> df =
         spark
             .read()
