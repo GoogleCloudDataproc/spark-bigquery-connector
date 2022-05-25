@@ -32,7 +32,9 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
+import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -47,6 +49,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.StructField;
@@ -84,6 +87,8 @@ public class BigQueryDataSourceReaderContext {
   private final ReadSessionCreator readSessionCreator;
   private final Optional<String> globalFilter;
   private final String applicationId;
+  private final SparkBigQueryConfig options;
+  private final SQLContext sqlContext;
   private Optional<StructType> schema;
   private Optional<StructType> userProvidedSchema;
   private Filter[] pushedFilters = new Filter[] {};
@@ -97,7 +102,9 @@ public class BigQueryDataSourceReaderContext {
       ReadSessionCreatorConfig readSessionCreatorConfig,
       Optional<String> globalFilter,
       Optional<StructType> schema,
-      String applicationId) {
+      String applicationId,
+      SparkBigQueryConfig options,
+      SQLContext sqlContext) {
     this.table = table;
     this.tableId = table.getTableId();
     this.readSessionCreatorConfig = readSessionCreatorConfig;
@@ -122,6 +129,8 @@ public class BigQueryDataSourceReaderContext {
       fields.put(field.name(), field);
     }
     this.applicationId = applicationId;
+    this.options = options;
+    this.sqlContext = sqlContext;
   }
 
   public StructType readSchema() {
@@ -309,5 +318,9 @@ public class BigQueryDataSourceReaderContext {
 
   public String getFullTableName() {
     return BigQueryUtil.friendlyTableName(tableId);
+  }
+
+  public BigQueryRDDFactory getBigQueryRddFactory() {
+    return new BigQueryRDDFactory(bigQueryClient, bigQueryReadClientFactory, options, sqlContext);
   }
 }

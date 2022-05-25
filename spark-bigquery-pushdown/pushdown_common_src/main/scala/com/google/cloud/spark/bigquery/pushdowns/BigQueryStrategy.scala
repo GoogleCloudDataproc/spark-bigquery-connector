@@ -21,10 +21,12 @@ import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Strategy
+import org.apache.spark.sql.catalyst.planning.PhysicalOperation
 import org.apache.spark.sql.catalyst.plans.{FullOuter, Inner, LeftAnti, LeftOuter, LeftSemi, RightOuter}
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.LogicalRelation
+import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation
 
 /**
  * Our hook into Spark that converts the logical plan into physical plan.
@@ -40,7 +42,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
   /** This iterator automatically increments every time it is used,
    * and is for aliasing subqueries.
    */
-  private final val alias = Iterator.from(0).map(n => s"SUBQUERY_$n")
+  final val alias = Iterator.from(0).map(n => s"SUBQUERY_$n")
 
   /** Attempts to generate a SparkPlan from the provided LogicalPlan.
    *
@@ -51,9 +53,6 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
   override def apply(plan: LogicalPlan): Seq[SparkPlan] = {
     // Check if we have any unsupported nodes in the plan. If we do, we return
     // Nil and let Spark try other strategies
-    if(hasUnsupportedNodes(plan)) {
-      return Nil
-    }
 
     try {
       generateSparkPlanFromLogicalPlan(plan)

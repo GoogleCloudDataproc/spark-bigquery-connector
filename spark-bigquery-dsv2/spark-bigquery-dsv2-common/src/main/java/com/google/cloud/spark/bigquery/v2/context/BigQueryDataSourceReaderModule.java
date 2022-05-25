@@ -49,6 +49,8 @@ public class BigQueryDataSourceReaderModule implements Module {
         config.toReadSessionCreatorConfig(),
         config.getFilter(),
         config.getSchema(),
-        sparkSession.sparkContext().applicationId());
+        sparkSession.sparkContext().applicationId(),
+        config,
+        sparkSession.sqlContext());
   }
 }

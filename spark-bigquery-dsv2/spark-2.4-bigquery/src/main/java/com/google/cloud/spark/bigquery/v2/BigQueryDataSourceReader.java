@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -81,5 +82,9 @@ public class BigQueryDataSourceReader
   @Override
   public boolean enableBatchRead() {
     return context.enableBatchRead();
+  }
+
+  public BigQueryRDDFactory getBigQueryRddFactory() {
+    return context.getBigQueryRddFactory();
   }
 }

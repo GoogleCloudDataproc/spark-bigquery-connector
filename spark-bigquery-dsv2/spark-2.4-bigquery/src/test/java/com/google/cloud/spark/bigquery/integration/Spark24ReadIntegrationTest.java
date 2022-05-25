@@ -15,8 +15,15 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import com.google.cloud.spark.bigquery.pushdowns.BigQueryConnectorUtils;
+import org.junit.Test;
+
 public class Spark24ReadIntegrationTest extends ReadIntegrationTestBase {
 
   // tests are from the super-class
-
+  @Test
+  public void testSomething() {
+    BigQueryConnectorUtils.enablePushdownSession(spark);
+    testArrowCompressionCodec();
+  }
 }

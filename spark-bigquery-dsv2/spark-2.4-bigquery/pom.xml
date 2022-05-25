@@ -25,6 +25,13 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>spark-2.4-bigquery-pushdown_2.12
+            </artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>spark-bigquery-tests</artifactId>
             <version>${project.parent.version}</version>
             <scope>test</scope>
