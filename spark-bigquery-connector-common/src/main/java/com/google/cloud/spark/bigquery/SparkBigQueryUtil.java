@@ -51,6 +51,14 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
 import scala.collection.Iterator;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.stream.Stream;
+
 /** Spark related utilities */
 public class SparkBigQueryUtil {
 

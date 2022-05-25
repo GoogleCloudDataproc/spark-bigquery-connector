@@ -26,7 +26,6 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.spark.bigquery.InternalRowIterator;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import org.apache.spark.Dependency;
@@ -37,7 +36,9 @@ import org.apache.spark.TaskContext;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.catalyst.InternalRow;
-import scala.collection.JavaConverters;
+import scala.collection.AbstractIterator;
+import scala.collection.immutable.Seq;
+import scala.collection.immutable.Seq$;
 
 // Ported this class from Scala to Java with no change in functionality
 class BigQueryRDD extends RDD<InternalRow> {
@@ -59,9 +60,7 @@ class BigQueryRDD extends RDD<InternalRow> {
       BigQueryClientFactory bigQueryClientFactory) {
     super(
         sparkContext,
-        JavaConverters.collectionAsScalaIterableConverter(new ArrayList<Dependency<?>>())
-            .asScala()
-            .toSeq(),
+        Seq$.MODULE$.<Dependency<?>>newBuilder().result(),
         scala.reflect.ClassTag$.MODULE$.apply(InternalRow.class));
 
     this.partitions = parts;
@@ -102,11 +101,30 @@ class BigQueryRDD extends RDD<InternalRow> {
               options.getSchema());
     }
 
-    return new InterruptibleIterator<>(
+    return new InterruptibleIterator<InternalRow>(
         context,
-        JavaConverters.asScalaIteratorConverter(
-                new InternalRowIterator(readRowsResponseIterator, converter, readRowsHelper))
-            .asScala());
+        new ScalaIterator<>(
+            new InternalRowIterator(readRowsResponseIterator, converter, readRowsHelper)));
+  }
+
+  // Scala version agnostic conversion
+  static class ScalaIterator<T> extends AbstractIterator<T> {
+
+    private Iterator<T> underlying;
+
+    public ScalaIterator(Iterator<T> underlying) {
+      this.underlying = underlying;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return underlying.hasNext();
+    }
+
+    @Override
+    public T next() {
+      return underlying.next();
+    }
   }
 
   @Override

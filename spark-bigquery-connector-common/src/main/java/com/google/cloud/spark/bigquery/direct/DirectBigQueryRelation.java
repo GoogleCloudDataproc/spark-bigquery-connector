@@ -28,6 +28,7 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -42,7 +43,6 @@ import org.apache.spark.sql.sources.TableScan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Function1;
-import scala.Serializable;
 import scala.runtime.AbstractFunction1;
 
 public class DirectBigQueryRelation extends BigQueryRelation
