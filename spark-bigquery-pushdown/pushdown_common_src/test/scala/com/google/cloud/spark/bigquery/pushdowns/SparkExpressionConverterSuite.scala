@@ -28,6 +28,7 @@ import org.scalatest.funsuite.AnyFunSuite
 class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
   private var converter: SparkExpressionConverter = _
   private val schoolIdAttributeReference = AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1))
+  private val schoolStartDateAttributeReference = AttributeReference.apply("StartDate", DateType)(ExprId.apply(2))
   private val fields = List(AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1), List("SUBQUERY_2")))
 
   before {
@@ -606,44 +607,44 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
   }
 
   test("convertDateExpressions with DateAdd") {
-    val dateAddExpression = DateAdd.apply(Literal.apply("2016-07-30"), Literal.apply("1"))
+    val dateAddExpression = DateAdd.apply(schoolStartDateAttributeReference, Literal.apply("1"))
     val bigQuerySQLStatement = converter.convertDateExpressions(dateAddExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "DATE_ADD ( DATE '2016-07-30' , INTERVAL '1' DAY )")
+    assert(bigQuerySQLStatement.get.toString == "DATE_ADD ( STARTDATE , INTERVAL '1' DAY )")
   }
 
   test("convertDateExpressions with DateSub") {
-    val dateSubExpression = DateSub.apply(Literal.apply("2016-07-30"), Literal.apply("1"))
+    val dateSubExpression = DateSub.apply(schoolStartDateAttributeReference, Literal.apply("1"))
     val bigQuerySQLStatement = converter.convertDateExpressions(dateSubExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "DATE_SUB ( DATE '2016-07-30' , INTERVAL '1' DAY )")
+    assert(bigQuerySQLStatement.get.toString == "DATE_SUB ( STARTDATE , INTERVAL '1' DAY )")
   }
 
   test("convertDateExpressions with Month") {
-    val monthExpression = Month.apply(Literal.apply("2016-07-30"))
+    val monthExpression = Month.apply(schoolStartDateAttributeReference)
     val bigQuerySQLStatement = converter.convertDateExpressions(monthExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "EXTRACT ( MONTH  FROM DATE '2016-07-30' )")
+    assert(bigQuerySQLStatement.get.toString == "EXTRACT ( MONTH  FROM STARTDATE )")
   }
 
   test("convertDateExpressions with Quarter") {
-    val quarterExpression = Quarter.apply(Literal.apply("2016-07-30"))
+    val quarterExpression = Quarter.apply(schoolStartDateAttributeReference)
     val bigQuerySQLStatement = converter.convertDateExpressions(quarterExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "EXTRACT ( QUARTER  FROM DATE '2016-07-30' )")
+    assert(bigQuerySQLStatement.get.toString == "EXTRACT ( QUARTER  FROM STARTDATE )")
   }
 
   test("convertDateExpressions with Year") {
-    val yearExpression = Year.apply(Literal.apply("2016-07-30"))
+    val yearExpression = Year.apply(schoolStartDateAttributeReference)
     val bigQuerySQLStatement = converter.convertDateExpressions(yearExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "EXTRACT ( YEAR  FROM DATE '2016-07-30' )")
+    assert(bigQuerySQLStatement.get.toString == "EXTRACT ( YEAR  FROM STARTDATE )")
   }
 
   test("convertDateExpressions with DATE_TRUNC") {
     val yearExpression = TruncDate.apply(Literal.apply("2016-07-30"), Literal.apply("YEAR"))
     val bigQuerySQLStatement = converter.convertDateExpressions(yearExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "DATE_TRUNC ( DATE '2016-07-30' , 'YEAR' )")
+    assert(bigQuerySQLStatement.get.toString == "DATE_TRUNC ( '2016-07-30' , YEAR )")
   }
 }
