@@ -1,7 +1,7 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
-import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
+import com.google.cloud.spark.bigquery.direct.{BigQueryRDDFactory, DirectBigQueryRelation}
 import org.apache.spark.sql.catalyst.planning.PhysicalOperation
 import org.apache.spark.sql.catalyst.plans.{FullOuter, Inner, LeftAnti, LeftOuter, LeftSemi, RightOuter}
 import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, Filter, Limit, LogicalPlan, Project, Sort}
@@ -11,12 +11,12 @@ import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation
 class Spark24BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory)
   extends BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory) {
 
-  def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
+  override def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     plan match {
-      case PhysicalOperation(project, filters, relation: DataSourceV2Relation) =>
-        logInfo("Found")
-        val reader = relation.newReader()
-        Some(SourceQuery(expressionConverter, expressionFactory, relation.newReader(), relation.name, relation.output, alias.next))
+      case l@DataSourceV2Relation(_, _, _, _, _) =>
+        val reader = l.newReader()
+        val getBigQueryRddFactoryMethod = l.newReader().getClass.getMethod("getBigQueryRddFactory")
+        Some(SourceQuery(expressionConverter, expressionFactory, getBigQueryRddFactoryMethod.invoke(reader).asInstanceOf[BigQueryRDDFactory], l.name, l.output, alias.next))
 
       case l@LogicalRelation(bqRelation: DirectBigQueryRelation, _, _, _) =>
         Some(SourceQuery(expressionConverter, expressionFactory, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))

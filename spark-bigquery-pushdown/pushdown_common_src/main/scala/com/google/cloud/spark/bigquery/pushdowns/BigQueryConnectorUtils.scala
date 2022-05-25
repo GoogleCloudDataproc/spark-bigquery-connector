@@ -28,8 +28,8 @@ object BigQueryConnectorUtils {
       .iterator().asScala.find(p => p.supportsSparkVersion(session.version))
       .getOrElse(sys.error(s"Query pushdown not supported for Spark version ${session.version}"))
 
-    sparkBigQueryPushdown.enable(session, new BigQueryStrategy(sparkBigQueryPushdown.createSparkExpressionConverter,
-      sparkBigQueryPushdown.createSparkExpressionFactory, sparkBigQueryPushdown.createSparkPlanFactory))
+    sparkBigQueryPushdown.enable(session, sparkBigQueryPushdown.createBigQueryStrategy(sparkBigQueryPushdown.createSparkExpressionConverter,
+      sparkBigQueryPushdown.createSparkExpressionFactory, sparkBigQueryPushdown.createSparkPlanFactory()))
   }
 
   def disablePushdownSession(session: SparkSession): Unit = {
