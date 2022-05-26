@@ -37,7 +37,7 @@ public class WriteStreamDataprocServerlessAcceptanceTestBase
                 context.bqDataset,
                 context.bqStreamTable,
                 AcceptanceTestUtils.BUCKET),
-            240);
+            480);
     assertThat(operationSnapshot.isDone()).isTrue();
     assertThat(operationSnapshot.getErrorMessage()).isEmpty();
 
