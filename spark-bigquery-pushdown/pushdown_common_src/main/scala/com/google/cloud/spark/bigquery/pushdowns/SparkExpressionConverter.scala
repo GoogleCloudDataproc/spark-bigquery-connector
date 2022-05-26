@@ -82,12 +82,27 @@ trait SparkExpressionConverter {
         blockStatement(
           convertStatement(left, fields) + "OR" + convertStatement(right, fields)
         )
+      case BitwiseAnd(left, right) =>
+        blockStatement(
+          convertStatement(left, fields) + "&" + convertStatement(right, fields)
+        )
+      case BitwiseOr(left, right) =>
+        blockStatement(
+          convertStatement(left, fields) + "|" + convertStatement(right, fields)
+        )
+      case BitwiseXor(left, right) =>
+        blockStatement(
+          convertStatement(left, fields) + "^" + convertStatement(right, fields)
+        )
+      case BitwiseNot(child) =>
+        ConstantString("~") + blockStatement(
+          convertStatement(child, fields)
+        )
       case b: BinaryOperator =>
         blockStatement(
           convertStatement(b.left, fields) + b.symbol + convertStatement(b.right, fields)
         )
       case l: Literal =>
-        // TODO: Add DateType and TimestampType
         l.dataType match {
           case StringType =>
             if (l.value == null) {
@@ -95,6 +110,12 @@ trait SparkExpressionConverter {
             } else {
               StringVariable(Some(l.toString())).toStatement
             }
+          case DateType =>
+            ConstantString("DATE_ADD(DATE \"1970-01-01\", INTERVAL ") + IntVariable(
+              Option(l.value).map(_.asInstanceOf[Int])
+            ) + " DAY)" // s"DATE_ADD(DATE "1970-01-01", INTERVAL ${l.value} DAY)
+          case TimestampType =>
+            ConstantString("TIMESTAMP_MICROS(") + l.toString() + ")"
           case _ =>
             l.value match {
               case v: Int => IntVariable(Some(v)).toStatement
