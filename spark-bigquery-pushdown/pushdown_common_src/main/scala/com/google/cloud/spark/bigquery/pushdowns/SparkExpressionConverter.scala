@@ -39,6 +39,7 @@ trait SparkExpressionConverter {
     convertAggregateExpressions(expression, fields)
       .orElse(convertBasicExpressions(expression, fields))
       .orElse(convertBooleanExpressions(expression, fields))
+      .orElse(convertDateExpressions(expression, fields))
       .orElse(convertMiscExpressions(expression, fields))
       .orElse(convertStringExpressions(expression, fields))
       .getOrElse(throw new BigQueryPushdownUnsupportedException((s"Pushdown unsupported for ${expression.prettyName}")))
@@ -167,6 +168,48 @@ trait SparkExpressionConverter {
         ConstantString("ENDS_WITH") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString}%'")
       case StartsWith(child, Literal(pattern: UTF8String, StringType)) =>
         ConstantString("STARTS_WITH") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString}%'")
+
+      case _ => null
+    })
+  }
+
+  def convertDateExpressions(expression: Expression, fields: Seq[Attribute]): Option[BigQuerySQLStatement] = {
+    Option(expression match {
+      case DateAdd(startDate, days) =>
+        ConstantString(expression.prettyName.toUpperCase) +
+          blockStatement(
+              convertStatement(startDate, fields) + ", INTERVAL " +
+              convertStatement(days, fields) + "DAY"
+          )
+      case DateSub(startDate, days) =>
+        ConstantString(expression.prettyName.toUpperCase) +
+          blockStatement(
+              convertStatement(startDate, fields) + ", INTERVAL " +
+              convertStatement(days, fields) + "DAY"
+          )
+      case Month(child) =>
+        ConstantString("EXTRACT") +
+          blockStatement(
+            ConstantString(expression.prettyName.toUpperCase) + " FROM " +
+              convertStatement(child, fields)
+          )
+      case Quarter(child) =>
+        ConstantString("EXTRACT") +
+          blockStatement(
+            ConstantString(expression.prettyName.toUpperCase) + " FROM " +
+              convertStatement(child, fields)
+          )
+      case Year(child) =>
+        ConstantString("EXTRACT") +
+          blockStatement(
+            ConstantString(expression.prettyName.toUpperCase) + " FROM " +
+              convertStatement(child, fields)
+          )
+      case TruncDate(date, format) =>
+        ConstantString("DATE_TRUNC") +
+          blockStatement(
+            convertStatement(date, fields) + s", ${format.toString()}"
+          )
 
       case _ => null
     })
