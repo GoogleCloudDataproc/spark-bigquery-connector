@@ -89,6 +89,7 @@ public class BigQueryDataSourceReaderContext {
   private final String applicationId;
   private final SparkBigQueryConfig options;
   private final SQLContext sqlContext;
+  private final BigQueryRDDFactory bigQueryRDDFactory;
   private Optional<StructType> schema;
   private Optional<StructType> userProvidedSchema;
   private Filter[] pushedFilters = new Filter[] {};
@@ -131,6 +132,7 @@ public class BigQueryDataSourceReaderContext {
     this.applicationId = applicationId;
     this.options = options;
     this.sqlContext = sqlContext;
+    this.bigQueryRDDFactory = new BigQueryRDDFactory(bigQueryClient, bigQueryReadClientFactory, options, sqlContext);
   }
 
   public StructType readSchema() {
@@ -321,6 +323,6 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public BigQueryRDDFactory getBigQueryRddFactory() {
-    return new BigQueryRDDFactory(bigQueryClient, bigQueryReadClientFactory, options, sqlContext);
+    return this.bigQueryRDDFactory;
   }
 }
