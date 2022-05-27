@@ -24,6 +24,10 @@ public class BigQueryIdentifier implements Identifier {
     return tableId.getTable();
   }
 
+  public TableId getTableId() {
+    return tableId;
+  }
+
   @Override
   public String toString() {
     return "BigQueryIdentifier{" + "tableId=" + BigQueryUtil.friendlyTableName(tableId) + '}';

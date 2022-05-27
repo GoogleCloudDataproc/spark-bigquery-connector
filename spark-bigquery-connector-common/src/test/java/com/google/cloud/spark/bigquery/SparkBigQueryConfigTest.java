@@ -58,7 +58,8 @@ public class SparkBigQueryConfigTest {
                 DEFAULT_PARALLELISM,
                 new SQLConf(),
                 SPARK_VERSION,
-                Optional.empty()));
+                Optional.empty(), /* tableIsMandatory */
+                true));
   }
 
   @Test
@@ -73,7 +74,8 @@ public class SparkBigQueryConfigTest {
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
-            Optional.empty());
+            Optional.empty(), /* tableIsMandatory */
+            true);
     assertThat(config.getTableId()).isEqualTo(TableId.of("dataset", "table"));
     assertThat(config.getFilter()).isEqualTo(Optional.empty());
     assertThat(config.getSchema()).isEqualTo(Optional.empty());
@@ -155,7 +157,8 @@ public class SparkBigQueryConfigTest {
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
-            Optional.empty());
+            Optional.empty(), /* tableIsMandatory */
+            true);
     assertThat(config.getTableId()).isEqualTo(TableId.of("test_p", "test_d", "test_t"));
     assertThat(config.getFilter()).isEqualTo(Optional.of("test > 0"));
     assertThat(config.getSchema()).isEqualTo(Optional.empty());
@@ -212,7 +215,8 @@ public class SparkBigQueryConfigTest {
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
-            Optional.empty());
+            Optional.empty(), /* tableIsMandatory */
+            true);
     assertThat(config.getCacheExpirationTimeInMinutes()).isEqualTo(0);
   }
 
@@ -239,7 +243,8 @@ public class SparkBigQueryConfigTest {
                     DEFAULT_PARALLELISM,
                     new SQLConf(),
                     SPARK_VERSION,
-                    Optional.empty()));
+                    Optional.empty(), /* tableIsMandatory */
+                    true));
 
     assertThat(exception)
         .hasMessageThat()
@@ -270,7 +275,8 @@ public class SparkBigQueryConfigTest {
                     DEFAULT_PARALLELISM,
                     new SQLConf(),
                     SPARK_VERSION,
-                    Optional.empty()));
+                    Optional.empty(), /* tableIsMandatory */
+                    true));
 
     assertThat(exception)
         .hasMessageThat()
@@ -302,7 +308,8 @@ public class SparkBigQueryConfigTest {
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
-            Optional.empty());
+            Optional.empty(), /* tableIsMandatory */
+            true);
 
     assertThat(config.isViewsEnabled()).isTrue();
     assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("bucket"));
@@ -325,7 +332,8 @@ public class SparkBigQueryConfigTest {
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
-            Optional.empty());
+            Optional.empty(), /* tableIsMandatory */
+            true);
 
     assertThat(config.getTableId().getTable()).isEqualTo("table$20201010");
     assertThat(config.getTableIdWithoutThePartition().getTable()).isEqualTo("table");
@@ -347,7 +355,8 @@ public class SparkBigQueryConfigTest {
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
-            Optional.empty());
+            Optional.empty(), /* tableIsMandatory */
+            true);
 
     assertThat(config.getTableIdWithoutThePartition().getTable())
         .isEqualTo(config.getTableId().getTable());

@@ -27,6 +27,7 @@ import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUt
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
 import static java.lang.String.format;
+import static scala.collection.JavaConversions.mapAsJavaMap;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
@@ -37,9 +38,9 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
-import com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
+import com.google.cloud.bigquery.connector.common.MaterializationConfiguration;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
@@ -63,6 +64,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.execution.datasources.DataSource;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.types.StructType;
@@ -94,7 +96,6 @@ public class SparkBigQueryConfig
   public static final String VALIDATE_SPARK_AVRO_PARAM = "validateSparkAvroInternalParam";
   public static final String ENABLE_LIST_INFERENCE = "enableListInference";
   public static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
-  public static final int DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES = 24 * 60;
   @VisibleForTesting static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.ARROW;
 
   @VisibleForTesting
@@ -156,7 +157,7 @@ public class SparkBigQueryConfig
   boolean optimizedEmptyProjection = true;
   boolean useAvroLogicalTypes = false;
   ImmutableList<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.of();
-  int materializationExpirationTimeInMinutes = DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES;
+  int materializationExpirationTimeInMinutes;
   int maxReadRowsRetries = 3;
   boolean pushAllFilters = true;
   boolean enableModeCheckForSchemaFields = true;
@@ -181,6 +182,27 @@ public class SparkBigQueryConfig
     // empty
   }
 
+  // new higher level method, as spark 3 need to parse the table specific options separately from
+  // the catalog ones
+  public static SparkBigQueryConfig from(
+      Map<String, String> options,
+      DataSourceVersion dataSourceVersion,
+      SparkSession spark,
+      Optional<StructType> schema,
+      boolean tableIsMandatory) {
+    Map<String, String> optionsMap = new HashMap<>(options);
+    dataSourceVersion.updateOptionsMap(optionsMap);
+    return SparkBigQueryConfig.from(
+        ImmutableMap.copyOf(optionsMap),
+        ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll())),
+        spark.sparkContext().hadoopConfiguration(),
+        spark.sparkContext().defaultParallelism(),
+        spark.sqlContext().conf(),
+        spark.version(),
+        schema,
+        tableIsMandatory);
+  }
+
   @VisibleForTesting
   public static SparkBigQueryConfig from(
       Map<String, String> optionsInput,
@@ -189,7 +211,8 @@ public class SparkBigQueryConfig
       int defaultParallelism,
       SQLConf sqlConf,
       String sparkVersion,
-      Optional<StructType> schema) {
+      Optional<StructType> schema,
+      boolean tableIsMandatory) {
     SparkBigQueryConfig config = new SparkBigQueryConfig();
 
     ImmutableMap<String, String> options = toLowerCaseKeysMap(optionsInput);
@@ -199,40 +222,24 @@ public class SparkBigQueryConfig
     // Issue #247
     // we need those parameters in case a read from query is issued
     config.viewsEnabled = getAnyBooleanOption(globalOptions, options, VIEWS_ENABLED_OPTION, false);
-    config.materializationProject =
-        getAnyOption(
-            globalOptions,
-            options,
-            ImmutableList.of("materializationProject", "viewMaterializationProject"));
-    config.materializationDataset =
-        getAnyOption(
-            globalOptions,
-            options,
-            ImmutableList.of("materializationDataset", "viewMaterializationDataset"));
+    MaterializationConfiguration materializationConfiguration =
+        MaterializationConfiguration.from(globalOptions, options);
+    config.materializationProject = materializationConfiguration.getMaterializationProject();
+    config.materializationDataset = materializationConfiguration.getMaterializationDataset();
     config.materializationExpirationTimeInMinutes =
-        getAnyOption(globalOptions, options, "materializationExpirationTimeInMinutes")
-            .transform(Integer::parseInt)
-            .or(DEFAULT_MATERIALIZATION_EXPRIRATION_TIME_IN_MINUTES);
-    if (config.materializationExpirationTimeInMinutes < 1) {
-      throw new IllegalArgumentException(
-          "materializationExpirationTimeInMinutes must have a positive value, the configured value"
-              + " is "
-              + config.materializationExpirationTimeInMinutes);
-    }
+        materializationConfiguration.getMaterializationExpirationTimeInMinutes();
     // get the table details
     com.google.common.base.Optional<String> fallbackDataset = config.materializationDataset;
-    Optional<String> fallbackProject = com.google.common.base.Optional.fromNullable(
-                    hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY))
+    Optional<String> fallbackProject =
+        com.google.common.base.Optional.fromNullable(
+                hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY))
             .toJavaUtil();
     Optional<String> tableParam =
-            getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
-                    .toJavaUtil();
-    Optional<String> datasetParam =
-            getOption(options, "dataset").or(fallbackDataset).toJavaUtil();
+        getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
+            .toJavaUtil();
+    Optional<String> datasetParam = getOption(options, "dataset").or(fallbackDataset).toJavaUtil();
     Optional<String> projectParam =
-            firstPresent(
-                    getOption(options, "project").toJavaUtil(),
-                    fallbackProject);
+        firstPresent(getOption(options, "project").toJavaUtil(), fallbackProject);
     config.partitionType =
         getOption(options, "partitionType").transform(TimePartitioning.Type::valueOf);
     Optional<String> datePartitionParam = getOption(options, DATE_PARTITION_PARAM).toJavaUtil();
@@ -254,7 +261,7 @@ public class SparkBigQueryConfig
       config.query = getOption(options, "query").transform(String::trim);
       if (config.query.isPresent()) {
         config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
-      } else {
+      } else if (tableIsMandatory) {
         // No table nor query were set. We cannot go further.
         throw new IllegalArgumentException("No table has been specified");
       }

@@ -116,10 +116,15 @@ public class BigQueryConfigurationUtil {
       Optional<String> fallbackProject,
       Optional<String> fallbackDataset) {
     String tableParam =
-        getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK).get();
+        getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
+            .get();
     Optional<String> datasetParam = getOption(options, "dataset").or(fallbackDataset);
     Optional<String> projectParam = getOption(options, "project").or(fallbackProject);
-    return parseTableId(tableParam, fallbackDataset.toJavaUtil(), fallbackProject.toJavaUtil());
+    return parseTableId(
+        tableParam,
+        datasetParam.toJavaUtil(),
+        projectParam.toJavaUtil(), /* datePartition */
+        java.util.Optional.empty());
   }
 
   public static TableId parseSimpleTableId(
@@ -130,7 +135,13 @@ public class BigQueryConfigurationUtil {
         options, Optional.fromJavaUtil(fallbackProject), Optional.fromJavaUtil(fallbackDataset));
   }
 
-  public static TableId parseSimpleTableId(Map<String, String> options) {
-    return parseSimpleTableId(options, empty().toJavaUtil(), empty().toJavaUtil());
+  public static TableId parseSimpleTableId(
+      ImmutableMap<String, String> globalOptions, Map<String, String> options) {
+    MaterializationConfiguration materializationConfiguration =
+        MaterializationConfiguration.from(globalOptions, options);
+    return parseSimpleTableId(
+        options,
+        materializationConfiguration.getMaterializationProject(),
+        materializationConfiguration.getMaterializationDataset());
   }
 }

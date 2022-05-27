@@ -13,11 +13,12 @@ import org.apache.spark.sql.types.StructType;
 public class InjectorFactory {
   private InjectorFactory() {}
 
-  public static Injector createInjector(StructType schema, Map<String, String> options) {
+  public static Injector createInjector(
+      StructType schema, Map<String, String> options, boolean tableIsMandatory) {
     SparkSession spark = SparkSession.active();
     return Guice.createInjector(
         new BigQueryClientModule(),
         new SparkBigQueryConnectorModule(
-            spark, options, Optional.ofNullable(schema), DataSourceVersion.V2));
+            spark, options, Optional.ofNullable(schema), DataSourceVersion.V2, tableIsMandatory));
   }
 }

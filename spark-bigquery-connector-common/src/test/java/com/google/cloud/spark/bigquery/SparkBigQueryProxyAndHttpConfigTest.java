@@ -180,7 +180,8 @@ public class SparkBigQueryProxyAndHttpConfigTest {
             10,
             new SQLConf(),
             "2.4.0",
-            Optional.empty());
+            Optional.empty(), /* tableIsMandatory */
+            true);
 
     SparkBigQueryProxyAndHttpConfig config =
         (SparkBigQueryProxyAndHttpConfig) sparkConfig.getBigQueryProxyConfig();
@@ -210,7 +211,8 @@ public class SparkBigQueryProxyAndHttpConfigTest {
             10,
             new SQLConf(),
             "2.4.0",
-            Optional.empty());
+            Optional.empty(), /* tableIsMandatory */
+            true);
 
     SparkBigQueryProxyAndHttpConfig config =
         (SparkBigQueryProxyAndHttpConfig) sparkConfig.getBigQueryProxyConfig();
@@ -237,7 +239,8 @@ public class SparkBigQueryProxyAndHttpConfigTest {
             10,
             new SQLConf(),
             "2.4.0",
-            Optional.empty());
+            Optional.empty(), /* tableIsMandatory */
+            true);
 
     SparkBigQueryProxyAndHttpConfig config =
         (SparkBigQueryProxyAndHttpConfig) sparkConfig.getBigQueryProxyConfig();

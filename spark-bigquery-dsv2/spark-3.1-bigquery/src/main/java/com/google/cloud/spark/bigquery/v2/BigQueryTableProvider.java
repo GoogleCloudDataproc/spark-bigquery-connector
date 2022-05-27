@@ -15,11 +15,15 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import static scala.collection.JavaConversions.mapAsJavaMap;
+
 import com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Injector;
 import java.util.Map;
-
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.apache.spark.sql.connector.catalog.Identifier;
 import org.apache.spark.sql.connector.catalog.SupportsCatalogOptions;
 import org.apache.spark.sql.connector.catalog.Table;
@@ -43,6 +47,7 @@ public class BigQueryTableProvider extends BaseBigQuerySource
   @Override
   public Table getTable(
       StructType schema, Transform[] partitioning, Map<String, String> properties) {
+    setupDefaultSparkCatalog(SparkSession.active());
     return getBigQueryTableInternal(schema, properties);
   }
 
@@ -52,9 +57,14 @@ public class BigQueryTableProvider extends BaseBigQuerySource
 
   private BigQueryTable getBigQueryTableInternal(
       StructType schema, Map<String, String> properties) {
-    Injector injector = InjectorFactory.createInjector(schema, properties);
-    BigQueryTable table = new BigQueryTable(injector, schema);
-    return table;
+    try {
+      Injector injector =
+          InjectorFactory.createInjector(schema, properties, /* tableIsMandatory */ true);
+      BigQueryTable table = BigQueryTable.fromConfigurationAnsSchema(injector, schema);
+      return table;
+    } catch (NoSuchTableException e) {
+      throw new BigQueryConnectorException("Table was not found", e);
+    }
   }
 
   @Override
@@ -64,13 +74,16 @@ public class BigQueryTableProvider extends BaseBigQuerySource
 
   @Override
   public Identifier extractIdentifier(CaseInsensitiveStringMap options) {
-    return new BigQueryIdentifier(BigQueryConfigurationUtil.parseSimpleTableId(options));
+    ImmutableMap<String, String> globalOptions =
+        ImmutableMap.copyOf(mapAsJavaMap(SparkSession.active().conf().getAll()));
+    return new BigQueryIdentifier(
+        BigQueryConfigurationUtil.parseSimpleTableId(globalOptions, options));
   }
 
   @Override
   public String extractCatalog(CaseInsensitiveStringMap options) {
     setupDefaultSparkCatalog(SparkSession.active());
-    return DEFAULT_CATALOG;
+    return DEFAULT_CATALOG_NAME;
   }
 
   private static void setupDefaultSparkCatalog(SparkSession spark) {
