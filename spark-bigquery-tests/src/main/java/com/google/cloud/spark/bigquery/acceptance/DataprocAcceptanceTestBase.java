@@ -172,7 +172,7 @@ public class DataprocAcceptanceTestBase {
             "read_shakespeare.py",
             null,
             Arrays.asList(context.getResultsDirUri(testName)),
-            60);
+            120);
     assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
     assertThat(output.trim()).isEqualTo("spark,10");
@@ -233,7 +233,7 @@ public class DataprocAcceptanceTestBase {
             "big_numeric.py",
             zipFileUri,
             Arrays.asList(tableName, context.getResultsDirUri(testName)),
-            60);
+            120);
 
     assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));

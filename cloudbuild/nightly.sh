@@ -1,3 +1,5 @@
+
+   
 #!/bin/bash
 
 # Copyright 2019 Google Inc. All Rights Reserved.
@@ -24,36 +26,19 @@ fi
 readonly DATE="$(date +%Y%m%d)"
 readonly REVISION="0.0.${DATE}"
 readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository -Drevision=${REVISION}"
-readonly BUCKET="spark-lib-daily-snapshots"
 
 cd /workspace
 
 # Build
-$MVN install -DskipTests -Pdsv1_2.12,dsv2
+$MVN install -DskipTests -Pdsv1_2.11,dsv1_2.12,dsv2
 #coverage report
-$MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv2
+$MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.11,dsv1_2.12,dsv2
 # Run integration tests
-$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv2_2.4
+$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.11,dsv1_2.12,dsv2
 # Run acceptance tests
-$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.12,dsv2_2.4
+$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.11,dsv1_2.12,dsv2
 # Upload test coverage report to Codecov
 bash <(curl -s https://codecov.io/bash) -K -F "nightly"
 
-# Upload daily artifacts to the snapshot bucket
-gsutil cp \
-  "spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.11/target/spark-bigquery-with-dependencies_2.11-${REVISION}.jar" \
-  "spark-bigquery-dsv1/spark-bigquery-with-dependencies_2.12/target/spark-bigquery-with-dependencies_2.12-${REVISION}.jar" \
-  "spark-bigquery-dsv2/spark-2.4-bigquery/target/spark-2.4-bigquery-${REVISION}-preview.jar" \
-  "gs://${BUCKET}/"
-# Marking daily snapshot
-gsutil cp \
-  "gs://${BUCKET}/spark-bigquery-with-dependencies_2.11-${REVISION}.jar" \
-  "gs://${BUCKET}/spark-bigquery-with-dependencies_2.11-daily-snapshot.jar"
-gsutil cp \
-  "gs://${BUCKET}/spark-bigquery-with-dependencies_2.12-${REVISION}.jar" \
-  "gs://${BUCKET}/spark-bigquery-with-dependencies_2.12-daily-snapshot.jar"
-gsutil cp \
-  "gs://${BUCKET}/spark-2.4-bigquery-${REVISION}-preview.jar" \
-  "gs://${BUCKET}/spark-2.4-bigquery-daily-snapshot-preview.jar"
-
-
+# Save the REVISION variable to use in the next build step
+echo "${REVISION}" > /workspace/revision.txt
