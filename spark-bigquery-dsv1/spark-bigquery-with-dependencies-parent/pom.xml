@@ -115,11 +115,6 @@
               </shadedPattern>
             </relocation>
             <relocation>
-              <pattern>org.conscrypt</pattern>
-              <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.conscrypt
-              </shadedPattern>
-            </relocation>
-            <relocation>
               <pattern>org.json</pattern>
               <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.json</shadedPattern>
             </relocation>
