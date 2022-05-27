@@ -88,7 +88,6 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   private static final String NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent";
   private static final String STRUCT_COLUMN_ORDER_TEST_TABLE_NAME = "struct_column_order";
   private static final String ALL_TYPES_TABLE_NAME = "all_types";
-  private static final String ALL_TYPES_VIEW_NAME = "all_types_view";
 
   protected final boolean userProvidedSchemaAllowed;
 
