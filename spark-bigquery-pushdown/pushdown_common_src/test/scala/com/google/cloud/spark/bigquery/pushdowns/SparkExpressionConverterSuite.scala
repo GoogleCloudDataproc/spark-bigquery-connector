@@ -20,7 +20,7 @@ package com.google.cloud.spark.bigquery.pushdowns
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
 import com.google.cloud.spark.bigquery.pushdowns.TestConstants.schoolIdAttributeReference
 import org.apache.spark.sql.catalyst.expressions.aggregate._
-import org.apache.spark.sql.catalyst.expressions.{Alias, And, Ascending, Ascii, AttributeReference, Base64, Cast, Concat, Contains, Descending, EndsWith, EqualTo, ExprId, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, In, InitCap, IsNotNull, IsNull, Length, LessThan, LessThanOrEqual, Literal, Lower, Not, Or, RegExpExtract, RegExpReplace, SortOrder, SoundEx, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, UnBase64, Upper}
+import org.apache.spark.sql.catalyst.expressions.{Alias, And, Ascending, Ascii, AttributeReference, Base64, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Cast, Concat, Contains, DateAdd, DateSub, Descending, EndsWith, EqualTo, ExprId, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, In, InitCap, IsNotNull, IsNull, Length, LessThan, LessThanOrEqual, Literal, Lower, Month, Not, Or, Quarter, RegExpExtract, RegExpReplace, SortOrder, SoundEx, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, TruncDate, UnBase64, Upper, Year}
 import org.apache.spark.sql.types._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
@@ -28,6 +28,7 @@ import org.scalatest.funsuite.AnyFunSuite
 class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
   private var converter: SparkExpressionConverter = _
   private val schoolIdAttributeReference = AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1))
+  private val schoolStartDateAttributeReference = AttributeReference.apply("StartDate", DateType)(ExprId.apply(2))
   private val fields = List(AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1), List("SUBQUERY_2")))
 
   before {
@@ -176,6 +177,41 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     assert(bigQuerySQLStatement.get.toString == "( ( SUBQUERY_2.SCHOOLID <= 25 ) OR ( SUBQUERY_2.SCHOOLID >= 75 ) )")
   }
 
+  test("convertBasicExpressions with BitwiseAnd") {
+    val left = Literal.apply(0)
+    val right = Literal.apply(1)
+    val bitwiseAndExpression = BitwiseAnd.apply(left, right)
+    val bigQuerySQLStatement = converter.convertBasicExpressions(bitwiseAndExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "( 0 & 1 )")
+  }
+
+  test("convertBasicExpressions with BitwiseOr") {
+    val left = Literal.apply(0)
+    val right = Literal.apply(1)
+    val bitwiseOrExpression = BitwiseOr.apply(left, right)
+    val bigQuerySQLStatement = converter.convertBasicExpressions(bitwiseOrExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "( 0 | 1 )")
+  }
+
+  test("convertBasicExpressions with BitwiseXor") {
+    val left = Literal.apply(0)
+    val right = Literal.apply(1)
+    val bitwiseXorExpression = BitwiseXor.apply(left, right)
+    val bigQuerySQLStatement = converter.convertBasicExpressions(bitwiseXorExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "( 0 ^ 1 )")
+  }
+
+  test("convertBasicExpressions with BitwiseNot") {
+    val child = Literal.apply(1)
+    val bitwiseXorExpression = BitwiseNot.apply(child)
+    val bigQuerySQLStatement = converter.convertBasicExpressions(bitwiseXorExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "~ ( 1 )")
+  }
+
   test("convertBasicExpressions with String literal") {
     val bigQuerySQLStatement = converter.convertBasicExpressions(Literal("MY_STRING_LITERAL"), fields)
     assert(bigQuerySQLStatement.isDefined)
@@ -186,6 +222,20 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val bigQuerySQLStatement = converter.convertBasicExpressions(Literal(null, StringType), fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "NULL")
+  }
+
+  test("convertBasicExpressions with Date literal") {
+    // Spark represents DateType as number of days after 1970-01-01
+    val bigQuerySQLStatement = converter.convertBasicExpressions(Literal(17007, DateType), fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "DATE_ADD(DATE \"1970-01-01\", INTERVAL 17007  DAY)")
+  }
+
+  test("convertBasicExpressions with Timestamp literal") {
+    // Internally, a timestamp is stored as the number of microseconds from the epoch of 1970-01-01T00
+    val bigQuerySQLStatement = converter.convertBasicExpressions(Literal(1230219000000000L, TimestampType), fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "TIMESTAMP_MICROS( 1230219000000000 )")
   }
 
   test("convertBasicExpressions with Integer literal") {
@@ -603,5 +653,47 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val bigQuerySQLStatement = converter.convertMiscExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( TRANSACTION AS BIGDECIMAL(10, 5) )")
+  }
+
+  test("convertDateExpressions with DateAdd") {
+    val dateAddExpression = DateAdd.apply(schoolStartDateAttributeReference, Literal.apply("1"))
+    val bigQuerySQLStatement = converter.convertDateExpressions(dateAddExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "DATE_ADD ( STARTDATE , INTERVAL '1' DAY )")
+  }
+
+  test("convertDateExpressions with DateSub") {
+    val dateSubExpression = DateSub.apply(schoolStartDateAttributeReference, Literal.apply("1"))
+    val bigQuerySQLStatement = converter.convertDateExpressions(dateSubExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "DATE_SUB ( STARTDATE , INTERVAL '1' DAY )")
+  }
+
+  test("convertDateExpressions with Month") {
+    val monthExpression = Month.apply(schoolStartDateAttributeReference)
+    val bigQuerySQLStatement = converter.convertDateExpressions(monthExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "EXTRACT ( MONTH  FROM STARTDATE )")
+  }
+
+  test("convertDateExpressions with Quarter") {
+    val quarterExpression = Quarter.apply(schoolStartDateAttributeReference)
+    val bigQuerySQLStatement = converter.convertDateExpressions(quarterExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "EXTRACT ( QUARTER  FROM STARTDATE )")
+  }
+
+  test("convertDateExpressions with Year") {
+    val yearExpression = Year.apply(schoolStartDateAttributeReference)
+    val bigQuerySQLStatement = converter.convertDateExpressions(yearExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "EXTRACT ( YEAR  FROM STARTDATE )")
+  }
+
+  test("convertDateExpressions with DATE_TRUNC") {
+    val yearExpression = TruncDate.apply(Literal.apply("2016-07-30"), Literal.apply("YEAR"))
+    val bigQuerySQLStatement = converter.convertDateExpressions(yearExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "DATE_TRUNC ( '2016-07-30' , YEAR )")
   }
 }
