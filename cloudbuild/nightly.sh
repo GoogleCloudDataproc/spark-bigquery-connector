@@ -30,13 +30,13 @@ readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.rep
 cd /workspace
 
 # Build
-$MVN install -DskipTests -Pdsv1_2.11,dsv1_2.12,dsv2
+$MVN install -DskipTests -Pdsv1,dsv2
 #coverage report
-$MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.11,dsv1_2.12,dsv2
+$MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1,dsv2
 # Run integration tests
-$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.11,dsv1_2.12,dsv2
+$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1,dsv2_2.4
 # Run acceptance tests
-$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.11,dsv1_2.12,dsv2
+$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1,dsv2_2.4
 # Upload test coverage report to Codecov
 bash <(curl -s https://codecov.io/bash) -K -F "nightly"
 
