@@ -33,7 +33,7 @@ steps:
         gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.12-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.12-daily-snapshot.jar"
       
         gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-2.4-bigquery/$revision-preview/spark-2.4-bigquery-$revision-preview.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-2.4-bigquery-$revision-preview.jar" "gs://$bucket/spark-2.4-bigquery-daily-snapshot-preview.jar
+        gsutil cp "gs://$bucket/spark-2.4-bigquery-$revision-preview.jar" "gs://$bucket/spark-2.4-bigquery-daily-snapshot-preview.jar"
 
 # Tests take around 20 mins in general.
 timeout: 3600s
