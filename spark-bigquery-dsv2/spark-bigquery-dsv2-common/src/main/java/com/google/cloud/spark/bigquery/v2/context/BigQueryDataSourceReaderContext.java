@@ -132,7 +132,8 @@ public class BigQueryDataSourceReaderContext {
     this.applicationId = applicationId;
     this.options = options;
     this.sqlContext = sqlContext;
-    this.bigQueryRDDFactory = new BigQueryRDDFactory(bigQueryClient, bigQueryReadClientFactory, options, sqlContext);
+    this.bigQueryRDDFactory =
+        new BigQueryRDDFactory(bigQueryClient, bigQueryReadClientFactory, options, sqlContext);
   }
 
   public StructType readSchema() {

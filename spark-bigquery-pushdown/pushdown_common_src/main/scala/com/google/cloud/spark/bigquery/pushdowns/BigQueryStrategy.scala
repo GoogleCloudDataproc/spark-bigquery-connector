@@ -37,7 +37,7 @@ import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation
  * Passing SparkPlanFactory as the constructor parameter here for ease of unit testing
  *
  */
-class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) extends Strategy with Logging {
+abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) extends Strategy with Logging {
 
   /** This iterator automatically increments every time it is used,
    * and is for aliasing subqueries.
@@ -53,6 +53,9 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
   override def apply(plan: LogicalPlan): Seq[SparkPlan] = {
     // Check if we have any unsupported nodes in the plan. If we do, we return
     // Nil and let Spark try other strategies
+    if(hasUnsupportedNodes(plan)) {
+      return Nil
+    }
 
     try {
       generateSparkPlanFromLogicalPlan(plan)
@@ -68,7 +71,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
 
   def hasUnsupportedNodes(plan: LogicalPlan): Boolean = {
     plan.foreach {
-      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) | LogicalRelation(_, _, _, _) =>
+      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) | LogicalRelation(_, _, _, _) | DataSourceV2Relation(_, _, _, _, _) =>
       case subPlan =>
         logInfo(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
         return true
@@ -100,19 +103,10 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
     Some(sourceQuery.bigQueryRDDFactory)
   }
 
-  /** Attempts to generate the query from the LogicalPlan by pattern matching recursively.
-   * The queries are constructed from the bottom up, but the validation of
-   * supported nodes for translation happens on the way down.
-   *
-   * @param plan The LogicalPlan to be processed.
-   * @return An object of type Option[BQSQLQuery], which is None if the plan contains an
-   *         unsupported node type.
-   */
-  def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
-    plan match {
-      case l@LogicalRelation(bqRelation: DirectBigQueryRelation, _, _, _) =>
-        Some(SourceQuery(expressionConverter, expressionFactory, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))
+   def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery]
 
+  def generateNonSourceQueriesFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
+    plan match {
       case UnaryOperationExtractor(child) =>
         generateQueryFromPlan(child) map { subQuery =>
           plan match {
