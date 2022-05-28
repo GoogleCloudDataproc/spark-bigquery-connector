@@ -195,7 +195,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
   @Test
   public void testColumnOrderOfStruct() {
-    assumeTrue("user provided schema is no allowed for this connector", userProvidedSchemaAllowed);
+    assumeTrue("user provided schema is not allowed for this connector", userProvidedSchemaAllowed);
     StructType schema = Encoders.bean(ColumnOrderTestClass.class).schema();
 
     Dataset<ColumnOrderTestClass> dataset =

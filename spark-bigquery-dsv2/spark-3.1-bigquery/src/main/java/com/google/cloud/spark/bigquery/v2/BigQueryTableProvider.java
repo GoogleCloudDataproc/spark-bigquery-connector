@@ -60,7 +60,7 @@ public class BigQueryTableProvider extends BaseBigQuerySource
     try {
       Injector injector =
           InjectorFactory.createInjector(schema, properties, /* tableIsMandatory */ true);
-      BigQueryTable table = BigQueryTable.fromConfigurationAnsSchema(injector, schema);
+      BigQueryTable table = BigQueryTable.fromConfigurationAndSchema(injector, schema);
       return table;
     } catch (NoSuchTableException e) {
       throw new BigQueryConnectorException("Table was not found", e);

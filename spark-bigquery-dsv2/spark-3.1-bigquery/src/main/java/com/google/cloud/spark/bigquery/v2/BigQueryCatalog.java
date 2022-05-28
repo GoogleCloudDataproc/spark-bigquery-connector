@@ -51,27 +51,34 @@ public class BigQueryCatalog implements CatalogExtension {
 
   @Override
   public String[][] listNamespaces() throws NoSuchNamespaceException {
+    // TODO: add implementation
     return new String[0][];
   }
 
   @Override
   public String[][] listNamespaces(String[] namespace) throws NoSuchNamespaceException {
+    // TODO: add implementation
     return new String[0][];
   }
 
   @Override
   public Map<String, String> loadNamespaceMetadata(String[] namespace)
       throws NoSuchNamespaceException {
+    // TODO: add implementation
     return null;
   }
 
   @Override
   public void createNamespace(String[] namespace, Map<String, String> metadata)
-      throws NamespaceAlreadyExistsException {}
+      throws NamespaceAlreadyExistsException {
+    // TODO: add implementation
+  }
 
   @Override
   public void alterNamespace(String[] namespace, NamespaceChange... changes)
-      throws NoSuchNamespaceException {}
+      throws NoSuchNamespaceException {
+    // TODO: add implementation
+  }
 
   @Override
   public boolean dropNamespace(String[] namespace) throws NoSuchNamespaceException {
@@ -80,11 +87,13 @@ public class BigQueryCatalog implements CatalogExtension {
 
   @Override
   public Identifier[] listTables(String[] namespace) throws NoSuchNamespaceException {
+    // TODO: add implementation
     return new Identifier[0];
   }
 
   @Override
   public Table loadTable(Identifier ident) throws NoSuchTableException {
+    // TODO: add implementation
     return BigQueryTable.fromIdentifier(injector, ident);
   }
 
@@ -92,22 +101,27 @@ public class BigQueryCatalog implements CatalogExtension {
   public Table createTable(
       Identifier ident, StructType schema, Transform[] partitions, Map<String, String> properties)
       throws TableAlreadyExistsException, NoSuchNamespaceException {
+    // TODO: add implementation
     return null;
   }
 
   @Override
   public Table alterTable(Identifier ident, TableChange... changes) throws NoSuchTableException {
+    // TODO: add implementation
     return null;
   }
 
   @Override
   public boolean dropTable(Identifier ident) {
+    // TODO: add implementation
     return false;
   }
 
   @Override
   public void renameTable(Identifier oldIdent, Identifier newIdent)
-      throws NoSuchTableException, TableAlreadyExistsException {}
+      throws NoSuchTableException, TableAlreadyExistsException {
+    // TODO: add implementation
+  }
 
   @Override
   public String name() {

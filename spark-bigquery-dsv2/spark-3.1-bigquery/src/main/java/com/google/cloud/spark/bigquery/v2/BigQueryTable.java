@@ -57,7 +57,7 @@ public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
     this.schema = schema;
   }
 
-  public static BigQueryTable fromConfigurationAnsSchema(
+  public static BigQueryTable fromConfigurationAndSchema(
       Injector injector, StructType sparkProvidedSchema) throws NoSuchTableException {
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
     return createInternal(injector, config.getTableId(), sparkProvidedSchema);

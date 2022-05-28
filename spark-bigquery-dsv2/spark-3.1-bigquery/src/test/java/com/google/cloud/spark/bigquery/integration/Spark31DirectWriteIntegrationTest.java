@@ -29,8 +29,4 @@ public class Spark31DirectWriteIntegrationTest extends WriteIntegrationTestBase 
 
   // tests from superclass
 
-  @Test
-  public void testFoo() throws Exception {
-    testWriteToBigQuery_ErrorIfExistsSaveMode();
-  }
 }
