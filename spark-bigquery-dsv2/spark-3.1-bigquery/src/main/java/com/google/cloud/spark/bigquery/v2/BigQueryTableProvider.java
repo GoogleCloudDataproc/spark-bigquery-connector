@@ -90,13 +90,6 @@ public class BigQueryTableProvider extends BaseBigQuerySource
     if (spark.conf().contains(DEFAULT_CATALOG)) {
       return;
     }
-    ImmutableMap<String, String> config =
-        ImmutableMap.of(
-            "type", "hive",
-            "default-namespace", "default",
-            "cache-enabled", "false" // the source should not use a cache
-            );
     spark.conf().set(DEFAULT_CATALOG, BigQueryCatalog.class.getCanonicalName());
-    config.forEach((key, value) -> spark.conf().set(DEFAULT_CATALOG + "." + key, value));
   }
 }

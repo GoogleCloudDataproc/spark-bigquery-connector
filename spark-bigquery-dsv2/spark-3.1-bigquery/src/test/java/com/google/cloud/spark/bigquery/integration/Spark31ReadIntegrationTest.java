@@ -24,8 +24,4 @@ public class Spark31ReadIntegrationTest extends ReadIntegrationTestBase {
 
   // tests are from the super-class
 
-  @Test
-  public void foo() {
-    testKnownSizeInBytes();
-  }
 }

@@ -86,7 +86,6 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   private static final String LARGE_TABLE_FIELD = "is_male";
   private static final long LARGE_TABLE_NUM_ROWS = 33271914L;
   private static final String NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent";
-  private static final String STRUCT_COLUMN_ORDER_TEST_TABLE_NAME = "struct_column_order";
   private static final String ALL_TYPES_TABLE_NAME = "all_types";
 
   protected final boolean userProvidedSchemaAllowed;
@@ -245,7 +244,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testUserDefinedSchema() {
-    assumeTrue("user provided schema is no allowed for this connector", userProvidedSchemaAllowed);
+    assumeTrue("user provided schema is not allowed for this connector", userProvidedSchemaAllowed);
     // TODO(pmkc): consider a schema that wouldn't cause cast errors if read.
     StructType expectedSchema =
         new StructType(
