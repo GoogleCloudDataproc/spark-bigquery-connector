@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.25.0 - 2022-05-31
 * Issue #593: Allow users to disable cache when loading data via SQL query,
   by setting `cacheExpirationTimeInMinutes=0`
 * PR #613: Added field level schema checks. This can be disabled by setting
