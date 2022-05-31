@@ -55,11 +55,11 @@ gcloud dataproc clusters create "$MY_CLUSTER"
 
 The latest version of the connector is publicly available in the following links:
 
-| version | Link |
-| --- | --- |
+| version    | Link                                                                                                                                                                                         |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.24.2.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.24.2.jar)) |
 | Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.24.2.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.24.2.jar)) |
-| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-0.24.2-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-0.24.2-preview.jar)) |
+| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-0.24.2-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-0.24.2-preview.jar))                        |
 
 The only difference between first two connectors is that the former is a Scala 2.11 based connector, targeting Spark 2.3
 and 2.4 using Scala 2.11 whereas the latter is a Scala 2.12 based connector, targeting Spark 2.4 and 3.x using Scala 2.12.
@@ -76,11 +76,11 @@ The connector is also available from the
 repository. It can be used using the `--packages` option or the
 `spark.jars.packages` configuration property. Use the following value
 
-| version | Connector Artifact |
-| --- | --- |
+| version    | Connector Artifact                                                    |
+| ---------- | --------------------------------------------------------------------- |
 | Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.24.2` |
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.24.2` |
-| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:0.24.2-preview` |
+| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:0.24.2-preview`            |
 
 ## Hello World Example
 
@@ -512,6 +512,14 @@ The API Supports a number of options to configure the read
        spark-avro package must be added in runtime.
        <br/>(Optional. Defaults to <code>parquet</code>). On write only.
        <br/><i>Not supported by the `DIRECT` write method.</i>
+   </td>
+   <td>Write</td>
+  </tr>
+  <tr valign="top">
+   <td><code>useAvroLogicalTypes</code>
+   </td>
+   <td>When loading from Avro (`.option("intermediateFormat", "avro")`), BigQuery uses the underlying Avro types instead of the logical types [by default](https://cloud.google.com/bigquery/docs/loading-data-cloud-storage-avro#logical_types). Supplying this option converts Avro logical types to their corresponding BigQuery data types.
+       <br/>(Optional. Defaults to <code>false</code>). On write only.
    </td>
    <td>Write</td>
   </tr>
