@@ -17,7 +17,6 @@ package com.google.cloud.spark.bigquery.integration;
 
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import org.junit.Ignore;
-import org.junit.Test;
 
 // temporary ignore
 @Ignore
