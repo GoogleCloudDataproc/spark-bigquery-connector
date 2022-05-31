@@ -140,7 +140,7 @@ class BigQueryRelationProvider(
       sqlContext.sparkContext.defaultParallelism,
       sqlContext.sparkSession.sessionState.conf,
       sqlContext.sparkContext.version,
-      Optional.ofNullable(schema.orNull))
+      Optional.ofNullable(schema.orNull), /* tableIsMandatory */ true)
   }
 
   override def shortName: String = "bigquery"
@@ -155,7 +155,7 @@ trait GuiceInjectorCreator {
     val injector = Guice.createInjector(
       new BigQueryClientModule,
       new SparkBigQueryConnectorModule(
-        spark, parameters.asJava, Optional.ofNullable(schema.orNull), DataSourceVersion.V1))
+        spark, parameters.asJava, Optional.ofNullable(schema.orNull), DataSourceVersion.V1, /* tableIsMandatory */ true))
     injector
   }
 }

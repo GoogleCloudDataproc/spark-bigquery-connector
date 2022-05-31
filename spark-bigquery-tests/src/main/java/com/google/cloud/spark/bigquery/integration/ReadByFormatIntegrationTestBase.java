@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assume.assumeTrue;
 
 import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
 import com.google.common.collect.ImmutableSet;
@@ -32,11 +33,17 @@ import org.junit.Test;
 
 public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
-  protected String dataFormat;
+  protected final String dataFormat;
+  protected final boolean userProvidedSchemaAllowed;
 
   public ReadByFormatIntegrationTestBase(String dataFormat) {
+    this(dataFormat, true);
+  }
+
+  public ReadByFormatIntegrationTestBase(String dataFormat, boolean userProvidedSchemaAllowed) {
     super();
     this.dataFormat = dataFormat;
+    this.userProvidedSchemaAllowed = userProvidedSchemaAllowed;
   }
 
   @Test
@@ -188,6 +195,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
   @Test
   public void testColumnOrderOfStruct() {
+    assumeTrue("user provided schema is not allowed for this connector", userProvidedSchemaAllowed);
     StructType schema = Encoders.bean(ColumnOrderTestClass.class).schema();
 
     Dataset<ColumnOrderTestClass> dataset =

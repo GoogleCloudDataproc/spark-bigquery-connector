@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.cloud.spark.bigquery.integration.IntegrationTestUtils.metadata;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assume.assumeTrue;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -85,9 +86,18 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   private static final String LARGE_TABLE_FIELD = "is_male";
   private static final long LARGE_TABLE_NUM_ROWS = 33271914L;
   private static final String NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent";
-  private static final String STRUCT_COLUMN_ORDER_TEST_TABLE_NAME = "struct_column_order";
   private static final String ALL_TYPES_TABLE_NAME = "all_types";
-  private static final String ALL_TYPES_VIEW_NAME = "all_types_view";
+
+  protected final boolean userProvidedSchemaAllowed;
+
+  public ReadIntegrationTestBase() {
+    this(true);
+  }
+
+  public ReadIntegrationTestBase(boolean userProvidedSchemaAllowed) {
+    super();
+    this.userProvidedSchemaAllowed = userProvidedSchemaAllowed;
+  }
 
   /** Generate a test to verify that the given DataFrame is equal to a known result. */
   private void testShakespeare(Dataset<Row> df) {
@@ -234,6 +244,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testUserDefinedSchema() {
+    assumeTrue("user provided schema is not allowed for this connector", userProvidedSchemaAllowed);
     // TODO(pmkc): consider a schema that wouldn't cause cast errors if read.
     StructType expectedSchema =
         new StructType(
