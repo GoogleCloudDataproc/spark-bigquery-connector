@@ -48,7 +48,7 @@ public class BigNumericDataprocServerlessAcceptanceTestBase
             "big_numeric.py",
             zipFileUri,
             Arrays.asList(tableName, context.getResultsDirUri(testName)),
-            240);
+            480);
     assertThat(operationSnapshot.isDone()).isTrue();
     assertThat(operationSnapshot.getErrorMessage()).isEmpty();
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
