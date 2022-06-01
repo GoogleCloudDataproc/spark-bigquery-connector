@@ -4,6 +4,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static java.time.temporal.TemporalAdjusters.firstDayOfYear;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.IsoFields;
 import java.util.List;
 import org.apache.spark.sql.Dataset;
@@ -81,13 +82,13 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
         spark
             .sql(
                 "SELECT "
-                    + "report_data_updated_date, "
-                    + "DATE_ADD(report_data_updated_date, 1), "
-                    + "DATE_SUB(report_data_updated_date, 5), "
-                    + "MONTH(report_data_updated_date), "
-                    + "QUARTER(report_data_updated_date), "
-                    + "YEAR(report_data_updated_date), "
-                    + "TRUNC(report_data_updated_date, 'YEAR') "
+                    + "report_data_updated_time, "
+                    + "DATE_ADD(report_data_updated_time, 1), "
+                    + "DATE_SUB(report_data_updated_time, 5), "
+                    + "MONTH(report_data_updated_time), "
+                    + "QUARTER(report_data_updated_time), "
+                    + "YEAR(report_data_updated_time), "
+                    + "TRUNC(report_data_updated_time, 'YEAR') "
                     + "FROM last_updated")
             .collectAsList();
 
@@ -95,7 +96,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
     // Parsing the date rather than setting date to LocalDate.now() because the test will fail
     // in the edge case that the BigQuery read happens on an earlier date
-    LocalDate date = LocalDate.parse(r1.get(0).toString());
+    LocalDate date = LocalDateTime.parse(r1.get(0).toString()).toLocalDate();
 
     assertThat(r1.get(1).toString()).isEqualTo(date.plusDays(1L).toString()); // DATE_ADD
     assertThat(r1.get(2).toString()).isEqualTo(date.minusDays(5L).toString()); // DATE_SUB
