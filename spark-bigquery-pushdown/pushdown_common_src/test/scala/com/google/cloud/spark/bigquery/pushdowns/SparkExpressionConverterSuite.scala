@@ -20,7 +20,7 @@ package com.google.cloud.spark.bigquery.pushdowns
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
 import com.google.cloud.spark.bigquery.pushdowns.TestConstants.schoolIdAttributeReference
 import org.apache.spark.sql.catalyst.expressions.aggregate._
-import org.apache.spark.sql.catalyst.expressions.{Abs, Acos, Alias, And, Ascending, Ascii, Asin, Atan, AttributeReference, Base64, Cast, Ceil, Concat, Contains, Cos, Cosh, Descending, EndsWith, EqualTo, Exp, ExprId, Floor, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, Greatest, In, InitCap, IsNaN, IsNotNull, IsNull, Least, Length, LessThan, LessThanOrEqual, Literal, Log, Log10, Logarithm, Lower, Not, Or, Pow, Rand, RegExpExtract, RegExpReplace, Round, Signum, Sin, Sinh, SortOrder, SoundEx, Sqrt, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, Tan, Tanh, UnBase64, Upper}
+import org.apache.spark.sql.catalyst.expressions.{Abs, Acos, Alias, And, Ascending, Ascii, Asin, Atan, AttributeReference, Base64, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Cast, Ceil, Concat, Contains, Cos, Cosh, DateAdd, DateSub, Descending, EndsWith, EqualTo, Exp, ExprId, Floor, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, Greatest, In, InitCap, IsNaN, IsNotNull, IsNull, Least, Length, LessThan, LessThanOrEqual, Literal, Log, Log10, Logarithm, Lower, Month, Not, Or, Pow, Quarter, Rand, RegExpExtract, RegExpReplace, Round, Signum, Sin, Sinh, SortOrder, SoundEx, Sqrt, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, Tan, Tanh, TruncDate, UnBase64, Upper, Year}
 import org.apache.spark.sql.types._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
@@ -541,13 +541,6 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val bigQuerySQLStatement = converter.convertMathematicalExpressions(aTanExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "ATAN ( 90 )")
-  }
-
-  test("convertMathematicalExpressions with Ceil") {
-    val ceilExpression = Ceil.apply(Literal(12.5))
-    val bigQuerySQLStatement = converter.convertMathematicalExpressions(ceilExpression, fields)
-    assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "CEIL ( 12.5 )")
   }
 
   test("convertMathematicalExpressions with Cos") {

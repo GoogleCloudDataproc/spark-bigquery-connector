@@ -40,9 +40,9 @@ trait SparkExpressionConverter {
       .orElse(convertBasicExpressions(expression, fields))
       .orElse(convertBooleanExpressions(expression, fields))
       .orElse(convertDateExpressions(expression, fields))
+      .orElse(convertMathematicalExpressions(expression, fields))
       .orElse(convertMiscExpressions(expression, fields))
       .orElse(convertStringExpressions(expression, fields))
-      .orElse(convertMathematicalExpressions(expression, fields))
       .getOrElse(throw new BigQueryPushdownUnsupportedException((s"Pushdown unsupported for ${expression.prettyName}")))
   }
 
@@ -216,6 +216,25 @@ trait SparkExpressionConverter {
     })
   }
 
+  def convertMathematicalExpressions(expression: Expression, fields: Seq[Attribute]): Option[BigQuerySQLStatement] = {
+    Option(expression match {
+      case _: Abs | _: Acos | _: Asin | _: Atan |
+           _: Cos | _: Cosh | _: Exp | _: Floor | _: Greatest |
+           _: Least | _:Log10 | _: Pow | _:Round | _: Sin | _: Sinh |
+           _: Sqrt | _: Tan | _: Tanh =>
+        ConstantString(expression.prettyName.toUpperCase) + blockStatement(convertStatements(fields, expression.children: _*))
+      case IsNaN(child) =>
+        ConstantString("IS_NAN") + blockStatement(convertStatement(child, fields))
+      case Signum(child) =>
+        ConstantString("SIGN") + blockStatement(convertStatement(child, fields))
+      case _: Rand =>
+        ConstantString("RAND") + ConstantString("()")
+      case Logarithm(left, right) =>
+        ConstantString("LOG") + blockStatement(convertStatement(left, fields) + "," + convertStatement(right, fields))
+      case _ => null
+    })
+  }
+
   def convertMiscExpressions(expression: Expression, fields: Seq[Attribute]): Option[BigQuerySQLStatement] = {
     Option(expression match {
       case Alias(child: Expression, name: String) =>
@@ -264,25 +283,6 @@ trait SparkExpressionConverter {
         ConstantString("REGEXP_REPLACE") + blockStatement(convertStatement(expression.children.head, fields) + "," + s"r'${expression.children(1).toString}'" + "," + s"'${expression.children(2).toString}'")
       case _: FormatString | _: FormatNumber =>
         ConstantString("FORMAT") + blockStatement(convertStatements(fields, expression.children: _*))
-
-      case _ => null
-    })
-  }
-
-  def convertMathematicalExpressions(expression: Expression, fields: Seq[Attribute]): Option[BigQuerySQLStatement] = {
-    Option(expression match {
-      case _: Abs | _: Acos | _: Asin | _: Atan | _: Ceil |
-           _: Cos | _: Cosh | _: Exp | _: Floor | _: Greatest |
-           _: Least | _: Logarithm | _: Log | _: Log10 |
-           _: Pow | _:Round | _: Sin | _: Sinh |
-           _: Sqrt | _: Tan | _: Tanh =>
-        ConstantString(expression.prettyName.toUpperCase) + blockStatement(convertStatements(fields, expression.children: _*))
-      case IsNaN(child) =>
-        ConstantString("IS_NAN") + blockStatement(convertStatement(child, fields))
-      case Signum(child) =>
-        ConstantString("SIGN") + blockStatement(convertStatement(child, fields))
-      case _: Rand =>
-        ConstantString("RAND") + ConstantString("()")
       case _ => null
     })
   }
