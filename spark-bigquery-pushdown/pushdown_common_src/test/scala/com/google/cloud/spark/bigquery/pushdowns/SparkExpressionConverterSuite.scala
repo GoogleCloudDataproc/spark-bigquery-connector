@@ -463,14 +463,14 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val base64Expression = Base64.apply(schoolIdAttributeReference)
     val bigQuerySQLStatement = converter.convertStringExpressions(base64Expression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "BASE64 ( SUBQUERY_2.SCHOOLID )")
+    assert(bigQuerySQLStatement.get.toString == "TO_BASE64 ( SUBQUERY_2.SCHOOLID )")
   }
 
   test("convertStringExpressions with UnBase64") {
     val unBase64Expression = UnBase64.apply(schoolIdAttributeReference)
     val bigQuerySQLStatement = converter.convertStringExpressions(unBase64Expression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "UNBASE64 ( SUBQUERY_2.SCHOOLID )")
+    assert(bigQuerySQLStatement.get.toString == "FROM_BASE64 ( SUBQUERY_2.SCHOOLID )")
   }
 
   test("convertStringExpressions with Substring") {
