@@ -85,11 +85,7 @@ case class BigQueryWriteHelper(bigQueryClient: BigQueryClient,
       .asJava)
     val writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode)
 
-    var sourceSchema: Schema = null
-    if (options.schema.isPresent) {
-      sourceSchema = toBigQuerySchema(options.schema.get())
-    }
-    bigQueryClient.loadDataIntoTable(options, sourceUris, formatOptions, writeDisposition, sourceSchema)
+    bigQueryClient.loadDataIntoTable(options, sourceUris, formatOptions, writeDisposition)
   }
 
   def friendlyTableName: String = BigQueryUtil.friendlyTableName(options.getTableId)

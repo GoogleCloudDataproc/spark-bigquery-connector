@@ -317,11 +317,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             "select * from %s.%s",
             testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
     int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
-    assertThat(numOfRows).isEqualTo(1);
+    assertThat(numOfRows).isGreaterThan(0);
   }
 
   @Test
-  public void testInDirectWriteToBigQueryWithDiffInSchemaAndModeCheck() {
+  public void testInDirectWriteToBigQueryWithDiffInSchemaAndModeCheck() throws Exception {
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
     Dataset<Row> df =
@@ -331,15 +331,18 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .option("table", testDataset + "." + TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME)
             .load();
 
-    assertThrows(
-        Exception.class,
-        () ->
-            df.write()
-                .format("bigquery")
-                .mode(SaveMode.Append)
-                .option("writeMethod", writeMethod.toString())
-                .option("enableModeCheckForSchemaFields", true)
-                .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME));
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("writeMethod", writeMethod.toString())
+        .option("enableModeCheckForSchemaFields", true)
+        .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
+    String query =
+        String.format(
+            "select * from %s.%s",
+            testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
+    int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
+    assertThat(numOfRows).isGreaterThan(0);
   }
 
   @Test
@@ -365,7 +368,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             "select * from %s.%s",
             testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
     int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
-    assertThat(numOfRows).isEqualTo(1);
+    assertThat(numOfRows).isGreaterThan(0);
   }
 
   @Test

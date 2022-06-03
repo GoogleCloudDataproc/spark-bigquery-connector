@@ -158,12 +158,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
         SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
     FormatOptions formatOptions = config.getIntermediateFormat().getFormatOptions();
 
-    Schema sourceTableSchema = null;
-    if (sparkSchema != null) {
-      sourceTableSchema = SchemaConverters.toBigQuerySchema(sparkSchema);
-    }
-    bigQueryClient.loadDataIntoTable(
-        config, optimizedSourceUris, formatOptions, writeDisposition, sourceTableSchema);
+    bigQueryClient.loadDataIntoTable(config, optimizedSourceUris, formatOptions, writeDisposition);
   }
 
   void updateMetadataIfNeeded() {
