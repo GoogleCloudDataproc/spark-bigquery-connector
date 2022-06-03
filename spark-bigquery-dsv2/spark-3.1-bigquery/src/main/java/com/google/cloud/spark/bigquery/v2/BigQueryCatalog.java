@@ -120,9 +120,7 @@ public class BigQueryCatalog implements CatalogExtension {
 
   @Override
   public boolean dropTable(Identifier ident) {
-    // TODO: add implementation
-    bigQueryClient.deleteTable(((BigQueryIdentifier) ident).getTableId());
-    return false;
+    return bigQueryClient.deleteTable(((BigQueryIdentifier) ident).getTableId());
   }
 
   @Override
