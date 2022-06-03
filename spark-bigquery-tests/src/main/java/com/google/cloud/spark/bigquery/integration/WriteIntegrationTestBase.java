@@ -59,7 +59,6 @@ import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import scala.Some;
 
@@ -273,7 +272,6 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  @Ignore("DSv2 only")
   public void testDirectWriteToBigQueryWithDiffInSchema() {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     Dataset<Row> df =
@@ -294,7 +292,6 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  @Ignore("DSv2 only")
   public void testDirectWriteToBigQueryWithDiffInSchemaAndDisableModeCheck() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     Dataset<Row> df =
@@ -319,7 +316,6 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  @Ignore("DSv2 only")
   public void testDirectWriteToBigQueryWithDiffInDescription() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     Dataset<Row> df =
