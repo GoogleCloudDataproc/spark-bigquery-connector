@@ -89,11 +89,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     this.expectedExceptionOnExistingTable = expectedExceptionOnExistingTable;
     this.bq = BigQueryOptions.getDefaultInstance().getService();
   }
-
-  private Metadata metadata(String key, String value) {
-    return metadata(ImmutableMap.of(key, value));
-  }
-
+  
   private Metadata metadata(Map<String, String> map) {
     MetadataBuilder metadata = new MetadataBuilder();
     map.forEach((key, value) -> metadata.putString(key, value));
