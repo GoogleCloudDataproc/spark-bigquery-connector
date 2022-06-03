@@ -315,7 +315,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             "select * from %s.%s",
             testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
     int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
-    assertThat(numOfRows).isEqualTo(1);
+    assertThat(numOfRows).isGreaterThan(0);
   }
 
   @Test
@@ -363,7 +363,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             "select * from %s.%s",
             testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
     int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
-    assertThat(numOfRows).isEqualTo(1);
+    assertThat(numOfRows).isGreaterThan(0);
   }
 
   @Test
@@ -389,7 +389,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             "select * from %s.%s",
             testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
     int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
-    assertThat(numOfRows).isEqualTo(1);
+    assertThat(numOfRows).isGreaterThan(0);
   }
 
   @Test
@@ -415,7 +415,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             "select * from %s.%s",
             testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
     int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
-    assertThat(numOfRows).isEqualTo(1);
+    assertThat(numOfRows).isGreaterThan(0);
   }
 
   @Test
