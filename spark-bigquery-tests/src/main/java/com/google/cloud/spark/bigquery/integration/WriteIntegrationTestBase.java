@@ -39,7 +39,6 @@ import com.google.cloud.spark.bigquery.integration.model.Friend;
 import com.google.cloud.spark.bigquery.integration.model.Link;
 import com.google.cloud.spark.bigquery.integration.model.Person;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.ProvisionException;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -89,7 +88,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     this.expectedExceptionOnExistingTable = expectedExceptionOnExistingTable;
     this.bq = BigQueryOptions.getDefaultInstance().getService();
   }
-  
+
   private Metadata metadata(Map<String, String> map) {
     MetadataBuilder metadata = new MetadataBuilder();
     map.forEach((key, value) -> metadata.putString(key, value));

@@ -27,7 +27,6 @@ public class Spark31DirectWriteIntegrationTest extends WriteIntegrationTestBase 
 
   // tests from superclass
 
-
   @Override
   @Ignore // not working yet
   public void testWriteToBigQuery_AppendSaveMode() throws InterruptedException {
