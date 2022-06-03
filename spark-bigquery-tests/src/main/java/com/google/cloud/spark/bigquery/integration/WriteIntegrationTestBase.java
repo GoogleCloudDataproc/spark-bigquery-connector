@@ -68,6 +68,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   private static final String TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
   protected static AtomicInteger id = new AtomicInteger(0);
   protected final SparkBigQueryConfig.WriteMethod writeMethod;
+  protected Class<? extends Exception> expectedExceptionOnExistingTable;
   protected BigQuery bq;
 
   protected String temporaryGcsBucket =
@@ -77,8 +78,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
           TEMPORARY_GCS_BUCKET_ENV_VARIABLE);
 
   public WriteIntegrationTestBase(SparkBigQueryConfig.WriteMethod writeMethod) {
+    this(writeMethod, IllegalArgumentException.class);
+  }
+
+  public WriteIntegrationTestBase(
+      SparkBigQueryConfig.WriteMethod writeMethod,
+      Class<? extends Exception> expectedExceptionOnExistingTable) {
     super();
     this.writeMethod = writeMethod;
+    this.expectedExceptionOnExistingTable = expectedExceptionOnExistingTable;
     this.bq = BigQueryOptions.getDefaultInstance().getService();
   }
 
@@ -204,7 +212,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     assertThrows(
-        IllegalArgumentException.class,
+        expectedExceptionOnExistingTable,
         () -> writeToBigQuery(additonalData(), SaveMode.ErrorIfExists));
   }
 

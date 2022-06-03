@@ -70,6 +70,11 @@ public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
         injector, ((BigQueryIdentifier) ident).getTableId(), /*sparkProvidedSchema*/ null);
   }
 
+  public static BigQueryTable fromTableInfo(Injector injector, TableInfo tableInfo) {
+    return new BigQueryTable(
+        injector, tableInfo, SchemaConverters.toSpark(tableInfo.getDefinition().getSchema()));
+  }
+
   private static BigQueryTable createInternal(
       Injector injector, TableId tableId, StructType sparkProvidedSchema)
       throws NoSuchTableException {

@@ -16,16 +16,18 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import org.junit.Ignore;
+import org.apache.spark.sql.catalyst.analysis.TableAlreadyExistsException;
 
-// temporary ignore
-@Ignore
 public class Spark31DirectWriteIntegrationTest extends WriteIntegrationTestBase {
 
   public Spark31DirectWriteIntegrationTest() {
-    super(SparkBigQueryConfig.WriteMethod.DIRECT);
+    super(SparkBigQueryConfig.WriteMethod.DIRECT, TableAlreadyExistsException.class);
   }
 
   // tests from superclass
 
+  //  @Test
+  //  public void foo() throws Exception {
+  //    testWriteToBigQuery_ErrorIfExistsSaveMode();
+  //  }
 }
