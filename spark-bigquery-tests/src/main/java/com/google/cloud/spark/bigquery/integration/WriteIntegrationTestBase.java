@@ -321,6 +321,30 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
+  @Ignore("DSv2 only")
+  public void testDirectWriteToBigQueryWithDiffInDescription() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option(
+                "table",
+                testDataset + "." + TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME_WITH_DESCRIPTION)
+            .load();
+
+    assertThrows(
+        ProvisionException.class,
+        () ->
+            df.write()
+                .format("bigquery")
+                .mode(SaveMode.Append)
+                .option("writeMethod", writeMethod.toString())
+                .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME));
+  }
+
+  @Test
   public void testInDirectWriteToBigQueryWithDiffInSchemaAndModeCheck() throws Exception {
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
     spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
@@ -362,6 +386,32 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .mode(SaveMode.Append)
         .option("writeMethod", writeMethod.toString())
         .option("enableModeCheckForSchemaFields", false)
+        .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
+    String query =
+        String.format(
+            "select * from %s.%s",
+            testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
+    int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
+    assertThat(numOfRows).isGreaterThan(0);
+  }
+
+  @Test
+  public void testInDirectWriteToBigQueryWithDiffInDescription() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    spark.conf().set("temporaryGcsBucket", temporaryGcsBucket);
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option(
+                "table",
+                testDataset + "." + TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME_WITH_DESCRIPTION)
+            .load();
+
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("writeMethod", writeMethod.toString())
         .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
     String query =
         String.format(

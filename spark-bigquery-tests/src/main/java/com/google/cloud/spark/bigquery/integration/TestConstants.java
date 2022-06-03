@@ -104,6 +104,7 @@ public class TestConstants {
   static final String ALL_TYPES_TABLE_NAME = "all_types";
   static final String ALL_TYPES_VIEW_NAME = "all_types_view";
   static final String DIFF_IN_SCHEMA_SRC_TABLE_NAME = "src_table";
+  static final String DIFF_IN_SCHEMA_SRC_TABLE_NAME_WITH_DESCRIPTION = "src_table_with_description";
   static final String DIFF_IN_SCHEMA_DEST_TABLE_NAME = "dest_table";
   static DataType BQ_NUMERIC = DataTypes.createDecimalType(38, 9);
   public static int BIG_NUMERIC_COLUMN_POSITION = 11;
@@ -232,6 +233,18 @@ public class TestConstants {
               "create table %s.%s (",
               "int_req int64 not null,",
               "int_null int64,",
+              ") as",
+              "",
+              "select",
+              "42 as int_req,",
+              "null as int_null")
+          .collect(Collectors.joining("\n"));
+
+  public static String DIFF_IN_SCHEMA_SRC_TABLE_WITH_DESCRIPTION =
+      Stream.of(
+              "create table %s.%s (",
+              "int_req int64 not null,",
+              "int_null int64 OPTIONS(description='An INTEGER field with description'),",
               ") as",
               "",
               "select",
