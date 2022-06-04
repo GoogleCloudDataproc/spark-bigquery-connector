@@ -150,8 +150,7 @@ public class SparkBigQueryUtil {
     if (saveMode == SaveMode.Overwrite) {
       return JobInfo.WriteDisposition.WRITE_TRUNCATE;
     }
-    throw new UnsupportedOperationException(
-        "SaveMode " + saveMode + " is currently not supported.");
+    throw new IllegalArgumentException("SaveMode " + saveMode + " is currently not supported.");
   }
 
   public static TableId parseSimpleTableId(SparkSession spark, Map<String, String> options) {
