@@ -15,6 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.inject.Injector;
 import java.util.Map;
 import org.apache.spark.sql.catalyst.analysis.NamespaceAlreadyExistsException;
@@ -36,12 +39,14 @@ public class BigQueryCatalog implements CatalogExtension {
   private String name = "bigquery";
   private Injector injector;
   private CatalogPlugin delegate;
+  private BigQueryClient bigQueryClient;
 
   @Override
   public void initialize(String name, CaseInsensitiveStringMap options) {
     this.name = name;
     this.injector =
         InjectorFactory.createInjector(/*schema*/ null, options, /* tableIsMandatory */ false);
+    this.bigQueryClient = injector.getInstance(BigQueryClient.class);
   }
 
   @Override
@@ -101,8 +106,10 @@ public class BigQueryCatalog implements CatalogExtension {
   public Table createTable(
       Identifier ident, StructType schema, Transform[] partitions, Map<String, String> properties)
       throws TableAlreadyExistsException, NoSuchNamespaceException {
-    // TODO: add implementation
-    return null;
+    TableInfo createdTable =
+        bigQueryClient.createTable(
+            ((BigQueryIdentifier) ident).getTableId(), SchemaConverters.toBigQuerySchema(schema));
+    return BigQueryTable.fromTableInfo(injector, createdTable);
   }
 
   @Override
@@ -113,8 +120,7 @@ public class BigQueryCatalog implements CatalogExtension {
 
   @Override
   public boolean dropTable(Identifier ident) {
-    // TODO: add implementation
-    return false;
+    return bigQueryClient.deleteTable(((BigQueryIdentifier) ident).getTableId());
   }
 
   @Override

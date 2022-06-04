@@ -39,7 +39,6 @@ import com.google.cloud.spark.bigquery.integration.model.Friend;
 import com.google.cloud.spark.bigquery.integration.model.Link;
 import com.google.cloud.spark.bigquery.integration.model.Person;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.ProvisionException;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -68,6 +67,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   private static final String TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
   protected static AtomicInteger id = new AtomicInteger(0);
   protected final SparkBigQueryConfig.WriteMethod writeMethod;
+  protected Class<? extends Exception> expectedExceptionOnExistingTable;
   protected BigQuery bq;
 
   protected String temporaryGcsBucket =
@@ -77,13 +77,16 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
           TEMPORARY_GCS_BUCKET_ENV_VARIABLE);
 
   public WriteIntegrationTestBase(SparkBigQueryConfig.WriteMethod writeMethod) {
-    super();
-    this.writeMethod = writeMethod;
-    this.bq = BigQueryOptions.getDefaultInstance().getService();
+    this(writeMethod, IllegalArgumentException.class);
   }
 
-  private Metadata metadata(String key, String value) {
-    return metadata(ImmutableMap.of(key, value));
+  public WriteIntegrationTestBase(
+      SparkBigQueryConfig.WriteMethod writeMethod,
+      Class<? extends Exception> expectedExceptionOnExistingTable) {
+    super();
+    this.writeMethod = writeMethod;
+    this.expectedExceptionOnExistingTable = expectedExceptionOnExistingTable;
+    this.bq = BigQueryOptions.getDefaultInstance().getService();
   }
 
   private Metadata metadata(Map<String, String> map) {
@@ -204,7 +207,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     assertThrows(
-        IllegalArgumentException.class,
+        expectedExceptionOnExistingTable,
         () -> writeToBigQuery(additonalData(), SaveMode.ErrorIfExists));
   }
 

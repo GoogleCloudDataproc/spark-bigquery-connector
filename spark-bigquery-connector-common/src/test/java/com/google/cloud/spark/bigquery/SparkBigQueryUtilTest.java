@@ -1,7 +1,13 @@
 package com.google.cloud.spark.bigquery;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.TableId;
+import com.google.common.collect.ImmutableMap;
+import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
 import org.junit.Test;
 
@@ -28,5 +34,28 @@ public class SparkBigQueryUtilTest {
   public void testGetJobIdInternal_missingBoth() {
     String jobId = SparkBigQueryUtil.getJobIdInternal("missing", "");
     assertThat(jobId).isEqualTo("");
+  }
+
+  @Test
+  public void testSaveModeToWriteDisposition() {
+    assertThat(SparkBigQueryUtil.saveModeToWriteDisposition(SaveMode.ErrorIfExists))
+        .isEqualTo(JobInfo.WriteDisposition.WRITE_EMPTY);
+    assertThat(SparkBigQueryUtil.saveModeToWriteDisposition(SaveMode.Append))
+        .isEqualTo(JobInfo.WriteDisposition.WRITE_APPEND);
+    assertThat(SparkBigQueryUtil.saveModeToWriteDisposition(SaveMode.Ignore))
+        .isEqualTo(JobInfo.WriteDisposition.WRITE_APPEND);
+    assertThat(SparkBigQueryUtil.saveModeToWriteDisposition(SaveMode.Overwrite))
+        .isEqualTo(JobInfo.WriteDisposition.WRITE_TRUNCATE);
+    assertThrows(
+        IllegalArgumentException.class, () -> SparkBigQueryUtil.saveModeToWriteDisposition(null));
+  }
+
+  @Test
+  public void testParseSimpleTableId() {
+    SparkSession spark = SparkSession.builder().master("local").getOrCreate();
+    ImmutableMap<String, String> options = ImmutableMap.of("table", "dataset.table");
+    TableId tableId = SparkBigQueryUtil.parseSimpleTableId(spark, options);
+    assertThat(tableId.getDataset()).isEqualTo("dataset");
+    assertThat(tableId.getTable()).isEqualTo("table");
   }
 }

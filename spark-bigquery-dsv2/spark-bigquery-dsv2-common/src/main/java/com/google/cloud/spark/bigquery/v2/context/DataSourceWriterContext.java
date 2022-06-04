@@ -16,14 +16,17 @@
 package com.google.cloud.spark.bigquery.v2.context;
 
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.inject.Injector;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
 
@@ -47,13 +50,26 @@ public interface DataSourceWriterContext {
       StructType schema,
       SaveMode mode,
       Map<String, String> options) {
+    SparkBigQueryConfig tableConfig = injector.getInstance(SparkBigQueryConfig.class);
+    if (tableConfig.getTableId() == null) {
+      // the config was created for the catalog, we need to parse the tableId from the options
+      SparkSession spark = injector.getInstance(SparkSession.class);
+      tableConfig =
+          SparkBigQueryConfig.from(
+              options,
+              DataSourceVersion.V2,
+              spark,
+              Optional.of(schema),
+              true /* tableIsMandatory */);
+    }
     Injector writerInjector =
-        injector.createChildInjector(new BigQueryDataSourceWriterModule(writeUUID, schema, mode));
+        injector.createChildInjector(
+            new BigQueryDataSourceWriterModule(tableConfig, writeUUID, schema, mode));
     // first verify if we need to do anything at all, based on the table existence and the save
     // mode.
     BigQueryClient bigQueryClient = writerInjector.getInstance(BigQueryClient.class);
-    SparkBigQueryConfig config = writerInjector.getInstance(SparkBigQueryConfig.class);
-    TableInfo table = bigQueryClient.getTable(config.getTableId());
+    TableId tableId = tableConfig.getTableId();
+    TableInfo table = bigQueryClient.getTable(tableId);
     if (table != null) {
       // table already exists
       if (mode == SaveMode.Ignore) {
@@ -73,7 +89,7 @@ public interface DataSourceWriterContext {
       // there's no point in writing the data to GCS in the first place as it going
       // to fail on the BigQuery side.
       boolean createNever =
-          config
+          tableConfig
               .getCreateDisposition()
               .map(createDisposition -> createDisposition == JobInfo.CreateDisposition.CREATE_NEVER)
               .orElse(false);
@@ -82,11 +98,11 @@ public interface DataSourceWriterContext {
             String.format(
                 "For table %s Create Disposition is CREATE_NEVER and the table does not exists."
                     + " Aborting the insert",
-                BigQueryUtil.friendlyTableName(config.getTableId())));
+                BigQueryUtil.friendlyTableName(tableId)));
       }
     }
     DataSourceWriterContext dataSourceWriterContext = null;
-    switch (config.getWriteMethod()) {
+    switch (tableConfig.getWriteMethod()) {
       case DIRECT:
         dataSourceWriterContext =
             writerInjector.getInstance(BigQueryDirectDataSourceWriterContext.class);

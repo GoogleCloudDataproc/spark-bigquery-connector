@@ -15,11 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import static scala.collection.JavaConversions.mapAsJavaMap;
-
-import com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
-import com.google.common.collect.ImmutableMap;
+import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.inject.Injector;
 import java.util.Map;
 import org.apache.spark.sql.SparkSession;
@@ -74,10 +72,9 @@ public class BigQueryTableProvider extends BaseBigQuerySource
 
   @Override
   public Identifier extractIdentifier(CaseInsensitiveStringMap options) {
-    ImmutableMap<String, String> globalOptions =
-        ImmutableMap.copyOf(mapAsJavaMap(SparkSession.active().conf().getAll()));
-    return new BigQueryIdentifier(
-        BigQueryConfigurationUtil.parseSimpleTableId(globalOptions, options));
+    SparkSession spark = SparkSession.active();
+    TableId tableId = SparkBigQueryUtil.parseSimpleTableId(spark, options);
+    return new BigQueryIdentifier(tableId);
   }
 
   @Override
