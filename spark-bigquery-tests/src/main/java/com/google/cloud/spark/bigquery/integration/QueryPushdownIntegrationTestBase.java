@@ -15,7 +15,12 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
   @Test
   public void testStringFunctionExpressions() {
-    Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(TestConstants.SHAKESPEARE_TABLE);
     df =
         df.selectExpr(
                 "word",
