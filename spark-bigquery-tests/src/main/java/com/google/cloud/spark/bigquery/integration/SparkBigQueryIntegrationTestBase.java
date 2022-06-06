@@ -76,9 +76,9 @@ public class SparkBigQueryIntegrationTestBase {
               TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME));
       IntegrationTestUtils.runQuery(
           String.format(
-              TestConstants.DIFF_IN_SCHEMA_DEST_TABLE,
+              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_WITH_DESCRIPTION,
               testDataset,
-              TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME));
+              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME_WITH_DESCRIPTION));
     }
 
     @Override

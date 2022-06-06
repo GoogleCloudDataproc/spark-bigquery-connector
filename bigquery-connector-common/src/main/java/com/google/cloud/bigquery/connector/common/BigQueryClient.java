@@ -458,20 +458,7 @@ public class BigQueryClient {
       LoadDataOptions options,
       List<String> sourceUris,
       FormatOptions formatOptions,
-      JobInfo.WriteDisposition writeDisposition,
-      Schema sourceTableSchema) {
-    if (sourceTableSchema != null && tableExists(options.getTableId())) {
-      TableInfo destinationTable = getTable(options.getTableId());
-      Schema destinationTableSchema = destinationTable.getDefinition().getSchema();
-      Preconditions.checkArgument(
-          BigQueryUtil.schemaEquals(
-              destinationTableSchema,
-              sourceTableSchema,
-              /* regardFieldOrder */ false,
-              options.getEnableModeCheckForSchemaFields()),
-          new BigQueryConnectorException.InvalidSchemaException(
-              "Destination table's schema is not compatible with dataframe's schema"));
-    }
+      JobInfo.WriteDisposition writeDisposition) {
     LoadJobConfiguration.Builder jobConfiguration =
         jobConfigurationFactory
             .createLoadJobConfigurationBuilder(options, sourceUris, formatOptions)
