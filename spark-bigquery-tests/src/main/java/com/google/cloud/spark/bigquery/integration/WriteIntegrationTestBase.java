@@ -271,9 +271,18 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(initialDataValuesExist()).isTrue();
   }
 
+  private String createDiffInSchemaDestTable() {
+    String destTableName = TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME + "_" + System.nanoTime();
+    ;
+    IntegrationTestUtils.runQuery(
+        String.format(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE, testDataset, destTableName));
+    return destTableName;
+  }
+
   @Test
   public void testDirectWriteToBigQueryWithDiffInSchema() {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String destTableName = createDiffInSchemaDestTable();
     Dataset<Row> df =
         spark
             .read()
@@ -288,12 +297,13 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 .format("bigquery")
                 .mode(SaveMode.Append)
                 .option("writeMethod", writeMethod.toString())
-                .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME));
+                .save(testDataset + "." + destTableName));
   }
 
   @Test
   public void testDirectWriteToBigQueryWithDiffInSchemaAndDisableModeCheck() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String destTableName = createDiffInSchemaDestTable();
     Dataset<Row> df =
         spark
             .read()
@@ -306,18 +316,16 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .mode(SaveMode.Append)
         .option("writeMethod", writeMethod.toString())
         .option("enableModeCheckForSchemaFields", false)
-        .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
-    String query =
-        String.format(
-            "select * from %s.%s",
-            testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
+        .save(testDataset + "." + destTableName);
+    String query = String.format("select * from %s.%s", testDataset.toString(), destTableName);
     int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
-    assertThat(numOfRows).isGreaterThan(0);
+    assertThat(numOfRows).isEqualTo(1);
   }
 
   @Test
   public void testDirectWriteToBigQueryWithDiffInDescription() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String destTableName = createDiffInSchemaDestTable();
     Dataset<Row> df =
         spark
             .read()
@@ -334,12 +342,13 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 .format("bigquery")
                 .mode(SaveMode.Append)
                 .option("writeMethod", writeMethod.toString())
-                .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME));
+                .save(testDataset + "." + destTableName));
   }
 
   @Test
   public void testInDirectWriteToBigQueryWithDiffInSchemaAndModeCheck() throws Exception {
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
+    String destTableName = createDiffInSchemaDestTable();
     Dataset<Row> df =
         spark
             .read()
@@ -353,19 +362,17 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("writeMethod", writeMethod.toString())
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("enableModeCheckForSchemaFields", true)
-        .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
-    String query =
-        String.format(
-            "select * from %s.%s",
-            testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
+        .save(testDataset + "." + destTableName);
+    String query = String.format("select * from %s.%s", testDataset.toString(), destTableName);
     int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
-    assertThat(numOfRows).isGreaterThan(0);
+    assertThat(numOfRows).isEqualTo(1);
   }
 
   @Test
   public void testIndirectWriteToBigQueryWithDiffInSchemaNullableFieldAndDisableModeCheck()
       throws Exception {
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
+    String destTableName = createDiffInSchemaDestTable();
     Dataset<Row> df =
         spark
             .read()
@@ -379,18 +386,16 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("writeMethod", writeMethod.toString())
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("enableModeCheckForSchemaFields", false)
-        .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
-    String query =
-        String.format(
-            "select * from %s.%s",
-            testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
+        .save(testDataset + "." + destTableName);
+    String query = String.format("select * from %s.%s", testDataset.toString(), destTableName);
     int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
-    assertThat(numOfRows).isGreaterThan(0);
+    assertThat(numOfRows).isEqualTo(1);
   }
 
   @Test
   public void testInDirectWriteToBigQueryWithDiffInDescription() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    String destTableName = createDiffInSchemaDestTable();
     Dataset<Row> df =
         spark
             .read()
@@ -405,13 +410,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .mode(SaveMode.Append)
         .option("temporaryGcsBucket", temporaryGcsBucket)
         .option("writeMethod", writeMethod.toString())
-        .save(testDataset + "." + TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
-    String query =
-        String.format(
-            "select * from %s.%s",
-            testDataset.toString(), TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME);
+        .save(testDataset + "." + destTableName);
+    String query = String.format("select * from %s.%s", testDataset.toString(), destTableName);
     int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
-    assertThat(numOfRows).isGreaterThan(0);
+    assertThat(numOfRows).isEqualTo(1);
   }
 
   @Test
