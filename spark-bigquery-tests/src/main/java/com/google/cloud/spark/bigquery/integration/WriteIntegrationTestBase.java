@@ -97,6 +97,13 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     this.testTable = "test_" + System.nanoTime();
   }
 
+  private String createDiffInSchemaDestTable() {
+    String destTableName = TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME + "_" + System.nanoTime();
+    IntegrationTestUtils.runQuery(
+        String.format(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE, testDataset, destTableName));
+    return destTableName;
+  }
+
   // Write tests. We have four save modes: Append, ErrorIfExists, Ignore and
   // Overwrite. For each there are two behaviours - the table exists or not.
   // See more at http://spark.apache.org/docs/2.3.2/api/java/org/apache/spark/sql/SaveMode.html
@@ -269,14 +276,6 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .save();
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
-  }
-
-  private String createDiffInSchemaDestTable() {
-    String destTableName = TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME + "_" + System.nanoTime();
-    ;
-    IntegrationTestUtils.runQuery(
-        String.format(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE, testDataset, destTableName));
-    return destTableName;
   }
 
   @Test
