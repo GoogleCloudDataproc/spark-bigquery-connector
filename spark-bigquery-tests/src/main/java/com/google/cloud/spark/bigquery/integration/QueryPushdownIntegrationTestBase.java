@@ -136,4 +136,64 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(2).toString()).isEqualTo("1"); // 1 ^ 0
     assertThat(r1.get(3).toString()).isEqualTo("-2"); // ~1
   }
+
+  @Test
+  public void testMathematicalFunctionExpressions() {
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(TestConstants.SHAKESPEARE_TABLE);
+    df =
+        df.selectExpr(
+                "word",
+                "word_count",
+                "ABS(-22) as Abs",
+                "ACOS(1) as Acos",
+                "ASIN(0) as Asin",
+                "ROUND(ATAN(0.5),2) as Atan",
+                "COS(0) as Cos",
+                "COSH(0) as Cosh",
+                "ROUND(EXP(1),2) as Exp",
+                "FLOOR(EXP(1)) as Floor",
+                "GREATEST(1,5,3,4) as Greatest",
+                "LEAST(1,5,3,4) as Least",
+                "ROUND(LOG(word_count, 2.71), 2) as Log",
+                "ROUND(LOG10(word_count), 2) as Log10",
+                "POW(word_count, 2) as Pow",
+                "ROUND(RAND(10),2) as Rand",
+                "SIN(0) as Sin",
+                "SINH(0) as Sinh",
+                "ROUND(SQRT(word_count), 2) as sqrt",
+                "TAN(0) as Tan",
+                "TANH(0) as Tanh",
+                "ISNAN(word_count) as IsNan",
+                "SIGNUM(word_count) as Signum")
+            .where("word_count = 10 and word = 'glass'");
+    List<Row> result = df.collectAsList();
+    Row r1 = result.get(0);
+    assertThat(r1.get(0)).isEqualTo("glass"); // word
+    assertThat(r1.get(1)).isEqualTo(10); // word_count
+    assertThat(r1.get(2)).isEqualTo(22); // ABS(-22)
+    assertThat(r1.get(3)).isEqualTo(0.0); // ACOS(1)
+    assertThat(r1.get(4)).isEqualTo(0.0); // ASIN(0)
+    assertThat(r1.get(5)).isEqualTo(0.46); // ROUND(ATAN(0.5),2)
+    assertThat(r1.get(6)).isEqualTo(1.0); // COS(0)
+    assertThat(r1.get(7)).isEqualTo(1.0); // COSH(0)
+    assertThat(r1.get(8)).isEqualTo(2.72); // ROUND(EXP(1),2)
+    assertThat(r1.get(9)).isEqualTo(2); // FLOOR(EXP(1))
+    assertThat(r1.get(10)).isEqualTo(5); // GREATEST(1,5,3,4)
+    assertThat(r1.get(11)).isEqualTo(1); // LEAST(1,5,3,4)
+    assertThat(r1.get(12)).isEqualTo(2.31); // ROUND(LOG(word_count, 2.71), 2)
+    assertThat(r1.get(13)).isEqualTo(1.0); // ROUND(LOG10(word_count), 2)
+    assertThat(r1.get(14)).isEqualTo(100.0); // POW(word_count, 2)
+    assertThat(r1.get(16)).isEqualTo(0.0); // SIN(0)
+    assertThat(r1.get(17)).isEqualTo(0.0); // SINH(0)
+    assertThat(r1.get(18)).isEqualTo(3.16); // ROUND(SQRT(word_count), 2)
+    assertThat(r1.get(19)).isEqualTo(0.0); // TAN(0)
+    assertThat(r1.get(20)).isEqualTo(0.0); // TANH(0)
+    assertThat(r1.get(21)).isEqualTo(false); // ISNAN(word_count)
+    assertThat(r1.get(22)).isEqualTo(1.0); // SIGNUM(word_count)
+  }
 }
