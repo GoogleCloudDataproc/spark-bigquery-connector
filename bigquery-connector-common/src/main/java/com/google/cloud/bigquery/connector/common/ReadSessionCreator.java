@@ -29,19 +29,12 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // A helper class, also handles view materialization
 public class ReadSessionCreator {
-  /**
-   * Default parallelism to 1 reader per 400MB, which should be about the maximum allowed by the
-   * BigQuery Storage API. The number of partitions returned may be significantly less depending on
-   * a number of factors.
-   */
-  private static final int DEFAULT_BYTES_PER_PARTITION = 400 * 1000 * 1000;
 
   private static final Logger log = LoggerFactory.getLogger(ReadSessionCreator.class);
 
@@ -56,12 +49,6 @@ public class ReadSessionCreator {
     this.config = config;
     this.bigQueryClient = bigQueryClient;
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
-  }
-
-  static int getMaxNumPartitionsRequested(
-      OptionalInt maxParallelism, StandardTableDefinition tableDefinition) {
-    return maxParallelism.orElse(
-        Math.max((int) (tableDefinition.getNumBytes() / DEFAULT_BYTES_PER_PARTITION), 1));
   }
 
   /**
@@ -111,6 +98,15 @@ public class ReadSessionCreator {
             .setBufferCompression(config.getArrowCompressionCodec())
             .build());
 
+    int maxStreamCount =
+        config
+            .getMaxParallelism()
+            .orElseGet(
+                () -> {
+                  log.debug("using default parallelism [{}]", config.getDefaultParallelism());
+                  return config.getDefaultParallelism();
+                });
+
     ReadSession readSession =
         bigQueryReadClient.createReadSession(
             request
@@ -122,8 +118,7 @@ public class ReadSessionCreator {
                         .setReadOptions(readOptions)
                         .setTable(tablePath)
                         .build())
-                .setMaxStreamCount(
-                    getMaxNumPartitionsRequested(config.getMaxParallelism(), tableDefinition))
+                .setMaxStreamCount(maxStreamCount)
                 .build());
 
     return new ReadSessionResponse(readSession, actualTable);
