@@ -34,14 +34,14 @@ case $STEP in
   init)
     checkenv
     $MVN install -DskipTests -Pdsv1_2.12,dsv2
-    # Upload test coverage report to Codecov
-    bash <(curl -s https://codecov.io/bash) -K -F "${STEP}"
     exit
     ;;
 
   # Run unit tests
   unittest)
     $MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv2
+    # Upload test coverage report to Codecov
+    bash <(curl -s https://codecov.io/bash) -K -F "${STEP}"
     ;;
 
   # Run integration tests
