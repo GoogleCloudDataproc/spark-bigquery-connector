@@ -130,7 +130,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
             .option("readDataFormat", dataFormat)
             .load();
 
-    assertThat(df.rdd().getNumPartitions()).isEqualTo(58);
+    assertThat(df.rdd().getNumPartitions()).isEqualTo(spark.sparkContext().defaultParallelism());
   }
 
   @Test(timeout = 300_000)

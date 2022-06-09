@@ -43,7 +43,11 @@ public class SparkBigQueryIntegrationTestBase {
     @Override
     protected void before() throws Throwable {
       spark =
-          SparkSession.builder().master("local").config("spark.ui.enabled", "false").getOrCreate();
+          SparkSession.builder()
+              .master("local")
+              .config("spark.ui.enabled", "false")
+              .config("spark.default.parallelism", 20)
+              .getOrCreate();
       // reducing test's logs
       spark.sparkContext().setLogLevel("WARN");
     }
