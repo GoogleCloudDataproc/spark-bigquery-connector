@@ -477,14 +477,15 @@ public class BigQueryClient {
           .ifPresent(timePartitionBuilder::setRequirePartitionFilter);
       options.getPartitionField().ifPresent(timePartitionBuilder::setField);
       jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
-      options
-          .getClusteredFields()
-          .ifPresent(
-              clusteredFields -> {
-                Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
-                jobConfiguration.setClustering(clustering);
-              });
     }
+
+    options
+        .getClusteredFields()
+        .ifPresent(
+            clusteredFields -> {
+              Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
+              jobConfiguration.setClustering(clustering);
+            });
 
     if (options.isUseAvroLogicalTypes()) {
       jobConfiguration.setUseAvroLogicalTypes(true);
