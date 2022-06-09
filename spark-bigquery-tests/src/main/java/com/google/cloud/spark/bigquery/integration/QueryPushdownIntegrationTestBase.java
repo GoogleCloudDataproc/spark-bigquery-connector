@@ -201,4 +201,35 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(21)).isEqualTo(false); // ISNAN(word_count)
     assertThat(r1.get(22)).isEqualTo(1.0); // SIGNUM(word_count)
   }
+
+  @Test
+  public void testMiscellaneousExpressions() {
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(TestConstants.SHAKESPEARE_TABLE);
+    df.createOrReplaceTempView("shakespeare");
+    df =
+        df.selectExpr(
+                "word",
+                "word_count AS WordCount",
+                "CAST(word_count as string) AS cast",
+                "SHIFTLEFT(word_count, 1) AS ShiftLeft",
+                "SHIFTRIGHT(word_count, 1) AS ShiftRight",
+                "CASE WHEN word_count > 10 THEN 'frequent' WHEN word_count <= 10 AND word_count > 4 THEN 'normal' ELSE 'rare' END AS WordFrequency",
+                "(SELECT MIN(word_count) from shakespeare) as MinWordCount")
+            .where("word_count = 10 and word = 'glass'");
+    df.show();
+    List<Row> result = df.collectAsList();
+    Row r1 = result.get(0);
+    assertThat(r1.get(0)).isEqualTo("glass"); // word
+    assertThat(r1.get(1)).isEqualTo(10); // word_count
+    assertThat(r1.get(2)).isEqualTo("10"); // word_count
+    assertThat(r1.get(3)).isEqualTo(20); // SHIFTLEFT(word_count, 1)
+    assertThat(r1.get(4)).isEqualTo(5); // SHIFTRIGHT(word_count, 1)
+    assertThat(r1.get(5)).isEqualTo("normal"); // CASE WHEN
+    assertThat(r1.get(6)).isEqualTo(1); // SCALAR SUBQUERY
+  }
 }

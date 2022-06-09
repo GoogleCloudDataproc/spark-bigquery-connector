@@ -18,10 +18,14 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
-import com.google.cloud.spark.bigquery.pushdowns.TestConstants.schoolIdAttributeReference
+import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.sql.catalyst.expressions.aggregate._
-import org.apache.spark.sql.catalyst.expressions.{Abs, Acos, Alias, And, Ascending, Ascii, Asin, Atan, AttributeReference, Base64, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Cast, Ceil, Concat, Contains, Cos, Cosh, DateAdd, DateSub, Descending, EndsWith, EqualTo, Exp, ExprId, Floor, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, Greatest, In, InitCap, IsNaN, IsNotNull, IsNull, Least, Length, LessThan, LessThanOrEqual, Literal, Log, Log10, Logarithm, Lower, Month, Not, Or, Pow, Quarter, Rand, RegExpExtract, RegExpReplace, Round, Signum, Sin, Sinh, SortOrder, SoundEx, Sqrt, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, Tan, Tanh, TruncDate, UnBase64, Upper, Year}
+import org.apache.spark.sql.catalyst.expressions.{Abs, Acos, Alias, And, Ascending, Ascii, Asin, Atan, AttributeReference, Base64, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, CaseWhen, Cast, Ceil, Concat, Contains, Cos, Cosh, DateAdd, DateSub, Descending, EndsWith, EqualTo, Exp, ExprId, Expression, Floor, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, Greatest, In, InitCap, IsNaN, IsNotNull, IsNull, Least, Length, LessThan, LessThanOrEqual, Literal, Log, Log10, Logarithm, Lower, Month, Not, Or, Pow, Quarter, Rand, RegExpExtract, RegExpReplace, Round, ScalarSubquery, ShiftLeft, ShiftRight, Signum, Sin, Sinh, SortOrder, SoundEx, Sqrt, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, Tan, Tanh, TruncDate, UnBase64, Upper, Year}
+import org.apache.spark.sql.catalyst.plans.logical.{Aggregate}
+import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.types._
+import org.mockito.{Mock, MockitoAnnotations}
+import org.mockito.Mockito.when
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -30,9 +34,19 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
   private val schoolIdAttributeReference = AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1))
   private val schoolStartDateAttributeReference = AttributeReference.apply("StartDate", DateType)(ExprId.apply(2))
   private val fields = List(AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1), List("SUBQUERY_2")))
+  private val expressionFactory: SparkExpressionFactory = new SparkExpressionFactory {
+    override def createAlias(child: Expression, name: String, exprId: ExprId, qualifier: Seq[String], explicitMetadata: Option[Metadata]): Alias = {
+      Alias(child, name)(exprId, qualifier, explicitMetadata)
+    }
+  }
+  @Mock
+  var directBigQueryRelationMock: DirectBigQueryRelation = _
+  @Mock
+  var sparkPlanFactoryMock: SparkPlanFactory = _
 
   before {
-    converter = new SparkExpressionConverter {}
+    converter = new SparkExpressionConverter(expressionFactory, sparkPlanFactoryMock) {}
+    MockitoAnnotations.initMocks(this)
   }
 
   test("convertAggregateExpressions with COUNT") {
@@ -807,6 +821,38 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val bigQuerySQLStatement = converter.convertMiscExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( TRANSACTION AS BIGDECIMAL(10, 5) )")
+  }
+
+  test("convertMiscExpressions with ShiftLeft") {
+    val shiftLeftExpression = ShiftLeft.apply(Literal.apply(4), Literal.apply(2))
+    val bigQuerySQLStatement = converter.convertMiscExpressions(shiftLeftExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "4 << 2")
+  }
+
+  test("convertMiscExpressions with ShiftRight") {
+    val shiftRightExpression = ShiftRight.apply(Literal.apply(4), Literal.apply(2))
+    val bigQuerySQLStatement = converter.convertMiscExpressions(shiftRightExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "4 >> 2")
+  }
+
+  test("convertMiscExpressions with CaseWhen") {
+    val caseWhenExpression = CaseWhen.apply(List.apply(Tuple2.apply(Literal.apply("COND1"), Literal.apply("EVAL1")), Tuple2.apply(Literal.apply("COND2"), Literal.apply("EVAL2"))), Literal.apply("ELSE_EVAL"))
+    val bigQuerySQLStatement = converter.convertMiscExpressions(caseWhenExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "CASE WHEN 'COND1' THEN 'EVAL1' WHEN 'COND2' THEN 'EVAL2' ELSE 'ELSE_EVAL' END")
+  }
+
+  test("convertMiscExpressions with ScalarSubquery") {
+    when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
+    when(directBigQueryRelationMock.getTableName).thenReturn("MY_BIGQUERY_TABLE")
+    val logicalRelation = LogicalRelation(directBigQueryRelationMock)
+    val aggregatePlan = Aggregate(Seq(), Seq(), logicalRelation)
+    val scalarSubQueryExpression = ScalarSubquery.apply(aggregatePlan)
+    val bigQuerySQLStatement = converter.convertMiscExpressions(scalarSubQueryExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "( SELECT * FROM ( SELECT * FROM `MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 LIMIT 1 )")
   }
 
   test("convertDateExpressions with DateAdd") {

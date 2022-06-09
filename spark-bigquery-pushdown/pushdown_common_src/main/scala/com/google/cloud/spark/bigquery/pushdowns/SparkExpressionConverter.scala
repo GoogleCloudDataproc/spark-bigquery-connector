@@ -28,7 +28,7 @@ import org.apache.spark.unsafe.types.UTF8String
  * Spark Expressions are recursively pattern matched. Expressions that differ across Spark versions should be implemented in subclasses
  *
  */
-trait SparkExpressionConverter {
+class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) {
   /**
    * Tries to convert Spark expressions by matching across the different families of expressions such as Aggregate, Boolean etc.
    * @param expression
@@ -263,7 +263,25 @@ trait SparkExpressionConverter {
               blockStatement(convertStatement(child, fields) + "AS" + cast)
           case _ => convertStatement(child, fields)
         }
-
+      case ShiftLeft(child, position) =>
+        convertStatement(child, fields) + ConstantString("<<") + convertStatement(position, fields)
+      case ShiftRight(child, position) =>
+        convertStatement(child, fields) + ConstantString(">>") + convertStatement(position, fields)
+      case CaseWhen(branches, elseValue) =>
+        ConstantString("CASE") +
+          makeStatement(branches.map(whenClauseTuple =>
+            ConstantString("WHEN") + convertStatement(whenClauseTuple._1, fields) + ConstantString("THEN") + convertStatement(whenClauseTuple._2, fields)
+          ), "") +
+          {
+            elseValue match {
+              case Some(value) =>
+                ConstantString("ELSE") + convertStatement(value, fields)
+              case None =>
+                EmptyBigQuerySQLStatement()
+            }
+          } + ConstantString("END")
+      case ScalarSubquery(plan, _, _) =>
+        blockStatement(new BigQueryStrategy(this, expressionFactory, sparkPlanFactory).generateQueryFromPlan(plan).get.getStatement())
       case _ => null
     })
   }
