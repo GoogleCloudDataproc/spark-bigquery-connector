@@ -63,6 +63,7 @@ case $STEP in
     checkenv
     # Upload test coverage report to Codecov
     bash <(curl -s https://codecov.io/bash) -K -F integrationtest
+    ;;
 
   *)
     echo "Unknown step $STEP"
