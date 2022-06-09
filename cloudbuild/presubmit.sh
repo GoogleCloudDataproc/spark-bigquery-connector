@@ -17,10 +17,12 @@
 
 set -euxo pipefail
 
-if [ -z "${CODECOV_TOKEN}" ]; then
-  echo "missing environment variable CODECOV_TOKEN"
-  exit 1
-fi
+function checkenv() {
+  if [ -z "${CODECOV_TOKEN}" ]; then
+    echo "missing environment variable CODECOV_TOKEN"
+    exit 1
+  fi
+}
 
 readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository"
 readonly STEP=$1
@@ -30,7 +32,10 @@ cd /workspace
 case $STEP in
   # Download maven and all the dependencies
   init)
+    checkenv
     $MVN install -DskipTests -Pdsv1_2.12,dsv2
+    # Upload test coverage report to Codecov
+    bash <(curl -s https://codecov.io/bash) -K -F "${STEP}"
     exit
     ;;
 
@@ -54,14 +59,13 @@ case $STEP in
     $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.1
     ;;
 
+  upload-it-to-codecov)
+    checkenv
+    # Upload test coverage report to Codecov
+    bash <(curl -s https://codecov.io/bash) -K -F integrationtest
+
   *)
     echo "Unknown step $STEP"
     exit 1
     ;;
 esac
-
-# Upload test coverage report to Codecov
-bash <(curl -s https://codecov.io/bash) -K -F "${STEP}"
-
-
-
