@@ -2,7 +2,7 @@
 
 ## Next
 
-* PR #NNN: Using spark default parallelism as default.
+* PR #668: Using spark default parallelism as default.
 
 ## 0.25.0 - 2022-05-31
 * Issue #593: Allow users to disable cache when loading data via SQL query,
