@@ -2,6 +2,9 @@
 
 ## Next
 
+* Issue #651: Fixing the write back to BigQuery.
+* PR #664: Add support for BigLake external tables.
+* PR #667: Allowing clustering on unpartitioned tables.
 * PR #668: Using spark default parallelism as default.
 
 ## 0.25.0 - 2022-05-31
