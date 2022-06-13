@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.25.1 - 2022-06-13
 
 * Issue #651: Fixing the write back to BigQuery.
