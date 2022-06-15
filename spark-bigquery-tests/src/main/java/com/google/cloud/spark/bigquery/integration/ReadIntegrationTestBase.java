@@ -15,7 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import static com.google.cloud.spark.bigquery.integration.IntegrationTestUtils.metadata;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
@@ -81,6 +80,17 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
                         field.name(), field.dataType(), field.nullable(), metadata);
                   })
               .toArray(StructField[]::new));
+  private static final StructType SHAKESPEARE_TABLE_SCHEMA_WITH_NULLABLE_FIELDS_AND_NO_METADATA =
+      new StructType(
+          Stream.of(TestConstants.SHAKESPEARE_TABLE_SCHEMA_WITH_NULLABLE.fields())
+              .map(
+                  field -> {
+                    Metadata metadata =
+                        new MetadataBuilder().withMetadata(field.metadata()).build();
+                    return new StructField(
+                        field.name(), field.dataType(), field.nullable(), metadata);
+                  })
+              .toArray(StructField[]::new));
 
   private static final String LARGE_TABLE = "bigquery-public-data.samples.natality";
   private static final String LARGE_TABLE_FIELD = "is_male";
@@ -99,10 +109,27 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     this.userProvidedSchemaAllowed = userProvidedSchemaAllowed;
   }
 
-  /** Generate a test to verify that the given DataFrame is equal to a known result. */
-  private void testShakespeare(Dataset<Row> df) {
+  /**
+   * Generate a test to verify that the given DataFrame is equal to a known result and contains
+   * Nullable Schema.
+   */
+  private void testShakespeareWithMetadataComment(Dataset<Row> df) {
     assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);
-    assertThat(df.count()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+    testShakespeare(df);
+  }
+
+  /**
+   * Generate a test to verify that the given DataFrame is equal to a known result and contains
+   * schema with Required Fields.
+   */
+  private void testShakespeareWithNullableFildsAndNoMetaData(Dataset<Row> df) {
+    assertThat(df.schema())
+        .isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_NULLABLE_FIELDS_AND_NO_METADATA);
+    testShakespeare(df);
+  }
+
+  private void testShakespeare(Dataset<Row> df) {
+    assertThat(df.collectAsList().size()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
     List<String> firstWords =
         Arrays.asList(
             (String[])
@@ -117,13 +144,14 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testReadWithOption() {
-    testShakespeare(
+    testShakespeareWithMetadataComment(
         spark.read().format("bigquery").option("table", TestConstants.SHAKESPEARE_TABLE).load());
   }
 
   @Test
   public void testReadWithSimplifiedApi() {
-    testShakespeare(spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE));
+    testShakespeareWithMetadataComment(
+        spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE));
   }
 
   @Test
@@ -138,7 +166,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .load();
     // Test early termination succeeds
     df.head();
-    testShakespeare(df);
+    testShakespeareWithMetadataComment(df);
   }
 
   @Test
@@ -154,7 +182,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .load();
     // Test early termination succeeds
     df.head();
-    testShakespeare(df);
+    testShakespeareWithMetadataComment(df);
   }
 
   @Test
@@ -170,7 +198,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .load();
     // Test early termination succeeds
     df.head();
-    testShakespeare(df);
+    testShakespeareWithMetadataComment(df);
   }
 
   @Test
@@ -374,5 +402,16 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .collectAsList();
 
     assertThat(avroResults).isEqualTo(arrowResultsForLZ4FrameCodec);
+  }
+
+  @Test
+  public void testReadFromBigLakeTable() {
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", TestConstants.BIGLAKE_SHAKESPEARE_TABLE)
+            .load();
+    testShakespeareWithNullableFildsAndNoMetaData(df);
   }
 }

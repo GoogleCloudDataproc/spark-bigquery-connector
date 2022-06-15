@@ -67,6 +67,7 @@ public class TestConstants {
   static final DecimalType NUMERIC_SPARK_TYPE =
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   static final String SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare";
+  static final String BIGLAKE_SHAKESPEARE_TABLE = "spark_bq_connector_dataset.biglake-shakespeare";
   static final long SHAKESPEARE_TABLE_NUM_ROWS = 164656L;
   static final StructType SHAKESPEARE_TABLE_SCHEMA =
       new StructType(
@@ -94,6 +95,14 @@ public class TestConstants {
                 DataTypes.LongType,
                 false,
                 metadata("description", "The year in which this corpus was published."))
+          });
+  static final StructType SHAKESPEARE_TABLE_SCHEMA_WITH_NULLABLE =
+      new StructType(
+          new StructField[] {
+            StructField.apply("word", DataTypes.StringType, true, Metadata.empty()),
+            StructField.apply("word_count", DataTypes.LongType, true, Metadata.empty()),
+            StructField.apply("corpus", DataTypes.StringType, true, Metadata.empty()),
+            StructField.apply("corpus_date", DataTypes.LongType, true, Metadata.empty())
           });
   static final String LARGE_TABLE = "bigquery-public-data.samples.natality";
   static final String LARGE_TABLE_FIELD = "is_male";

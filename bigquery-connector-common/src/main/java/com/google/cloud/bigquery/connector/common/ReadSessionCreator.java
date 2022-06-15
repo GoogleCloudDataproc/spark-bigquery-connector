@@ -18,7 +18,6 @@ package com.google.cloud.bigquery.connector.common;
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
 import static java.lang.String.format;
 
-import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
@@ -67,7 +66,6 @@ public class ReadSessionCreator {
     TableInfo tableDetails = bigQueryClient.getTable(table);
 
     TableInfo actualTable = getActualTable(tableDetails, selectedFields, filter);
-    StandardTableDefinition tableDefinition = actualTable.getDefinition();
 
     BigQueryReadClient bigQueryReadClient = bigQueryReadClientFactory.getBigQueryReadClient();
 
@@ -120,6 +118,18 @@ public class ReadSessionCreator {
                         .build())
                 .setMaxStreamCount(maxStreamCount)
                 .build());
+
+    if (readSession != null && readSession.getStreamsCount() != maxStreamCount) {
+      log.info(
+          "Requested {} max partitions, but only received {} "
+              + "from the BigQuery Storage API for session {}. Notice that the "
+              + "number of streams in actual may be lower than the requested number, depending on "
+              + "the amount parallelism that is reasonable for the table and the maximum amount of "
+              + "parallelism allowed by the system.",
+          maxStreamCount,
+          readSession.getStreamsCount(),
+          readSession.getName());
+    }
 
     return new ReadSessionResponse(readSession, actualTable);
   }
