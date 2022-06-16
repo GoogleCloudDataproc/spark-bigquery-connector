@@ -450,10 +450,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         temporaryGcsUri,
         formatOptions);
     return spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", table)
-            .load();
+        .read()
+        .format("bigquery")
+        .option("dataset", testDataset.toString())
+        .option("table", table)
+        .load();
   }
 }
