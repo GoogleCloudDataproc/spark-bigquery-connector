@@ -38,6 +38,8 @@ public class ReadSessionCreator {
 
   private static final Logger log = LoggerFactory.getLogger(ReadSessionCreator.class);
 
+  public static final int DEFAULT_MAX_PARALLELISM = 10_000;
+
   private final ReadSessionCreatorConfig config;
   private final BigQueryClient bigQueryClient;
   private final BigQueryClientFactory bigQueryReadClientFactory;
@@ -103,8 +105,8 @@ public class ReadSessionCreator {
             .getMaxParallelism()
             .orElseGet(
                 () -> {
-                  log.debug("using default parallelism [{}]", config.getDefaultParallelism());
-                  return config.getDefaultParallelism();
+                  log.debug("using default parallelism [{}]", DEFAULT_MAX_PARALLELISM);
+                  return DEFAULT_MAX_PARALLELISM;
                 });
 
     ReadSession readSession =
