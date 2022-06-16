@@ -146,7 +146,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .format("bigquery")
         .mode(mode)
         .option("table", fullTableName())
-        .option("temporaryGcsBucket", TestConstants.temporaryGcsBucket)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("intermediateFormat", format)
         .option("writeMethod", writeMethod.toString())
         .save();
@@ -180,7 +180,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .format("bigquery")
         .mode(SaveMode.Append)
         .option("table", fullTableName())
-        .option("temporaryGcsBucket", TestConstants.temporaryGcsBucket)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("intermediateFormat", "parquet")
         .option("writeMethod", writeMethod.toString())
         .option("enableListInference", true)
@@ -254,7 +254,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     initialData()
         .write()
         .format("bigquery")
-        .option("temporaryGcsBucket", TestConstants.temporaryGcsBucket)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .save(fullTableName());
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
@@ -262,7 +262,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testWriteToBigQueryAddingTheSettingsToSparkConf() throws InterruptedException {
-    spark.conf().set("temporaryGcsBucket", TestConstants.temporaryGcsBucket);
+    spark.conf().set("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET);
     initialData()
         .write()
         .format("bigquery")
@@ -354,7 +354,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .format("bigquery")
         .mode(SaveMode.Append)
         .option("writeMethod", writeMethod.toString())
-        .option("temporaryGcsBucket", TestConstants.temporaryGcsBucket)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("enableModeCheckForSchemaFields", true)
         .save(testDataset + "." + destTableName);
     String query = String.format("select * from %s.%s", testDataset.toString(), destTableName);
@@ -378,7 +378,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .format("bigquery")
         .mode(SaveMode.Append)
         .option("writeMethod", writeMethod.toString())
-        .option("temporaryGcsBucket", TestConstants.temporaryGcsBucket)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("enableModeCheckForSchemaFields", false)
         .save(testDataset + "." + destTableName);
     String query = String.format("select * from %s.%s", testDataset.toString(), destTableName);
@@ -402,7 +402,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     df.write()
         .format("bigquery")
         .mode(SaveMode.Append)
-        .option("temporaryGcsBucket", TestConstants.temporaryGcsBucket)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("writeMethod", writeMethod.toString())
         .save(testDataset + "." + destTableName);
     String query = String.format("select * from %s.%s", testDataset.toString(), destTableName);
@@ -426,7 +426,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     df.write()
         .format("bigquery")
         .option("table", fullTableNamePartitioned())
-        .option("temporaryGcsBucket", TestConstants.temporaryGcsBucket)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("partitionField", "created_timestamp")
         .option("clusteredFields", "platform")
         .option("writeMethod", writeMethod.toString())
@@ -479,7 +479,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     newDataDF
         .write()
         .format("bigquery")
-        .option("temporaryGcsBucket", TestConstants.temporaryGcsBucket)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("datePartition", "20200701")
         .mode("overwrite")
         .save(fullTableName());
@@ -543,7 +543,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
           .format("bigquery")
           .mode(SaveMode.Overwrite)
           .option("table", fullTableName() + "_" + i)
-          .option("temporaryGcsBucket", TestConstants.temporaryGcsBucket)
+          .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
           .option("intermediateFormat", "parquet")
           .option("writeMethod", writeMethod.toString())
           .save();
@@ -605,7 +605,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     String table = testDataset.toString() + "." + testTable + "_" + partitionType;
     df.write()
         .format("bigquery")
-        .option("temporaryGcsBucket", TestConstants.temporaryGcsBucket)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("partitionField", "ts")
         .option("partitionType", partitionType)
         .option("partitionRequireFilter", "true")

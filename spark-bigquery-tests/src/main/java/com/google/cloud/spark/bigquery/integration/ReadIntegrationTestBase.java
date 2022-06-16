@@ -386,105 +386,74 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
           getClass().getResourceAsStream("/integration/" + resourceName),
           destinationURI,
           contentType);
-    } catch (Exception exception) {
-      exception.printStackTrace();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 
   @Test
   public void testReadFromBigLakeTable_csv() {
-    String temporaryGCSURI =
+    String temporaryGcsUri =
         String.format(
-            "gs://%s/%s", TestConstants.temporaryGcsBucket, TestConstants.SHAKESPEARE_CSV_FILENAME);
+            "gs://%s/%s",
+            TestConstants.TEMPORARY_GCS_BUCKET, TestConstants.SHAKESPEARE_CSV_FILENAME);
     String table = testTable + "_csv";
-    uploadFileToGCS(TestConstants.SHAKESPEARE_CSV_FILENAME, temporaryGCSURI, "text/csv");
-    IntegrationTestUtils.createExternalTable(
-        testDataset.toString(),
-        table,
-        TestConstants.SHAKESPEARE_TABLE_SCHEMA,
-        temporaryGCSURI,
-        FormatOptions.csv());
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", table)
-            .load();
+    uploadFileToGCS(TestConstants.SHAKESPEARE_CSV_FILENAME, temporaryGcsUri, "text/csv");
+    Dataset<Row> df = getDataFromBigLakeTable(table, temporaryGcsUri, FormatOptions.csv());
     testShakespeare(df);
   }
 
   @Test
   public void testReadFromBigLakeTable_json() {
-    String temporaryGCSURI =
+    String temporaryGcsUri =
         String.format(
             "gs://%s/%s",
-            TestConstants.temporaryGcsBucket, TestConstants.SHAKESPEARE_JSON_FILENAME);
+            TestConstants.TEMPORARY_GCS_BUCKET, TestConstants.SHAKESPEARE_JSON_FILENAME);
     String table = testTable + "_json";
-    uploadFileToGCS(TestConstants.SHAKESPEARE_JSON_FILENAME, temporaryGCSURI, "application/json");
-    IntegrationTestUtils.createExternalTable(
-        testDataset.toString(),
-        table,
-        TestConstants.SHAKESPEARE_TABLE_SCHEMA,
-        temporaryGCSURI,
-        FormatOptions.json());
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", table)
-            .load();
+    uploadFileToGCS(TestConstants.SHAKESPEARE_JSON_FILENAME, temporaryGcsUri, "application/json");
+    Dataset<Row> df = getDataFromBigLakeTable(table, temporaryGcsUri, FormatOptions.json());
+    testShakespeare(df);
+  }
+
+  @Test
+  public void testReadFromBigLakeTable_parquet() {
+    String temporaryGcsUri =
+        String.format(
+            "gs://%s/%s",
+            TestConstants.TEMPORARY_GCS_BUCKET, TestConstants.SHAKESPEARE_PARQUET_FILENAME);
+    String table = testTable + "_parquet";
+    uploadFileToGCS(
+        TestConstants.SHAKESPEARE_PARQUET_FILENAME, temporaryGcsUri, "application/octet-stream");
+    Dataset<Row> df = getDataFromBigLakeTable(table, temporaryGcsUri, FormatOptions.parquet());
     testShakespeare(df);
   }
 
   @Test
   public void testReadFromBigLakeTable_avro() {
-    String temporaryGCSURI =
+    String temporaryGcsUri =
         String.format(
             "gs://%s/%s",
-            TestConstants.temporaryGcsBucket, TestConstants.SHAKESPEARE_AVRO_FILENAME);
+            TestConstants.TEMPORARY_GCS_BUCKET, TestConstants.SHAKESPEARE_AVRO_FILENAME);
     String table = testTable + "_avro";
     uploadFileToGCS(
-        TestConstants.SHAKESPEARE_AVRO_FILENAME, temporaryGCSURI, "application/octet-stream");
-    IntegrationTestUtils.createExternalTable(
-        testDataset.toString(),
-        table,
-        TestConstants.SHAKESPEARE_TABLE_SCHEMA,
-        temporaryGCSURI,
-        FormatOptions.avro());
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", table)
-            .load();
-    assertThrows(Exception.class, () -> df.collectAsList().size());
+        TestConstants.SHAKESPEARE_AVRO_FILENAME, temporaryGcsUri, "application/octet-stream");
+    Dataset<Row> df = getDataFromBigLakeTable(table, temporaryGcsUri, FormatOptions.avro());
+    assertThrows("avro is not supported yet", Exception.class, () -> df.collectAsList().size());
   }
 
-  @Test
-  public void testReadFromBigLakeTable_parquet() {
-    String temporaryGCSURI =
-        String.format(
-            "gs://%s/%s",
-            TestConstants.temporaryGcsBucket, TestConstants.SHAKESPEARE_PARQUET_FILENAME);
-    String table = testTable + "_parquet";
-    uploadFileToGCS(
-        TestConstants.SHAKESPEARE_PARQUET_FILENAME, temporaryGCSURI, "application/octet-stream");
+  private Dataset<Row> getDataFromBigLakeTable(
+      String table, String temporaryGcsUri, FormatOptions formatOptions) {
     IntegrationTestUtils.createExternalTable(
         testDataset.toString(),
         table,
         TestConstants.SHAKESPEARE_TABLE_SCHEMA,
-        temporaryGCSURI,
-        FormatOptions.parquet());
-    Dataset<Row> df =
-        spark
+        temporaryGcsUri,
+        formatOptions);
+    return spark
             .read()
             .format("bigquery")
             .option("dataset", testDataset.toString())
             .option("table", table)
             .load();
-    testShakespeare(df);
   }
 }

@@ -68,16 +68,15 @@ public class TestConstants {
   static final DecimalType NUMERIC_SPARK_TYPE =
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   static final String SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare";
-  static final String BIGLAKE_SHAKESPEARE_TABLE = "spark_bq_connector_dataset.biglake-shakespeare";
   static final long SHAKESPEARE_TABLE_NUM_ROWS = 164656L;
   static final String TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
   static final String BIGLAKE_CONNECTION_ID_ENV_VARIABLE = "BIGLAKE_CONNECTION_ID";
-  static final String temporaryGcsBucket =
+  static final String TEMPORARY_GCS_BUCKET =
       Preconditions.checkNotNull(
           System.getenv(TEMPORARY_GCS_BUCKET_ENV_VARIABLE),
           "Please set the %s env variable to point to a write enabled GCS bucket",
           TEMPORARY_GCS_BUCKET_ENV_VARIABLE);
-  static final String bigLakeConnectionID =
+  static final String BIGLAKE_CONNECTION_ID =
       Preconditions.checkNotNull(
           System.getenv(BIGLAKE_CONNECTION_ID_ENV_VARIABLE),
           "Please set the BIGLAKE_CONNECTION_ID env variable in order to create biglake table");
