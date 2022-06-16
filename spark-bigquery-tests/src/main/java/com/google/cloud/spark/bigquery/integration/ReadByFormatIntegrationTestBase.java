@@ -33,7 +33,7 @@ import org.junit.Test;
 
 public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
-  private static final int LARGE_TABLE_NUMBER_OF_PARTITIONS = 276;
+  private static final int LARGE_TABLE_NUMBER_OF_PARTITIONS = 69;
   protected final String dataFormat;
   protected final boolean userProvidedSchemaAllowed;
 
