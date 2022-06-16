@@ -19,6 +19,8 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
+import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -80,17 +82,6 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
                         field.name(), field.dataType(), field.nullable(), metadata);
                   })
               .toArray(StructField[]::new));
-  private static final StructType SHAKESPEARE_TABLE_SCHEMA_WITH_NULLABLE_FIELDS_AND_NO_METADATA =
-      new StructType(
-          Stream.of(TestConstants.SHAKESPEARE_TABLE_SCHEMA_WITH_NULLABLE.fields())
-              .map(
-                  field -> {
-                    Metadata metadata =
-                        new MetadataBuilder().withMetadata(field.metadata()).build();
-                    return new StructField(
-                        field.name(), field.dataType(), field.nullable(), metadata);
-                  })
-              .toArray(StructField[]::new));
 
   private static final String LARGE_TABLE = "bigquery-public-data.samples.natality";
   private static final String LARGE_TABLE_FIELD = "is_male";
@@ -113,22 +104,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
    * Generate a test to verify that the given DataFrame is equal to a known result and contains
    * Nullable Schema.
    */
-  private void testShakespeareWithMetadataComment(Dataset<Row> df) {
-    assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);
-    testShakespeare(df);
-  }
-
-  /**
-   * Generate a test to verify that the given DataFrame is equal to a known result and contains
-   * schema with Required Fields.
-   */
-  private void testShakespeareWithNullableFildsAndNoMetaData(Dataset<Row> df) {
-    assertThat(df.schema())
-        .isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_NULLABLE_FIELDS_AND_NO_METADATA);
-    testShakespeare(df);
-  }
-
   private void testShakespeare(Dataset<Row> df) {
+    assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);
     assertThat(df.collectAsList().size()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
     List<String> firstWords =
         Arrays.asList(
@@ -144,14 +121,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testReadWithOption() {
-    testShakespeareWithMetadataComment(
+    testShakespeare(
         spark.read().format("bigquery").option("table", TestConstants.SHAKESPEARE_TABLE).load());
   }
 
   @Test
   public void testReadWithSimplifiedApi() {
-    testShakespeareWithMetadataComment(
-        spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE));
+    testShakespeare(spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE));
   }
 
   @Test
@@ -166,7 +142,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .load();
     // Test early termination succeeds
     df.head();
-    testShakespeareWithMetadataComment(df);
+    testShakespeare(df);
   }
 
   @Test
@@ -182,7 +158,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .load();
     // Test early termination succeeds
     df.head();
-    testShakespeareWithMetadataComment(df);
+    testShakespeare(df);
   }
 
   @Test
@@ -198,7 +174,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .load();
     // Test early termination succeeds
     df.head();
-    testShakespeareWithMetadataComment(df);
+    testShakespeare(df);
   }
 
   @Test
@@ -404,14 +380,111 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assertThat(avroResults).isEqualTo(arrowResultsForLZ4FrameCodec);
   }
 
+  private void uploadFileToGCS(String resourceName, String destinationURI, String contentType) {
+    try {
+      AcceptanceTestUtils.uploadToGcs(
+          getClass().getResourceAsStream("/integration/" + resourceName),
+          destinationURI,
+          contentType);
+    } catch (Exception exception) {
+      exception.printStackTrace();
+    }
+  }
+
   @Test
-  public void testReadFromBigLakeTable() {
+  public void testReadFromBigLakeTable_csv() {
+    String temporaryGCSURI =
+        String.format(
+            "gs://%s/%s", TestConstants.temporaryGcsBucket, TestConstants.SHAKESPEARE_CSV_FILENAME);
+    String table = testTable + "_csv";
+    uploadFileToGCS(TestConstants.SHAKESPEARE_CSV_FILENAME, temporaryGCSURI, "text/csv");
+    IntegrationTestUtils.createExternalTable(
+        testDataset.toString(),
+        table,
+        TestConstants.SHAKESPEARE_TABLE_SCHEMA,
+        temporaryGCSURI,
+        FormatOptions.csv());
     Dataset<Row> df =
         spark
             .read()
             .format("bigquery")
-            .option("table", TestConstants.BIGLAKE_SHAKESPEARE_TABLE)
+            .option("dataset", testDataset.toString())
+            .option("table", table)
             .load();
-    testShakespeareWithNullableFildsAndNoMetaData(df);
+    testShakespeare(df);
+  }
+
+  @Test
+  public void testReadFromBigLakeTable_json() {
+    String temporaryGCSURI =
+        String.format(
+            "gs://%s/%s",
+            TestConstants.temporaryGcsBucket, TestConstants.SHAKESPEARE_JSON_FILENAME);
+    String table = testTable + "_json";
+    uploadFileToGCS(TestConstants.SHAKESPEARE_JSON_FILENAME, temporaryGCSURI, "application/json");
+    IntegrationTestUtils.createExternalTable(
+        testDataset.toString(),
+        table,
+        TestConstants.SHAKESPEARE_TABLE_SCHEMA,
+        temporaryGCSURI,
+        FormatOptions.json());
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", table)
+            .load();
+    testShakespeare(df);
+  }
+
+  @Test
+  public void testReadFromBigLakeTable_avro() {
+    String temporaryGCSURI =
+        String.format(
+            "gs://%s/%s",
+            TestConstants.temporaryGcsBucket, TestConstants.SHAKESPEARE_AVRO_FILENAME);
+    String table = testTable + "_avro";
+    uploadFileToGCS(
+        TestConstants.SHAKESPEARE_AVRO_FILENAME, temporaryGCSURI, "application/octet-stream");
+    IntegrationTestUtils.createExternalTable(
+        testDataset.toString(),
+        table,
+        TestConstants.SHAKESPEARE_TABLE_SCHEMA,
+        temporaryGCSURI,
+        FormatOptions.avro());
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", table)
+            .load();
+    assertThrows(Exception.class, () -> df.collectAsList().size());
+  }
+
+  @Test
+  public void testReadFromBigLakeTable_parquet() {
+    String temporaryGCSURI =
+        String.format(
+            "gs://%s/%s",
+            TestConstants.temporaryGcsBucket, TestConstants.SHAKESPEARE_PARQUET_FILENAME);
+    String table = testTable + "_parquet";
+    uploadFileToGCS(
+        TestConstants.SHAKESPEARE_PARQUET_FILENAME, temporaryGCSURI, "application/octet-stream");
+    IntegrationTestUtils.createExternalTable(
+        testDataset.toString(),
+        table,
+        TestConstants.SHAKESPEARE_TABLE_SCHEMA,
+        temporaryGCSURI,
+        FormatOptions.parquet());
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", table)
+            .load();
+    testShakespeare(df);
   }
 }

@@ -35,6 +35,7 @@ import static org.apache.spark.sql.types.DataTypes.TimestampType;
 import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
 import com.google.cloud.spark.bigquery.integration.model.NumStruct;
 import com.google.cloud.spark.bigquery.integration.model.StringStruct;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -69,6 +70,21 @@ public class TestConstants {
   static final String SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare";
   static final String BIGLAKE_SHAKESPEARE_TABLE = "spark_bq_connector_dataset.biglake-shakespeare";
   static final long SHAKESPEARE_TABLE_NUM_ROWS = 164656L;
+  static final String TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
+  static final String BIGLAKE_CONNECTION_ID_ENV_VARIABLE = "BIGLAKE_CONNECTION_ID";
+  static final String temporaryGcsBucket =
+      Preconditions.checkNotNull(
+          System.getenv(TEMPORARY_GCS_BUCKET_ENV_VARIABLE),
+          "Please set the %s env variable to point to a write enabled GCS bucket",
+          TEMPORARY_GCS_BUCKET_ENV_VARIABLE);
+  static final String bigLakeConnectionID =
+      Preconditions.checkNotNull(
+          System.getenv(BIGLAKE_CONNECTION_ID_ENV_VARIABLE),
+          "Please set the BIGLAKE_CONNECTION_ID env variable in order to create biglake table");
+  static final String SHAKESPEARE_CSV_FILENAME = "shakespeare.csv";
+  static final String SHAKESPEARE_JSON_FILENAME = "shakespeare.json";
+  static final String SHAKESPEARE_AVRO_FILENAME = "shakespeare.avro";
+  static final String SHAKESPEARE_PARQUET_FILENAME = "shakespeare.parquet";
   static final StructType SHAKESPEARE_TABLE_SCHEMA =
       new StructType(
           new StructField[] {
@@ -95,14 +111,6 @@ public class TestConstants {
                 DataTypes.LongType,
                 false,
                 metadata("description", "The year in which this corpus was published."))
-          });
-  static final StructType SHAKESPEARE_TABLE_SCHEMA_WITH_NULLABLE =
-      new StructType(
-          new StructField[] {
-            StructField.apply("word", DataTypes.StringType, true, Metadata.empty()),
-            StructField.apply("word_count", DataTypes.LongType, true, Metadata.empty()),
-            StructField.apply("corpus", DataTypes.StringType, true, Metadata.empty()),
-            StructField.apply("corpus_date", DataTypes.LongType, true, Metadata.empty())
           });
   static final String LARGE_TABLE = "bigquery-public-data.samples.natality";
   static final String LARGE_TABLE_FIELD = "is_male";
