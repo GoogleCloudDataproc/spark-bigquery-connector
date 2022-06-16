@@ -106,7 +106,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
    */
   private void testShakespeare(Dataset<Row> df) {
     assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);
-    assertThat(df.collectAsList().size()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+    assertThat(df.count()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
     List<String> firstWords =
         Arrays.asList(
             (String[])
