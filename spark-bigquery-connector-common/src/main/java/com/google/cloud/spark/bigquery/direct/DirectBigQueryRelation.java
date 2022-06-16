@@ -19,7 +19,6 @@ package com.google.cloud.spark.bigquery.direct;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
@@ -30,6 +29,7 @@ import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Row;
@@ -170,16 +170,9 @@ public class DirectBigQueryRelation extends BigQueryRelation
 
   private RDD<?> generateEmptyRowRDD(TableInfo tableInfo, String filter) {
     emptyRowRDDsCreated += 1;
-    long numberOfRows;
-    if (filter.length() == 0) {
-      numberOfRows = tableInfo.getNumRows().longValue();
-    } else {
-      // run a query
-      String table = toSqlTableReference(tableInfo.getTableId());
-      String sql = "SELECT COUNT(*) from " + "`" + table + "` WHERE" + filter;
-      TableResult result = bigQueryClient.query(sql);
-      numberOfRows = result.iterateAll().iterator().next().get(0).getLongValue();
-    }
+    Optional<String> optionalFilter =
+        (filter.length() == 0) ? Optional.empty() : Optional.of(filter);
+    long numberOfRows = bigQueryClient.calculateTableSize(tableInfo, optionalFilter);
 
     Function1<Object, InternalRow> objectToInternalRowConverter =
         new ObjectToInternalRowConverter();

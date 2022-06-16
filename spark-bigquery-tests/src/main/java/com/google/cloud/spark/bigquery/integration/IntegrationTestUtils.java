@@ -21,10 +21,13 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
+import com.google.cloud.bigquery.ExternalTableDefinition;
+import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
@@ -66,6 +69,25 @@ public class IntegrationTestUtils {
             destinationTableCache,
             ImmutableMap.of());
     bigQueryClient.query(query);
+  }
+
+  public static void createExternalTable(
+      String dataset,
+      String table,
+      StructType schema,
+      String sourceURI,
+      FormatOptions formatOptions) {
+    BigQuery bq = getBigquery();
+    TableId tableId = TableId.of(dataset, table);
+    TableInfo tableInfo =
+        TableInfo.newBuilder(
+                tableId,
+                ExternalTableDefinition.newBuilder(
+                        sourceURI, SchemaConverters.toBigQuerySchema(schema), formatOptions)
+                    .setConnectionId(TestConstants.BIGLAKE_CONNECTION_ID)
+                    .build())
+            .build();
+    bq.create(tableInfo);
   }
 
   public static void deleteDatasetAndTables(String dataset) {

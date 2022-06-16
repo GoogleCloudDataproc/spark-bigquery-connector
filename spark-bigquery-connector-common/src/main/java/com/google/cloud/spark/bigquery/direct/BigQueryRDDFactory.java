@@ -47,12 +47,6 @@ import org.slf4j.LoggerFactory;
  * 1) Dsv1 buildScan 2) Dsv1 pushdown functionality 3) Dsv2 pushdown functionality
  */
 public class BigQueryRDDFactory {
-  /**
-   * Default parallelism to 1 reader per 400MB, which should be about the maximum allowed by the
-   * BigQuery Storage API. The number of partitions returned may be significantly less depending on
-   * a number of factors.
-   */
-  private static long DEFAULT_BYTES_PER_PARTITION = 400L * 1000 * 1000;
 
   private static final Logger log = LoggerFactory.getLogger(BigQueryRDDFactory.class);
 
@@ -140,20 +134,6 @@ public class BigQueryRDDFactory {
         BigQueryUtil.friendlyTableName(tableId),
         readSession.getName());
 
-    int maxNumPartitionsRequested = getMaxNumPartitionsRequested(actualTable.getDefinition());
-    // This is spammy, but it will make it clear to users the number of partitions they got and
-    // why.
-    if (maxNumPartitionsRequested != partitions.size()) {
-      log.info(
-          "Requested $maxNumPartitionsRequested max partitions, but only received {} "
-              + "from the BigQuery Storage API for session {}. Notice that the "
-              + "number of streams in actual may be lower than the requested number, depending on "
-              + "the amount parallelism that is reasonable for the table and the maximum amount of "
-              + "parallelism allowed by the system.",
-          partitions.size(),
-          readSession.getName());
-    }
-
     Set<String> requiredColumnSet = Stream.of(requiredColumns).collect(Collectors.toSet());
     Schema prunedSchema =
         Schema.of(
@@ -182,13 +162,5 @@ public class BigQueryRDDFactory {
       StandardTableDefinition standardTableDefinition = (StandardTableDefinition) tableDefinition;
       return standardTableDefinition.getNumBytes();
     }
-  }
-
-  private int getMaxNumPartitionsRequested(TableDefinition tableDefinition) {
-    return options
-        .getMaxParallelism()
-        .orElse(
-            Math.max(
-                Math.toIntExact(getNumBytes(tableDefinition) / DEFAULT_BYTES_PER_PARTITION), 1));
   }
 }
