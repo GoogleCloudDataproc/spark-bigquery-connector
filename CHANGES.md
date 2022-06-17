@@ -2,7 +2,7 @@
 
 ## Next
 
-* PR #674: Increasing default maxParallelism to 10K
+* PR #674: Increasing default maxParallelism to 10K for BigLake external tables
 
 ## 0.25.1 - 2022-06-13
 
