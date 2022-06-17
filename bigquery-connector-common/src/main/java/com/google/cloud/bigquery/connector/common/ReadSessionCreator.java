@@ -35,6 +35,14 @@ import org.slf4j.LoggerFactory;
 
 // A helper class, also handles view materialization
 public class ReadSessionCreator {
+  /**
+   * Default parallelism to 1 reader per 64MB, which should be about the maximum allowed by the
+   * BigQuery Storage API. The number of partitions returned may be significantly less depending on
+   * a number of factors. Does not apply to external tables.
+   */
+  public static final int DEFAULT_BYTES_PER_PARTITION = 256 * 1000 * 1000;
+
+  public static final int DEFAULT_MAX_PARALLELISM = 10_000;
 
   private static final Logger log = LoggerFactory.getLogger(ReadSessionCreator.class);
 
@@ -103,8 +111,10 @@ public class ReadSessionCreator {
             .getMaxParallelism()
             .orElseGet(
                 () -> {
-                  log.debug("using default parallelism [{}]", config.getDefaultParallelism());
-                  return config.getDefaultParallelism();
+                  int defaultParallelismForTable =
+                      calculateDefaultMaxParallelismForTable(actualTable.getDefinition());
+                  log.debug("using default parallelism [{}]", defaultParallelismForTable);
+                  return defaultParallelismForTable;
                 });
 
     ReadSession readSession =
@@ -122,6 +132,15 @@ public class ReadSessionCreator {
                 .build());
 
     return new ReadSessionResponse(readSession, actualTable);
+  }
+
+  private int calculateDefaultMaxParallelismForTable(TableDefinition tableDefinition) {
+    if (tableDefinition instanceof StandardTableDefinition) {
+      StandardTableDefinition standardTableDefinition = (StandardTableDefinition) tableDefinition;
+      return Math.max(
+          (int) (standardTableDefinition.getNumBytes() / DEFAULT_BYTES_PER_PARTITION), 1);
+    }
+    return DEFAULT_MAX_PARALLELISM;
   }
 
   String toTablePath(TableId tableId) {

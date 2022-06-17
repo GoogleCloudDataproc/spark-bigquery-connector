@@ -33,6 +33,7 @@ import org.junit.Test;
 
 public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
+  private static final int LARGE_TABLE_NUMBER_OF_PARTITIONS = 69;
   protected final String dataFormat;
   protected final boolean userProvidedSchemaAllowed;
 
@@ -130,7 +131,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
             .option("readDataFormat", dataFormat)
             .load();
 
-    assertThat(df.rdd().getNumPartitions()).isEqualTo(spark.sparkContext().defaultParallelism());
+    assertThat(df.rdd().getNumPartitions()).isEqualTo(LARGE_TABLE_NUMBER_OF_PARTITIONS);
   }
 
   @Test(timeout = 300_000)
