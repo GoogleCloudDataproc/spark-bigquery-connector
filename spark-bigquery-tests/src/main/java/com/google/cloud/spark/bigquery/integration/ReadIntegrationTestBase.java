@@ -24,9 +24,12 @@ import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.spark.sql.Dataset;
@@ -37,6 +40,8 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -91,6 +96,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   protected final boolean userProvidedSchemaAllowed;
 
+  protected List<String> gcsObjectsToClean = new ArrayList<>();
+
   public ReadIntegrationTestBase() {
     this(true);
   }
@@ -98,6 +105,18 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   public ReadIntegrationTestBase(boolean userProvidedSchemaAllowed) {
     super();
     this.userProvidedSchemaAllowed = userProvidedSchemaAllowed;
+  }
+
+  @Before
+  public void clearGcsObjectsToCleanList() {
+    gcsObjectsToClean.clear();
+  }
+
+  @After
+  public void cleanGcsObjects() throws Exception {
+    for (String object : gcsObjectsToClean) {
+      AcceptanceTestUtils.deleteGcsDir(object);
+    }
   }
 
   /**
@@ -393,67 +412,53 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testReadFromBigLakeTable_csv() {
-    String temporaryGcsUri =
-        String.format(
-            "gs://%s/%s",
-            TestConstants.TEMPORARY_GCS_BUCKET, TestConstants.SHAKESPEARE_CSV_FILENAME);
-    String table = testTable + "_csv";
-    uploadFileToGCS(TestConstants.SHAKESPEARE_CSV_FILENAME, temporaryGcsUri, "text/csv");
-    Dataset<Row> df = getDataFromBigLakeTable(table, temporaryGcsUri, FormatOptions.csv());
-    testShakespeare(df);
+    testBigLakeTable(FormatOptions.csv(), TestConstants.SHAKESPEARE_CSV_FILENAME, "text/csv");
   }
 
   @Test
   public void testReadFromBigLakeTable_json() {
-    String temporaryGcsUri =
-        String.format(
-            "gs://%s/%s",
-            TestConstants.TEMPORARY_GCS_BUCKET, TestConstants.SHAKESPEARE_JSON_FILENAME);
-    String table = testTable + "_json";
-    uploadFileToGCS(TestConstants.SHAKESPEARE_JSON_FILENAME, temporaryGcsUri, "application/json");
-    Dataset<Row> df = getDataFromBigLakeTable(table, temporaryGcsUri, FormatOptions.json());
-    testShakespeare(df);
+    testBigLakeTable(
+        FormatOptions.json(), TestConstants.SHAKESPEARE_JSON_FILENAME, "application/json");
   }
 
   @Test
   public void testReadFromBigLakeTable_parquet() {
-    String temporaryGcsUri =
-        String.format(
-            "gs://%s/%s",
-            TestConstants.TEMPORARY_GCS_BUCKET, TestConstants.SHAKESPEARE_PARQUET_FILENAME);
-    String table = testTable + "_parquet";
-    uploadFileToGCS(
-        TestConstants.SHAKESPEARE_PARQUET_FILENAME, temporaryGcsUri, "application/octet-stream");
-    Dataset<Row> df = getDataFromBigLakeTable(table, temporaryGcsUri, FormatOptions.parquet());
-    testShakespeare(df);
+    testBigLakeTable(
+        FormatOptions.parquet(),
+        TestConstants.SHAKESPEARE_PARQUET_FILENAME,
+        "application/octet-stream");
   }
 
   @Test
   public void testReadFromBigLakeTable_avro() {
-    String temporaryGcsUri =
-        String.format(
-            "gs://%s/%s",
-            TestConstants.TEMPORARY_GCS_BUCKET, TestConstants.SHAKESPEARE_AVRO_FILENAME);
-    String table = testTable + "_avro";
-    uploadFileToGCS(
-        TestConstants.SHAKESPEARE_AVRO_FILENAME, temporaryGcsUri, "application/octet-stream");
-    Dataset<Row> df = getDataFromBigLakeTable(table, temporaryGcsUri, FormatOptions.avro());
-    assertThrows("avro is not supported yet", Exception.class, () -> df.collectAsList().size());
+    assertThrows(
+        "avro is not supported yet",
+        Exception.class,
+        () ->
+            testBigLakeTable(
+                FormatOptions.avro(),
+                TestConstants.SHAKESPEARE_AVRO_FILENAME,
+                "application/octet-stream"));
   }
 
-  private Dataset<Row> getDataFromBigLakeTable(
-      String table, String temporaryGcsUri, FormatOptions formatOptions) {
+  private void testBigLakeTable(FormatOptions formatOptions, String dataFileName, String mimeType) {
+    String table = testTable + "_" + formatOptions.getType().toLowerCase(Locale.US);
+    String sourceUri = String.format("gs://%s/%s/%s", TestConstants.TEMPORARY_GCS_BUCKET, table, dataFileName);
+    uploadFileToGCS(dataFileName, sourceUri, mimeType);
+    this.gcsObjectsToClean.add(sourceUri);
     IntegrationTestUtils.createExternalTable(
         testDataset.toString(),
         table,
         TestConstants.SHAKESPEARE_TABLE_SCHEMA,
-        temporaryGcsUri,
+        sourceUri,
         formatOptions);
-    return spark
-        .read()
-        .format("bigquery")
-        .option("dataset", testDataset.toString())
-        .option("table", table)
-        .load();
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", table)
+            .load();
+    testShakespeare(df);
   }
 }
