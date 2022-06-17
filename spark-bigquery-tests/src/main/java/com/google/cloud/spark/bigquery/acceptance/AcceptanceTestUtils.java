@@ -133,7 +133,7 @@ public class AcceptanceTestUtils {
     return new String(storage.readAllBytes(csvBlob.getBlobId()), StandardCharsets.UTF_8);
   }
 
-  protected static void deleteGcsDir(String testBaseGcsDir) throws Exception {
+  public static void deleteGcsDir(String testBaseGcsDir) throws Exception {
     URI uri = new URI(testBaseGcsDir);
     BlobId[] blobIds =
         StreamSupport.stream(
