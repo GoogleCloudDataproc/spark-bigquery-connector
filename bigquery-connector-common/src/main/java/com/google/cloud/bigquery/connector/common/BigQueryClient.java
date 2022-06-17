@@ -386,7 +386,8 @@ public class BigQueryClient {
       return getNumberOfRows(String.format("SELECT COUNT(*) from `%s`", table));
     } else if (type == TableDefinition.Type.VIEW
         || type == TableDefinition.Type.MATERIALIZED_VIEW
-        || (type == TableDefinition.Type.TABLE && filter.isPresent())) {
+        || ((type == TableDefinition.Type.TABLE || type == TableDefinition.Type.EXTERNAL)
+            && filter.isPresent())) {
       // run a query
       String table = fullTableName(tableInfo.getTableId());
       String whereClause = filter.map(f -> "WHERE " + f).orElse("");
@@ -400,9 +401,8 @@ public class BigQueryClient {
   }
 
   private long getNumberOfRows(String sql) {
-    long numberOfRows;
     TableResult result = query(sql);
-    numberOfRows = result.iterateAll().iterator().next().get(0).getLongValue();
+    long numberOfRows = result.iterateAll().iterator().next().get(0).getLongValue();
     return numberOfRows;
   }
 

@@ -71,7 +71,7 @@ public class IntegrationTestUtils {
     bigQueryClient.query(query);
   }
 
-  public static void createExternalTable(
+  public static void createBigLakeTable(
       String dataset,
       String table,
       StructType schema,

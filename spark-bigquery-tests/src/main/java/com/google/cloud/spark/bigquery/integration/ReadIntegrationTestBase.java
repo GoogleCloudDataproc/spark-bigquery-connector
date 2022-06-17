@@ -24,7 +24,6 @@ import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -443,10 +442,11 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   private void testBigLakeTable(FormatOptions formatOptions, String dataFileName, String mimeType) {
     String table = testTable + "_" + formatOptions.getType().toLowerCase(Locale.US);
-    String sourceUri = String.format("gs://%s/%s/%s", TestConstants.TEMPORARY_GCS_BUCKET, table, dataFileName);
+    String sourceUri =
+        String.format("gs://%s/%s/%s", TestConstants.TEMPORARY_GCS_BUCKET, table, dataFileName);
     uploadFileToGCS(dataFileName, sourceUri, mimeType);
     this.gcsObjectsToClean.add(sourceUri);
-    IntegrationTestUtils.createExternalTable(
+    IntegrationTestUtils.createBigLakeTable(
         testDataset.toString(),
         table,
         TestConstants.SHAKESPEARE_TABLE_SCHEMA,
