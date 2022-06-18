@@ -31,6 +31,7 @@ steps:
     env:
     - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
     - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
+    - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
 
 # 4b. Run integration tests concurrently with unit tests (DSv2, Spark 2.4)
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
@@ -41,6 +42,7 @@ steps:
     env:
     - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
     - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
+    - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
 
 # 4c. Run integration tests concurrently with unit tests (DSv2, Spark 3.1)
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
@@ -51,6 +53,7 @@ steps:
     env:
       - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
       - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
+      - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
 
 # 5. Upload coverage to CodeCov
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
