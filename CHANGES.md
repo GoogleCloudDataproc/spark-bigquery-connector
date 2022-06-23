@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.25.2 - 2022-06-22
 
 * PR #673: Added integration tests for BigLake external tables.
