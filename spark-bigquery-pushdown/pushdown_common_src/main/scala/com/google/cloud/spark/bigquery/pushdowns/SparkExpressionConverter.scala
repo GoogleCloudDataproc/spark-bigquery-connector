@@ -43,6 +43,7 @@ abstract class SparkExpressionConverter {
       .orElse(convertMathematicalExpressions(expression, fields))
       .orElse(convertMiscellaneousExpressions(expression, fields))
       .orElse(convertStringExpressions(expression, fields))
+      .orElse(convertWindowExpressions(expression, fields))
       .getOrElse(throw new BigQueryPushdownUnsupportedException((s"Pushdown unsupported for ${expression.prettyName}")))
   }
 
@@ -350,6 +351,62 @@ abstract class SparkExpressionConverter {
         ConstantString("FROM_BASE64") + blockStatement(convertStatements(fields, expression.children: _*))
       case _ => null
     })
+  }
+
+  def convertWindowExpressions(expression: Expression, fields: Seq[Attribute]): Option[BigQuerySQLStatement] = {
+    Option(x = expression match {
+      case WindowExpression(windowFunction, windowSpec) =>
+        windowFunction match {
+          /**
+           * Since we can't use a window frame clause with navigation functions and numbering functions,
+           * we set the useWindowFrame to false
+           */
+          case _: Rank | _: DenseRank | _: PercentRank | _: RowNumber | _ =>
+            convertStatement(windowFunction, fields) +
+            ConstantString("OVER") +
+            convertWindowBlock(windowSpec, fields, generateWindowFrame = false)
+          case _ =>
+            convertStatement(windowFunction, fields) +
+              ConstantString("OVER") +
+              convertWindowBlock(windowSpec, fields, generateWindowFrame = true)
+        }
+      /**
+       * Handling Numbering Functions here itself since they are a sub class of Window Expressions
+       */
+      case _: Rank | _: DenseRank | _: PercentRank | _: RowNumber =>
+        ConstantString(expression.prettyName.toUpperCase) + ConstantString("()")
+      case _ => null
+    })
+  }
+
+  def convertWindowBlock(windowSpecDefinition: WindowSpecDefinition, fields: Seq[Attribute], generateWindowFrame: Boolean): BigQuerySQLStatement = {
+    val partitionBy =
+      if (windowSpecDefinition.partitionSpec.nonEmpty) {
+        ConstantString("PARTITION BY") +
+          makeStatement(windowSpecDefinition.partitionSpec.map(convertStatement(_, fields)), ",")
+      } else {
+        EmptyBigQuerySQLStatement()
+      }
+
+    val orderBy =
+      if (windowSpecDefinition.orderSpec.nonEmpty) {
+        ConstantString("ORDER BY") +
+          makeStatement(windowSpecDefinition.orderSpec.map(convertStatement(_, fields)), ",")
+      } else {
+        EmptyBigQuerySQLStatement()
+      }
+
+    /**
+     * Generating the window frame iff generateWindowFrame is true and the window spec has order spec in it
+     */
+    val windowFrame =
+      if (generateWindowFrame && windowSpecDefinition.orderSpec.nonEmpty) {
+        windowSpecDefinition.frameSpecification.sql
+      } else {
+        ""
+      }
+
+    blockStatement(partitionBy + orderBy + windowFrame)
   }
 
   /** Attempts a best effort conversion from a SparkType

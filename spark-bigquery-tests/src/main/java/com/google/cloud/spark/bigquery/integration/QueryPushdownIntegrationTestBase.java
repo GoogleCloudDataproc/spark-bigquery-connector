@@ -9,6 +9,7 @@ import java.time.temporal.IsoFields;
 import java.util.List;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.junit.Test;
 
 public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
@@ -252,7 +253,6 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
             .load(TestConstants.SHAKESPEARE_TABLE);
 
     df.createOrReplaceTempView("shakespeare");
-
     Dataset<Row> words_with_word_count_100 =
         spark.sql("SELECT word, word_count FROM shakespeare WHERE word_count = 100");
     Dataset<Row> words_with_word_count_150 =
@@ -280,6 +280,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
             .format("bigquery")
             .option("materializationDataset", testDataset.toString())
             .load(TestConstants.SHAKESPEARE_TABLE);
+
     df.createOrReplaceTempView("shakespeare");
 
     List<Row> result =
@@ -299,5 +300,54 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(1)).isEqualTo(true); // contains
     assertThat(r1.get(2)).isEqualTo(true); // ends_With
     assertThat(r1.get(3)).isEqualTo(true); // starts_With
+  }
+
+  @Test
+  public void testWindowStatements() {
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(TestConstants.SHAKESPEARE_TABLE);
+
+    df.createOrReplaceTempView("shakespeare");
+
+    df =
+        spark.sql(
+            "SELECT "
+                + "*, "
+                + "ROW_NUMBER() OVER (PARTITION BY corpus ORDER BY corpus_date) as row_number, "
+                + "RANK() OVER (PARTITION BY corpus ORDER BY corpus_date) as rank, "
+                + "DENSE_RANK() OVER (PARTITION BY corpus ORDER BY corpus_date) as dense_rank, "
+                + "PERCENT_RANK() OVER (PARTITION BY corpus ORDER BY corpus_date) as percent_rank, "
+                + "AVG(word_count) OVER (PARTITION BY corpus) as word_count_avg_by_corpus, "
+                + "COUNT(word) OVER (PARTITION BY corpus ORDER BY corpus_date) as num_of_words_in_corpus, "
+                + "COUNT(word) OVER count_window as num_of_words_in_corpus_window_clause "
+                + "FROM shakespeare "
+                + "WINDOW count_window AS (PARTITION BY corpus ORDER BY corpus_date)");
+    /**
+     * The reason I am filtering the dataframe later instead of adding where clause to the sql query
+     * is, in SQL the window statement would be executed after the where clause filtering is done.
+     * In order to test the appropriate behaviour, added the filtering port later.
+     */
+    Object[] filteredRow =
+        df.collectAsList().stream()
+            .filter(row -> row.get(0).equals("augurs") && row.get(2).equals("sonnets"))
+            .toArray();
+    assertThat(filteredRow.length).isEqualTo(1);
+    GenericRowWithSchema row = (GenericRowWithSchema) filteredRow[0];
+    assertThat(row.get(4))
+        .isEqualTo(2); // ROW_NUMBER() OVER (PARTITION BY corpus ORDER BY corpus_date)
+    assertThat(row.get(5)).isEqualTo(1); // RANK() OVER (PARTITION BY corpus ORDER BY corpus_date)
+    assertThat(row.get(6))
+        .isEqualTo(1); // DENSE_RANK() OVER (PARTITION BY corpus ORDER BY corpus_date)
+    assertThat(row.get(7))
+        .isEqualTo(0.0); // PERCENT_RANK() OVER (PARTITION BY corpus ORDER BY corpus_date)
+    assertThat(row.get(8))
+        .isEqualTo(4.842262714169159); // AVG(word_count) OVER (PARTITION BY corpus)
+    assertThat(row.get(9))
+        .isEqualTo(3677); // COUNT(word) OVER (PARTITION BY corpus ORDER BY corpus_date)
+    assertThat(row.get(10)).isEqualTo(3677); // COUNT(word) OVER count_window
   }
 }
