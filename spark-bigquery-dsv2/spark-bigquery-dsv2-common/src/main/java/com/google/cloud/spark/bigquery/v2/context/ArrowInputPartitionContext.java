@@ -36,9 +36,11 @@ import org.apache.spark.sql.vectorized.ColumnarBatch;
 
 public class ArrowInputPartitionContext implements InputPartitionContext<ColumnarBatch> {
 
+  private static final long serialVersionUID = 1259208038651478218L;
+
   private final BigQueryClientFactory bigQueryReadClientFactory;
   private final BigQueryTracerFactory tracerFactory;
-  private final List<String> streamNames;
+  private List<String> streamNames;
   private final ReadRowsHelper.Options options;
   private final ImmutableList<String> selectedFields;
   private final ByteString serializedArrowSchema;
@@ -87,5 +89,13 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
   @Override
   public boolean supportColumnarReads() {
     return true;
+  }
+
+  public List<String> getStreamNames() {
+    return streamNames;
+  }
+
+  public void setStreamNames(List<String> names) {
+    streamNames = names;
   }
 }

@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
+import org.apache.spark.sql.connector.expressions.NamedReference;
 import org.apache.spark.sql.connector.read.Batch;
 import org.apache.spark.sql.connector.read.Scan;
 import org.apache.spark.sql.connector.read.ScanBuilder;
@@ -23,6 +24,7 @@ import org.apache.spark.sql.connector.read.Statistics;
 import org.apache.spark.sql.connector.read.SupportsPushDownFilters;
 import org.apache.spark.sql.connector.read.SupportsPushDownRequiredColumns;
 import org.apache.spark.sql.connector.read.SupportsReportStatistics;
+import org.apache.spark.sql.connector.read.SupportsRuntimeFiltering;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.StructType;
 
@@ -35,7 +37,8 @@ public class BigQueryScanBuilder
         ScanBuilder,
         SupportsPushDownFilters,
         SupportsPushDownRequiredColumns,
-        SupportsReportStatistics {
+        SupportsReportStatistics,
+        SupportsRuntimeFiltering {
 
   private BigQueryDataSourceReaderContext ctx;
 
@@ -82,5 +85,15 @@ public class BigQueryScanBuilder
   @Override
   public Statistics estimateStatistics() {
     return new Spark3Statistics(ctx.estimateStatistics());
+  }
+
+  @Override
+  public void filter(Filter[] filters) {
+    ctx.filter(filters);
+  }
+
+  @Override
+  public NamedReference[] filterAttributes() {
+    return ctx.filterAttributes();
   }
 }

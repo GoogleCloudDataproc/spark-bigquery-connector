@@ -109,7 +109,11 @@ public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
 
   @Override
   public String name() {
-    return injector.getInstance(SparkBigQueryConfig.class).getTableId().getTable();
+    TableId tableId = injector.getInstance(SparkBigQueryConfig.class).getTableId();
+    if (tableId == null) {
+      return "nonexistingtable";
+    }
+    return tableId.getTable();
   }
 
   @Override
