@@ -110,7 +110,7 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
             .outputMode(OutputMode.Append())
             .option("checkpointLocation", cpLoc)
             .option("table", fullTableName())
-            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
             .start();
 
     // Write to stream

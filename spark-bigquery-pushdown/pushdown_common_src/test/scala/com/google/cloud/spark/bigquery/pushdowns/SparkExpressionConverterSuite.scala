@@ -20,7 +20,7 @@ package com.google.cloud.spark.bigquery.pushdowns
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
 import com.google.cloud.spark.bigquery.pushdowns.TestConstants.schoolIdAttributeReference
 import org.apache.spark.sql.catalyst.expressions.aggregate._
-import org.apache.spark.sql.catalyst.expressions.{Alias, And, Ascending, Ascii, AttributeReference, Base64, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Cast, Concat, Contains, DateAdd, DateSub, Descending, EndsWith, EqualTo, ExprId, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, In, InitCap, IsNotNull, IsNull, Length, LessThan, LessThanOrEqual, Literal, Lower, Month, Not, Or, Quarter, RegExpExtract, RegExpReplace, SortOrder, SoundEx, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, TruncDate, UnBase64, Upper, Year}
+import org.apache.spark.sql.catalyst.expressions.{Abs, Acos, Alias, And, Ascending, Ascii, Asin, Atan, AttributeReference, Base64, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Cast, Ceil, Concat, Contains, Cos, Cosh, DateAdd, DateSub, Descending, EndsWith, EqualTo, Exp, ExprId, Floor, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, Greatest, In, InitCap, IsNaN, IsNotNull, IsNull, Least, Length, LessThan, LessThanOrEqual, Literal, Log, Log10, Logarithm, Lower, Month, Not, Or, Pow, Quarter, Rand, RegExpExtract, RegExpReplace, Round, Signum, Sin, Sinh, SortOrder, SoundEx, Sqrt, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, Tan, Tanh, TruncDate, UnBase64, Upper, Year}
 import org.apache.spark.sql.types._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
@@ -463,14 +463,14 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val base64Expression = Base64.apply(schoolIdAttributeReference)
     val bigQuerySQLStatement = converter.convertStringExpressions(base64Expression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "BASE64 ( SUBQUERY_2.SCHOOLID )")
+    assert(bigQuerySQLStatement.get.toString == "TO_BASE64 ( SUBQUERY_2.SCHOOLID )")
   }
 
   test("convertStringExpressions with UnBase64") {
     val unBase64Expression = UnBase64.apply(schoolIdAttributeReference)
     val bigQuerySQLStatement = converter.convertStringExpressions(unBase64Expression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "UNBASE64 ( SUBQUERY_2.SCHOOLID )")
+    assert(bigQuerySQLStatement.get.toString == "FROM_BASE64 ( SUBQUERY_2.SCHOOLID )")
   }
 
   test("convertStringExpressions with Substring") {
@@ -513,6 +513,160 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val bigQuerySQLStatement = converter.convertStringExpressions(formatNumberExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "FORMAT ( 12.3456 , 2 )")
+  }
+
+  test("convertMathematicalExpressions with Abs") {
+    val absExpression = Abs.apply(Literal(-12))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(absExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "ABS ( -12 )")
+  }
+
+  test("convertMathematicalExpressions with Acos") {
+    val aCosExpression = Acos.apply(Literal(90))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(aCosExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "ACOS ( 90 )")
+  }
+
+  test("convertMathematicalExpressions with Asin") {
+    val aSinExpression = Asin.apply(Literal(90))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(aSinExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "ASIN ( 90 )")
+  }
+
+  test("convertMathematicalExpressions with Atan") {
+    val aTanExpression = Atan.apply(Literal(90))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(aTanExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "ATAN ( 90 )")
+  }
+
+  test("convertMathematicalExpressions with Cos") {
+    val cosExpression = Cos.apply(Literal(90))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(cosExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "COS ( 90 )")
+  }
+
+  test("convertMathematicalExpressions with Cosh") {
+    val coshExpression = Cosh.apply(Literal(90))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(coshExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "COSH ( 90 )")
+  }
+
+  test("convertMathematicalExpressions with Exp") {
+    val expExpression = Exp.apply(Literal(2))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(expExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "EXP ( 2 )")
+  }
+
+  test("convertMathematicalExpressions with Floor") {
+    val floorExpression = Floor.apply(Literal(2.5))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(floorExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "FLOOR ( 2.5 )")
+  }
+
+  test("convertMathematicalExpressions with Greatest") {
+    val greatestExpression = Greatest.apply(List(Literal(1), Literal(3), Literal(2)))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(greatestExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "GREATEST ( 1 , 3 , 2 )")
+  }
+
+  test("convertMathematicalExpressions with Least") {
+    val leastExpression = Least.apply(List(Literal(1), Literal(3), Literal(2)))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(leastExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "LEAST ( 1 , 3 , 2 )")
+  }
+
+  test("convertMathematicalExpressions with Logarithm") {
+    val logExpression = Logarithm.apply(Literal(10), Literal(2))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(logExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "LOG ( 10 , 2 )")
+  }
+
+  test("convertMathematicalExpressions with Log10") {
+    val logExpression = Log10.apply(Literal(10))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(logExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "LOG10 ( 10 )")
+  }
+
+  test("convertMathematicalExpressions with Pow") {
+    val powExpression = Pow.apply(Literal(10), Literal(2))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(powExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "POWER ( 10 , 2 )")
+  }
+
+  test("convertMathematicalExpressions with Round") {
+    val roundExpression = Round.apply(Literal(10.234), Literal(2))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(roundExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "ROUND ( 10.234 , 2 )")
+  }
+
+  test("convertMathematicalExpressions with Sin") {
+    val sinExpression = Sin.apply(Literal(90))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(sinExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "SIN ( 90 )")
+  }
+
+  test("convertMathematicalExpressions with Sinh") {
+    val sinhExpression = Sinh.apply(Literal(90))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(sinhExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "SINH ( 90 )")
+  }
+
+  test("convertMathematicalExpressions with Sqrt") {
+    val sqrtExpression = Sqrt.apply(Literal(90))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(sqrtExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "SQRT ( 90 )")
+  }
+
+  test("convertMathematicalExpressions with Tan") {
+    val tanExpression = Tan.apply(Literal(90))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(tanExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "TAN ( 90 )")
+  }
+
+  test("convertMathematicalExpressions with Tanh") {
+    val tanhExpression = Tanh.apply(Literal(90))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(tanhExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "TANH ( 90 )")
+  }
+
+  test("convertMathematicalExpressions with IsNaN") {
+    val isNanExpression = IsNaN.apply(Literal(90))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(isNanExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "IS_NAN ( 90 )")
+  }
+
+  test("convertMathematicalExpressions with Signum") {
+    val signumExpression = Signum.apply(Literal(90))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(signumExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "SIGN ( 90 )")
+  }
+
+  test("convertMathematicalExpressions with Rand") {
+    val randExpression = Rand.apply(Literal(2))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(randExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "RAND ()")
   }
 
   test("convertMiscExpressions with Alias") {

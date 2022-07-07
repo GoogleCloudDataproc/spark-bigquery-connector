@@ -34,11 +34,14 @@ import org.apache.spark.sql.types.StructType;
 
 public class BigQueryDataSourceWriterModule implements Module {
 
+  private final SparkBigQueryConfig tableConfig;
   private final String writeUUID;
   private final StructType sparkSchema;
   private final SaveMode mode;
 
-  public BigQueryDataSourceWriterModule(String writeUUID, StructType sparkSchema, SaveMode mode) {
+  public BigQueryDataSourceWriterModule(
+      SparkBigQueryConfig tableConfig, String writeUUID, StructType sparkSchema, SaveMode mode) {
+    this.tableConfig = tableConfig;
     this.writeUUID = writeUUID;
     this.sparkSchema = sparkSchema;
     this.mode = mode;
@@ -52,12 +55,10 @@ public class BigQueryDataSourceWriterModule implements Module {
   @Singleton
   @Provides
   public BigQueryDirectDataSourceWriterContext provideDirectDataSourceWriterContext(
-      BigQueryClient bigQueryClient,
-      BigQueryClientFactory bigQueryWriteClientFactory,
-      SparkBigQueryConfig config) {
-    TableId tableId = config.getTableId();
+      BigQueryClient bigQueryClient, BigQueryClientFactory bigQueryWriteClientFactory) {
+    TableId tableId = tableConfig.getTableId();
     RetrySettings bigqueryDataWriteHelperRetrySettings =
-        config.getBigqueryDataWriteHelperRetrySettings();
+        tableConfig.getBigqueryDataWriteHelperRetrySettings();
     return new BigQueryDirectDataSourceWriterContext(
         bigQueryClient,
         bigQueryWriteClientFactory,
@@ -66,22 +67,21 @@ public class BigQueryDataSourceWriterModule implements Module {
         mode,
         sparkSchema,
         bigqueryDataWriteHelperRetrySettings,
-        com.google.common.base.Optional.fromJavaUtil(config.getTraceId()),
-        config.getEnableModeCheckForSchemaFields()); // needs to be serializable
+        com.google.common.base.Optional.fromJavaUtil(tableConfig.getTraceId()),
+        tableConfig.getEnableModeCheckForSchemaFields()); // needs to be serializable
   }
 
   @Singleton
   @Provides
   public BigQueryIndirectDataSourceWriterContext provideIndirectDataSourceWriterContext(
-      BigQueryClient bigQueryClient, SparkBigQueryConfig config, SparkSession spark)
-      throws IOException {
+      BigQueryClient bigQueryClient, SparkSession spark) throws IOException {
     Path gcsPath =
         SparkBigQueryUtil.createGcsPath(
-            config,
+            tableConfig,
             spark.sparkContext().hadoopConfiguration(),
             spark.sparkContext().applicationId());
     Optional<IntermediateDataCleaner> intermediateDataCleaner =
-        config
+        tableConfig
             .getTemporaryGcsBucket()
             .map(
                 ignored ->
@@ -91,7 +91,7 @@ public class BigQueryDataSourceWriterModule implements Module {
     intermediateDataCleaner.ifPresent(cleaner -> Runtime.getRuntime().addShutdownHook(cleaner));
     return new BigQueryIndirectDataSourceWriterContext(
         bigQueryClient,
-        config,
+        tableConfig,
         spark.sparkContext().hadoopConfiguration(),
         sparkSchema,
         writeUUID,

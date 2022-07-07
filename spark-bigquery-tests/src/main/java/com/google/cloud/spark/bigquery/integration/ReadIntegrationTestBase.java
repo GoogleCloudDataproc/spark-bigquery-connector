@@ -15,16 +15,20 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import static com.google.cloud.spark.bigquery.integration.IntegrationTestUtils.metadata;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assume.assumeTrue;
 
+import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.spark.sql.Dataset;
@@ -35,6 +39,8 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -85,11 +91,37 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   private static final String LARGE_TABLE_FIELD = "is_male";
   private static final long LARGE_TABLE_NUM_ROWS = 33271914L;
   private static final String NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent";
-  private static final String STRUCT_COLUMN_ORDER_TEST_TABLE_NAME = "struct_column_order";
   private static final String ALL_TYPES_TABLE_NAME = "all_types";
-  private static final String ALL_TYPES_VIEW_NAME = "all_types_view";
 
-  /** Generate a test to verify that the given DataFrame is equal to a known result. */
+  protected final boolean userProvidedSchemaAllowed;
+
+  protected List<String> gcsObjectsToClean = new ArrayList<>();
+
+  public ReadIntegrationTestBase() {
+    this(true);
+  }
+
+  public ReadIntegrationTestBase(boolean userProvidedSchemaAllowed) {
+    super();
+    this.userProvidedSchemaAllowed = userProvidedSchemaAllowed;
+  }
+
+  @Before
+  public void clearGcsObjectsToCleanList() {
+    gcsObjectsToClean.clear();
+  }
+
+  @After
+  public void cleanGcsObjects() throws Exception {
+    for (String object : gcsObjectsToClean) {
+      AcceptanceTestUtils.deleteGcsDir(object);
+    }
+  }
+
+  /**
+   * Generate a test to verify that the given DataFrame is equal to a known result and contains
+   * Nullable Schema.
+   */
   private void testShakespeare(Dataset<Row> df) {
     assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);
     assertThat(df.count()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
@@ -234,6 +266,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testUserDefinedSchema() {
+    assumeTrue("user provided schema is not allowed for this connector", userProvidedSchemaAllowed);
     // TODO(pmkc): consider a schema that wouldn't cause cast errors if read.
     StructType expectedSchema =
         new StructType(
@@ -363,5 +396,69 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .collectAsList();
 
     assertThat(avroResults).isEqualTo(arrowResultsForLZ4FrameCodec);
+  }
+
+  private void uploadFileToGCS(String resourceName, String destinationURI, String contentType) {
+    try {
+      AcceptanceTestUtils.uploadToGcs(
+          getClass().getResourceAsStream("/integration/" + resourceName),
+          destinationURI,
+          contentType);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test
+  public void testReadFromBigLakeTable_csv() {
+    testBigLakeTable(FormatOptions.csv(), TestConstants.SHAKESPEARE_CSV_FILENAME, "text/csv");
+  }
+
+  @Test
+  public void testReadFromBigLakeTable_json() {
+    testBigLakeTable(
+        FormatOptions.json(), TestConstants.SHAKESPEARE_JSON_FILENAME, "application/json");
+  }
+
+  @Test
+  public void testReadFromBigLakeTable_parquet() {
+    testBigLakeTable(
+        FormatOptions.parquet(),
+        TestConstants.SHAKESPEARE_PARQUET_FILENAME,
+        "application/octet-stream");
+  }
+
+  @Test
+  public void testReadFromBigLakeTable_avro() {
+    assertThrows(
+        "avro is not supported yet",
+        Exception.class,
+        () ->
+            testBigLakeTable(
+                FormatOptions.avro(),
+                TestConstants.SHAKESPEARE_AVRO_FILENAME,
+                "application/octet-stream"));
+  }
+
+  private void testBigLakeTable(FormatOptions formatOptions, String dataFileName, String mimeType) {
+    String table = testTable + "_" + formatOptions.getType().toLowerCase(Locale.US);
+    String sourceUri =
+        String.format("gs://%s/%s/%s", TestConstants.TEMPORARY_GCS_BUCKET, table, dataFileName);
+    uploadFileToGCS(dataFileName, sourceUri, mimeType);
+    this.gcsObjectsToClean.add(sourceUri);
+    IntegrationTestUtils.createBigLakeTable(
+        testDataset.toString(),
+        table,
+        TestConstants.SHAKESPEARE_TABLE_SCHEMA,
+        sourceUri,
+        formatOptions);
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", table)
+            .load();
+    testShakespeare(df);
   }
 }

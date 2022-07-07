@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assume.assumeTrue;
 
 import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
 import com.google.common.collect.ImmutableSet;
@@ -32,11 +33,18 @@ import org.junit.Test;
 
 public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
-  protected String dataFormat;
+  private static final int LARGE_TABLE_NUMBER_OF_PARTITIONS = 69;
+  protected final String dataFormat;
+  protected final boolean userProvidedSchemaAllowed;
 
   public ReadByFormatIntegrationTestBase(String dataFormat) {
+    this(dataFormat, true);
+  }
+
+  public ReadByFormatIntegrationTestBase(String dataFormat, boolean userProvidedSchemaAllowed) {
     super();
     this.dataFormat = dataFormat;
+    this.userProvidedSchemaAllowed = userProvidedSchemaAllowed;
   }
 
   @Test
@@ -123,7 +131,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
             .option("readDataFormat", dataFormat)
             .load();
 
-    assertThat(df.rdd().getNumPartitions()).isEqualTo(58);
+    assertThat(df.rdd().getNumPartitions()).isEqualTo(LARGE_TABLE_NUMBER_OF_PARTITIONS);
   }
 
   @Test(timeout = 300_000)
@@ -188,6 +196,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
   @Test
   public void testColumnOrderOfStruct() {
+    assumeTrue("user provided schema is not allowed for this connector", userProvidedSchemaAllowed);
     StructType schema = Encoders.bean(ColumnOrderTestClass.class).schema();
 
     Dataset<ColumnOrderTestClass> dataset =

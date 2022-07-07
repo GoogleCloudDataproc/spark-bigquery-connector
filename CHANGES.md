@@ -2,6 +2,35 @@
 
 ## Next
 
+## 0.25.2 - 2022-06-22
+
+* PR #673: Added integration tests for BigLake external tables.
+* PR #674: Increasing default maxParallelism to 10K for BigLake external tables
+
+## 0.25.1 - 2022-06-13
+
+* Issue #651: Fixing the write back to BigQuery.
+* PR #664: Add support for BigLake external tables.
+* PR #667: Allowing clustering on unpartitioned tables.
+* PR #668: Using spark default parallelism as default.
+
+## 0.25.0 - 2022-05-31
+* Issue #593: Allow users to disable cache when loading data via SQL query,
+  by setting `cacheExpirationTimeInMinutes=0`
+* PR #613: Added field level schema checks. This can be disabled by setting
+  `enableModeCheckForSchemaFields=false`
+* PR #618: Added support for the `enableListInterface` option. This allows to
+  use parquet as an intermediate format also for arrays, without adding the
+  `list` element in the resulting schema as described
+  [here](https://cloud.google.com/bigquery/docs/reference/rest/v2/tables#ParquetOptions)
+* PR #641: Removed Conscrypt from the shaded artifact in order to improve
+  compatibility with Dataproc Serverless and with clusters where Conscrypt is
+  disabled.
+* BigQuery API has been upgraded to version 2.10.6
+* BigQuery Storage API has been upgraded to version 2.12.0
+* gRPC has been upgraded to version 1.46.0
+* Netty has been upgraded to version 4.1.75.Final
+
 ## 0.24.2 - 2022-04-05
 * PR #580: Fixed shaded artifacts version flattening, the version appears
   correctly in the released POM

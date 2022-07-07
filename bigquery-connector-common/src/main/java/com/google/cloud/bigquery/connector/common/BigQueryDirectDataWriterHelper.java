@@ -229,7 +229,8 @@ public class BigQueryDirectDataWriterHelper {
 
   /**
    * Appends any data that remains in the protoRows, waits for 500 milliseconds, and finalizes the
-   * write-stream.
+   * write-stream. This also closes the internal StreamWriter, so that the helper instance is not
+   * usable after calling <code>commit()</code>.
    *
    * @return The finalized row-count of the write-stream.
    * @throws IOException If the row-count returned by the FinalizeWriteStreamResponse does not match
@@ -259,6 +260,8 @@ public class BigQueryDirectDataWriterHelper {
 
     logger.debug(
         "Write-stream {} finalized with row-count {}", writeStreamName, responseFinalizedRowCount);
+
+    clean();
 
     return responseFinalizedRowCount;
   }
@@ -297,15 +300,20 @@ public class BigQueryDirectDataWriterHelper {
   /**
    * Deletes the data left over in the protoRows, using method clearProtoRows, closes the
    * StreamWriter, shuts down the WriteClient, and nulls out the protoRows and write-stream-name.
+   * This also closes the internal StreamWriter, so that the helper instance is not * usable after
+   * calling <code>commit()</code>.
    */
   public void abort() {
+    clean();
+    this.protoRows = null;
+    this.writeStreamName = null;
+  }
+
+  private void clean() {
     clearProtoRows();
     if (streamWriter != null) {
       streamWriter.close();
     }
-
-    this.protoRows = null;
-    this.writeStreamName = null;
   }
 
   private void clearProtoRows() {

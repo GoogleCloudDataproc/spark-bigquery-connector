@@ -35,6 +35,7 @@ import static org.apache.spark.sql.types.DataTypes.TimestampType;
 import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
 import com.google.cloud.spark.bigquery.integration.model.NumStruct;
 import com.google.cloud.spark.bigquery.integration.model.StringStruct;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -68,6 +69,21 @@ public class TestConstants {
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   static final String SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare";
   static final long SHAKESPEARE_TABLE_NUM_ROWS = 164656L;
+  static final String TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
+  static final String BIGLAKE_CONNECTION_ID_ENV_VARIABLE = "BIGLAKE_CONNECTION_ID";
+  static final String TEMPORARY_GCS_BUCKET =
+      Preconditions.checkNotNull(
+          System.getenv(TEMPORARY_GCS_BUCKET_ENV_VARIABLE),
+          "Please set the %s env variable to point to a write enabled GCS bucket",
+          TEMPORARY_GCS_BUCKET_ENV_VARIABLE);
+  static final String BIGLAKE_CONNECTION_ID =
+      Preconditions.checkNotNull(
+          System.getenv(BIGLAKE_CONNECTION_ID_ENV_VARIABLE),
+          "Please set the BIGLAKE_CONNECTION_ID env variable in order to create biglake table");
+  static final String SHAKESPEARE_CSV_FILENAME = "shakespeare.csv";
+  static final String SHAKESPEARE_JSON_FILENAME = "shakespeare.json";
+  static final String SHAKESPEARE_AVRO_FILENAME = "shakespeare.avro";
+  static final String SHAKESPEARE_PARQUET_FILENAME = "shakespeare.parquet";
   static final StructType SHAKESPEARE_TABLE_SCHEMA =
       new StructType(
           new StructField[] {
@@ -104,6 +120,7 @@ public class TestConstants {
   static final String ALL_TYPES_TABLE_NAME = "all_types";
   static final String ALL_TYPES_VIEW_NAME = "all_types_view";
   static final String DIFF_IN_SCHEMA_SRC_TABLE_NAME = "src_table";
+  static final String DIFF_IN_SCHEMA_SRC_TABLE_NAME_WITH_DESCRIPTION = "src_table_with_description";
   static final String DIFF_IN_SCHEMA_DEST_TABLE_NAME = "dest_table";
   static DataType BQ_NUMERIC = DataTypes.createDecimalType(38, 9);
   public static int BIG_NUMERIC_COLUMN_POSITION = 11;
@@ -232,6 +249,18 @@ public class TestConstants {
               "create table %s.%s (",
               "int_req int64 not null,",
               "int_null int64,",
+              ") as",
+              "",
+              "select",
+              "42 as int_req,",
+              "null as int_null")
+          .collect(Collectors.joining("\n"));
+
+  public static String DIFF_IN_SCHEMA_SRC_TABLE_WITH_DESCRIPTION =
+      Stream.of(
+              "create table %s.%s (",
+              "int_req int64 not null,",
+              "int_null int64 OPTIONS(description='An INTEGER field with description'),",
               ") as",
               "",
               "select",

@@ -15,16 +15,12 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import static scala.collection.JavaConversions.mapAsJavaMap;
-
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.spark.sql.SparkSession;
@@ -36,16 +32,19 @@ public class SparkBigQueryConnectorModule implements Module {
   private final Map<String, String> options;
   private final Optional<StructType> schema;
   private final DataSourceVersion dataSourceVersion;
+  private final boolean tableIsMandatory;
 
   public SparkBigQueryConnectorModule(
       SparkSession spark,
       Map<String, String> options,
       Optional<StructType> schema,
-      DataSourceVersion dataSourceVersion) {
+      DataSourceVersion dataSourceVersion,
+      boolean tableIsMandatory) {
     this.spark = spark;
     this.options = options;
     this.schema = schema;
     this.dataSourceVersion = dataSourceVersion;
+    this.tableIsMandatory = tableIsMandatory;
   }
 
   @Override
@@ -61,17 +60,14 @@ public class SparkBigQueryConnectorModule implements Module {
 
   @Singleton
   @Provides
+  public DataSourceVersion provideDataSourceVersion() {
+    return dataSourceVersion;
+  }
+
+  @Singleton
+  @Provides
   public SparkBigQueryConfig provideSparkBigQueryConfig() {
-    Map<String, String> optionsMap = new HashMap<>(options);
-    dataSourceVersion.updateOptionsMap(optionsMap);
-    return SparkBigQueryConfig.from(
-        ImmutableMap.copyOf(optionsMap),
-        ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll())),
-        spark.sparkContext().hadoopConfiguration(),
-        spark.sparkContext().defaultParallelism(),
-        spark.sqlContext().conf(),
-        spark.version(),
-        schema);
+    return SparkBigQueryConfig.from(options, dataSourceVersion, spark, schema, tableIsMandatory);
   }
 
   @Singleton

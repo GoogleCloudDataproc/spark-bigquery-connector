@@ -29,7 +29,6 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,11 +36,13 @@ import org.slf4j.LoggerFactory;
 // A helper class, also handles view materialization
 public class ReadSessionCreator {
   /**
-   * Default parallelism to 1 reader per 400MB, which should be about the maximum allowed by the
+   * Default parallelism to 1 reader per 64MB, which should be about the maximum allowed by the
    * BigQuery Storage API. The number of partitions returned may be significantly less depending on
-   * a number of factors.
+   * a number of factors. Does not apply to external tables.
    */
-  private static final int DEFAULT_BYTES_PER_PARTITION = 400 * 1000 * 1000;
+  public static final int DEFAULT_BYTES_PER_PARTITION = 256 * 1000 * 1000;
+
+  public static final int DEFAULT_MAX_PARALLELISM = 10_000;
 
   private static final Logger log = LoggerFactory.getLogger(ReadSessionCreator.class);
 
@@ -56,12 +57,6 @@ public class ReadSessionCreator {
     this.config = config;
     this.bigQueryClient = bigQueryClient;
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
-  }
-
-  static int getMaxNumPartitionsRequested(
-      OptionalInt maxParallelism, StandardTableDefinition tableDefinition) {
-    return maxParallelism.orElse(
-        Math.max((int) (tableDefinition.getNumBytes() / DEFAULT_BYTES_PER_PARTITION), 1));
   }
 
   /**
@@ -80,7 +75,6 @@ public class ReadSessionCreator {
     TableInfo tableDetails = bigQueryClient.getTable(table);
 
     TableInfo actualTable = getActualTable(tableDetails, selectedFields, filter);
-    StandardTableDefinition tableDefinition = actualTable.getDefinition();
 
     BigQueryReadClient bigQueryReadClient = bigQueryReadClientFactory.getBigQueryReadClient();
 
@@ -111,6 +105,17 @@ public class ReadSessionCreator {
             .setBufferCompression(config.getArrowCompressionCodec())
             .build());
 
+    int maxStreamCount =
+        config
+            .getMaxParallelism()
+            .orElseGet(
+                () -> {
+                  int defaultParallelismForTable =
+                      calculateDefaultMaxParallelismForTable(actualTable.getDefinition());
+                  log.debug("using default parallelism [{}]", defaultParallelismForTable);
+                  return defaultParallelismForTable;
+                });
+
     ReadSession readSession =
         bigQueryReadClient.createReadSession(
             request
@@ -122,11 +127,31 @@ public class ReadSessionCreator {
                         .setReadOptions(readOptions)
                         .setTable(tablePath)
                         .build())
-                .setMaxStreamCount(
-                    getMaxNumPartitionsRequested(config.getMaxParallelism(), tableDefinition))
+                .setMaxStreamCount(maxStreamCount)
                 .build());
 
+    if (readSession != null && readSession.getStreamsCount() != maxStreamCount) {
+      log.info(
+          "Requested {} max partitions, but only received {} "
+              + "from the BigQuery Storage API for session {}. Notice that the "
+              + "number of streams in actual may be lower than the requested number, depending on "
+              + "the amount parallelism that is reasonable for the table and the maximum amount of "
+              + "parallelism allowed by the system.",
+          maxStreamCount,
+          readSession.getStreamsCount(),
+          readSession.getName());
+    }
+
     return new ReadSessionResponse(readSession, actualTable);
+  }
+
+  private int calculateDefaultMaxParallelismForTable(TableDefinition tableDefinition) {
+    if (tableDefinition instanceof StandardTableDefinition) {
+      StandardTableDefinition standardTableDefinition = (StandardTableDefinition) tableDefinition;
+      return Math.max(
+          (int) (standardTableDefinition.getNumBytes() / DEFAULT_BYTES_PER_PARTITION), 1);
+    }
+    return DEFAULT_MAX_PARALLELISM;
   }
 
   String toTablePath(TableId tableId) {
@@ -145,7 +170,7 @@ public class ReadSessionCreator {
       TableInfo table, ImmutableList<String> requiredColumns, String[] filters) {
     TableDefinition tableDefinition = table.getDefinition();
     TableDefinition.Type tableType = tableDefinition.getType();
-    if (TableDefinition.Type.TABLE == tableType) {
+    if (TableDefinition.Type.TABLE == tableType || TableDefinition.Type.EXTERNAL == tableType) {
       return table;
     }
     if (isInputTableAView(table)) {

@@ -16,25 +16,41 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.v2.context.DataSourceWriterContext;
+import com.google.inject.Injector;
+import java.util.Optional;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.connector.write.BatchWrite;
+import org.apache.spark.sql.connector.write.LogicalWriteInfo;
 import org.apache.spark.sql.connector.write.SupportsOverwrite;
 import org.apache.spark.sql.connector.write.WriteBuilder;
 import org.apache.spark.sql.sources.Filter;
 
 public class BigQueryWriteBuilder implements WriteBuilder, SupportsOverwrite {
-  private DataSourceWriterContext ctx;
+  private Injector injector;
+  private LogicalWriteInfo info;
+  private SaveMode mode;
 
-  public BigQueryWriteBuilder(DataSourceWriterContext ctx) {
-    this.ctx = ctx;
+  public BigQueryWriteBuilder(Injector injector, LogicalWriteInfo info, SaveMode mode) {
+    this.injector = injector;
+    this.info = info;
+    this.mode = mode;
   }
 
   @Override
   public BatchWrite buildForBatch() {
-    return new BigQueryBatchWrite(ctx);
+    Optional<DataSourceWriterContext> dataSourceWriterContext =
+        DataSourceWriterContext.create(
+            injector, info.queryId(), info.schema(), mode, info.options());
+    return new BigQueryBatchWrite(dataSourceWriterContext.get());
   }
 
   @Override
   public WriteBuilder overwrite(Filter[] filters) {
     return null;
+  }
+
+  @Override
+  public WriteBuilder truncate() {
+    return new BigQueryWriteBuilder(injector, info, SaveMode.Overwrite);
   }
 }

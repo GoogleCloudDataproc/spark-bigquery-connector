@@ -576,7 +576,7 @@ The API Supports a number of options to configure the read
     <tr valign="top">
            <td><code>clusteredFields</code>
             </td>
-            <td>Comma separated list of non-repeated, top level columns. Clustering is only supported for partitioned tables
+            <td>Comma separated list of non-repeated, top level columns.
                <br/>(Optional).
             </td>
             <td>Write</td>
@@ -681,7 +681,7 @@ The API Supports a number of options to configure the read
    <tr valign="top">
      <td><code>enableModeCheckForSchemaFields</code>
      </td>
-     <td>  Checks the mode of every field in destination schema to be equal to the mode in corresponding source field schema, while writing from one big query table to another.
+     <td>  Checks the mode of every field in destination schema to be equal to the mode in corresponding source field schema, during DIRECT write.
           <br/> Default value is true i.e., the check is done by default. If set to false the mode check is ignored.
      </td>
      <td>Write</td>

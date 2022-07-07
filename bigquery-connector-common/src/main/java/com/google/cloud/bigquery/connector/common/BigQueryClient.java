@@ -378,29 +378,32 @@ public class BigQueryClient {
   }
 
   public long calculateTableSize(TableInfo tableInfo, Optional<String> filter) {
-    try {
-      TableDefinition.Type type = tableInfo.getDefinition().getType();
-      if (type == TableDefinition.Type.TABLE && !filter.isPresent()) {
-        return tableInfo.getNumRows().longValue();
-      } else if (type == TableDefinition.Type.VIEW
-          || type == TableDefinition.Type.MATERIALIZED_VIEW
-          || (type == TableDefinition.Type.TABLE && filter.isPresent())) {
-        // run a query
-        String table = fullTableName(tableInfo.getTableId());
-        String whereClause = filter.map(f -> "WHERE " + f).orElse("");
-        String sql = String.format("SELECT COUNT(*) from `%s` %s", table, whereClause);
-        TableResult result = bigQuery.query(QueryJobConfiguration.of(sql));
-        return result.iterateAll().iterator().next().get(0).getLongValue();
-      } else {
-        throw new IllegalArgumentException(
-            String.format(
-                "Unsupported table type %s for table %s",
-                type, fullTableName(tableInfo.getTableId())));
-      }
-    } catch (InterruptedException e) {
-      throw new BigQueryConnectorException(
-          "Querying table size was interrupted on the client side", e);
+    TableDefinition.Type type = tableInfo.getDefinition().getType();
+    if (type == TableDefinition.Type.TABLE && !filter.isPresent()) {
+      return tableInfo.getNumRows().longValue();
+    } else if (type == TableDefinition.Type.EXTERNAL && !filter.isPresent()) {
+      String table = fullTableName(tableInfo.getTableId());
+      return getNumberOfRows(String.format("SELECT COUNT(*) from `%s`", table));
+    } else if (type == TableDefinition.Type.VIEW
+        || type == TableDefinition.Type.MATERIALIZED_VIEW
+        || ((type == TableDefinition.Type.TABLE || type == TableDefinition.Type.EXTERNAL)
+            && filter.isPresent())) {
+      // run a query
+      String table = fullTableName(tableInfo.getTableId());
+      String whereClause = filter.map(f -> "WHERE " + f).orElse("");
+      return getNumberOfRows(String.format("SELECT COUNT(*) from `%s` %s", table, whereClause));
+    } else {
+      throw new IllegalArgumentException(
+          String.format(
+              "Unsupported table type %s for table %s",
+              type, fullTableName(tableInfo.getTableId())));
     }
+  }
+
+  private long getNumberOfRows(String sql) {
+    TableResult result = query(sql);
+    long numberOfRows = result.iterateAll().iterator().next().get(0).getLongValue();
+    return numberOfRows;
   }
 
   /**
@@ -458,20 +461,7 @@ public class BigQueryClient {
       LoadDataOptions options,
       List<String> sourceUris,
       FormatOptions formatOptions,
-      JobInfo.WriteDisposition writeDisposition,
-      Schema sourceTableSchema) {
-    if (sourceTableSchema != null && tableExists(options.getTableId())) {
-      TableInfo destinationTable = getTable(options.getTableId());
-      Schema destinationTableSchema = destinationTable.getDefinition().getSchema();
-      Preconditions.checkArgument(
-          BigQueryUtil.schemaEquals(
-              destinationTableSchema,
-              sourceTableSchema,
-              /* regardFieldOrder */ false,
-              options.getEnableModeCheckForSchemaFields()),
-          new BigQueryConnectorException.InvalidSchemaException(
-              "Destination table's schema is not compatible with dataframe's schema"));
-    }
+      JobInfo.WriteDisposition writeDisposition) {
     LoadJobConfiguration.Builder jobConfiguration =
         jobConfigurationFactory
             .createLoadJobConfigurationBuilder(options, sourceUris, formatOptions)
@@ -490,14 +480,15 @@ public class BigQueryClient {
           .ifPresent(timePartitionBuilder::setRequirePartitionFilter);
       options.getPartitionField().ifPresent(timePartitionBuilder::setField);
       jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
-      options
-          .getClusteredFields()
-          .ifPresent(
-              clusteredFields -> {
-                Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
-                jobConfiguration.setClustering(clustering);
-              });
     }
+
+    options
+        .getClusteredFields()
+        .ifPresent(
+            clusteredFields -> {
+              Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
+              jobConfiguration.setClustering(clustering);
+            });
 
     if (options.isUseAvroLogicalTypes()) {
       jobConfiguration.setUseAvroLogicalTypes(true);

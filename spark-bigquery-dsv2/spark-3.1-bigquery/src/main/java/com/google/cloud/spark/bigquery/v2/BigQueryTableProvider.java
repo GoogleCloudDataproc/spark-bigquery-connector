@@ -15,33 +15,78 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
+import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.inject.Injector;
 import java.util.Map;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
+import org.apache.spark.sql.connector.catalog.Identifier;
+import org.apache.spark.sql.connector.catalog.SupportsCatalogOptions;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.TableProvider;
 import org.apache.spark.sql.connector.expressions.Transform;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 
-public class BigQueryTableProvider extends BaseBigQuerySource implements TableProvider {
+public class BigQueryTableProvider extends BaseBigQuerySource
+    implements TableProvider, SupportsCatalogOptions {
 
+  private static final String DEFAULT_CATALOG_NAME = "bigquery";
+  private static final String DEFAULT_CATALOG = "spark.sql.catalog." + DEFAULT_CATALOG_NAME;
   private static final Transform[] EMPTY_TRANSFORM_ARRAY = {};
 
   @Override
   public StructType inferSchema(CaseInsensitiveStringMap options) {
-    return getTable(null, EMPTY_TRANSFORM_ARRAY, options).schema();
+    return getBigQueryTableInternal(options).schema();
   }
 
   @Override
   public Table getTable(
       StructType schema, Transform[] partitioning, Map<String, String> properties) {
-    Injector injector = InjectorFactory.createInjector(schema, properties);
-    BigQueryTable table = new BigQueryTable(injector, schema);
-    return table;
+    setupDefaultSparkCatalog(SparkSession.active());
+    return getBigQueryTableInternal(schema, properties);
+  }
+
+  private BigQueryTable getBigQueryTableInternal(Map<String, String> properties) {
+    return getBigQueryTableInternal(null, properties);
+  }
+
+  private BigQueryTable getBigQueryTableInternal(
+      StructType schema, Map<String, String> properties) {
+    try {
+      Injector injector =
+          InjectorFactory.createInjector(schema, properties, /* tableIsMandatory */ true);
+      BigQueryTable table = BigQueryTable.fromConfigurationAndSchema(injector, schema);
+      return table;
+    } catch (NoSuchTableException e) {
+      throw new BigQueryConnectorException("Table was not found", e);
+    }
   }
 
   @Override
   public boolean supportsExternalMetadata() {
     return true;
+  }
+
+  @Override
+  public Identifier extractIdentifier(CaseInsensitiveStringMap options) {
+    SparkSession spark = SparkSession.active();
+    TableId tableId = SparkBigQueryUtil.parseSimpleTableId(spark, options);
+    return new BigQueryIdentifier(tableId);
+  }
+
+  @Override
+  public String extractCatalog(CaseInsensitiveStringMap options) {
+    setupDefaultSparkCatalog(SparkSession.active());
+    return DEFAULT_CATALOG_NAME;
+  }
+
+  private static void setupDefaultSparkCatalog(SparkSession spark) {
+    if (spark.conf().contains(DEFAULT_CATALOG)) {
+      return;
+    }
+    spark.conf().set(DEFAULT_CATALOG, BigQueryCatalog.class.getCanonicalName());
   }
 }

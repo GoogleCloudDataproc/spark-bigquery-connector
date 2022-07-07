@@ -24,9 +24,23 @@ import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import java.util.Optional;
 import org.apache.spark.sql.SparkSession;
 
 public class BigQueryDataSourceReaderModule implements Module {
+
+  private Optional<SparkBigQueryConfig> tableScanConfig;
+
+  public BigQueryDataSourceReaderModule() {
+    this(Optional.empty());
+  }
+
+  // in practiced used only by the spark 3 connector, as there are separate phases for creating the
+  // catalog and the table scan (unlike DSv1 and spark 2.4)
+  public BigQueryDataSourceReaderModule(Optional<SparkBigQueryConfig> tableScanConfig) {
+    this.tableScanConfig = tableScanConfig;
+  }
+
   @Override
   public void configure(Binder binder) {
     // empty
@@ -38,8 +52,9 @@ public class BigQueryDataSourceReaderModule implements Module {
       BigQueryClient bigQueryClient,
       BigQueryClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory tracerFactory,
-      SparkBigQueryConfig config,
+      SparkBigQueryConfig globalConfig,
       SparkSession sparkSession) {
+    SparkBigQueryConfig config = tableScanConfig.orElse(globalConfig);
     TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
     return new BigQueryDataSourceReaderContext(
         tableInfo,

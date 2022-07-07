@@ -32,11 +32,11 @@ class SparkBigQueryConfigSuite extends FunSuite {
   hadoopConfiguration.set(SparkBigQueryConfig.GCS_CONFIG_PROJECT_ID_PROPERTY, "hadoop_project")
 
   val parameters = Map("table" -> "dataset.table")
-  val emptyMap : ImmutableMap[String, String] = ImmutableMap.of()
+  val emptyMap: ImmutableMap[String, String] = ImmutableMap.of()
   val sparkVersion = "2.4.0"
-  
+
   private def asDataSourceOptionsMap(map: Map[String, String]) = {
-    (map ++ map.map { case (key, value) => (key.toLowerCase, value) } .toMap).asJava
+    (map ++ map.map { case (key, value) => (key.toLowerCase, value) }.toMap).asJava
   }
 
   test("taking credentials file from GCS hadoop config") {
@@ -48,7 +48,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getCredentialsFile
     }
   }
@@ -62,7 +63,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getCredentialsFile
     }
   }
@@ -75,7 +77,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
       1,
       new SQLConf,
       sparkVersion,
-      Optional.empty()) // schema
+      /* schema */ Optional.empty(),
+      /* tableIsMandatory */ true)
     assert(!options.getCredentialsFile.isPresent)
   }
 
@@ -88,7 +91,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getTableId.getProject
     }
   }
@@ -102,7 +106,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getTableId.getProject
     }
   }
@@ -116,24 +121,26 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getTableId.getProject
     }
   }
 
   test("Invalid data format") {
-      val thrown = intercept[Exception] {
-        SparkBigQueryConfig.from(
-          asDataSourceOptionsMap(parameters + ("readDataFormat" -> "abc")),
-          emptyMap, // allConf
-          new Configuration,
-          1,
-          new SQLConf,
-          sparkVersion,
-          Optional.empty()) // schema
-      }
-      assert (thrown.getMessage ==
-        "Data read format 'ABC' is not supported. Supported formats are 'ARROW,AVRO'")
+    val thrown = intercept[Exception] {
+      SparkBigQueryConfig.from(
+        asDataSourceOptionsMap(parameters + ("readDataFormat" -> "abc")),
+        emptyMap, // allConf
+        new Configuration,
+        1,
+        new SQLConf,
+        sparkVersion,
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
+    }
+    assert(thrown.getMessage ==
+      "Data read format 'ABC' is not supported. Supported formats are 'ARROW,AVRO'")
   }
 
   test("data format - no value set") {
@@ -145,7 +152,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getReadDataFormat.toString
     }
   }
@@ -159,7 +167,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getReadDataFormat.toString
     }
   }
@@ -173,7 +182,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getMaterializationProject
     }
   }
@@ -184,13 +194,14 @@ class SparkBigQueryConfigSuite extends FunSuite {
         asDataSourceOptionsMap(parameters + (
           "materializationProject" -> "foo",
           "viewMaterializationProject" -> "bar")
-          ),
+        ),
         emptyMap, // allConf
         new Configuration,
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getMaterializationProject
     }
   }
@@ -204,7 +215,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getMaterializationProject
     }
   }
@@ -218,7 +230,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getMaterializationProject
     }
   }
@@ -232,7 +245,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getMaxParallelism
     }
   }
@@ -246,7 +260,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getMaxParallelism
     }
   }
@@ -260,7 +275,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getMaxParallelism
     }
   }
@@ -274,11 +290,12 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getMaxParallelism
     }
   }
-  
+
   test("loadSchemaUpdateOption - allowFieldAddition") {
     assertResult(Seq(JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION)) {
       val options = SparkBigQueryConfig.from(
@@ -288,7 +305,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getLoadSchemaUpdateOptions.asScala.toSeq
     }
   }
@@ -302,7 +320,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getLoadSchemaUpdateOptions.asScala.toSeq
     }
   }
@@ -319,7 +338,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getLoadSchemaUpdateOptions.asScala.toSeq
     }
   }
@@ -333,7 +353,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getLoadSchemaUpdateOptions.isEmpty
     }
   }
@@ -346,9 +367,9 @@ class SparkBigQueryConfigSuite extends FunSuite {
       "spark.datasource.bigquery.key3" -> "external val3")
     val normalizedConf = SparkBigQueryConfig.normalizeConf(originalConf.asJava)
 
-    assert(normalizedConf.get("key1")  == "val1")
-    assert(normalizedConf.get("key2")  == "val2")
-    assert(normalizedConf.get("key3")  == "external val3")
+    assert(normalizedConf.get("key1") == "val1")
+    assert(normalizedConf.get("key2") == "val2")
+    assert(normalizedConf.get("key3") == "external val3")
   }
 
   test("Set persistentGcsPath") {
@@ -360,7 +381,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getPersistentGcsPath
     }
   }
@@ -374,7 +396,8 @@ class SparkBigQueryConfigSuite extends FunSuite {
         1,
         new SQLConf,
         sparkVersion,
-        Optional.empty()) // schema
+        /* schema */ Optional.empty(),
+        /* tableIsMandatory */ true)
       options.getPersistentGcsBucket
     }
   }
