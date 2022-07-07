@@ -15,11 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.write;
 
-import org.apache.hadoop.fs.RemoteIterator;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Iterator;
+import org.apache.hadoop.fs.RemoteIterator;
 
 /** Converts HDFS RemoteIterator to Scala iterator */
 class ToIterator<T> implements Iterator<T> {
