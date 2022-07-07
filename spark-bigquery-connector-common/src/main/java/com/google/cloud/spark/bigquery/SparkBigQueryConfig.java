@@ -78,7 +78,8 @@ public class SparkBigQueryConfig
 
   public enum WriteMethod {
     DIRECT,
-    INDIRECT;
+    INDIRECT,
+    OLD_INDIRECT;
 
     public static WriteMethod from(@Nullable String writeMethod) {
       try {

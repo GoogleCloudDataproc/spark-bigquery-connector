@@ -15,32 +15,31 @@
  */
 package com.google.cloud.spark.bigquery.write;
 
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import java.math.BigInteger;
 import java.util.Optional;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
-import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.sources.BaseRelation;
 import org.apache.spark.sql.sources.InsertableRelation;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BigQueryInsertableRelation extends BaseRelation implements InsertableRelation {
+public abstract class BigQueryInsertableRelationBase extends BaseRelation
+    implements InsertableRelation {
 
-  private static Logger logger = LoggerFactory.getLogger(BigQueryInsertableRelation.class);
+  private static Logger logger = LoggerFactory.getLogger(BigQueryInsertableRelationBase.class);
 
-  private final BigQueryClient bigQueryClient;
-  private final SQLContext sqlContext;
-  private final SparkBigQueryConfig config;
-  private final Optional<TableInfo> table;
+  protected final BigQueryClient bigQueryClient;
+  protected final SQLContext sqlContext;
+  protected final SparkBigQueryConfig config;
+  protected final Optional<TableInfo> table;
 
-  public BigQueryInsertableRelation(
+  protected BigQueryInsertableRelationBase(
       BigQueryClient bigQueryClient, SQLContext sqlContext, SparkBigQueryConfig config) {
     this.bigQueryClient = bigQueryClient;
     this.sqlContext = sqlContext;
@@ -58,16 +57,6 @@ public class BigQueryInsertableRelation extends BaseRelation implements Insertab
     return SchemaConverters.toSpark(table.get().getDefinition().getSchema());
   }
 
-  @Override
-  public void insert(Dataset<Row> data, boolean overwrite) {
-    logger.debug("Inserting data={}, overwrite={}", data, overwrite);
-    // the helper also supports the v2 api
-    SaveMode saveMode = overwrite ? SaveMode.Overwrite : SaveMode.Append;
-    BigQueryWriteHelper helper =
-        new BigQueryWriteHelper(bigQueryClient, sqlContext, saveMode, config, data, exists());
-    helper.writeDataFrameToBigQuery();
-  }
-
   /** Does this table exist? */
   public boolean exists() {
     return table.isPresent();
@@ -81,5 +70,9 @@ public class BigQueryInsertableRelation extends BaseRelation implements Insertab
   /** Returns the number of rows in the table. If the table does not exist return None */
   private Optional<BigInteger> numberOfRows() {
     return table.map(TableInfo::getNumRows);
+  }
+
+  public TableId getTableId() {
+    return config.getTableId();
   }
 }
