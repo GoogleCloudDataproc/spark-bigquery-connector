@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.v2.context.DataSourceWriterContext;
+import com.google.cloud.spark.bigquery.write.context.DataSourceWriterContext;
 import com.google.inject.Injector;
 import java.util.Optional;
 import org.apache.spark.sql.SaveMode;

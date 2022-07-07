@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2.context;
+package com.google.cloud.spark.bigquery.write.context;
 
 import static com.google.cloud.spark.bigquery.ProtobufUtils.buildSingleRowMessage;
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toDescriptor;
