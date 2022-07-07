@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google Inc. All Rights Reserved.
+ * Copyright 2022 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2.context;
+package com.google.cloud.spark.bigquery.write;
 
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FormatOptions;
@@ -22,13 +22,13 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
-import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
-import com.google.cloud.spark.bigquery.write.IntermediateDataCleaner;
+import com.google.common.collect.Streams;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Iterator;
@@ -38,131 +38,108 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * A DataSourceWriter implemented by first writing the DataFrame's data into GCS in an intermediate
- * format, and then triggering a BigQuery load job on this data. Hence the "indirect" - the data
- * goes through an intermediate storage.
- */
-public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriterContext {
+public class BigQueryWriteHelper {
 
-  private static final Logger logger =
-      LoggerFactory.getLogger(BigQueryIndirectDataSourceWriterContext.class);
+  private static final Logger logger = LoggerFactory.getLogger(BigQueryWriteHelper.class);
 
   private final BigQueryClient bigQueryClient;
-  private final SparkBigQueryConfig config;
-  private final Configuration hadoopConfiguration;
-  private final StructType sparkSchema;
-  private final String writeUUID;
+  private final SQLContext sqlContext;
   private final SaveMode saveMode;
+  private final SparkBigQueryConfig config;
+  private final Dataset<Row> data;
+  private final boolean tableExists;
+  private final Configuration conf;
   private final Path gcsPath;
-  private final Optional<IntermediateDataCleaner> intermediateDataCleaner;
+  private final Optional<IntermediateDataCleaner> createTemporaryPathDeleter;
 
-  public BigQueryIndirectDataSourceWriterContext(
+  public BigQueryWriteHelper(
       BigQueryClient bigQueryClient,
-      SparkBigQueryConfig config,
-      Configuration hadoopConfiguration,
-      StructType sparkSchema,
-      String writeUUID,
+      SQLContext sqlContext,
       SaveMode saveMode,
-      Path gcsPath,
-      Optional<IntermediateDataCleaner> intermediateDataCleaner) {
+      SparkBigQueryConfig config,
+      Dataset<Row> data,
+      boolean tableExists) {
     this.bigQueryClient = bigQueryClient;
-    this.config = config;
-    this.hadoopConfiguration = hadoopConfiguration;
-    this.sparkSchema = sparkSchema;
-    this.writeUUID = writeUUID;
+    this.sqlContext = sqlContext;
     this.saveMode = saveMode;
-    this.gcsPath = gcsPath;
-    this.intermediateDataCleaner = intermediateDataCleaner;
+    this.config = config;
+    this.data = data;
+    this.tableExists = tableExists;
+    this.conf = sqlContext.sparkContext().hadoopConfiguration();
+    this.gcsPath =
+        SparkBigQueryUtil.createGcsPath(config, conf, sqlContext.sparkContext().applicationId());
+    this.createTemporaryPathDeleter =
+        config.getTemporaryGcsBucket().map(unused -> new IntermediateDataCleaner(gcsPath, conf));
   }
 
-  static <T> Iterable<T> wrap(final RemoteIterator<T> remoteIterator) {
-    return () ->
-        new Iterator<T>() {
-          @Override
-          public boolean hasNext() {
-            try {
-              return remoteIterator.hasNext();
-            } catch (IOException e) {
-              throw new UncheckedIOException(e);
-            }
-          }
+  public void writeDataFrameToBigQuery() {
+    // If the CreateDisposition is CREATE_NEVER, and the table does not exist,
+    // there's no point in writing the data to GCS in the first place as it going
+    // to file on the BigQuery side.
+    if (config
+        .getCreateDisposition()
+        .map(cd -> !tableExists && cd == JobInfo.CreateDisposition.CREATE_NEVER)
+        .orElse(false)) {
+      throw new BigQueryConnectorException(
+          String.format(
+              "For table %s Create Disposition is CREATE_NEVER and the table does not exists. Aborting the insert",
+              friendlyTableName()));
+    }
 
-          @Override
-          public T next() {
-            try {
-              return remoteIterator.next();
-            } catch (IOException e) {
-              throw new UncheckedIOException(e);
-            }
-          }
-        };
-  }
-
-  @Override
-  public DataWriterContextFactory<InternalRow> createWriterContextFactory() {
-    org.apache.avro.Schema avroSchema = AvroSchemaConverter.sparkSchemaToAvroSchema(sparkSchema);
-    return new BigQueryIndirectDataWriterContextFactory(
-        new SerializableConfiguration(hadoopConfiguration),
-        gcsPath.toString(),
-        sparkSchema,
-        avroSchema.toString());
-  }
-
-  @Override
-  public void commit(WriterCommitMessageContext[] messages) {
-    logger.info(
-        "Data has been successfully written to GCS. Going to load {} files to BigQuery",
-        messages.length);
     try {
-      List<String> sourceUris =
-          Stream.of(messages)
-              .map(msg -> ((BigQueryIndirectWriterCommitMessageContext) msg).getUri())
-              .collect(Collectors.toList());
-      loadDataToBigQuery(sourceUris);
+      // based on pmkc's suggestion at https://git.io/JeWRt
+      createTemporaryPathDeleter.ifPresent(
+          cleaner -> Runtime.getRuntime().addShutdownHook(cleaner));
+
+      String format = config.getIntermediateFormat().getDataSource();
+      data.write().format(format).save(gcsPath.toString());
+
+      loadDataToBigQuery();
       updateMetadataIfNeeded();
-      logger.info("Data has been successfully loaded to BigQuery");
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
+    } catch (Exception e) {
+      throw new BigQueryConnectorException("Failed to write to BigQuery", e);
     } finally {
       cleanTemporaryGcsPathIfNeeded();
     }
   }
 
-  @Override
-  public void abort(WriterCommitMessageContext[] messages) {
-    try {
-      logger.warn(
-          "Aborting write {} for table {}",
-          writeUUID,
-          BigQueryUtil.friendlyTableName(config.getTableId()));
-    } finally {
-      cleanTemporaryGcsPathIfNeeded();
-    }
-  }
-
-  void loadDataToBigQuery(List<String> sourceUris) throws IOException {
+  void loadDataToBigQuery() throws IOException {
+    FileSystem fs = gcsPath.getFileSystem(conf);
+    FormatOptions formatOptions = config.getIntermediateFormat().getFormatOptions();
+    String suffix = "." + formatOptions.getType().toLowerCase();
+    List<String> sourceUris =
+        SparkBigQueryUtil.optimizeLoadUriListForSpark(
+            Streams.stream(new ToIterator<LocatedFileStatus>(fs.listFiles(gcsPath, false)))
+                .map(file -> file.getPath().toString())
+                .filter(path -> path.toLowerCase().endsWith(suffix))
+                .collect(Collectors.toList()));
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
     JobInfo.WriteDisposition writeDisposition =
         SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
-    FormatOptions formatOptions = config.getIntermediateFormat().getFormatOptions();
-
     bigQueryClient.loadDataIntoTable(config, optimizedSourceUris, formatOptions, writeDisposition);
   }
 
+  String friendlyTableName() {
+    return BigQueryUtil.friendlyTableName(config.getTableId());
+  }
+
   void updateMetadataIfNeeded() {
+    StructType sparkSchema = data.schema();
     Map<String, StructField> fieldsToUpdate =
         Stream.of(sparkSchema.fields())
             .filter(
@@ -215,6 +192,41 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   }
 
   void cleanTemporaryGcsPathIfNeeded() {
-    intermediateDataCleaner.ifPresent(cleaner -> cleaner.deletePath());
+    // TODO(davidrab): add flag to disable the deletion?
+    createTemporaryPathDeleter.ifPresent(IntermediateDataCleaner::deletePath);
+  }
+
+  void verifySaveMode() {
+    if (saveMode == SaveMode.ErrorIfExists || saveMode == SaveMode.Ignore) {
+      throw new UnsupportedOperationException("SaveMode " + saveMode + " is not supported");
+    }
+  }
+}
+
+/** Converts HDFS RemoteIterator to Scala iterator */
+class ToIterator<T> implements Iterator<T> {
+
+  private final RemoteIterator<T> remote;
+
+  public ToIterator(RemoteIterator<T> remote) {
+    this.remote = remote;
+  }
+
+  @Override
+  public boolean hasNext() {
+    try {
+      return remote.hasNext();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  @Override
+  public T next() {
+    try {
+      return remote.next();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 }

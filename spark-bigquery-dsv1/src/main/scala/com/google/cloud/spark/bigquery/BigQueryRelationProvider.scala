@@ -20,6 +20,7 @@ import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableDefinition.Type.{EXTERNAL, MATERIALIZED_VIEW, TABLE, VIEW}
 import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryClientModule, BigQueryUtil}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
+import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper
 import com.google.common.collect.ImmutableMap
 import com.google.inject.{Guice, Injector}
 import org.apache.spark.sql.execution.streaming.Sink
@@ -100,35 +101,7 @@ class BigQueryRelationProvider(
                                mode: SaveMode,
                                parameters: Map[String, String],
                                data: DataFrame): BaseRelation = {
-    val injector = getGuiceInjectorCreator().createGuiceInjector(
-      sqlContext, parameters, Some(data.schema))
-    val options = injector.getInstance(classOf[SparkBigQueryConfig])
-    val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
-    val tableId = options.getTableId
-    val relation = BigQueryInsertableRelation(bigQueryClient, sqlContext, options)
-
-    mode match {
-      case SaveMode.Append => relation.insert(data, overwrite = false)
-      case SaveMode.Overwrite => relation.insert(data, overwrite = true)
-      case SaveMode.ErrorIfExists =>
-        if (!relation.exists) {
-          relation.insert(data, overwrite = false)
-        } else {
-          throw new IllegalArgumentException(
-            s"""SaveMode is set to ErrorIfExists and Table
-               |${BigQueryUtil.friendlyTableName(tableId)}
-               |already exists. Did you want to add data to the table by setting
-               |the SaveMode to Append? Example:
-               |df.write.format.options.mode(SaveMode.Append).save()"""
-              .stripMargin.replace('\n', ' '))
-        }
-      case SaveMode.Ignore =>
-        if (!relation.exists) {
-          relation.insert(data, overwrite = false)
-        }
-    }
-
-    relation
+    new CreatableRelationProviderHelper().createRelation(sqlContext, mode, parameters, data)
   }
 
   def createSparkBigQueryConfig(sqlContext: SQLContext,

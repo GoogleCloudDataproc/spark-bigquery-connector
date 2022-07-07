@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.spark.bigquery.InjectorFactory;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.inject.Injector;
 import java.util.Map;

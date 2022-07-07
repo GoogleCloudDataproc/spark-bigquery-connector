@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery
 
 import com.google.cloud.bigquery.connector.common.BigQueryClient
 import com.google.cloud.spark.bigquery.spark3.{DataFrameToRDDConverter, Spark3DataFrameToRDDConverter}
+import com.google.cloud.spark.bigquery.write.BigQueryWriteHelper
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
@@ -50,7 +51,7 @@ private[bigquery] object BigQueryStreamWriter extends Logging {
     val dataFrame: DataFrame = sqlContext.createDataFrame(rowRdd, schema)
     val table = Option(bigQueryClient.getTable(opts.getTableId))
     val saveMode = getSaveMode(outputMode)
-    val helper = BigQueryWriteHelper(
+    val helper = new BigQueryWriteHelper(
       bigQueryClient, sqlContext, saveMode, opts, dataFrame, table.isDefined)
     helper.writeDataFrameToBigQuery
   }

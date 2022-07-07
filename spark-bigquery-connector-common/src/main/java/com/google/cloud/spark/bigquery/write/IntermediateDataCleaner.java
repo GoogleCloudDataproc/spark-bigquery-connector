@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2.context;
+package com.google.cloud.spark.bigquery.write;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -43,7 +43,7 @@ public class IntermediateDataCleaner extends Thread {
     deletePath();
   }
 
-  void deletePath() {
+  public void deletePath() {
     try {
       FileSystem fs = path.getFileSystem(conf);
       if (pathExists(fs, path)) {

@@ -15,23 +15,27 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
-import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
+import com.google.cloud.spark.bigquery.InjectorFactory;
+import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper;
 import com.google.inject.Injector;
 import java.util.Map;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
-import org.apache.spark.sql.connector.catalog.Identifier;
-import org.apache.spark.sql.connector.catalog.SupportsCatalogOptions;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.TableProvider;
 import org.apache.spark.sql.connector.expressions.Transform;
+import org.apache.spark.sql.sources.BaseRelation;
+import org.apache.spark.sql.sources.CreatableRelationProvider;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 
 public class BigQueryTableProvider extends BaseBigQuerySource
-    implements TableProvider, SupportsCatalogOptions {
+    implements TableProvider, CreatableRelationProvider {
 
   private static final String DEFAULT_CATALOG_NAME = "bigquery";
   private static final String DEFAULT_CATALOG = "spark.sql.catalog." + DEFAULT_CATALOG_NAME;
@@ -70,23 +74,19 @@ public class BigQueryTableProvider extends BaseBigQuerySource
     return true;
   }
 
-  @Override
-  public Identifier extractIdentifier(CaseInsensitiveStringMap options) {
-    SparkSession spark = SparkSession.active();
-    TableId tableId = SparkBigQueryUtil.parseSimpleTableId(spark, options);
-    return new BigQueryIdentifier(tableId);
-  }
-
-  @Override
-  public String extractCatalog(CaseInsensitiveStringMap options) {
-    setupDefaultSparkCatalog(SparkSession.active());
-    return DEFAULT_CATALOG_NAME;
-  }
-
   private static void setupDefaultSparkCatalog(SparkSession spark) {
     if (spark.conf().contains(DEFAULT_CATALOG)) {
       return;
     }
     spark.conf().set(DEFAULT_CATALOG, BigQueryCatalog.class.getCanonicalName());
+  }
+
+  @Override
+  public BaseRelation createRelation(
+      SQLContext sqlContext,
+      SaveMode mode,
+      scala.collection.immutable.Map<String, String> parameters,
+      Dataset<Row> data) {
+    return new CreatableRelationProviderHelper().createRelation(sqlContext, mode, parameters, data);
   }
 }
