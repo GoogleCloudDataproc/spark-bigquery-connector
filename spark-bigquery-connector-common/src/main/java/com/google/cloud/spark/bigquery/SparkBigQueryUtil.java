@@ -75,35 +75,38 @@ public class SparkBigQueryUtil {
    * @param conf Hadoop configuration parameters
    * @param applicationId A unique identifier for the Spark application
    * @return org.apache.hadoop.fs.Path object backed by GCS
-   * @throws IOException
    */
   public static Path createGcsPath(
-      SparkBigQueryConfig config, Configuration conf, String applicationId) throws IOException {
+      SparkBigQueryConfig config, Configuration conf, String applicationId) {
     Path gcsPath;
-    Preconditions.checkArgument(
-        config.getTemporaryGcsBucket().isPresent() || config.getPersistentGcsBucket().isPresent(),
-        "Either temporary or persistent GCS bucket must be set");
+    try {
+      Preconditions.checkArgument(
+          config.getTemporaryGcsBucket().isPresent() || config.getPersistentGcsBucket().isPresent(),
+          "Either temporary or persistent GCS bucket must be set");
 
-    // Throw exception if persistentGcsPath already exists in persistentGcsBucket
-    if (config.getPersistentGcsBucket().isPresent() && config.getPersistentGcsPath().isPresent()) {
-      gcsPath =
-          new Path(
+      // Throw exception if persistentGcsPath already exists in persistentGcsBucket
+      if (config.getPersistentGcsBucket().isPresent()
+          && config.getPersistentGcsPath().isPresent()) {
+        gcsPath =
+            new Path(
+                String.format(
+                    "gs://%s/%s",
+                    config.getPersistentGcsBucket().get(), config.getPersistentGcsPath().get()));
+        FileSystem fs = gcsPath.getFileSystem(conf);
+        if (fs.exists(gcsPath)) {
+          throw new IllegalArgumentException(
               String.format(
-                  "gs://%s/%s",
-                  config.getPersistentGcsBucket().get(), config.getPersistentGcsPath().get()));
-      FileSystem fs = gcsPath.getFileSystem(conf);
-      if (fs.exists(gcsPath)) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Path %s already exists in %s bucket",
-                config.getPersistentGcsPath().get(), config.getPersistentGcsBucket().get()));
+                  "Path %s already exists in %s bucket",
+                  config.getPersistentGcsPath().get(), config.getPersistentGcsBucket().get()));
+        }
+      } else if (config.getTemporaryGcsBucket().isPresent()) {
+        gcsPath = getUniqueGcsPath(config.getTemporaryGcsBucket().get(), applicationId, conf);
+      } else {
+        gcsPath = getUniqueGcsPath(config.getPersistentGcsBucket().get(), applicationId, conf);
       }
-    } else if (config.getTemporaryGcsBucket().isPresent()) {
-      gcsPath = getUniqueGcsPath(config.getTemporaryGcsBucket().get(), applicationId, conf);
-    } else {
-      gcsPath = getUniqueGcsPath(config.getPersistentGcsBucket().get(), applicationId, conf);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
-
     return gcsPath;
   }
 

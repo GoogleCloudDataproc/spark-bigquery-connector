@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.spark.bigquery.InjectorFactory;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderModule;
 import com.google.cloud.spark.bigquery.v2.context.DataSourceWriterContext;

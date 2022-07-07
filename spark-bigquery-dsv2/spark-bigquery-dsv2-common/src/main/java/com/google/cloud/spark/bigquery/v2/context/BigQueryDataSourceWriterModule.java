@@ -21,6 +21,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
+import com.google.cloud.spark.bigquery.write.IntermediateDataCleaner;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provides;
