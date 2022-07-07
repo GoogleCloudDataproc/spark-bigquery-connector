@@ -136,7 +136,7 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
 
   def convertBooleanExpressions(expression: Expression, fields: Seq[Attribute]): Option[BigQuerySQLStatement] = {
     Option(expression match {
-      case In(child, list) if list.forall(_.isInstanceOf[Literal]) =>
+      case In(child, list) =>
         convertStatement(child, fields) + "IN" +
           blockStatement(convertStatements(fields, list: _*))
       case IsNull(child) =>
@@ -286,6 +286,14 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
         ConstantString(expression.prettyName.toUpperCase) + blockStatement(makeStatement(columns.map(convertStatement(_, fields)), ", "))
       case If(predicate, trueValue, falseValue) =>
         ConstantString(expression.prettyName.toUpperCase) + blockStatement(convertStatement(predicate, fields) + "," + convertStatement(trueValue, fields) + "," + convertStatement(falseValue, fields))
+      case InSet(child, hset) =>
+        convertStatement(In(child, setToExpr(hset)), fields)
+      case UnscaledValue(child) =>
+        child.dataType match {
+          case d: DecimalType =>
+            blockStatement(convertStatement(child, fields) + "* POW( 10," + IntVariable(Some(d.scale)) + ")")
+          case _ => null
+        }
       case _ => null
     })
   }
@@ -327,4 +335,17 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
       case FloatType | DoubleType => "FLOAT64"
       case _ => null
     })
+
+  final def setToExpr(set: Set[Any]): Seq[Expression] = {
+    set.map {
+      case d: Decimal => Literal(d, DecimalType(d.precision, d.scale))
+      case s @ (_: String | _: UTF8String) => Literal(s, StringType)
+      case d: Double => Literal(d, DoubleType)
+      case e: Expression => e
+      case default =>
+        throw new BigQueryPushdownUnsupportedException(
+          "Pushdown unsupported for " + s"${default.getClass.getSimpleName} @ MiscStatement.setToExpr"
+        )
+    }.toSeq
+  }
 }

@@ -20,8 +20,8 @@ package com.google.cloud.spark.bigquery.pushdowns
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.sql.catalyst.expressions.aggregate._
-import org.apache.spark.sql.catalyst.expressions.{Abs, Acos, Alias, And, Ascending, Ascii, Asin, Atan, AttributeReference, Base64, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, CaseWhen, Cast, Ceil, Concat, Contains, Cos, Cosh, DateAdd, DateSub, Descending, EndsWith, EqualTo, Exp, ExprId, Expression, Floor, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, Greatest, In, InitCap, IsNaN, IsNotNull, IsNull, Least, Length, LessThan, LessThanOrEqual, Literal, Log, Log10, Logarithm, Lower, Month, Not, Or, Pow, Quarter, Rand, RegExpExtract, RegExpReplace, Round, ScalarSubquery, ShiftLeft, ShiftRight, Signum, Sin, Sinh, SortOrder, SoundEx, Sqrt, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, Tan, Tanh, TruncDate, UnBase64, Upper, Year}
-import org.apache.spark.sql.catalyst.plans.logical.{Aggregate}
+import org.apache.spark.sql.catalyst.expressions.{Abs, Acos, Alias, And, Ascending, Ascii, Asin, Atan, AttributeReference, Base64, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, CaseWhen, Cast, Ceil, Coalesce, Concat, Contains, Cos, Cosh, DateAdd, DateSub, Descending, EndsWith, EqualTo, Exp, ExprId, Expression, Floor, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, Greatest, If, In, InSet, InitCap, IsNaN, IsNotNull, IsNull, Least, Length, LessThan, LessThanOrEqual, Literal, Log, Log10, Logarithm, Lower, Month, Not, Or, Pow, Quarter, Rand, RegExpExtract, RegExpReplace, Round, ScalarSubquery, ShiftLeft, ShiftRight, Signum, Sin, Sinh, SortOrder, SoundEx, Sqrt, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, Tan, Tanh, TruncDate, UnBase64, UnscaledValue, Upper, Year}
+import org.apache.spark.sql.catalyst.plans.logical.Aggregate
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.types._
 import org.mockito.{Mock, MockitoAnnotations}
@@ -853,6 +853,34 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val bigQuerySQLStatement = converter.convertMiscExpressions(scalarSubQueryExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "( SELECT * FROM ( SELECT * FROM `MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 LIMIT 1 )")
+  }
+
+  test("convertMiscExpressions with If") {
+    val ifExpression = If.apply(Literal.apply("COND1"), Literal.apply("TRUE_VAL"), Literal.apply("FALSE_VAL"))
+    val bigQuerySQLStatement = converter.convertMiscExpressions(ifExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "IF ( 'COND1' , 'TRUE_VAL' , 'FALSE_VAL' )")
+  }
+
+  test("convertMiscExpressions with InSet") {
+    val inSetExpression = InSet.apply(Literal.apply("COND1"), Set.apply(Literal.apply("C1"), Literal.apply("C2"), Literal.apply("C3")))
+    val bigQuerySQLStatement = converter.convertMiscExpressions(inSetExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "'COND1' IN ( 'C1' , 'C2' , 'C3' )")
+  }
+
+  test("convertMiscExpressions with UnscaledValue") {
+    val inSetExpression = UnscaledValue.apply(Literal.apply(Decimal(1234.34)))
+    val bigQuerySQLStatement = converter.convertMiscExpressions(inSetExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "( 1234.34 * POW( 10, 2 ) )")
+  }
+
+  test("convertMiscExpression with Coalesce") {
+    val coalesceExpression = Coalesce.apply(List.apply(Literal.apply(null), Literal.apply(null), Literal.apply("COND2")))
+    val bigQuerySQLStatement = converter.convertMiscExpressions(coalesceExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "COALESCE ( NULL , NULL , 'COND2' )")
   }
 
   test("convertDateExpressions with DateAdd") {
