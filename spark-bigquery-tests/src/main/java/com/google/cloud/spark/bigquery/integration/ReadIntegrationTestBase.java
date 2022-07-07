@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -366,9 +367,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .read()
             .format("bigquery")
             .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("filter", "word_count = 1 OR corpus_date = 0")
             .option("readDataFormat", "AVRO")
+            .option("materializationDataset", testDataset.toString())
             .load()
+            .where("word_count = 1 OR corpus_date = 0")
             .collectAsList();
 
     List<Row> arrowResultsForZstdCodec =
@@ -376,26 +378,28 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .read()
             .format("bigquery")
             .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("materializationDataset", testDataset.toString())
             .option("readDataFormat", "ARROW")
             .option("arrowCompressionCodec", "ZSTD")
             .load()
             .where("word_count = 1 OR corpus_date = 0")
             .collectAsList();
 
-    assertThat(avroResults).isEqualTo(arrowResultsForZstdCodec);
+    CollectionUtils.isEqualCollection(avroResults, arrowResultsForZstdCodec);
 
     List<Row> arrowResultsForLZ4FrameCodec =
         spark
             .read()
             .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
+            // .option("table", "bigquery-public-data.samples.shakespeare")
             .option("readDataFormat", "ARROW")
+            .option("materializationDataset", testDataset.toString())
             .option("arrowCompressionCodec", "LZ4_FRAME")
-            .load()
+            .load("bigquery-public-data.samples.shakespeare")
             .where("word_count = 1 OR corpus_date = 0")
             .collectAsList();
 
-    assertThat(avroResults).isEqualTo(arrowResultsForLZ4FrameCodec);
+    CollectionUtils.isEqualCollection(avroResults, arrowResultsForLZ4FrameCodec);
   }
 
   private void uploadFileToGCS(String resourceName, String destinationURI, String contentType) {

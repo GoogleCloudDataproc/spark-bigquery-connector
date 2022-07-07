@@ -15,12 +15,20 @@ class Spark24BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
         // Get the reader and perform reflection to get the BigQueryRddFactory
         val reader = l.newReader()
         val getBigQueryRddFactoryMethod = reader.getClass.getMethod("getBigQueryRddFactory")
-        Some(SourceQuery(expressionConverter, expressionFactory, getBigQueryRddFactoryMethod.invoke(reader).asInstanceOf[BigQueryRDDFactory], l.options("path"), l.output, alias.next))
+        Some(SourceQuery(expressionConverter, expressionFactory, getBigQueryRddFactoryMethod.invoke(reader).asInstanceOf[BigQueryRDDFactory], getTableName(l), l.output, alias.next))
 
       case l@LogicalRelation(bqRelation: DirectBigQueryRelation, _, _, _) =>
         Some(SourceQuery(expressionConverter, expressionFactory, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))
 
       case _ =>  generateNonSourceQueriesFromPlan(plan)
+    }
+  }
+
+  def getTableName(relation: DataSourceV2Relation): String = {
+    if (relation.tableIdent.isDefined) {
+      relation.tableIdent.get.table
+    } else {
+      relation.options("path")
     }
   }
 }
