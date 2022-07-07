@@ -30,7 +30,7 @@ object BigQueryConnectorUtils {
       .getOrElse(sys.error(s"Query pushdown not supported for Spark version ${session.version}"))
 
     val sparkExpressionFactory = sparkBigQueryPushdown.createSparkExpressionFactory
-    val sparkPlanFactory = sparkBigQueryPushdown.createSparkPlanFactory()
+    val sparkPlanFactory = sparkBigQueryPushdown.createSparkPlanFactory
     val sparkExpressionConverter = sparkBigQueryPushdown.createSparkExpressionConverter(sparkExpressionFactory, sparkPlanFactory)
     sparkBigQueryPushdown.enable(session, sparkBigQueryPushdown.createBigQueryStrategy(sparkExpressionConverter, sparkExpressionFactory, sparkPlanFactory))
   }

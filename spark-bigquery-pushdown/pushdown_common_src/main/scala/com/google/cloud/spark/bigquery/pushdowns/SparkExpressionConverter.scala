@@ -282,6 +282,10 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
           } + ConstantString("END")
       case ScalarSubquery(plan, _, _) =>
         blockStatement(new BigQueryStrategy(this, expressionFactory, sparkPlanFactory).generateQueryFromPlan(plan).get.getStatement())
+      case Coalesce(columns) =>
+        ConstantString(expression.prettyName.toUpperCase) + blockStatement(makeStatement(columns.map(convertStatement(_, fields)), ", "))
+      case If(predicate, trueValue, falseValue) =>
+        ConstantString(expression.prettyName.toUpperCase) + blockStatement(convertStatement(predicate, fields) + "," + convertStatement(trueValue, fields) + "," + convertStatement(falseValue, fields))
       case _ => null
     })
   }
