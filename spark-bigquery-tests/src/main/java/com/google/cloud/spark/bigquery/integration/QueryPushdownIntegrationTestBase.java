@@ -37,8 +37,6 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                 "INSTR(word, 'a') as instr",
                 "INITCAP(word) as initcap",
                 "CONCAT(word, '*', '!!') as concat",
-                "BASE64(word) as base",
-                "UNBASE64(word) as base",
                 "FORMAT_STRING('*%s*', word) as format_string",
                 "FORMAT_NUMBER(10.2345, 1) as format_number",
                 "REGEXP_EXTRACT(word, '([A-Za-z]+$)', 1) as regexp_extract",
@@ -62,13 +60,13 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(11)).isEqualTo(1); // INSTR(word, 'a')
     assertThat(r1.get(12)).isEqualTo("Augurs"); // INITCAP(word)
     assertThat(r1.get(13)).isEqualTo("augurs*!!"); // CONCAT(word, '*', '!!')
-    assertThat(r1.get(16)).isEqualTo("*augurs*"); // FORMAT_STRING('*%s*', word)
-    assertThat(r1.get(17)).isEqualTo("10.2"); // FORMAT_NUMBER(10.2345, 1)
-    assertThat(r1.get(18)).isEqualTo("augurs"); // REGEXP_EXTRACT(word, '([A-Za-z]+$)', 1)
-    assertThat(r1.get(19))
+    assertThat(r1.get(14)).isEqualTo("*augurs*"); // FORMAT_STRING('*%s*', word)
+    assertThat(r1.get(15)).isEqualTo("10.2"); // FORMAT_NUMBER(10.2345, 1)
+    assertThat(r1.get(16)).isEqualTo("augurs"); // REGEXP_EXTRACT(word, '([A-Za-z]+$)', 1)
+    assertThat(r1.get(17))
         .isEqualTo("replacement"); // REGEXP_REPLACE(word, '([A-Za-z]+$)', 'replacement')
-    assertThat(r1.get(20)).isEqualTo("ug"); // SUBSTR(word, 2, 2)
-    assertThat(r1.get(21)).isEqualTo("A262"); // SOUNDEX(word)
+    assertThat(r1.get(18)).isEqualTo("ug"); // SUBSTR(word, 2, 2)
+    assertThat(r1.get(19)).isEqualTo("a262"); // SOUNDEX(word)
   }
 
   @Test
