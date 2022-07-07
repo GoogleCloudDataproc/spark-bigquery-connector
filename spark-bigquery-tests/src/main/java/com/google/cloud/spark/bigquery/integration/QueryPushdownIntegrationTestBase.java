@@ -241,4 +241,34 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(10)).isEqualTo(-10); // UNARY MINUS
     assertThat(r1.get(11)).isEqualTo(false); // CHECKOVERFLOW
   }
+
+    @Test
+    public void testUnionQuery() {
+      Dataset<Row> df =
+          spark
+              .read()
+              .format("bigquery")
+              .option("materializationDataset", testDataset.toString())
+              .load(TestConstants.SHAKESPEARE_TABLE);
+
+    df.createOrReplaceTempView("shakespeare");
+
+    Dataset<Row> words_with_word_count_100 =
+        spark.sql("SELECT word, word_count FROM shakespeare WHERE word_count = 100");
+    Dataset<Row> words_with_word_count_150 =
+        spark.sql("SELECT word, word_count FROM shakespeare WHERE word_count = 150");
+
+    List<Row> unionList =
+        words_with_word_count_100.union(words_with_word_count_150).collectAsList();
+    List<Row> unionAllList =
+        words_with_word_count_150.unionAll(words_with_word_count_100).collectAsList();
+    List<Row> unionByNameList =
+        words_with_word_count_100.unionByName(words_with_word_count_150).collectAsList();
+    assertThat(unionList.size()).isGreaterThan(0);
+    assertThat(unionList.get(0).get(1)).isAnyOf(100L, 150L);
+    assertThat(unionAllList.size()).isGreaterThan(0);
+    assertThat(unionAllList.get(0).get(1)).isAnyOf(100L, 150L);
+    assertThat(unionByNameList.size()).isGreaterThan(0);
+    assertThat(unionByNameList.get(0).get(1)).isAnyOf(100L, 150L);
+  }
 }

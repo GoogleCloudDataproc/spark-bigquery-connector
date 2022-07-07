@@ -21,6 +21,7 @@ import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Strategy
+import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.plans.{FullOuter, Inner, LeftAnti, LeftOuter, LeftSemi, RightOuter}
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.SparkPlan
@@ -71,7 +72,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
   def hasUnsupportedNodes(plan: LogicalPlan): Boolean = {
     plan.foreach {
       // DataSourceV2Relation is the Spark 2.4 DSv2 connector relation
-      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) | LogicalRelation(_, _, _, _) | DataSourceV2Relation(_, _, _, _, _) =>
+      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) | LogicalRelation(_, _, _, _) | DataSourceV2Relation(_, _, _, _, _) | UnionOperationExtractor(_) =>
       case subPlan =>
         logInfo(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
         return true
@@ -197,6 +198,19 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
             }
           }
         }
+
+      case UnionOperationExtractor(logicalPlanSeq) =>
+
+        /**
+         * Need to convert the list of logical plan to BigQuerySQLQuery
+         */
+        val children: Seq[BigQuerySQLQuery] = {
+          logicalPlanSeq.map { child =>
+            generateQueryFromPlan(child).get
+          }
+        }
+        val outputAttributes: Option[Seq[Attribute]] = Some(children.head.output)
+        Some(UnionQuery(expressionConverter, expressionFactory, sparkPlanFactory, children, outputAttributes , alias.next))
 
       case _ =>
         throw new BigQueryPushdownUnsupportedException(
