@@ -70,6 +70,7 @@ public class BigQueryWriteHelper {
       Dataset<Row> data,
       boolean tableExists) {
     this.bigQueryClient = bigQueryClient;
+    verifySaveMode(saveMode);
     this.saveMode = saveMode;
     this.config = config;
     this.data = data;
@@ -191,7 +192,7 @@ public class BigQueryWriteHelper {
     createTemporaryPathDeleter.ifPresent(IntermediateDataCleaner::deletePath);
   }
 
-  void verifySaveMode() {
+  static void verifySaveMode(SaveMode saveMode) {
     if (saveMode == SaveMode.ErrorIfExists || saveMode == SaveMode.Ignore) {
       throw new UnsupportedOperationException("SaveMode " + saveMode + " is not supported");
     }
