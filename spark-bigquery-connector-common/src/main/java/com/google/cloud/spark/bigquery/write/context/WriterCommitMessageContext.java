@@ -13,20 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2.context;
+package com.google.cloud.spark.bigquery.write.context;
 
-import java.io.Closeable;
-import java.io.IOException;
+import java.io.Serializable;
 
-/**
- * An internal version to Spark DataSource DataWriter interface
- *
- * @param <T>
- */
-public interface DataWriterContext<T> extends Closeable {
-  void write(T row) throws IOException;
-
-  WriterCommitMessageContext commit() throws IOException;
-
-  void abort() throws IOException;
-}
+public interface WriterCommitMessageContext extends Serializable {}

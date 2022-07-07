@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.v2.context.DataWriterContext;
+import com.google.cloud.spark.bigquery.write.context.DataWriterContext;
 import java.io.IOException;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.connector.write.DataWriter;

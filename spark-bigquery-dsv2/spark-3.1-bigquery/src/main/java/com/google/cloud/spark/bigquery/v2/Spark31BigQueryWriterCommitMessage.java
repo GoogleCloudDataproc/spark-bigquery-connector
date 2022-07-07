@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.v2.context.WriterCommitMessageContext;
+import com.google.cloud.spark.bigquery.write.context.WriterCommitMessageContext;
 import org.apache.spark.sql.connector.write.WriterCommitMessage;
 
 public class Spark31BigQueryWriterCommitMessage implements WriterCommitMessage {
