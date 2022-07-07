@@ -75,7 +75,6 @@ public class SparkBigQueryUtil {
    * @param conf Hadoop configuration parameters
    * @param applicationId A unique identifier for the Spark application
    * @return org.apache.hadoop.fs.Path object backed by GCS
-   * @throws IOException
    */
   public static Path createGcsPath(
       SparkBigQueryConfig config, Configuration conf, String applicationId) {

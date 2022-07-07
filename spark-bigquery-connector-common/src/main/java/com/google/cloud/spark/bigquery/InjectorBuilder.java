@@ -28,9 +28,9 @@ public class InjectorBuilder {
 
   private SparkSession spark = SparkSession.active();
   private Optional<StructType> schema = Optional.empty();
-  Map<String, String> options = ImmutableMap.<String, String>of();
-  boolean tableIsMandatory = true;
-  DataSourceVersion dataSourceVersion = DataSourceVersion.V2;
+  private Map<String, String> options = ImmutableMap.<String, String>of();
+  private boolean tableIsMandatory = true;
+  private DataSourceVersion dataSourceVersion = DataSourceVersion.V2;
 
   public InjectorBuilder withSpark(SparkSession spark) {
     this.spark = spark;

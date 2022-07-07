@@ -29,20 +29,10 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
 import com.google.common.collect.Streams;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
@@ -52,12 +42,19 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 public class BigQueryWriteHelper {
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryWriteHelper.class);
 
   private final BigQueryClient bigQueryClient;
-  private final SQLContext sqlContext;
   private final SaveMode saveMode;
   private final SparkBigQueryConfig config;
   private final Dataset<Row> data;
@@ -74,7 +71,6 @@ public class BigQueryWriteHelper {
       Dataset<Row> data,
       boolean tableExists) {
     this.bigQueryClient = bigQueryClient;
-    this.sqlContext = sqlContext;
     this.saveMode = saveMode;
     this.config = config;
     this.data = data;
@@ -199,34 +195,6 @@ public class BigQueryWriteHelper {
   void verifySaveMode() {
     if (saveMode == SaveMode.ErrorIfExists || saveMode == SaveMode.Ignore) {
       throw new UnsupportedOperationException("SaveMode " + saveMode + " is not supported");
-    }
-  }
-}
-
-/** Converts HDFS RemoteIterator to Scala iterator */
-class ToIterator<T> implements Iterator<T> {
-
-  private final RemoteIterator<T> remote;
-
-  public ToIterator(RemoteIterator<T> remote) {
-    this.remote = remote;
-  }
-
-  @Override
-  public boolean hasNext() {
-    try {
-      return remote.hasNext();
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-  }
-
-  @Override
-  public T next() {
-    try {
-      return remote.next();
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
     }
   }
 }
