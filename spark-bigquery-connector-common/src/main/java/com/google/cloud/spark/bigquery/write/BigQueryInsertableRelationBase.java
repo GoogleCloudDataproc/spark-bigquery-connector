@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 public abstract class BigQueryInsertableRelationBase extends BaseRelation
     implements InsertableRelation {
 
-  private static Logger logger = LoggerFactory.getLogger(BigQueryInsertableRelationBase.class);
+  protected final Logger logger = LoggerFactory.getLogger(getClass());
 
   protected final BigQueryClient bigQueryClient;
   protected final SQLContext sqlContext;

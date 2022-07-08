@@ -30,9 +30,6 @@ import org.slf4j.LoggerFactory;
  */
 public class BigQueryDeprecatedIndirectInsertableRelation extends BigQueryInsertableRelationBase {
 
-  private static Logger logger =
-      LoggerFactory.getLogger(BigQueryDeprecatedIndirectInsertableRelation.class);
-
   public BigQueryDeprecatedIndirectInsertableRelation(
       BigQueryClient bigQueryClient, SQLContext sqlContext, SparkBigQueryConfig config) {
     super(bigQueryClient, sqlContext, config);

@@ -28,9 +28,6 @@ import org.slf4j.LoggerFactory;
 
 public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertableRelationBase {
 
-  private static Logger logger =
-      LoggerFactory.getLogger(BigQueryDataSourceWriterInsertableRelation.class);
-
   private final DataSourceWriterContext ctx;
 
   public BigQueryDataSourceWriterInsertableRelation(
