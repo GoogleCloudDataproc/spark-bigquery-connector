@@ -42,11 +42,12 @@ public class CreatableRelationProviderHelper {
       SQLContext sqlContext,
       SaveMode saveMode,
       scala.collection.immutable.Map<String, String> parameters,
-      Dataset<Row> data) {
+      Dataset<Row> data,
+      Map<String, String> customDefaults) {
 
     Map<String, String> properties = mapAsJavaMap(parameters);
     BigQueryInsertableRelationBase relation =
-        createBigQueryInsertableRelation(sqlContext, data, properties, saveMode);
+        createBigQueryInsertableRelation(sqlContext, data, properties, saveMode, customDefaults);
 
     switch (saveMode) {
       case Append:
@@ -79,13 +80,18 @@ public class CreatableRelationProviderHelper {
 
   @VisibleForTesting
   BigQueryInsertableRelationBase createBigQueryInsertableRelation(
-      SQLContext sqlContext, Dataset<Row> data, Map<String, String> properties, SaveMode saveMode) {
+      SQLContext sqlContext,
+      Dataset<Row> data,
+      Map<String, String> properties,
+      SaveMode saveMode,
+      Map<String, String> customDefaults) {
     Injector injector =
         new InjectorBuilder()
             .withDataSourceVersion(DataSourceVersion.V1)
             .withSpark(sqlContext.sparkSession())
             .withSchema(data.schema())
             .withOptions(properties)
+            .withCustomDefaults(customDefaults)
             .withTableIsMandatory(true)
             .build();
 

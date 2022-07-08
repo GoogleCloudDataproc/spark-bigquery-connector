@@ -55,6 +55,7 @@ public class SparkBigQueryConfigTest {
                 options.asMap(),
                 ImmutableMap.of(),
                 hadoopConfiguration,
+                ImmutableMap.of(),
                 DEFAULT_PARALLELISM,
                 new SQLConf(),
                 SPARK_VERSION,
@@ -71,6 +72,7 @@ public class SparkBigQueryConfigTest {
             options.asMap(),
             ImmutableMap.of(),
             hadoopConfiguration,
+            ImmutableMap.of(),
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
@@ -154,6 +156,7 @@ public class SparkBigQueryConfigTest {
             options.asMap(),
             ImmutableMap.of(),
             hadoopConfiguration,
+            ImmutableMap.of(),
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
@@ -212,6 +215,7 @@ public class SparkBigQueryConfigTest {
             options.asMap(),
             ImmutableMap.of(),
             hadoopConfiguration,
+            ImmutableMap.of(),
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
@@ -240,6 +244,7 @@ public class SparkBigQueryConfigTest {
                     options.asMap(),
                     ImmutableMap.of(),
                     hadoopConfiguration,
+                    ImmutableMap.of(),
                     DEFAULT_PARALLELISM,
                     new SQLConf(),
                     SPARK_VERSION,
@@ -272,6 +277,7 @@ public class SparkBigQueryConfigTest {
                     options.asMap(),
                     ImmutableMap.of(),
                     hadoopConfiguration,
+                    ImmutableMap.of(),
                     DEFAULT_PARALLELISM,
                     new SQLConf(),
                     SPARK_VERSION,
@@ -305,6 +311,7 @@ public class SparkBigQueryConfigTest {
             options.asMap(),
             globalOptions,
             hadoopConfiguration,
+            ImmutableMap.of(),
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
@@ -329,6 +336,7 @@ public class SparkBigQueryConfigTest {
             options.asMap(),
             ImmutableMap.of(),
             hadoopConfiguration,
+            ImmutableMap.of(),
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
@@ -352,6 +360,7 @@ public class SparkBigQueryConfigTest {
             options.asMap(),
             ImmutableMap.of(),
             hadoopConfiguration,
+            ImmutableMap.of(),
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
@@ -397,5 +406,24 @@ public class SparkBigQueryConfigTest {
     assertThat(labels).containsEntry("foo", "2");
     assertThat(labels).containsEntry("bar", "1");
     assertThat(labels).containsEntry("baz", "2");
+  }
+
+  @Test
+  public void testCustomDefaults() {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options = new DataSourceOptions(defaultOptions);
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            options.asMap(),
+            ImmutableMap.of(),
+            hadoopConfiguration,
+            ImmutableMap.of("writeMethod", "OLD_INDIRECT"),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(), /* tableIsMandatory */
+            true);
+
+    assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT);
   }
 }

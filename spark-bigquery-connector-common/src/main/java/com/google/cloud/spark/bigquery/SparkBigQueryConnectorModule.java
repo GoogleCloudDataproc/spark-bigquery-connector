@@ -30,6 +30,7 @@ public class SparkBigQueryConnectorModule implements Module {
 
   private final SparkSession spark;
   private final Map<String, String> options;
+  private final Map<String, String> customDefaults;
   private final Optional<StructType> schema;
   private final DataSourceVersion dataSourceVersion;
   private final boolean tableIsMandatory;
@@ -37,11 +38,13 @@ public class SparkBigQueryConnectorModule implements Module {
   public SparkBigQueryConnectorModule(
       SparkSession spark,
       Map<String, String> options,
+      Map<String, String> customDefaults,
       Optional<StructType> schema,
       DataSourceVersion dataSourceVersion,
       boolean tableIsMandatory) {
     this.spark = spark;
     this.options = options;
+    this.customDefaults = customDefaults;
     this.schema = schema;
     this.dataSourceVersion = dataSourceVersion;
     this.tableIsMandatory = tableIsMandatory;
@@ -67,7 +70,8 @@ public class SparkBigQueryConnectorModule implements Module {
   @Singleton
   @Provides
   public SparkBigQueryConfig provideSparkBigQueryConfig() {
-    return SparkBigQueryConfig.from(options, dataSourceVersion, spark, schema, tableIsMandatory);
+    return SparkBigQueryConfig.from(
+        options, customDefaults, dataSourceVersion, spark, schema, tableIsMandatory);
   }
 
   @Singleton

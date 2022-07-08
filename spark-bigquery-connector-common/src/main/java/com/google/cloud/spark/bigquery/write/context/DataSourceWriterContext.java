@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Injector;
 import java.util.Map;
 import java.util.Optional;
@@ -57,6 +58,7 @@ public interface DataSourceWriterContext {
       tableConfig =
           SparkBigQueryConfig.from(
               options,
+              ImmutableMap.of(),
               DataSourceVersion.V2,
               spark,
               Optional.of(schema),

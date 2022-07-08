@@ -97,6 +97,7 @@ public class SparkBigQueryConfig
   public static final String VALIDATE_SPARK_AVRO_PARAM = "validateSparkAvroInternalParam";
   public static final String ENABLE_LIST_INFERENCE = "enableListInference";
   public static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
+  public static final String WRITE_METHOD_PARAM = "writeMethod";
   @VisibleForTesting static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.ARROW;
 
   @VisibleForTesting
@@ -187,6 +188,7 @@ public class SparkBigQueryConfig
   // the catalog ones
   public static SparkBigQueryConfig from(
       Map<String, String> options,
+      Map<String, String> customDefaults,
       DataSourceVersion dataSourceVersion,
       SparkSession spark,
       Optional<StructType> schema,
@@ -197,6 +199,7 @@ public class SparkBigQueryConfig
         ImmutableMap.copyOf(optionsMap),
         ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll())),
         spark.sparkContext().hadoopConfiguration(),
+        customDefaults,
         spark.sparkContext().defaultParallelism(),
         spark.sqlContext().conf(),
         spark.version(),
@@ -209,6 +212,30 @@ public class SparkBigQueryConfig
       Map<String, String> optionsInput,
       ImmutableMap<String, String> originalGlobalOptions,
       Configuration hadoopConfiguration,
+      Map<String, String> customDefaults,
+      int defaultParallelism,
+      SQLConf sqlConf,
+      String sparkVersion,
+      Optional<StructType> schema,
+      boolean tableIsMandatory) {
+    return from(
+        optionsInput,
+        originalGlobalOptions,
+        hadoopConfiguration,
+        customDefaults,
+        defaultParallelism,
+        sqlConf,
+        sparkVersion,
+        schema,
+        tableIsMandatory);
+  }
+
+  @VisibleForTesting
+  public static SparkBigQueryConfig from(
+      Map<String, String> optionsInput,
+      ImmutableMap<String, String> originalGlobalOptions,
+      Configuration hadoopConfiguration,
+      ImmutableMap<String, String> customDefaults,
       int defaultParallelism,
       SQLConf sqlConf,
       String sparkVersion,
@@ -376,10 +403,14 @@ public class SparkBigQueryConfig
             .transform(String::toUpperCase)
             .or(DEFAULT_ARROW_COMPRESSION_CODEC.toString());
 
+    WriteMethod writeMethodDefault =
+        Optional.ofNullable(customDefaults.get(WRITE_METHOD_PARAM))
+            .map(WriteMethod::from)
+            .orElse(DEFAULT_WRITE_METHOD);
     config.writeMethod =
-        getAnyOption(globalOptions, options, "writeMethod")
+        getAnyOption(globalOptions, options, WRITE_METHOD_PARAM)
             .transform(WriteMethod::from)
-            .or(DEFAULT_WRITE_METHOD);
+            .or(writeMethodDefault);
 
     try {
       config.arrowCompressionCodec = CompressionCodec.valueOf(arrowCompressionCodecParam);

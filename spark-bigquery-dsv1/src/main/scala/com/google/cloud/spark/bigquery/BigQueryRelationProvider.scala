@@ -101,7 +101,18 @@ class BigQueryRelationProvider(
                                mode: SaveMode,
                                parameters: Map[String, String],
                                data: DataFrame): BaseRelation = {
-    new CreatableRelationProviderHelper().createRelation(sqlContext, mode, parameters, data)
+    // If the user did not set the "writeMethod" option, then let's set it to OLD_INDIRECT
+    // in order to maintain backward compatibility
+    val parametersWithDefaults =
+      if (parameters.contains(SparkBigQueryConfig.WRITE_METHOD_PARAM.toLowerCase)) {
+        parameters
+      } else {
+        parameters +
+          (SparkBigQueryConfig.WRITE_METHOD_PARAM.toLowerCase ->
+            SparkBigQueryConfig.WriteMethod.OLD_INDIRECT.toString)
+      }
+    new CreatableRelationProviderHelper()
+      .createRelation(sqlContext, mode, parametersWithDefaults, data)
   }
 
   def createSparkBigQueryConfig(sqlContext: SQLContext,
