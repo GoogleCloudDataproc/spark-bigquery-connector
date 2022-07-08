@@ -264,9 +264,9 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
           case _ => convertStatement(child, fields)
         }
       case ShiftLeft(child, position) =>
-        convertStatement(child, fields) + ConstantString("<<") + convertStatement(position, fields)
+        blockStatement(convertStatement(child, fields) + ConstantString("<<") + convertStatement(position, fields))
       case ShiftRight(child, position) =>
-        convertStatement(child, fields) + ConstantString(">>") + convertStatement(position, fields)
+        blockStatement(convertStatement(child, fields) + ConstantString(">>") + convertStatement(position, fields))
       case CaseWhen(branches, elseValue) =>
         ConstantString("CASE") +
           makeStatement(branches.map(whenClauseTuple =>
@@ -285,9 +285,9 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
       case Coalesce(columns) =>
         ConstantString(expression.prettyName.toUpperCase) + blockStatement(makeStatement(columns.map(convertStatement(_, fields)), ", "))
       case If(predicate, trueValue, falseValue) =>
-        ConstantString(expression.prettyName.toUpperCase) + blockStatement(convertStatement(predicate, fields) + "," + convertStatement(trueValue, fields) + "," + convertStatement(falseValue, fields))
+        ConstantString(expression.prettyName.toUpperCase) + blockStatement(convertStatements(fields, predicate, trueValue, falseValue))
       case InSet(child, hset) =>
-        convertStatement(In(child, setToExpr(hset)), fields)
+        convertStatement( In(child, setToExpression(hset)), fields)
       case UnscaledValue(child) =>
         child.dataType match {
           case d: DecimalType =>
@@ -336,7 +336,7 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
       case _ => null
     })
 
-  final def setToExpr(set: Set[Any]): Seq[Expression] = {
+  final def setToExpression(set: Set[Any]): Seq[Expression] = {
     set.map {
       case d: Decimal => Literal(d, DecimalType(d.precision, d.scale))
       case s @ (_: String | _: UTF8String) => Literal(s, StringType)

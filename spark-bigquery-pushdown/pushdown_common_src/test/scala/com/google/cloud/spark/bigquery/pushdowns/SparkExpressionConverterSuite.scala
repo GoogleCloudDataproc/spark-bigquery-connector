@@ -41,11 +41,9 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
   }
   @Mock
   var directBigQueryRelationMock: DirectBigQueryRelation = _
-  @Mock
-  var sparkPlanFactoryMock: SparkPlanFactory = _
 
   before {
-    converter = new SparkExpressionConverter(expressionFactory, sparkPlanFactoryMock) {}
+    converter = new SparkExpressionConverter(expressionFactory, TestConstants.sparkPlanFactoryMock) {}
     MockitoAnnotations.initMocks(this)
   }
 
@@ -827,14 +825,14 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val shiftLeftExpression = ShiftLeft.apply(Literal.apply(4), Literal.apply(2))
     val bigQuerySQLStatement = converter.convertMiscExpressions(shiftLeftExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "4 << 2")
+    assert(bigQuerySQLStatement.get.toString == "( 4 << 2 )")
   }
 
   test("convertMiscExpressions with ShiftRight") {
     val shiftRightExpression = ShiftRight.apply(Literal.apply(4), Literal.apply(2))
     val bigQuerySQLStatement = converter.convertMiscExpressions(shiftRightExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "4 >> 2")
+    assert(bigQuerySQLStatement.get.toString == "( 4 >> 2 )")
   }
 
   test("convertMiscExpressions with CaseWhen") {

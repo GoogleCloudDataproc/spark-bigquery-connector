@@ -223,7 +223,8 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                 "(SELECT MAX(word_count) from shakespeare WHERE word IN ('glass', 'augurs')) as MaxWordCountInWords",
                 "COALESCE(NULL, NULL, NULL, word, NULL, 'Push', 'Down') as Coalesce",
                 "IF(word_count = 10 and word = 'glass', 'working', 'not working') AS IfCondition")
-            .where("word_count = 10 and word = 'glass'");
+            .where("word_count = 10 and word = 'glass'")
+            .orderBy("word_count");
 
     List<Row> result = df.collectAsList();
     Row r1 = result.get(0);
