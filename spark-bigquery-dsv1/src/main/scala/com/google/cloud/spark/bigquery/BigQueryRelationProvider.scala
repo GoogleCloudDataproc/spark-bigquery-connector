@@ -103,29 +103,32 @@ class BigQueryRelationProvider(
                                data: DataFrame): BaseRelation = {
     // If the user did not set the "writeMethod" option, then let's set it to OLD_INDIRECT
     // in order to maintain backward compatibility
-    val parametersWithDefaults =
-      if (parameters.contains(SparkBigQueryConfig.WRITE_METHOD_PARAM.toLowerCase)) {
-        parameters
-      } else {
-        parameters +
-          (SparkBigQueryConfig.WRITE_METHOD_PARAM.toLowerCase ->
-            SparkBigQueryConfig.WriteMethod.OLD_INDIRECT.toString)
-      }
+    val customDefaults =
+    if (parameters.contains(SparkBigQueryConfig.WRITE_METHOD_PARAM.toLowerCase)) {
+      ImmutableMap.of[String, String]()
+    } else {
+      ImmutableMap.of(SparkBigQueryConfig.WRITE_METHOD_PARAM,
+          SparkBigQueryConfig.WriteMethod.OLD_INDIRECT.toString)
+    }
     new CreatableRelationProviderHelper()
-      .createRelation(sqlContext, mode, parametersWithDefaults, data)
+      .createRelation(sqlContext, mode, parameters, data, customDefaults)
   }
 
   def createSparkBigQueryConfig(sqlContext: SQLContext,
                                 parameters: Map[String, String],
                                 schema: Option[StructType] = None): SparkBigQueryConfig = {
+    val allConfs: java.util.Map[String, String] = sqlContext.getAllConfs.asJava
+    val globalOptions: ImmutableMap[String, String] = ImmutableMap.copyOf(globalOptions)
     SparkBigQueryConfig.from(parameters.asJava,
-      ImmutableMap.copyOf(sqlContext.getAllConfs.asJava),
+      globalOptions,
       sqlContext.sparkContext.hadoopConfiguration,
+      ImmutableMap.of[String, String](),
       sqlContext.sparkContext.defaultParallelism,
       sqlContext.sparkSession.sessionState.conf,
       sqlContext.sparkContext.version,
-      Optional.ofNullable(schema.orNull), /* tableIsMandatory */ true)
-  }
+      Optional.ofNullable(schema.orNull),
+      /* tableIsMandatory */ true)
+    }
 
   override def shortName: String = "bigquery"
 }
@@ -139,7 +142,12 @@ trait GuiceInjectorCreator {
     val injector = Guice.createInjector(
       new BigQueryClientModule,
       new SparkBigQueryConnectorModule(
-        spark, parameters.asJava, Optional.ofNullable(schema.orNull), DataSourceVersion.V1, /* tableIsMandatory */ true))
+        spark,
+        parameters.asJava,
+        ImmutableMap.of(),
+        Optional.ofNullable(schema.orNull),
+        DataSourceVersion.V1,
+        /* tableIsMandatory */ true))
     injector
   }
 }
