@@ -23,8 +23,6 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertableRelationBase {
 

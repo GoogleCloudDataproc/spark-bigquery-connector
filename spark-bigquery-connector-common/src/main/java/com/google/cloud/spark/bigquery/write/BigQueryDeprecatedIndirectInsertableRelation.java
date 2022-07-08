@@ -21,8 +21,6 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SaveMode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The original indirect insertable relation, using Spark's write. Intermediate formats are Parquet,
