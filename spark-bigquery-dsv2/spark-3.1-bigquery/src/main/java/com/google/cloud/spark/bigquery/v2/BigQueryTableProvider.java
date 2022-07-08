@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery.v2;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.spark.bigquery.InjectorFactory;
 import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Injector;
 import java.util.Map;
 import org.apache.spark.sql.Dataset;
@@ -87,6 +88,7 @@ public class BigQueryTableProvider extends BaseBigQuerySource
       SaveMode mode,
       scala.collection.immutable.Map<String, String> parameters,
       Dataset<Row> data) {
-    return new CreatableRelationProviderHelper().createRelation(sqlContext, mode, parameters, data);
+    return new CreatableRelationProviderHelper()
+        .createRelation(sqlContext, mode, parameters, data, ImmutableMap.of());
   }
 }

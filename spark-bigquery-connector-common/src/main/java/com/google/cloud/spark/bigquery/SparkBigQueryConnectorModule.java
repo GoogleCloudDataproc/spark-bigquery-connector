@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provides;
@@ -71,7 +72,12 @@ public class SparkBigQueryConnectorModule implements Module {
   @Provides
   public SparkBigQueryConfig provideSparkBigQueryConfig() {
     return SparkBigQueryConfig.from(
-        options, customDefaults, dataSourceVersion, spark, schema, tableIsMandatory);
+        options,
+        ImmutableMap.copyOf(customDefaults),
+        dataSourceVersion,
+        spark,
+        schema,
+        tableIsMandatory);
   }
 
   @Singleton

@@ -188,7 +188,7 @@ public class SparkBigQueryConfig
   // the catalog ones
   public static SparkBigQueryConfig from(
       Map<String, String> options,
-      Map<String, String> customDefaults,
+      ImmutableMap<String, String> customDefaults,
       DataSourceVersion dataSourceVersion,
       SparkSession spark,
       Optional<StructType> schema,
@@ -203,29 +203,6 @@ public class SparkBigQueryConfig
         spark.sparkContext().defaultParallelism(),
         spark.sqlContext().conf(),
         spark.version(),
-        schema,
-        tableIsMandatory);
-  }
-
-  @VisibleForTesting
-  public static SparkBigQueryConfig from(
-      Map<String, String> optionsInput,
-      ImmutableMap<String, String> originalGlobalOptions,
-      Configuration hadoopConfiguration,
-      Map<String, String> customDefaults,
-      int defaultParallelism,
-      SQLConf sqlConf,
-      String sparkVersion,
-      Optional<StructType> schema,
-      boolean tableIsMandatory) {
-    return from(
-        optionsInput,
-        originalGlobalOptions,
-        hadoopConfiguration,
-        customDefaults,
-        defaultParallelism,
-        sqlConf,
-        sparkVersion,
         schema,
         tableIsMandatory);
   }

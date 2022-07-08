@@ -117,15 +117,10 @@ class BigQueryRelationProvider(
   def createSparkBigQueryConfig(sqlContext: SQLContext,
                                 parameters: Map[String, String],
                                 schema: Option[StructType] = None): SparkBigQueryConfig = {
-    val allConfs: java.util.Map[String, String] = sqlContext.getAllConfs.asJava
-    val globalOptions: ImmutableMap[String, String] = ImmutableMap.copyOf(globalOptions)
     SparkBigQueryConfig.from(parameters.asJava,
-      globalOptions,
-      sqlContext.sparkContext.hadoopConfiguration,
       ImmutableMap.of[String, String](),
-      sqlContext.sparkContext.defaultParallelism,
-      sqlContext.sparkSession.sessionState.conf,
-      sqlContext.sparkContext.version,
+      DataSourceVersion.V1,
+      sqlContext.sparkSession,
       Optional.ofNullable(schema.orNull),
       /* tableIsMandatory */ true)
     }
@@ -144,7 +139,7 @@ trait GuiceInjectorCreator {
       new SparkBigQueryConnectorModule(
         spark,
         parameters.asJava,
-        ImmutableMap.of(),
+        Map.empty[String, String].asJava,
         Optional.ofNullable(schema.orNull),
         DataSourceVersion.V1,
         /* tableIsMandatory */ true))
