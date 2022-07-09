@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.google.cloud.bigquery.JobInfo;
@@ -28,7 +29,9 @@ import com.google.common.collect.ImmutableMap;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -863,5 +866,37 @@ public class SparkBigQueryConfigTest {
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
     assertThat(config.getPersistentGcsBucket()).isEqualTo(Optional.of("gs://persistentGcsBucket"));
+  }
+
+  @Test
+  public void testBadCredentials() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(
+                withParameter(
+                    "credentials",
+                    Base64.getEncoder().encodeToString("{}".getBytes(StandardCharsets.UTF_8)))),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+
+    Exception e = assertThrows(Exception.class, () -> config.createCredentials());
+    assertThat(e.getMessage())
+        .contains("Error reading credentials from stream, 'type' field not specified");
+  }
+
+  @Test
+  public void testMissingAvroMessage() {
+    Exception cause = new Exception("test");
+    IllegalStateException e248 =
+        SparkBigQueryConfig.IntermediateFormat.missingAvroException("2.4.8", cause);
+    assertThat(e248.getMessage()).contains("com.databricks:spark-avro_2.11:4.0.0");
+    IllegalStateException e312 =
+        SparkBigQueryConfig.IntermediateFormat.missingAvroException("2.4.8", cause);
   }
 }

@@ -853,8 +853,8 @@ public class SparkBigQueryConfig
     }
 
     // could not load the spark-avro data source
-    private static IllegalStateException missingAvroException(
-        String sparkVersion, Exception cause) {
+    @VisibleForTesting
+    static IllegalStateException missingAvroException(String sparkVersion, Exception cause) {
       String avroPackage;
       if (isSpark24OrAbove(sparkVersion)) {
         String scalaVersion = scala.util.Properties.versionNumberString();
