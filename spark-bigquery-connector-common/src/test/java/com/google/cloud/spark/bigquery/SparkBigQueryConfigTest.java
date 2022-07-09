@@ -886,17 +886,17 @@ public class SparkBigQueryConfigTest {
             /* tableIsMandatory */ true);
 
     Exception e = assertThrows(Exception.class, () -> config.createCredentials());
-    assertThat(e.getMessage())
-        .contains("Error reading credentials from stream, 'type' field not specified");
+    assertThat(e.getMessage()).contains("Failed to create Credentials from key");
   }
 
   @Test
   public void testMissingAvroMessage() {
     Exception cause = new Exception("test");
-    IllegalStateException e248 =
+    IllegalStateException before24 =
+        SparkBigQueryConfig.IntermediateFormat.missingAvroException("2.3.5", cause);
+    assertThat(before24.getMessage()).contains("com.databricks:spark-avro_2.11:4.0.0");
+    IllegalStateException after24 =
         SparkBigQueryConfig.IntermediateFormat.missingAvroException("2.4.8", cause);
-    assertThat(e248.getMessage()).contains("com.databricks:spark-avro_2.11:4.0.0");
-    IllegalStateException e312 =
-        SparkBigQueryConfig.IntermediateFormat.missingAvroException("2.4.8", cause);
+    assertThat(after24.getMessage()).contains("org.apache.spark:spark-avro_2.11:2.4.8");
   }
 }
