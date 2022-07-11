@@ -20,6 +20,8 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.util.concurrent.Uninterruptibles;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.spark.sql.Dataset;
@@ -32,13 +34,15 @@ import org.apache.spark.sql.streaming.OutputMode;
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 
-public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
+public class DataSourceV1WriteIntegrationTestBase extends WriteIntegrationTestBase {
 
-  public DataSourceV1WriteIntegrationTest() {
-    super(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT);
+  public DataSourceV1WriteIntegrationTestBase(SparkBigQueryConfig.WriteMethod writeMethod) {
+    super(writeMethod);
   }
 
   // DSv2 does not support BigNumeric yet
@@ -70,6 +74,7 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
   // v2 does not support ORC
   @Test
   public void testWriteToBigQuery_OrcFormat() throws InterruptedException {
+    assertThat(writeMethod).isEqualTo(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT);
     // required by ORC
     spark.conf().set("spark.sql.orc.impl", "native");
     writeToBigQuery(initialData(), SaveMode.ErrorIfExists, "orc");
@@ -80,6 +85,7 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
   // v2 does not support parquet
   @Test
   public void testWriteToBigQuery_ParquetFormat() throws InterruptedException {
+    assertThat(writeMethod).isEqualTo(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT);
     writeToBigQuery(initialData(), SaveMode.ErrorIfExists, "parquet");
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
@@ -87,6 +93,7 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
 
   @Test
   public void testWriteToBigQuery_UnsupportedFormat() {
+    assertThat(writeMethod).isEqualTo(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT);
     assertThrows(
         Exception.class,
         () -> {
@@ -96,6 +103,7 @@ public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
 
   @Test(timeout = 120_000)
   public void testStreamingToBigQueryWriteAppend() throws InterruptedException {
+    assertThat(writeMethod).isEqualTo(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT);
     StructType schema = initialData().schema();
     ExpressionEncoder<Row> expressionEncoder = RowEncoder.apply(schema);
     MemoryStream<Row> stream = MemoryStream.apply(expressionEncoder, spark.sqlContext());
