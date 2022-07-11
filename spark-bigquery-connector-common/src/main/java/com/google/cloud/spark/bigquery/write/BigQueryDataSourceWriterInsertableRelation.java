@@ -41,6 +41,11 @@ public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertab
   public void insert(Dataset<Row> data, boolean overwrite) {
     logger.debug("Inserting data={}, overwrite={}", data, overwrite);
 
+    // Here we are mimicking the DataSource v2 API behaviour in oder to use the shared code. The
+    // partition handler
+    // iterates on each partition separately, invoking the DataWriter interface. The result of the
+    // iteration is a
+    // WriterCommitMessageContext which is used to perform the global commit, or abort if needed.
     try {
       DataSourceWriterContextPartitionHandler partitionHandler =
           new DataSourceWriterContextPartitionHandler(
@@ -49,7 +54,7 @@ public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertab
       JavaRDD<Row> rowsRDD = data.toJavaRDD();
       int numPartitions = rowsRDD.getNumPartitions();
       JavaRDD<WriterCommitMessageContext> writerCommitMessagesRDD =
-          rowsRDD.mapPartitionsWithIndex(partitionHandler, true);
+          rowsRDD.mapPartitionsWithIndex(partitionHandler, false);
       WriterCommitMessageContext[] writerCommitMessages =
           writerCommitMessagesRDD.collect().toArray(new WriterCommitMessageContext[0]);
       if (writerCommitMessages.length == numPartitions) {
