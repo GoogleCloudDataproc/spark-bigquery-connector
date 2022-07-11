@@ -53,9 +53,9 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
   override def apply(plan: LogicalPlan): Seq[SparkPlan] = {
     // Check if we have any unsupported nodes in the plan. If we do, we return
     // Nil and let Spark try other strategies
-    if(hasUnsupportedNodes(plan)) {
-      return Nil
-    }
+//    if(hasUnsupportedNodes(plan)) {
+//      return Nil
+//    }
 
     try {
       generateSparkPlanFromLogicalPlan(plan)

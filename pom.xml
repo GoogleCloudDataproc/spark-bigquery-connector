@@ -145,6 +145,9 @@
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-common</module>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
         <module>spark-bigquery-dsv2/spark-3.1-bigquery</module>
+        <module>spark-bigquery-pushdown/spark-bigquery-pushdown-parent</module>
+        <module>spark-bigquery-pushdown/spark-bigquery-pushdown-common_2.12</module>
+        <module>spark-bigquery-pushdown/spark-2.4-bigquery-pushdown_2.12</module>
       </modules>
     </profile>
     <profile>

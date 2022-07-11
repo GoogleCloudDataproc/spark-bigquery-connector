@@ -361,6 +361,37 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   @Test
+  public void testPushdownInnerJoin() {
+
+    Dataset<Row> rosterDf =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "google.com:hadoop-cloud-dev:vinaylondhe_test.roster")
+            .option("materializationDataset", testDataset.toString())
+            .load();
+
+    rosterDf.createOrReplaceTempView("roster");
+
+    Dataset<Row> mascotDf =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "google.com:hadoop-cloud-dev:vinaylondhe_test.team_mascot")
+            .option("materializationDataset", testDataset.toString())
+            .load();
+
+    mascotDf.createOrReplaceTempView("team_mascot");
+    Dataset<Row> resultDf =
+        spark.sql(
+            "SELECT a.LastName, b._Mascot, b.SchoolID from roster as a INNER JOIN team_mascot as b on a._SchoolID = b.SchoolID");
+
+    resultDf.show();
+    // List<Row> result = resultDf.collectAsList();
+    // logger.warn(String.valueOf(result));
+  }
+
+  @Test
   public void testArrowCompressionCodec() {
     List<Row> avroResults =
         spark

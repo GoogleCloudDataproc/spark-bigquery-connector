@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import org.apache.spark.sql.connector.read.Batch;
 import org.apache.spark.sql.connector.read.Scan;
@@ -82,5 +83,9 @@ public class BigQueryScanBuilder
   @Override
   public Statistics estimateStatistics() {
     return new Spark3Statistics(ctx.estimateStatistics());
+  }
+
+  public BigQueryRDDFactory getBigQueryRddFactory() {
+    return ctx.getBigQueryRddFactory();
   }
 }

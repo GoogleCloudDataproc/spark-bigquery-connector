@@ -15,11 +15,18 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import com.google.cloud.spark.bigquery.pushdowns.BigQueryConnectorUtils;
+import org.junit.Test;
+
 public class Spark31ReadIntegrationTest extends ReadIntegrationTestBase {
   public Spark31ReadIntegrationTest() {
     super(/* userProvidedSchemaAllowed */ false);
   }
 
   // tests are from the super-class
-
+  @Test
+  public void testSpark31() {
+    BigQueryConnectorUtils.enablePushdownSession(spark);
+    testPushdownInnerJoin();
+  }
 }
