@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spark.bigquery
+package com.google.cloud.spark.bigquery.pushdowns
 
-import com.google.cloud.spark.bigquery.pushdowns.{BigQueryStrategy, SparkBigQueryPushdown}
 import org.apache.spark.sql.SparkSession
 
-import scala.collection.JavaConverters._
 import java.util.ServiceLoader
+import scala.collection.JavaConverters._
 
 object BigQueryConnectorUtils {
   def enablePushdownSession(session: SparkSession): Unit = {
@@ -29,8 +28,8 @@ object BigQueryConnectorUtils {
       .iterator().asScala.find(p => p.supportsSparkVersion(session.version))
       .getOrElse(sys.error(s"Query pushdown not supported for Spark version ${session.version}"))
 
-    sparkBigQueryPushdown.enable(session, new BigQueryStrategy(sparkBigQueryPushdown.createSparkExpressionConverter,
-      sparkBigQueryPushdown.createSparkExpressionFactory, sparkBigQueryPushdown.createSparkPlanFactory))
+    sparkBigQueryPushdown.enable(session, sparkBigQueryPushdown.createBigQueryStrategy(sparkBigQueryPushdown.createSparkExpressionConverter,
+      sparkBigQueryPushdown.createSparkExpressionFactory, sparkBigQueryPushdown.createSparkPlanFactory()))
   }
 
   def disablePushdownSession(session: SparkSession): Unit = {

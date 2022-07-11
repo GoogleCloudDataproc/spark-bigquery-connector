@@ -25,6 +25,7 @@ import org.apache.spark.sql.catalyst.plans.{FullOuter, Inner, LeftAnti, LeftOute
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.LogicalRelation
+import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation
 
 /**
  * Our hook into Spark that converts the logical plan into physical plan.
@@ -40,7 +41,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
   /** This iterator automatically increments every time it is used,
    * and is for aliasing subqueries.
    */
-  private final val alias = Iterator.from(0).map(n => s"SUBQUERY_$n")
+  final val alias = Iterator.from(0).map(n => s"SUBQUERY_$n")
 
   /** Attempts to generate a SparkPlan from the provided LogicalPlan.
    *
@@ -69,7 +70,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
 
   def hasUnsupportedNodes(plan: LogicalPlan): Boolean = {
     plan.foreach {
-      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) | LogicalRelation(_, _, _, _) =>
+      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) | LogicalRelation(_, _, _, _) | DataSourceV2Relation(_, _, _, _, _) =>
       case subPlan =>
         logInfo(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
         return true
@@ -101,6 +102,11 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
     Some(sourceQuery.bigQueryRDDFactory)
   }
 
+  // This method will be overridden in subclasses that support query pushdown for DSv2
+  def generateQueryFromPlanForDSv2(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
+    None
+  }
+
   /** Attempts to generate the query from the LogicalPlan by pattern matching recursively.
    * The queries are constructed from the bottom up, but the validation of
    * supported nodes for translation happens on the way down.
@@ -111,6 +117,9 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
    */
   def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     plan match {
+      case _: DataSourceV2Relation =>
+        generateQueryFromPlanForDSv2(plan)
+
       case l@LogicalRelation(bqRelation: DirectBigQueryRelation, _, _, _) =>
         Some(SourceQuery(expressionConverter, expressionFactory, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))
 
