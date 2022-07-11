@@ -23,6 +23,7 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderModule;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Injector;
 import java.util.Optional;
@@ -95,6 +96,7 @@ public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
     SparkBigQueryConfig tableScanConfig =
         SparkBigQueryConfig.from(
             options,
+            ImmutableMap.of(),
             injector.getInstance(DataSourceVersion.class),
             injector.getInstance(SparkSession.class),
             Optional.of(schema), /*tableIsMandatory*/

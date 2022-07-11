@@ -38,7 +38,7 @@ import scala.collection.Seq;
 public class DataSourceV1WriteIntegrationTest extends WriteIntegrationTestBase {
 
   public DataSourceV1WriteIntegrationTest() {
-    super(SparkBigQueryConfig.WriteMethod.INDIRECT);
+    super(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT);
   }
 
   // DSv2 does not support BigNumeric yet

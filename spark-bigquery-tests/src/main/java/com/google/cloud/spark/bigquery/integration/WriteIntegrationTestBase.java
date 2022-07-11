@@ -255,6 +255,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .write()
         .format("bigquery")
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
         .save(fullTableName());
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
