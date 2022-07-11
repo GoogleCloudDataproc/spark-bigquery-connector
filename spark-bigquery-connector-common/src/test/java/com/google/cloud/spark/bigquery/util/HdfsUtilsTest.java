@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.write;
+package com.google.cloud.spark.bigquery.util;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Streams;
 import java.nio.file.Files;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
@@ -29,7 +30,7 @@ import org.apache.hadoop.fs.Path;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class ToIteratorTest {
+public class HdfsUtilsTest {
 
   static java.nio.file.Path testDir;
 
@@ -38,10 +39,10 @@ public class ToIteratorTest {
     testDir = Files.createTempDirectory("ToIteratorTest");
     testDir.toFile().deleteOnExit();
     Files.copy(
-        ToIteratorTest.class.getResourceAsStream("/ToIteratorTest/file1.txt"),
+        HdfsUtilsTest.class.getResourceAsStream("/ToIteratorTest/file1.txt"),
         testDir.resolve("file1.txt"));
     Files.copy(
-        ToIteratorTest.class.getResourceAsStream("/ToIteratorTest/file2.csv"),
+        HdfsUtilsTest.class.getResourceAsStream("/ToIteratorTest/file2.csv"),
         testDir.resolve("file2.csv"));
   }
 
@@ -49,12 +50,12 @@ public class ToIteratorTest {
   public void toIteratorTest() throws Exception {
     Path path = new Path(testDir.toFile().getAbsolutePath());
     FileSystem fs = path.getFileSystem(new Configuration());
-    ToIterator<LocatedFileStatus> it = new ToIterator<LocatedFileStatus>(fs.listFiles(path, false));
+    Iterator<LocatedFileStatus> it = HdfsUtils.toJavaUtilIterator(fs.listFiles(path, false));
 
     assertThat(Iterators.size(it)).isEqualTo(2);
 
     // fresh instance
-    it = new ToIterator<LocatedFileStatus>(fs.listFiles(path, false));
+    it = HdfsUtils.toJavaUtilIterator(fs.listFiles(path, false));
     List<LocatedFileStatus> textFiles =
         Streams.stream(it)
             .filter(f -> f.getPath().getName().endsWith(".txt"))
