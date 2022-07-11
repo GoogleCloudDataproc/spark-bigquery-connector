@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.spark.bigquery.SupportsCompleteQueryPushdown;
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import java.util.List;
@@ -30,7 +31,8 @@ public class BigQueryDataSourceReader
         SupportsPushDownRequiredColumns,
         SupportsPushDownFilters,
         SupportsReportStatistics,
-        SupportsScanColumnarBatch {
+        SupportsScanColumnarBatch,
+        SupportsCompleteQueryPushdown {
 
   private BigQueryDataSourceReaderContext context;
 
@@ -84,7 +86,7 @@ public class BigQueryDataSourceReader
     return context.enableBatchRead();
   }
 
-  public BigQueryRDDFactory getBigQueryRddFactory() {
+  public BigQueryRDDFactory getBigQueryRDDFactory() {
     return context.getBigQueryRddFactory();
   }
 }

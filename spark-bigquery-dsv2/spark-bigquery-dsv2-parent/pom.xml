@@ -25,18 +25,6 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>spark-2.4-bigquery-pushdown_2.12
-      </artifactId>
-      <version>${project.parent.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>spark-3.1-bigquery-pushdown_2.12
-      </artifactId>
-      <version>${project.parent.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
       <artifactId>spark-bigquery-dsv2-common</artifactId>
       <version>${project.parent.version}</version>
     </dependency>

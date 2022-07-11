@@ -1,5 +1,6 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
+import com.google.cloud.spark.bigquery.SupportsCompleteQueryPushdown
 import com.google.cloud.spark.bigquery.direct.{BigQueryRDDFactory, DirectBigQueryRelation}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.datasources.LogicalRelation
@@ -13,9 +14,8 @@ class Spark24BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
       // DataSourceV2Relation is the relation that is used in the Dsv2 connector
       case l@DataSourceV2Relation(_, _, _, _, _) =>
         // Get the reader and perform reflection to get the BigQueryRddFactory
-        val reader = l.newReader()
-        val getBigQueryRddFactoryMethod = reader.getClass.getMethod("getBigQueryRddFactory")
-        Some(SourceQuery(expressionConverter, expressionFactory, getBigQueryRddFactoryMethod.invoke(reader).asInstanceOf[BigQueryRDDFactory], getTableName(l), l.output, alias.next))
+        val reader = l.newReader().asInstanceOf[SupportsCompleteQueryPushdown]
+        Some(SourceQuery(expressionConverter, expressionFactory, reader.getBigQueryRDDFactory, getTableName(l), l.output, alias.next))
 
       case l@LogicalRelation(bqRelation: DirectBigQueryRelation, _, _, _) =>
         Some(SourceQuery(expressionConverter, expressionFactory, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))
