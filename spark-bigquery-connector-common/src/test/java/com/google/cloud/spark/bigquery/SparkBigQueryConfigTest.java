@@ -16,6 +16,8 @@
 package com.google.cloud.spark.bigquery;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.fail;
 
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
@@ -27,7 +29,12 @@ import com.google.common.collect.ImmutableMap;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
@@ -41,6 +48,7 @@ public class SparkBigQueryConfigTest {
 
   public static final int DEFAULT_PARALLELISM = 10;
   public static final String SPARK_VERSION = "2.4.0";
+  private static ImmutableMap<String, String> build;
   ImmutableMap<String, String> defaultOptions = ImmutableMap.of("table", "dataset.table");
   // "project", "test_project"); // to remove the need for default project
 
@@ -55,6 +63,7 @@ public class SparkBigQueryConfigTest {
                 options.asMap(),
                 ImmutableMap.of(),
                 hadoopConfiguration,
+                ImmutableMap.of(),
                 DEFAULT_PARALLELISM,
                 new SQLConf(),
                 SPARK_VERSION,
@@ -71,6 +80,7 @@ public class SparkBigQueryConfigTest {
             options.asMap(),
             ImmutableMap.of(),
             hadoopConfiguration,
+            ImmutableMap.of(),
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
@@ -154,6 +164,7 @@ public class SparkBigQueryConfigTest {
             options.asMap(),
             ImmutableMap.of(),
             hadoopConfiguration,
+            ImmutableMap.of(),
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
@@ -212,6 +223,7 @@ public class SparkBigQueryConfigTest {
             options.asMap(),
             ImmutableMap.of(),
             hadoopConfiguration,
+            ImmutableMap.of(),
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
@@ -240,6 +252,7 @@ public class SparkBigQueryConfigTest {
                     options.asMap(),
                     ImmutableMap.of(),
                     hadoopConfiguration,
+                    ImmutableMap.of(),
                     DEFAULT_PARALLELISM,
                     new SQLConf(),
                     SPARK_VERSION,
@@ -272,6 +285,7 @@ public class SparkBigQueryConfigTest {
                     options.asMap(),
                     ImmutableMap.of(),
                     hadoopConfiguration,
+                    ImmutableMap.of(),
                     DEFAULT_PARALLELISM,
                     new SQLConf(),
                     SPARK_VERSION,
@@ -305,6 +319,7 @@ public class SparkBigQueryConfigTest {
             options.asMap(),
             globalOptions,
             hadoopConfiguration,
+            ImmutableMap.of(),
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
@@ -329,6 +344,7 @@ public class SparkBigQueryConfigTest {
             options.asMap(),
             ImmutableMap.of(),
             hadoopConfiguration,
+            ImmutableMap.of(),
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
@@ -352,6 +368,7 @@ public class SparkBigQueryConfigTest {
             options.asMap(),
             ImmutableMap.of(),
             hadoopConfiguration,
+            ImmutableMap.of(),
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
@@ -397,5 +414,489 @@ public class SparkBigQueryConfigTest {
     assertThat(labels).containsEntry("foo", "2");
     assertThat(labels).containsEntry("bar", "1");
     assertThat(labels).containsEntry("baz", "2");
+  }
+
+  @Test
+  public void testCustomDefaults() {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options = new DataSourceOptions(defaultOptions);
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            options.asMap(),
+            ImmutableMap.of(),
+            hadoopConfiguration,
+            ImmutableMap.of("writeMethod", "OLD_INDIRECT"),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(), /* tableIsMandatory */
+            true);
+
+    assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT);
+  }
+
+  // ported from SparkBigQueryConfigSuite.scala
+
+  static Configuration hadoopConfiguration = new Configuration();
+
+  static {
+    hadoopConfiguration.set(
+        SparkBigQueryConfig.GCS_CONFIG_CREDENTIALS_FILE_PROPERTY, "hadoop_cfile");
+    hadoopConfiguration.set(SparkBigQueryConfig.GCS_CONFIG_PROJECT_ID_PROPERTY, "hadoop_project");
+  }
+
+  static ImmutableMap<String, String> parameters = ImmutableMap.of("table", "dataset.table");
+  static ImmutableMap<String, String> emptyMap = ImmutableMap.of();
+  static String sparkVersion = "2.4.0";
+
+  private static Map<String, String> asDataSourceOptionsMap(Map<String, String> map) {
+    Map<String, String> result = new HashMap<>();
+    result.putAll(map);
+    for (Map.Entry<String, String> entry : map.entrySet()) {
+      result.put(entry.getKey().toLowerCase(Locale.US), entry.getValue());
+    }
+    return ImmutableMap.copyOf(result);
+  }
+
+  private Map<String, String> withParameter(String key, String value) {
+    return ImmutableMap.<String, String>builder().putAll(parameters).put(key, value).build();
+  }
+
+  private Map<String, String> withParameters(
+      String key1, String value1, String key2, String value2) {
+    return ImmutableMap.<String, String>builder()
+        .putAll(parameters)
+        .put(key1, value1)
+        .put(key2, value2)
+        .build();
+  }
+
+  @Test
+  public void testTakingCredentialsFileFromGcsHadoopConfig() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(parameters),
+            emptyMap, // allConf
+            hadoopConfiguration,
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getCredentialsFile()).isEqualTo(Optional.of("hadoop_cfile"));
+  }
+
+  @Test
+  public void testTakingCredentialsFilefromTheProperties() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("credentialsFile", "cfile")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getCredentialsFile()).isEqualTo(Optional.of("cfile"));
+  }
+
+  @Test
+  public void testNoCredentialsFileIsProvided() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(parameters),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getCredentialsFile().isPresent()).isFalse();
+  }
+
+  @Test
+  public void testTakingProjectIdFromGcsHadoopConfig() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(parameters),
+            emptyMap, // allConf
+            hadoopConfiguration,
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getTableId().getProject()).isEqualTo("hadoop_project");
+  }
+
+  @Test
+  public void testTakingProjectIdFromTheProperties() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("project", "pid")),
+            emptyMap, // allConf
+            hadoopConfiguration,
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getTableId().getProject()).isEqualTo("pid");
+  }
+
+  @Test
+  public void testNoProjectIdIsProvided() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(parameters),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getTableId().getProject()).isNull();
+  }
+
+  @Test
+  public void testInvalidDataFormat() {
+    try {
+      SparkBigQueryConfig.from(
+          asDataSourceOptionsMap(withParameter("readDataFormat", "abc")),
+          emptyMap, // allConf
+          new Configuration(),
+          emptyMap, // customDefaults
+          1,
+          new SQLConf(),
+          sparkVersion,
+          /* schema */ Optional.empty(),
+          /* tableIsMandatory */ true);
+      fail("Should throw Exception");
+    } catch (Exception e) {
+      assertThat(e.getMessage())
+          .isEqualTo("Data read format 'ABC' is not supported. Supported formats are 'ARROW,AVRO'");
+    }
+  }
+
+  @Test
+  public void testDataFormatNoValueIsSet() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(parameters),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getReadDataFormat()).isEqualTo(DataFormat.ARROW);
+  }
+
+  @Test
+  public void testSetReadDataFormatAsAvro() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("readDataFormat", "Avro")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getReadDataFormat()).isEqualTo(DataFormat.AVRO);
+  }
+
+  @Test
+  public void testGetAnyOptionWithFallbackOnlyNewConfigExist() {
+
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("materializationProject", "foo")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("foo"));
+  }
+
+  @Test
+  public void testGetAnyOptionWithFallbackBothConfigsExist() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(
+                withParameters(
+                    "materializationProject", "foo", "viewMaterializationProject", "bar")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("foo"));
+  }
+
+  @Test
+  public void testGetAnyOptionWithFallbackOnlyOldConfigExist() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("viewMaterializationProject", "bar")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("bar"));
+  }
+
+  @Test
+  public void testGetAnyOptionWithFallbackNoConfigExists() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(parameters),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getMaterializationProject()).isEqualTo(Optional.empty());
+  }
+
+  @Test
+  public void testMaxParallelismOnlyNewConfigExist() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("maxParallelism", "3")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.of(3));
+  }
+
+  @Test
+  public void testMaxParallelismBothConfigsExist() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameters("maxParallelism", "3", "parallelism", "10")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.of(3));
+  }
+
+  @Test
+  public void testMaxParallelismOnlyOldConfigExists() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("parallelism", "10")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.of(10));
+  }
+
+  @Test
+  public void testMaxParallelismNoConfigExists() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(parameters),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.empty());
+  }
+
+  @Test
+  public void testLoadSchemaUpdateOptionAllowFieldAddition() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("allowFieldAddition", "true")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getLoadSchemaUpdateOptions())
+        .contains(JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION);
+  }
+
+  @Test
+  public void testLoadSchemaUpdateOptionAllowFieldRelaxation() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("allowFieldRelaxation", "true")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getLoadSchemaUpdateOptions())
+        .contains(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION);
+  }
+
+  @Test
+  public void testLoadSchemaUpdateOptionBoth() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(
+                withParameters("allowFieldAddition", "true", "allowFieldRelaxation", "true")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getLoadSchemaUpdateOptions())
+        .containsAtLeast(
+            JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION,
+            JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION);
+  }
+
+  @Test
+  public void testLoadSchemaUpdateOptionNone() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(parameters),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getLoadSchemaUpdateOptions()).isEmpty();
+  }
+
+  @Test
+  public void testNormalizeAllConf() {
+    Map<String, String> originalConf =
+        ImmutableMap.of(
+            "key1", "val1",
+            "spark.datasource.bigquery.key2", "val2",
+            "key3", "val3",
+            "spark.datasource.bigquery.key3", "external val3");
+    Map<String, String> normalizedConf = SparkBigQueryConfig.normalizeConf(originalConf);
+
+    assertThat(normalizedConf.get("key1")).isEqualTo("val1");
+    assertThat(normalizedConf.get("key2")).isEqualTo("val2");
+    assertThat(normalizedConf.get("key3")).isEqualTo("external val3");
+  }
+
+  @Test
+  public void testSetPersistentGcsPath() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("persistentGcsPath", "/persistent/path")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getPersistentGcsPath()).isEqualTo(Optional.of("/persistent/path"));
+  }
+
+  @Test
+  public void testSetPersistentGcsBucket() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(
+                withParameter("persistentGcsBucket", "gs://persistentGcsBucket")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getPersistentGcsBucket()).isEqualTo(Optional.of("gs://persistentGcsBucket"));
+  }
+
+  @Test
+  public void testBadCredentials() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(
+                withParameter(
+                    "credentials",
+                    Base64.getEncoder().encodeToString("{}".getBytes(StandardCharsets.UTF_8)))),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+
+    Exception e = assertThrows(Exception.class, () -> config.createCredentials());
+    assertThat(e.getMessage()).contains("Failed to create Credentials from key");
+  }
+
+  @Test
+  public void testMissingAvroMessage() {
+    Exception cause = new Exception("test");
+    IllegalStateException before24 =
+        SparkBigQueryConfig.IntermediateFormat.missingAvroException("2.3.5", cause);
+    assertThat(before24.getMessage()).contains("com.databricks:spark-avro_2.11:4.0.0");
+    IllegalStateException after24 =
+        SparkBigQueryConfig.IntermediateFormat.missingAvroException("2.4.8", cause);
+    assertThat(after24.getMessage()).contains("org.apache.spark:spark-avro_2.11:2.4.8");
   }
 }

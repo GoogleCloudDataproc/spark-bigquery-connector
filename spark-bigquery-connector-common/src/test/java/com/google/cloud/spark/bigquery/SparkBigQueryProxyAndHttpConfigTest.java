@@ -177,6 +177,7 @@ public class SparkBigQueryProxyAndHttpConfigTest {
             options.asMap(),
             globalOptions,
             defaultHadoopConfiguration,
+            ImmutableMap.of(),
             10,
             new SQLConf(),
             "2.4.0",
@@ -208,6 +209,7 @@ public class SparkBigQueryProxyAndHttpConfigTest {
             options.asMap(), // contains only one key "table"
             globalOptions,
             defaultHadoopConfiguration,
+            ImmutableMap.of(),
             10,
             new SQLConf(),
             "2.4.0",
@@ -236,6 +238,7 @@ public class SparkBigQueryProxyAndHttpConfigTest {
             options.asMap(), // contains only one key "table"
             ImmutableMap.of(), // empty global options,
             defaultHadoopConfiguration,
+            ImmutableMap.of(),
             10,
             new SQLConf(),
             "2.4.0",

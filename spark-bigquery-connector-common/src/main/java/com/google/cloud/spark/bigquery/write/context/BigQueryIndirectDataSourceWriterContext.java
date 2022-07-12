@@ -31,7 +31,6 @@ import com.google.cloud.spark.bigquery.SupportedCustomDataType;
 import com.google.cloud.spark.bigquery.write.IntermediateDataCleaner;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,7 +40,6 @@ import java.util.stream.Stream;
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructField;
@@ -85,29 +83,6 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     this.saveMode = saveMode;
     this.gcsPath = gcsPath;
     this.intermediateDataCleaner = intermediateDataCleaner;
-  }
-
-  static <T> Iterable<T> wrap(final RemoteIterator<T> remoteIterator) {
-    return () ->
-        new Iterator<T>() {
-          @Override
-          public boolean hasNext() {
-            try {
-              return remoteIterator.hasNext();
-            } catch (IOException e) {
-              throw new UncheckedIOException(e);
-            }
-          }
-
-          @Override
-          public T next() {
-            try {
-              return remoteIterator.next();
-            } catch (IOException e) {
-              throw new UncheckedIOException(e);
-            }
-          }
-        };
   }
 
   @Override

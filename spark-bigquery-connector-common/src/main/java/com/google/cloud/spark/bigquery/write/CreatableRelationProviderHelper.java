@@ -17,14 +17,19 @@ package com.google.cloud.spark.bigquery.write;
 
 import static scala.collection.JavaConversions.mapAsJavaMap;
 
-import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.InjectorBuilder;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.write.context.BigQueryDataSourceWriterModule;
+import com.google.cloud.spark.bigquery.write.context.BigQueryDirectDataSourceWriterContext;
+import com.google.cloud.spark.bigquery.write.context.BigQueryIndirectDataSourceWriterContext;
+import com.google.cloud.spark.bigquery.write.context.DataSourceWriterContext;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Injector;
 import java.util.Map;
+import java.util.UUID;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
@@ -35,27 +40,16 @@ public class CreatableRelationProviderHelper {
 
   public BaseRelation createRelation(
       SQLContext sqlContext,
-      SaveMode mode,
+      SaveMode saveMode,
       scala.collection.immutable.Map<String, String> parameters,
-      Dataset<Row> data) {
+      Dataset<Row> data,
+      Map<String, String> customDefaults) {
 
     Map<String, String> properties = mapAsJavaMap(parameters);
-    Injector injector =
-        new InjectorBuilder()
-            .withDataSourceVersion(DataSourceVersion.V1)
-            .withSpark(sqlContext.sparkSession())
-            .withSchema(data.schema())
-            .withOptions(properties)
-            .withTableIsMandatory(true)
-            .build();
+    BigQueryInsertableRelationBase relation =
+        createBigQueryInsertableRelation(sqlContext, data, properties, saveMode, customDefaults);
 
-    SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
-    BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
-    TableId tableId = config.getTableId();
-    BigQueryInsertableRelation relation =
-        new BigQueryInsertableRelation(bigQueryClient, sqlContext, config);
-
-    switch (mode) {
+    switch (saveMode) {
       case Append:
         relation.insert(data, /* overwrite */ false);
         break;
@@ -69,7 +63,7 @@ public class CreatableRelationProviderHelper {
         } else {
           throw new IllegalArgumentException(
               "SaveMode is set to ErrorIfExists and Table "
-                  + BigQueryUtil.friendlyTableName(tableId)
+                  + BigQueryUtil.friendlyTableName(relation.getTableId())
                   + "already exists. Did you want to add data to the table by setting "
                   + "the SaveMode to Append? Example: "
                   + "df.write.format.options.mode(SaveMode.Append).save()");
@@ -82,5 +76,46 @@ public class CreatableRelationProviderHelper {
     }
 
     return relation;
+  }
+
+  @VisibleForTesting
+  BigQueryInsertableRelationBase createBigQueryInsertableRelation(
+      SQLContext sqlContext,
+      Dataset<Row> data,
+      Map<String, String> properties,
+      SaveMode saveMode,
+      Map<String, String> customDefaults) {
+    Injector injector =
+        new InjectorBuilder()
+            .withDataSourceVersion(DataSourceVersion.V1)
+            .withSpark(sqlContext.sparkSession())
+            .withSchema(data.schema())
+            .withOptions(properties)
+            .withCustomDefaults(customDefaults)
+            .withTableIsMandatory(true)
+            .build();
+
+    SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
+    BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
+
+    SparkBigQueryConfig.WriteMethod writeMethod = config.getWriteMethod();
+    if (writeMethod == SparkBigQueryConfig.WriteMethod.OLD_INDIRECT) {
+      return new BigQueryDeprecatedIndirectInsertableRelation(bigQueryClient, sqlContext, config);
+    }
+    // Need DataSourceWriterContext
+    Injector writerInjector =
+        injector.createChildInjector(
+            new BigQueryDataSourceWriterModule(
+                config, UUID.randomUUID().toString(), data.schema(), saveMode));
+    DataSourceWriterContext ctx = null;
+    if (writeMethod == SparkBigQueryConfig.WriteMethod.DIRECT) {
+      ctx = writerInjector.getInstance(BigQueryDirectDataSourceWriterContext.class);
+    } else if (writeMethod == SparkBigQueryConfig.WriteMethod.INDIRECT) {
+      ctx = writerInjector.getInstance(BigQueryIndirectDataSourceWriterContext.class);
+    } else {
+      // can't really happen, here to guard from new write methods
+      throw new IllegalArgumentException("Unknown write method " + writeMethod);
+    }
+    return new BigQueryDataSourceWriterInsertableRelation(bigQueryClient, sqlContext, config, ctx);
   }
 }

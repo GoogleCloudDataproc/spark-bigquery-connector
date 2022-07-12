@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.connector.common.BigQueryClientModule;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.util.Map;
@@ -37,9 +38,15 @@ public class InjectorFactory {
       StructType schema,
       Map<String, String> options,
       boolean tableIsMandatory) {
+    Map<String, String> customDefaults = ImmutableMap.of();
     return Guice.createInjector(
         new BigQueryClientModule(),
         new SparkBigQueryConnectorModule(
-            spark, options, Optional.ofNullable(schema), DataSourceVersion.V2, tableIsMandatory));
+            spark,
+            options,
+            customDefaults,
+            Optional.ofNullable(schema),
+            DataSourceVersion.V2,
+            tableIsMandatory));
   }
 }

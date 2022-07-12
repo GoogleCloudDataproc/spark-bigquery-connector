@@ -29,6 +29,7 @@ public class InjectorBuilder {
   private SparkSession spark = SparkSession.active();
   private Optional<StructType> schema = Optional.empty();
   private Map<String, String> options = ImmutableMap.<String, String>of();
+  private Map<String, String> customDefaults = ImmutableMap.<String, String>of();
   private boolean tableIsMandatory = true;
   private DataSourceVersion dataSourceVersion = DataSourceVersion.V2;
 
@@ -57,10 +58,15 @@ public class InjectorBuilder {
     return this;
   }
 
+  public InjectorBuilder withCustomDefaults(Map<String, String> customDefaults) {
+    this.customDefaults = customDefaults;
+    return this;
+  }
+
   public Injector build() {
     return Guice.createInjector(
         new BigQueryClientModule(),
         new SparkBigQueryConnectorModule(
-            spark, options, schema, dataSourceVersion, tableIsMandatory));
+            spark, options, customDefaults, schema, dataSourceVersion, tableIsMandatory));
   }
 }
