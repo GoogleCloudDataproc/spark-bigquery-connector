@@ -41,13 +41,13 @@ class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
   @Mock
   var bigQueryRDDFactory: BigQueryRDDFactory = _
 
-  val expressionConverter: SparkExpressionConverter = new SparkExpressionConverter {}
-
   val expressionFactory: SparkExpressionFactory = new SparkExpressionFactory {
     override def createAlias(child: Expression, name: String, exprId: ExprId, qualifier: Seq[String], explicitMetadata: Option[Metadata]): Alias = {
       Alias(child, name)(exprId, qualifier, explicitMetadata)
     }
   }
+
+  val expressionConverter: SparkExpressionConverter = new SparkExpressionConverter(expressionFactory, sparkPlanFactoryMock)
 
   val schoolIdAttributeReference: AttributeReference = AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1))
 
