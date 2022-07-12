@@ -161,4 +161,23 @@ public class SparkBigQueryUtil {
         ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll()));
     return BigQueryConfigurationUtil.parseSimpleTableId(globalOptions, options);
   }
+
+  public static long sparkTimestampToBigQuery(Object sparkValue) {
+    if (sparkValue instanceof Long) {
+      return ((Number) sparkValue).longValue();
+    }
+    // need to return timestamp in epoch microseconds
+    java.sql.Timestamp timestamp = (java.sql.Timestamp) sparkValue;
+    long epochSecondsAsMicros = (timestamp.getTime() / 1000) * 1_000_000;
+    int micros = timestamp.getNanos() / 1000;
+    return epochSecondsAsMicros + micros;
+  }
+
+  public static int sparkDateToBigQuery(Object sparkValue) {
+    if (sparkValue instanceof Number) {
+      return ((Number) sparkValue).intValue();
+    }
+    java.sql.Date sparkDate = (java.sql.Date) sparkValue;
+    return (int) (sparkDate.toLocalDate().toEpochDay());
+  }
 }

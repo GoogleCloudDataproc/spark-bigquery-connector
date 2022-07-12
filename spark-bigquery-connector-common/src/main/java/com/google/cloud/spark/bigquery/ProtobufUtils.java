@@ -364,22 +364,11 @@ public class ProtobufUtils {
       return ((Number) sparkValue).longValue();
     }
     if (sparkType instanceof TimestampType) {
-      if (sparkValue instanceof Long) {
-        return ((Number) sparkValue).longValue();
-      }
-      // need to return timestamp in epoch microseconds
-      java.sql.Timestamp timestamp = (java.sql.Timestamp) sparkValue;
-      long epochSecondsAsMicros = (timestamp.getTime() / 1000) * 1_000_000;
-      int micros = timestamp.getNanos() / 1000;
-      return epochSecondsAsMicros + micros;
+      return SparkBigQueryUtil.sparkTimestampToBigQuery(sparkValue);
     } // TODO: CalendarInterval
 
     if (sparkType instanceof DateType) {
-      if (sparkValue instanceof Number) {
-        return ((Number) sparkValue).intValue();
-      }
-      java.sql.Date sparkDate = (java.sql.Date) sparkValue;
-      return (int) (sparkDate.toLocalDate().toEpochDay());
+      return SparkBigQueryUtil.sparkDateToBigQuery(sparkValue);
     }
 
     if (sparkType instanceof FloatType || sparkType instanceof DoubleType) {
