@@ -25,12 +25,15 @@ import org.apache.avro.util.Utf8;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.SpecializedGetters;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.ArrayType;
 import org.apache.spark.sql.types.BinaryType;
 import org.apache.spark.sql.types.BooleanType;
 import org.apache.spark.sql.types.ByteType;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.DateType;
 import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.DecimalType;
@@ -191,11 +194,18 @@ public class AvroSchemaConverter {
     if (sparkType instanceof DecimalType && avroType.getType() == Schema.Type.BYTES) {
       DecimalType decimalType = (DecimalType) sparkType;
       return (getter, ordinal) -> {
-        Object decimal = getter.get(ordinal, /* unused */ null);
-        BigDecimal bigDecimal =
-            decimal instanceof Decimal
-                ? ((Decimal) decimal).toJavaBigDecimal()
-                : (BigDecimal) decimal;
+        BigDecimal bigDecimal = null;
+        if (getter instanceof UnsafeRow || getter instanceof UnsafeArrayData) {
+          // UnsafeRow mandates Datatype
+          Decimal decimal = getter.getDecimal(ordinal, decimalType.precision(), decimalType.scale());
+          bigDecimal = decimal.toJavaBigDecimal();
+        } else {
+          Object decimal = getter.get(ordinal, /* unused */ null);
+          bigDecimal =
+              decimal instanceof Decimal
+                  ? ((Decimal) decimal).toJavaBigDecimal()
+                  : (BigDecimal) decimal;
+        }
         return DECIMAL_CONVERSIONS.toBytes(
             bigDecimal,
             avroType,
@@ -203,7 +213,14 @@ public class AvroSchemaConverter {
       };
     }
     if (sparkType instanceof StringType && avroType.getType() == Schema.Type.STRING) {
-      return (getter, ordinal) -> new Utf8(getter.get(ordinal, /* unused */ null).toString());
+      return (getter, ordinal) -> {
+        String str =
+                // UnsafeRow mandates Datatype
+                getter instanceof UnsafeRow || getter instanceof UnsafeArrayData
+                        ? getter.getUTF8String(ordinal).toString()
+                        : getter.get(ordinal, /* unused */ null).toString();
+        return new Utf8(str);
+      };
     }
     if (sparkType instanceof BinaryType && avroType.getType() == Schema.Type.FIXED) {
       int size = avroType.getFixedSize();
@@ -223,13 +240,25 @@ public class AvroSchemaConverter {
     }
 
     if (sparkType instanceof DateType && avroType.getType() == Schema.Type.INT) {
-      return (getter, ordinal) ->
-          SparkBigQueryUtil.sparkDateToBigQuery(getter.get(ordinal, /* unused */ null));
+      return (getter, ordinal) -> {
+        Object sparkValue =
+            // UnsafeRow mandates Datatype
+            getter instanceof UnsafeRow || getter instanceof UnsafeArrayData
+                ? getter.getInt(ordinal)
+                : getter.get(ordinal, /* unused */ null);
+        return SparkBigQueryUtil.sparkDateToBigQuery(sparkValue);
+      };
     }
 
     if (sparkType instanceof TimestampType && avroType.getType() == Schema.Type.LONG) {
-      return (getter, ordinal) ->
-          SparkBigQueryUtil.sparkTimestampToBigQuery(getter.get(ordinal, /* unused */ null));
+      return (getter, ordinal) -> {
+        Object sparkValue =
+            // UnsafeRow mandates Datatype
+            getter instanceof UnsafeRow || getter instanceof UnsafeArrayData
+                ? getter.getLong(ordinal)
+                : getter.get(ordinal, /* unused */ null);
+        return SparkBigQueryUtil.sparkTimestampToBigQuery(sparkValue);
+      };
     }
 
     if (sparkType instanceof ArrayType && avroType.getType() == Schema.Type.ARRAY) {
@@ -239,12 +268,17 @@ public class AvroSchemaConverter {
       Converter elementConverter =
           createConverterFor(et, resolveNullableType(avroType.getElementType(), containsNull));
       return (getter, ordinal) -> {
-        Object array = getter.get(ordinal, /* unused */ null);
         ArrayData arrayData = null;
-        if(array instanceof WrappedArray) {
-          arrayData = ArrayData.toArrayData(array);
+        if (getter instanceof UnsafeRow || getter instanceof UnsafeArrayData) {
+          // UnsafeRow mandates DataType
+          arrayData = getter.getArray(ordinal);
         } else {
-          arrayData = (ArrayData) array;
+          Object array = getter.get(ordinal, /* unused */ null);
+          if (array instanceof WrappedArray) {
+            arrayData = ArrayData.toArrayData(array);
+          } else {
+            arrayData = (ArrayData) array;
+          }
         }
         int len = arrayData.numElements();
         Object[] result = new Object[len];
@@ -266,12 +300,17 @@ public class AvroSchemaConverter {
       StructConverter structConverter = new StructConverter(sparkStruct, avroType);
       int numFields = sparkStruct.length();
       return (getter, ordinal) -> {
-        Object obj = getter.get(ordinal, /* unused */ null);
         InternalRow internalRow = null;
-        if (obj instanceof Row) {
-          internalRow = InternalRow.fromSeq(((Row) obj).toSeq());
+        if (getter instanceof UnsafeRow || getter instanceof UnsafeArrayData) {
+          // UnsafeRow mandates Datatype
+          internalRow = getter.getStruct(ordinal, numFields);
         } else {
-          internalRow = (InternalRow) obj;
+          Object obj = getter.get(ordinal, /* unused */ null);
+          if (obj instanceof Row) {
+            internalRow = InternalRow.fromSeq(((Row) obj).toSeq());
+          } else {
+            internalRow = (InternalRow) obj;
+          }
         }
         return structConverter.convert(internalRow);
       };
