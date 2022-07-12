@@ -38,8 +38,6 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 public class BigQueryTableProvider extends BaseBigQuerySource
     implements TableProvider, CreatableRelationProvider {
 
-  private static final String DEFAULT_CATALOG_NAME = "bigquery";
-  private static final String DEFAULT_CATALOG = "spark.sql.catalog." + DEFAULT_CATALOG_NAME;
   private static final Transform[] EMPTY_TRANSFORM_ARRAY = {};
 
   @Override
@@ -50,7 +48,6 @@ public class BigQueryTableProvider extends BaseBigQuerySource
   @Override
   public Table getTable(
       StructType schema, Transform[] partitioning, Map<String, String> properties) {
-    setupDefaultSparkCatalog(SparkSession.active());
     return getBigQueryTableInternal(schema, properties);
   }
 
@@ -73,13 +70,6 @@ public class BigQueryTableProvider extends BaseBigQuerySource
   @Override
   public boolean supportsExternalMetadata() {
     return true;
-  }
-
-  private static void setupDefaultSparkCatalog(SparkSession spark) {
-    if (spark.conf().contains(DEFAULT_CATALOG)) {
-      return;
-    }
-    spark.conf().set(DEFAULT_CATALOG, BigQueryCatalog.class.getCanonicalName());
   }
 
   @Override
