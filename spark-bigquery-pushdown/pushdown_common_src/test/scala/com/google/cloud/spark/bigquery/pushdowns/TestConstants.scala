@@ -11,7 +11,7 @@ object TestConstants {
    val SUBQUERY_1_ALIAS = "SUBQUERY_1"
    val SUBQUERY_2_ALIAS = "SUBQUERY_2"
 
-   val expressionConverter: SparkExpressionConverter = new SparkExpressionConverter {}
+
    val schoolIdAttributeReference: AttributeReference = AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1))
    val schoolNameAttributeReference: AttributeReference = AttributeReference.apply("SchoolName", StringType)(ExprId.apply(2))
 
@@ -23,4 +23,7 @@ object TestConstants {
 
    @Mock
    var bigQueryRDDFactoryMock: BigQueryRDDFactory = _
+   @Mock
+   var sparkPlanFactoryMock: SparkPlanFactory = _
+   val expressionConverter: SparkExpressionConverter = new SparkExpressionConverter(expressionFactory = expressionFactory, sparkPlanFactory = sparkPlanFactoryMock) {}
 }
