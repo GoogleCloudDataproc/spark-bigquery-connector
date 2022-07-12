@@ -31,16 +31,21 @@ import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.spark.bigquery.BigNumericUDT;
 import org.apache.spark.bigquery.BigQueryDataTypes;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.collection.mutable.WrappedArray;
+import scala.reflect.ClassTag;
+import scala.reflect.ClassTag$;
 
 public class ProtobufUtils {
 
@@ -321,36 +326,66 @@ public class ProtobufUtils {
     if (sparkType instanceof ArrayType) {
       ArrayType arrayType = (ArrayType) sparkType;
       DataType elementType = arrayType.elementType();
-      Object[] sparkArrayData = ((ArrayData) sparkValue).toObjectArray(elementType);
       boolean containsNull = arrayType.containsNull();
       List<Object> protoValue = new ArrayList<>();
-      for (Object sparkElement : sparkArrayData) {
-        Object converted =
-            convertSparkValueToProtoRowValue(
-                elementType, sparkElement, containsNull, nestedTypeDescriptor);
-        if (converted == null) {
-          continue;
+      // having issues to convert WrappedArray to Object[] in Java
+      if (sparkValue instanceof ArrayData) {
+        Object[] sparkArrayData = ((ArrayData) sparkValue).toObjectArray(elementType);
+        for (Object sparkElement : sparkArrayData) {
+          Object converted =
+              convertSparkValueToProtoRowValue(
+                  elementType, sparkElement, containsNull, nestedTypeDescriptor);
+          if (converted == null) {
+            continue;
+          }
+          protoValue.add(converted);
         }
-        protoValue.add(converted);
+      } else {
+        WrappedArray<Object> sparkArrayData = (WrappedArray<Object>) sparkValue;
+        int sparkArrayDataLength = sparkArrayData.length();
+        for (int i = 0; i < sparkArrayDataLength; i++) {
+          Object converted =
+              convertSparkValueToProtoRowValue(
+                  elementType, sparkArrayData.apply(i), containsNull, nestedTypeDescriptor);
+          if (converted == null) {
+            continue;
+          }
+          protoValue.add(converted);
+        }
       }
       return protoValue;
     }
 
     if (sparkType instanceof StructType) {
       return buildSingleRowMessage(
-          (StructType) sparkType, nestedTypeDescriptor, (InternalRow) sparkValue);
+          (StructType) sparkType,
+          nestedTypeDescriptor,
+          InternalRow.apply(((Row) sparkValue).toSeq()));
     }
 
     if (sparkType instanceof ByteType
         || sparkType instanceof ShortType
         || sparkType instanceof IntegerType
-        || sparkType instanceof LongType
-        || sparkType instanceof TimestampType) {
+        || sparkType instanceof LongType) {
       return ((Number) sparkValue).longValue();
+    }
+    if (sparkType instanceof TimestampType) {
+      if (sparkValue instanceof Long) {
+        return ((Number) sparkValue).longValue();
+      }
+      // need to return timestamp in epoch microseconds
+      java.sql.Timestamp timestamp = (java.sql.Timestamp) sparkValue;
+      long epochSecondsAsMicros = (timestamp.getTime() / 1000) * 1_000_000;
+      int micros = timestamp.getNanos() / 1000;
+      return epochSecondsAsMicros + micros;
     } // TODO: CalendarInterval
 
     if (sparkType instanceof DateType) {
-      return ((Number) sparkValue).intValue();
+      if (sparkValue instanceof Number) {
+        return ((Number) sparkValue).intValue();
+      }
+      java.sql.Date sparkDate = (java.sql.Date) sparkValue;
+      return (int) (sparkDate.toLocalDate().toEpochDay());
     }
 
     if (sparkType instanceof FloatType || sparkType instanceof DoubleType) {
@@ -358,11 +393,11 @@ public class ProtobufUtils {
     }
 
     if (sparkType instanceof DecimalType) {
-      return convertDecimalToString((Decimal) sparkValue);
+      return convertDecimalToString(sparkValue);
     }
 
     if (sparkType instanceof BigNumericUDT) {
-      return new String(((UTF8String) sparkValue).getBytes(), UTF_8);
+      return sparkValue.toString();
     }
 
     if (sparkType instanceof BooleanType) {
@@ -374,7 +409,7 @@ public class ProtobufUtils {
     }
 
     if (sparkType instanceof StringType) {
-      return new String(((UTF8String) sparkValue).getBytes(), UTF_8);
+      return sparkValue.toString();
     }
 
     if (sparkType instanceof MapType) {
@@ -442,8 +477,9 @@ public class ProtobufUtils {
         new IllegalStateException("Unexpected type: " + sparkType));
   }
 
-  private static String convertDecimalToString(Decimal decimal) {
-    BigDecimal bigDecimal = decimal.toJavaBigDecimal();
+  private static String convertDecimalToString(Object decimal) {
+    BigDecimal bigDecimal =
+        decimal instanceof Decimal ? ((Decimal) decimal).toJavaBigDecimal() : (BigDecimal) decimal;
     return bigDecimal.toPlainString();
   }
 }

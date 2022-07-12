@@ -107,15 +107,6 @@ public class CreatableRelationProviderHelper {
         injector.createChildInjector(
             new BigQueryDataSourceWriterModule(
                 config, UUID.randomUUID().toString(), data.schema(), saveMode));
-    DataSourceWriterContext ctx = null;
-    if (writeMethod == SparkBigQueryConfig.WriteMethod.DIRECT) {
-      ctx = writerInjector.getInstance(BigQueryDirectDataSourceWriterContext.class);
-    } else if (writeMethod == SparkBigQueryConfig.WriteMethod.INDIRECT) {
-      ctx = writerInjector.getInstance(BigQueryIndirectDataSourceWriterContext.class);
-    } else {
-      // can't really happen, here to guard from new write methods
-      throw new IllegalArgumentException("Unknown write method " + writeMethod);
-    }
-    return new BigQueryDataSourceWriterInsertableRelation(bigQueryClient, sqlContext, config, ctx);
+    return new BigQueryDataSourceWriterInsertableRelation(bigQueryClient, sqlContext, config, writerInjector);
   }
 }

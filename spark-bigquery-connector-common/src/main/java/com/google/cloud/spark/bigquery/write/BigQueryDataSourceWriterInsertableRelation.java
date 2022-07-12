@@ -17,8 +17,11 @@ package com.google.cloud.spark.bigquery.write;
 
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.write.context.BigQueryDirectDataSourceWriterContext;
+import com.google.cloud.spark.bigquery.write.context.BigQueryIndirectDataSourceWriterContext;
 import com.google.cloud.spark.bigquery.write.context.DataSourceWriterContext;
 import com.google.cloud.spark.bigquery.write.context.WriterCommitMessageContext;
+import com.google.inject.Injector;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -26,21 +29,32 @@ import org.apache.spark.sql.SQLContext;
 
 public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertableRelationBase {
 
-  private final DataSourceWriterContext ctx;
+  private final Injector injector;
 
   public BigQueryDataSourceWriterInsertableRelation(
       BigQueryClient bigQueryClient,
       SQLContext sqlContext,
       SparkBigQueryConfig config,
-      DataSourceWriterContext ctx) {
+      Injector injector) {
     super(bigQueryClient, sqlContext, config);
-    this.ctx = ctx;
+    this.injector = injector;
   }
 
   @Override
   public void insert(Dataset<Row> data, boolean overwrite) {
     logger.debug("Inserting data={}, overwrite={}", data, overwrite);
-
+    // Creating the context is deferred to here as the direct DataSourceWriterContext creates the
+    // table upon construction, which interferes with teh ErrorIfExists and Ignore save modes.
+    DataSourceWriterContext ctx = null;
+    SparkBigQueryConfig.WriteMethod writeMethod = config.getWriteMethod();
+    if (writeMethod == SparkBigQueryConfig.WriteMethod.DIRECT) {
+      ctx = injector.getInstance(BigQueryDirectDataSourceWriterContext.class);
+    } else if (writeMethod == SparkBigQueryConfig.WriteMethod.INDIRECT) {
+      ctx = injector.getInstance(BigQueryIndirectDataSourceWriterContext.class);
+    } else {
+      // can't really happen, here to guard from new write methods
+      throw new IllegalArgumentException("Unknown write method " + writeMethod);
+    }
     // Here we are mimicking the DataSource v2 API behaviour in oder to use the shared code. The
     // partition handler
     // iterates on each partition separately, invoking the DataWriter interface. The result of the

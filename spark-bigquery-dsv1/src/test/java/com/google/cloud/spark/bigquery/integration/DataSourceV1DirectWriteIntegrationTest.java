@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import org.junit.Test;
 
 public class DataSourceV1DirectWriteIntegrationTest extends DataSourceV1WriteIntegrationTestBase {
 
