@@ -351,10 +351,13 @@ public class ProtobufUtils {
     }
 
     if (sparkType instanceof StructType) {
-      return buildSingleRowMessage(
-          (StructType) sparkType,
-          nestedTypeDescriptor,
-          InternalRow.apply(((Row) sparkValue).toSeq()));
+      InternalRow internalRow = null;
+      if (sparkValue instanceof Row) {
+        internalRow = InternalRow.apply(((Row) sparkValue).toSeq());
+      } else {
+        internalRow = (InternalRow) sparkValue;
+      }
+      return buildSingleRowMessage((StructType) sparkType, nestedTypeDescriptor, internalRow);
     }
 
     if (sparkType instanceof ByteType
