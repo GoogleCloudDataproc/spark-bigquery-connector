@@ -19,6 +19,6 @@ package com.google.cloud.spark.bigquery.pushdowns
 /**
  * Convert Spark 3.1 specific expressions to SQL
  */
-class Spark31ExpressionConverter extends SparkExpressionConverter {
+class Spark31ExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) extends SparkExpressionConverter(expressionFactory, sparkPlanFactory) {
 
 }

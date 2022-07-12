@@ -28,7 +28,7 @@ import org.apache.spark.unsafe.types.UTF8String
  * Spark Expressions are recursively pattern matched. Expressions that differ across Spark versions should be implemented in subclasses
  *
  */
-trait SparkExpressionConverter {
+class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) {
   /**
    * Tries to convert Spark expressions by matching across the different families of expressions such as Aggregate, Boolean etc.
    * @param expression
@@ -41,7 +41,7 @@ trait SparkExpressionConverter {
       .orElse(convertBooleanExpressions(expression, fields))
       .orElse(convertDateExpressions(expression, fields))
       .orElse(convertMathematicalExpressions(expression, fields))
-      .orElse(convertMiscExpressions(expression, fields))
+      .orElse(convertMiscellaneousExpressions(expression, fields))
       .orElse(convertStringExpressions(expression, fields))
       .getOrElse(throw new BigQueryPushdownUnsupportedException((s"Pushdown unsupported for ${expression.prettyName}")))
   }
@@ -136,7 +136,7 @@ trait SparkExpressionConverter {
 
   def convertBooleanExpressions(expression: Expression, fields: Seq[Attribute]): Option[BigQuerySQLStatement] = {
     Option(expression match {
-      case In(child, list) if list.forall(_.isInstanceOf[Literal]) =>
+      case In(child, list) =>
         convertStatement(child, fields) + "IN" +
           blockStatement(convertStatements(fields, list: _*))
       case IsNull(child) =>
@@ -235,14 +235,17 @@ trait SparkExpressionConverter {
     })
   }
 
-  def convertMiscExpressions(expression: Expression, fields: Seq[Attribute]): Option[BigQuerySQLStatement] = {
+  def convertMiscellaneousExpressions(expression: Expression, fields: Seq[Attribute]): Option[BigQuerySQLStatement] = {
     Option(expression match {
       case Alias(child: Expression, name: String) =>
         blockStatement(convertStatement(child, fields), name)
+
       case SortOrder(child, Ascending, _, _) =>
         blockStatement(convertStatement(child, fields)) + "ASC"
+
       case SortOrder(child, Descending, _, _) =>
         blockStatement(convertStatement(child, fields)) + "DESC"
+
       case Cast(child, t, _) =>
         getCastType(t) match {
           case Some(cast) =>
@@ -264,6 +267,44 @@ trait SparkExpressionConverter {
           case _ => convertStatement(child, fields)
         }
 
+      case ShiftLeft(child, position) =>
+        blockStatement(convertStatement(child, fields) + ConstantString("<<") + convertStatement(position, fields))
+
+      case ShiftRight(child, position) =>
+        blockStatement(convertStatement(child, fields) + ConstantString(">>") + convertStatement(position, fields))
+
+      case CaseWhen(branches, elseValue) =>
+        ConstantString("CASE") +
+          makeStatement(branches.map(whenClauseTuple =>
+            ConstantString("WHEN") + convertStatement(whenClauseTuple._1, fields) + ConstantString("THEN") + convertStatement(whenClauseTuple._2, fields)
+          ), "") +
+          {
+            elseValue match {
+              case Some(value) =>
+                ConstantString("ELSE") + convertStatement(value, fields)
+              case None =>
+                EmptyBigQuerySQLStatement()
+            }
+          } + ConstantString("END")
+
+      case ScalarSubquery(plan, _, _) =>
+        blockStatement(new BigQueryStrategy(this, expressionFactory, sparkPlanFactory).generateQueryFromPlan(plan).get.getStatement())
+
+      case Coalesce(columns) =>
+        ConstantString(expression.prettyName.toUpperCase) + blockStatement(makeStatement(columns.map(convertStatement(_, fields)), ", "))
+
+      case If(predicate, trueValue, falseValue) =>
+        ConstantString(expression.prettyName.toUpperCase) + blockStatement(convertStatements(fields, predicate, trueValue, falseValue))
+
+      case InSet(child, hset) =>
+        convertStatement( In(child, setToExpression(hset)), fields)
+
+      case UnscaledValue(child) =>
+        child.dataType match {
+          case d: DecimalType =>
+            blockStatement(convertStatement(child, fields) + "* POW( 10," + IntVariable(Some(d.scale)) + ")")
+          case _ => null
+        }
       case _ => null
     })
   }
@@ -305,4 +346,17 @@ trait SparkExpressionConverter {
       case FloatType | DoubleType => "FLOAT64"
       case _ => null
     })
+
+  final def setToExpression(set: Set[Any]): Seq[Expression] = {
+    set.map {
+      case d: Decimal => Literal(d, DecimalType(d.precision, d.scale))
+      case s @ (_: String | _: UTF8String) => Literal(s, StringType)
+      case d: Double => Literal(d, DoubleType)
+      case e: Expression => e
+      case default =>
+        throw new BigQueryPushdownUnsupportedException(
+          "Pushdown unsupported for " + s"${default.getClass.getSimpleName} @ MiscStatement.setToExpr"
+        )
+    }.toSeq
+  }
 }
