@@ -70,6 +70,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
 
   def hasUnsupportedNodes(plan: LogicalPlan): Boolean = {
     plan.foreach {
+      // DataSourceV2Relation is the Spark 2.4 DSv2 connector relation
       case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) | LogicalRelation(_, _, _, _) | DataSourceV2Relation(_, _, _, _, _) =>
       case subPlan =>
         logInfo(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")

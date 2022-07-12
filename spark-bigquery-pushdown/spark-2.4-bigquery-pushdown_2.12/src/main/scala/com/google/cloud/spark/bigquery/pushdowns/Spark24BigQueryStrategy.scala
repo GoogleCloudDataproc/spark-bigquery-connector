@@ -14,6 +14,7 @@ class Spark24BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
         val reader = relation.newReader().asInstanceOf[SupportsQueryPushdown]
 
         Some(SourceQuery(expressionConverter, expressionFactory, reader.getBigQueryRDDFactory,
+          // relation.tableIdent.get.table is set when the "table" option is used, relation.options("path") is set when .load("table_name) is used
           if (relation.tableIdent.isDefined) relation.tableIdent.get.table else relation.options("path"),
           relation.output, alias.next))
 
