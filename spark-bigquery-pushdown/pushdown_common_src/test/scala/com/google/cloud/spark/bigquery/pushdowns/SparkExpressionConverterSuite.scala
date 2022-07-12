@@ -683,163 +683,170 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
 
   test("convertMiscExpressions with Alias") {
     val aliasExpression = Alias.apply(schoolIdAttributeReference, "SCHOOL_ID_ALIAS")(ExprId.apply(1))
-    val bigQuerySQLStatement = converter.convertMiscExpressions(aliasExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(aliasExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "( SUBQUERY_2.SCHOOLID ) AS SCHOOL_ID_ALIAS")
   }
 
   test("convertMiscExpressions with Ascending sort") {
     val sortExpression = SortOrder.apply(schoolIdAttributeReference, Ascending)
-    val bigQuerySQLStatement = converter.convertMiscExpressions(sortExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(sortExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "( SUBQUERY_2.SCHOOLID ) ASC")
   }
 
   test("convertMiscExpressions with Descending sort") {
     val sortExpression = SortOrder.apply(schoolIdAttributeReference, Descending)
-    val bigQuerySQLStatement = converter.convertMiscExpressions(sortExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(sortExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "( SUBQUERY_2.SCHOOLID ) DESC")
   }
 
   test("convertMiscExpressions with unsupported casts") {
     assertThrows[BigQueryPushdownUnsupportedException] {
-      converter.convertMiscExpressions(Cast.apply(AttributeReference.apply("Date", DateType)(ExprId.apply(2)), IntegerType), fields)
+      converter.convertMiscellaneousExpressions(Cast.apply(AttributeReference.apply("Date", DateType)(ExprId.apply(2)), IntegerType), fields)
     }
 
     assertThrows[BigQueryPushdownUnsupportedException] {
-      converter.convertMiscExpressions(Cast.apply(AttributeReference.apply("Date", DateType)(ExprId.apply(2)), LongType), fields)
+      converter.convertMiscellaneousExpressions(Cast.apply(AttributeReference.apply("Date", DateType)(ExprId.apply(2)), LongType), fields)
     }
 
     assertThrows[BigQueryPushdownUnsupportedException] {
-      converter.convertMiscExpressions(Cast.apply(AttributeReference.apply("Date", DateType)(ExprId.apply(2)), FloatType), fields)
+      converter.convertMiscellaneousExpressions(Cast.apply(AttributeReference.apply("Date", DateType)(ExprId.apply(2)), FloatType), fields)
     }
 
     assertThrows[BigQueryPushdownUnsupportedException] {
-      converter.convertMiscExpressions(Cast.apply(AttributeReference.apply("Date", DateType)(ExprId.apply(2)), DoubleType), fields)
+      converter.convertMiscellaneousExpressions(Cast.apply(AttributeReference.apply("Date", DateType)(ExprId.apply(2)), DoubleType), fields)
     }
 
     assertThrows[BigQueryPushdownUnsupportedException] {
-      converter.convertMiscExpressions(Cast.apply(AttributeReference.apply("Date", DateType)(ExprId.apply(2)), DecimalType(10, 0)), fields)
+      converter.convertMiscellaneousExpressions(Cast.apply(AttributeReference.apply("Date", DateType)(ExprId.apply(2)), DecimalType(10, 0)), fields)
     }
 
     assertThrows[BigQueryPushdownUnsupportedException] {
-      converter.convertMiscExpressions(Cast.apply(AttributeReference.apply("Timestamp", TimestampType)(ExprId.apply(2)), IntegerType), fields)
+      converter.convertMiscellaneousExpressions(Cast.apply(AttributeReference.apply("Timestamp", TimestampType)(ExprId.apply(2)), IntegerType), fields)
     }
 
     assertThrows[BigQueryPushdownUnsupportedException] {
-      converter.convertMiscExpressions(Cast.apply(AttributeReference.apply("Timestamp", TimestampType)(ExprId.apply(2)), LongType), fields)
+      converter.convertMiscellaneousExpressions(Cast.apply(AttributeReference.apply("Timestamp", TimestampType)(ExprId.apply(2)), LongType), fields)
     }
 
     assertThrows[BigQueryPushdownUnsupportedException] {
-      converter.convertMiscExpressions(Cast.apply(AttributeReference.apply("Timestamp", TimestampType)(ExprId.apply(2)), FloatType), fields)
+      converter.convertMiscellaneousExpressions(Cast.apply(AttributeReference.apply("Timestamp", TimestampType)(ExprId.apply(2)), FloatType), fields)
     }
 
     assertThrows[BigQueryPushdownUnsupportedException] {
-      converter.convertMiscExpressions(Cast.apply(AttributeReference.apply("Timestamp", TimestampType)(ExprId.apply(2)), DoubleType), fields)
+      converter.convertMiscellaneousExpressions(Cast.apply(AttributeReference.apply("Timestamp", TimestampType)(ExprId.apply(2)), DoubleType), fields)
     }
 
     assertThrows[BigQueryPushdownUnsupportedException] {
-      converter.convertMiscExpressions(Cast.apply(AttributeReference.apply("Timestamp", TimestampType)(ExprId.apply(2)), DecimalType(10, 0)), fields)
+      converter.convertMiscellaneousExpressions(Cast.apply(AttributeReference.apply("Timestamp", TimestampType)(ExprId.apply(2)), DecimalType(10, 0)), fields)
     }
   }
 
   test("convertMiscExpressions with Cast from Integer to String") {
     val castExpression = Cast.apply(AttributeReference.apply("SchoolID", IntegerType)(ExprId.apply(2)), StringType)
-    val bigQuerySQLStatement = converter.convertMiscExpressions(castExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( SCHOOLID AS STRING )")
   }
 
   test("convertMiscExpressions with Cast from Integer to Boolean") {
     val castExpression = Cast.apply(AttributeReference.apply("is_student", IntegerType)(ExprId.apply(2)), BooleanType)
-    val bigQuerySQLStatement = converter.convertMiscExpressions(castExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( IS_STUDENT AS BOOL )")
   }
 
   test("convertMiscExpressions with Cast from Integer to Short") {
     val castExpression = Cast.apply(AttributeReference.apply("SchoolID", IntegerType)(ExprId.apply(2)), ShortType)
-    val bigQuerySQLStatement = converter.convertMiscExpressions(castExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( SCHOOLID AS INT64 )")
   }
 
   test("convertMiscExpressions with Cast from Integer to Long") {
     val castExpression = Cast.apply(AttributeReference.apply("SchoolID", IntegerType)(ExprId.apply(2)), LongType)
-    val bigQuerySQLStatement = converter.convertMiscExpressions(castExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( SCHOOLID AS INT64 )")
   }
 
   test("convertMiscExpressions with Cast from Long to Integer") {
     val castExpression = Cast.apply(AttributeReference.apply("SchoolID", LongType)(ExprId.apply(2)), IntegerType)
-    val bigQuerySQLStatement = converter.convertMiscExpressions(castExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( SCHOOLID AS INT64 )")
   }
 
   test("convertMiscExpressions with Cast from Integer to Float") {
     val castExpression = Cast.apply(AttributeReference.apply("SchoolID", IntegerType)(ExprId.apply(2)), FloatType)
-    val bigQuerySQLStatement = converter.convertMiscExpressions(castExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( SCHOOLID AS FLOAT64 )")
   }
 
   test("convertMiscExpressions with Cast from Integer to Double") {
     val castExpression = Cast.apply(AttributeReference.apply("SchoolID", IntegerType)(ExprId.apply(2)), DoubleType)
-    val bigQuerySQLStatement = converter.convertMiscExpressions(castExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( SCHOOLID AS FLOAT64 )")
   }
 
   test("convertMiscExpressions with Cast from String to Date") {
     val castExpression = Cast.apply(AttributeReference.apply("attendance_date", StringType)(ExprId.apply(2)), DateType)
-    val bigQuerySQLStatement = converter.convertMiscExpressions(castExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( ATTENDANCE_DATE AS DATE )")
   }
 
   test("convertMiscExpressions with Cast from String to Timestamp") {
     val castExpression = Cast.apply(AttributeReference.apply("last_modified", StringType)(ExprId.apply(2)), TimestampType)
-    val bigQuerySQLStatement = converter.convertMiscExpressions(castExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( LAST_MODIFIED AS TIMESTAMP )")
   }
 
   test("convertMiscExpressions with Cast from String to Bytes") {
     val castExpression = Cast.apply(AttributeReference.apply("SchoolID", StringType)(ExprId.apply(2)), ByteType)
-    val bigQuerySQLStatement = converter.convertMiscExpressions(castExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( SCHOOLID AS BYTES )")
   }
 
   test("convertMiscExpressions with Cast from String to BigDecimal/BigNumeric") {
     val castExpression = Cast.apply(AttributeReference.apply("Transaction", StringType)(ExprId.apply(2)), DecimalType(10, 5))
-    val bigQuerySQLStatement = converter.convertMiscExpressions(castExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( TRANSACTION AS BIGDECIMAL(10, 5) )")
   }
 
   test("convertMiscExpressions with ShiftLeft") {
     val shiftLeftExpression = ShiftLeft.apply(Literal.apply(4), Literal.apply(2))
-    val bigQuerySQLStatement = converter.convertMiscExpressions(shiftLeftExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(shiftLeftExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "( 4 << 2 )")
   }
 
   test("convertMiscExpressions with ShiftRight") {
     val shiftRightExpression = ShiftRight.apply(Literal.apply(4), Literal.apply(2))
-    val bigQuerySQLStatement = converter.convertMiscExpressions(shiftRightExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(shiftRightExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "( 4 >> 2 )")
   }
 
   test("convertMiscExpressions with CaseWhen") {
     val caseWhenExpression = CaseWhen.apply(List.apply(Tuple2.apply(Literal.apply("COND1"), Literal.apply("EVAL1")), Tuple2.apply(Literal.apply("COND2"), Literal.apply("EVAL2"))), Literal.apply("ELSE_EVAL"))
-    val bigQuerySQLStatement = converter.convertMiscExpressions(caseWhenExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(caseWhenExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CASE WHEN 'COND1' THEN 'EVAL1' WHEN 'COND2' THEN 'EVAL2' ELSE 'ELSE_EVAL' END")
+  }
+
+  test("convertMiscExpressions with CaseWhenWithWithoutElse") {
+    val caseWhenExpression = CaseWhen.apply(List.apply(Tuple2.apply(Literal.apply("COND1"), Literal.apply("EVAL1")), Tuple2.apply(Literal.apply("COND2"), Literal.apply("EVAL2"))))
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(caseWhenExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "CASE WHEN 'COND1' THEN 'EVAL1' WHEN 'COND2' THEN 'EVAL2' END")
   }
 
   test("convertMiscExpressions with ScalarSubquery") {
@@ -848,35 +855,35 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val logicalRelation = LogicalRelation(directBigQueryRelationMock)
     val aggregatePlan = Aggregate(Seq(), Seq(), logicalRelation)
     val scalarSubQueryExpression = ScalarSubquery.apply(aggregatePlan)
-    val bigQuerySQLStatement = converter.convertMiscExpressions(scalarSubQueryExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(scalarSubQueryExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "( SELECT * FROM ( SELECT * FROM `MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 LIMIT 1 )")
   }
 
   test("convertMiscExpressions with If") {
     val ifExpression = If.apply(Literal.apply("COND1"), Literal.apply("TRUE_VAL"), Literal.apply("FALSE_VAL"))
-    val bigQuerySQLStatement = converter.convertMiscExpressions(ifExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(ifExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "IF ( 'COND1' , 'TRUE_VAL' , 'FALSE_VAL' )")
   }
 
   test("convertMiscExpressions with InSet") {
     val inSetExpression = InSet.apply(Literal.apply("COND1"), Set.apply(Literal.apply("C1"), Literal.apply("C2"), Literal.apply("C3")))
-    val bigQuerySQLStatement = converter.convertMiscExpressions(inSetExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(inSetExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "'COND1' IN ( 'C1' , 'C2' , 'C3' )")
   }
 
   test("convertMiscExpressions with UnscaledValue") {
     val inSetExpression = UnscaledValue.apply(Literal.apply(Decimal(1234.34)))
-    val bigQuerySQLStatement = converter.convertMiscExpressions(inSetExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(inSetExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "( 1234.34 * POW( 10, 2 ) )")
   }
 
   test("convertMiscExpression with Coalesce") {
     val coalesceExpression = Coalesce.apply(List.apply(Literal.apply(null), Literal.apply(null), Literal.apply("COND2")))
-    val bigQuerySQLStatement = converter.convertMiscExpressions(coalesceExpression, fields)
+    val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(coalesceExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "COALESCE ( NULL , NULL , 'COND2' )")
   }
