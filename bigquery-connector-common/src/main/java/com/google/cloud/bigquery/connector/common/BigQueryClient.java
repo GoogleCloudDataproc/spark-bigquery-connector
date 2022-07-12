@@ -226,10 +226,9 @@ public class BigQueryClient {
    */
   public String createTablePathForBigQueryStorage(TableId tableId) {
     Preconditions.checkNotNull(tableId, "tableId cannot be null");
-    String project = tableId.getProject() != null ? tableId.getProject(): getProjectId();
+    String project = tableId.getProject() != null ? tableId.getProject() : getProjectId();
     return String.format(
-        "projects/%s/datasets/%s/tables/%s",
-        project, tableId.getDataset(), tableId.getTable());
+        "projects/%s/datasets/%s/tables/%s", project, tableId.getDataset(), tableId.getTable());
   }
 
   public TableInfo getReadTable(ReadTableOptions options) {

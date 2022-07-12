@@ -23,9 +23,6 @@ import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.InjectorBuilder;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.write.context.BigQueryDataSourceWriterModule;
-import com.google.cloud.spark.bigquery.write.context.BigQueryDirectDataSourceWriterContext;
-import com.google.cloud.spark.bigquery.write.context.BigQueryIndirectDataSourceWriterContext;
-import com.google.cloud.spark.bigquery.write.context.DataSourceWriterContext;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Injector;
 import java.util.Map;
@@ -107,6 +104,7 @@ public class CreatableRelationProviderHelper {
         injector.createChildInjector(
             new BigQueryDataSourceWriterModule(
                 config, UUID.randomUUID().toString(), data.schema(), saveMode));
-    return new BigQueryDataSourceWriterInsertableRelation(bigQueryClient, sqlContext, config, writerInjector);
+    return new BigQueryDataSourceWriterInsertableRelation(
+        bigQueryClient, sqlContext, config, writerInjector);
   }
 }

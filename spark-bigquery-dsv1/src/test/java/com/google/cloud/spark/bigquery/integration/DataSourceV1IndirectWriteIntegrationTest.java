@@ -22,7 +22,7 @@ public class DataSourceV1IndirectWriteIntegrationTest extends DataSourceV1WriteI
   public DataSourceV1IndirectWriteIntegrationTest() {
     super(SparkBigQueryConfig.WriteMethod.INDIRECT);
   }
-  
+
   // additional tests are from the super-class
 
 }

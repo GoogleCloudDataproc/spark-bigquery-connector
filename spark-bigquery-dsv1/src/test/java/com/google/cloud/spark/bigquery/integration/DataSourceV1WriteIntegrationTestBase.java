@@ -16,14 +16,12 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeThat;
-import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.util.concurrent.Uninterruptibles;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.spark.sql.Dataset;
@@ -36,8 +34,6 @@ import org.apache.spark.sql.streaming.OutputMode;
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 

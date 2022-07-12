@@ -15,8 +15,6 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
@@ -31,7 +29,6 @@ import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.spark.bigquery.BigNumericUDT;
@@ -40,12 +37,9 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.*;
-import org.apache.spark.unsafe.types.UTF8String;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.collection.mutable.WrappedArray;
-import scala.reflect.ClassTag;
-import scala.reflect.ClassTag$;
 
 public class ProtobufUtils {
 

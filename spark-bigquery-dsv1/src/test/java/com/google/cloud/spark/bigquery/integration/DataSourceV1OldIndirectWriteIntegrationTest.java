@@ -17,12 +17,13 @@ package com.google.cloud.spark.bigquery.integration;
 
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 
-public class DataSourceV1OldIndirectWriteIntegrationTest extends DataSourceV1WriteIntegrationTestBase {
+public class DataSourceV1OldIndirectWriteIntegrationTest
+    extends DataSourceV1WriteIntegrationTestBase {
 
   public DataSourceV1OldIndirectWriteIntegrationTest() {
     super(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT);
   }
-  
+
   // additional tests are from the super-class
 
 }
