@@ -105,7 +105,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
 
   // This method will be overridden in subclasses that support query pushdown for DSv2
   def generateQueryFromPlanForDSv2(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
-    None
+    throw new BigQueryPushdownUnsupportedException("Query pushdown unsupported for the DSv2 connector for this Spark version")
   }
 
   /** Attempts to generate the query from the LogicalPlan by pattern matching recursively.
