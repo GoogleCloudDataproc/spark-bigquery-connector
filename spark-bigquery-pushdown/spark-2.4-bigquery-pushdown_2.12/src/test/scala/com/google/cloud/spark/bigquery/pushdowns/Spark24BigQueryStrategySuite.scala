@@ -57,7 +57,7 @@ class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
 
   test("generateQueryFromPlanForDSv2 with unsupported node") {
     assert(new Spark24BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock)
-      .generateQueryFromPlanForDSv2(Range.apply(2L, 100L, 4L, 8)).isEmpty)
+      .generateQueryFromPlanForDataSourceV2(Range.apply(2L, 100L, 4L, 8)).isEmpty)
   }
 
   test("generateQueryFromPlanForDSv2 with DataSourceV2Relation node with without tableIdent set") {
@@ -66,7 +66,7 @@ class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     when(dataSourceV2Relation.tableIdent).thenReturn(Some(TableIdentifier.apply("MY_BIGQUERY_TABLE")))
 
     val bigQuerySQLQuery = new Spark24BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock)
-      .generateQueryFromPlanForDSv2(dataSourceV2Relation)
+      .generateQueryFromPlanForDataSourceV2(dataSourceV2Relation)
 
     assert(bigQuerySQLQuery.isDefined)
     assert(bigQuerySQLQuery.get.getStatement().toString == "SELECT * FROM `MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS")
@@ -79,7 +79,7 @@ class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     when(dataSourceV2Relation.options).thenReturn(Map("path"-> "MY_BIGQUERY_PATH"))
 
     val bigQuerySQLQuery = new Spark24BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock)
-      .generateQueryFromPlanForDSv2(dataSourceV2Relation)
+      .generateQueryFromPlanForDataSourceV2(dataSourceV2Relation)
 
     assert(bigQuerySQLQuery.isDefined)
     assert(bigQuerySQLQuery.get.getStatement().toString == "SELECT * FROM `MY_BIGQUERY_PATH` AS BQ_CONNECTOR_QUERY_ALIAS")

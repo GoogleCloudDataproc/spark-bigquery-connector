@@ -81,11 +81,19 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
   }
 
   def generateSparkPlanFromLogicalPlan(plan: LogicalPlan): Seq[SparkPlan] = {
-    val queryRoot = generateQueryFromPlan(plan)
+    val cleanedPlan = cleanUpLogicalPlan(plan)
+    val queryRoot = generateQueryFromPlan(cleanedPlan)
     val bigQueryRDDFactory = getRDDFactory(queryRoot.get)
 
     val sparkPlan = sparkPlanFactory.createSparkPlan(queryRoot.get, bigQueryRDDFactory.get)
     Seq(sparkPlan.get)
+  }
+
+  def cleanUpLogicalPlan(plan: LogicalPlan): LogicalPlan = {
+    plan.transform({
+      case Project(Nil, child) => child
+      case SubqueryAlias(_, child) => child
+    })
   }
 
   def getRDDFactory(queryRoot: BigQuerySQLQuery): Option[BigQueryRDDFactory] = {
@@ -104,7 +112,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
   }
 
   // This method will be overridden in subclasses that support query pushdown for DSv2
-  def generateQueryFromPlanForDSv2(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
+  def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     throw new BigQueryPushdownUnsupportedException("Query pushdown unsupported for the DSv2 connector for this Spark version")
   }
 
@@ -119,7 +127,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
   def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     plan match {
       case _: DataSourceV2Relation =>
-        generateQueryFromPlanForDSv2(plan)
+        generateQueryFromPlanForDataSourceV2(plan)
 
       case l@LogicalRelation(bqRelation: DirectBigQueryRelation, _, _, _) =>
         Some(SourceQuery(expressionConverter, expressionFactory, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))
