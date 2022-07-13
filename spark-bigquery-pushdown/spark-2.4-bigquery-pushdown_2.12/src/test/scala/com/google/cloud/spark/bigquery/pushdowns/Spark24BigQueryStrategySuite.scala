@@ -55,12 +55,12 @@ class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     MockitoAnnotations.initMocks(this)
   }
 
-  test("generateQueryFromPlanForDSv2 with unsupported node") {
+  test("generateQueryFromPlanForDataSourceV2 with unsupported node") {
     assert(new Spark24BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock)
       .generateQueryFromPlanForDataSourceV2(Range.apply(2L, 100L, 4L, 8)).isEmpty)
   }
 
-  test("generateQueryFromPlanForDSv2 with DataSourceV2Relation node with without tableIdent set") {
+  test("generateQueryFromPlanForDataSourceV2 with DataSourceV2Relation node with without tableIdent set") {
     when(dataSourceV2Relation.newReader()).thenReturn(new MockDataSourceReader)
     when(dataSourceV2Relation.output).thenReturn(Seq(schoolIdAttributeReference))
     when(dataSourceV2Relation.tableIdent).thenReturn(Some(TableIdentifier.apply("MY_BIGQUERY_TABLE")))
@@ -72,7 +72,7 @@ class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     assert(bigQuerySQLQuery.get.getStatement().toString == "SELECT * FROM `MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS")
   }
 
-  test("generateQueryFromPlanForDSv2 with DataSourceV2Relation node without tableIdent set") {
+  test("generateQueryFromPlanForDataSourceV2 with DataSourceV2Relation node without tableIdent set") {
     when(dataSourceV2Relation.newReader()).thenReturn(new MockDataSourceReader)
     when(dataSourceV2Relation.output).thenReturn(Seq(schoolIdAttributeReference))
     when(dataSourceV2Relation.tableIdent).thenReturn(None)

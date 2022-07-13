@@ -7,7 +7,7 @@ import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation
 class Spark24BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory)
   extends BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory) {
 
-  override def generateQueryFromPlanForDSv2(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
+  override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     // DataSourceV2Relation is the relation that is used in the Dsv2 connector
     plan match {
       case relation@DataSourceV2Relation(_, _, _, _, _) =>
