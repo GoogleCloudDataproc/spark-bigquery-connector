@@ -23,9 +23,6 @@ import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.InjectorBuilder;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.write.context.BigQueryDataSourceWriterModule;
-import com.google.cloud.spark.bigquery.write.context.BigQueryDirectDataSourceWriterContext;
-import com.google.cloud.spark.bigquery.write.context.BigQueryIndirectDataSourceWriterContext;
-import com.google.cloud.spark.bigquery.write.context.DataSourceWriterContext;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Injector;
 import java.util.Map;
@@ -99,7 +96,7 @@ public class CreatableRelationProviderHelper {
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
 
     SparkBigQueryConfig.WriteMethod writeMethod = config.getWriteMethod();
-    if (writeMethod == SparkBigQueryConfig.WriteMethod.OLD_INDIRECT) {
+    if (writeMethod == SparkBigQueryConfig.WriteMethod.INDIRECT) {
       return new BigQueryDeprecatedIndirectInsertableRelation(bigQueryClient, sqlContext, config);
     }
     // Need DataSourceWriterContext
@@ -107,15 +104,7 @@ public class CreatableRelationProviderHelper {
         injector.createChildInjector(
             new BigQueryDataSourceWriterModule(
                 config, UUID.randomUUID().toString(), data.schema(), saveMode));
-    DataSourceWriterContext ctx = null;
-    if (writeMethod == SparkBigQueryConfig.WriteMethod.DIRECT) {
-      ctx = writerInjector.getInstance(BigQueryDirectDataSourceWriterContext.class);
-    } else if (writeMethod == SparkBigQueryConfig.WriteMethod.INDIRECT) {
-      ctx = writerInjector.getInstance(BigQueryIndirectDataSourceWriterContext.class);
-    } else {
-      // can't really happen, here to guard from new write methods
-      throw new IllegalArgumentException("Unknown write method " + writeMethod);
-    }
-    return new BigQueryDataSourceWriterInsertableRelation(bigQueryClient, sqlContext, config, ctx);
+    return new BigQueryDataSourceWriterInsertableRelation(
+        bigQueryClient, sqlContext, config, writerInjector);
   }
 }

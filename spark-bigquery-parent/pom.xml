@@ -514,7 +514,7 @@
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <version>3.0.0-M6</version>
                         <configuration>
-                            <forkCount>5</forkCount>
+                            <forkCount>7</forkCount>
                             <reuseForks>false</reuseForks>
                             <includes>
                                 <include>**/*IntegrationTest.java</include>

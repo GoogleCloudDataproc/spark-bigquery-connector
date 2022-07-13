@@ -153,6 +153,16 @@ public class BigQueryClient {
    * @return The {@code Table} object representing the created temporary table.
    */
   public TableInfo createTempTable(TableId destinationTableId, Schema schema) {
+    TableId tempTableId = createTempTableId(destinationTableId);
+    // Build TableInfo with expiration time of one day from current epoch.
+    TableInfo tableInfo =
+        TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema))
+            .setExpirationTime(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1))
+            .build();
+    return bigQuery.create(tableInfo);
+  }
+
+  public TableId createTempTableId(TableId destinationTableId) {
     String tempProject = materializationProject.orElseGet(destinationTableId::getProject);
     String tempDataset = materializationDataset.orElseGet(destinationTableId::getDataset);
     String tableName = destinationTableId.getTable() + System.nanoTime();
@@ -160,12 +170,7 @@ public class BigQueryClient {
         tempProject == null
             ? TableId.of(tempDataset, tableName)
             : TableId.of(tempProject, tempDataset, tableName);
-    // Build TableInfo with expiration time of one day from current epoch.
-    TableInfo tableInfo =
-        TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema))
-            .setExpirationTime(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1))
-            .build();
-    return bigQuery.create(tableInfo);
+    return tempTableId;
   }
 
   /**
@@ -221,10 +226,15 @@ public class BigQueryClient {
    */
   public String createTablePathForBigQueryStorage(TableId tableId) {
     Preconditions.checkNotNull(tableId, "tableId cannot be null");
-    Preconditions.checkNotNull(tableId.getProject(), "tableId.project cannot be null");
+    // We need the full path for the createWriteStream method. We used to have it by creating the
+    // table and then taking its full tableId, but that caused an issue with the ErrorIfExists
+    // implementation (now the check, done in another place is positive). To solve it, we do what
+    // the BigQuery client does on Table ID with no project - take the BigQuery client own project
+    // ID.  This gives us the same behavior but allows us to defer the table creation to the last
+    // minute.
+    String project = tableId.getProject() != null ? tableId.getProject() : getProjectId();
     return String.format(
-        "projects/%s/datasets/%s/tables/%s",
-        tableId.getProject(), tableId.getDataset(), tableId.getTable());
+        "projects/%s/datasets/%s/tables/%s", project, tableId.getDataset(), tableId.getTable());
   }
 
   public TableInfo getReadTable(ReadTableOptions options) {

@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
@@ -128,7 +129,9 @@ public class IntegrationTestUtils {
       // }
       // } else {
       Object value = row.get(i);
-      assertThat(value).isEqualTo(expected.get(i));
+      assertWithMessage("value of field " + expected.schema().fields()[i])
+          .that(value)
+          .isEqualTo(expected.get(i));
       //     }
     }
   }

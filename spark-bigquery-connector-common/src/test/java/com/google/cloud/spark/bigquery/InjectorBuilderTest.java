@@ -43,7 +43,7 @@ public class InjectorBuilderTest {
     Injector injector =
         new InjectorBuilder()
             .withOptions(ImmutableMap.of("table", "foo.bar"))
-            .withCustomDefaults(ImmutableMap.of("writeMethod", "OLD_INDIRECT"))
+            .withCustomDefaults(ImmutableMap.of("writeMethod", "INDIRECT"))
             .withSpark(spark)
             .withDataSourceVersion(DataSourceVersion.V1)
             .withSchema(new StructType())
@@ -51,7 +51,7 @@ public class InjectorBuilderTest {
             .build();
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
     assertThat(config.getTableId().getTable()).isEqualTo("bar");
-    assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT);
+    assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.INDIRECT);
     UserAgentProvider userAgentProvider = injector.getInstance(UserAgentProvider.class);
     assertThat(userAgentProvider.getUserAgent()).contains("v1");
   }

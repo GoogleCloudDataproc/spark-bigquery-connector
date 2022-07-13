@@ -425,14 +425,14 @@ public class SparkBigQueryConfigTest {
             options.asMap(),
             ImmutableMap.of(),
             hadoopConfiguration,
-            ImmutableMap.of("writeMethod", "OLD_INDIRECT"),
+            ImmutableMap.of("writeMethod", "INDIRECT"),
             DEFAULT_PARALLELISM,
             new SQLConf(),
             SPARK_VERSION,
             Optional.empty(), /* tableIsMandatory */
             true);
 
-    assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT);
+    assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.INDIRECT);
   }
 
   // ported from SparkBigQueryConfigSuite.scala

@@ -132,9 +132,9 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
     JobInfo.WriteDisposition writeDisposition =
         SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
-    FormatOptions formatOptions = config.getIntermediateFormat().getFormatOptions();
 
-    bigQueryClient.loadDataIntoTable(config, optimizedSourceUris, formatOptions, writeDisposition);
+    bigQueryClient.loadDataIntoTable(
+        config, optimizedSourceUris, FormatOptions.avro(), writeDisposition);
   }
 
   void updateMetadataIfNeeded() {
