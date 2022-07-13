@@ -9,37 +9,17 @@ import scala.Seq
 case class UnionQuery(
                   expressionConverter: SparkExpressionConverter,
                   expressionFactory: SparkExpressionFactory,
-                  sparkPlanFactory: SparkPlanFactory,
                   children: Seq[BigQuerySQLQuery],
                   outputAttributes: Option[Seq[Attribute]],
+                  visibleAttribute: Option[Seq[Attribute]],
                   alias: String)
   extends BigQuerySQLQuery(
     expressionConverter,
     expressionFactory,
     alias,
     children = children,
-    outputAttributes = outputAttributes)  {
-  
-  override val columnSet: Seq[Attribute] = {
-    val visibleAttribute: Option[Seq[Attribute]] =
-      Some(children.foldLeft(Seq.empty[Attribute])((x, y) => x ++ y.output).map(
-        a =>
-          AttributeReference(a.name, a.dataType, a.nullable, a.metadata)(
-            a.exprId,
-            Seq[String](alias)
-          )))
-
-    children.foldLeft(Seq.empty[Attribute])(
-      (x, y) => {
-        val attrs = if (visibleAttribute.isEmpty) {
-          y.outputWithQualifier
-        } else {
-          visibleAttribute.get
-        }
-        x ++ attrs
-      }
-    )
-  }
+    outputAttributes = outputAttributes,
+    visibleAttribute = visibleAttribute)  {
 
   override def getStatement(useAlias: Boolean): BigQuerySQLStatement = {
     val query =
@@ -60,9 +40,7 @@ case class UnionQuery(
   }
 
   override def find[T](query: PartialFunction[BigQuerySQLQuery, T]): Option[T] =
-    query
-      .lift(this)
-      .orElse(
+    query.lift(this).orElse(
         children
           .map(q => q.find(query))
           .view

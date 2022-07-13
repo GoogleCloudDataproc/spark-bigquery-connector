@@ -242,14 +242,14 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(11)).isEqualTo(false); // CHECKOVERFLOW
   }
 
-    @Test
-    public void testUnionQuery() {
-      Dataset<Row> df =
-          spark
-              .read()
-              .format("bigquery")
-              .option("materializationDataset", testDataset.toString())
-              .load(TestConstants.SHAKESPEARE_TABLE);
+  @Test
+  public void testUnionQuery() {
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(TestConstants.SHAKESPEARE_TABLE);
 
     df.createOrReplaceTempView("shakespeare");
 

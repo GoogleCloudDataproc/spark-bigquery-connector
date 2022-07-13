@@ -21,7 +21,7 @@ import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Strategy
-import org.apache.spark.sql.catalyst.expressions.Attribute
+import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeReference}
 import org.apache.spark.sql.catalyst.plans.{FullOuter, Inner, LeftAnti, LeftOuter, LeftSemi, RightOuter}
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.SparkPlan
@@ -210,7 +210,15 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
           }
         }
         val outputAttributes: Option[Seq[Attribute]] = Some(children.head.output)
-        Some(UnionQuery(expressionConverter, expressionFactory, sparkPlanFactory, children, outputAttributes , alias.next))
+        val visibleAttribute: Option[Seq[Attribute]] = {
+          Some(children.foldLeft(Seq.empty[Attribute])((x, y) => x ++ y.output).map(
+            a =>
+              AttributeReference(a.name, a.dataType, a.nullable, a.metadata)(
+                a.exprId,
+                Seq[String](alias.next)
+              )))
+        }
+        Some(UnionQuery(expressionConverter, expressionFactory, children, outputAttributes, visibleAttribute, alias.next))
 
       case _ =>
         throw new BigQueryPushdownUnsupportedException(
