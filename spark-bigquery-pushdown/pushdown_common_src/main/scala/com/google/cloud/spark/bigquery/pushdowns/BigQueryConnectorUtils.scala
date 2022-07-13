@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spark.bigquery
+package com.google.cloud.spark.bigquery.pushdowns
 
-import com.google.cloud.spark.bigquery.pushdowns.{BigQueryStrategy, SparkBigQueryPushdown}
 import org.apache.spark.sql.SparkSession
 
-import scala.collection.JavaConverters._
 import java.util.ServiceLoader
+import scala.collection.JavaConverters._
 
 object BigQueryConnectorUtils {
   def enablePushdownSession(session: SparkSession): Unit = {
