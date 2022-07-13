@@ -89,12 +89,14 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
     Seq(sparkPlan.get)
   }
 
-  /** Removes project plan with no fields and returns the child, to continue the generation of query.
+  /**
+   * Iterates over the logical plan to find project plan with no fields or SubQueryAlias, if found removes it
+   * and returns the LogicalPlan without empty project plan, to continue the generation of query.
    * Spark is generating an empty project plan when the query has count(*)
    * Found this issue when executing query-9 of TPC-DS
    *
-   * @param plan
-   * @return
+   * @param plan The LogicalPlan to be processed.
+   * @return The processed LogicalPlan removing all the empty Project plan's or SubQueryAlias, if the input has any
    */
   def cleanUpLogicalPlan(plan: LogicalPlan): LogicalPlan = {
     plan.transform({
@@ -123,7 +125,8 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
     throw new BigQueryPushdownUnsupportedException("Query pushdown unsupported for the DSv2 connector for this Spark version")
   }
 
-  /** Attempts to generate the query from the LogicalPlan by pattern matching recursively.
+  /**
+   * Attempts to generate the query from the LogicalPlan by pattern matching recursively.
    * The queries are constructed from the bottom up, but the validation of
    * supported nodes for translation happens on the way down.
    *
@@ -132,16 +135,15 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
    *         unsupported node type.
    */
   def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
-    val updatedPlan = cleanUpLogicalPlan(plan)
-    updatedPlan match {
+    plan match {
       case _: DataSourceV2Relation =>
-        generateQueryFromPlanForDataSourceV2(updatedPlan)
+        generateQueryFromPlanForDataSourceV2(plan)
       case l@LogicalRelation(bqRelation: DirectBigQueryRelation, _, _, _) =>
         Some(SourceQuery(expressionConverter, expressionFactory, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))
 
       case UnaryOperationExtractor(child) =>
         generateQueryFromPlan(child) map { subQuery =>
-          updatedPlan match {
+          plan match {
             case Filter(condition, _) =>
               FilterQuery(expressionConverter, expressionFactory, Seq(condition), subQuery, alias.next)
 
@@ -170,7 +172,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
       case BinaryOperationExtractor(left, right) =>
         generateQueryFromPlan(left).flatMap { l =>
           generateQueryFromPlan(right) map { r =>
-            updatedPlan match {
+            plan match {
               case JoinExtractor(joinType, condition) =>
                 joinType match {
                   case Inner | LeftOuter | RightOuter | FullOuter =>
@@ -187,7 +189,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
 
       case _ =>
         throw new BigQueryPushdownUnsupportedException(
-          s"Query pushdown failed in generateQueries for node ${updatedPlan.nodeName} in ${updatedPlan.getClass.getName}"
+          s"Query pushdown failed in generateQueries for node ${plan.nodeName} in ${plan.getClass.getName}"
         )
     }
   }

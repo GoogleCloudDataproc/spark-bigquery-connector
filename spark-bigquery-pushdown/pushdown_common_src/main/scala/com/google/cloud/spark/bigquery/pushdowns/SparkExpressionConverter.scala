@@ -288,7 +288,13 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
           } + ConstantString("END")
 
       case ScalarSubquery(plan, _, _) =>
-        blockStatement(new BigQueryStrategy(this, expressionFactory, sparkPlanFactory).generateQueryFromPlan(plan).get.getStatement())
+        
+        /**
+         * Need to clean up the plan if it has any empty project plan's
+         */
+        val bigQueryStrategy = new BigQueryStrategy(this, expressionFactory, sparkPlanFactory)
+        val updatedPlan = bigQueryStrategy.cleanUpLogicalPlan(plan)
+        blockStatement(bigQueryStrategy.generateQueryFromPlan(updatedPlan).get.getStatement())
 
       case Coalesce(columns) =>
         ConstantString(expression.prettyName.toUpperCase) + blockStatement(makeStatement(columns.map(convertStatement(_, fields)), ", "))

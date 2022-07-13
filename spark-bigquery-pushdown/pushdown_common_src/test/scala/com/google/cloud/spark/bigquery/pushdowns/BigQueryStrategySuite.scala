@@ -120,7 +120,9 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     val projectPlan = Project(Nil, aggregatePlan)
 
     // Need to create a new BigQueryStrategy object so as to start from the original alias
-    val returnedQueryOption = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock).generateQueryFromPlan(projectPlan)
+    val bigQueryStrategy = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock)
+    val plan = bigQueryStrategy.cleanUpLogicalPlan(projectPlan)
+    val returnedQueryOption = bigQueryStrategy.generateQueryFromPlan(plan)
     assert(returnedQueryOption.isDefined)
 
     val returnedQuery = returnedQueryOption.get
