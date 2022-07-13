@@ -138,6 +138,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
     plan match {
       case _: DataSourceV2Relation =>
         generateQueryFromPlanForDataSourceV2(plan)
+
       case l@LogicalRelation(bqRelation: DirectBigQueryRelation, _, _, _) =>
         Some(SourceQuery(expressionConverter, expressionFactory, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))
 
