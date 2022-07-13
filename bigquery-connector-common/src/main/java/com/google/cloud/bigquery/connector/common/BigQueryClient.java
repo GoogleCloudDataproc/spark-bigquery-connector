@@ -226,6 +226,12 @@ public class BigQueryClient {
    */
   public String createTablePathForBigQueryStorage(TableId tableId) {
     Preconditions.checkNotNull(tableId, "tableId cannot be null");
+    // We need the full path for the createWriteStream method. We used to have it by creating the
+    // table and then taking its full tableId, but that caused an issue with the ErrorIfExists
+    // implementation (now the check, done in another place is positive). To solve it, we do what
+    // the BigQuery client does on Table ID with no project - take the BigQuery client own project
+    // ID.  This gives us the same behavior but allows us to defer the table creation to the last
+    // minute.
     String project = tableId.getProject() != null ? tableId.getProject() : getProjectId();
     return String.format(
         "projects/%s/datasets/%s/tables/%s", project, tableId.getDataset(), tableId.getTable());

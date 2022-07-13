@@ -178,6 +178,6 @@ public class SparkBigQueryUtil {
       return ((Number) sparkValue).intValue();
     }
     java.sql.Date sparkDate = (java.sql.Date) sparkValue;
-    return (int) (sparkDate.toLocalDate().toEpochDay());
+    return (int) sparkDate.toLocalDate().toEpochDay();
   }
 }
