@@ -72,7 +72,7 @@ public class DataSourceV1WriteIntegrationTestBase extends WriteIntegrationTestBa
   // v2 does not support ORC
   @Test
   public void testWriteToBigQuery_OrcFormat() throws InterruptedException {
-    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT));
+    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
     // required by ORC
     spark.conf().set("spark.sql.orc.impl", "native");
     writeToBigQuery(initialData(), SaveMode.ErrorIfExists, "orc");
@@ -83,7 +83,7 @@ public class DataSourceV1WriteIntegrationTestBase extends WriteIntegrationTestBa
   // v2 does not support parquet
   @Test
   public void testWriteToBigQuery_ParquetFormat() throws InterruptedException {
-    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT));
+    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
     writeToBigQuery(initialData(), SaveMode.ErrorIfExists, "parquet");
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
@@ -91,7 +91,7 @@ public class DataSourceV1WriteIntegrationTestBase extends WriteIntegrationTestBa
 
   @Test
   public void testWriteToBigQuery_UnsupportedFormat() {
-    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT));
+    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
     assertThrows(
         Exception.class,
         () -> {
@@ -101,7 +101,7 @@ public class DataSourceV1WriteIntegrationTestBase extends WriteIntegrationTestBa
 
   @Test(timeout = 120_000)
   public void testStreamingToBigQueryWriteAppend() throws InterruptedException {
-    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.OLD_INDIRECT));
+    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
     StructType schema = initialData().schema();
     ExpressionEncoder<Row> expressionEncoder = RowEncoder.apply(schema);
     MemoryStream<Row> stream = MemoryStream.apply(expressionEncoder, spark.sqlContext());

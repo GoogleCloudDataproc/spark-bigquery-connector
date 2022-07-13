@@ -96,7 +96,7 @@ public class CreatableRelationProviderHelper {
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
 
     SparkBigQueryConfig.WriteMethod writeMethod = config.getWriteMethod();
-    if (writeMethod == SparkBigQueryConfig.WriteMethod.OLD_INDIRECT) {
+    if (writeMethod == SparkBigQueryConfig.WriteMethod.INDIRECT) {
       return new BigQueryDeprecatedIndirectInsertableRelation(bigQueryClient, sqlContext, config);
     }
     // Need DataSourceWriterContext
