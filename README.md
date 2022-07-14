@@ -516,6 +516,14 @@ The API Supports a number of options to configure the read
    <td>Write</td>
   </tr>
   <tr valign="top">
+   <td><code>useAvroLogicalTypes</code>
+   </td>
+   <td>When loading from Avro (`.option("intermediateFormat", "avro")`), BigQuery uses the underlying Avro types instead of the logical types [by default](https://cloud.google.com/bigquery/docs/loading-data-cloud-storage-avro#logical_types). Supplying this option converts Avro logical types to their corresponding BigQuery data types.
+       <br/>(Optional. Defaults to <code>false</code>). On write only.
+   </td>
+   <td>Write</td>
+  </tr>
+  <tr valign="top">
    <td><code>datePartition</code>
    </td>
    <td>The date partition the data is going to be written to. Should be a date string
