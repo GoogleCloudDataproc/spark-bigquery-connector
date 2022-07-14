@@ -107,4 +107,26 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     assert(returnedQuery.getStatement().toString == "SELECT ( COUNT ( SCHOOLID ) ) AS SUBQUERY_1_COL_0 FROM " +
       "( SELECT * FROM `MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 GROUP BY SCHOOLNAME")
   }
+
+  test("generateQueryFromPlan with empty project plan") {
+    when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
+    when(directBigQueryRelationMock.getTableName).thenReturn("MY_BIGQUERY_TABLE")
+
+    val logicalRelation = LogicalRelation(directBigQueryRelationMock)
+
+    val aggregateExpression = Alias.apply(AggregateExpression.apply(Count.apply(schoolIdAttributeReference), Complete, isDistinct = false), "COUNT")()
+    val aggregatePlan = Aggregate(Seq(schoolNameAttributeReference), Seq(aggregateExpression), logicalRelation)
+
+    val projectPlan = Project(Nil, aggregatePlan)
+
+    // Need to create a new BigQueryStrategy object so as to start from the original alias
+    val bigQueryStrategy = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock)
+    val plan = bigQueryStrategy.cleanUpLogicalPlan(projectPlan)
+    val returnedQueryOption = bigQueryStrategy.generateQueryFromPlan(plan)
+    assert(returnedQueryOption.isDefined)
+
+    val returnedQuery = returnedQueryOption.get
+    assert(returnedQuery.getStatement().toString == "SELECT ( COUNT ( SCHOOLID ) ) AS SUBQUERY_1_COL_0 FROM " +
+      "( SELECT * FROM `MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 GROUP BY SCHOOLNAME")
+  }
 }

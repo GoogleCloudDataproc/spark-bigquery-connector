@@ -89,6 +89,15 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
     Seq(sparkPlan.get)
   }
 
+  /**
+   * Iterates over the logical plan to find project plan with no fields or SubQueryAlias, if found removes it
+   * and returns the LogicalPlan without empty project plan, to continue the generation of query.
+   * Spark is generating an empty project plan when the query has count(*)
+   * Found this issue when executing query-9 of TPC-DS
+   *
+   * @param plan The LogicalPlan to be processed.
+   * @return The processed LogicalPlan removing all the empty Project plan's or SubQueryAlias, if the input has any
+   */
   def cleanUpLogicalPlan(plan: LogicalPlan): LogicalPlan = {
     plan.transform({
       case Project(Nil, child) => child
@@ -116,7 +125,8 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
     throw new BigQueryPushdownUnsupportedException("Query pushdown unsupported for the DSv2 connector for this Spark version")
   }
 
-  /** Attempts to generate the query from the LogicalPlan by pattern matching recursively.
+  /**
+   * Attempts to generate the query from the LogicalPlan by pattern matching recursively.
    * The queries are constructed from the bottom up, but the validation of
    * supported nodes for translation happens on the way down.
    *
