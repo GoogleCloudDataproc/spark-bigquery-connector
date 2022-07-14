@@ -14,6 +14,7 @@ steps:
       - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
       - 'ACCEPTANCE_TEST_BUCKET=${_ACCEPTANCE_TEST_BUCKET}'
       - 'SERVERLESS_NETWORK_URI=${_SERVERLESS_NETWORK_URI}'
+      - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
       - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
   - name: 'gcr.io/cloud-builders/gsutil'
     entrypoint: 'bash'
