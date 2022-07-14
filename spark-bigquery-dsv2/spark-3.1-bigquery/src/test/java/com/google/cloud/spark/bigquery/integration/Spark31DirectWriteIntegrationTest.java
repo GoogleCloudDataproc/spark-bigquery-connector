@@ -24,6 +24,4 @@ public class Spark31DirectWriteIntegrationTest extends WriteIntegrationTestBase 
   }
 
   // tests from superclass
-
-  // @Test public void foo() throws Exception { testWriteToBigQuerySimplifiedApi();}
 }
