@@ -295,8 +295,18 @@ public class SparkBigQueryConfig
     config.temporaryGcsBucket = getAnyOption(globalOptions, options, "temporaryGcsBucket");
     config.persistentGcsBucket = getAnyOption(globalOptions, options, "persistentGcsBucket");
     config.persistentGcsPath = getOption(options, "persistentGcsPath");
+    WriteMethod writeMethodDefault =
+        Optional.ofNullable(customDefaults.get(WRITE_METHOD_PARAM))
+            .map(WriteMethod::from)
+            .orElse(DEFAULT_WRITE_METHOD);
+    config.writeMethod =
+        getAnyOption(globalOptions, options, WRITE_METHOD_PARAM)
+            .transform(WriteMethod::from)
+            .or(writeMethodDefault);
+
     boolean validateSparkAvro =
-        Boolean.valueOf(getRequiredOption(options, VALIDATE_SPARK_AVRO_PARAM, () -> "true"));
+        config.writeMethod == WriteMethod.INDIRECT
+            && Boolean.valueOf(getRequiredOption(options, VALIDATE_SPARK_AVRO_PARAM, () -> "true"));
     boolean enableListInferenceForParquetMode =
         getAnyBooleanOption(globalOptions, options, ENABLE_LIST_INFERENCE, false);
     config.intermediateFormat =
@@ -378,15 +388,6 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, ARROW_COMPRESSION_CODEC_OPTION)
             .transform(String::toUpperCase)
             .or(DEFAULT_ARROW_COMPRESSION_CODEC.toString());
-
-    WriteMethod writeMethodDefault =
-        Optional.ofNullable(customDefaults.get(WRITE_METHOD_PARAM))
-            .map(WriteMethod::from)
-            .orElse(DEFAULT_WRITE_METHOD);
-    config.writeMethod =
-        getAnyOption(globalOptions, options, WRITE_METHOD_PARAM)
-            .transform(WriteMethod::from)
-            .or(writeMethodDefault);
 
     try {
       config.arrowCompressionCodec = CompressionCodec.valueOf(arrowCompressionCodecParam);
