@@ -47,7 +47,7 @@ class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     }
   }
 
-  val expressionConverter: SparkExpressionConverter = new SparkExpressionConverter(expressionFactory, sparkPlanFactoryMock)
+  val expressionConverter: SparkExpressionConverter = new Spark24ExpressionConverter(expressionFactory, sparkPlanFactoryMock)
 
   val schoolIdAttributeReference: AttributeReference = AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1))
 

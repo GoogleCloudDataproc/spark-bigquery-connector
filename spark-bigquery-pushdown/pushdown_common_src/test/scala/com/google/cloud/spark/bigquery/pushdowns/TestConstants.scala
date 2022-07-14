@@ -2,6 +2,7 @@ package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import org.apache.spark.sql.catalyst.expressions.{Alias, AttributeReference, ExprId, Expression}
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.types.{LongType, Metadata, StringType}
 import org.mockito.Mock
 
@@ -21,9 +22,15 @@ object TestConstants {
       }
    }
 
+
+   val expressionConverter: SparkExpressionConverter = new SparkExpressionConverter {
+      // Tests for Scalar Subquery are in Spark version specific pushdown modules
+      override def createQueryFromScalarSubquery(plan: LogicalPlan): BigQuerySQLStatement = {
+         throw new UnsupportedOperationException("Scalar Subquery is supported " +
+           "only from Spark version specific implementations of SparkExpressionConverter")
+      }
+   }
+
    @Mock
    var bigQueryRDDFactoryMock: BigQueryRDDFactory = _
-   @Mock
-   var sparkPlanFactoryMock: SparkPlanFactory = _
-   val expressionConverter: SparkExpressionConverter = new SparkExpressionConverter(expressionFactory = expressionFactory, sparkPlanFactory = sparkPlanFactoryMock) {}
 }

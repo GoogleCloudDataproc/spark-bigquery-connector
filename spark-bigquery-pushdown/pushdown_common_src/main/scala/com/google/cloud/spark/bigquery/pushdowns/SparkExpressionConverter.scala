@@ -21,6 +21,7 @@ import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.{addA
 import org.apache.spark.bigquery.BigNumericUDT
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate._
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
@@ -28,7 +29,7 @@ import org.apache.spark.unsafe.types.UTF8String
  * Spark Expressions are recursively pattern matched. Expressions that differ across Spark versions should be implemented in subclasses
  *
  */
-class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) {
+abstract class SparkExpressionConverter {
   /**
    * Tries to convert Spark expressions by matching across the different families of expressions such as Aggregate, Boolean etc.
    * @param expression
@@ -288,13 +289,7 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
           } + ConstantString("END")
 
       case ScalarSubquery(plan, _, _) =>
-        
-        /**
-         * Need to clean up the plan if it has any empty project plan's
-         */
-        val bigQueryStrategy = new BigQueryStrategy(this, expressionFactory, sparkPlanFactory)
-        val updatedPlan = bigQueryStrategy.cleanUpLogicalPlan(plan)
-        blockStatement(bigQueryStrategy.generateQueryFromPlan(updatedPlan).get.getStatement())
+        createQueryFromScalarSubquery(plan)
 
       case Coalesce(columns) =>
         ConstantString(expression.prettyName.toUpperCase) + blockStatement(makeStatement(columns.map(convertStatement(_, fields)), ", "))
@@ -365,4 +360,7 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
         )
     }.toSeq
   }
+
+  // For supporting Scalar Subquery, we need specific implementations of BigQueryStrategy
+  def createQueryFromScalarSubquery(plan: LogicalPlan): BigQuerySQLStatement
 }
