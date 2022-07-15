@@ -232,7 +232,7 @@ note there are a few caveats:
 
 ### Writing data to BigQuery
 
-Writing DataFrames to BigQuery can be done using two methods: Direct and Indirect. 
+Writing DataFrames to BigQuery can be done using two methods: Direct and Indirect.
 
 #### Direct write using the BigQuery Storage Write API (preview)
 
