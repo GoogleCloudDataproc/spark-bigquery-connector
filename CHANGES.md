@@ -2,15 +2,6 @@
 
 ## Next
 
-* All connectors support the DIRECT write method, using the BigQuery Storage Write API,
-  without first writing the data to GCS. **DIRECT write method is in preview mode**.
-* `spark-3.1-bigquery` has been released in preview mode. This is a Java only library,
-  implementing the Spark 3.1 DataSource v2 APIs.
-* BigQuery API has been upgraded to version 2.13.8
-* BigQuery Storage API has been upgraded to version 2.16.0
-* gRPC has been upgraded to version 1.47.0
-* Netty has been upgraded to version 4.1.79.Final
-
 ## 0.25.2 - 2022-06-22
 
 * PR #673: Added integration tests for BigLake external tables.

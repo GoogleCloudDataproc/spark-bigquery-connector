@@ -61,34 +61,32 @@ gcloud dataproc clusters create "$MY_CLUSTER"
 
 The latest version of the connector is publicly available in the following links:
 
-| version    | Link                                                                                                                                                                                                                   |
-|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| version | Link |
+| --- | --- |
 | Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar)) |
 | Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar)) |
-| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}-preview.jar))                        |
-| Spark 3.1  | `gs://spark-lib/bigquery/spark-3.1-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.1-bigquery-${next-release-tag}-preview.jar))                        |
+| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}-preview.jar)) |
 
 The only difference between first two connectors is that the former is a Scala 2.11 based connector, targeting Spark 2.3
 and 2.4 using Scala 2.11 whereas the latter is a Scala 2.12 based connector, targeting Spark 2.4 and 3.x using Scala 2.12.
 There should not be any code differences between the 2 connectors.
 
-The last two versions are Java based connectors targeting Spark 2.4/Spark 3.1 of all Scala versions built on the new
-Data Source APIs (Data Source API v2) of Spark. They are still in preview mode.
+Third version is a Java based connector targeting Spark 2.4 of all Scala versions built on the new Data Source APIs
+(Data Source API v2) of Spark. It is still in preview mode.
 
-**Note:** If you are using scala jars please use the jar relevant to your Spark installation. For Spark 2.4 and Spark 3.1
-there is an option to use the Java only jar.
+**Note:** If you are using scala jars please use the jar relevant to your Spark installation. Starting from Spark 2.4 onwards there is an
+option to use the Java only jar.
 
 The connector is also available from the
 [Maven Central](https://repo1.maven.org/maven2/com/google/cloud/spark/)
 repository. It can be used using the `--packages` option or the
 `spark.jars.packages` configuration property. Use the following value
 
-| version    | Connector Artifact                                                                 |
-|------------|------------------------------------------------------------------------------------|
+| version | Connector Artifact |
+| --- | --- |
 | Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:${next-release-tag}` |
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:${next-release-tag}` |
-| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:${next-release-tag}-preview`            |
-| Spark 3.1  | `com.google.cloud.spark:spark-3.1-bigquery:${next-release-tag}-preview`            |
+| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:${next-release-tag}-preview` |
 
 ## Hello World Example
 
@@ -232,13 +230,11 @@ note there are a few caveats:
 
 ### Writing data to BigQuery
 
-Writing DataFrames to BigQuery can be done using two methods: Direct and Indirect.
-
-#### Direct write using the BigQuery Storage Write API (preview)
-
-In this method the data is written directly to BigQuery using the
-[BigQuery Storage Write API](https://cloud.google.com/bigquery/docs/write-api). In order to enable this option, please
-set the `writeMethod` option to `direct`, as shown below:
+#### Direct write using the BigQuery Storage Write API
+The Spark 2.4 dedicated connector supports writing directly to BigQuery without first writing to GCS, using
+the [BigQuery Storage Write API](https://cloud.google.com/bigquery/docs/write-api)
+to write data directly to BigQuery. In order to enable this option, please set the `writeMethod` option
+to `direct`, as shown below:
 
 ```
 df.write \
@@ -256,11 +252,9 @@ page regarding the BigQuery Storage Write API pricing.
 **Important:** Please use version 0.24.2 and above for direct writes, as previous
 versions have a bug that may cause a table deletion in certain cases.
 
-**Important:** Direct write method is in preview mode
-
 #### Indirect write
-In this method the data is written first  to GCS, and then it is loaded it to BigQuery. A GCS bucket must be configured
-to indicate the temporary data location.
+This method is supported by all the connector. In this method the data is written first  to GCS and then
+it is loaded it to BigQuery. A GCS bucket must be configured to indicate the temporary data location.
 
 ```
 df.write \
@@ -524,14 +518,6 @@ The API Supports a number of options to configure the read
        spark-avro package must be added in runtime.
        <br/>(Optional. Defaults to <code>parquet</code>). On write only.
        <br/><i>Not supported by the `DIRECT` write method.</i>
-   </td>
-   <td>Write</td>
-  </tr>
-  <tr valign="top">
-   <td><code>useAvroLogicalTypes</code>
-   </td>
-   <td>When loading from Avro (`.option("intermediateFormat", "avro")`), BigQuery uses the underlying Avro types instead of the logical types [by default](https://cloud.google.com/bigquery/docs/loading-data-cloud-storage-avro#logical_types). Supplying this option converts Avro logical types to their corresponding BigQuery data types.
-       <br/>(Optional. Defaults to <code>false</code>). On write only.
    </td>
    <td>Write</td>
   </tr>
