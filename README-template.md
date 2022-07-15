@@ -83,7 +83,7 @@ below.
 | spark-bigquery-with-dependencies_2.11 | &check; | &check;             |                     |         |         |         |
 
 ### Connector to Dataproc Image Compatibility Matrix
-| Connector \ Dataproc Image            | 1.3     | 1.4     | 1.5     | 2.0     | Serverless | 
+| Connector \ Dataproc Image            | 1.3     | 1.4     | 1.5     | 2.0     | Serverless |
 |---------------------------------------|---------|---------|---------|---------|------------|
 | spark-3.1-bigquery                    |         |         |         | &check; | &check;    |
 | spark-2.4-bigquery                    |         | &check; | &check; |         |            |
