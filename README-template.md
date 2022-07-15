@@ -63,21 +63,34 @@ The latest version of the connector is publicly available in the following links
 
 | version    | Link                                                                                                                                                                                                                   |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar)) |
-| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar)) |
-| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}-preview.jar))                        |
 | Spark 3.1  | `gs://spark-lib/bigquery/spark-3.1-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.1-bigquery-${next-release-tag}-preview.jar))                        |
+| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}-preview.jar))                        |
+| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar)) |
+| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar)) |
 
-The only difference between first two connectors is that the former is a Scala 2.11 based connector, targeting Spark 2.3
-and 2.4 using Scala 2.11 whereas the latter is a Scala 2.12 based connector, targeting Spark 2.4 and 3.x using Scala 2.12.
-There should not be any code differences between the 2 connectors.
-
-The last two versions are Java based connectors targeting Spark 2.4/Spark 3.1 of all Scala versions built on the new
+The first two versions are Java based connectors targeting Spark 2.4/Spark 3.1 of all Scala versions built on the new
 Data Source APIs (Data Source API v2) of Spark. They are still in preview mode.
 
-**Note:** If you are using scala jars please use the jar relevant to your Spark installation. For Spark 2.4 and Spark 3.1
-there is an option to use the Java only jar.
+The final two connectors are Scala based connectors, please use the jar relevant to your Spark installation as outlined
+below.
 
+### Connector to Spark Compatibility Matrix
+| Connector \ Spark                     | 2.3     | 2.4<br>(Scala 2.11) | 2.4<br>(Scala 2.12) | 3.0     | 3.1     | 3.2     |
+|---------------------------------------|---------|---------------------|---------------------|---------|---------|---------|
+| spark-3.1-bigquery                    |         |                     |                     |         | &check; | &check; |
+| spark-2.4-bigquery                    |         | &check;             | &check;             |         |         |         |
+| spark-bigquery-with-dependencies_2.12 |         |                     | &check;             | &check; | &check; | &check; |
+| spark-bigquery-with-dependencies_2.11 | &check; | &check;             |                     |         |         |         |
+
+### Connector to Dataproc Image Compatibility Matrix
+| Connector \ Dataproc Image            | 1.3     | 1.4     | 1.5     | 2.0     | Serverless | 
+|---------------------------------------|---------|---------|---------|---------|------------|
+| spark-3.1-bigquery                    |         |         |         | &check; | &check;    |
+| spark-2.4-bigquery                    |         | &check; | &check; |         |            |
+| spark-bigquery-with-dependencies_2.12 |         |         | &check; | &check; | &check;    |
+| spark-bigquery-with-dependencies_2.11 | &check; | &check; |         |         |            |
+
+### Maven / Ivy Package Usage
 The connector is also available from the
 [Maven Central](https://repo1.maven.org/maven2/com/google/cloud/spark/)
 repository. It can be used using the `--packages` option or the
@@ -85,10 +98,10 @@ repository. It can be used using the `--packages` option or the
 
 | version    | Connector Artifact                                                                 |
 |------------|------------------------------------------------------------------------------------|
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:${next-release-tag}` |
-| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:${next-release-tag}` |
-| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:${next-release-tag}-preview`            |
 | Spark 3.1  | `com.google.cloud.spark:spark-3.1-bigquery:${next-release-tag}-preview`            |
+| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:${next-release-tag}-preview`            |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:${next-release-tag}` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:${next-release-tag}` |
 
 ## Hello World Example
 
@@ -232,7 +245,7 @@ note there are a few caveats:
 
 ### Writing data to BigQuery
 
-Writing DataFrames to BigQuery can be done using two methods: Direct and Indirect. 
+Writing DataFrames to BigQuery can be done using two methods: Direct and Indirect.
 
 #### Direct write using the BigQuery Storage Write API (preview)
 
@@ -478,14 +491,14 @@ The API Supports a number of options to configure the read
   <tr valign="top">
    <td><code>writeMethod</code>
      </td>
-       <td>Used only by the Spark 2.4 dedicated connector. Controls the method
+       <td>Controls the method
        in which the data is written to BigQuery. Available values are <code>direct</code>
        to use the BigQuery Storage Write API and <code>indirect</code> which writes the
        data first to GCS and then triggers a BigQuery load operation. See more
        <a href="#writing-data-to-bigquery">here</a>
        <br/>(Optional, defaults to <code>indirect</code>)
      </td>
-   <td>Write (supported only by the Spark 2.4 dedicated connector)</td>
+   <td>Write</td>
   </tr>
   <tr valign="top">
    <td><code>temporaryGcsBucket</code>
