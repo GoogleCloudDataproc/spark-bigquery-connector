@@ -139,10 +139,13 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
       case In(child, list) =>
         convertStatement(child, fields) + "IN" +
           blockStatement(convertStatements(fields, list: _*))
+
       case IsNull(child) =>
         blockStatement(convertStatement(child, fields) + "IS NULL")
+
       case IsNotNull(child) =>
         blockStatement(convertStatement(child, fields) + "IS NOT NULL")
+
       case Not(child) => {
         child match {
           case EqualTo(left, right) =>
@@ -163,12 +166,15 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
               blockStatement(convertStatement(child, fields))
         }
       }
+
       case Contains(child, Literal(pattern: UTF8String, StringType)) =>
-        ConstantString("CONTAINS_SUBSTR") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString}%'")
+        ConstantString("CONTAINS_SUBSTR") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString}'")
+
       case EndsWith(child, Literal(pattern: UTF8String, StringType)) =>
-        ConstantString("ENDS_WITH") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString}%'")
+        ConstantString("ENDS_WITH") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString}'")
+
       case StartsWith(child, Literal(pattern: UTF8String, StringType)) =>
-        ConstantString("STARTS_WITH") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString}%'")
+        ConstantString("STARTS_WITH") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString}'")
 
       case _ => null
     })
@@ -223,14 +229,23 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
            _: Least | _:Log10 | _: Pow | _:Round | _: Sin | _: Sinh |
            _: Sqrt | _: Tan | _: Tanh =>
         ConstantString(expression.prettyName.toUpperCase) + blockStatement(convertStatements(fields, expression.children: _*))
+
       case IsNaN(child) =>
         ConstantString("IS_NAN") + blockStatement(convertStatement(child, fields))
+
       case Signum(child) =>
         ConstantString("SIGN") + blockStatement(convertStatement(child, fields))
+
       case _: Rand =>
         ConstantString("RAND") + ConstantString("()")
+
       case Logarithm(left, right) =>
         ConstantString("LOG") + blockStatement(convertStatement(left, fields) + "," + convertStatement(right, fields))
+
+      case Pi() => ConstantString("bqutil.fn.pi()").toStatement
+
+      case PromotePrecision(child) => convertStatement(child, fields)
+
       case _ => null
     })
   }
@@ -347,7 +362,7 @@ class SparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkP
       case BooleanType => "BOOL"
       case DateType => "DATE"
       case TimestampType => "TIMESTAMP"
-      case d: DecimalType => "BIGDECIMAL(" + d.precision + ", " + d.scale + ")"
+      case d: DecimalType => "BIGDECIMAL"
       case IntegerType | ShortType | LongType => "INT64"
       case FloatType | DoubleType => "FLOAT64"
       case _ => null
