@@ -232,6 +232,8 @@ abstract class SparkExpressionConverter {
         ConstantString("RAND") + ConstantString("()")
       case Logarithm(left, right) =>
         ConstantString("LOG") + blockStatement(convertStatement(left, fields) + "," + convertStatement(right, fields))
+      case _: UnaryMinus =>
+        convertUnaryMinusExpression(expression, fields)
       case _ => null
     })
   }
@@ -289,7 +291,7 @@ abstract class SparkExpressionConverter {
           } + ConstantString("END")
 
       case ScalarSubquery(plan, _, _) =>
-        createQueryFromScalarSubquery(plan)
+        convertScalarSubqueryExpression(plan)
 
       case Coalesce(columns) =>
         ConstantString(expression.prettyName.toUpperCase) + blockStatement(makeStatement(columns.map(convertStatement(_, fields)), ", "))
@@ -362,5 +364,9 @@ abstract class SparkExpressionConverter {
   }
 
   // For supporting Scalar Subquery, we need specific implementations of BigQueryStrategy
-  def createQueryFromScalarSubquery(plan: LogicalPlan): BigQuerySQLStatement
+  def convertScalarSubqueryExpression(plan: LogicalPlan): BigQuerySQLStatement
+
+  def convertCheckOverflowExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement
+
+  def convertUnaryMinusExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement
 }
