@@ -63,15 +63,17 @@ abstract class BigQuerySQLQuery(
    */
   val suffixStatement: BigQuerySQLStatement = EmptyBigQuerySQLStatement()
 
+  val visibleAttributeOverride: Option[Seq[Attribute]] = visibleAttribute
+
   /** Gets columns from the fields list if not empty or from the child query */
   val columnSet: Seq[Attribute] = {
     if (fields.isEmpty) {
       children.foldLeft(Seq.empty[Attribute])(
         (x, y) => {
-          val attrs = if (visibleAttribute.isEmpty) {
+          val attrs = if (y.visibleAttributeOverride.isEmpty) {
             y.outputWithQualifier
           } else {
-            visibleAttribute.get
+            y.visibleAttributeOverride.get
           }
           x ++ attrs
         }

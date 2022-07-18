@@ -10,16 +10,19 @@ case class UnionQuery(
                   expressionConverter: SparkExpressionConverter,
                   expressionFactory: SparkExpressionFactory,
                   children: Seq[BigQuerySQLQuery],
-                  outputAttributes: Option[Seq[Attribute]],
-                  visibleAttribute: Option[Seq[Attribute]],
                   alias: String)
   extends BigQuerySQLQuery(
     expressionConverter,
     expressionFactory,
     alias,
     children = children,
-    outputAttributes = outputAttributes,
-    visibleAttribute = visibleAttribute)  {
+    outputAttributes = if (children.isEmpty) None else Some(children.head.output),
+    visibleAttribute = if (children.isEmpty) None else Some(children.foldLeft(Seq.empty[Attribute])((x, y) => x ++ y.output).map(
+      a =>
+        AttributeReference(a.name, a.dataType, a.nullable, a.metadata)(
+          a.exprId,
+          Seq[String](alias)
+        )))) {
 
   override def getStatement(useAlias: Boolean): BigQuerySQLStatement = {
     val query =

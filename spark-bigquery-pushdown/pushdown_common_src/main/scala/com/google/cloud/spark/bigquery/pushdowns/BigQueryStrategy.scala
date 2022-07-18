@@ -21,9 +21,9 @@ import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Strategy
-import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeReference}
+import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeReference, Expression, NamedExpression}
 import org.apache.spark.sql.catalyst.plans.{FullOuter, Inner, LeftAnti, LeftOuter, LeftSemi, RightOuter}
-import org.apache.spark.sql.catalyst.plans.logical._
+import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, _}
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation
@@ -72,7 +72,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
   def hasUnsupportedNodes(plan: LogicalPlan): Boolean = {
     plan.foreach {
       // DataSourceV2Relation is the Spark 2.4 DSv2 connector relation
-      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) | LogicalRelation(_, _, _, _) | DataSourceV2Relation(_, _, _, _, _) | UnionOperationExtractor(_) =>
+      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) | LogicalRelation(_, _, _, _) | DataSourceV2Relation(_, _, _, _, _) | UnionOperationExtractor(_) | Expand(_, _, _) =>
       case subPlan =>
         logInfo(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
         return true
@@ -200,25 +200,15 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
         }
 
       case UnionOperationExtractor(logicalPlanSeq) =>
+        Some(UnionQuery(expressionConverter, expressionFactory, generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq), alias.next()))
 
-        /**
-         * Need to convert the list of logical plan to BigQuerySQLQuery
-         */
-        val children: Seq[BigQuerySQLQuery] = {
-          logicalPlanSeq.map { child =>
-            generateQueryFromPlan(child).get
-          }
+      case Expand(projections, output, child) =>
+        // convert list of Expressions into ProjectPlan
+        val projectPlan = projections.map { p =>
+          val namedExpressions = convertExpressionToNamedExpression(p, output)
+          Project(namedExpressions, child)
         }
-        val outputAttributes: Option[Seq[Attribute]] = Some(children.head.output)
-        val visibleAttribute: Option[Seq[Attribute]] = {
-          Some(children.foldLeft(Seq.empty[Attribute])((x, y) => x ++ y.output).map(
-            a =>
-              AttributeReference(a.name, a.dataType, a.nullable, a.metadata)(
-                a.exprId,
-                Seq[String](alias.next)
-              )))
-        }
-        Some(UnionQuery(expressionConverter, expressionFactory, children, outputAttributes, visibleAttribute, alias.next))
+        Some(UnionQuery(expressionConverter, expressionFactory, generateBigQuerySQLQueryFromLogicalPlanSeq(projectPlan), alias.next()))
 
       case _ =>
         throw new BigQueryPushdownUnsupportedException(
@@ -226,4 +216,30 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
         )
     }
   }
+
+  /**
+   * Generating list of BigQuerySQLQuery from the given list of LogicalPlan
+   * @param logicalPlanSeq The LogicalPlan to be converted.
+   * @return An object of type Option[BQSQLQuery].
+   */
+  def generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq: Seq[LogicalPlan]): Seq[BigQuerySQLQuery] = {
+    logicalPlanSeq.map { child =>
+      new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory).generateQueryFromPlan(child).get
+    }
+  }
+
+  /**
+   * Method to convert Expression into NamedExpression.
+   * If the Expression is not of type NamedExpression, we create an Alias from the expression and attribute
+   */
+  def convertExpressionToNamedExpression(projections: Seq[Expression],
+                                         output: Seq[Attribute]): Seq[NamedExpression] = {
+    projections zip output map { expression =>
+      expression._1 match {
+        case expr: NamedExpression => expr
+        case _ => expressionFactory.createAlias(expression._1, expression._2.name, expression._2.exprId, Seq.empty[String], Some(expression._2.metadata))
+      }
+    }
+  }
+
 }
