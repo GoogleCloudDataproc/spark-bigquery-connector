@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.26.0 - 2022-07-18
 
 * All connectors support the DIRECT write method, using the BigQuery Storage Write API,
   without first writing the data to GCS. **DIRECT write method is in preview mode**.
