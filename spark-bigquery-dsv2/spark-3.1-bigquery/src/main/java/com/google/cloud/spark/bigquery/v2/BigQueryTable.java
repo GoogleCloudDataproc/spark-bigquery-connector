@@ -30,7 +30,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.apache.spark.sql.connector.catalog.Identifier;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.catalog.SupportsWrite;
@@ -46,49 +45,42 @@ public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
 
   public static final ImmutableSet<TableCapability> TABLE_CAPABILITIES =
       ImmutableSet.of(
-          TableCapability.BATCH_READ, TableCapability.BATCH_WRITE, TableCapability.TRUNCATE);
+          TableCapability.BATCH_READ, TableCapability.V1_BATCH_WRITE, TableCapability.TRUNCATE);
 
   private Injector injector;
-  private TableInfo tableInfo;
+  private TableId tableId;
   private StructType schema;
 
-  private BigQueryTable(Injector injector, TableInfo tableInfo, StructType schema) {
+  private BigQueryTable(Injector injector, TableId tableId, StructType schema) {
     this.injector = injector;
-    this.tableInfo = tableInfo;
+    this.tableId = tableId;
     this.schema = schema;
   }
 
   public static BigQueryTable fromConfigurationAndSchema(
-      Injector injector, StructType sparkProvidedSchema) throws NoSuchTableException {
+      Injector injector, StructType sparkProvidedSchema) {
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
     return createInternal(injector, config.getTableId(), sparkProvidedSchema);
   }
 
-  public static BigQueryTable fromIdentifier(Injector injector, Identifier ident)
-      throws NoSuchTableException {
+  public static BigQueryTable fromIdentifier(Injector injector, Identifier ident) {
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
     return createInternal(
         injector, ((BigQueryIdentifier) ident).getTableId(), /*sparkProvidedSchema*/ null);
   }
 
-  public static BigQueryTable fromTableInfo(Injector injector, TableInfo tableInfo) {
-    return new BigQueryTable(
-        injector, tableInfo, SchemaConverters.toSpark(tableInfo.getDefinition().getSchema()));
-  }
-
   private static BigQueryTable createInternal(
-      Injector injector, TableId tableId, StructType sparkProvidedSchema)
-      throws NoSuchTableException {
+      Injector injector, TableId tableId, StructType sparkProvidedSchema) {
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
     TableInfo tableInfo = bigQueryClient.getTable(tableId);
     if (tableInfo == null) {
-      throw new NoSuchTableException(new BigQueryIdentifier(tableId));
+      return new BigQueryTable(injector, tableId, sparkProvidedSchema);
     }
     StructType schema =
         sparkProvidedSchema != null
             ? sparkProvidedSchema
             : SchemaConverters.toSpark(tableInfo.getDefinition().getSchema());
-    return new BigQueryTable(injector, tableInfo, schema);
+    return new BigQueryTable(injector, tableInfo.getTableId(), schema);
   }
 
   @Override
@@ -130,9 +122,5 @@ public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
     // The case where mode == SaveMode.Ignore is handled by Spark, so we can assume we can get the
     // context
     return new BigQueryWriteBuilder(injector, info, SaveMode.Append);
-  }
-
-  TableId getTableId() {
-    return tableInfo.getTableId();
   }
 }
