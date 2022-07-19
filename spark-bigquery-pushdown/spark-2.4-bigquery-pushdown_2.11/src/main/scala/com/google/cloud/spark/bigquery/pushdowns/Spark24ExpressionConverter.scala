@@ -26,7 +26,7 @@ import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 class Spark24ExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) extends SparkExpressionConverter {
   override def convertScalarSubqueryExpression(plan: LogicalPlan): BigQuerySQLStatement = {
     blockStatement(new Spark24BigQueryStrategy(this, expressionFactory, sparkPlanFactory)
-      .generateQueryFromPlan(plan).get.getStatement())
+      .generateQueryFromOriginalLogicalPlan(plan).get.getStatement())
   }
 
   override def convertCheckOverflowExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
