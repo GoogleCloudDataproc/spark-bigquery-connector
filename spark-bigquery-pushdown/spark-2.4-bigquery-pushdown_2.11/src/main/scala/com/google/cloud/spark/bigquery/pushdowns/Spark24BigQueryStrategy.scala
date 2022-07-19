@@ -23,4 +23,10 @@ class Spark24BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
       case _ => None
     }
   }
+
+  override def generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq: Seq[LogicalPlan]): Seq[BigQuerySQLQuery] = {
+    logicalPlanSeq.map { child =>
+      new Spark24BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory).generateQueryFromPlan(child).get
+    }
+  }
 }

@@ -44,7 +44,8 @@ abstract class BigQuerySQLQuery(
   projections: Option[Seq[NamedExpression]] = None,
   outputAttributes: Option[Seq[Attribute]] = None,
   conjunctionStatement: BigQuerySQLStatement = EmptyBigQuerySQLStatement(),
-  fields: Option[Seq[Attribute]] = None) {
+  fields: Option[Seq[Attribute]] = None,
+  visibleAttribute: Option[Seq[Attribute]] = None) {
 
   /**
    * Creates the sql after the FROM clause by building the queries from its children.
@@ -62,12 +63,18 @@ abstract class BigQuerySQLQuery(
    */
   val suffixStatement: BigQuerySQLStatement = EmptyBigQuerySQLStatement()
 
+  val visibleAttributeOverride: Option[Seq[Attribute]] = visibleAttribute
+
   /** Gets columns from the fields list if not empty or from the child query */
   val columnSet: Seq[Attribute] = {
     if (fields.isEmpty) {
       children.foldLeft(Seq.empty[Attribute])(
         (x, y) => {
-          val attrs = y.outputWithQualifier
+          val attrs = if (y.visibleAttributeOverride.isEmpty) {
+            y.outputWithQualifier
+          } else {
+            y.visibleAttributeOverride.get
+          }
           x ++ attrs
         }
       )
