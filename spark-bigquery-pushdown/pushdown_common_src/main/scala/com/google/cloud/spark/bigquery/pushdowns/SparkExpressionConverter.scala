@@ -362,7 +362,7 @@ abstract class SparkExpressionConverter {
       case BooleanType => "BOOL"
       case DateType => "DATE"
       case TimestampType => "TIMESTAMP"
-      case d: DecimalType => "BIGDECIMAL"
+      case _: DecimalType => "BIGDECIMAL"
       case IntegerType | ShortType | LongType => "INT64"
       case FloatType | DoubleType => "FLOAT64"
       case _ => null

@@ -24,7 +24,7 @@ class Spark24ExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     MockitoAnnotations.initMocks(this)
   }
 
-  test("convertMiscExpressions with ScalarSubquery") {
+  test("convertMiscellaneousExpressions with ScalarSubquery") {
     when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
     when(directBigQueryRelationMock.getTableName).thenReturn("MY_BIGQUERY_TABLE")
     val logicalRelation = LogicalRelation(directBigQueryRelationMock)
@@ -46,6 +46,6 @@ class Spark24ExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val checkOverflowExpression = CheckOverflow.apply(Literal.apply(233.45), DecimalType.apply(38, 10))
     val bigQuerySQLStatement = expressionConverter.convertMathematicalExpressions(checkOverflowExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "CAST ( 233.45 AS BIGDECIMAL(38, 10) )")
+    assert(bigQuerySQLStatement.get.toString == "CAST ( 233.45 AS BIGDECIMAL )")
   }
 }
