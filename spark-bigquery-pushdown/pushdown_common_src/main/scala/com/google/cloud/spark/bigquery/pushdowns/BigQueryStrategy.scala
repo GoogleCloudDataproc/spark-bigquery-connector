@@ -36,7 +36,7 @@ import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation
  * Passing SparkPlanFactory as the constructor parameter here for ease of unit testing
  *
  */
-class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) extends Strategy with Logging {
+abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) extends Strategy with Logging {
 
   /** This iterator automatically increments every time it is used,
    * and is for aliasing subqueries.
@@ -81,12 +81,16 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
   }
 
   def generateSparkPlanFromLogicalPlan(plan: LogicalPlan): Seq[SparkPlan] = {
-    val cleanedPlan = cleanUpLogicalPlan(plan)
-    val queryRoot = generateQueryFromPlan(cleanedPlan)
+    val queryRoot = generateQueryFromPlan(plan)
     val bigQueryRDDFactory = getRDDFactory(queryRoot.get)
 
     val sparkPlan = sparkPlanFactory.createSparkPlan(queryRoot.get, bigQueryRDDFactory.get)
     Seq(sparkPlan.get)
+  }
+
+  def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
+    val cleanedPlan = cleanUpLogicalPlan(plan)
+    generateQueryFromCleanedPlan(cleanedPlan)
   }
 
   /**
@@ -121,9 +125,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
   }
 
   // This method will be overridden in subclasses that support query pushdown for DSv2
-  def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
-    throw new BigQueryPushdownUnsupportedException("Query pushdown unsupported for the DSv2 connector for this Spark version")
-  }
+  def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery]
 
   /**
    * Attempts to generate the query from the LogicalPlan by pattern matching recursively.
@@ -134,7 +136,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
    * @return An object of type Option[BQSQLQuery], which is None if the plan contains an
    *         unsupported node type.
    */
-  def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
+  def generateQueryFromCleanedPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     plan match {
       case _: DataSourceV2Relation =>
         generateQueryFromPlanForDataSourceV2(plan)
@@ -143,7 +145,7 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
         Some(SourceQuery(expressionConverter, expressionFactory, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))
 
       case UnaryOperationExtractor(child) =>
-        generateQueryFromPlan(child) map { subQuery =>
+        generateQueryFromCleanedPlan(child) map { subQuery =>
           plan match {
             case Filter(condition, _) =>
               FilterQuery(expressionConverter, expressionFactory, Seq(condition), subQuery, alias.next)
@@ -171,8 +173,8 @@ class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expression
         }
 
       case BinaryOperationExtractor(left, right) =>
-        generateQueryFromPlan(left).flatMap { l =>
-          generateQueryFromPlan(right) map { r =>
+        generateQueryFromCleanedPlan(left).flatMap { l =>
+          generateQueryFromCleanedPlan(right) map { r =>
             plan match {
               case JoinExtractor(joinType, condition) =>
                 joinType match {
