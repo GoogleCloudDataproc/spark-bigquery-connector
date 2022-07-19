@@ -20,7 +20,7 @@ package com.google.cloud.spark.bigquery.pushdowns
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.sql.catalyst.expressions.aggregate._
-import org.apache.spark.sql.catalyst.expressions.{Abs, Acos, Alias, And, Ascending, Ascii, Asin, Atan, AttributeReference, Base64, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, CaseWhen, Cast, Ceil, Coalesce, Concat, Contains, Cos, Cosh, DateAdd, DateSub, Descending, EndsWith, EqualTo, Exp, ExprId, Expression, Floor, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, Greatest, If, In, InSet, InitCap, IsNaN, IsNotNull, IsNull, Least, Length, LessThan, LessThanOrEqual, Literal, Log, Log10, Logarithm, Lower, Month, Not, Or, Pow, Quarter, Rand, RegExpExtract, RegExpReplace, Round, ScalarSubquery, ShiftLeft, ShiftRight, Signum, Sin, Sinh, SortOrder, SoundEx, Sqrt, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, Tan, Tanh, TruncDate, UnBase64, UnscaledValue, Upper, Year}
+import org.apache.spark.sql.catalyst.expressions.{Abs, Acos, Alias, And, Ascending, Ascii, Asin, Atan, AttributeReference, Base64, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, CaseWhen, Cast, Ceil, Coalesce, Concat, Contains, Cos, Cosh, DateAdd, DateSub, Descending, EndsWith, EqualTo, Exp, ExprId, Expression, Floor, FormatNumber, FormatString, GreaterThan, GreaterThanOrEqual, Greatest, If, In, InSet, InitCap, IsNaN, IsNotNull, IsNull, Least, Length, LessThan, LessThanOrEqual, Literal, Log, Log10, Logarithm, Lower, Month, Not, Or, Pi, Pow, PromotePrecision, Quarter, Rand, RegExpExtract, RegExpReplace, Round, ScalarSubquery, ShiftLeft, ShiftRight, Signum, Sin, Sinh, SortOrder, SoundEx, Sqrt, StartsWith, StringInstr, StringLPad, StringRPad, StringTranslate, StringTrim, StringTrimLeft, StringTrimRight, Substring, Tan, Tanh, TruncDate, UnBase64, UnscaledValue, Upper, Year}
 import org.apache.spark.sql.catalyst.plans.logical.Aggregate
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.types._
@@ -358,21 +358,21 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val containsExpression = Contains.apply(schoolIdAttributeReference, Literal("1234"))
     val bigQuerySQLStatement = converter.convertBooleanExpressions(containsExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "CONTAINS_SUBSTR ( SUBQUERY_2.SCHOOLID , '1234%' )")
+    assert(bigQuerySQLStatement.get.toString == "CONTAINS_SUBSTR ( SUBQUERY_2.SCHOOLID , '1234' )")
   }
 
   test("convertBooleanExpressions with Ends With") {
     val endsWithExpression = EndsWith.apply(schoolIdAttributeReference, Literal("1234"))
     val bigQuerySQLStatement = converter.convertBooleanExpressions(endsWithExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "ENDS_WITH ( SUBQUERY_2.SCHOOLID , '1234%' )")
+    assert(bigQuerySQLStatement.get.toString == "ENDS_WITH ( SUBQUERY_2.SCHOOLID , '1234' )")
   }
 
   test("convertBooleanExpressions with Starts With") {
     val startsWithExpression = StartsWith.apply(schoolIdAttributeReference, Literal("1234"))
     val bigQuerySQLStatement = converter.convertBooleanExpressions(startsWithExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "STARTS_WITH ( SUBQUERY_2.SCHOOLID , '1234%' )")
+    assert(bigQuerySQLStatement.get.toString == "STARTS_WITH ( SUBQUERY_2.SCHOOLID , '1234' )")
   }
 
   test("convertBooleanExpressions with non Boolean expression") {
@@ -681,6 +681,19 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     assert(bigQuerySQLStatement.get.toString == "RAND ()")
   }
 
+  test("convertMathematicalExpressions with Pi") {
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(Pi(), fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "bqutil.fn.pi()")
+  }
+
+  test("convertMathematicalExpressions with PromotePrecision") {
+    val promotePrecisionExpression = PromotePrecision(Cast(Literal.apply(233.00), DecimalType.apply(38, 6)))
+    val bigQuerySQLStatement = converter.convertMathematicalExpressions(promotePrecisionExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "CAST ( 233.0 AS BIGDECIMAL )")
+  }
+
   test("convertMiscExpressions with Alias") {
     val aliasExpression = Alias.apply(schoolIdAttributeReference, "SCHOOL_ID_ALIAS")(ExprId.apply(1))
     val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(aliasExpression, fields)
@@ -818,7 +831,7 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val castExpression = Cast.apply(AttributeReference.apply("Transaction", StringType)(ExprId.apply(2)), DecimalType(10, 5))
     val bigQuerySQLStatement = converter.convertMiscellaneousExpressions(castExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "CAST ( TRANSACTION AS BIGDECIMAL(10, 5) )")
+    assert(bigQuerySQLStatement.get.toString == "CAST ( TRANSACTION AS BIGDECIMAL )")
   }
 
   test("convertMiscExpressions with ShiftLeft") {
