@@ -7,4 +7,10 @@ class Spark31BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
   override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     throw new BigQueryPushdownUnsupportedException("Query pushdown for Spark 3.1 DataSourceV2 connector has not been implemented yet")
   }
+
+  override def generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq: Seq[LogicalPlan]): Seq[BigQuerySQLQuery] = {
+    logicalPlanSeq.map { child =>
+      new Spark31BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory).generateQueryFromPlan(child).get
+    }
+  }
 }

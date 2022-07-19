@@ -222,11 +222,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
    * @param logicalPlanSeq The LogicalPlan to be converted.
    * @return An object of type Option[BQSQLQuery].
    */
-  def generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq: Seq[LogicalPlan]): Seq[BigQuerySQLQuery] = {
-    logicalPlanSeq.map { child =>
-      new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory).generateQueryFromPlan(child).get
-    }
-  }
+  def generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq: Seq[LogicalPlan]): Seq[BigQuerySQLQuery]
 
   /**
    * Method to convert Expression into NamedExpression.

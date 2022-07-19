@@ -31,6 +31,8 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
   test("getRDDFactory") {
     val returnedRDDFactory = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock) {
       override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
+
+      override def generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq: Seq[LogicalPlan]): Seq[BigQuerySQLQuery] = Seq.empty
     }.getRDDFactory(sourceQuery)
     assert(returnedRDDFactory.isDefined)
     assert(returnedRDDFactory.get == bigQueryRDDFactoryMock)
@@ -44,6 +46,8 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     val logicalRelation = LogicalRelation(directBigQueryRelationMock)
     val returnedPlan = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock) {
       override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
+
+      override def generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq: Seq[LogicalPlan]): Seq[BigQuerySQLQuery] = Seq.empty
     }.apply(logicalRelation)
 
     assert(returnedPlan == Nil)
@@ -55,6 +59,8 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
 
     assert(new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock) {
       override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
+
+      override def generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq: Seq[LogicalPlan]): Seq[BigQuerySQLQuery] = Seq.empty
     }.hasUnsupportedNodes(returnAnswerPlan))
   }
 
@@ -72,6 +78,8 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
 
     assert(!new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock) {
       override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
+
+      override def generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq: Seq[LogicalPlan]): Seq[BigQuerySQLQuery] = Seq.empty
     }.hasUnsupportedNodes(returnAnswerPlan))
   }
 
@@ -88,6 +96,8 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
 
     val returnedQueryOption = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock) {
       override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
+
+      override def generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq: Seq[LogicalPlan]): Seq[BigQuerySQLQuery] = Seq.empty
     }.generateQueryFromOriginalLogicalPlan(limitPlan)
     assert(returnedQueryOption.isDefined)
 
@@ -111,6 +121,8 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     // Need to create a new BigQueryStrategy object so as to start from the original alias
     val returnedQueryOption = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock) {
       override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
+
+      override def generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq: Seq[LogicalPlan]): Seq[BigQuerySQLQuery] = Seq.empty
     }.generateQueryFromOriginalLogicalPlan(aggregatePlan)
     assert(returnedQueryOption.isDefined)
 
@@ -133,6 +145,8 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     // Need to create a new BigQueryStrategy object so as to start from the original alias
     val bigQueryStrategy = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock) {
       override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
+
+      override def generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq: Seq[LogicalPlan]): Seq[BigQuerySQLQuery] = Seq.empty
     }
     val plan = bigQueryStrategy.cleanUpLogicalPlan(projectPlan)
     val returnedQueryOption = bigQueryStrategy.generateQueryFromOriginalLogicalPlan(plan)
