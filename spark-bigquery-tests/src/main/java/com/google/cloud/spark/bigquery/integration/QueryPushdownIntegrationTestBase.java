@@ -220,7 +220,9 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                 "(SELECT MAX(word_count) from shakespeare) as MaxWordCount",
                 "(SELECT MAX(word_count) from shakespeare WHERE word IN ('glass', 'augurs')) as MaxWordCountInWords",
                 "COALESCE(NULL, NULL, NULL, word, NULL, 'Push', 'Down') as Coalesce",
-                "IF(word_count = 10 and word = 'glass', 'working', 'not working') AS IfCondition")
+                "IF(word_count = 10 and word = 'glass', 'working', 'not working') AS IfCondition",
+                "-(word_count) AS UnaryMinus",
+                "CAST(word_count + 1.99 as DECIMAL(17, 2)) / CAST(word_count + 2.99 as DECIMAL(17, 1)) < 0.9")
             .where("word_count = 10 and word = 'glass'")
             .orderBy("word_count");
 
@@ -236,5 +238,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(7)).isEqualTo(10); // SCALAR SUBQUERY WITH IN
     assertThat(r1.get(8)).isEqualTo("glass"); // COALESCE
     assertThat(r1.get(9)).isEqualTo("working"); // IF CONDITION
+    assertThat(r1.get(10)).isEqualTo(-10); // UNARY MINUS
+    assertThat(r1.get(11)).isEqualTo(false); // CHECKOVERFLOW
   }
 }

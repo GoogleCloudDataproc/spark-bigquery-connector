@@ -81,16 +81,24 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
   }
 
   def generateSparkPlanFromLogicalPlan(plan: LogicalPlan): Seq[SparkPlan] = {
-    val queryRoot = generateQueryFromPlan(plan)
+    val queryRoot = generateQueryFromOriginalLogicalPlan(plan)
     val bigQueryRDDFactory = getRDDFactory(queryRoot.get)
 
     val sparkPlan = sparkPlanFactory.createSparkPlan(queryRoot.get, bigQueryRDDFactory.get)
     Seq(sparkPlan.get)
   }
 
-  def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
+  /**
+   * Clean up the Spark generated logical plan and generate a BigQuerySQLQuery
+   * from the cleaned plan
+   *
+   * @param plan The LogicalPlan to be processed
+   * @return An object of type Option[BigQuerySQLQuery], which is None if the plan contains an
+   *         unsupported node type.
+   */
+  def generateQueryFromOriginalLogicalPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     val cleanedPlan = cleanUpLogicalPlan(plan)
-    generateQueryFromCleanedPlan(cleanedPlan)
+    generateQueryFromPlan(cleanedPlan)
   }
 
   /**
@@ -133,10 +141,10 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
    * supported nodes for translation happens on the way down.
    *
    * @param plan The LogicalPlan to be processed.
-   * @return An object of type Option[BQSQLQuery], which is None if the plan contains an
+   * @return An object of type Option[BigQuerySQLQuery], which is None if the plan contains an
    *         unsupported node type.
    */
-  def generateQueryFromCleanedPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
+  def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     plan match {
       case _: DataSourceV2Relation =>
         generateQueryFromPlanForDataSourceV2(plan)
@@ -145,7 +153,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
         Some(SourceQuery(expressionConverter, expressionFactory, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))
 
       case UnaryOperationExtractor(child) =>
-        generateQueryFromCleanedPlan(child) map { subQuery =>
+        generateQueryFromPlan(child) map { subQuery =>
           plan match {
             case Filter(condition, _) =>
               FilterQuery(expressionConverter, expressionFactory, Seq(condition), subQuery, alias.next)
@@ -173,8 +181,8 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
         }
 
       case BinaryOperationExtractor(left, right) =>
-        generateQueryFromCleanedPlan(left).flatMap { l =>
-          generateQueryFromCleanedPlan(right) map { r =>
+        generateQueryFromPlan(left).flatMap { l =>
+          generateQueryFromPlan(right) map { r =>
             plan match {
               case JoinExtractor(joinType, condition) =>
                 joinType match {

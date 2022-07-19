@@ -88,7 +88,7 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
 
     val returnedQueryOption = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock) {
       override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
-    }.generateQueryFromPlan(limitPlan)
+    }.generateQueryFromOriginalLogicalPlan(limitPlan)
     assert(returnedQueryOption.isDefined)
 
     val returnedQuery = returnedQueryOption.get
@@ -111,7 +111,7 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     // Need to create a new BigQueryStrategy object so as to start from the original alias
     val returnedQueryOption = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock) {
       override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
-    }.generateQueryFromPlan(aggregatePlan)
+    }.generateQueryFromOriginalLogicalPlan(aggregatePlan)
     assert(returnedQueryOption.isDefined)
 
     val returnedQuery = returnedQueryOption.get
@@ -135,7 +135,7 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
       override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
     }
     val plan = bigQueryStrategy.cleanUpLogicalPlan(projectPlan)
-    val returnedQueryOption = bigQueryStrategy.generateQueryFromPlan(plan)
+    val returnedQueryOption = bigQueryStrategy.generateQueryFromOriginalLogicalPlan(plan)
     assert(returnedQueryOption.isDefined)
 
     val returnedQuery = returnedQueryOption.get
