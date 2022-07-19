@@ -15,8 +15,8 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
-import com.google.cloud.spark.bigquery.InjectorFactory;
+import com.google.cloud.spark.bigquery.DataSourceVersion;
+import com.google.cloud.spark.bigquery.InjectorBuilder;
 import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Injector;
@@ -25,7 +25,6 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.TableProvider;
 import org.apache.spark.sql.connector.expressions.Transform;
@@ -56,19 +55,20 @@ public class BigQueryTableProvider extends BaseBigQuerySource
 
   private BigQueryTable getBigQueryTableInternal(
       StructType schema, Map<String, String> properties) {
-    try {
-      Injector injector =
-          InjectorFactory.createInjector(schema, properties, /* tableIsMandatory */ true);
-      BigQueryTable table = BigQueryTable.fromConfigurationAndSchema(injector, schema);
-      return table;
-    } catch (NoSuchTableException e) {
-      throw new BigQueryConnectorException("Table was not found", e);
-    }
+    Injector injector =
+        new InjectorBuilder()
+            .withOptions(properties)
+            .withSchema(schema)
+            .withTableIsMandatory(true)
+            .withDataSourceVersion(DataSourceVersion.V2)
+            .build();
+    BigQueryTable table = BigQueryTable.fromConfigurationAndSchema(injector, schema);
+    return table;
   }
 
   @Override
   public boolean supportsExternalMetadata() {
-    return true;
+    return false;
   }
 
   @Override

@@ -1,10 +1,10 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
-import org.apache.spark.sql.catalyst.expressions.{Alias, AttributeReference, CheckOverflow, ExprId, Expression, Literal, ScalarSubquery, UnaryMinus}
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, CheckOverflow, ExprId, Literal, ScalarSubquery, UnaryMinus}
 import org.apache.spark.sql.catalyst.plans.logical.Aggregate
 import org.apache.spark.sql.execution.datasources.LogicalRelation
-import org.apache.spark.sql.types.{DecimalType, LongType, Metadata, StructType}
+import org.apache.spark.sql.types.{DecimalType, LongType, StructType}
 import org.mockito.Mockito.when
 import org.mockito.{Mock, MockitoAnnotations}
 import org.scalatest.BeforeAndAfter
