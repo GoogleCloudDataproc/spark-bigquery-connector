@@ -237,4 +237,33 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(8)).isEqualTo("glass"); // COALESCE
     assertThat(r1.get(9)).isEqualTo("working"); // IF CONDITION
   }
+
+  @Test
+  public void testBooleanExpressions() {
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(TestConstants.SHAKESPEARE_TABLE);
+    df.createOrReplaceTempView("shakespeare");
+
+    List<Row> result =
+        spark
+            .sql(
+                "SELECT "
+                    + "word, "
+                    + "word LIKE '%las%' AS Contains, "
+                    + "word LIKE '%lass' AS Ends_With, "
+                    + "word LIKE 'gla%' AS Starts_With "
+                    + "FROM shakespeare "
+                    + "WHERE word IN ('glass', 'very_random_word') AND word_count != 99")
+            .collectAsList();
+
+    Row r1 = result.get(0);
+    assertThat(r1.get(0)).isEqualTo("glass"); // word
+    assertThat(r1.get(1)).isEqualTo(true); // contains
+    assertThat(r1.get(2)).isEqualTo(true); // ends_With
+    assertThat(r1.get(3)).isEqualTo(true); // starts_With
+  }
 }
