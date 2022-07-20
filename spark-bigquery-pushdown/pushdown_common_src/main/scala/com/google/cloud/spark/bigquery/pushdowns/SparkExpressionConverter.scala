@@ -272,7 +272,8 @@ abstract class SparkExpressionConverter {
         getCastType(t) match {
           case Some(cast) =>
 
-            /** For known unsupported data conversion, raise exception to break the pushdown process.
+            /**
+             * For known unsupported data conversion, raise exception to break the pushdown process.
              * For example, BigQuery doesn't support to convert DATE/TIMESTAMP to NUMBER
              */
             (child.dataType, t) match {
@@ -281,11 +282,19 @@ abstract class SparkExpressionConverter {
                 throw new BigQueryPushdownUnsupportedException(
                   "Pushdown failed due to unsupported conversion")
               }
+
+              /**
+               * BigQuery doesn't support casting from Integer to Bytes (https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#cast_as_bytes)
+               * So handling this case separately.
+               */
+              case (_: IntegerType ,_: ByteType) =>
+                ConstantString("CAST") +
+                  blockStatement(convertStatement(child, fields) + ConstantString("AS INT64"))
               case _ =>
+                ConstantString("CAST") +
+                  blockStatement(convertStatement(child, fields) + "AS" + cast)
             }
 
-            ConstantString("CAST") +
-              blockStatement(convertStatement(child, fields) + "AS" + cast)
           case _ => convertStatement(child, fields)
         }
 
@@ -354,14 +363,14 @@ abstract class SparkExpressionConverter {
   }
 
   def convertWindowExpressions(expression: Expression, fields: Seq[Attribute]): Option[BigQuerySQLStatement] = {
-    Option(x = expression match {
+    Option(expression match {
       case WindowExpression(windowFunction, windowSpec) =>
         windowFunction match {
           /**
            * Since we can't use a window frame clause with navigation functions and numbering functions,
            * we set the useWindowFrame to false
            */
-          case _: Rank | _: DenseRank | _: PercentRank | _: RowNumber | _ =>
+          case _: Rank | _: DenseRank | _: PercentRank | _: RowNumber =>
             convertStatement(windowFunction, fields) +
             ConstantString("OVER") +
             convertWindowBlock(windowSpec, fields, generateWindowFrame = false)
@@ -375,6 +384,7 @@ abstract class SparkExpressionConverter {
        */
       case _: Rank | _: DenseRank | _: PercentRank | _: RowNumber =>
         ConstantString(expression.prettyName.toUpperCase) + ConstantString("()")
+//      case _: Grouping
       case _ => null
     })
   }
@@ -430,10 +440,11 @@ abstract class SparkExpressionConverter {
       case d: Decimal => Literal(d, DecimalType(d.precision, d.scale))
       case s @ (_: String | _: UTF8String) => Literal(s, StringType)
       case d: Double => Literal(d, DoubleType)
+      case l: Long => Literal(l, LongType)
       case e: Expression => e
       case default =>
         throw new BigQueryPushdownUnsupportedException(
-          "Pushdown unsupported for " + s"${default.getClass.getSimpleName} @ MiscStatement.setToExpr"
+          "Pushdown unsupported for " + s"${default.getClass.getSimpleName} @ MiscStatement.setToExpression"
         )
     }.toSeq
   }

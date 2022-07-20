@@ -5,7 +5,7 @@ import org.apache.spark.sql.catalyst.expressions.NamedExpression
 case class WindowQuery(
                         expressionConverter: SparkExpressionConverter,
                         expressionFactory: SparkExpressionFactory,
-                        projections: Option[Seq[NamedExpression]],
+                        windowExpressions: Seq[NamedExpression],
                         child: BigQuerySQLQuery,
                         alias: String)
   extends BigQuerySQLQuery(
@@ -13,4 +13,5 @@ case class WindowQuery(
       expressionFactory,
       alias,
       children = Seq(child),
-      projections = projections) {}
+      // Need to send in the query attributes along with window expressions to avoid "TreeNodeException: Binding attribute, tree"
+      projections = Some(child.outputWithQualifier ++ windowExpressions)) {}

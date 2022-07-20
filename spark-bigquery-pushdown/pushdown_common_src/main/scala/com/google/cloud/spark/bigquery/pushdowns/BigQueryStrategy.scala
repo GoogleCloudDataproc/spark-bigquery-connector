@@ -178,12 +178,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
               SortLimitQuery(expressionConverter, expressionFactory, None, orderExpr, subQuery, alias.next)
 
             case Window(windowExpressions, _, _, _) =>
-              /**
-               * Need to send in the query attributes along with window expressions to avoid "TreeNodeException: Binding attribute, tree"
-               */
-              val projections: Seq[NamedExpression] =
-                 subQuery.outputWithQualifier ++ windowExpressions
-              WindowQuery(expressionConverter, expressionFactory, if (projections.isEmpty) None else Some(projections), subQuery, alias.next)
+              WindowQuery(expressionConverter, expressionFactory, windowExpressions, subQuery,  alias.next)
 
             case _ => subQuery
           }
