@@ -45,7 +45,10 @@ abstract class BigQuerySQLQuery(
   outputAttributes: Option[Seq[Attribute]] = None,
   conjunctionStatement: BigQuerySQLStatement = EmptyBigQuerySQLStatement(),
   fields: Option[Seq[Attribute]] = None,
-  visibleAttribute: Option[Seq[Attribute]] = None) {
+  // For some query clauses we may override the outputAttributes, but will
+  // need a different set of resolvable attributes to be visible to the parent
+  // query clause, e.g., in UnionQuery
+  val visibleAttributeOverride: Option[Seq[Attribute]] = None) {
 
   /**
    * Creates the sql after the FROM clause by building the queries from its children.
@@ -62,8 +65,6 @@ abstract class BigQuerySQLQuery(
    * case of a filter query or a LIMIT clause for a limit query
    */
   val suffixStatement: BigQuerySQLStatement = EmptyBigQuerySQLStatement()
-
-  val visibleAttributeOverride: Option[Seq[Attribute]] = visibleAttribute
 
   /** Gets columns from the fields list if not empty or from the child query */
   val columnSet: Seq[Attribute] = {
