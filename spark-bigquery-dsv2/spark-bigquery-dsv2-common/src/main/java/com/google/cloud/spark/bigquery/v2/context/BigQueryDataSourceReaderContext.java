@@ -175,7 +175,7 @@ public class BigQueryDataSourceReaderContext {
                     createConverter(selectedFields, readSessionResponse, userProvidedSchema)));
   }
 
-  private Optional<String> getCombinedFilter() {
+  public Optional<String> getCombinedFilter() {
     return BigQueryUtil.emptyIfNeeded(
         SparkFilterUtils.getCompiledFilter(
             readSessionCreatorConfig.getPushAllFilters(),

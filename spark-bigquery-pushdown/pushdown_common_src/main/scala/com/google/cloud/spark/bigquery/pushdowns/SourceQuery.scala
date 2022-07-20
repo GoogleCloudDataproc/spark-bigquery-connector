@@ -17,7 +17,10 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
+import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.makeStatement
 import org.apache.spark.sql.catalyst.expressions.Attribute
+
+import java.util.Optional
 
 /** The base query representing a BigQuery table
  *
@@ -33,7 +36,8 @@ case class SourceQuery(
     bigQueryRDDFactory: BigQueryRDDFactory,
     tableName: String,
     outputAttributes: Seq[Attribute],
-    alias: String)
+    alias: String,
+    pushdownFilters: Optional[String] = Optional.empty())
   extends BigQuerySQLQuery(
     expressionConverter,
     expressionFactory,
@@ -42,4 +46,13 @@ case class SourceQuery(
     conjunctionStatement = ConstantString("`" + tableName + "`").toStatement + ConstantString("AS BQ_CONNECTOR_QUERY_ALIAS")) {
 
     override def find[T](query: PartialFunction[BigQuerySQLQuery, T]): Option[T] = query.lift(this)
+
+    /** Builds the WHERE statement of the source query */
+    override val suffixStatement: BigQuerySQLStatement = {
+        if(pushdownFilters.isPresent) {
+            ConstantString("WHERE ") + pushdownFilters.get
+        } else {
+            EmptyBigQuerySQLStatement()
+        }
+    }
 }

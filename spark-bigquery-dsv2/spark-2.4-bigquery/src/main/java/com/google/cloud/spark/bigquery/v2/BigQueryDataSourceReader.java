@@ -19,6 +19,7 @@ import com.google.cloud.spark.bigquery.SupportsQueryPushdown;
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.Filter;
@@ -89,5 +90,10 @@ public class BigQueryDataSourceReader
   @Override
   public BigQueryRDDFactory getBigQueryRDDFactory() {
     return context.getBigQueryRddFactory();
+  }
+
+  @Override
+  public Optional<String> getPushdownFilters() {
+    return Optional.empty();
   }
 }

@@ -30,6 +30,7 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 
 import java.util
+import java.util.Optional
 
 class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
   @Mock
@@ -91,5 +92,7 @@ class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     override def planInputPartitions(): util.List[InputPartition[InternalRow]] = null
 
     override def getBigQueryRDDFactory: BigQueryRDDFactory = bigQueryRDDFactory
+
+    override def getPushdownFilters: Optional[String] = Optional.empty()
   }
 }

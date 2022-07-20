@@ -17,7 +17,10 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
+import java.util.Optional;
 
 public interface SupportsQueryPushdown {
   BigQueryRDDFactory getBigQueryRDDFactory();
+
+  Optional<String> getPushdownFilters();
 }

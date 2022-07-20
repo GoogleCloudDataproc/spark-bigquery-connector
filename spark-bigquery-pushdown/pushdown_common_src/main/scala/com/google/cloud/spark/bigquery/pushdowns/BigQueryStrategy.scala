@@ -21,6 +21,7 @@ import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Strategy
+import org.apache.spark.sql.catalyst.analysis.NamedRelation
 import org.apache.spark.sql.catalyst.plans.{FullOuter, Inner, LeftAnti, LeftOuter, LeftSemi, RightOuter}
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.SparkPlan
@@ -70,8 +71,11 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
 
   def hasUnsupportedNodes(plan: LogicalPlan): Boolean = {
     plan.foreach {
-      // DataSourceV2Relation is the Spark 2.4 DSv2 connector relation
-      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) | LogicalRelation(_, _, _, _) | DataSourceV2Relation(_, _, _, _, _) =>
+      // NamedRelation is the superclass of DataSourceV2Relation and DataSourceV2ScanRelation.
+      // DataSourceV2Relation is the Spark 2.4 DSv2 connector relation and
+      // DataSourceV2ScanRelation is the Spark 3.1 DSv2 connector relation
+      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) |
+           _: LogicalRelation | _: NamedRelation =>
       case subPlan =>
         logInfo(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
         return true
@@ -138,7 +142,10 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
    */
   def generateQueryFromCleanedPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     plan match {
-      case _: DataSourceV2Relation =>
+      // NamedRelation is the superclass of DataSourceV2Relation and DataSourceV2ScanRelation.
+      // DataSourceV2Relation is the Spark 2.4 DSv2 connector relation and
+      // DataSourceV2ScanRelation is the Spark 3.1 DSv2 connector relation
+      case _: NamedRelation =>
         generateQueryFromPlanForDataSourceV2(plan)
 
       case l@LogicalRelation(bqRelation: DirectBigQueryRelation, _, _, _) =>
