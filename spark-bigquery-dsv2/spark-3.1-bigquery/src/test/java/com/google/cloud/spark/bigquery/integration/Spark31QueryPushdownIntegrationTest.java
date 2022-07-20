@@ -10,6 +10,6 @@ public class Spark31QueryPushdownIntegrationTest extends QueryPushdownIntegratio
 
   @Test
   public void testSomething() {
-    testBasicExpressions();
+    testMiscellaneousExpressions();
   }
 }

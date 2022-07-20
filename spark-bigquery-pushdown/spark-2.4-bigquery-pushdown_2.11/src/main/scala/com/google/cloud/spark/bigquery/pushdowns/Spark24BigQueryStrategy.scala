@@ -8,7 +8,7 @@ class Spark24BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
   extends BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory) {
 
   override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
-    // DataSourceV2Relation is the relation that is used in the Dsv2 connector
+    // DataSourceV2ScanRelation is the relation that is used in the Spark 2.4 DatasourceV2 connector
     plan match {
       case relation@DataSourceV2Relation(_, _, _, _, _) =>
         // Get the reader and cast it to SupportsQueryPushdown to get the BigQueryRDDFactory
