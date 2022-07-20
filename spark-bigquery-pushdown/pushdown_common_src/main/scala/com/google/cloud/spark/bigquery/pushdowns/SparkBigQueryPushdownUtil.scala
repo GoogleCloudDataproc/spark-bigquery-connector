@@ -16,8 +16,12 @@
 
 package com.google.cloud.spark.bigquery.pushdowns
 
+import com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.{DEFAULT_FALLBACK, getOptionFromMultipleParams}
+import com.google.cloud.bigquery.connector.common.BigQueryUtil
+import com.google.common.collect.ImmutableList
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, Expression, NamedExpression}
+import scala.collection.JavaConverters._
 
 /**
  * Static methods for query pushdown functionality
@@ -110,5 +114,13 @@ object SparkBigQueryPushdownUtil {
           expressionFactory.createAlias(expr, altName, expr.exprId, Seq.empty[String], Some(metadata))
       }
     }
+  }
+
+  def getTableName(options: Map[String, String]): String = {
+    // options.get("table") when the "table" option is used, options.get("path") is set when .load("table_name) is used
+    val tableParam = getOptionFromMultipleParams(options.asJava, ImmutableList.of("table", "path"), DEFAULT_FALLBACK).toJavaUtil
+    val tableParamStr = tableParam.get.trim.replaceAll("\\s+", " ")
+    val tableId = BigQueryUtil.parseTableId(tableParamStr)
+    BigQueryUtil.friendlyTableName(tableId)
   }
 }

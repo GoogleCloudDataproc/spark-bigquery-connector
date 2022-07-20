@@ -61,29 +61,30 @@ class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
       .generateQueryFromPlanForDataSourceV2(Range.apply(2L, 100L, 4L, 8)).isEmpty)
   }
 
-  test("generateQueryFromPlanForDataSourceV2 with DataSourceV2Relation node with without tableIdent set") {
-    when(dataSourceV2Relation.newReader()).thenReturn(new MockDataSourceReader)
-    when(dataSourceV2Relation.output).thenReturn(Seq(schoolIdAttributeReference))
-    when(dataSourceV2Relation.tableIdent).thenReturn(Some(TableIdentifier.apply("MY_BIGQUERY_TABLE")))
-
-    val bigQuerySQLQuery = new Spark24BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock)
-      .generateQueryFromPlanForDataSourceV2(dataSourceV2Relation)
-
-    assert(bigQuerySQLQuery.isDefined)
-    assert(bigQuerySQLQuery.get.getStatement().toString == "SELECT * FROM `MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS")
-  }
-
-  test("generateQueryFromPlanForDataSourceV2 with DataSourceV2Relation node without tableIdent set") {
+  test("generateQueryFromPlanForDataSourceV2 with DataSourceV2Relation node with table option set") {
     when(dataSourceV2Relation.newReader()).thenReturn(new MockDataSourceReader)
     when(dataSourceV2Relation.output).thenReturn(Seq(schoolIdAttributeReference))
     when(dataSourceV2Relation.tableIdent).thenReturn(None)
-    when(dataSourceV2Relation.options).thenReturn(Map("path"-> "MY_BIGQUERY_PATH"))
+    when(dataSourceV2Relation.options).thenReturn(Map("table"-> "MY_BIGQUERY_PROJECT.MY_BIGQUERY_DATASET.MY_BIGQUERY_TABLE"))
 
     val bigQuerySQLQuery = new Spark24BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock)
       .generateQueryFromPlanForDataSourceV2(dataSourceV2Relation)
 
     assert(bigQuerySQLQuery.isDefined)
-    assert(bigQuerySQLQuery.get.getStatement().toString == "SELECT * FROM `MY_BIGQUERY_PATH` AS BQ_CONNECTOR_QUERY_ALIAS")
+    assert(bigQuerySQLQuery.get.getStatement().toString == "SELECT * FROM `MY_BIGQUERY_PROJECT.MY_BIGQUERY_DATASET.MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS")
+  }
+
+  test("generateQueryFromPlanForDataSourceV2 with DataSourceV2Relation node with path option set") {
+    when(dataSourceV2Relation.newReader()).thenReturn(new MockDataSourceReader)
+    when(dataSourceV2Relation.output).thenReturn(Seq(schoolIdAttributeReference))
+    when(dataSourceV2Relation.tableIdent).thenReturn(None)
+    when(dataSourceV2Relation.options).thenReturn(Map("path"-> "MY_BIGQUERY_PROJECT.MY_BIGQUERY_DATASET.MY_BIGQUERY_TABLE"))
+
+    val bigQuerySQLQuery = new Spark24BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock)
+      .generateQueryFromPlanForDataSourceV2(dataSourceV2Relation)
+
+    assert(bigQuerySQLQuery.isDefined)
+    assert(bigQuerySQLQuery.get.getStatement().toString == "SELECT * FROM `MY_BIGQUERY_PROJECT.MY_BIGQUERY_DATASET.MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS")
   }
 
   class MockDataSourceReader extends DataSourceReader with SupportsQueryPushdown {

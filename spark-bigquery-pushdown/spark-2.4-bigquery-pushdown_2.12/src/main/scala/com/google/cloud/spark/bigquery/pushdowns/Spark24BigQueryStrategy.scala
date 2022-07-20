@@ -1,6 +1,7 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.SupportsQueryPushdown
+import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.getTableName
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation
 
@@ -14,8 +15,7 @@ class Spark24BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
         val reader = relation.newReader().asInstanceOf[SupportsQueryPushdown]
 
         Some(SourceQuery(expressionConverter, expressionFactory, reader.getBigQueryRDDFactory,
-          // relation.tableIdent.get.table is set when the "table" option is used, relation.options("path") is set when .load("table_name) is used
-          if (relation.tableIdent.isDefined) relation.tableIdent.get.table else relation.options("path"),
+          getTableName(relation.options),
           relation.output, alias.next))
 
       // We should never reach here

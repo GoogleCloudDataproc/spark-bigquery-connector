@@ -1,8 +1,9 @@
 package com.google.cloud.spark.bigquery.pushdowns
 import com.google.cloud.spark.bigquery.SupportsQueryPushdown
+import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.getTableName
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import scala.collection.JavaConverters._
 
 class Spark31BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory)
   extends BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory) {
@@ -13,14 +14,10 @@ class Spark31BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
         // Get the scan and cast it to SupportsQueryPushdown to get the BigQueryRDDFactory
         val scan = scanRelation.scan.asInstanceOf[SupportsQueryPushdown]
 
-        // Get the passed in options to get the table name
-        val options: CaseInsensitiveStringMap = scanRelation.relation.options
-
         Some(SourceQuery(expressionConverter = expressionConverter,
           expressionFactory = expressionFactory,
           bigQueryRDDFactory = scan.getBigQueryRDDFactory,
-          // options.get("table") when the "table" option is used, options.get("path") is set when .load("table_name) is used
-          tableName = if (options.containsKey("path")) options.get("path") else options.get("table"),
+          tableName = getTableName(scanRelation.relation.options.asScala.toMap),
           outputAttributes = scanRelation.output,
           alias = alias.next,
           pushdownFilters = scan.getPushdownFilters))
