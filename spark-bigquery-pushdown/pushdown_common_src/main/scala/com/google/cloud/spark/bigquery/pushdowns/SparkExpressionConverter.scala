@@ -18,7 +18,6 @@ package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
 import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.{addAttributeStatement, blockStatement, makeStatement}
-import org.apache.spark.bigquery.BigNumericUDT
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate._
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
@@ -243,9 +242,15 @@ abstract class SparkExpressionConverter {
       case Logarithm(left, right) =>
         ConstantString("LOG") + blockStatement(convertStatement(left, fields) + "," + convertStatement(right, fields))
 
+      case _: CheckOverflow =>
+        convertCheckOverflowExpression(expression, fields)
+
       case Pi() => ConstantString("bqutil.fn.pi()").toStatement
 
       case PromotePrecision(child) => convertStatement(child, fields)
+
+      case _: UnaryMinus =>
+        convertUnaryMinusExpression(expression, fields)
 
       case _ => null
     })
@@ -304,7 +309,7 @@ abstract class SparkExpressionConverter {
           } + ConstantString("END")
 
       case ScalarSubquery(plan, _, _) =>
-        createQueryFromScalarSubquery(plan)
+        convertScalarSubqueryExpression(plan)
 
       case Coalesce(columns) =>
         ConstantString(expression.prettyName.toUpperCase) + blockStatement(makeStatement(columns.map(convertStatement(_, fields)), ", "))
@@ -357,7 +362,7 @@ abstract class SparkExpressionConverter {
       case BooleanType => "BOOL"
       case DateType => "DATE"
       case TimestampType => "TIMESTAMP"
-      case d: DecimalType => "BIGDECIMAL"
+      case _: DecimalType => "BIGDECIMAL"
       case IntegerType | ShortType | LongType => "INT64"
       case FloatType | DoubleType => "FLOAT64"
       case _ => null
@@ -377,5 +382,9 @@ abstract class SparkExpressionConverter {
   }
 
   // For supporting Scalar Subquery, we need specific implementations of BigQueryStrategy
-  def createQueryFromScalarSubquery(plan: LogicalPlan): BigQuerySQLStatement
+  def convertScalarSubqueryExpression(plan: LogicalPlan): BigQuerySQLStatement
+
+  def convertCheckOverflowExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement
+
+  def convertUnaryMinusExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement
 }

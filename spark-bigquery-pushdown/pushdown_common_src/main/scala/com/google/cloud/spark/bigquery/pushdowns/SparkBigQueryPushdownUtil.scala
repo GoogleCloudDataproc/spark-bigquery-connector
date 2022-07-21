@@ -116,6 +116,21 @@ object SparkBigQueryPushdownUtil {
     }
   }
 
+  /**
+   * Method to convert Expression into NamedExpression.
+   * If the Expression is not of type NamedExpression, we create an Alias from the expression and attribute
+   */
+  def convertExpressionToNamedExpression(projections: Seq[Expression],
+                                         output: Seq[Attribute],
+                                         expressionFactory: SparkExpressionFactory): Seq[NamedExpression] = {
+    projections zip output map { expression =>
+      expression._1 match {
+        case expr: NamedExpression => expr
+        case _ => expressionFactory.createAlias(expression._1, expression._2.name, expression._2.exprId, Seq.empty[String], Some(expression._2.metadata))
+      }
+    }
+  }
+
   def getTableName(options: Map[String, String]): String = {
     // options.get("table") when the "table" option is used, options.get("path") is set when .load("table_name) is used
     val tableParam = getOptionFromMultipleParams(options.asJava, ImmutableList.of("table", "path"), DEFAULT_FALLBACK).toJavaUtil

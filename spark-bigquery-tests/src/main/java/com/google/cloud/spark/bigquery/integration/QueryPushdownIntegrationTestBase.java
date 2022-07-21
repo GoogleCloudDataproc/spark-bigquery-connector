@@ -220,7 +220,9 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                 "(SELECT MAX(word_count) from shakespeare) as MaxWordCount",
                 "(SELECT MAX(word_count) from shakespeare WHERE word IN ('glass', 'augurs')) as MaxWordCountInWords",
                 "COALESCE(NULL, NULL, NULL, word, NULL, 'Push', 'Down') as Coalesce",
-                "IF(word_count = 10 and word = 'glass', 'working', 'not working') AS IfCondition")
+                "IF(word_count = 10 and word = 'glass', 'working', 'not working') AS IfCondition",
+                "-(word_count) AS UnaryMinus",
+                "CAST(word_count + 1.99 as DECIMAL(17, 2)) / CAST(word_count + 2.99 as DECIMAL(17, 1)) < 0.9")
             .where("word_count = 10 and word = 'glass'")
             .orderBy("word_count");
 
@@ -236,5 +238,66 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(7)).isEqualTo(10); // SCALAR SUBQUERY WITH IN
     assertThat(r1.get(8)).isEqualTo("glass"); // COALESCE
     assertThat(r1.get(9)).isEqualTo("working"); // IF CONDITION
+    assertThat(r1.get(10)).isEqualTo(-10); // UNARY MINUS
+    assertThat(r1.get(11)).isEqualTo(false); // CHECKOVERFLOW
+  }
+
+  @Test
+  public void testUnionQuery() {
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(TestConstants.SHAKESPEARE_TABLE);
+
+    df.createOrReplaceTempView("shakespeare");
+
+    Dataset<Row> words_with_word_count_100 =
+        spark.sql("SELECT word, word_count FROM shakespeare WHERE word_count = 100");
+    Dataset<Row> words_with_word_count_150 =
+        spark.sql("SELECT word, word_count FROM shakespeare WHERE word_count = 150");
+
+    List<Row> unionList =
+        words_with_word_count_100.union(words_with_word_count_150).collectAsList();
+    List<Row> unionAllList =
+        words_with_word_count_150.unionAll(words_with_word_count_100).collectAsList();
+    List<Row> unionByNameList =
+        words_with_word_count_100.unionByName(words_with_word_count_150).collectAsList();
+    assertThat(unionList.size()).isGreaterThan(0);
+    assertThat(unionList.get(0).get(1)).isAnyOf(100L, 150L);
+    assertThat(unionAllList.size()).isGreaterThan(0);
+    assertThat(unionAllList.get(0).get(1)).isAnyOf(100L, 150L);
+    assertThat(unionByNameList.size()).isGreaterThan(0);
+    assertThat(unionByNameList.get(0).get(1)).isAnyOf(100L, 150L);
+  }
+
+  @Test
+  public void testBooleanExpressions() {
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(TestConstants.SHAKESPEARE_TABLE);
+    df.createOrReplaceTempView("shakespeare");
+
+    List<Row> result =
+        spark
+            .sql(
+                "SELECT "
+                    + "word, "
+                    + "word LIKE '%las%' AS Contains, "
+                    + "word LIKE '%lass' AS Ends_With, "
+                    + "word LIKE 'gla%' AS Starts_With "
+                    + "FROM shakespeare "
+                    + "WHERE word IN ('glass', 'very_random_word') AND word_count != 99")
+            .collectAsList();
+
+    Row r1 = result.get(0);
+    assertThat(r1.get(0)).isEqualTo("glass"); // word
+    assertThat(r1.get(1)).isEqualTo(true); // contains
+    assertThat(r1.get(2)).isEqualTo(true); // ends_With
+    assertThat(r1.get(3)).isEqualTo(true); // starts_With
   }
 }

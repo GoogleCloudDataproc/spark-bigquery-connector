@@ -19,11 +19,16 @@ package com.google.cloud.spark.bigquery.pushdowns
 import com.google.cloud.bigquery.connector.common.{BigQueryPushdownException, BigQueryPushdownUnsupportedException}
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
+import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.convertExpressionToNamedExpression
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Strategy
+<<<<<<< HEAD
 import org.apache.spark.sql.catalyst.analysis.NamedRelation
+=======
+import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeReference, Expression, NamedExpression}
+>>>>>>> master
 import org.apache.spark.sql.catalyst.plans.{FullOuter, Inner, LeftAnti, LeftOuter, LeftSemi, RightOuter}
-import org.apache.spark.sql.catalyst.plans.logical._
+import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, _}
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation
@@ -71,11 +76,13 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
 
   def hasUnsupportedNodes(plan: LogicalPlan): Boolean = {
     plan.foreach {
+      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _)  | UnionOperationExtractor(_) =>
+
       // NamedRelation is the superclass of DataSourceV2Relation and DataSourceV2ScanRelation.
       // DataSourceV2Relation is the Spark 2.4 DSv2 connector relation and
       // DataSourceV2ScanRelation is the Spark 3.1 DSv2 connector relation
-      case UnaryOperationExtractor(_) | BinaryOperationExtractor(_, _) |
-           _: LogicalRelation | _: NamedRelation =>
+      case _: LogicalRelation | _: NamedRelation | _: Expand =>
+
       case subPlan =>
         logInfo(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
         return true
@@ -85,16 +92,24 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
   }
 
   def generateSparkPlanFromLogicalPlan(plan: LogicalPlan): Seq[SparkPlan] = {
-    val queryRoot = generateQueryFromPlan(plan)
+    val queryRoot = generateQueryFromOriginalLogicalPlan(plan)
     val bigQueryRDDFactory = getRDDFactory(queryRoot.get)
 
     val sparkPlan = sparkPlanFactory.createSparkPlan(queryRoot.get, bigQueryRDDFactory.get)
     Seq(sparkPlan.get)
   }
 
-  def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
+  /**
+   * Clean up the Spark generated logical plan and generate a BigQuerySQLQuery
+   * from the cleaned plan
+   *
+   * @param plan The LogicalPlan to be processed
+   * @return An object of type Option[BigQuerySQLQuery], which is None if the plan contains an
+   *         unsupported node type.
+   */
+  def generateQueryFromOriginalLogicalPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     val cleanedPlan = cleanUpLogicalPlan(plan)
-    generateQueryFromCleanedPlan(cleanedPlan)
+    generateQueryFromPlan(cleanedPlan)
   }
 
   /**
@@ -137,10 +152,10 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
    * supported nodes for translation happens on the way down.
    *
    * @param plan The LogicalPlan to be processed.
-   * @return An object of type Option[BQSQLQuery], which is None if the plan contains an
+   * @return An object of type Option[BigQuerySQLQuery], which is None if the plan contains an
    *         unsupported node type.
    */
-  def generateQueryFromCleanedPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
+  def generateQueryFromPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     plan match {
       // NamedRelation is the superclass of DataSourceV2Relation and DataSourceV2ScanRelation.
       // DataSourceV2Relation is the Spark 2.4 DSv2 connector relation and
@@ -152,7 +167,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
         Some(SourceQuery(expressionConverter, expressionFactory, bqRelation.getBigQueryRDDFactory, bqRelation.getTableName, l.output, alias.next))
 
       case UnaryOperationExtractor(child) =>
-        generateQueryFromCleanedPlan(child) map { subQuery =>
+        generateQueryFromPlan(child) map { subQuery =>
           plan match {
             case Filter(condition, _) =>
               FilterQuery(expressionConverter, expressionFactory, Seq(condition), subQuery, alias.next)
@@ -180,8 +195,8 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
         }
 
       case BinaryOperationExtractor(left, right) =>
-        generateQueryFromCleanedPlan(left).flatMap { l =>
-          generateQueryFromCleanedPlan(right) map { r =>
+        generateQueryFromPlan(left).flatMap { l =>
+          generateQueryFromPlan(right) map { r =>
             plan match {
               case JoinExtractor(joinType, condition) =>
                 joinType match {
@@ -197,10 +212,28 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
           }
         }
 
+      case UnionOperationExtractor(children) =>
+        createUnionQuery(children)
+
+      case Expand(projections, output, child) =>
+        // convert list of Expressions into ProjectPlan
+        val projectPlan = projections.map { p =>
+          val namedExpressions = convertExpressionToNamedExpression(p, output, expressionFactory)
+          Project(namedExpressions, child)
+        }
+        createUnionQuery(projectPlan)
+
       case _ =>
         throw new BigQueryPushdownUnsupportedException(
           s"Query pushdown failed in generateQueries for node ${plan.nodeName} in ${plan.getClass.getName}"
         )
     }
   }
+
+  /**
+   * Create a Union BigQuerySQLQuery from the given list of LogicalPlan
+   * @param children The list of LogicalPlan to be converted.
+   * @return An object of type Option[BigQuerySQLQuery].
+   */
+  def createUnionQuery(children: Seq[LogicalPlan]): Option[BigQuerySQLQuery]
 }

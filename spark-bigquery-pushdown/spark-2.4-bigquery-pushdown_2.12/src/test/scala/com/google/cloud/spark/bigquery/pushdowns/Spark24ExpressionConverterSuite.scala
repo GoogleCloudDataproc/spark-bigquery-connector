@@ -1,10 +1,10 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
-import org.apache.spark.sql.catalyst.expressions.{Alias, AttributeReference, ExprId, Expression, ScalarSubquery}
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, CheckOverflow, ExprId, Literal, ScalarSubquery, UnaryMinus}
 import org.apache.spark.sql.catalyst.plans.logical.Aggregate
 import org.apache.spark.sql.execution.datasources.LogicalRelation
-import org.apache.spark.sql.types.{LongType, Metadata, StructType}
+import org.apache.spark.sql.types.{DecimalType, LongType, StructType}
 import org.mockito.Mockito.when
 import org.mockito.{Mock, MockitoAnnotations}
 import org.scalatest.BeforeAndAfter
@@ -24,7 +24,7 @@ class Spark24ExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     MockitoAnnotations.initMocks(this)
   }
 
-  test("convertMiscExpressions with ScalarSubquery") {
+  test("convertMiscellaneousExpressions with ScalarSubquery") {
     when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
     when(directBigQueryRelationMock.getTableName).thenReturn("MY_BIGQUERY_TABLE")
     val logicalRelation = LogicalRelation(directBigQueryRelationMock)
@@ -33,5 +33,19 @@ class Spark24ExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val bigQuerySQLStatement = expressionConverter.convertMiscellaneousExpressions(scalarSubQueryExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "( SELECT * FROM ( SELECT * FROM `MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 LIMIT 1 )")
+  }
+
+  test("convertMathematicalExpressions with UnaryMinus") {
+    val unaryMinusExpression = UnaryMinus.apply(Literal.apply(10))
+    val bigQuerySQLStatement = expressionConverter.convertMathematicalExpressions(unaryMinusExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "- ( 10 )")
+  }
+
+  test("convertMathematicalExpressions with CheckOverflow") {
+    val checkOverflowExpression = CheckOverflow.apply(Literal.apply(233.45), DecimalType.apply(38, 10))
+    val bigQuerySQLStatement = expressionConverter.convertMathematicalExpressions(checkOverflowExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "CAST ( 233.45 AS BIGDECIMAL )")
   }
 }
