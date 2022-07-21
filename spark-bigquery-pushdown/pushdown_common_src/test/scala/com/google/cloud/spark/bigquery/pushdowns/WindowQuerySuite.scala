@@ -20,7 +20,7 @@ class WindowQuerySuite extends AnyFunSuite {
 
   private val windowAlias = expressionFactory.createAlias(windowExpression, "", ExprId.apply(12L), Seq.empty[String], Some(Metadata.empty))
 
-  private val windowQuery = WindowQuery(expressionConverter, expressionFactory, Seq(windowAlias), sourceQuery, SUBQUERY_0_ALIAS)
+  private val windowQuery = WindowQuery(expressionConverter, expressionFactory, Seq(windowAlias), sourceQuery, Some(Seq(schoolIdAttributeReference, schoolNameAttributeReference, windowAlias.toAttribute)), SUBQUERY_0_ALIAS)
 
   test("sourceStatement") {
     assert(windowQuery.getStatement().toString == "SELECT ( SUBQUERY_0.SCHOOLID ) AS SUBQUERY_0_COL_0 , ( SUBQUERY_0.SCHOOLNAME ) AS SUBQUERY_0_COL_1 , ( RANK () OVER ( PARTITION BY SUBQUERY_0.SCHOOLNAME ORDER BY ( SUBQUERY_0.SCHOOLID ) ASC ) ) AS SUBQUERY_0_COL_2 FROM ( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0")
