@@ -17,10 +17,7 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
-import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.makeStatement
 import org.apache.spark.sql.catalyst.expressions.Attribute
-
-import java.util.Optional
 
 /** The base query representing a BigQuery table
  *
@@ -37,7 +34,7 @@ case class SourceQuery(
     tableName: String,
     outputAttributes: Seq[Attribute],
     alias: String,
-    pushdownFilters: Optional[String] = Optional.empty())
+    pushdownFilters: Option[String] = None)
   extends BigQuerySQLQuery(
     expressionConverter,
     expressionFactory,
@@ -49,7 +46,7 @@ case class SourceQuery(
 
     /** Builds the WHERE statement of the source query */
     override val suffixStatement: BigQuerySQLStatement = {
-        if(pushdownFilters.isPresent) {
+        if(pushdownFilters.isDefined) {
             ConstantString("WHERE ") + pushdownFilters.get
         } else {
             EmptyBigQuerySQLStatement()

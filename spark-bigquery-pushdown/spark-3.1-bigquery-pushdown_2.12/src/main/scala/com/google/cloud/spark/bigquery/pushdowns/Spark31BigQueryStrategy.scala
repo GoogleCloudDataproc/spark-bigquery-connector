@@ -20,7 +20,8 @@ class Spark31BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
           tableName = getTableName(scanRelation.relation.options.asScala.toMap),
           outputAttributes = scanRelation.output,
           alias = alias.next,
-          pushdownFilters = scan.getPushdownFilters))
+          pushdownFilters = if (scan.getPushdownFilters.isPresent) Some(scan.getPushdownFilters.get) else None
+        ))
 
       // We should never reach here
       case _ => None
