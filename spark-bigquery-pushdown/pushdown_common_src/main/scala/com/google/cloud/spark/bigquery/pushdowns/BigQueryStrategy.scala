@@ -179,6 +179,9 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
             case Sort(orderExpr, true, _) =>
               SortLimitQuery(expressionConverter, expressionFactory, None, orderExpr, subQuery, alias.next)
 
+            case Window(windowExpressions, _, _, _) =>
+              WindowQuery(expressionConverter, expressionFactory, windowExpressions, subQuery,  if (plan.output.isEmpty) None else Some(plan.output), alias.next)
+
             case _ => subQuery
           }
         }

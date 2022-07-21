@@ -43,6 +43,7 @@ abstract class SparkExpressionConverter {
       .orElse(convertMathematicalExpressions(expression, fields))
       .orElse(convertMiscellaneousExpressions(expression, fields))
       .orElse(convertStringExpressions(expression, fields))
+      .orElse(convertWindowExpressions(expression, fields))
       .getOrElse(throw new BigQueryPushdownUnsupportedException((s"Pushdown unsupported for ${expression.prettyName}")))
   }
 
@@ -271,7 +272,8 @@ abstract class SparkExpressionConverter {
         getCastType(t) match {
           case Some(cast) =>
 
-            /** For known unsupported data conversion, raise exception to break the pushdown process.
+            /**
+             * For known unsupported data conversion, raise exception to break the pushdown process.
              * For example, BigQuery doesn't support to convert DATE/TIMESTAMP to NUMBER
              */
             (child.dataType, t) match {
@@ -280,11 +282,19 @@ abstract class SparkExpressionConverter {
                 throw new BigQueryPushdownUnsupportedException(
                   "Pushdown failed due to unsupported conversion")
               }
+
+              /**
+               * BigQuery doesn't support casting from Integer to Bytes (https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#cast_as_bytes)
+               * So handling this case separately.
+               */
+              case (_: IntegerType ,_: ByteType) =>
+                ConstantString("CAST") +
+                  blockStatement(convertStatement(child, fields) + ConstantString("AS INT64"))
               case _ =>
+                ConstantString("CAST") +
+                  blockStatement(convertStatement(child, fields) + "AS" + cast)
             }
 
-            ConstantString("CAST") +
-              blockStatement(convertStatement(child, fields) + "AS" + cast)
           case _ => convertStatement(child, fields)
         }
 
@@ -352,6 +362,63 @@ abstract class SparkExpressionConverter {
     })
   }
 
+  def convertWindowExpressions(expression: Expression, fields: Seq[Attribute]): Option[BigQuerySQLStatement] = {
+    Option(expression match {
+      case WindowExpression(windowFunction, windowSpec) =>
+        windowFunction match {
+          /**
+           * Since we can't use a window frame clause with navigation functions and numbering functions,
+           * we set the useWindowFrame to false
+           */
+          case _: Rank | _: DenseRank | _: PercentRank | _: RowNumber =>
+            convertStatement(windowFunction, fields) +
+            ConstantString("OVER") +
+            convertWindowBlock(windowSpec, fields, generateWindowFrame = false)
+          case _ =>
+            convertStatement(windowFunction, fields) +
+              ConstantString("OVER") +
+              convertWindowBlock(windowSpec, fields, generateWindowFrame = true)
+        }
+      /**
+       * Handling Numbering Functions here itself since they are a sub class of Window Expressions
+       */
+      case _: Rank | _: DenseRank | _: PercentRank | _: RowNumber =>
+        ConstantString(expression.prettyName.toUpperCase) + ConstantString("()")
+//      case _: Grouping
+      case _ => null
+    })
+  }
+
+  def convertWindowBlock(windowSpecDefinition: WindowSpecDefinition, fields: Seq[Attribute], generateWindowFrame: Boolean): BigQuerySQLStatement = {
+    val partitionBy =
+      if (windowSpecDefinition.partitionSpec.nonEmpty) {
+        ConstantString("PARTITION BY") +
+          makeStatement(windowSpecDefinition.partitionSpec.map(convertStatement(_, fields)), ",")
+      } else {
+        EmptyBigQuerySQLStatement()
+      }
+
+    val orderBy =
+      if (windowSpecDefinition.orderSpec.nonEmpty) {
+        ConstantString("ORDER BY") +
+          makeStatement(windowSpecDefinition.orderSpec.map(convertStatement(_, fields)), ",")
+      } else {
+        EmptyBigQuerySQLStatement()
+      }
+
+    /**
+     * Generating the window frame iff generateWindowFrame is true and the window spec has order spec in it
+     */
+    val windowFrame =
+      if (generateWindowFrame && windowSpecDefinition.orderSpec.nonEmpty) {
+        windowSpecDefinition.frameSpecification.sql
+      } else {
+        ""
+      }
+
+    blockStatement(partitionBy + orderBy + windowFrame)
+  }
+
   /** Attempts a best effort conversion from a SparkType
    * to a BigQuery type to be used in a Cast.
    */
@@ -373,10 +440,11 @@ abstract class SparkExpressionConverter {
       case d: Decimal => Literal(d, DecimalType(d.precision, d.scale))
       case s @ (_: String | _: UTF8String) => Literal(s, StringType)
       case d: Double => Literal(d, DoubleType)
+      case l: Long => Literal(l, LongType)
       case e: Expression => e
       case default =>
         throw new BigQueryPushdownUnsupportedException(
-          "Pushdown unsupported for " + s"${default.getClass.getSimpleName} @ MiscStatement.setToExpr"
+          "Pushdown unsupported for " + s"${default.getClass.getSimpleName} @ MiscStatement.setToExpression"
         )
     }.toSeq
   }
