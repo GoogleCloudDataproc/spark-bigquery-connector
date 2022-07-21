@@ -1,6 +1,6 @@
 package com.google.cloud.spark.bigquery.pushdowns
 import com.google.cloud.spark.bigquery.SupportsQueryPushdown
-import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.getTableName
+import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.getTableNameFromOptions
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
 import scala.collection.JavaConverters._
@@ -17,7 +17,7 @@ class Spark31BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
         Some(SourceQuery(expressionConverter = expressionConverter,
           expressionFactory = expressionFactory,
           bigQueryRDDFactory = scan.getBigQueryRDDFactory,
-          tableName = getTableName(scanRelation.relation.options.asScala.toMap),
+          tableName = getTableNameFromOptions(scanRelation.relation.options.asScala.toMap),
           outputAttributes = scanRelation.output,
           alias = alias.next,
           pushdownFilters = if (scan.getPushdownFilters.isPresent) Some(scan.getPushdownFilters.get) else None
