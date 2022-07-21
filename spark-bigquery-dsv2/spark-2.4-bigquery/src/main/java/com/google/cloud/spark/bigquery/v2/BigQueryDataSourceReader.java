@@ -94,6 +94,8 @@ public class BigQueryDataSourceReader
 
   @Override
   public Optional<String> getPushdownFilters() {
+    // Return Optional.empty() here since we can get the filters from the Filter node in the
+    // LogicalPlan in Spark 2.4
     return Optional.empty();
   }
 }

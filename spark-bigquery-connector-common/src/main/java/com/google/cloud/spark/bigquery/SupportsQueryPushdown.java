@@ -22,5 +22,7 @@ import java.util.Optional;
 public interface SupportsQueryPushdown {
   BigQueryRDDFactory getBigQueryRDDFactory();
 
+  // Spark 3.1 DataSourceV2 connector does not create a Filter node in the logical plan. Instead,
+  // we get all the filters from the ScanBuilder
   Optional<String> getPushdownFilters();
 }

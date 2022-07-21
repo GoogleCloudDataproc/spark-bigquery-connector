@@ -95,6 +95,8 @@ public class BigQueryScanBuilder
 
   @Override
   public Optional<String> getPushdownFilters() {
+    // Return the combined filters (pushed + global) here since Spark 3.1 does not create a Filter
+    // node in the LogicalPlan
     return ctx.getCombinedFilter();
   }
 }
