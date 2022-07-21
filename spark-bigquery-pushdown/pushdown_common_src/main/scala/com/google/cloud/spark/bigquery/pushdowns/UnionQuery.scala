@@ -33,7 +33,7 @@ case class UnionQuery(
     alias,
     children = children,
     outputAttributes = if (children.isEmpty) None else Some(children.head.output),
-    visibleAttribute = if (children.isEmpty) None else Some(children.foldLeft(Seq.empty[Attribute])((x, y) => x ++ y.output).map(
+    visibleAttributeOverride = if (children.isEmpty) None else Some(children.foldLeft(Seq.empty[Attribute])((x, y) => x ++ y.output).map(
       a =>
         AttributeReference(a.name, a.dataType, a.nullable, a.metadata)(
           a.exprId,

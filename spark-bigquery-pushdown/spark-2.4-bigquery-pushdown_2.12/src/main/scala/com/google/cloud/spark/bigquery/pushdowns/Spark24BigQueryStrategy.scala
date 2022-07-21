@@ -23,9 +23,10 @@ class Spark24BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
     }
   }
 
-  override def generateBigQuerySQLQueryFromLogicalPlanSeq(logicalPlanSeq: Seq[LogicalPlan]): Seq[BigQuerySQLQuery] = {
-    logicalPlanSeq.map { child =>
+  override def createUnionQuery(children: Seq[LogicalPlan]): Option[BigQuerySQLQuery] = {
+    val queries: Seq[BigQuerySQLQuery] = children.map { child =>
       new Spark24BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory).generateQueryFromPlan(child).get
     }
+    Some(UnionQuery(expressionConverter, expressionFactory, queries, alias.next))
   }
 }
