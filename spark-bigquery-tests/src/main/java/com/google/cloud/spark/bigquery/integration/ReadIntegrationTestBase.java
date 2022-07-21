@@ -430,14 +430,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testReadFromBigLakeTable_avro() {
-    assertThrows(
-        "avro is not supported yet",
-        Exception.class,
-        () ->
-            testBigLakeTable(
-                FormatOptions.avro(),
-                TestConstants.SHAKESPEARE_AVRO_FILENAME,
-                "application/octet-stream"));
+    testBigLakeTable(
+        FormatOptions.avro(), TestConstants.SHAKESPEARE_AVRO_FILENAME, "application/octet-stream");
   }
 
   private void testBigLakeTable(FormatOptions formatOptions, String dataFileName, String mimeType) {
