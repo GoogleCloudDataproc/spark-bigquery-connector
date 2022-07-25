@@ -76,16 +76,4 @@ class SparkBigQueryPushdownUtilSuite extends AnyFunSuite {
     assert("SUBQUERY_2_COL_1" == returnedExpressions(1).name)
     assert(namedExpr2.exprId == returnedExpressions(1).exprId)
   }
-
-  test("getTableNameFromOptions from table") {
-    val options = Map("table" -> "bigquery-public-data:samples.shakespeare")
-    val tableName = SparkBigQueryPushdownUtil.getTableNameFromOptions(options)
-    assert(tableName == "bigquery-public-data.samples.shakespeare")
-  }
-
-  test("getTableNameFromOptions from path") {
-    val options = Map("path" -> "bigquery-public-data:samples.shakespeare")
-    val tableName = SparkBigQueryPushdownUtil.getTableNameFromOptions(options)
-    assert(tableName == "bigquery-public-data.samples.shakespeare")
-  }
 }

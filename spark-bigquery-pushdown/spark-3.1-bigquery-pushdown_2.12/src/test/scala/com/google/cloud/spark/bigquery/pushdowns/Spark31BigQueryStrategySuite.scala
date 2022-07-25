@@ -48,8 +48,17 @@ class Spark31BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
       .generateQueryFromPlanForDataSourceV2(Range.apply(2L, 100L, 4L, 8)).isEmpty)
   }
 
-  test("generateQueryFromPlanForDataSourceV2 with DataSourceV2Relation node with table option set") {
-    when(dataSourceV2ScanRelation.scan).thenReturn(new MockScan)
+  test("generateQueryFromPlanForDataSourceV2 with unsupported query pushdown scan") {
+    when(dataSourceV2ScanRelation.scan).thenReturn(new MockScanWithoutQueryPushdown)
+
+    val bigQuerySQLQuery = new Spark31BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock)
+      .generateQueryFromPlanForDataSourceV2(dataSourceV2ScanRelation)
+
+    assert(bigQuerySQLQuery.isEmpty)
+  }
+
+  test("generateQueryFromPlanForDataSourceV2 with table option set in DataSourceV2Relation node") {
+    when(dataSourceV2ScanRelation.scan).thenReturn(new MockScanWithQueryPushdown)
     when(dataSourceV2ScanRelation.output).thenReturn(Seq(schoolIdAttributeReference))
     when(dataSourceV2ScanRelation.relation).thenReturn(dataSourceV2Relation)
 
@@ -64,8 +73,8 @@ class Spark31BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     assert(bigQuerySQLQuery.get.getStatement().toString == "SELECT * FROM `MY_BIGQUERY_PROJECT.MY_BIGQUERY_DATASET.MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS WHERE foo = 1 AND bar = 2")
   }
 
-  test("generateQueryFromPlanForDataSourceV2 with DataSourceV2Relation node with path option set") {
-    when(dataSourceV2ScanRelation.scan).thenReturn(new MockScan)
+  test("generateQueryFromPlanForDataSourceV2 with path option set in DataSourceV2Relation node") {
+    when(dataSourceV2ScanRelation.scan).thenReturn(new MockScanWithQueryPushdown)
     when(dataSourceV2ScanRelation.output).thenReturn(Seq(schoolIdAttributeReference))
     when(dataSourceV2ScanRelation.relation).thenReturn(dataSourceV2Relation)
 
@@ -80,11 +89,15 @@ class Spark31BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     assert(bigQuerySQLQuery.get.getStatement().toString == "SELECT * FROM `MY_BIGQUERY_PROJECT.MY_BIGQUERY_DATASET.MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS WHERE foo = 1 AND bar = 2")
   }
 
-  class MockScan extends Scan with SupportsQueryPushdown {
+  class MockScanWithQueryPushdown extends Scan with SupportsQueryPushdown {
     override def getBigQueryRDDFactory: BigQueryRDDFactory = bigQueryRDDFactory
 
     override def getPushdownFilters: Optional[String] = Optional.of("foo = 1 AND bar = 2")
 
+    override def readSchema(): StructType = null
+  }
+
+  class MockScanWithoutQueryPushdown extends Scan {
     override def readSchema(): StructType = null
   }
 }

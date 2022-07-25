@@ -15,6 +15,8 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.DEFAULT_FALLBACK;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getOptionFromMultipleParams;
 import static scala.collection.JavaConversions.mapAsJavaMap;
 
 import com.google.cloud.bigquery.JobInfo;
@@ -23,11 +25,13 @@ import com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -179,5 +183,16 @@ public class SparkBigQueryUtil {
     }
     java.sql.Date sparkDate = (java.sql.Date) sparkValue;
     return (int) sparkDate.toLocalDate().toEpochDay();
+  }
+
+  public static String getTableNameFromOptions(Map<String, String> options) {
+    // options.get("table") when the "table" option is used, options.get("path") is set when
+    // .load("table_name) is used
+    Optional<String> tableParam =
+        getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
+            .toJavaUtil();
+    String tableParamStr = tableParam.get().trim().replaceAll("\\s+", " ");
+    TableId tableId = BigQueryUtil.parseTableId(tableParamStr);
+    return BigQueryUtil.friendlyTableName(tableId);
   }
 }

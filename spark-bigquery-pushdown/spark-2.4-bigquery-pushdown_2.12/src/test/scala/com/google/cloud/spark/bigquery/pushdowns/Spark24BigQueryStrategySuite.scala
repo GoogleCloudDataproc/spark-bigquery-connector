@@ -61,8 +61,17 @@ class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
       .generateQueryFromPlanForDataSourceV2(Range.apply(2L, 100L, 4L, 8)).isEmpty)
   }
 
-  test("generateQueryFromPlanForDataSourceV2 with DataSourceV2Relation node with table option set") {
-    when(dataSourceV2Relation.newReader()).thenReturn(new MockDataSourceReader)
+  test("generateQueryFromPlanForDataSourceV2 with unsupported query pushdown reader") {
+    when(dataSourceV2Relation.newReader()).thenReturn(new MockDataSourceReaderWithoutQueryPushdown)
+
+    val bigQuerySQLQuery = new Spark24BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock)
+      .generateQueryFromPlanForDataSourceV2(dataSourceV2Relation)
+
+    assert(bigQuerySQLQuery.isEmpty)
+  }
+
+  test("generateQueryFromPlanForDataSourceV2 with table option set in DataSourceV2Relation node") {
+    when(dataSourceV2Relation.newReader()).thenReturn(new MockDataSourceReaderWithQueryPushdown)
     when(dataSourceV2Relation.output).thenReturn(Seq(schoolIdAttributeReference))
     when(dataSourceV2Relation.tableIdent).thenReturn(None)
     when(dataSourceV2Relation.options).thenReturn(Map("table"-> "MY_BIGQUERY_PROJECT.MY_BIGQUERY_DATASET.MY_BIGQUERY_TABLE"))
@@ -74,8 +83,8 @@ class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     assert(bigQuerySQLQuery.get.getStatement().toString == "SELECT * FROM `MY_BIGQUERY_PROJECT.MY_BIGQUERY_DATASET.MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS")
   }
 
-  test("generateQueryFromPlanForDataSourceV2 with DataSourceV2Relation node with path option set") {
-    when(dataSourceV2Relation.newReader()).thenReturn(new MockDataSourceReader)
+  test("generateQueryFromPlanForDataSourceV2 with path option set in DataSourceV2Relation node") {
+    when(dataSourceV2Relation.newReader()).thenReturn(new MockDataSourceReaderWithQueryPushdown)
     when(dataSourceV2Relation.output).thenReturn(Seq(schoolIdAttributeReference))
     when(dataSourceV2Relation.tableIdent).thenReturn(None)
     when(dataSourceV2Relation.options).thenReturn(Map("path"-> "MY_BIGQUERY_PROJECT.MY_BIGQUERY_DATASET.MY_BIGQUERY_TABLE"))
@@ -87,7 +96,7 @@ class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     assert(bigQuerySQLQuery.get.getStatement().toString == "SELECT * FROM `MY_BIGQUERY_PROJECT.MY_BIGQUERY_DATASET.MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS")
   }
 
-  class MockDataSourceReader extends DataSourceReader with SupportsQueryPushdown {
+  class MockDataSourceReaderWithQueryPushdown extends DataSourceReader with SupportsQueryPushdown {
     override def readSchema(): StructType = null
 
     override def planInputPartitions(): util.List[InputPartition[InternalRow]] = null
@@ -95,5 +104,11 @@ class Spark24BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     override def getBigQueryRDDFactory: BigQueryRDDFactory = bigQueryRDDFactory
 
     override def getPushdownFilters: Optional[String] = Optional.empty()
+  }
+
+  class MockDataSourceReaderWithoutQueryPushdown extends DataSourceReader {
+    override def readSchema(): StructType = null
+
+    override def planInputPartitions(): util.List[InputPartition[InternalRow]] = null
   }
 }

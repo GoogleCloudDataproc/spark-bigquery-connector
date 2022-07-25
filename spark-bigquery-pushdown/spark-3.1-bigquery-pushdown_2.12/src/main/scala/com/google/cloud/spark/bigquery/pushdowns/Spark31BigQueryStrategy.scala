@@ -1,9 +1,7 @@
 package com.google.cloud.spark.bigquery.pushdowns
-import com.google.cloud.spark.bigquery.SupportsQueryPushdown
-import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.getTableNameFromOptions
+import com.google.cloud.spark.bigquery.{SparkBigQueryUtil, SupportsQueryPushdown}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
-import scala.collection.JavaConverters._
 
 class Spark31BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory)
   extends BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory) {
@@ -11,17 +9,19 @@ class Spark31BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
     // DataSourceV2ScanRelation is the relation that is used in the Spark 3.1 DatasourceV2 connector
     plan match {
       case scanRelation@DataSourceV2ScanRelation(_, _, _) =>
-        // Get the scan and cast it to SupportsQueryPushdown to get the BigQueryRDDFactory
-        val scan = scanRelation.scan.asInstanceOf[SupportsQueryPushdown]
+        scanRelation.scan match {
+          case scan: SupportsQueryPushdown =>
+            Some(SourceQuery(expressionConverter = expressionConverter,
+              expressionFactory = expressionFactory,
+              bigQueryRDDFactory = scan.getBigQueryRDDFactory,
+              tableName = SparkBigQueryUtil.getTableNameFromOptions(scanRelation.relation.options.asInstanceOf[java.util.Map[String, String]]),
+              outputAttributes = scanRelation.output,
+              alias = alias.next,
+              pushdownFilters = if (scan.getPushdownFilters.isPresent) Some(scan.getPushdownFilters.get) else None
+            ))
 
-        Some(SourceQuery(expressionConverter = expressionConverter,
-          expressionFactory = expressionFactory,
-          bigQueryRDDFactory = scan.getBigQueryRDDFactory,
-          tableName = getTableNameFromOptions(scanRelation.relation.options.asScala.toMap),
-          outputAttributes = scanRelation.output,
-          alias = alias.next,
-          pushdownFilters = if (scan.getPushdownFilters.isPresent) Some(scan.getPushdownFilters.get) else None
-        ))
+          case _ => None
+        }
 
       // We should never reach here
       case _ => None

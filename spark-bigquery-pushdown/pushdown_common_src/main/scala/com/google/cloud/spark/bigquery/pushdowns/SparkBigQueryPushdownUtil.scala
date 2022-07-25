@@ -130,12 +130,4 @@ object SparkBigQueryPushdownUtil {
       }
     }
   }
-
-  def getTableNameFromOptions(options: Map[String, String]): String = {
-    // options.get("table") when the "table" option is used, options.get("path") is set when .load("table_name) is used
-    val tableParam = getOptionFromMultipleParams(options.asJava, ImmutableList.of("table", "path"), DEFAULT_FALLBACK).toJavaUtil
-    val tableParamStr = tableParam.get.trim.replaceAll("\\s+", " ")
-    val tableId = BigQueryUtil.parseTableId(tableParamStr)
-    BigQueryUtil.friendlyTableName(tableId)
-  }
 }
