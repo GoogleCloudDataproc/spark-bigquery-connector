@@ -128,7 +128,8 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                     + "word_count & corpus_date, "
                     + "word_count | corpus_date, "
                     + "word_count ^ corpus_date, "
-                    + "~ word_count "
+                    + "~ word_count, "
+                    + "word <=> corpus "
                     + "FROM shakespeare "
                     + "WHERE word = 'augurs' AND corpus = 'sonnets'")
             .collectAsList();
@@ -139,6 +140,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(1).toString()).isEqualTo("1"); // 1 | 0
     assertThat(r1.get(2).toString()).isEqualTo("1"); // 1 ^ 0
     assertThat(r1.get(3).toString()).isEqualTo("-2"); // ~1
+    assertThat(r1.get(4).toString()).isEqualTo(false); // 'augurs' <=> 'sonnets'
   }
 
   @Test

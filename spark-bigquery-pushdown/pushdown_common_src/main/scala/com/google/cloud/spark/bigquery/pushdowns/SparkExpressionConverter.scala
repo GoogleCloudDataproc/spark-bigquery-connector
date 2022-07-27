@@ -100,6 +100,18 @@ abstract class SparkExpressionConverter {
         ConstantString("~") + blockStatement(
           convertStatement(child, fields)
         )
+      case EqualNullSafe(left, right) =>
+
+        /**
+         * Since NullSafeEqual operator is not supported in BigQuery, we are instead converting the operator to COALESCE ( CAST (leftExpression AS STRING), "" ) = COALESCE ( CAST (rightExpression AS STRING), "" )
+         * Casting the expression to String to make sure the COALESCE arguments are of same type.
+         */
+        blockStatement(
+          ConstantString("COALESCE") + blockStatement( ConstantString("CAST") + blockStatement(convertStatement(left, fields) + ConstantString("AS STRING") ) + "," + ConstantString("\"\"") ) +
+            ConstantString("=") +
+            ConstantString("COALESCE") + blockStatement( ConstantString("CAST") + blockStatement(convertStatement(right, fields) + ConstantString("AS STRING") ) + "," + ConstantString("\"\"") )
+        )
+
       case b: BinaryOperator =>
         blockStatement(
           convertStatement(b.left, fields) + b.symbol + convertStatement(b.right, fields)
