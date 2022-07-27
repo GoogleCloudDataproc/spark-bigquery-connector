@@ -287,9 +287,9 @@ abstract class SparkExpressionConverter {
                * BigQuery doesn't support casting from Integer to Bytes (https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#cast_as_bytes)
                * So handling this case separately.
                */
-              case (_: IntegerType ,_: ByteType) =>
+              case (_: IntegerType | _: LongType | _: FloatType | _: DoubleType | _: DecimalType ,_: ByteType) =>
                 ConstantString("CAST") +
-                  blockStatement(convertStatement(child, fields) + ConstantString("AS INT64"))
+                  blockStatement(convertStatement(child, fields) + ConstantString("AS NUMERIC"))
               case _ =>
                 ConstantString("CAST") +
                   blockStatement(convertStatement(child, fields) + "AS" + cast)
