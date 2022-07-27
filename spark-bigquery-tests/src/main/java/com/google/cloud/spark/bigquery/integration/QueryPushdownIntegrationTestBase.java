@@ -140,7 +140,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(1).toString()).isEqualTo("1"); // 1 | 0
     assertThat(r1.get(2).toString()).isEqualTo("1"); // 1 ^ 0
     assertThat(r1.get(3).toString()).isEqualTo("-2"); // ~1
-    assertThat(r1.get(4).toString()).isEqualTo(false); // 'augurs' <=> 'sonnets'
+    assertThat(r1.get(4)).isEqualTo(false); // 'augurs' <=> 'sonnets'
   }
 
   @Test
