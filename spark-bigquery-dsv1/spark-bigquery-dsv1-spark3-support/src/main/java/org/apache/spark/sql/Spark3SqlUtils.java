@@ -15,16 +15,17 @@
  */
 package org.apache.spark.sql;
 
+import org.apache.spark.sql.catalyst.expressions.AttributeReference;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.Seq;
-import org.apache.spark.sql.catalyst.expressions.AttributeReference;
 
 public class Spark3SqlUtils {
 
-    private Spark3SqlUtils() {}
+  private Spark3SqlUtils() {}
 
-    // `toAttributes` is protected[sql] starting spark 3.2.0, so we need this call to be in the same package
-    public static Seq<AttributeReference> toAttributes(StructType schema) {
-        return schema.toAttributes();
-    }
+  // `toAttributes` is protected[sql] starting spark 3.2.0, so we need this call to be in the same
+  // package
+  public static Seq<AttributeReference> toAttributes(StructType schema) {
+    return schema.toAttributes();
+  }
 }
