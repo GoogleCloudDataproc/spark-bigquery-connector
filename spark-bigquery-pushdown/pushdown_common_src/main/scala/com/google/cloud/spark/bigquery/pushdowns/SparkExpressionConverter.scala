@@ -384,7 +384,6 @@ abstract class SparkExpressionConverter {
        */
       case _: Rank | _: DenseRank | _: PercentRank | _: RowNumber =>
         ConstantString(expression.prettyName.toUpperCase) + ConstantString("()")
-//      case _: Grouping
       case _ => null
     })
   }

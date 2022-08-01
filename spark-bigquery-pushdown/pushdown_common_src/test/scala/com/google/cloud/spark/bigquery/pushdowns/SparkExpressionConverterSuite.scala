@@ -804,6 +804,34 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     assert(bigQuerySQLStatement.get.toString == "CAST ( SCHOOLID AS NUMERIC )")
   }
 
+  test("convertMiscellaneousExpressions with Cast from Long to Bytes") {
+    val castExpression = Cast.apply(AttributeReference.apply("SchoolID", LongType)(ExprId.apply(2)), ByteType)
+    val bigQuerySQLStatement = expressionConverter.convertMiscellaneousExpressions(castExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "CAST ( SCHOOLID AS NUMERIC )")
+  }
+
+  test("convertMiscellaneousExpressions with Cast from Float to Bytes") {
+    val castExpression = Cast.apply(AttributeReference.apply("SchoolID", FloatType)(ExprId.apply(2)), ByteType)
+    val bigQuerySQLStatement = expressionConverter.convertMiscellaneousExpressions(castExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "CAST ( SCHOOLID AS NUMERIC )")
+  }
+
+  test("convertMiscellaneousExpressions with Cast from Double to Bytes") {
+    val castExpression = Cast.apply(AttributeReference.apply("SchoolID", DoubleType)(ExprId.apply(2)), ByteType)
+    val bigQuerySQLStatement = expressionConverter.convertMiscellaneousExpressions(castExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "CAST ( SCHOOLID AS NUMERIC )")
+  }
+
+  test("convertMiscellaneousExpressions with Cast from Decimal to Bytes") {
+    val castExpression = Cast.apply(AttributeReference.apply("SchoolID", DecimalType(10, 5))(ExprId.apply(2)), ByteType)
+    val bigQuerySQLStatement = expressionConverter.convertMiscellaneousExpressions(castExpression, fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "CAST ( SCHOOLID AS NUMERIC )")
+  }
+
   test("convertMiscellaneousExpressions with Cast from String to Date") {
     val castExpression = Cast.apply(AttributeReference.apply("attendance_date", StringType)(ExprId.apply(2)), DateType)
     val bigQuerySQLStatement = expressionConverter.convertMiscellaneousExpressions(castExpression, fields)
