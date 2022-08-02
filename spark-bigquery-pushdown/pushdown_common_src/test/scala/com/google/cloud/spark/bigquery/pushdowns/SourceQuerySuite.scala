@@ -53,6 +53,13 @@ class SourceQuerySuite extends AnyFunSuite{
     assert(sourceQuery.getStatement(useAlias = true).toString == "( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0")
   }
 
+  test("getStatement with pushdownFilter set") {
+    val sourceQueryWithPushdownFilter = SourceQuery(expressionConverter, expressionFactory, bigQueryRDDFactoryMock, TABLE_NAME,
+      Seq(schoolIdAttributeReference, schoolNameAttributeReference), SUBQUERY_0_ALIAS, Option.apply("studentId = 1 AND studentName = Foo"))
+    assert(sourceQueryWithPushdownFilter.getStatement().toString == "SELECT * FROM " +
+      "`test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS WHERE studentId = 1 AND studentName = Foo")
+  }
+
   test("find") {
     val returnedQuery = sourceQuery.find({ case q: SourceQuery => q })
     assert(returnedQuery.isDefined)

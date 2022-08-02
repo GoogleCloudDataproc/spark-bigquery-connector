@@ -16,8 +16,12 @@
 
 package com.google.cloud.spark.bigquery.pushdowns
 
+import com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.{DEFAULT_FALLBACK, getOptionFromMultipleParams}
+import com.google.cloud.bigquery.connector.common.BigQueryUtil
+import com.google.common.collect.ImmutableList
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, Expression, NamedExpression}
+import scala.collection.JavaConverters._
 
 /**
  * Static methods for query pushdown functionality
