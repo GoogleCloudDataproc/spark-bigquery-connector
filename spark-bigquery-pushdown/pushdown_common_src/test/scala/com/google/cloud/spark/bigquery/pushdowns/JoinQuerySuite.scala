@@ -89,6 +89,14 @@ class JoinQuerySuite extends AnyFunSuite {
       "( SELECT * FROM `test_project:test_dataset.student` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_2 ON ( SUBQUERY_0.SCHOOLID = SUBQUERY_2._SCHOOLID )")
   }
 
+  test("getStatement with CROSS JOIN") {
+    val joinQuery = JoinQuery(expressionConverter, expressionFactory, leftSourceQuery, rightSourceQuery, Option.apply(joinExpression), JoinType.apply("cross"), "SUBQUERY_3")
+    assert(joinQuery.getStatement().toString == "SELECT ( SUBQUERY_0.SCHOOLID ) AS SUBQUERY_3_COL_0 , ( SUBQUERY_0.SCHOOLNAME ) AS SUBQUERY_3_COL_1 , " +
+      "( SUBQUERY_2._SCHOOLID ) AS SUBQUERY_3_COL_2 , ( SUBQUERY_2.STUDENTNAME ) AS SUBQUERY_3_COL_3 FROM " +
+      "( SELECT * FROM `test_project:test_dataset.school` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 CROSS JOIN " +
+      "( SELECT * FROM `test_project:test_dataset.student` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_2 ON ( SUBQUERY_0.SCHOOLID = SUBQUERY_2._SCHOOLID )")
+  }
+
   test("getStatement with LEFT SEMI JOIN") {
     val alias = Iterator.from(0).map(n => s"SUBQUERY_$n")
     val joinQuery = LeftSemiJoinQuery(expressionConverter, expressionFactory, leftSourceQuery, rightSourceQuery, Option.apply(joinExpression), isAntiJoin = false, alias)

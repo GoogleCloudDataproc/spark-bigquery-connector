@@ -21,9 +21,8 @@ import com.google.cloud.spark.bigquery.direct.{BigQueryRDDFactory, DirectBigQuer
 import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.convertExpressionToNamedExpression
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Strategy
-import org.apache.spark.sql.catalyst.analysis.NamedRelation
-import org.apache.spark.sql.catalyst.plans.logical._
-import org.apache.spark.sql.catalyst.plans._
+import org.apache.spark.sql.catalyst.plans.{Cross, FullOuter, Inner, LeftAnti, LeftOuter, LeftSemi, RightOuter}
+import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, _}
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 
@@ -197,7 +196,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
             plan match {
               case JoinExtractor(joinType, condition) =>
                 joinType match {
-                  case Inner | LeftOuter | RightOuter | FullOuter =>
+                  case Inner | LeftOuter | RightOuter | FullOuter | Cross =>
                     JoinQuery(expressionConverter, expressionFactory, l, r, condition, joinType, alias.next)
                   case LeftSemi =>
                     LeftSemiJoinQuery(expressionConverter, expressionFactory, l, r, condition, isAntiJoin = false, alias)

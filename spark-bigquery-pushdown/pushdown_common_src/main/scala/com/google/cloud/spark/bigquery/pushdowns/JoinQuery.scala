@@ -18,7 +18,7 @@ package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.pushdowns.JoinQuery.getConjunctionStatement
 import org.apache.spark.sql.catalyst.expressions.Expression
-import org.apache.spark.sql.catalyst.plans.{FullOuter, Inner, JoinType, LeftOuter, RightOuter}
+import org.apache.spark.sql.catalyst.plans.{Cross, FullOuter, Inner, JoinType, LeftOuter, RightOuter}
 
 /** The query for join operations.
  *
@@ -72,6 +72,8 @@ object JoinQuery {
         right.outputWithQualifier =
           right.nullableOutputWithQualifier
         "FULL OUTER JOIN"
+      case Cross =>
+        "CROSS JOIN"
       case _ => throw new MatchError
     }
   }

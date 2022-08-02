@@ -100,6 +100,18 @@ abstract class SparkExpressionConverter {
         ConstantString("~") + blockStatement(
           convertStatement(child, fields)
         )
+      case EqualNullSafe(left, right) =>
+
+        /**
+         * Since NullSafeEqual operator is not supported in BigQuery, we are instead converting the operator to COALESCE ( CAST (leftExpression AS STRING), "" ) = COALESCE ( CAST (rightExpression AS STRING), "" )
+         * Casting the expression to String to make sure the COALESCE arguments are of same type.
+         */
+        blockStatement(
+          ConstantString("COALESCE") + blockStatement( ConstantString("CAST") + blockStatement(convertStatement(left, fields) + ConstantString("AS STRING") ) + "," + ConstantString("\"\"") ) +
+            ConstantString("=") +
+            ConstantString("COALESCE") + blockStatement( ConstantString("CAST") + blockStatement(convertStatement(right, fields) + ConstantString("AS STRING") ) + "," + ConstantString("\"\"") )
+        )
+
       case b: BinaryOperator =>
         blockStatement(
           convertStatement(b.left, fields) + b.symbol + convertStatement(b.right, fields)
@@ -287,9 +299,9 @@ abstract class SparkExpressionConverter {
                * BigQuery doesn't support casting from Integer to Bytes (https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#cast_as_bytes)
                * So handling this case separately.
                */
-              case (_: IntegerType ,_: ByteType) =>
+              case (_: IntegerType | _: LongType | _: FloatType | _: DoubleType | _: DecimalType ,_: ByteType) =>
                 ConstantString("CAST") +
-                  blockStatement(convertStatement(child, fields) + ConstantString("AS INT64"))
+                  blockStatement(convertStatement(child, fields) + ConstantString("AS NUMERIC"))
               case _ =>
                 ConstantString("CAST") +
                   blockStatement(convertStatement(child, fields) + "AS" + cast)
@@ -384,7 +396,6 @@ abstract class SparkExpressionConverter {
        */
       case _: Rank | _: DenseRank | _: PercentRank | _: RowNumber =>
         ConstantString(expression.prettyName.toUpperCase) + ConstantString("()")
-//      case _: Grouping
       case _ => null
     })
   }
