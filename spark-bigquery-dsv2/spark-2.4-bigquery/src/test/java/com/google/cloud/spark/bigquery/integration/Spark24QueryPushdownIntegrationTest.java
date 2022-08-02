@@ -1,9 +1,9 @@
 package com.google.cloud.spark.bigquery.integration;
 
-import com.google.cloud.spark.bigquery.pushdowns.BigQueryConnectorUtils;
+import com.google.cloud.spark.bigquery.pushdowns.BigQueryConnectorPushdown;
 
 public class Spark24QueryPushdownIntegrationTest extends QueryPushdownIntegrationTestBase {
   public Spark24QueryPushdownIntegrationTest() {
-    BigQueryConnectorUtils.enablePushdownSession(spark);
+    BigQueryConnectorPushdown.enablePushdownSession(spark);
   }
 }

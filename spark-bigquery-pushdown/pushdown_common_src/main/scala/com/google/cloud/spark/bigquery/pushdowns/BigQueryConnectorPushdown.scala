@@ -21,7 +21,7 @@ import org.apache.spark.sql.SparkSession
 import java.util.ServiceLoader
 import scala.collection.JavaConverters._
 
-object BigQueryConnectorUtils {
+object BigQueryConnectorPushdown {
   def enablePushdownSession(session: SparkSession): Unit = {
     // Find the supported implementation based on Spark version and enable pushdown
     val sparkBigQueryPushdown = ServiceLoader.load(classOf[SparkBigQueryPushdown])
