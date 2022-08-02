@@ -33,7 +33,8 @@ case class SourceQuery(
     bigQueryRDDFactory: BigQueryRDDFactory,
     tableName: String,
     outputAttributes: Seq[Attribute],
-    alias: String)
+    alias: String,
+    pushdownFilters: Option[String] = None)
   extends BigQuerySQLQuery(
     expressionConverter,
     expressionFactory,
@@ -42,4 +43,13 @@ case class SourceQuery(
     conjunctionStatement = ConstantString("`" + tableName + "`").toStatement + ConstantString("AS BQ_CONNECTOR_QUERY_ALIAS")) {
 
     override def find[T](query: PartialFunction[BigQuerySQLQuery, T]): Option[T] = query.lift(this)
+
+    /** Builds the WHERE statement of the source query */
+    override val suffixStatement: BigQuerySQLStatement = {
+        if(pushdownFilters.isDefined) {
+            ConstantString("WHERE ") + pushdownFilters.get
+        } else {
+            EmptyBigQuerySQLStatement()
+        }
+    }
 }

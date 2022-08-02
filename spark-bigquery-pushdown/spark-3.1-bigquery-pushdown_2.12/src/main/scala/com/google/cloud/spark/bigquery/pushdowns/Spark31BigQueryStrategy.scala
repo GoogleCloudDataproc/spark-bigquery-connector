@@ -1,11 +1,31 @@
 package com.google.cloud.spark.bigquery.pushdowns
-import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
+import com.google.cloud.spark.bigquery.{SparkBigQueryUtil, SupportsQueryPushdown}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
 
 class Spark31BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory)
   extends BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory) {
   override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
-    throw new BigQueryPushdownUnsupportedException("Query pushdown for Spark 3.1 DataSourceV2 connector has not been implemented yet")
+    // DataSourceV2ScanRelation is the relation that is used in the Spark 3.1 DatasourceV2 connector
+    plan match {
+      case scanRelation@DataSourceV2ScanRelation(_, _, _) =>
+        scanRelation.scan match {
+          case scan: SupportsQueryPushdown =>
+            Some(SourceQuery(expressionConverter = expressionConverter,
+              expressionFactory = expressionFactory,
+              bigQueryRDDFactory = scan.getBigQueryRDDFactory,
+              tableName = SparkBigQueryUtil.getTableNameFromOptions(scanRelation.relation.options.asInstanceOf[java.util.Map[String, String]]),
+              outputAttributes = scanRelation.output,
+              alias = alias.next,
+              pushdownFilters = if (scan.getPushdownFilters.isPresent) Some(scan.getPushdownFilters.get) else None
+            ))
+
+          case _ => None
+        }
+
+      // We should never reach here
+      case _ => None
+    }
   }
 
   override def createUnionQuery(children: Seq[LogicalPlan]): Option[BigQuerySQLQuery] = {

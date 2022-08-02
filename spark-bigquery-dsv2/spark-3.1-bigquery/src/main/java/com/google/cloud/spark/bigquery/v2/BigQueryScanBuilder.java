@@ -15,7 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.spark.bigquery.SupportsQueryPushdown;
+import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
+import java.util.Optional;
 import org.apache.spark.sql.connector.read.Batch;
 import org.apache.spark.sql.connector.read.Scan;
 import org.apache.spark.sql.connector.read.ScanBuilder;
@@ -35,7 +38,8 @@ public class BigQueryScanBuilder
         ScanBuilder,
         SupportsPushDownFilters,
         SupportsPushDownRequiredColumns,
-        SupportsReportStatistics {
+        SupportsReportStatistics,
+        SupportsQueryPushdown {
 
   private BigQueryDataSourceReaderContext ctx;
 
@@ -82,5 +86,17 @@ public class BigQueryScanBuilder
   @Override
   public Statistics estimateStatistics() {
     return new Spark3Statistics(ctx.estimateStatistics());
+  }
+
+  @Override
+  public BigQueryRDDFactory getBigQueryRDDFactory() {
+    return ctx.getBigQueryRddFactory();
+  }
+
+  @Override
+  public Optional<String> getPushdownFilters() {
+    // Return the combined filters (pushed + global) here since Spark 3.1 does not create a Filter
+    // node in the LogicalPlan
+    return ctx.getCombinedFilter();
   }
 }
