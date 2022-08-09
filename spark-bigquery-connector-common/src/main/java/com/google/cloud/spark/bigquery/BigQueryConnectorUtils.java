@@ -33,7 +33,7 @@ public class BigQueryConnectorUtils {
     sparkBigQueryPushdown.enable(spark);
   }
 
-  void disablePushdownSession(SparkSession spark) {
+  public static void disablePushdownSession(SparkSession spark) {
     SparkBigQueryPushdown sparkBigQueryPushdown = sparkBigQueryPushdownSupplier.get();
     sparkBigQueryPushdown.disable(spark);
   }
