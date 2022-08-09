@@ -21,29 +21,15 @@
     </license>
   </licenses>
 
-  <developers>
-    <developer>
-      <organization>Google Inc.</organization>
-      <organizationUrl>http://www.google.com</organizationUrl>
-    </developer>
-  </developers>
-
   <scm>
     <connection>
-      scm:git:git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git
+      scm:git:git@github.com:cerebro-data/spark-bigquery-connector.git
     </connection>
     <developerConnection>
-      scm:git:git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git
+      scm:git:git@github.com:cerebro-data/spark-bigquery-connector.git
     </developerConnection>
-    <url>git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git</url>
+    <url>git@github.com:cerebro-data/spark-bigquery-connector.git</url>
   </scm>
-
-  <issueManagement>
-    <system>GitHub Issues</system>
-    <url>
-      https://github.com/GoogleCloudDataproc/spark-bigquery-connector/issues
-    </url>
-  </issueManagement>
 
   <modules>
     <module>spark-bigquery-parent</module>
