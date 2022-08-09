@@ -1,0 +1,27 @@
+name: Continuous Deployment
+
+on:
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+  
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        java-version: '8'
+        distribution: 'temurin'
+        cache: maven
+        server-id: okera-release
+        server-username: MAVEN_USERNAME
+        server-password: MAVEN_PASSWORD
+    - name: Build with Maven
+      run: mvn -P dsv1 clean install
+      env:
+        GOOGLE_CLOUD_PROJECT: test-project
+        MAVEN_USERNAME: ${{ secrets.JFROG_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.JFROG_TOKEN }}
