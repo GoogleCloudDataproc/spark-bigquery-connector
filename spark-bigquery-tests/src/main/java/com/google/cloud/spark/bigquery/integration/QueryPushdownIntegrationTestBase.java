@@ -3,6 +3,7 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.common.truth.Truth.assertThat;
 import static java.time.temporal.TemporalAdjusters.firstDayOfYear;
 
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig.WriteMethod;
 import com.google.cloud.spark.bigquery.integration.model.NumStruct;
 import com.google.cloud.spark.bigquery.integration.model.StringStruct;
 import com.google.common.collect.ImmutableList;
@@ -14,6 +15,7 @@ import java.util.List;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.junit.Test;
 
@@ -358,21 +360,42 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(row.get(10)).isEqualTo(3677); // COUNT(word) OVER count_window
   }
 
-  protected Dataset<Row> createTestDataFrame() {
-    return spark
-        .createDataset(
-            Arrays.asList(
-                new NumStruct(
-                    1L, 2L, 3L, ImmutableList.of(new StringStruct("1:str3", "2:str1", "3:str2"))),
-                new NumStruct(
-                    2L, 3L, 4L, ImmutableList.of(new StringStruct("2:str3", "3:str1", "4:str2")))),
-            Encoders.bean(NumStruct.class))
-        .toDF();
+  /** Method to create a test table of schema NumStruct, in test dataset */
+  protected void writeTestDatasetToBigQuery() {
+    Dataset<Row> df =
+        spark
+            .createDataset(
+                Arrays.asList(
+                    new NumStruct(
+                        1L,
+                        2L,
+                        3L,
+                        ImmutableList.of(new StringStruct("1:str3", "2:str1", "3:str2"))),
+                    new NumStruct(
+                        2L,
+                        3L,
+                        4L,
+                        ImmutableList.of(new StringStruct("2:str3", "3:str1", "4:str2")))),
+                Encoders.bean(NumStruct.class))
+            .toDF();
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("table", testDataset.toString() + "." + testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", WriteMethod.INDIRECT.toString())
+        .save();
   }
 
   @Test
   public void testAggregateExpressions() {
-    Dataset<Row> df = createTestDataFrame();
+    writeTestDatasetToBigQuery();
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(testDataset.toString() + "." + testTable);
 
     df.createOrReplaceTempView("numStructDF");
 
