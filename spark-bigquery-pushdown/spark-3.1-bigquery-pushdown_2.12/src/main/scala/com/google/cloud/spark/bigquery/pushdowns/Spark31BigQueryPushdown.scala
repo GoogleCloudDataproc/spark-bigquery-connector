@@ -16,16 +16,7 @@
 
 package com.google.cloud.spark.bigquery.pushdowns
 
-import org.apache.spark.sql.SparkSession
-
-class Spark31BigQueryPushdown extends SparkBigQueryPushdown {
-  override def enable(session: SparkSession, bigQueryStrategy: BigQueryStrategy): Unit = {
-    SparkBigQueryPushdownUtil.enableBigQueryStrategy(session, bigQueryStrategy)
-  }
-
-  override def disable(session: SparkSession): Unit = {
-    SparkBigQueryPushdownUtil.disableBigQueryStrategy(session)
-  }
+class Spark31BigQueryPushdown extends BaseSparkBigQueryPushdown {
 
   override def supportsSparkVersion(sparkVersion: String): Boolean = {
     sparkVersion.startsWith("3.1")
@@ -37,10 +28,6 @@ class Spark31BigQueryPushdown extends SparkBigQueryPushdown {
 
   override def createSparkExpressionFactory: SparkExpressionFactory = {
     new Spark31ExpressionFactory
-  }
-
-  override def createSparkPlanFactory(): SparkPlanFactory = {
-    new SparkPlanFactory
   }
 
   override def createBigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory): BigQueryStrategy = {
