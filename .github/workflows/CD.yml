@@ -1,13 +1,13 @@
 name: Continuous Deployment
 
 on:
-  pull_request:
+  push:
     branches: [ "master" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-  
+
     steps:
     - uses: actions/checkout@v3
 
@@ -20,15 +20,15 @@ jobs:
         server-id: okera-release
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
-      
+
     - name: Create next version tag
       id: tag_version
-      uses: mathieudutour/github-tag-action@d745f2e74aaf1ee82e747b181f7a0967978abee0
+      uses: mathieudutour/github-tag-action@d745f2e74aaf1ee82e747b181f7a0967978abee0 # version 6.0
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         tag_prefix: okera-
-        custom_release_rules: (patch):patch,(minor):minor,(major):major
-        
+        custom_release_rules: patch:patch,minor:minor,major:major
+
     - name: Maven Deploy
       run: mvn -P dsv1 -Drevision=${{ steps.tag_version.outputs.new_tag }} clean deploy
       env:
