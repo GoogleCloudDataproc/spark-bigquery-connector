@@ -128,6 +128,7 @@ public class ReadSessionCreator {
                         .setTable(tablePath)
                         .build())
                 .setMaxStreamCount(maxStreamCount)
+                    .setPreferredMinStreamCount(preferredMinStreamCount)
                 .build());
 
     if (readSession != null && readSession.getStreamsCount() != maxStreamCount) {
