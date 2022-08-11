@@ -69,4 +69,11 @@ public class ReadSessionCreatorTest {
     assertThat(actual.getName()).isEqualTo("abc");
     assertThat(actual.getReadOptions().getSelectedFieldsList()).containsExactly("col1", "col2");
   }
+
+  @Test public void testDefaultMinMaxStreamCount() throws Exception {
+    ReadSessionCreatorConfig config =
+            new ReadSessionCreatorConfigBuilder().setDefaultParallelism(10).build();
+    ReadSessionCreator creator = new
+
+  }
 }

@@ -18,7 +18,6 @@ package com.google.cloud.bigquery.connector.common;
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
 import static java.lang.String.format;
 
-import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
@@ -35,14 +34,10 @@ import org.slf4j.LoggerFactory;
 
 // A helper class, also handles view materialization
 public class ReadSessionCreator {
-  /**
-   * Default parallelism to 1 reader per 64MB, which should be about the maximum allowed by the
-   * BigQuery Storage API. The number of partitions returned may be significantly less depending on
-   * a number of factors. Does not apply to external tables.
-   */
-  public static final int DEFAULT_BYTES_PER_PARTITION = 256 * 1000 * 1000;
 
-  public static final int DEFAULT_MAX_PARALLELISM = 10_000;
+  public static final int DEFAULT_MAX_PARALLELISM = 20_000;
+  public static final int MINIMAL_PARALLELISM = 5;
+  public static final int DEFAULT_MIN_PARALLELISM_FACTOR = 3;
 
   private static final Logger log = LoggerFactory.getLogger(ReadSessionCreator.class);
 
@@ -105,15 +100,30 @@ public class ReadSessionCreator {
             .setBufferCompression(config.getArrowCompressionCodec())
             .build());
 
+    int preferredMinStreamCount =
+        config
+            .getPreferredMinParallelism()
+            .orElseGet(
+                () -> {
+                  int defaultPreferredMinStreamCount =
+                      Math.max(
+                          MINIMAL_PARALLELISM,
+                          DEFAULT_MIN_PARALLELISM_FACTOR * config.getDefaultParallelism());
+                  log.debug(
+                      "using default preferred min parallelism [{}]",
+                      defaultPreferredMinStreamCount);
+                  return defaultPreferredMinStreamCount;
+                });
+
     int maxStreamCount =
         config
             .getMaxParallelism()
             .orElseGet(
                 () -> {
-                  int defaultParallelismForTable =
-                      calculateDefaultMaxParallelismForTable(actualTable.getDefinition());
-                  log.debug("using default parallelism [{}]", defaultParallelismForTable);
-                  return defaultParallelismForTable;
+                  int defaultMaxStreamCount =
+                      Math.max(ReadSessionCreator.DEFAULT_MAX_PARALLELISM, preferredMinStreamCount);
+                  log.debug("using default max parallelism [{}]", defaultMaxStreamCount);
+                  return defaultMaxStreamCount;
                 });
 
     ReadSession readSession =
@@ -128,7 +138,7 @@ public class ReadSessionCreator {
                         .setTable(tablePath)
                         .build())
                 .setMaxStreamCount(maxStreamCount)
-                    .setPreferredMinStreamCount(preferredMinStreamCount)
+                .setPreferredMinStreamCount(preferredMinStreamCount)
                 .build());
 
     if (readSession != null && readSession.getStreamsCount() != maxStreamCount) {
@@ -144,15 +154,6 @@ public class ReadSessionCreator {
     }
 
     return new ReadSessionResponse(readSession, actualTable);
-  }
-
-  private int calculateDefaultMaxParallelismForTable(TableDefinition tableDefinition) {
-    if (tableDefinition instanceof StandardTableDefinition) {
-      StandardTableDefinition standardTableDefinition = (StandardTableDefinition) tableDefinition;
-      return Math.max(
-          (int) (standardTableDefinition.getNumBytes() / DEFAULT_BYTES_PER_PARTITION), 1);
-    }
-    return DEFAULT_MAX_PARALLELISM;
   }
 
   String toTablePath(TableId tableId) {

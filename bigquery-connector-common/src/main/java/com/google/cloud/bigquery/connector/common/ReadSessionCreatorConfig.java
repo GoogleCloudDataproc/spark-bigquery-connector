@@ -29,6 +29,7 @@ public class ReadSessionCreatorConfig {
   private final DataFormat readDataFormat;
   private final int maxReadRowsRetries;
   private final OptionalInt maxParallelism;
+  private final OptionalInt preferredMinParallelism;
   private final int defaultParallelism;
   private final Optional<String> requestEncodedBase;
   private final Optional<String> endpoint;
@@ -48,6 +49,7 @@ public class ReadSessionCreatorConfig {
       int maxReadRowsRetries,
       String viewEnabledParamName,
       OptionalInt maxParallelism,
+      OptionalInt preferredMinParallelism,
       int defaultParallelism,
       Optional<String> requestEncodedBase,
       Optional<String> endpoint,
@@ -65,6 +67,7 @@ public class ReadSessionCreatorConfig {
     this.readDataFormat = readDataFormat;
     this.maxReadRowsRetries = maxReadRowsRetries;
     this.maxParallelism = maxParallelism;
+    this.preferredMinParallelism = preferredMinParallelism;
     this.defaultParallelism = defaultParallelism;
     this.requestEncodedBase = requestEncodedBase;
     this.endpoint = endpoint;
@@ -147,5 +150,9 @@ public class ReadSessionCreatorConfig {
 
   public Optional<String> getTraceId() {
     return traceId;
+  }
+
+  public OptionalInt getPreferredMinParallelism() {
+    return preferredMinParallelism;
   }
 }
