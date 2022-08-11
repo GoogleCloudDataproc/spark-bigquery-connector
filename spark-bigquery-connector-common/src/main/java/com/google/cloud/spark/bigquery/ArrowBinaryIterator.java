@@ -15,13 +15,12 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.connector.common.ArrowReaderIterator;
 import com.google.cloud.bigquery.connector.common.ArrowUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.SequenceInputStream;
-import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -32,15 +31,12 @@ import java.util.stream.Collectors;
 import org.apache.arrow.compression.CommonsCompressionFactory;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.ipc.ArrowReader;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ArrowBinaryIterator implements Iterator<InternalRow> {
 
@@ -109,54 +105,5 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
     ColumnarBatch batch = new ColumnarBatch(columns);
     batch.setNumRows(root.getRowCount());
     return batch.rowIterator();
-  }
-}
-
-class ArrowReaderIterator implements Iterator<VectorSchemaRoot> {
-
-  private static final Logger log = LoggerFactory.getLogger(AvroBinaryIterator.class);
-  boolean closed = false;
-  VectorSchemaRoot current = null;
-  ArrowReader reader;
-
-  public ArrowReaderIterator(ArrowReader reader) {
-    this.reader = reader;
-  }
-
-  @Override
-  public boolean hasNext() {
-    if (current != null) {
-      return true;
-    }
-
-    if (closed) {
-      return false;
-    }
-
-    try {
-      boolean res = reader.loadNextBatch();
-      if (res) {
-        current = reader.getVectorSchemaRoot();
-      } else {
-        ensureClosed();
-      }
-      return res;
-    } catch (IOException e) {
-      throw new UncheckedIOException("Failed to load the next arrow batch", e);
-    }
-  }
-
-  @Override
-  public VectorSchemaRoot next() {
-    VectorSchemaRoot res = current;
-    current = null;
-    return res;
-  }
-
-  private void ensureClosed() throws IOException {
-    if (!closed) {
-      reader.close();
-      closed = true;
-    }
   }
 }
