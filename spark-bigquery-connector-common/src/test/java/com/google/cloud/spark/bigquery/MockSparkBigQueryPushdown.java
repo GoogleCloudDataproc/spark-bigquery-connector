@@ -37,9 +37,4 @@ public class MockSparkBigQueryPushdown implements SparkBigQueryPushdown {
   public void disable(SparkSession spark) {
     disabledWasCalled = true;
   }
-
-  @Override
-  public boolean isPushdownCompleted() {
-    return false;
-  }
 }

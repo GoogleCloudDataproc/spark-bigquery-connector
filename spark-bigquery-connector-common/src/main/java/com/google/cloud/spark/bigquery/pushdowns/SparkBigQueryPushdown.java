@@ -24,6 +24,4 @@ public interface SparkBigQueryPushdown {
   void enable(SparkSession spark);
 
   void disable(SparkSession spark);
-
-  boolean isPushdownCompleted();
 }

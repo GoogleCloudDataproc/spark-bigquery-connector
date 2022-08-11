@@ -28,18 +28,21 @@ public class BigQueryConnectorUtils {
   private static Supplier<SparkBigQueryPushdown> sparkBigQueryPushdownSupplier =
       Suppliers.memoize(BigQueryConnectorUtils::createSparkBigQueryPushdown);
 
+  /**
+   * The variable will be set, if query is pushed down is successful Adding this flag only for test
+   * purpose.
+   */
+  public static boolean pushdownCompleted = false;
+
   public static void enablePushdownSession(SparkSession spark) {
     SparkBigQueryPushdown sparkBigQueryPushdown = sparkBigQueryPushdownSupplier.get();
     sparkBigQueryPushdown.enable(spark);
+    pushdownCompleted = false;
   }
 
   public static void disablePushdownSession(SparkSession spark) {
     SparkBigQueryPushdown sparkBigQueryPushdown = sparkBigQueryPushdownSupplier.get();
     sparkBigQueryPushdown.disable(spark);
-  }
-
-  public static SparkBigQueryPushdown getSparkBigQueryPushdown() {
-    return sparkBigQueryPushdownSupplier.get();
   }
 
   static SparkBigQueryPushdown createSparkBigQueryPushdown() {

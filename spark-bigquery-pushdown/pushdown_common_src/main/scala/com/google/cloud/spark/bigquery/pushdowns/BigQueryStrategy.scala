@@ -17,6 +17,7 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.{BigQueryPushdownException, BigQueryPushdownUnsupportedException}
+import com.google.cloud.spark.bigquery.BigQueryConnectorUtils
 import com.google.cloud.spark.bigquery.direct.{BigQueryRDDFactory, DirectBigQueryRelation}
 import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.convertExpressionToNamedExpression
 import org.apache.spark.internal.Logging
@@ -58,7 +59,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
 
     try {
       val sparkPlan:Seq[SparkPlan] = generateSparkPlanFromLogicalPlan(plan)
-      SparkBigQueryPushdownUtil.pushdownCompleted = true
+      BigQueryConnectorUtils.pushdownCompleted = true
       sparkPlan
     } catch {
       // We catch all exceptions here (including BigQueryPushdownUnsupportedException)
@@ -66,7 +67,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
       // we let Spark handle it
       case e: Exception =>
         logInfo("Query pushdown failed: ", e)
-        SparkBigQueryPushdownUtil.pushdownCompleted = false
+        BigQueryConnectorUtils.pushdownCompleted = false
         Nil
     }
   }
