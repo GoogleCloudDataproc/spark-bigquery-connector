@@ -66,6 +66,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
       // we let Spark handle it
       case e: Exception =>
         logInfo("Query pushdown failed: ", e)
+        SparkBigQueryPushdownUtil.pushdownCompleted = false
         Nil
     }
   }

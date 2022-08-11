@@ -32,7 +32,7 @@ object SparkBigQueryPushdownUtil {
    * The variable will be set, if query is pushed down is successful
    * Adding this flag only for test purpose.
    */
-  var pushdownCompleted = false
+  var pushdownCompleted: Boolean = false
 
   def enableBigQueryStrategy(session: SparkSession, bigQueryStrategy: BigQueryStrategy): Unit = {
     if (!session.experimental.extraStrategies.exists(
@@ -40,6 +40,7 @@ object SparkBigQueryPushdownUtil {
     )) {
       session.experimental.extraStrategies ++= Seq(bigQueryStrategy)
     }
+    pushdownCompleted = false
   }
 
   def disableBigQueryStrategy(session: SparkSession): Unit = {

@@ -25,6 +25,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
   @Test
   public void testStringFunctionExpressions() {
+    BigQueryConnectorUtils.enablePushdownSession(spark);
     Dataset<Row> df =
         spark
             .read()
@@ -82,10 +83,12 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
         .isEqualTo("replacement"); // REGEXP_REPLACE(word, '([A-Za-z]+$)', 'replacement')
     assertThat(r1.get(18)).isEqualTo("ug"); // SUBSTR(word, 2, 2)
     assertThat(r1.get(19)).isEqualTo("a262"); // SOUNDEX(word)
+    BigQueryConnectorUtils.disablePushdownSession(spark);
   }
 
   @Test
   public void testDateFunctionExpressions() {
+    BigQueryConnectorUtils.enablePushdownSession(spark);
     // This table only has one row and one column which is today's date
     Dataset<Row> df =
         spark
@@ -125,10 +128,12 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(4)).isEqualTo(date.get(IsoFields.QUARTER_OF_YEAR)); // QUARTER
     assertThat(r1.get(5)).isEqualTo(date.getYear()); // YEAR
     assertThat(r1.get(6).toString()).isEqualTo(date.with(firstDayOfYear()).toString()); // TRUNC
+    BigQueryConnectorUtils.disablePushdownSession(spark);
   }
 
   @Test
   public void testBasicExpressions() {
+    BigQueryConnectorUtils.enablePushdownSession(spark);
     Dataset<Row> df =
         spark
             .read()
@@ -161,10 +166,12 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(2).toString()).isEqualTo("1"); // 1 ^ 0
     assertThat(r1.get(3).toString()).isEqualTo("-2"); // ~1
     assertThat(r1.get(4)).isEqualTo(false); // 'augurs' <=> 'sonnets'
+    BigQueryConnectorUtils.disablePushdownSession(spark);
   }
 
   @Test
   public void testMathematicalFunctionExpressions() {
+    BigQueryConnectorUtils.enablePushdownSession(spark);
     Dataset<Row> df =
         spark
             .read()
@@ -225,10 +232,12 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(20)).isEqualTo(0.0); // TANH(0)
     assertThat(r1.get(21)).isEqualTo(false); // ISNAN(word_count)
     assertThat(r1.get(22)).isEqualTo(1.0); // SIGNUM(word_count)
+    BigQueryConnectorUtils.disablePushdownSession(spark);
   }
 
   @Test
   public void testMiscellaneousExpressions() {
+    BigQueryConnectorUtils.enablePushdownSession(spark);
     Dataset<Row> df =
         spark
             .read()
@@ -270,10 +279,12 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(9)).isEqualTo("working"); // IF CONDITION
     assertThat(r1.get(10)).isEqualTo(-10); // UNARY MINUS
     assertThat(r1.get(11)).isEqualTo(false); // CHECKOVERFLOW
+    BigQueryConnectorUtils.disablePushdownSession(spark);
   }
 
   @Test
   public void testUnionQuery() {
+    BigQueryConnectorUtils.enablePushdownSession(spark);
     Dataset<Row> df =
         spark
             .read()
@@ -302,10 +313,12 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(unionAllList.get(0).get(1)).isAnyOf(100L, 150L);
     assertThat(unionByNameList.size()).isGreaterThan(0);
     assertThat(unionByNameList.get(0).get(1)).isAnyOf(100L, 150L);
+    BigQueryConnectorUtils.disablePushdownSession(spark);
   }
 
   @Test
   public void testBooleanExpressions() {
+    BigQueryConnectorUtils.enablePushdownSession(spark);
     Dataset<Row> df =
         spark
             .read()
@@ -335,10 +348,12 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(1)).isEqualTo(true); // contains
     assertThat(r1.get(2)).isEqualTo(true); // ends_With
     assertThat(r1.get(3)).isEqualTo(true); // starts_With
+    BigQueryConnectorUtils.disablePushdownSession(spark);
   }
 
   @Test
   public void testWindowStatements() {
+    BigQueryConnectorUtils.enablePushdownSession(spark);
     Dataset<Row> df =
         spark
             .read()
@@ -387,6 +402,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(row.get(9))
         .isEqualTo(3677); // COUNT(word) OVER (PARTITION BY corpus ORDER BY corpus_date)
     assertThat(row.get(10)).isEqualTo(3677); // COUNT(word) OVER count_window
+    BigQueryConnectorUtils.disablePushdownSession(spark);
   }
 
   /** Method to create a test table of schema NumStruct, in test dataset */
