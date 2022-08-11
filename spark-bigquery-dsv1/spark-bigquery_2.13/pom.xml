@@ -21,6 +21,14 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>spark-3.2-bigquery-pushdown_${scala.binary.version}
+      </artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
   <build>
     <plugins>
       <!-- make sure we don't have any _2.10 or _2.11 dependencies when building

@@ -21,20 +21,20 @@ import org.apache.spark.sql.catalyst.expressions.{Attribute, Cast, CheckOverflow
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 
 /**
- * Convert Spark 2.4 specific expressions to SQL
+ * Convert Spark 3.2 specific expressions to SQL
  */
-class Spark24ExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) extends SparkExpressionConverter {
+class Spark32ExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) extends SparkExpressionConverter() {
   override def convertScalarSubqueryExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
     expression match {
-      case ScalarSubquery(plan, _, _) =>
-        blockStatement(new Spark24BigQueryStrategy(this, expressionFactory, sparkPlanFactory)
+      case ScalarSubquery(plan, _, _, joinCond) if joinCond.isEmpty =>
+        blockStatement(new Spark32BigQueryStrategy(this, expressionFactory, sparkPlanFactory)
           .generateQueryFromOriginalLogicalPlan(plan).get.getStatement())
     }
   }
 
   override def convertCheckOverflowExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
     expression match {
-      case CheckOverflow(child, t) =>
+      case CheckOverflow(child, t, _) =>
         getCastType(t) match {
           case Some(cast) =>
             ConstantString("CAST") +
@@ -46,7 +46,7 @@ class Spark24ExpressionConverter(expressionFactory: SparkExpressionFactory, spar
 
   override def convertUnaryMinusExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
     expression match {
-      case UnaryMinus(child) =>
+      case UnaryMinus(child, _) =>
         ConstantString("-") +
           blockStatement(convertStatement(child, fields))
     }
@@ -54,7 +54,7 @@ class Spark24ExpressionConverter(expressionFactory: SparkExpressionFactory, spar
 
   override def convertCastExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
     expression match {
-      case Cast(child, dataType, _) =>
+      case Cast(child, dataType, _, ansiEnabled) if !ansiEnabled =>
         performCastExpressionConversion(child, fields, dataType)
     }
   }

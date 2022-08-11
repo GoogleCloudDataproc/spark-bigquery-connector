@@ -1,7 +1,7 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
-import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeReference, ExprId, Expression}
+import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeReference, Cast, ExprId, Expression}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.types.{LongType, Metadata, StringType}
 import org.mockito.Mock
@@ -25,7 +25,7 @@ object TestConstants {
 
    val expressionConverter: SparkExpressionConverter = new SparkExpressionConverter {
       // Tests for Scalar Subquery are in Spark version specific pushdown modules
-      override def convertScalarSubqueryExpression(plan: LogicalPlan): BigQuerySQLStatement = {
+      override def convertScalarSubqueryExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
          throw new UnsupportedOperationException("Scalar Subquery is supported " +
            "only from Spark version specific implementations of SparkExpressionConverter")
       }
@@ -38,6 +38,11 @@ object TestConstants {
       override def convertUnaryMinusExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
          throw new UnsupportedOperationException("UnaryMinus expression is supported " +
            "only from Spark version specific implementations of SparkExpressionConverter")
+      }
+
+      override def convertCastExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
+         val castExpression = expression.asInstanceOf[Cast]
+         performCastExpressionConversion(castExpression.child, fields, castExpression.dataType)
       }
    }
 

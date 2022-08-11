@@ -40,7 +40,7 @@ abstract class BaseSparkBigQueryPushdown extends SparkBigQueryPushdown {
 
   def createSparkExpressionFactory: SparkExpressionFactory
 
-  def createSparkPlanFactory(): SparkPlanFactory = new SparkPlanFactory
+  def createSparkPlanFactory(): SparkPlanFactory
 
   def createBigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory): BigQueryStrategy
 }

@@ -243,13 +243,6 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     assert(bigQuerySQLStatement.get.toString == "DATE_ADD(DATE \"1970-01-01\", INTERVAL 17007  DAY)")
   }
 
-  test("convertBasicExpressions with Timestamp literal") {
-    // Internally, a timestamp is stored as the number of microseconds from the epoch of 1970-01-01T00
-    val bigQuerySQLStatement = expressionConverter.convertBasicExpressions(Literal(1230219000000000L, TimestampType), fields)
-    assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "TIMESTAMP_MICROS( 1230219000000000 )")
-  }
-
   test("convertBasicExpressions with Integer literal") {
     val bigQuerySQLStatement = expressionConverter.convertBasicExpressions(Literal(1), fields)
     assert(bigQuerySQLStatement.isDefined)

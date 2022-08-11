@@ -16,25 +16,25 @@
 
 package com.google.cloud.spark.bigquery.pushdowns
 
-class Spark24BigQueryPushdown extends BaseSparkBigQueryPushdown {
+class Spark32BigQueryPushdown extends BaseSparkBigQueryPushdown {
 
   override def supportsSparkVersion(sparkVersion: String): Boolean = {
-    sparkVersion.startsWith("2.4")
+    sparkVersion.startsWith("3.2")
   }
 
   override def createSparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory): SparkExpressionConverter = {
-    new Spark24ExpressionConverter(expressionFactory, sparkPlanFactory)
+    new Spark32ExpressionConverter(expressionFactory, sparkPlanFactory)
   }
 
   override def createSparkExpressionFactory: SparkExpressionFactory = {
-    new Spark24ExpressionFactory
+    new Spark32ExpressionFactory
   }
 
   override def createBigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory): BigQueryStrategy = {
-    new Spark24BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory)
+    new Spark32BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory)
   }
 
   override def createSparkPlanFactory(): SparkPlanFactory = {
-    new Spark24PlanFactory
+    new Spark32PlanFactory
   }
 }
