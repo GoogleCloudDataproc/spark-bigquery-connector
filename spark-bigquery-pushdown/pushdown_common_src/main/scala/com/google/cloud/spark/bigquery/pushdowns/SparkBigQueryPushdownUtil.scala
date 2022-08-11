@@ -27,6 +27,13 @@ import scala.collection.JavaConverters._
  * Static methods for query pushdown functionality
  */
 object SparkBigQueryPushdownUtil {
+
+  /**
+   * The variable will be set, if query is pushed down is successful
+   * Adding this flag only for test purpose.
+   */
+  var pushdownCompleted = false
+
   def enableBigQueryStrategy(session: SparkSession, bigQueryStrategy: BigQueryStrategy): Unit = {
     if (!session.experimental.extraStrategies.exists(
       s => s.isInstanceOf[BigQueryStrategy]

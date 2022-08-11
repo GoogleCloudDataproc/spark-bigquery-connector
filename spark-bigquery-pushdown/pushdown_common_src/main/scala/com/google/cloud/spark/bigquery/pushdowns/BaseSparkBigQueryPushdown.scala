@@ -36,6 +36,10 @@ abstract class BaseSparkBigQueryPushdown extends SparkBigQueryPushdown {
     SparkBigQueryPushdownUtil.disableBigQueryStrategy(session)
   }
 
+  override def isPushdownCompleted: Boolean = {
+    SparkBigQueryPushdownUtil.pushdownCompleted
+  }
+
   def createSparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory): SparkExpressionConverter
 
   def createSparkExpressionFactory: SparkExpressionFactory

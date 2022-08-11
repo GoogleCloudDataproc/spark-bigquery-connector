@@ -57,7 +57,9 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
     }
 
     try {
-      generateSparkPlanFromLogicalPlan(plan)
+      val sparkPlan:Seq[SparkPlan] = generateSparkPlanFromLogicalPlan(plan)
+      SparkBigQueryPushdownUtil.pushdownCompleted = true
+      sparkPlan
     } catch {
       // We catch all exceptions here (including BigQueryPushdownUnsupportedException)
       // and return Nil because if we are not able to translate the plan, then

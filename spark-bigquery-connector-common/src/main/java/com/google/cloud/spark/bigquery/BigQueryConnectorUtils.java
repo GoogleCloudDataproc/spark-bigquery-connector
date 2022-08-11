@@ -38,6 +38,10 @@ public class BigQueryConnectorUtils {
     sparkBigQueryPushdown.disable(spark);
   }
 
+  public static SparkBigQueryPushdown getSparkBigQueryPushdown() {
+    return sparkBigQueryPushdownSupplier.get();
+  }
+
   static SparkBigQueryPushdown createSparkBigQueryPushdown() {
     // We won't have two spark versions in the same process, so the actual session does not matter
     String sparkVersion = SparkSession.active().version();
