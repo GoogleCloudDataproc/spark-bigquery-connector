@@ -27,7 +27,6 @@ import scala.collection.JavaConverters._
  * Static methods for query pushdown functionality
  */
 object SparkBigQueryPushdownUtil {
-
   def enableBigQueryStrategy(session: SparkSession, bigQueryStrategy: BigQueryStrategy): Unit = {
     if (!session.experimental.extraStrategies.exists(
       s => s.isInstanceOf[BigQueryStrategy]
