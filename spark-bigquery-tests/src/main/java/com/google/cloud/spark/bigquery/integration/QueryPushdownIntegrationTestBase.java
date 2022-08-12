@@ -3,11 +3,11 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.common.truth.Truth.assertThat;
 import static java.time.temporal.TemporalAdjusters.firstDayOfYear;
 
+import com.google.cloud.spark.bigquery.BigQueryConnectorUtils;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig.WriteMethod;
 import com.google.cloud.spark.bigquery.integration.model.NumStruct;
 import com.google.cloud.spark.bigquery.integration.model.StringStruct;
 import com.google.common.collect.ImmutableList;
-import com.google.cloud.spark.bigquery.BigQueryConnectorUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.IsoFields;
