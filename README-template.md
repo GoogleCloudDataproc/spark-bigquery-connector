@@ -366,8 +366,18 @@ The API Supports a number of options to configure the read
        <br/><b>Important:</b> The old parameter (<code>parallelism</code>) is
             still supported but in deprecated mode. It will ve removed in
             version 1.0 of the connector.
-       <br/>(Optional. Defaults to one partition per 400MB. See
-       <a href="#configuring-partitioning">Configuring Partitioning</a>.)
+       <br/>(Optional. Defaults to the larger of the preferredMinParallelism and 20,000)</a>.)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr valign="top">
+   <td><code>preferredMinParallelism</code>
+   </td>
+   <td>The preferred minimal number of partitions to split the data into. Actual number
+       may be less if BigQuery deems the data small enough. If there are not
+       enough executors to schedule a reader per partition, some partitions may
+       be empty.
+       <br/>(Optional. Defaults to 3 times the application's default parallelism)</a>.)
    </td>
    <td>Read</td>
   </tr>
