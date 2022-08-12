@@ -7,6 +7,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.api.gax.core.NoCredentialsProvider;
+import com.google.api.gax.grpc.testing.LocalChannelProvider;
+import com.google.api.gax.grpc.testing.MockGrpcService;
+import com.google.api.gax.grpc.testing.MockServiceHelper;
 import com.google.api.gax.rpc.UnaryCallable;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
@@ -15,12 +19,23 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
+import com.google.cloud.bigquery.storage.v1.BigQueryReadSettings;
 import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
+import com.google.cloud.bigquery.storage.v1.MockBigQueryRead;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
+import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.cloud.bigquery.storage.v1.stub.EnhancedBigQueryReadStub;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.UUID;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -39,6 +54,42 @@ public class ReadSessionCreatorTest {
                   .setNumBytes(1L)
                   .build())
           .build();
+
+  private static MockBigQueryRead mockBigQueryRead;
+  private static MockServiceHelper mockServiceHelper;
+  private LocalChannelProvider channelProvider;
+  private BigQueryReadClient client;
+
+  @BeforeClass
+  public static void startStaticServer() {
+    mockBigQueryRead = new MockBigQueryRead();
+    mockServiceHelper =
+        new MockServiceHelper(
+            UUID.randomUUID().toString(), Arrays.<MockGrpcService>asList(mockBigQueryRead));
+    mockServiceHelper.start();
+  }
+
+  @AfterClass
+  public static void stopServer() {
+    mockServiceHelper.stop();
+  }
+
+  @Before
+  public void setUp() throws IOException {
+    mockServiceHelper.reset();
+    channelProvider = mockServiceHelper.createChannelProvider();
+    BigQueryReadSettings settings =
+        BigQueryReadSettings.newBuilder()
+            .setTransportChannelProvider(channelProvider)
+            .setCredentialsProvider(NoCredentialsProvider.create())
+            .build();
+    client = BigQueryReadClient.create(settings);
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    client.close();
+  }
 
   @Test
   public void testSerializedInstanceIsPropagated() throws Exception {
@@ -70,10 +121,83 @@ public class ReadSessionCreatorTest {
     assertThat(actual.getReadOptions().getSelectedFieldsList()).containsExactly("col1", "col2");
   }
 
-  @Test public void testDefaultMinMaxStreamCount() throws Exception {
-    ReadSessionCreatorConfig config =
-            new ReadSessionCreatorConfigBuilder().setDefaultParallelism(10).build();
-    ReadSessionCreator creator = new
+  @Test
+  public void testDefaultMinMaxStreamCount() throws Exception {
+    // setting up
+    when(bigQueryClient.getTable(any())).thenReturn(table);
+    mockBigQueryRead.reset();
+    mockBigQueryRead.addResponse(
+        ReadSession.newBuilder().addStreams(ReadStream.newBuilder().setName("0")).build());
+    BigQueryClientFactory mockBigQueryClientFactory = mock(BigQueryClientFactory.class);
+    when(mockBigQueryClientFactory.getBigQueryReadClient()).thenReturn(client);
 
+    ReadSessionCreatorConfig config =
+        new ReadSessionCreatorConfigBuilder().setDefaultParallelism(10).build();
+    ReadSessionCreator creator =
+        new ReadSessionCreator(config, bigQueryClient, mockBigQueryClientFactory);
+    ReadSessionResponse readSessionResponse =
+        creator.create(table.getTableId(), ImmutableList.of(), Optional.empty());
+    assertThat(readSessionResponse).isNotNull();
+    assertThat(readSessionResponse.getReadSession().getStreamsCount()).isEqualTo(1);
+    CreateReadSessionRequest createReadSessionRequest =
+        (CreateReadSessionRequest) mockBigQueryRead.getRequests().get(0);
+    assertThat(createReadSessionRequest.getMaxStreamCount()).isEqualTo(20_000);
+    assertThat(createReadSessionRequest.getPreferredMinStreamCount())
+        .isEqualTo(30); // 3 * given default parallelism
+  }
+
+  @Test
+  public void testCustomMinStreamCount() throws Exception {
+    // setting up
+    when(bigQueryClient.getTable(any())).thenReturn(table);
+    mockBigQueryRead.reset();
+    mockBigQueryRead.addResponse(
+        ReadSession.newBuilder().addStreams(ReadStream.newBuilder().setName("0")).build());
+    BigQueryClientFactory mockBigQueryClientFactory = mock(BigQueryClientFactory.class);
+    when(mockBigQueryClientFactory.getBigQueryReadClient()).thenReturn(client);
+
+    ReadSessionCreatorConfig config =
+        new ReadSessionCreatorConfigBuilder()
+            .setDefaultParallelism(10)
+            .setPreferredMinParallelism(OptionalInt.of(21_000))
+            .build();
+    ReadSessionCreator creator =
+        new ReadSessionCreator(config, bigQueryClient, mockBigQueryClientFactory);
+    ReadSessionResponse readSessionResponse =
+        creator.create(table.getTableId(), ImmutableList.of(), Optional.empty());
+    assertThat(readSessionResponse).isNotNull();
+    assertThat(readSessionResponse.getReadSession().getStreamsCount()).isEqualTo(1);
+    CreateReadSessionRequest createReadSessionRequest =
+        (CreateReadSessionRequest) mockBigQueryRead.getRequests().get(0);
+    assertThat(createReadSessionRequest.getMaxStreamCount()).isEqualTo(21_000);
+    assertThat(createReadSessionRequest.getPreferredMinStreamCount()).isEqualTo(21_000);
+  }
+
+  @Test
+  public void testCustomMaxStreamCount() throws Exception {
+    // setting up
+    when(bigQueryClient.getTable(any())).thenReturn(table);
+    mockBigQueryRead.reset();
+    mockBigQueryRead.addResponse(
+        ReadSession.newBuilder().addStreams(ReadStream.newBuilder().setName("0")).build());
+    BigQueryClientFactory mockBigQueryClientFactory = mock(BigQueryClientFactory.class);
+    when(mockBigQueryClientFactory.getBigQueryReadClient()).thenReturn(client);
+
+    ReadSessionCreatorConfig config =
+        new ReadSessionCreatorConfigBuilder()
+            .setDefaultParallelism(10)
+            .setMaxParallelism(OptionalInt.of(21_000))
+            .build();
+    ReadSessionCreator creator =
+        new ReadSessionCreator(config, bigQueryClient, mockBigQueryClientFactory);
+    ReadSessionResponse readSessionResponse =
+        creator.create(table.getTableId(), ImmutableList.of(), Optional.empty());
+    assertThat(readSessionResponse).isNotNull();
+    assertThat(readSessionResponse.getReadSession().getStreamsCount()).isEqualTo(1);
+    CreateReadSessionRequest createReadSessionRequest =
+        (CreateReadSessionRequest) mockBigQueryRead.getRequests().get(0);
+    assertThat(createReadSessionRequest.getMaxStreamCount()).isEqualTo(21_000);
+    assertThat(createReadSessionRequest.getPreferredMinStreamCount())
+        .isEqualTo(30); // 3 * given default parallelism
   }
 }
