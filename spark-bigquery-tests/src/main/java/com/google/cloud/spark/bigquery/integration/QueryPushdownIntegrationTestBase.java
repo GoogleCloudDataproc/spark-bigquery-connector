@@ -3,12 +3,19 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.common.truth.Truth.assertThat;
 import static java.time.temporal.TemporalAdjusters.firstDayOfYear;
 
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig.WriteMethod;
+import com.google.cloud.spark.bigquery.integration.model.NumStruct;
+import com.google.cloud.spark.bigquery.integration.model.StringStruct;
+import com.google.common.collect.ImmutableList;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.IsoFields;
+import java.util.Arrays;
 import java.util.List;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.junit.Test;
 
@@ -351,5 +358,78 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(row.get(9))
         .isEqualTo(3677); // COUNT(word) OVER (PARTITION BY corpus ORDER BY corpus_date)
     assertThat(row.get(10)).isEqualTo(3677); // COUNT(word) OVER count_window
+  }
+
+  /** Method to create a test table of schema NumStruct, in test dataset */
+  protected void writeTestDatasetToBigQuery() {
+    Dataset<Row> df =
+        spark
+            .createDataset(
+                Arrays.asList(
+                    new NumStruct(
+                        1L,
+                        2L,
+                        3L,
+                        ImmutableList.of(new StringStruct("1:str3", "2:str1", "3:str2"))),
+                    new NumStruct(
+                        2L,
+                        3L,
+                        4L,
+                        ImmutableList.of(new StringStruct("2:str3", "3:str1", "4:str2")))),
+                Encoders.bean(NumStruct.class))
+            .toDF();
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("table", testDataset.toString() + "." + testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", WriteMethod.INDIRECT.toString())
+        .save();
+  }
+
+  @Test
+  public void testAggregateExpressions() {
+    writeTestDatasetToBigQuery();
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(testDataset.toString() + "." + testTable);
+
+    df.createOrReplaceTempView("numStructDF");
+
+    List<Row> result =
+        spark
+            .sql(
+                "SELECT "
+                    + "AVG(num1) as average, "
+                    + "CORR(num1, num2) as corr, "
+                    + "COVAR_POP(num1, num2) as covar_pop, "
+                    + "COVAR_SAMP(num1, num2) as covar_samp, "
+                    + "COUNT(*) as count, "
+                    + "MAX(num1) as max, "
+                    + "MIN(num1) as min, "
+                    + "SUM(num1) as sum, "
+                    + "STDDEV_POP(num1) as stddev_pop, "
+                    + "ROUND(STDDEV_SAMP(num1),2) as stddev_samp, "
+                    + "VAR_POP(num1) as var_pop, "
+                    + "VAR_SAMP(num1) as var_samp "
+                    + "FROM numStructDF ")
+            .collectAsList();
+
+    Row r1 = result.get(0);
+    assertThat(r1.get(0)).isEqualTo(3.5); // AVG(num1)
+    assertThat(r1.get(1)).isEqualTo(1.0); // CORR(num1, num2)
+    assertThat(r1.get(2)).isEqualTo(0.25); // COVAR_POP(num1, num2)
+    assertThat(r1.get(3)).isEqualTo(0.5); // COVAR_SAMP(num1, num2)
+    assertThat(r1.get(4)).isEqualTo(2); // COUNT(*)
+    assertThat(r1.get(5)).isEqualTo(4); // MAX(num1)
+    assertThat(r1.get(6)).isEqualTo(3); // MIN(num1)
+    assertThat(r1.get(7)).isEqualTo(7); // SUM(num1)
+    assertThat(r1.get(8)).isEqualTo(0.5); // STDDEV_POP(num1)
+    assertThat(r1.get(9)).isEqualTo(0.71); // ROUND(STDDEV_SAMP(num1),2)
+    assertThat(r1.get(10)).isEqualTo(0.25); // VAR_POP(num1)
+    assertThat(r1.get(11)).isEqualTo(0.5); // VAR_SAMP(num1)
   }
 }
