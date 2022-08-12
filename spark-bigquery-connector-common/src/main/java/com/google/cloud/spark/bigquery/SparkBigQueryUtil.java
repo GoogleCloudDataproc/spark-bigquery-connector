@@ -15,26 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.DEFAULT_FALLBACK;
-import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getOptionFromMultipleParams;
 import static scala.collection.JavaConversions.mapAsJavaMap;
-
-import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil;
-import com.google.cloud.bigquery.connector.common.BigQueryUtil;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.UUID;
-import java.util.stream.Stream;
 
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
