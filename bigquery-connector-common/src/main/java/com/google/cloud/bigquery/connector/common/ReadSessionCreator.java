@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 public class ReadSessionCreator {
 
   public static final int DEFAULT_MAX_PARALLELISM = 20_000;
-  public static final int MINIMAL_PARALLELISM = 5;
+  public static final int MINIMAL_PARALLELISM = 1;
   public static final int DEFAULT_MIN_PARALLELISM_FACTOR = 3;
 
   private static final Logger log = LoggerFactory.getLogger(ReadSessionCreator.class);
