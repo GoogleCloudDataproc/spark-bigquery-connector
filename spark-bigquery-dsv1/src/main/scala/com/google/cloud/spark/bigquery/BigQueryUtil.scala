@@ -15,14 +15,12 @@
  */
 package com.google.cloud.spark.bigquery
 
-import org.apache.spark.internal.Logging
-
 import java.util.{Optional, Properties}
 
 /**
  * Static helpers for working with BigQuery, relevant only to the Scala code
  */
-object BigQueryUtilScala extends Logging{
+object BigQueryUtilScala {
 
   // validating that the connector's scala version and the runtime's scala
   // version are the same
