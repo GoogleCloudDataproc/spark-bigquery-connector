@@ -115,7 +115,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
             .read()
             .format("bigquery")
             .option("table", TestConstants.LARGE_TABLE)
-            .option("parallelism", "5")
+            .option("maxParallelism", "5")
+            .option("preferredMinParallelism", "5")
             .option("readDataFormat", dataFormat)
             .load();
     assertThat(df.rdd().getNumPartitions()).isEqualTo(5);
@@ -141,7 +142,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
         spark
             .read()
             .format("bigquery")
-            .option("parallelism", 5)
+            .option("maxParallelism", "5")
+            .option("preferredMinParallelism", "5")
             .option("readDataFormat", dataFormat)
             .option("filter", "year > 2000")
             .load(TestConstants.LARGE_TABLE)
