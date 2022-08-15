@@ -309,12 +309,9 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(1)).isEqualTo(true); // contains
     assertThat(r1.get(2)).isEqualTo(true); // ends_With
     assertThat(r1.get(3)).isEqualTo(true); // starts_With
-  }
 
-  @Test
-  public void testBooleanOperators() {
     writeTestDatasetToBigQuery();
-    Dataset<Row> df =
+    df =
         spark
             .read()
             .format("bigquery")
@@ -323,7 +320,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
     df.createOrReplaceTempView("numStructDF");
 
-    List<Row> result =
+    result =
         spark
             .sql(
                 "SELECT "
@@ -338,7 +335,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                     + "num3 IN (1,2) AS In "
                     + "FROM numStructDF")
             .collectAsList();
-    Row r1 = result.get(0);
+    r1 = result.get(0);
     assertThat(r1.get(0)).isEqualTo(false); // EqualTo
     assertThat(r1.get(1)).isEqualTo(true); // GreaterThan
     assertThat(r1.get(2)).isEqualTo(false); // LessThan
