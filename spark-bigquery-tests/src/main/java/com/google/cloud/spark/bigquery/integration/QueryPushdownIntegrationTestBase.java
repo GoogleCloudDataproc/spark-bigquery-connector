@@ -396,36 +396,9 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(row.get(10)).isEqualTo(3677); // COUNT(word) OVER count_window
   }
 
-  /** Method to create a test table of schema NumStruct, in test dataset */
-  protected void writeTestDatasetToBigQuery() {
-    Dataset<Row> df =
-        spark
-            .createDataset(
-                Arrays.asList(
-                    new NumStruct(
-                        1L,
-                        2L,
-                        3L,
-                        ImmutableList.of(new StringStruct("1:str3", "2:str1", "3:str2"))),
-                    new NumStruct(
-                        2L,
-                        3L,
-                        4L,
-                        ImmutableList.of(new StringStruct("2:str3", "3:str1", "4:str2")))),
-                Encoders.bean(NumStruct.class))
-            .toDF();
-    df.write()
-        .format("bigquery")
-        .mode(SaveMode.Append)
-        .option("table", testDataset.toString() + "." + testTable)
-        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-        .option("writeMethod", WriteMethod.INDIRECT.toString())
-        .save();
-  }
-
   @Test
   public void testAggregateExpressions() {
-    writeTestDatasetToBigQuery();
+    writeTestDataToBigQuery();
     Dataset<Row> df =
         spark
             .read()
@@ -467,5 +440,341 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(9)).isEqualTo(0.71); // ROUND(STDDEV_SAMP(num1),2)
     assertThat(r1.get(10)).isEqualTo(0.25); // VAR_POP(num1)
     assertThat(r1.get(11)).isEqualTo(0.5); // VAR_SAMP(num1)
+  }
+
+  @Test
+  public void testJoinQuery() {
+    writeTestDataToBigQuery();
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(testDataset.toString() + "." + testTable);
+
+    df.createOrReplaceTempView("numStructDF");
+
+    // Creating a data frame of schema NumStruct, and writing it to BigQuery to perform the join
+    // using pushdown
+    Dataset<Row> df_to_join =
+        spark
+            .createDataset(
+                Arrays.asList(
+                    new NumStruct(
+                        1L,
+                        4L,
+                        3L,
+                        ImmutableList.of(new StringStruct("3:str3", "4:str4", "3:str3"))),
+                    new NumStruct(
+                        3L,
+                        5L,
+                        6L,
+                        ImmutableList.of(new StringStruct("6:str6", "5:str5", "3:str3"))),
+                    new NumStruct(
+                        3L,
+                        1L,
+                        4L,
+                        ImmutableList.of(new StringStruct("3:str3", "1:str1", "4:str4")))),
+                Encoders.bean(NumStruct.class))
+            .toDF();
+    String tableForJoin = testTable + "_to_join";
+    df_to_join
+        .write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("table", testDataset.toString() + "." + tableForJoin)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", WriteMethod.INDIRECT.toString())
+        .save();
+
+    df_to_join =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(testDataset.toString() + "." + tableForJoin);
+
+    df_to_join.createOrReplaceTempView("numStructDF_to_join");
+
+    List<Row> result;
+    result = df.join(df_to_join, df.col("num1").equalTo(df_to_join.col("num1"))).collectAsList();
+    /*
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |num1|num2|num3|             strings|num1|num2|num3|             strings|
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |   4|   3|   2|[[[[3:str1, 4:str...|   4|   1|   3|[[[[1:str1, 4:str...|
+     |   3|   2|   1|[[[[2:str1, 3:str...|   3|   4|   3|[[[[4:str4, 3:str...|
+     +----+----+----+--------------------+----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(2);
+    for (Row r : result) {
+      assertThat(r.get(0)).isEqualTo(r.get(4));
+    }
+    result = df_to_join.join(df, df.col("num1").equalTo(df_to_join.col("num1"))).collectAsList();
+    /*
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |num1|num2|num3|             strings|num1|num2|num3|             strings|
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |   4|   1|   3|[[[[1:str1, 4:str...|   4|   3|   2|[[[[3:str1, 4:str...|
+     |   3|   4|   3|[[[[4:str4, 3:str...|   3|   2|   1|[[[[2:str1, 3:str...|
+     +----+----+----+--------------------+----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(2);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(8);
+      assertThat(r.get(0)).isEqualTo(r.get(4));
+    }
+
+    result =
+        df.join(df_to_join, df.col("num1").equalTo(df_to_join.col("num1")), "leftouter")
+            .collectAsList();
+    /*
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |num1|num2|num3|             strings|num1|num2|num3|             strings|
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |   4|   3|   2|[[[[3:str1, 4:str...|   4|   1|   3|[[[[1:str1, 4:str...|
+     |   3|   2|   1|[[[[2:str1, 3:str...|   3|   4|   3|[[[[4:str4, 3:str...|
+     +----+----+----+--------------------+----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(2);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(8);
+      assertThat(r.get(0)).isEqualTo(r.get(4));
+    }
+    result =
+        df_to_join
+            .join(df, df.col("num1").equalTo(df_to_join.col("num1")), "leftouter")
+            .collectAsList();
+    /*
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |num1|num2|num3|             strings|num1|num2|num3|             strings|
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |   6|   5|   3|[[[[5:str5, 3:str...|null|null|null|                null|
+     |   3|   4|   3|[[[[4:str4, 3:str...|   3|   2|   1|[[[[2:str1, 3:str...|
+     |   4|   1|   3|[[[[1:str1, 4:str...|   4|   3|   2|[[[[3:str1, 4:str...|
+     +----+----+----+--------------------+----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(3);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(8);
+      if (r.get(4) == null) {
+        assertThat(r.get(0)).isEqualTo(6);
+      } else {
+        assertThat(r.get(0)).isEqualTo(r.get(4));
+      }
+    }
+
+    result =
+        df.join(df_to_join, df.col("num1").equalTo(df_to_join.col("num1")), "rightouter")
+            .collectAsList();
+    /*
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |num1|num2|num3|             strings|num1|num2|num3|             strings|
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |   4|   3|   2|[[[[3:str1, 4:str...|   4|   1|   3|[[[[1:str1, 4:str...|
+     |   3|   2|   1|[[[[2:str1, 3:str...|   3|   4|   3|[[[[4:str4, 3:str...|
+     |null|null|null|                null|   6|   5|   3|[[[[5:str5, 3:str...|
+     +----+----+----+--------------------+----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(3);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(8);
+      if (r.get(0) == null) {
+        assertThat(r.get(4)).isEqualTo(6);
+      } else {
+        assertThat(r.get(0)).isEqualTo(r.get(4));
+      }
+    }
+    result =
+        df_to_join
+            .join(df, df.col("num1").equalTo(df_to_join.col("num1")), "rightouter")
+            .collectAsList();
+    /*
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |num1|num2|num3|             strings|num1|num2|num3|             strings|
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |   4|   1|   3|[[[[1:str1, 4:str...|   4|   3|   2|[[[[3:str1, 4:str...|
+     |   3|   4|   3|[[[[4:str4, 3:str...|   3|   2|   1|[[[[2:str1, 3:str...|
+     +----+----+----+--------------------+----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(2);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(8);
+      assertThat(r.get(0)).isEqualTo(r.get(4));
+    }
+
+    result =
+        df.join(df_to_join, df.col("num1").equalTo(df_to_join.col("num1")), "fullouter")
+            .collectAsList();
+    /*
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |num1|num2|num3|             strings|num1|num2|num3|             strings|
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |   3|   2|   1|[[[[2:str1, 3:str...|   3|   4|   3|[[[[4:str4, 3:str...|
+     |   4|   3|   2|[[[[3:str1, 4:str...|   4|   1|   3|[[[[1:str1, 4:str...|
+     |null|null|null|                null|   6|   5|   3|[[[[5:str5, 3:str...|
+     +----+----+----+--------------------+----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(3);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(8);
+      if (r.get(0) == null) {
+        assertThat(r.get(4)).isEqualTo(6);
+      } else {
+        assertThat(r.get(0)).isEqualTo(r.get(4));
+      }
+    }
+    result =
+        df_to_join
+            .join(df, df.col("num1").equalTo(df_to_join.col("num1")), "fullouter")
+            .collectAsList();
+    /*
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |num1|num2|num3|             strings|num1|num2|num3|             strings|
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |   3|   4|   3|[[[[4:str4, 3:str...|   3|   2|   1|[[[[2:str1, 3:str...|
+     |   6|   5|   3|[[[[5:str5, 3:str...|null|null|null|                null|
+     |   4|   1|   3|[[[[1:str1, 4:str...|   4|   3|   2|[[[[3:str1, 4:str...|
+     +----+----+----+--------------------+----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(3);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(8);
+      if (r.get(4) == null) {
+        assertThat(r.get(0)).isEqualTo(6);
+      } else {
+        assertThat(r.get(0)).isEqualTo(r.get(4));
+      }
+    }
+
+    result = df.crossJoin(df_to_join).collectAsList();
+    /*
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |num1|num2|num3|             strings|num1|num2|num3|             strings|
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |   3|   2|   1|[[[[2:str1, 3:str...|   4|   1|   3|[[[[1:str1, 4:str...|
+     |   4|   3|   2|[[[[3:str1, 4:str...|   4|   1|   3|[[[[1:str1, 4:str...|
+     |   4|   3|   2|[[[[3:str1, 4:str...|   3|   4|   3|[[[[4:str4, 3:str...|
+     |   3|   2|   1|[[[[2:str1, 3:str...|   3|   4|   3|[[[[4:str4, 3:str...|
+     |   3|   2|   1|[[[[2:str1, 3:str...|   6|   5|   3|[[[[5:str5, 3:str...|
+     |   4|   3|   2|[[[[3:str1, 4:str...|   6|   5|   3|[[[[5:str5, 3:str...|
+     +----+----+----+--------------------+----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(6);
+
+    result =
+        df.join(df_to_join, df.col("num1").equalTo(df_to_join.col("num1")), "leftsemi")
+            .collectAsList();
+    /*
+     +----+----+----+--------------------+
+     |num1|num2|num3|             strings|
+     +----+----+----+--------------------+
+     |   4|   3|   2|[[[[3:str1, 4:str...|
+     |   3|   2|   1|[[[[2:str1, 3:str...|
+     +----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(2);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(4);
+    }
+    result =
+        df_to_join
+            .join(df, df.col("num1").equalTo(df_to_join.col("num1")), "leftsemi")
+            .collectAsList();
+    /*
+     +----+----+----+--------------------+
+     |num1|num2|num3|             strings|
+     +----+----+----+--------------------+
+     |   3|   4|   3|[[[[4:str4, 3:str...|
+     |   4|   1|   3|[[[[1:str1, 4:str...|
+     +----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(2);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(4);
+    }
+
+    result =
+        df.join(df_to_join, df.col("num1").equalTo(df_to_join.col("num1")), "leftanti")
+            .collectAsList();
+    /*
+     +----+----+----+-------+
+     |num1|num2|num3|strings|
+     +----+----+----+-------+
+     +----+----+----+-------+
+    */
+    assertThat(result.size()).isEqualTo(0);
+    result =
+        df_to_join
+            .join(df, df.col("num1").equalTo(df_to_join.col("num1")), "leftanti")
+            .collectAsList();
+    /*
+     +----+----+----+--------------------+
+     |num1|num2|num3|             strings|
+     +----+----+----+--------------------+
+     |   6|   5|   3|[[[[5:str5, 3:str...|
+     +----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(1);
+    assertThat(result.get(0).size()).isEqualTo(4);
+    assertThat(result.get(0).get(0)).isEqualTo(6);
+
+    result =
+        spark
+            .sql(
+                "SELECT "
+                    + "numStructDF.num1 AS a_num1, "
+                    + "numStructDF.num2 AS a_num2, "
+                    + "numStructDF.num3 AS a_num3, "
+                    + "numStructDF_to_join.num1 AS b_num1, "
+                    + "numStructDF_to_join.num2 AS b_num2, "
+                    + "numStructDF_to_join.num3 AS b_num3 "
+                    + "FROM numStructDF RIGHT JOIN numStructDF_to_join "
+                    + "ON numStructDF.num1 = numStructDF_to_join.num2 "
+                    + "WHERE numStructDF_to_join.num2 > 2 ")
+            .collectAsList();
+    /*
+     +------+------+------+------+------+------+
+     |a_num1|a_num2|a_num3|a_num2|b_num2|b_num3|
+     +------+------+------+------+------+------+
+     |  null|  null|  null|     6|     5|     3|
+     |     4|     3|     2|     3|     4|     1|
+     +------+------+------+------+------+------+
+    */
+    assertThat(result.size()).isEqualTo(2);
+    for (Row r : result) {
+      if (r.get(0) == null) {
+        assertThat(r.get(4)).isEqualTo(5);
+      } else {
+        assertThat(r.get(0)).isEqualTo(r.get(4));
+      }
+    }
+  }
+
+  /** Method to create a test table of schema NumStruct, in test dataset */
+  protected void writeTestDataToBigQuery() {
+    Dataset<Row> df =
+        spark
+            .createDataset(
+                Arrays.asList(
+                    new NumStruct(
+                        1L,
+                        2L,
+                        3L,
+                        ImmutableList.of(new StringStruct("1:str3", "2:str1", "3:str2"))),
+                    new NumStruct(
+                        2L,
+                        3L,
+                        4L,
+                        ImmutableList.of(new StringStruct("2:str3", "3:str1", "4:str2")))),
+                Encoders.bean(NumStruct.class))
+            .toDF();
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("table", testDataset.toString() + "." + testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", WriteMethod.INDIRECT.toString())
+        .save();
   }
 }
