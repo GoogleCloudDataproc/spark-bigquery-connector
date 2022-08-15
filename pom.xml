@@ -133,6 +133,7 @@
         <module>spark-bigquery-pushdown/spark-bigquery-pushdown-parent</module>
         <module>spark-bigquery-pushdown/spark-bigquery-pushdown-common_2.13</module>
         <module>spark-bigquery-pushdown/spark-3.2-bigquery-pushdown_2.13</module>
+        <module>spark-bigquery-pushdown/spark-3.3-bigquery-pushdown_2.13</module>
       </modules>
     </profile>
     <profile>

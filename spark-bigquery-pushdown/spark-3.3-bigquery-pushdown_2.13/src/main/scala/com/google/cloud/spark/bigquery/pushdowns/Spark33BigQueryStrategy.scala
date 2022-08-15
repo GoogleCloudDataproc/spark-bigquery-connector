@@ -4,7 +4,7 @@ import com.google.cloud.spark.bigquery.{SparkBigQueryUtil, SupportsQueryPushdown
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
 
-class Spark32BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory)
+class Spark33BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory)
   extends BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory) {
   override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     // DataSourceV2ScanRelation is the relation that is used in the Spark 3.1 DatasourceV2 connector

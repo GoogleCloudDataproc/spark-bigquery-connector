@@ -16,7 +16,7 @@
 
 package com.google.cloud.spark.bigquery.pushdowns
 
-class Spark32BigQueryPushdown extends BaseSparkBigQueryPushdown {
+class Spark33BigQueryPushdown extends BaseSparkBigQueryPushdown {
 
   override def supportsSparkVersion(sparkVersion: String): Boolean = {
     sparkVersion.startsWith("3.2")

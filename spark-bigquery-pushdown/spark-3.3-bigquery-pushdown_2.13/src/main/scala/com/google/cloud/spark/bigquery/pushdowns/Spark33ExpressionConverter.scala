@@ -21,9 +21,9 @@ import org.apache.spark.sql.catalyst.expressions.{Attribute, Cast, CheckOverflow
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 
 /**
- * Convert Spark 3.2 specific expressions to SQL
+ * Convert Spark 3.3 specific expressions to SQL
  */
-class Spark32ExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) extends SparkExpressionConverter() {
+class Spark33ExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) extends SparkExpressionConverter() {
   override def convertScalarSubqueryExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
     expression match {
       case ScalarSubquery(plan, _, _, joinCond) if joinCond.isEmpty =>
