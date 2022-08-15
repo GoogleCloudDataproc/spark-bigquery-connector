@@ -138,6 +138,7 @@ public class SparkBigQueryConfig
   com.google.common.base.Optional<String> filter = empty();
   com.google.common.base.Optional<StructType> schema = empty();
   Integer maxParallelism = null;
+  Integer preferredMinParallelism = null;
   int defaultParallelism = 1;
   com.google.common.base.Optional<String> temporaryGcsBucket = empty();
   com.google.common.base.Optional<String> persistentGcsBucket = empty();
@@ -289,6 +290,10 @@ public class SparkBigQueryConfig
     config.maxParallelism =
         getOptionFromMultipleParams(
                 options, ImmutableList.of("maxParallelism", "parallelism"), DEFAULT_FALLBACK)
+            .transform(Integer::valueOf)
+            .orNull();
+    config.preferredMinParallelism =
+        getAnyOption(globalOptions, options, "preferredMinParallelism")
             .transform(Integer::valueOf)
             .orNull();
     config.defaultParallelism = defaultParallelism;
@@ -568,6 +573,12 @@ public class SparkBigQueryConfig
     return maxParallelism == null ? OptionalInt.empty() : OptionalInt.of(maxParallelism);
   }
 
+  public OptionalInt getPreferredMinParallelism() {
+    return preferredMinParallelism == null
+        ? OptionalInt.empty()
+        : OptionalInt.of(preferredMinParallelism);
+  }
+
   public int getDefaultParallelism() {
     return defaultParallelism;
   }
@@ -750,6 +761,7 @@ public class SparkBigQueryConfig
         .setViewEnabledParamName(VIEWS_ENABLED_OPTION)
         .setDefaultParallelism(defaultParallelism)
         .setMaxParallelism(getMaxParallelism())
+        .setPreferredMinParallelism(getPreferredMinParallelism())
         .setRequestEncodedBase(encodedCreateReadSessionRequest.toJavaUtil())
         .setEndpoint(storageReadEndpoint.toJavaUtil())
         .setBackgroundParsingThreads(numBackgroundThreadsPerStream)

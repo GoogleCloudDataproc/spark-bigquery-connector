@@ -15,6 +15,7 @@ public class ReadSessionCreatorConfigBuilder {
   private int maxReadRowsRetries = 10;
   private String viewEnabledParamName = "";
   private OptionalInt maxParallelism = OptionalInt.empty();
+  private OptionalInt preferredMinParallelism = OptionalInt.empty();
   private int defaultParallelism = 1000;
   private Optional<String> requestEncodedBase = Optional.empty();
   private Optional<String> endpoint = Optional.empty();
@@ -65,6 +66,12 @@ public class ReadSessionCreatorConfigBuilder {
 
   public ReadSessionCreatorConfigBuilder setMaxParallelism(OptionalInt maxParallelism) {
     this.maxParallelism = maxParallelism;
+    return this;
+  }
+
+  public ReadSessionCreatorConfigBuilder setPreferredMinParallelism(
+      OptionalInt preferredMinParallelism) {
+    this.preferredMinParallelism = preferredMinParallelism;
     return this;
   }
 
@@ -125,6 +132,7 @@ public class ReadSessionCreatorConfigBuilder {
         maxReadRowsRetries,
         viewEnabledParamName,
         maxParallelism,
+        preferredMinParallelism,
         defaultParallelism,
         requestEncodedBase,
         endpoint,
