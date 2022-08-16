@@ -17,7 +17,6 @@ package com.google.cloud.spark.bigquery;
 
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.DEFAULT_FALLBACK;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getOptionFromMultipleParams;
-import static scala.collection.JavaConversions.mapAsJavaMap;
 
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
@@ -163,7 +162,7 @@ public class SparkBigQueryUtil {
 
   public static TableId parseSimpleTableId(SparkSession spark, Map<String, String> options) {
     ImmutableMap<String, String> globalOptions =
-        ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll()));
+        ImmutableMap.copyOf(scalaMapToJavaMap(spark.conf().getAll()));
     return BigQueryConfigurationUtil.parseSimpleTableId(globalOptions, options);
   }
 

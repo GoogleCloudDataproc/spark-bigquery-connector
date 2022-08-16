@@ -23,18 +23,18 @@ class Spark32BigQueryPushdown extends BaseSparkBigQueryPushdown {
   }
 
   override def createSparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory): SparkExpressionConverter = {
-    new Spark33ExpressionConverter(expressionFactory, sparkPlanFactory)
+    new Spark32ExpressionConverter(expressionFactory, sparkPlanFactory)
   }
 
   override def createSparkExpressionFactory: SparkExpressionFactory = {
-    new Spark33ExpressionFactory
+    new Spark32ExpressionFactory
   }
 
   override def createBigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory): BigQueryStrategy = {
-    new Spark33BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory)
+    new Spark32BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory)
   }
 
   override def createSparkPlanFactory(): SparkPlanFactory = {
-    new Spark33PlanFactory
+    new Spark32PlanFactory
   }
 }

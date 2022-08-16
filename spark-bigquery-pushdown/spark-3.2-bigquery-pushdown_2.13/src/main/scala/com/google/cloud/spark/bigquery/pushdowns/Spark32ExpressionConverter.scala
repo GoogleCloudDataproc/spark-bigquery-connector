@@ -27,7 +27,7 @@ class Spark32ExpressionConverter(expressionFactory: SparkExpressionFactory, spar
   override def convertScalarSubqueryExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
     expression match {
       case ScalarSubquery(plan, _, _, joinCond) if joinCond.isEmpty =>
-        blockStatement(new Spark33BigQueryStrategy(this, expressionFactory, sparkPlanFactory)
+        blockStatement(new Spark32BigQueryStrategy(this, expressionFactory, sparkPlanFactory)
           .generateQueryFromOriginalLogicalPlan(plan).get.getStatement())
     }
   }

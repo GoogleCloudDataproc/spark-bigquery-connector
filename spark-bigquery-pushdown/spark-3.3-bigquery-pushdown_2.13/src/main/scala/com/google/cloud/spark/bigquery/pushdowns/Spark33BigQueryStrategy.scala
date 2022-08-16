@@ -9,7 +9,7 @@ class Spark33BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
   override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     // DataSourceV2ScanRelation is the relation that is used in the Spark 3.1 DatasourceV2 connector
     plan match {
-      case scanRelation@DataSourceV2ScanRelation(_, _, _) =>
+      case scanRelation@DataSourceV2ScanRelation(_, _, _, _) =>
         scanRelation.scan match {
           case scan: SupportsQueryPushdown =>
             Some(SourceQuery(expressionConverter = expressionConverter,

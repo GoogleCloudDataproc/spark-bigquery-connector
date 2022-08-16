@@ -17,11 +17,11 @@ case class Spark33BigQueryPushdownPlan(output: Seq[Attribute], rdd: RDD[Internal
     doExecuteSparkPlan(output, rdd)
   }
 
-  // New function introduced in Spark 3.2
+  // New function introduced in Spark 3.3
   override protected def withNewChildrenInternal(newChildren: IndexedSeq[SparkPlan]): SparkPlan = {
     if (newChildren.nonEmpty) {
       throw new BigQueryConnectorException("Spark connector internal error: " +
-        "Spark32BigQueryPushdownPlan.withNewChildrenInternal() is called to set some children nodes.")
+        "Spark33BigQueryPushdownPlan.withNewChildrenInternal() is called to set some children nodes.")
     }
     this
   }

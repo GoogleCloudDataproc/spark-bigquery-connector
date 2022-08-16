@@ -31,7 +31,7 @@ class Spark32BigQueryStrategy(expressionConverter: SparkExpressionConverter, exp
 
   override def createUnionQuery(children: Seq[LogicalPlan]): Option[BigQuerySQLQuery] = {
     val queries: Seq[BigQuerySQLQuery] = children.map { child =>
-      new Spark33BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory).generateQueryFromPlan(child).get
+      new Spark32BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory).generateQueryFromPlan(child).get
     }
     Some(UnionQuery(expressionConverter, expressionFactory, queries, alias.next))
   }
