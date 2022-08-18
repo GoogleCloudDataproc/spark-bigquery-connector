@@ -3,9 +3,11 @@ package com.google.cloud.spark.bigquery.write;
 import com.google.cloud.spark.bigquery.write.context.DataWriterContext;
 import com.google.cloud.spark.bigquery.write.context.DataWriterContextFactory;
 import com.google.cloud.spark.bigquery.write.context.WriterCommitMessageContext;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Iterator;
 import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.function.Function2;
@@ -13,6 +15,9 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.collection.Seq;
+import scala.collection.Seq$;
+import scala.collection.mutable.Builder;
 
 public class DataSourceWriterContextPartitionHandler
     implements Function2<Integer, Iterator<Row>, Iterator<WriterCommitMessageContext>>,
@@ -41,7 +46,7 @@ public class DataSourceWriterContextPartitionHandler
     try {
       while (rowIterator.hasNext()) {
         Row row = rowIterator.next();
-        InternalRow internalRow = InternalRow.apply(row.toSeq());
+        InternalRow internalRow = InternalRow.apply(toSeq(row));
         dataWriterContext.write(internalRow);
       }
       return Iterators.forArray(dataWriterContext.commit());
@@ -55,5 +60,17 @@ public class DataSourceWriterContextPartitionHandler
       dataWriterContext.abort();
       return ImmutableList.<WriterCommitMessageContext>of().iterator();
     }
+  }
+
+  @VisibleForTesting
+  Seq<Object> toSeq(Row row) {
+    Builder<Object, Seq<Object>> resultBuilder = Seq$.MODULE$.newBuilder();
+    resultBuilder.sizeHint(row.length());
+    ArrayList<Object> result = new ArrayList<>(row.length());
+    for (int i = 0; i < row.length(); i++) {
+      resultBuilder = resultBuilder.$plus$eq(row.get(i));
+      result.add(row.get(i));
+    }
+    return resultBuilder.result();
   }
 }
