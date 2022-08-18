@@ -309,6 +309,42 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(1)).isEqualTo(true); // contains
     assertThat(r1.get(2)).isEqualTo(true); // ends_With
     assertThat(r1.get(3)).isEqualTo(true); // starts_With
+
+    writeTestDatasetToBigQuery();
+    df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(testDataset.toString() + "." + testTable);
+
+    df.createOrReplaceTempView("numStructDF");
+
+    result =
+        spark
+            .sql(
+                "SELECT "
+                    + "num1 == num2 AS EqualTo, "
+                    + "num1 > num2 AS GreaterThan, "
+                    + "num1 < num2 AS LessThan, "
+                    + "num1 >= num2 AS GreaterThanEqualTo, "
+                    + "num1 <= num2 AS LessThanEqualTo, "
+                    + "num1 != num2 AS NotEqualTo, "
+                    + "ISNULL(num1) AS IsNull, "
+                    + "ISNOTNULL(num2) AS IsNotNull, "
+                    + "num3 IN (1,2) AS In "
+                    + "FROM numStructDF")
+            .collectAsList();
+    r1 = result.get(0);
+    assertThat(r1.get(0)).isEqualTo(false); // EqualTo
+    assertThat(r1.get(1)).isEqualTo(true); // GreaterThan
+    assertThat(r1.get(2)).isEqualTo(false); // LessThan
+    assertThat(r1.get(3)).isEqualTo(true); // GreaterThanEqualTo
+    assertThat(r1.get(4)).isEqualTo(false); // LessThanEqualTo
+    assertThat(r1.get(5)).isEqualTo(true); // NotEqualTo
+    assertThat(r1.get(6)).isEqualTo(false); // IsNull
+    assertThat(r1.get(7)).isEqualTo(true); // IsNotNull
+    assertThat(r1.get(8)).isEqualTo(true); // In
   }
 
   @Test
