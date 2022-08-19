@@ -425,7 +425,17 @@ abstract class SparkExpressionConverter {
      */
     val windowFrame =
       if (generateWindowFrame && windowSpecDefinition.orderSpec.nonEmpty) {
-        windowSpecDefinition.frameSpecification.sql
+        windowSpecDefinition.frameSpecification match {
+          case windowSpec: SpecifiedWindowFrame =>
+          (windowSpec.lower, windowSpec.upper) match {
+            case (lower: Literal, upper: Literal) =>
+              windowSpec.frameType.sql + " " + ConstantString("BETWEEN") + " " + Math.abs(lower.value.asInstanceOf[Long]) + " " + ConstantString("PRECEDING AND") + " " + Math.abs(upper.value.asInstanceOf[Long]) + " " + ConstantString("FOLLOWING")
+            case _ =>
+              windowSpecDefinition.frameSpecification.sql
+          }
+          case _ =>
+            windowSpecDefinition.frameSpecification.sql
+        }
       } else {
         ""
       }

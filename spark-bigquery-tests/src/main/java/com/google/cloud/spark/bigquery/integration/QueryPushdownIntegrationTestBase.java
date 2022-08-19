@@ -391,6 +391,36 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  public void testWindowQueryWithWindowSpec() {
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDataset),
+        testDataset.toString() + "." + testTable);
+    // Appending more data to the existing table to perform WindowOperation
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDatasetForUnion),
+        testDataset.toString() + "." + testTable);
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("materializationDataset", testDataset.toString())
+            .load(testDataset.toString() + "." + testTable);
+    df.createOrReplaceTempView("numStructDF");
+
+    List<Row> result =
+        spark
+            .sql(
+                "SELECT "
+                    + "DISTINCT num3, "
+                    + "num2, "
+                    + "SUM(num1) OVER (PARTITION BY num3,num2 ORDER BY num2 ASC RANGE BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS sum_num1 "
+                    + "FROM numStructDF where num3 = 2 and num2 = 3")
+            .collectAsList();
+    Row r = result.get(0);
+    assertThat(r.get(2)).isEqualTo(4);
+  }
+
+  @Test
   public void testAggregateExpressions() {
     writeTestDataToBigQuery(
         getNumStructDataFrame(TestConstants.numStructDataset),
