@@ -1,11 +1,12 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
+import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
 import com.google.cloud.spark.bigquery.pushdowns.TestConstants.{SUBQUERY_0_ALIAS, SUBQUERY_1_ALIAS, SUBQUERY_2_ALIAS, TABLE_NAME, bigQueryRDDFactoryMock, expressionConverter, expressionFactory, schoolIdAttributeReference, schoolNameAttributeReference}
 import org.apache.spark.sql.catalyst.expressions
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateExpression, Average, Complete, Sum}
-import org.apache.spark.sql.catalyst.expressions.{Alias, Ascending, EmptyRow, ExprId, FrameType, Literal, RangeFrame, Rank, RowFrame, RowNumber, SortOrder, SpecifiedWindowFrame, UnboundedFollowing, UnboundedPreceding, UnspecifiedFrame, WindowExpression, WindowFrame, WindowSpecDefinition}
+import org.apache.spark.sql.catalyst.expressions.{Alias, Ascending, AttributeReference, Cast, EmptyRow, ExprId, FrameType, Literal, RangeFrame, Rank, RowFrame, RowNumber, SortOrder, SpecifiedWindowFrame, UnboundedFollowing, UnboundedPreceding, UnspecifiedFrame, WindowExpression, WindowFrame, WindowSpecDefinition}
 import org.apache.spark.sql.catalyst.plans.logical.Range
-import org.apache.spark.sql.types.Metadata
+import org.apache.spark.sql.types.{DateType, LongType, Metadata}
 import org.scalatest.funsuite.AnyFunSuite
 
 class WindowQuerySuite extends AnyFunSuite {
@@ -54,9 +55,46 @@ class WindowQuerySuite extends AnyFunSuite {
         windowSpec = WindowSpecDefinition.apply(
           Seq(schoolNameAttributeReference),
           Seq(SortOrder.apply(schoolIdAttributeReference, Ascending)),
-          SpecifiedWindowFrame.apply(RangeFrame, Literal.apply(-1L), Literal.apply(2L))))
+          SpecifiedWindowFrame.apply(RangeFrame, UnboundedPreceding, UnboundedFollowing)))
     val windowAliasWithRangeWindowFrameWithAvgFunc = expressionFactory.createAlias(windowExpressionWithRangeWindowFrameWithAvg, "", ExprId.apply(12L), Seq.empty[String], Some(Metadata.empty))
     val windowQueryWithRangeWindowFrameWithAvgFunc = WindowQuery(expressionConverter, expressionFactory, Seq(windowAliasWithRangeWindowFrameWithAvgFunc), sourceQuery, Some(Seq(schoolIdAttributeReference, schoolNameAttributeReference, windowAliasWithRangeWindowFrameWithAvgFunc.toAttribute)), SUBQUERY_0_ALIAS)
-    assert(windowQueryWithRangeWindowFrameWithAvgFunc.getStatement().toString == "SELECT ( SUBQUERY_0.SCHOOLID ) AS SUBQUERY_0_COL_0 , ( SUBQUERY_0.SCHOOLNAME ) AS SUBQUERY_0_COL_1 , ( AVG ( SUBQUERY_0.SCHOOLID ) OVER ( PARTITION BY SUBQUERY_0.SCHOOLNAME ORDER BY ( SUBQUERY_0.SCHOOLID ) ASC RANGE BETWEEN 1 PRECEDING AND 2 FOLLOWING ) ) AS SUBQUERY_0_COL_2 FROM ( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0")
+    assert(windowQueryWithRangeWindowFrameWithAvgFunc.getStatement().toString == "SELECT ( SUBQUERY_0.SCHOOLID ) AS SUBQUERY_0_COL_0 , ( SUBQUERY_0.SCHOOLNAME ) AS SUBQUERY_0_COL_1 , ( AVG ( SUBQUERY_0.SCHOOLID ) OVER ( PARTITION BY SUBQUERY_0.SCHOOLNAME ORDER BY ( SUBQUERY_0.SCHOOLID ) ASC RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING ) ) AS SUBQUERY_0_COL_2 FROM ( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0")
+  }
+
+  test("sourceStatement with range window frame with avg func 2 PRECEDING and UNBOUNDED FOLLOWING") {
+    val windowExpressionWithRangeWindowFrameWithAvg = WindowExpression.apply(
+      windowFunction = AggregateExpression.apply(Average.apply(schoolIdAttributeReference), Complete, isDistinct = false),
+      windowSpec = WindowSpecDefinition.apply(
+        Seq(schoolNameAttributeReference),
+        Seq(SortOrder.apply(schoolIdAttributeReference, Ascending)),
+        SpecifiedWindowFrame.apply(RangeFrame, Literal.apply(-2L), UnboundedFollowing)))
+    val windowAliasWithRangeWindowFrameWithAvgFunc = expressionFactory.createAlias(windowExpressionWithRangeWindowFrameWithAvg, "", ExprId.apply(12L), Seq.empty[String], Some(Metadata.empty))
+    val windowQueryWithRangeWindowFrameWithAvgFunc = WindowQuery(expressionConverter, expressionFactory, Seq(windowAliasWithRangeWindowFrameWithAvgFunc), sourceQuery, Some(Seq(schoolIdAttributeReference, schoolNameAttributeReference, windowAliasWithRangeWindowFrameWithAvgFunc.toAttribute)), SUBQUERY_0_ALIAS)
+    assert(windowQueryWithRangeWindowFrameWithAvgFunc.getStatement().toString == "SELECT ( SUBQUERY_0.SCHOOLID ) AS SUBQUERY_0_COL_0 , ( SUBQUERY_0.SCHOOLNAME ) AS SUBQUERY_0_COL_1 , ( AVG ( SUBQUERY_0.SCHOOLID ) OVER ( PARTITION BY SUBQUERY_0.SCHOOLNAME ORDER BY ( SUBQUERY_0.SCHOOLID ) ASC RANGE BETWEEN 2 PRECEDING AND UNBOUNDED FOLLOWING ) ) AS SUBQUERY_0_COL_2 FROM ( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0")
+  }
+
+  test("sourceStatement with range window frame with avg func UNBOUNDED PRECEDING and 2 FOLLOWING") {
+    val windowExpressionWithRangeWindowFrameWithAvg = WindowExpression.apply(
+      windowFunction = AggregateExpression.apply(Average.apply(schoolIdAttributeReference), Complete, isDistinct = false),
+      windowSpec = WindowSpecDefinition.apply(
+        Seq(schoolNameAttributeReference),
+        Seq(SortOrder.apply(schoolIdAttributeReference, Ascending)),
+        SpecifiedWindowFrame.apply(RangeFrame, Literal.apply(-2L), UnboundedFollowing)))
+    val windowAliasWithRangeWindowFrameWithAvgFunc = expressionFactory.createAlias(windowExpressionWithRangeWindowFrameWithAvg, "", ExprId.apply(12L), Seq.empty[String], Some(Metadata.empty))
+    val windowQueryWithRangeWindowFrameWithAvgFunc = WindowQuery(expressionConverter, expressionFactory, Seq(windowAliasWithRangeWindowFrameWithAvgFunc), sourceQuery, Some(Seq(schoolIdAttributeReference, schoolNameAttributeReference, windowAliasWithRangeWindowFrameWithAvgFunc.toAttribute)), SUBQUERY_0_ALIAS)
+    assert(windowQueryWithRangeWindowFrameWithAvgFunc.getStatement().toString == "SELECT ( SUBQUERY_0.SCHOOLID ) AS SUBQUERY_0_COL_0 , ( SUBQUERY_0.SCHOOLNAME ) AS SUBQUERY_0_COL_1 , ( AVG ( SUBQUERY_0.SCHOOLID ) OVER ( PARTITION BY SUBQUERY_0.SCHOOLNAME ORDER BY ( SUBQUERY_0.SCHOOLID ) ASC RANGE BETWEEN 2 PRECEDING AND UNBOUNDED FOLLOWING ) ) AS SUBQUERY_0_COL_2 FROM ( SELECT * FROM `test_project:test_dataset.test_table` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0")
+  }
+
+  test("sourceStatement with range window frame with avg func on fail") {
+    val windowExpressionWithRangeWindowFrameWithAvg = WindowExpression.apply(
+      windowFunction = AggregateExpression.apply(Average.apply(schoolIdAttributeReference), Complete, isDistinct = false),
+      windowSpec = WindowSpecDefinition.apply(
+        Seq(schoolNameAttributeReference),
+        Seq(SortOrder.apply(schoolIdAttributeReference, Ascending)),
+        SpecifiedWindowFrame.apply(RangeFrame, Literal.apply("abc"), UnboundedFollowing)))
+    val windowAliasWithRangeWindowFrameWithAvgFunc = expressionFactory.createAlias(windowExpressionWithRangeWindowFrameWithAvg, "", ExprId.apply(12L), Seq.empty[String], Some(Metadata.empty))
+    assertThrows[org.apache.spark.sql.catalyst.analysis.UnresolvedException[_]] {
+      WindowQuery(expressionConverter, expressionFactory, Seq(windowAliasWithRangeWindowFrameWithAvgFunc), sourceQuery, Some(Seq(schoolIdAttributeReference, schoolNameAttributeReference, windowAliasWithRangeWindowFrameWithAvgFunc.toAttribute)), SUBQUERY_0_ALIAS)
+    }
   }
 }
