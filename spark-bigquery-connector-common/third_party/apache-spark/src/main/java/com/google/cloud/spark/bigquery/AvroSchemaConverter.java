@@ -33,7 +33,6 @@ import org.apache.spark.sql.types.BinaryType;
 import org.apache.spark.sql.types.BooleanType;
 import org.apache.spark.sql.types.ByteType;
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.DateType;
 import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.DecimalType;
@@ -49,8 +48,7 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.types.TimestampType;
 import org.apache.spark.sql.types.UserDefinedType;
-import scala.annotation.meta.getter;
-import scala.collection.mutable.WrappedArray;
+import scala.collection.mutable.IndexedSeq;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -274,7 +272,7 @@ public class AvroSchemaConverter {
           arrayData = getter.getArray(ordinal);
         } else {
           Object array = getter.get(ordinal, /* unused */ null);
-          if (array instanceof WrappedArray) {
+          if (array instanceof IndexedSeq) {
             arrayData = ArrayData.toArrayData(array);
           } else {
             arrayData = (ArrayData) array;

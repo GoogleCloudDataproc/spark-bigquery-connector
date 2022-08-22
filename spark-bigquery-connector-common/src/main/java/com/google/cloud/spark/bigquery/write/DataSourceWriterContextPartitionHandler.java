@@ -15,9 +15,8 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.collection.Seq;
-import scala.collection.Seq$;
-import scala.collection.mutable.Builder;
+import scala.collection.immutable.Seq;
+import scala.collection.mutable.ListBuffer;
 
 public class DataSourceWriterContextPartitionHandler
     implements Function2<Integer, Iterator<Row>, Iterator<WriterCommitMessageContext>>,
@@ -64,13 +63,13 @@ public class DataSourceWriterContextPartitionHandler
 
   @VisibleForTesting
   Seq<Object> toSeq(Row row) {
-    Builder<Object, Seq<Object>> resultBuilder = Seq$.MODULE$.newBuilder();
+    ListBuffer<Object> resultBuilder = new ListBuffer<>();
     resultBuilder.sizeHint(row.length());
     ArrayList<Object> result = new ArrayList<>(row.length());
     for (int i = 0; i < row.length(); i++) {
-      resultBuilder = resultBuilder.$plus$eq(row.get(i));
+      resultBuilder.$plus$eq(row.get(i));
       result.add(row.get(i));
     }
-    return resultBuilder.result();
+    return resultBuilder.toSeq();
   }
 }

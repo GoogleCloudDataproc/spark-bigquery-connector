@@ -39,7 +39,7 @@ import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.collection.mutable.WrappedArray;
+import scala.collection.mutable.IndexedSeq;
 
 public class ProtobufUtils {
 
@@ -335,7 +335,7 @@ public class ProtobufUtils {
           protoValue.add(converted);
         }
       } else {
-        WrappedArray<Object> sparkArrayData = (WrappedArray<Object>) sparkValue;
+        IndexedSeq<Object> sparkArrayData = (IndexedSeq<Object>) sparkValue;
         int sparkArrayDataLength = sparkArrayData.length();
         for (int i = 0; i < sparkArrayDataLength; i++) {
           Object converted =

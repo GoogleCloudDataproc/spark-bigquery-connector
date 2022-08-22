@@ -17,7 +17,6 @@ import java.net.URISyntaxException;
 import java.util.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.sql.internal.SQLConf;
-import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.junit.Test;
 
 public class SparkBigQueryProxyAndHttpConfigTest {
