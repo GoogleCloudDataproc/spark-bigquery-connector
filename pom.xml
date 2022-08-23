@@ -49,6 +49,7 @@
     <module>spark-bigquery-parent</module>
     <module>bigquery-connector-common</module>
     <module>spark-bigquery-tests</module>
+    <module>spark-bigquery-scala-212-support</module>
     <module>spark-bigquery-connector-common</module>
     <module>spark-bigquery-python-lib</module>
   </modules>

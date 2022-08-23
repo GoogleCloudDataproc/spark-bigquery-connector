@@ -34,14 +34,12 @@ import org.apache.spark.Partition;
 import org.apache.spark.SparkContext;
 import org.apache.spark.TaskContext;
 import org.apache.spark.rdd.RDD;
-import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.catalyst.InternalRow;
-import scala.collection.AbstractIterator;
-import scala.collection.immutable.Seq;
-import scala.collection.immutable.Seq$;
+import scala.collection.Seq;
+import scala.collection.Seq$;
 
 // Ported this class from Scala to Java with no change in functionality
-class BigQueryRDD extends RDD<InternalRow> {
+class PreScala213BigQueryRDD extends RDD<InternalRow> {
 
   private final Partition[] partitions;
   private final ReadSession readSession;
@@ -50,7 +48,7 @@ class BigQueryRDD extends RDD<InternalRow> {
   private final SparkBigQueryConfig options;
   private final BigQueryClientFactory bigQueryClientFactory;
 
-  public BigQueryRDD(
+  public PreScala213BigQueryRDD(
       SparkContext sparkContext,
       Partition[] parts,
       ReadSession readSession,
@@ -103,50 +101,12 @@ class BigQueryRDD extends RDD<InternalRow> {
 
     return new InterruptibleIterator<InternalRow>(
         context,
-        new ScalaIterator<>(
+        new ScalaIterator<InternalRow>(
             new InternalRowIterator(readRowsResponseIterator, converter, readRowsHelper)));
-  }
-
-  // Scala version agnostic conversion
-  static class ScalaIterator<T> extends AbstractIterator<T> {
-
-    private Iterator<T> underlying;
-
-    public ScalaIterator(Iterator<T> underlying) {
-      this.underlying = underlying;
-    }
-
-    @Override
-    public boolean hasNext() {
-      return underlying.hasNext();
-    }
-
-    @Override
-    public T next() {
-      return underlying.next();
-    }
   }
 
   @Override
   public Partition[] getPartitions() {
     return partitions;
-  }
-
-  public static BigQueryRDD scanTable(
-      SQLContext sqlContext,
-      Partition[] partitions,
-      ReadSession readSession,
-      Schema bqSchema,
-      String[] columnsInOrder,
-      SparkBigQueryConfig options,
-      BigQueryClientFactory bigQueryClientFactory) {
-    return new BigQueryRDD(
-        sqlContext.sparkContext(),
-        partitions,
-        readSession,
-        bqSchema,
-        columnsInOrder,
-        options,
-        bigQueryClientFactory);
   }
 }
