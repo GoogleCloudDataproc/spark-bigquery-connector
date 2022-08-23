@@ -65,10 +65,8 @@ public class DataSourceWriterContextPartitionHandler
   Seq<Object> toSeq(Row row) {
     ListBuffer<Object> resultBuilder = new ListBuffer<>();
     resultBuilder.sizeHint(row.length());
-    ArrayList<Object> result = new ArrayList<>(row.length());
     for (int i = 0; i < row.length(); i++) {
       resultBuilder.$plus$eq(row.get(i));
-      result.add(row.get(i));
     }
     return resultBuilder.toSeq();
   }
