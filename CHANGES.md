@@ -2,6 +2,8 @@
 
 ## Next
 
+* PR #745: Supporting load from query in spark-3.1-bigquery.
+
 ## 0.26.0 - 2022-07-18
 
 * All connectors support the DIRECT write method, using the BigQuery Storage Write API,

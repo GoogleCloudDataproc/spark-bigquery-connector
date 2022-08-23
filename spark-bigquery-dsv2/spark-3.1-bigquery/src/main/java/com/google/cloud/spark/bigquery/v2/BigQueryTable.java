@@ -72,7 +72,8 @@ public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
   private static BigQueryTable createInternal(
       Injector injector, TableId tableId, StructType sparkProvidedSchema) {
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
-    TableInfo tableInfo = bigQueryClient.getTable(tableId);
+    SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
+    TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
     if (tableInfo == null) {
       return new BigQueryTable(injector, tableId, sparkProvidedSchema);
     }
