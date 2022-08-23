@@ -1,5 +1,6 @@
 package com.google.cloud.spark.bigquery.write;
 
+import com.google.cloud.spark.bigquery.util.ScalaUtils;
 import com.google.cloud.spark.bigquery.write.context.DataWriterContext;
 import com.google.cloud.spark.bigquery.write.context.DataWriterContextFactory;
 import com.google.cloud.spark.bigquery.write.context.WriterCommitMessageContext;
@@ -44,7 +45,7 @@ public class DataSourceWriterContextPartitionHandler
     try {
       while (rowIterator.hasNext()) {
         Row row = rowIterator.next();
-        InternalRow internalRow = InternalRow.apply(toSeq(row));
+        InternalRow internalRow = InternalRow.apply(ScalaUtils.getInstance().rowToSeq(row));
         dataWriterContext.write(internalRow);
       }
       return Iterators.forArray(dataWriterContext.commit());
@@ -58,15 +59,5 @@ public class DataSourceWriterContextPartitionHandler
       dataWriterContext.abort();
       return ImmutableList.<WriterCommitMessageContext>of().iterator();
     }
-  }
-
-  @VisibleForTesting
-  Seq<Object> toSeq(Row row) {
-    ListBuffer<Object> resultBuilder = new ListBuffer<>();
-    resultBuilder.sizeHint(row.length());
-    for (int i = 0; i < row.length(); i++) {
-      resultBuilder.$plus$eq(row.get(i));
-    }
-    return resultBuilder.toSeq();
   }
 }
