@@ -17,12 +17,11 @@
 package com.google.cloud.spark.bigquery
 
 import java.io.IOException
-
 import com.google.cloud.bigquery.connector.common.BigQueryClient
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.streaming.Sink
 import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.{DataFrame, SQLContext}
+import org.slf4j.LoggerFactory
 
 /**
  * BigQuery Spark streaming sink
@@ -39,16 +38,18 @@ case class BigQueryStreamingSink(
                          outputMode: OutputMode,
                          opts: SparkBigQueryConfig,
                          bigQueryClient: BigQueryClient
-                       ) extends Sink with Logging {
+                       ) extends Sink {
+
+  val log = LoggerFactory.getLogger(getClass)
 
   @volatile private var latestBatchId: Long = -1L
 
   @throws[IOException]
   override def addBatch(batchId: Long, data: DataFrame): Unit = {
     if (batchId <= latestBatchId) {
-      logWarning("Skipping as already committed batch " + batchId)
+      log.warn("Skipping as already committed batch " + batchId)
     } else {
-      logDebug(s"addBatch($batchId)")
+      log.debug(s"addBatch($batchId)")
       BigQueryStreamWriter.writeBatch(data, sqlContext, outputMode, opts, bigQueryClient)
     }
     latestBatchId = batchId
