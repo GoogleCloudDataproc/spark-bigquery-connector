@@ -16,10 +16,10 @@
 package com.google.cloud.spark.bigquery.util;
 
 import com.google.common.collect.Streams;
-import org.apache.spark.sql.Row;
-import scala.collection.immutable.Seq;
-
 import java.util.ServiceLoader;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.InternalRow;
+import scala.collection.immutable.Seq;
 
 public abstract class ScalaUtils {
   private static ScalaUtils instance;
@@ -45,4 +45,6 @@ public abstract class ScalaUtils {
   public abstract boolean supportsScalaVersion(String scalaVersion);
 
   public abstract Seq<Object> rowToSeq(Row row);
+
+  public abstract InternalRow rowToInternalRow(Row row);
 }

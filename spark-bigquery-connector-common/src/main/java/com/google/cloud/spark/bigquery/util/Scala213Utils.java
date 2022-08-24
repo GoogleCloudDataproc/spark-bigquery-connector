@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.util;
 
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.InternalRow;
 import scala.collection.immutable.Seq;
 import scala.collection.mutable.ListBuffer;
 
@@ -34,5 +35,10 @@ public class Scala213Utils extends ScalaUtils {
       resultBuilder.$plus$eq(row.get(i));
     }
     return resultBuilder.toSeq();
+  }
+
+  @Override
+  public InternalRow rowToInternalRow(Row row) {
+    return InternalRow.fromSeq(row.toSeq());
   }
 }

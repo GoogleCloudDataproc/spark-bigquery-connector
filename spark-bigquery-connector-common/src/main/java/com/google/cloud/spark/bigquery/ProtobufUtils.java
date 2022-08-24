@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.storage.v1.ProtoRows;
 import com.google.cloud.bigquery.storage.v1.ProtoSchema;
 import com.google.cloud.bigquery.storage.v1.ProtoSchemaConverter;
+import com.google.cloud.spark.bigquery.util.ScalaUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -353,7 +354,7 @@ public class ProtobufUtils {
     if (sparkType instanceof StructType) {
       InternalRow internalRow = null;
       if (sparkValue instanceof Row) {
-        internalRow = InternalRow.apply(((Row) sparkValue).toSeq());
+        internalRow = ScalaUtils.getInstance().rowToInternalRow((Row) sparkValue);
       } else {
         internalRow = (InternalRow) sparkValue;
       }
