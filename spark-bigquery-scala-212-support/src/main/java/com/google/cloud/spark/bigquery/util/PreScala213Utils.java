@@ -19,7 +19,6 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
-import scala.collection.mutable.Builder;
 
 public class PreScala213Utils extends ScalaUtils {
 
@@ -29,13 +28,8 @@ public class PreScala213Utils extends ScalaUtils {
   }
 
   @Override
-  public Seq<Object> rowToSeq(Row row) {
-    Builder<Object, Seq<Object>> resultBuilder = Seq$.MODULE$.newBuilder();
-    resultBuilder.sizeHint(row.length());
-    for (int i = 0; i < row.length(); i++) {
-      resultBuilder.$plus$eq(row.get(i));
-    }
-    return resultBuilder.result();
+  public <T> Seq<T> emptySeq(Class<T> clazz) {
+    return Seq$.MODULE$.<T>newBuilder().result();
   }
 
   @Override

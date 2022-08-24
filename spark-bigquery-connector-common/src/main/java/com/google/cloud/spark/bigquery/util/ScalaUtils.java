@@ -44,7 +44,7 @@ public abstract class ScalaUtils {
 
   public abstract boolean supportsScalaVersion(String scalaVersion);
 
-  public abstract Seq<Object> rowToSeq(Row row);
+  public abstract <T> Seq<T> emptySeq(Class<T> clazz);
 
   public abstract InternalRow rowToInternalRow(Row row);
 }

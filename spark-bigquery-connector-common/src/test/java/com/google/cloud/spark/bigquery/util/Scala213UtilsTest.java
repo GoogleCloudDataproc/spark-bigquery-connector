@@ -30,10 +30,8 @@ public class Scala213UtilsTest {
   public void testRowToSeq() throws Exception {
     ScalaUtils su = ScalaUtils.getInstance();
     assertThat(su).isInstanceOf(Scala213Utils.class);
-    Row row = new GenericRow(new Object[] {"a", 1});
-    Seq<Object> seq = su.rowToSeq(row);
-    assertThat(seq.size()).isEqualTo(2);
-    assertThat(seq.head()).isEqualTo("a");
+    Seq<Object> seq = su.emptySeq(Object.class);
+    assertThat(seq.size()).isEqualTo(0);
   }
 
   @Test

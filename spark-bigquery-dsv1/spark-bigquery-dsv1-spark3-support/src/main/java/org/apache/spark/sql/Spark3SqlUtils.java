@@ -15,6 +15,7 @@
  */
 package org.apache.spark.sql;
 
+import com.google.cloud.spark.bigquery.util.ScalaUtils;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -23,7 +24,6 @@ import org.apache.spark.sql.catalyst.expressions.NamedExpression;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
-import scala.collection.Seq$;
 
 public class Spark3SqlUtils {
 
@@ -42,7 +42,7 @@ public class Spark3SqlUtils {
                         field.nullable(),
                         field.metadata(),
                         NamedExpression.newExprId(),
-                        Seq$.MODULE$.<String>newBuilder().result()))
+                        ScalaUtils.getInstance().emptySeq(String.class)))
             .collect(Collectors.toList());
     return JavaConverters.asScalaBuffer(result).toSeq();
   }

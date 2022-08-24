@@ -28,13 +28,8 @@ public class Scala213Utils extends ScalaUtils {
   }
 
   @Override
-  public Seq<Object> rowToSeq(Row row) {
-    ListBuffer<Object> resultBuilder = new ListBuffer<>();
-    resultBuilder.sizeHint(row.length());
-    for (int i = 0; i < row.length(); i++) {
-      resultBuilder.$plus$eq(row.get(i));
-    }
-    return resultBuilder.toSeq();
+  public <T> Seq<T> emptySeq(Class<T> clazz) {
+    return new ListBuffer<T>().toSeq();
   }
 
   @Override
