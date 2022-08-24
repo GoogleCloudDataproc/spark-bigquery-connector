@@ -77,7 +77,7 @@ steps:
 
 
 # Tests take around 30 mins in general.
-timeout: 1800s
+timeout: 2700s
 
 options:
   machineType: 'N1_HIGHCPU_32'
