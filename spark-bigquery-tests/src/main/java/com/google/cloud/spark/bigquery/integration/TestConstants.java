@@ -475,20 +475,4 @@ public class TestConstants {
             new int[] {1, 2, 3, 4},
             new Row[] {RowFactory.create(1), RowFactory.create(1)})
       };
-
-  public static final List<NumStruct> numStructDataset =
-      Arrays.asList(
-          new NumStruct(
-              1L, 2L, 3L, ImmutableList.of(new StringStruct("1:str3", "2:str1", "3:str2"))),
-          new NumStruct(
-              2L, 3L, 4L, ImmutableList.of(new StringStruct("2:str3", "3:str1", "4:str2"))));
-
-  public static final List<NumStruct> numStructDatasetForJoin =
-      Arrays.asList(
-          new NumStruct(
-              1L, 4L, 3L, ImmutableList.of(new StringStruct("3:str3", "4:str4", "3:str3"))),
-          new NumStruct(
-              3L, 5L, 6L, ImmutableList.of(new StringStruct("6:str6", "5:str5", "3:str3"))),
-          new NumStruct(
-              3L, 1L, 4L, ImmutableList.of(new StringStruct("3:str3", "1:str1", "4:str4"))));
 }
