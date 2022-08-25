@@ -496,7 +496,7 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val soundexExpression = SoundEx.apply(schoolIdAttributeReference)
     val bigQuerySQLStatement = expressionConverter.convertStringExpressions(soundexExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "SOUNDEX ( SUBQUERY_2.SCHOOLID )")
+    assert(bigQuerySQLStatement.get.toString == "UPPER ( SOUNDEX ( SUBQUERY_2.SCHOOLID ) )")
   }
 
   test("convertStringExpressions with RegExpExtract") {

@@ -74,7 +74,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(17))
         .isEqualTo("replacement"); // REGEXP_REPLACE(word, '([A-Za-z]+$)', 'replacement')
     assertThat(r1.get(18)).isEqualTo("ug"); // SUBSTR(word, 2, 2)
-    assertThat(r1.get(19)).isEqualTo("a262"); // SOUNDEX(word)
+    assertThat(r1.get(19)).isEqualTo("A262"); // SOUNDEX(word)
   }
 
   @Test
