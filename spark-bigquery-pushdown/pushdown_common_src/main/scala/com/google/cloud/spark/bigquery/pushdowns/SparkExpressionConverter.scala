@@ -252,8 +252,9 @@ abstract class SparkExpressionConverter {
       case _: Rand =>
         ConstantString("RAND") + ConstantString("()")
 
-      case Logarithm(left, right) =>
-        ConstantString("LOG") + blockStatement(convertStatement(right, fields) + "," + convertStatement(left, fields))
+      case Logarithm(base, expr) =>
+        // In spark it is LOG(base,expr) whereas in BigQuery it is LOG(expr, base)
+        ConstantString("LOG") + blockStatement(convertStatement(expr, fields) + "," + convertStatement(base, fields))
 
       case _: CheckOverflow =>
         convertCheckOverflowExpression(expression, fields)
