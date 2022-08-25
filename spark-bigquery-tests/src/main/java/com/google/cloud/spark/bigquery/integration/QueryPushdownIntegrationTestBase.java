@@ -437,9 +437,9 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     writeTestDataToBigQuery(
         getNumStructDataFrame(TestConstants.numStructDataset),
         testDataset.toString() + "." + testTable);
+    // Creating a DataFrame of schema NumStruct, and writing it to BigQuery
     Dataset<Row> df = readTestDataFromBigQuery(testDataset.toString() + "." + testTable);
 
-    // Creating a DataFrame of schema NumStruct, and writing it to BigQuery
     writeTestDataToBigQuery(
         getNumStructDataFrame(TestConstants.numStructDatasetForJoin),
         testDataset.toString() + "." + testTable + "_to_join");
