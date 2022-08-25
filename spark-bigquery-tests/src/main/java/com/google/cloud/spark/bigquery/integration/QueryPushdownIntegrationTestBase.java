@@ -198,7 +198,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(9)).isEqualTo(2); // FLOOR(EXP(1))
     assertThat(r1.get(10)).isEqualTo(5); // GREATEST(1,5,3,4)
     assertThat(r1.get(11)).isEqualTo(1); // LEAST(1,5,3,4)
-    assertThat(r1.get(12)).isEqualTo(2.31); // ROUND(LOG(word_count, 2.71), 2)
+    assertThat(r1.get(12)).isEqualTo(0.43); // ROUND(LOG(word_count, 2.71), 2)
     assertThat(r1.get(13)).isEqualTo(1.0); // ROUND(LOG10(word_count), 2)
     assertThat(r1.get(14)).isEqualTo(100.0); // POW(word_count, 2)
     assertThat(r1.get(16)).isEqualTo(0.0); // SIN(0)
