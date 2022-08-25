@@ -253,7 +253,7 @@ abstract class SparkExpressionConverter {
         ConstantString("RAND") + ConstantString("()")
 
       case Logarithm(left, right) =>
-        ConstantString("LOG") + blockStatement(convertStatement(left, fields) + "," + convertStatement(right, fields))
+        ConstantString("LOG") + blockStatement(convertStatement(right, fields) + "," + convertStatement(left, fields))
 
       case _: CheckOverflow =>
         convertCheckOverflowExpression(expression, fields)

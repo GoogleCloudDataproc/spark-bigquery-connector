@@ -598,7 +598,7 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
   }
 
   test("convertMathematicalExpressions with Logarithm") {
-    val logExpression = Logarithm.apply(Literal(10), Literal(2))
+    val logExpression = Logarithm.apply(Literal(2), Literal(10))
     val bigQuerySQLStatement = expressionConverter.convertMathematicalExpressions(logExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "LOG ( 10 , 2 )")
