@@ -35,8 +35,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -296,5 +299,51 @@ public class BigQueryUtil {
 
   public static Optional<String> emptyIfNeeded(String value) {
     return (value == null || value.length() == 0) ? Optional.empty() : Optional.of(value);
+  }
+
+  /**
+   * Create an instance of the given class name, and verify that it is an instance of the required
+   * class
+   */
+  public static <T> T createVerifiedInstance(
+      String fullyQualifiedClassName, Class<T> requiredClass) {
+    try {
+      Class<?> clazz = Class.forName(fullyQualifiedClassName);
+      Object result = clazz.newInstance();
+      if (!requiredClass.isInstance(result)) {
+        throw new IllegalArgumentException(
+            String.format(
+                "% does not implement %s",
+                clazz.getCanonicalName(), requiredClass.getCanonicalName()));
+      }
+      return (T) result;
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Could not instantiate class [%s], implementing %s",
+              fullyQualifiedClassName, requiredClass.getCanonicalName()),
+          e);
+    }
+  }
+
+  /**
+   * Verify the given object is Serializable by returning the deserialized version of the serialized
+   * instance
+   */
+  public static <T> T verifySerialization(T obj) {
+    try {
+      ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+      ObjectOutputStream out = new ObjectOutputStream(buffer);
+      out.writeObject(obj);
+      out.flush();
+      out.close();
+      ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(buffer.toByteArray()));
+      T result = (T) in.readObject();
+      in.close();
+      return result;
+    } catch (IOException | ClassNotFoundException e) {
+      throw new IllegalArgumentException(
+          "Serialization test of " + obj.getClass().getCanonicalName() + " failed", e);
+    }
   }
 }

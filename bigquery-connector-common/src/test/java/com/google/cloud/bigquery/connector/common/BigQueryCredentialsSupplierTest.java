@@ -67,6 +67,8 @@ public class BigQueryCredentialsSupplierTest {
   public void testCredentialsFromAccessToken() {
     Credentials nonProxyCredentials =
         new BigQueryCredentialsSupplier(
+                Optional.empty(),
+                Optional.empty(),
                 Optional.of(ACCESS_TOKEN),
                 Optional.empty(),
                 Optional.empty(),
@@ -77,6 +79,8 @@ public class BigQueryCredentialsSupplierTest {
 
     Credentials proxyCredentials =
         new BigQueryCredentialsSupplier(
+                Optional.empty(),
+                Optional.empty(),
                 Optional.of(ACCESS_TOKEN),
                 Optional.empty(),
                 Optional.empty(),
@@ -105,6 +109,8 @@ public class BigQueryCredentialsSupplierTest {
     Credentials nonProxyCredentials =
         new BigQueryCredentialsSupplier(
                 Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
                 Optional.of(credentialsKey),
                 Optional.empty(),
                 Optional.empty(),
@@ -114,6 +120,8 @@ public class BigQueryCredentialsSupplierTest {
 
     Credentials proxyCredentials =
         new BigQueryCredentialsSupplier(
+                Optional.empty(),
+                Optional.empty(),
                 Optional.empty(),
                 Optional.of(credentialsKey),
                 Optional.empty(),
@@ -148,6 +156,8 @@ public class BigQueryCredentialsSupplierTest {
             () ->
                 new BigQueryCredentialsSupplier(
                         Optional.empty(),
+                        Optional.empty(),
+                        Optional.empty(),
                         Optional.of(credentialsKey),
                         Optional.empty(),
                         optionalProxyURI,
@@ -160,6 +170,8 @@ public class BigQueryCredentialsSupplierTest {
             IllegalArgumentException.class,
             () ->
                 new BigQueryCredentialsSupplier(
+                        Optional.empty(),
+                        Optional.empty(),
                         Optional.empty(),
                         Optional.of(credentialsKey),
                         Optional.empty(),
@@ -189,6 +201,8 @@ public class BigQueryCredentialsSupplierTest {
         new BigQueryCredentialsSupplier(
                 Optional.empty(),
                 Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
                 Optional.of(credentialsFile.getAbsolutePath()),
                 Optional.empty(),
                 Optional.empty(),
@@ -197,6 +211,8 @@ public class BigQueryCredentialsSupplierTest {
 
     Credentials proxyCredentials =
         new BigQueryCredentialsSupplier(
+                Optional.empty(),
+                Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.of(credentialsFile.getAbsolutePath()),
@@ -233,6 +249,8 @@ public class BigQueryCredentialsSupplierTest {
                 new BigQueryCredentialsSupplier(
                         Optional.empty(),
                         Optional.empty(),
+                        Optional.empty(),
+                        Optional.empty(),
                         Optional.of(credentialsFile.getAbsolutePath()),
                         optionalProxyURI,
                         Optional.empty(),
@@ -244,6 +262,8 @@ public class BigQueryCredentialsSupplierTest {
             IllegalArgumentException.class,
             () ->
                 new BigQueryCredentialsSupplier(
+                        Optional.empty(),
+                        Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
                         Optional.of(credentialsFile.getAbsolutePath()),
