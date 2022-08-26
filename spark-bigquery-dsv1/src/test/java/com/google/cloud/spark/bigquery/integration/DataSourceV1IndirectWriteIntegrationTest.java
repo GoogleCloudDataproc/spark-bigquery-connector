@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import org.junit.Test;
 
 public class DataSourceV1IndirectWriteIntegrationTest extends DataSourceV1WriteIntegrationTestBase {
 
@@ -24,5 +25,8 @@ public class DataSourceV1IndirectWriteIntegrationTest extends DataSourceV1WriteI
   }
 
   // additional tests are from the super-class
-
+  @Test
+  public void foo() throws Exception {
+    testStreamingToBigQueryWriteAppend();
+  }
 }

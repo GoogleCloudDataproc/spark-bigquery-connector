@@ -13,21 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.util;
+package org.apache.spark.sql;
 
 import com.google.common.collect.Streams;
 import java.util.ServiceLoader;
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
-import scala.collection.immutable.Seq;
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
+import org.apache.spark.sql.types.StructType;
 
-public abstract class ScalaUtils {
-  private static ScalaUtils instance;
+public abstract class SparkSqlUtils {
+  private static SparkSqlUtils instance;
 
-  public static ScalaUtils getInstance() {
+  public static SparkSqlUtils getInstance() {
     String scalaVersion = scala.util.Properties.versionNumberString();
     if (instance == null) {
-      ServiceLoader<ScalaUtils> serviceLoader = ServiceLoader.load(ScalaUtils.class);
+      ServiceLoader<SparkSqlUtils> serviceLoader = ServiceLoader.load(SparkSqlUtils.class);
       instance =
           Streams.stream(serviceLoader.iterator())
               .filter(s -> s.supportsScalaVersion(scalaVersion))
@@ -37,14 +37,14 @@ public abstract class ScalaUtils {
                       new IllegalArgumentException(
                           String.format(
                               "Could not load instance of [%], please check the META-INF/services directory in the connector's jar",
-                              ScalaUtils.class.getCanonicalName())));
+                              SparkSqlUtils.class.getCanonicalName())));
     }
     return instance;
   }
 
   public abstract boolean supportsScalaVersion(String scalaVersion);
 
-  public abstract <T> Seq<T> emptySeq(Class<T> clazz);
-
   public abstract InternalRow rowToInternalRow(Row row);
+
+  public abstract ExpressionEncoder<Row> createExpressionEncoder(StructType schema);
 }

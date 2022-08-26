@@ -13,33 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.util;
+package org.apache.spark.sql;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericRow;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.junit.Test;
-import scala.collection.immutable.Seq;
 
-public class Scala213UtilsTest {
-
-  @Test
-  public void testRowToSeq() throws Exception {
-    ScalaUtils su = ScalaUtils.getInstance();
-    assertThat(su).isInstanceOf(Scala213Utils.class);
-    Seq<Object> seq = su.emptySeq(Object.class);
-    assertThat(seq.size()).isEqualTo(0);
-  }
+public class PreScala213SparkSqlUtilsTest {
 
   @Test
   public void testRowToInternalRow() throws Exception {
-    ScalaUtils su = ScalaUtils.getInstance();
-    assertThat(su).isInstanceOf(Scala213Utils.class);
+    SparkSqlUtils ssu = SparkSqlUtils.getInstance();
+    assertThat(ssu).isInstanceOf(PreScala213SparkSqlUtils.class);
     Row row = new GenericRow(new Object[] {UTF8String.fromString("a"), 1});
-    InternalRow internalRow = su.rowToInternalRow(row);
+    InternalRow internalRow = ssu.rowToInternalRow(row);
     assertThat(internalRow.numFields()).isEqualTo(2);
     assertThat(internalRow.getString(0).toString()).isEqualTo("a");
     assertThat(internalRow.getInt(1)).isEqualTo(1);

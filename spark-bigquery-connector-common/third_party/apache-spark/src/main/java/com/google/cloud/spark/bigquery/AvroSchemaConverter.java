@@ -15,7 +15,6 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.cloud.spark.bigquery.util.ScalaUtils;
 import com.google.common.base.Preconditions;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
@@ -24,6 +23,7 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.util.Utf8;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSqlUtils;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.SpecializedGetters;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
@@ -306,7 +306,7 @@ public class AvroSchemaConverter {
         } else {
           Object obj = getter.get(ordinal, /* unused */ null);
           if (obj instanceof Row) {
-            internalRow = ScalaUtils.getInstance().rowToInternalRow((Row) obj);
+            internalRow = SparkSqlUtils.getInstance().rowToInternalRow((Row) obj);
           } else {
             internalRow = (InternalRow) obj;
           }

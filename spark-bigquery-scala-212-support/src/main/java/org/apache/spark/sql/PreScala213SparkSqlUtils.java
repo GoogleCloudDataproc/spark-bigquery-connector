@@ -1,11 +1,11 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2022 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *       http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,23 +15,49 @@
  */
 package org.apache.spark.sql;
 
-import com.google.cloud.spark.bigquery.util.ScalaUtils;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.analysis.SimpleAnalyzer$;
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
+import org.apache.spark.sql.catalyst.encoders.RowEncoder;
+import org.apache.spark.sql.catalyst.expressions.Attribute;
 import org.apache.spark.sql.catalyst.expressions.AttributeReference;
 import org.apache.spark.sql.catalyst.expressions.NamedExpression;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.JavaConverters;
-import scala.collection.Seq;
+import scala.collection.mutable.ListBuffer;
 
-public class Spark3SqlUtils {
+public class PreScala213SparkSqlUtils extends SparkSqlUtils {
 
-  private Spark3SqlUtils() {}
+  @Override
+  public boolean supportsScalaVersion(String scalaVersion) {
+    return scalaVersion.compareTo("2.13") < 0;
+  }
+
+  @Override
+  public InternalRow rowToInternalRow(Row row) {
+    return InternalRow.fromSeq(row.toSeq());
+  }
+
+  @Override
+  public ExpressionEncoder<Row> createExpressionEncoder(StructType schema) {
+    List<Attribute> attributes =
+        JavaConverters.asJavaCollection(toAttributes(schema)).stream()
+            .map(Attribute::toAttribute)
+            .collect(Collectors.toList());
+    ExpressionEncoder<Row> expressionEncoder =
+        RowEncoder.apply(schema)
+            .resolveAndBind(
+                JavaConverters.asScalaIteratorConverter(attributes.iterator()).asScala().toSeq(),
+                SimpleAnalyzer$.MODULE$);
+    return expressionEncoder;
+  }
 
   // `toAttributes` is protected[sql] starting spark 3.2.0, so we need this call to be in the same
   // package. Since Scala 2.13/Spark 3.3 forbids it, the implementation has been ported to Java
-  public static Seq<AttributeReference> toAttributes(StructType schema) {
+  public static scala.collection.Seq<AttributeReference> toAttributes(StructType schema) {
     List<AttributeReference> result =
         Stream.of(schema.fields())
             .map(
@@ -42,7 +68,7 @@ public class Spark3SqlUtils {
                         field.nullable(),
                         field.metadata(),
                         NamedExpression.newExprId(),
-                        ScalaUtils.getInstance().emptySeq(String.class)))
+                        new ListBuffer<String>().toSeq()))
             .collect(Collectors.toList());
     return JavaConverters.asScalaBuffer(result).toSeq();
   }

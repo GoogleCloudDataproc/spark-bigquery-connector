@@ -1,6 +1,5 @@
 package com.google.cloud.spark.bigquery.write;
 
-import com.google.cloud.spark.bigquery.util.ScalaUtils;
 import com.google.cloud.spark.bigquery.write.context.DataWriterContext;
 import com.google.cloud.spark.bigquery.write.context.DataWriterContextFactory;
 import com.google.cloud.spark.bigquery.write.context.WriterCommitMessageContext;
@@ -11,6 +10,7 @@ import java.util.Iterator;
 import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSqlUtils;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +42,7 @@ public class DataSourceWriterContextPartitionHandler
     try {
       while (rowIterator.hasNext()) {
         Row row = rowIterator.next();
-        InternalRow internalRow = ScalaUtils.getInstance().rowToInternalRow(row);
+        InternalRow internalRow = SparkSqlUtils.getInstance().rowToInternalRow(row);
         dataWriterContext.write(internalRow);
       }
       return Iterators.forArray(dataWriterContext.commit());
