@@ -36,7 +36,7 @@ public abstract class SparkSqlUtils {
                   () ->
                       new IllegalArgumentException(
                           String.format(
-                              "Could not load instance of [%], please check the META-INF/services directory in the connector's jar",
+                              "Could not load instance of '%', please check the META-INF/services directory in the connector's jar",
                               SparkSqlUtils.class.getCanonicalName())));
     }
     return instance;
