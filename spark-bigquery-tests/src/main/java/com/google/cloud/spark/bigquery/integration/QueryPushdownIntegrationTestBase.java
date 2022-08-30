@@ -406,6 +406,18 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
             .option("materializationDataset", testDataset.toString())
             .load(testDataset.toString() + "." + testTable);
     df.createOrReplaceTempView("numStructDF");
+    /*
+      +----+----+----+--------------------+
+      |num1|num2|num3|             strings|
+      +----+----+----+--------------------+
+      |   3|   2|   1|[[2:str1, 3:str2,...|
+      |   4|   3|   2|[[3:str1, 4:str2,...|
+      |   4|   3|   1|[[2:str1, 3:str2,...|
+      |   6|   2|   2|[[3:str1, 4:str2,...|
+      |   5|   3|   1|[[2:str1, 3:str2,...|
+      |   7|   2|   2|[[3:str1, 4:str2,...|
+      +----+----+----+--------------------+
+     */
 
     List<Row> result =
         spark
@@ -416,7 +428,17 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                     + "SUM(num1) OVER (PARTITION BY num3,num2 ORDER BY num2 ASC RANGE BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS sum_num1 "
                     + "FROM numStructDF where num3 = 2 and num2 = 3")
             .collectAsList();
+    /*
+      +----+----+--------+
+      |num3|num2|sum_num1|
+      +----+----+--------+
+      |   2|   3|       4|
+      +----+----+--------+
+     */
+    assertThat(result.size()).isEqualTo(1);
     Row r = result.get(0);
+    assertThat(r.get(0)).isEqualTo(2);
+    assertThat(r.get(1)).isEqualTo(3);
     assertThat(r.get(2)).isEqualTo(4);
   }
 
