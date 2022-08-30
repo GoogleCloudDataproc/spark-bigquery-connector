@@ -19,8 +19,12 @@ package com.google.cloud.spark.bigquery.pushdowns
 import com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.{DEFAULT_FALLBACK, getOptionFromMultipleParams}
 import com.google.cloud.bigquery.connector.common.BigQueryUtil
 import com.google.common.collect.ImmutableList
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, Expression, NamedExpression}
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, Expression, NamedExpression, UnsafeProjection}
+import org.apache.spark.sql.types.{StructField, StructType}
+
 import scala.collection.JavaConverters._
 
 /**
@@ -128,6 +132,17 @@ object SparkBigQueryPushdownUtil {
         case expr: NamedExpression => expr
         case _ => expressionFactory.createAlias(expression._1, expression._2.name, expression._2.exprId, Seq.empty[String], Some(expression._2.metadata))
       }
+    }
+  }
+
+  def doExecuteSparkPlan(output: Seq[Attribute], rdd: RDD[InternalRow]): RDD[InternalRow] = {
+    val schema = StructType(
+      output.map(attr => StructField(attr.name, attr.dataType, attr.nullable))
+    )
+
+    rdd.mapPartitions { iter =>
+      val project = UnsafeProjection.create(schema)
+      iter.map(project)
     }
   }
 }
