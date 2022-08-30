@@ -3,14 +3,12 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.common.truth.Truth.assertThat;
 import static java.time.temporal.TemporalAdjusters.firstDayOfYear;
 
+import com.google.cloud.spark.bigquery.BigQueryConnectorUtils;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig.WriteMethod;
 import com.google.cloud.spark.bigquery.integration.model.NumStruct;
-import com.google.cloud.spark.bigquery.integration.model.StringStruct;
-import com.google.common.collect.ImmutableList;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.IsoFields;
-import java.util.Arrays;
 import java.util.List;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
@@ -310,14 +308,10 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(2)).isEqualTo(true); // ends_With
     assertThat(r1.get(3)).isEqualTo(true); // starts_With
 
-    writeTestDatasetToBigQuery();
-    df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("materializationDataset", testDataset.toString())
-            .load(testDataset.toString() + "." + testTable);
-
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDataset),
+        testDataset.toString() + "." + testTable);
+    df = readTestDataFromBigQuery(testDataset.toString() + "." + testTable);
     df.createOrReplaceTempView("numStructDF");
 
     result =
@@ -396,43 +390,12 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(row.get(10)).isEqualTo(3677); // COUNT(word) OVER count_window
   }
 
-  /** Method to create a test table of schema NumStruct, in test dataset */
-  protected void writeTestDatasetToBigQuery() {
-    Dataset<Row> df =
-        spark
-            .createDataset(
-                Arrays.asList(
-                    new NumStruct(
-                        1L,
-                        2L,
-                        3L,
-                        ImmutableList.of(new StringStruct("1:str3", "2:str1", "3:str2"))),
-                    new NumStruct(
-                        2L,
-                        3L,
-                        4L,
-                        ImmutableList.of(new StringStruct("2:str3", "3:str1", "4:str2")))),
-                Encoders.bean(NumStruct.class))
-            .toDF();
-    df.write()
-        .format("bigquery")
-        .mode(SaveMode.Append)
-        .option("table", testDataset.toString() + "." + testTable)
-        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-        .option("writeMethod", WriteMethod.INDIRECT.toString())
-        .save();
-  }
-
   @Test
   public void testAggregateExpressions() {
-    writeTestDatasetToBigQuery();
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("materializationDataset", testDataset.toString())
-            .load(testDataset.toString() + "." + testTable);
-
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDataset),
+        testDataset.toString() + "." + testTable);
+    Dataset<Row> df = readTestDataFromBigQuery(testDataset.toString() + "." + testTable);
     df.createOrReplaceTempView("numStructDF");
 
     List<Row> result =
@@ -467,5 +430,606 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     assertThat(r1.get(9)).isEqualTo(0.71); // ROUND(STDDEV_SAMP(num1),2)
     assertThat(r1.get(10)).isEqualTo(0.25); // VAR_POP(num1)
     assertThat(r1.get(11)).isEqualTo(0.5); // VAR_SAMP(num1)
+  }
+
+  @Test
+  public void testInnerJoin() {
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDataset),
+        testDataset.toString() + "." + testTable);
+    // Creating a DataFrame of schema NumStruct, and writing it to BigQuery
+    Dataset<Row> df = readTestDataFromBigQuery(testDataset.toString() + "." + testTable);
+
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDatasetForJoin),
+        testDataset.toString() + "." + testTable + "_to_join");
+    // Creating an additional DataFrame of schema NumStruct, and writing it to BigQuery which will
+    // be used for join
+    Dataset<Row> df_to_join =
+        readTestDataFromBigQuery(testDataset.toString() + "." + testTable + "_to_join");
+
+    // disabling pushdown to collect the join result to compare with pushdown enabled
+    BigQueryConnectorUtils.disablePushdownSession(spark);
+    List<Row> withoutPushDownResult =
+        df.join(df_to_join, df.col("num1").equalTo(df_to_join.col("num1"))).collectAsList();
+
+    // enabling pushdown to test join
+    BigQueryConnectorUtils.enablePushdownSession(spark);
+    List<Row> withPushDownResult =
+        df.join(df_to_join, df.col("num1").equalTo(df_to_join.col("num1"))).collectAsList();
+    // checking if the results with and without pushdown is the same
+    assertThat(withPushDownResult.size()).isEqualTo(withoutPushDownResult.size());
+    assertThat(withoutPushDownResult.containsAll(withPushDownResult)).isTrue();
+    assertThat(withPushDownResult.containsAll(withoutPushDownResult)).isTrue();
+    /*
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |num1|num2|num3|             strings|num1|num2|num3|             strings|
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |   4|   3|   2|[[[[3:str1, 4:str...|   4|   1|   3|[[[[1:str1, 4:str...|
+     |   3|   2|   1|[[[[2:str1, 3:str...|   3|   4|   3|[[[[4:str4, 3:str...|
+     +----+----+----+--------------------+----+----+----+--------------------+
+    */
+    assertThat(withPushDownResult.size()).isEqualTo(2);
+    for (Row r : withPushDownResult) {
+      assertThat(r.get(0)).isEqualTo(r.get(4));
+    }
+
+    // swapping the tables
+    List<Row> result =
+        df_to_join.join(df, df.col("num1").equalTo(df_to_join.col("num1"))).collectAsList();
+    /*
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |num1|num2|num3|             strings|num1|num2|num3|             strings|
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |   4|   1|   3|[[[[1:str1, 4:str...|   4|   3|   2|[[[[3:str1, 4:str...|
+     |   3|   4|   3|[[[[4:str4, 3:str...|   3|   2|   1|[[[[2:str1, 3:str...|
+     +----+----+----+--------------------+----+----+----+--------------------+
+    */
+
+    assertThat(result.size()).isEqualTo(2);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(8);
+      assertThat(r.get(0)).isEqualTo(r.get(4));
+    }
+  }
+
+  @Test
+  public void testLeftOuterJoin() {
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDataset),
+        testDataset.toString() + "." + testTable);
+    Dataset<Row> df = readTestDataFromBigQuery(testDataset.toString() + "." + testTable);
+
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDatasetForJoin),
+        testDataset.toString() + "." + testTable + "_to_join");
+    Dataset<Row> df_to_join =
+        readTestDataFromBigQuery(testDataset.toString() + "." + testTable + "_to_join");
+
+    // disabling pushdown to collect the join result to compare with pushdown enabled
+    BigQueryConnectorUtils.disablePushdownSession(spark);
+    Dataset<Row> dfWithoutPushDownResult =
+        df.alias("num_struct")
+            .join(
+                df_to_join.alias("num_struct_to_join"),
+                df.col("num1").equalTo(df_to_join.col("num1")),
+                "leftouter")
+            .select(
+                "num_struct.num1",
+                "num_struct.num2",
+                "num_struct.num3",
+                "num_struct_to_join.num1",
+                "num_struct_to_join.num2",
+                "num_struct_to_join.num3");
+    List<Row> withoutPushDownResult = dfWithoutPushDownResult.collectAsList();
+
+    // enabling pushdown to test join
+    BigQueryConnectorUtils.enablePushdownSession(spark);
+    Dataset<Row> dfWithPushDownResult =
+        df.alias("num_struct")
+            .join(
+                df_to_join.alias("num_struct_to_join"),
+                df.col("num1").equalTo(df_to_join.col("num1")),
+                "leftouter")
+            .select(
+                "num_struct.num1",
+                "num_struct.num2",
+                "num_struct.num3",
+                "num_struct_to_join.num1",
+                "num_struct_to_join.num2",
+                "num_struct_to_join.num3");
+    List<Row> withPushDownResult = dfWithPushDownResult.collectAsList();
+
+    // checking if the results with and without pushdown is the same
+    assertThat(withPushDownResult.size()).isEqualTo(withoutPushDownResult.size());
+    assertThat(withoutPushDownResult.containsAll(withPushDownResult)).isTrue();
+    assertThat(withPushDownResult.containsAll(withoutPushDownResult)).isTrue();
+    /*
+      +----+----+----+----+----+----+
+      |num1|num2|num3|num1|num2|num3|
+      +----+----+----+----+----+----+
+      |   4|   3|   2|   4|   1|   3|
+      |   3|   2|   1|   3|   4|   1|
+      +----+----+----+----+----+----+
+    */
+    assertThat(withPushDownResult.size()).isEqualTo(2);
+    for (Row r : withPushDownResult) {
+      assertThat(r.size()).isEqualTo(6);
+      assertThat(r.get(0)).isEqualTo(r.get(3));
+    }
+
+    // swapping the tables
+    List<Row> result =
+        df_to_join
+            .alias("num_struct_to_join")
+            .join(
+                df.alias("num_struct"), df.col("num1").equalTo(df_to_join.col("num1")), "leftouter")
+            .select(
+                "num_struct_to_join.num1",
+                "num_struct_to_join.num2",
+                "num_struct_to_join.num3",
+                "num_struct.num1",
+                "num_struct.num2",
+                "num_struct.num3")
+            .collectAsList();
+    /*
+      +----+----+----+----+----+----+
+      |num1|num2|num3|num1|num2|num3|
+      +----+----+----+----+----+----+
+      |   3|   4|   1|   3|   2|   1|
+      |   4|   1|   3|   4|   3|   2|
+      |   6|   5|   3|null|null|null|
+      +----+----+----+----+----+----+
+    */
+    assertThat(result.size()).isEqualTo(3);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(6);
+      if (r.get(3) == null) {
+        assertThat(r.get(0)).isEqualTo(6);
+      } else {
+        assertThat(r.get(0)).isEqualTo(r.get(3));
+      }
+    }
+  }
+
+  @Test
+  public void testRightOuterJoin() {
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDataset),
+        testDataset.toString() + "." + testTable);
+    Dataset<Row> df = readTestDataFromBigQuery(testDataset.toString() + "." + testTable);
+
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDatasetForJoin),
+        testDataset.toString() + "." + testTable + "_to_join");
+    Dataset<Row> df_to_join =
+        readTestDataFromBigQuery(testDataset.toString() + "." + testTable + "_to_join");
+
+    // disabling pushdown to collect the join result to compare with pushdown enabled
+    BigQueryConnectorUtils.disablePushdownSession(spark);
+    Dataset<Row> dfWithoutPushDownResult =
+        df.alias("num_struct")
+            .join(
+                df_to_join.alias("num_struct_to_join"),
+                df.col("num1").equalTo(df_to_join.col("num1")),
+                "rightouter")
+            .select(
+                "num_struct.num1",
+                "num_struct.num2",
+                "num_struct.num3",
+                "num_struct_to_join.num1",
+                "num_struct_to_join.num2",
+                "num_struct_to_join.num3");
+    List<Row> withoutPushDownResult = dfWithoutPushDownResult.collectAsList();
+
+    // enabling pushdown to test join
+    BigQueryConnectorUtils.enablePushdownSession(spark);
+    Dataset<Row> dfWithPushDownResult =
+        df.alias("num_struct")
+            .join(
+                df_to_join.alias("num_struct_to_join"),
+                df.col("num1").equalTo(df_to_join.col("num1")),
+                "rightouter")
+            .select(
+                "num_struct.num1",
+                "num_struct.num2",
+                "num_struct.num3",
+                "num_struct_to_join.num1",
+                "num_struct_to_join.num2",
+                "num_struct_to_join.num3");
+    List<Row> withPushDownResult = dfWithPushDownResult.collectAsList();
+
+    // checking if the results with and without pushdown is the same
+    assertThat(withPushDownResult.size()).isEqualTo(withoutPushDownResult.size());
+    assertThat(withoutPushDownResult.containsAll(withPushDownResult)).isTrue();
+    assertThat(withPushDownResult.containsAll(withoutPushDownResult)).isTrue();
+    /*
+      +----+----+----+----+----+----+
+      |num1|num2|num3|num1|num2|num3|
+      +----+----+----+----+----+----+
+      |   3|   2|   1|   3|   4|   1|
+      |null|null|null|   6|   5|   3|
+      |   4|   3|   2|   4|   1|   3|
+      +----+----+----+----+----+----+
+    */
+    assertThat(withPushDownResult.size()).isEqualTo(3);
+    for (Row r : withPushDownResult) {
+      assertThat(r.size()).isEqualTo(6);
+      if (r.get(0) == null) {
+        assertThat(r.get(3)).isEqualTo(6);
+      } else {
+        assertThat(r.get(0)).isEqualTo(r.get(3));
+      }
+    }
+
+    // swapping the tables
+    List<Row> result =
+        df_to_join
+            .alias("num_struct_to_join")
+            .join(
+                df.alias("num_struct"),
+                df.col("num1").equalTo(df_to_join.col("num1")),
+                "rightouter")
+            .select(
+                "num_struct_to_join.num1",
+                "num_struct_to_join.num2",
+                "num_struct_to_join.num3",
+                "num_struct.num1",
+                "num_struct.num2",
+                "num_struct.num3")
+            .collectAsList();
+    /*
+      +----+----+----+----+----+----+
+      |num1|num2|num3|num1|num2|num3|
+      +----+----+----+----+----+----+
+      |   3|   4|   1|   3|   2|   1|
+      |   4|   1|   3|   4|   3|   2|
+      +----+----+----+----+----+----+
+    */
+    assertThat(result.size()).isEqualTo(2);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(6);
+      assertThat(r.get(0)).isEqualTo(r.get(3));
+    }
+  }
+
+  @Test
+  public void testFullOuterJoin() {
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDataset),
+        testDataset.toString() + "." + testTable);
+    Dataset<Row> df = readTestDataFromBigQuery(testDataset.toString() + "." + testTable);
+
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDatasetForJoin),
+        testDataset.toString() + "." + testTable + "_to_join");
+    Dataset<Row> df_to_join =
+        readTestDataFromBigQuery(testDataset.toString() + "." + testTable + "_to_join");
+
+    // disabling pushdown to collect the join result to compare with pushdown enabled
+    BigQueryConnectorUtils.disablePushdownSession(spark);
+    Dataset<Row> dfWithoutPushDownResult =
+        df.alias("num_struct")
+            .join(
+                df_to_join.alias("num_struct_to_join"),
+                df.col("num1").equalTo(df_to_join.col("num1")),
+                "fullouter")
+            .select(
+                "num_struct.num1",
+                "num_struct.num2",
+                "num_struct.num3",
+                "num_struct_to_join.num1",
+                "num_struct_to_join.num2",
+                "num_struct_to_join.num3");
+    List<Row> withoutPushDownResult = dfWithoutPushDownResult.collectAsList();
+
+    // enabling pushdown to test join
+    BigQueryConnectorUtils.enablePushdownSession(spark);
+    Dataset<Row> dfWithPushDownResult =
+        df.alias("num_struct")
+            .join(
+                df_to_join.alias("num_struct_to_join"),
+                df.col("num1").equalTo(df_to_join.col("num1")),
+                "fullouter")
+            .select(
+                "num_struct.num1",
+                "num_struct.num2",
+                "num_struct.num3",
+                "num_struct_to_join.num1",
+                "num_struct_to_join.num2",
+                "num_struct_to_join.num3");
+    List<Row> withPushDownResult = dfWithPushDownResult.collectAsList();
+    // checking if the results with and without pushdown is the same
+    assertThat(withPushDownResult.size()).isEqualTo(withoutPushDownResult.size());
+    assertThat(withoutPushDownResult.containsAll(withPushDownResult)).isTrue();
+    assertThat(withPushDownResult.containsAll(withoutPushDownResult)).isTrue();
+    /*
+      +----+----+----+----+----+----+
+      |num1|num2|num3|num1|num2|num3|
+      +----+----+----+----+----+----+
+      |   3|   2|   1|   3|   4|   1|
+      |   4|   3|   2|   4|   1|   3|
+      |null|null|null|   6|   5|   3|
+      +----+----+----+----+----+----+
+    */
+    assertThat(withPushDownResult.size()).isEqualTo(3);
+    for (Row r : withPushDownResult) {
+      assertThat(r.size()).isEqualTo(6);
+      if (r.get(0) == null) {
+        assertThat(r.get(3)).isEqualTo(6);
+      } else {
+        assertThat(r.get(0)).isEqualTo(r.get(3));
+      }
+    }
+
+    // swapping the tables
+    List<Row> result =
+        df_to_join
+            .alias("num_struct_to_join")
+            .join(
+                df.alias("num_struct"), df.col("num1").equalTo(df_to_join.col("num1")), "fullouter")
+            .select(
+                "num_struct_to_join.num1",
+                "num_struct_to_join.num2",
+                "num_struct_to_join.num3",
+                "num_struct.num1",
+                "num_struct.num2",
+                "num_struct.num3")
+            .collectAsList();
+    /*
+      +----+----+----+----+----+----+
+      |num1|num2|num3|num1|num2|num3|
+      +----+----+----+----+----+----+
+      |   4|   1|   3|   4|   3|   2|
+      |   6|   5|   3|null|null|null|
+      |   3|   4|   1|   3|   2|   1|
+      +----+----+----+----+----+----+
+    */
+    assertThat(result.size()).isEqualTo(3);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(6);
+      if (r.get(3) == null) {
+        assertThat(r.get(0)).isEqualTo(6);
+      } else {
+        assertThat(r.get(0)).isEqualTo(r.get(3));
+      }
+    }
+  }
+
+  @Test
+  public void testCrossJoin() {
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDataset),
+        testDataset.toString() + "." + testTable);
+    Dataset<Row> df = readTestDataFromBigQuery(testDataset.toString() + "." + testTable);
+
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDatasetForJoin),
+        testDataset.toString() + "." + testTable + "_to_join");
+    Dataset<Row> df_to_join =
+        readTestDataFromBigQuery(testDataset.toString() + "." + testTable + "_to_join");
+
+    // disabling pushdown to collect the join result to compare with pushdown enabled
+    BigQueryConnectorUtils.disablePushdownSession(spark);
+    List<Row> withoutPushDownResult = df.crossJoin(df_to_join).collectAsList();
+
+    // enabling pushdown to test join
+    BigQueryConnectorUtils.enablePushdownSession(spark);
+    List<Row> withPushDownResult = df.crossJoin(df_to_join).collectAsList();
+
+    // checking if the results with and without pushdown is the same
+    assertThat(withPushDownResult.size()).isEqualTo(withoutPushDownResult.size());
+    assertThat(withoutPushDownResult.containsAll(withPushDownResult)).isTrue();
+    assertThat(withPushDownResult.containsAll(withoutPushDownResult)).isTrue();
+    /*
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |num1|num2|num3|             strings|num1|num2|num3|             strings|
+     +----+----+----+--------------------+----+----+----+--------------------+
+     |   3|   2|   1|[[[[2:str1, 3:str...|   4|   1|   3|[[[[1:str1, 4:str...|
+     |   4|   3|   2|[[[[3:str1, 4:str...|   4|   1|   3|[[[[1:str1, 4:str...|
+     |   4|   3|   2|[[[[3:str1, 4:str...|   3|   4|   3|[[[[4:str4, 3:str...|
+     |   3|   2|   1|[[[[2:str1, 3:str...|   3|   4|   3|[[[[4:str4, 3:str...|
+     |   3|   2|   1|[[[[2:str1, 3:str...|   6|   5|   3|[[[[5:str5, 3:str...|
+     |   4|   3|   2|[[[[3:str1, 4:str...|   6|   5|   3|[[[[5:str5, 3:str...|
+     +----+----+----+--------------------+----+----+----+--------------------+
+    */
+    // swapping the tables
+    assertThat(df_to_join.crossJoin(df).collectAsList().size()).isEqualTo(6);
+  }
+
+  @Test
+  public void testLeftSemiJoin() {
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDataset),
+        testDataset.toString() + "." + testTable);
+    Dataset<Row> df = readTestDataFromBigQuery(testDataset.toString() + "." + testTable);
+
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDatasetForJoin),
+        testDataset.toString() + "." + testTable + "_to_join");
+    Dataset<Row> df_to_join =
+        readTestDataFromBigQuery(testDataset.toString() + "." + testTable + "_to_join");
+
+    // disabling pushdown to collect the join result to compare with pushdown enabled
+    BigQueryConnectorUtils.disablePushdownSession(spark);
+    List<Row> withoutPushDownResult =
+        df.join(df_to_join, df.col("num1").equalTo(df_to_join.col("num1")), "leftsemi")
+            .collectAsList();
+
+    // enabling pushdown to test join
+    BigQueryConnectorUtils.enablePushdownSession(spark);
+    List<Row> withPushDownResult =
+        df.join(df_to_join, df.col("num1").equalTo(df_to_join.col("num1")), "leftsemi")
+            .collectAsList();
+
+    // checking if the results with and without pushdown is the same
+    assertThat(withPushDownResult.size()).isEqualTo(withoutPushDownResult.size());
+    assertThat(withoutPushDownResult.containsAll(withPushDownResult)).isTrue();
+    assertThat(withPushDownResult.containsAll(withoutPushDownResult)).isTrue();
+    /*
+     +----+----+----+--------------------+
+     |num1|num2|num3|             strings|
+     +----+----+----+--------------------+
+     |   4|   3|   2|[[[[3:str1, 4:str...|
+     |   3|   2|   1|[[[[2:str1, 3:str...|
+     +----+----+----+--------------------+
+    */
+    assertThat(withPushDownResult.size()).isEqualTo(2);
+    for (Row r : withPushDownResult) {
+      assertThat(r.size()).isEqualTo(4);
+    }
+
+    // swapping the tables
+    List<Row> result =
+        df_to_join
+            .join(df, df.col("num1").equalTo(df_to_join.col("num1")), "leftsemi")
+            .collectAsList();
+    /*
+     +----+----+----+--------------------+
+     |num1|num2|num3|             strings|
+     +----+----+----+--------------------+
+     |   3|   4|   3|[[[[4:str4, 3:str...|
+     |   4|   1|   3|[[[[1:str1, 4:str...|
+     +----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(2);
+    for (Row r : result) {
+      assertThat(r.size()).isEqualTo(4);
+    }
+  }
+
+  @Test
+  public void testLeftAntiJoin() {
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDataset),
+        testDataset.toString() + "." + testTable);
+    Dataset<Row> df = readTestDataFromBigQuery(testDataset.toString() + "." + testTable);
+
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDatasetForJoin),
+        testDataset.toString() + "." + testTable + "_to_join");
+    Dataset<Row> df_to_join =
+        readTestDataFromBigQuery(testDataset.toString() + "." + testTable + "_to_join");
+
+    // disabling pushdown to collect the join result to compare with pushdown enabled
+    BigQueryConnectorUtils.disablePushdownSession(spark);
+    List<Row> withoutPushDownResult =
+        df.join(df_to_join, df.col("num1").equalTo(df_to_join.col("num1")), "leftanti")
+            .collectAsList();
+
+    // enabling pushdown to test join
+    BigQueryConnectorUtils.enablePushdownSession(spark);
+    List<Row> withPushDownResult =
+        df.join(df_to_join, df.col("num1").equalTo(df_to_join.col("num1")), "leftanti")
+            .collectAsList();
+
+    // checking if the results with and without pushdown is the same
+    assertThat(withPushDownResult.size()).isEqualTo(withoutPushDownResult.size());
+    assertThat(withoutPushDownResult.containsAll(withPushDownResult)).isTrue();
+    assertThat(withPushDownResult.containsAll(withoutPushDownResult)).isTrue();
+    /*
+     +----+----+----+-------+
+     |num1|num2|num3|strings|
+     +----+----+----+-------+
+     +----+----+----+-------+
+    */
+    assertThat(withPushDownResult.size()).isEqualTo(0);
+
+    // swapping the tables
+    List<Row> result =
+        df_to_join
+            .join(df, df.col("num1").equalTo(df_to_join.col("num1")), "leftanti")
+            .collectAsList();
+    /*
+     +----+----+----+--------------------+
+     |num1|num2|num3|             strings|
+     +----+----+----+--------------------+
+     |   6|   5|   3|[[[[5:str5, 3:str...|
+     +----+----+----+--------------------+
+    */
+    assertThat(result.size()).isEqualTo(1);
+    assertThat(result.get(0).size()).isEqualTo(4);
+    assertThat(result.get(0).get(0)).isEqualTo(6);
+  }
+
+  @Test
+  public void testJoinQuery() {
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDataset),
+        testDataset.toString() + "." + testTable);
+    Dataset<Row> df = readTestDataFromBigQuery(testDataset.toString() + "." + testTable);
+    df.createOrReplaceTempView("numStructDF");
+
+    writeTestDataToBigQuery(
+        getNumStructDataFrame(TestConstants.numStructDatasetForJoin),
+        testDataset.toString() + "." + testTable + "_to_join");
+    Dataset<Row> df_to_join =
+        readTestDataFromBigQuery(testDataset.toString() + "." + testTable + "_to_join");
+    df_to_join.createOrReplaceTempView("numStructDF_to_join");
+
+    String query =
+        "SELECT "
+            + "numStructDF.num1 AS a_num1, "
+            + "numStructDF.num2 AS a_num2, "
+            + "numStructDF.num3 AS a_num3, "
+            + "numStructDF_to_join.num1 AS b_num1, "
+            + "numStructDF_to_join.num2 AS b_num2, "
+            + "numStructDF_to_join.num3 AS b_num3 "
+            + "FROM numStructDF RIGHT JOIN numStructDF_to_join "
+            + "ON numStructDF.num1 = numStructDF_to_join.num2 "
+            + "WHERE numStructDF_to_join.num2 > 2 ";
+
+    // disabling pushdown to collect the join result to compare with pushdown enabled
+    BigQueryConnectorUtils.disablePushdownSession(spark);
+    List<Row> withoutPushDownResult = spark.sql(query).collectAsList();
+
+    // enabling pushdown to test join
+    BigQueryConnectorUtils.enablePushdownSession(spark);
+    List<Row> withPushDownResult = spark.sql(query).collectAsList();
+    // checking if the results with and without pushdown is the same
+    assertThat(withPushDownResult.size()).isEqualTo(withoutPushDownResult.size());
+    assertThat(withoutPushDownResult.containsAll(withPushDownResult)).isTrue();
+    assertThat(withPushDownResult.containsAll(withoutPushDownResult)).isTrue();
+
+    /*
+     +------+------+------+------+------+------+
+     |a_num1|a_num2|a_num3|a_num2|b_num2|b_num3|
+     +------+------+------+------+------+------+
+     |  null|  null|  null|     6|     5|     3|
+     |     4|     3|     2|     3|     4|     1|
+     +------+------+------+------+------+------+
+    */
+    assertThat(withPushDownResult.size()).isEqualTo(2);
+    for (Row r : withPushDownResult) {
+      if (r.get(0) == null) {
+        assertThat(r.get(4)).isEqualTo(5);
+      } else {
+        assertThat(r.get(0)).isEqualTo(r.get(4));
+      }
+    }
+  }
+
+  /** Creating a Dataset of NumStructType which will be used to write to BigQuery */
+  protected Dataset<Row> getNumStructDataFrame(List<NumStruct> numStructList) {
+    return spark.createDataset(numStructList, Encoders.bean(NumStruct.class)).toDF();
+  }
+
+  /** Method to create a test table of schema NumStruct, in test dataset */
+  protected void writeTestDataToBigQuery(Dataset<Row> df, String table) {
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("table", table)
+        .option("writeMethod", WriteMethod.DIRECT.toString())
+        .save();
+  }
+
+  /** Method to read the test table of schema NumStruct, in test dataset */
+  protected Dataset<Row> readTestDataFromBigQuery(String table) {
+    return spark
+        .read()
+        .format("bigquery")
+        .option("materializationDataset", testDataset.toString())
+        .load(table);
   }
 }
