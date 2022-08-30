@@ -492,7 +492,7 @@ public class TestConstants {
           new NumStruct(
               3L, 1L, 4L, ImmutableList.of(new StringStruct("3:str3", "1:str1", "4:str4"))));
 
-  public static final List<NumStruct> numStructDatasetForUnion =
+  public static final List<NumStruct> numStructDatasetForWindow =
       Arrays.asList(
           new NumStruct(
               1L, 3L, 4L, ImmutableList.of(new StringStruct("1:str3", "2:str1", "3:str2"))),

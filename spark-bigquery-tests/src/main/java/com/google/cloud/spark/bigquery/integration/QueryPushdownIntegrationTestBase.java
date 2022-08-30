@@ -397,7 +397,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
         testDataset.toString() + "." + testTable);
     // Appending more data to the existing table to perform WindowOperation
     writeTestDataToBigQuery(
-        getNumStructDataFrame(TestConstants.numStructDatasetForUnion),
+        getNumStructDataFrame(TestConstants.numStructDatasetForWindow),
         testDataset.toString() + "." + testTable);
     Dataset<Row> df =
         spark
