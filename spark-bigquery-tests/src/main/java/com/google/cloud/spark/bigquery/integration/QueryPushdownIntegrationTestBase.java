@@ -558,6 +558,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
       assertThat(r.get(0)).isEqualTo(r.get(3));
     }
 
+    // swapping the tables
     List<Row> result =
         df_to_join
             .alias("num_struct_to_join")
@@ -661,6 +662,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
       }
     }
 
+    // swapping the tables
     List<Row> result =
         df_to_join
             .alias("num_struct_to_join")
@@ -760,6 +762,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
       }
     }
 
+    // swapping the tables
     List<Row> result =
         df_to_join
             .alias("num_struct_to_join")
@@ -830,6 +833,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
      |   4|   3|   2|[[[[3:str1, 4:str...|   6|   5|   3|[[[[5:str5, 3:str...|
      +----+----+----+--------------------+----+----+----+--------------------+
     */
+    // swapping the tables
     assertThat(df_to_join.crossJoin(df).collectAsList().size()).isEqualTo(6);
   }
 
@@ -874,6 +878,8 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
     for (Row r : withPushDownResult) {
       assertThat(r.size()).isEqualTo(4);
     }
+
+    // swapping the tables
     List<Row> result =
         df_to_join
             .join(df, df.col("num1").equalTo(df_to_join.col("num1")), "leftsemi")
@@ -928,6 +934,8 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
      +----+----+----+-------+
     */
     assertThat(withPushDownResult.size()).isEqualTo(0);
+
+    // swapping the tables
     List<Row> result =
         df_to_join
             .join(df, df.col("num1").equalTo(df_to_join.col("num1")), "leftanti")
