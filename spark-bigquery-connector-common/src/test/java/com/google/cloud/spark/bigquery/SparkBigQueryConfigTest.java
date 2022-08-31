@@ -40,7 +40,6 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.sql.internal.SQLConf;
-import org.apache.spark.sql.sources.v2.DataSourceOptions;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -900,6 +899,6 @@ public class SparkBigQueryConfigTest {
     assertThat(before24.getMessage()).contains("com.databricks:spark-avro_2.11:4.0.0");
     IllegalStateException after24 =
         SparkBigQueryConfig.IntermediateFormat.missingAvroException("2.4.8", cause);
-    assertThat(after24.getMessage()).contains("org.apache.spark:spark-avro_2.11:2.4.8");
+    assertThat(after24.getMessage()).contains("org.apache.spark:spark-avro_2.13:2.4.8");
   }
 }
