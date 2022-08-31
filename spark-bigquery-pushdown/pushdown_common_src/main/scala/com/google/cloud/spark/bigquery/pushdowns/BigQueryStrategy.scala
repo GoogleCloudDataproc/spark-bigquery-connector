@@ -17,15 +17,17 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.{BigQueryPushdownException, BigQueryPushdownUnsupportedException}
+import com.google.cloud.spark.bigquery.SparkBigQueryUtil.isDataFrameShowMethodInStackTrace
 import com.google.cloud.spark.bigquery.direct.{BigQueryRDDFactory, DirectBigQueryRelation}
-import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.convertExpressionToNamedExpression
+import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.{convertExpressionToNamedExpression, removeNodeFromPlan}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Strategy
 import org.apache.spark.sql.catalyst.analysis.NamedRelation
-import org.apache.spark.sql.catalyst.plans.logical._
+import org.apache.spark.sql.catalyst.expressions.{Alias, Cast, NamedExpression}
 import org.apache.spark.sql.catalyst.plans._
-import org.apache.spark.sql.execution.SparkPlan
+import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.datasources.LogicalRelation
+import org.apache.spark.sql.execution.{ProjectExec, SparkPlan}
 
 /**
  * Our hook into Spark that converts the logical plan into physical plan.
@@ -86,24 +88,29 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
   }
 
   def generateSparkPlanFromLogicalPlan(plan: LogicalPlan): Seq[SparkPlan] = {
-    val queryRoot = generateQueryFromOriginalLogicalPlan(plan)
-    val bigQueryRDDFactory = getRDDFactory(queryRoot.get)
-
-    val sparkPlan = sparkPlanFactory.createSparkPlan(queryRoot.get, bigQueryRDDFactory.get)
-    Seq(sparkPlan.get)
-  }
-
-  /**
-   * Clean up the Spark generated logical plan and generate a BigQuerySQLQuery
-   * from the cleaned plan
-   *
-   * @param plan The LogicalPlan to be processed
-   * @return An object of type Option[BigQuerySQLQuery], which is None if the plan contains an
-   *         unsupported node type.
-   */
-  def generateQueryFromOriginalLogicalPlan(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
     val cleanedPlan = cleanUpLogicalPlan(plan)
-    generateQueryFromPlan(cleanedPlan)
+
+    // We have to handle the case where df.show() was called by an end user
+    // differently because Spark could add Project and Limit nodes on top of the
+    // LogicalPlan and that could mess up the ordering of results.
+    if (isDataFrameShowMethodInStackTrace) {
+
+      // We first get the project node that has been added by Spark for df.show()
+      val projectNode = getProjectNodeAddedByDataFrameShow(cleanedPlan)
+
+      // If the Project node exists, we first generate a BigQueryPlan with the
+      // Project Node removed and then return a ProjectExec physical plan with
+      // the selected(projected) columns. Note that Spark may not add the
+      // Project node if the selected(projected) columns are all of type string.
+      // In such a case, we don't have to return a ProjectExec SparkPlan
+      if (projectNode.isDefined) {
+        val planWithoutProjectNode = removeNodeFromPlan(cleanedPlan, projectNode.asInstanceOf[LogicalPlan])
+        val bigQueryPlan = generateBigQueryPlanFromLogicalPlan(planWithoutProjectNode)
+        return Seq(sparkPlanFactory.createProjectPlan(getFinalProjectionColumns(cleanedPlan), bigQueryPlan).get)
+      }
+    }
+
+    Seq(generateBigQueryPlanFromLogicalPlan(cleanedPlan))
   }
 
   /**
@@ -116,10 +123,51 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
    * @return The processed LogicalPlan removing all the empty Project plan's or SubQueryAlias, if the input has any
    */
   def cleanUpLogicalPlan(plan: LogicalPlan): LogicalPlan = {
-    plan.transform({
+    val cleanedPlan = plan.transform({
       case Project(Nil, child) => child
       case SubqueryAlias(_, child) => child
     })
+
+    cleanedPlan
+  }
+
+  def getFinalProjectionColumns(plan: LogicalPlan): Seq[NamedExpression] = {
+    getProjectNodeAddedByDataFrameShow(plan).get.projectList
+  }
+
+  /**
+   * Returns the first Project node that contains expressions in the projectList
+   * of the form Alias(Cast(_,_,_)) while recursing down the LogicalPlan. This is
+   * because Spark adds a Project node with Alias(Cast(_,_,_)) in the projectList
+   * if df.show is called by an end user. If an Aggregate, Join or Relation node
+   * is encountered first, we return None
+   *
+   * @param plan
+   * @return
+   */
+  def getProjectNodeAddedByDataFrameShow(plan: LogicalPlan): Option[Project] = {
+    plan.foreach {
+      case _: Aggregate | _: Join | _: LogicalRelation | _:NamedRelation =>
+        return None
+      case projectNode@Project(projectList, _) =>
+        projectList.foreach {
+          case Alias(Cast(_, _, _), _) =>
+            return Some(projectNode)
+          case _ =>
+        }
+        return None
+
+      case _ =>
+    }
+
+    None
+  }
+
+  def generateBigQueryPlanFromLogicalPlan(plan: LogicalPlan): BigQueryPlan = {
+    val queryRoot = generateQueryFromPlan(plan)
+    val bigQueryRDDFactory = getRDDFactory(queryRoot.get)
+    sparkPlanFactory.createBigQueryPlan(queryRoot.get, bigQueryRDDFactory.get)
+      .getOrElse(throw new BigQueryPushdownException("Could not generate BigQuery physical plan from query"))
   }
 
   def getRDDFactory(queryRoot: BigQuerySQLQuery): Option[BigQueryRDDFactory] = {
@@ -171,6 +219,9 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
 
             case Aggregate(groups, fields, _) =>
               AggregateQuery(expressionConverter, expressionFactory, fields, groups, subQuery, alias.next)
+
+            case Limit(limitExpr, Limit(_, Sort(orderExpr, true, _))) =>
+              SortLimitQuery(expressionConverter, expressionFactory, Some(limitExpr), orderExpr, subQuery, alias.next)
 
             case Limit(limitExpr, Sort(orderExpr, true, _)) =>
               SortLimitQuery(expressionConverter, expressionFactory, Some(limitExpr), orderExpr, subQuery, alias.next)

@@ -195,4 +195,15 @@ public class SparkBigQueryUtil {
     TableId tableId = BigQueryUtil.parseTableId(tableParamStr);
     return BigQueryUtil.friendlyTableName(tableId);
   }
+
+  public static boolean isDataFrameShowMethodInStackTrace() {
+    for (StackTraceElement stackTraceElement : Thread.currentThread().getStackTrace()) {
+      if (stackTraceElement.getClassName().equals("org.apache.spark.sql.Dataset")
+          && stackTraceElement.getMethodName().equals("showString")) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 }

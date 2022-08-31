@@ -21,6 +21,8 @@ import com.google.cloud.bigquery.connector.common.BigQueryUtil
 import com.google.common.collect.ImmutableList
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, Expression, NamedExpression}
+import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project}
+
 import scala.collection.JavaConverters._
 
 /**
@@ -129,5 +131,14 @@ object SparkBigQueryPushdownUtil {
         case _ => expressionFactory.createAlias(expression._1, expression._2.name, expression._2.exprId, Seq.empty[String], Some(expression._2.metadata))
       }
     }
+  }
+
+  /**
+   * Removes a node from a LogicalPlan
+   */
+  def removeNodeFromPlan(plan: LogicalPlan, nodeToRemove: LogicalPlan): LogicalPlan = {
+    plan.transform({
+      case node@Project(_, _) if node.fastEquals(nodeToRemove) => node.child
+    })
   }
 }

@@ -40,7 +40,7 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
 
   test("exception thrown in apply method") {
     when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
-    when(sparkPlanFactoryMock.createSparkPlan(any(classOf[BigQuerySQLQuery]),
+    when(sparkPlanFactoryMock.createBigQueryPlan(any(classOf[BigQuerySQLQuery]),
       any(classOf[BigQueryRDDFactory]))).thenThrow(new RuntimeException("Unable to create spark plan"))
 
     val logicalRelation = LogicalRelation(directBigQueryRelationMock)
@@ -98,7 +98,7 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
       override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
 
       override def createUnionQuery(children: Seq[LogicalPlan]): Option[BigQuerySQLQuery] = None
-    }.generateQueryFromOriginalLogicalPlan(limitPlan)
+    }.generateQueryFromPlan(limitPlan)
     assert(returnedQueryOption.isDefined)
 
     val returnedQuery = returnedQueryOption.get
@@ -123,7 +123,7 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
       override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
 
       override def createUnionQuery(children: Seq[LogicalPlan]): Option[BigQuerySQLQuery] = None
-    }.generateQueryFromOriginalLogicalPlan(aggregatePlan)
+    }.generateQueryFromPlan(aggregatePlan)
     assert(returnedQueryOption.isDefined)
 
     val returnedQuery = returnedQueryOption.get
@@ -149,7 +149,7 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
       override def createUnionQuery(children: Seq[LogicalPlan]): Option[BigQuerySQLQuery] = None
     }
     val plan = bigQueryStrategy.cleanUpLogicalPlan(projectPlan)
-    val returnedQueryOption = bigQueryStrategy.generateQueryFromOriginalLogicalPlan(plan)
+    val returnedQueryOption = bigQueryStrategy.generateQueryFromPlan(plan)
     assert(returnedQueryOption.isDefined)
 
     val returnedQuery = returnedQueryOption.get
