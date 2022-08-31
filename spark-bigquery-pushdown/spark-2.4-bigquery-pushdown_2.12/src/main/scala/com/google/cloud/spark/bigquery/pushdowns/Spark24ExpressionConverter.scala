@@ -17,16 +17,19 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.blockStatement
-import org.apache.spark.sql.catalyst.expressions.{Attribute, CheckOverflow, Expression, UnaryMinus}
+import org.apache.spark.sql.catalyst.expressions.{Attribute, Cast, CheckOverflow, Expression, ScalarSubquery, UnaryMinus}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 
 /**
  * Convert Spark 2.4 specific expressions to SQL
  */
 class Spark24ExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) extends SparkExpressionConverter {
-  override def convertScalarSubqueryExpression(plan: LogicalPlan): BigQuerySQLStatement = {
-    blockStatement(new Spark24BigQueryStrategy(this, expressionFactory, sparkPlanFactory)
-      .generateQueryFromOriginalLogicalPlan(plan).get.getStatement())
+  override def convertScalarSubqueryExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
+    expression match {
+      case ScalarSubquery(plan, _, _) =>
+        blockStatement(new Spark24BigQueryStrategy(this, expressionFactory, sparkPlanFactory)
+          .generateQueryFromOriginalLogicalPlan(plan).get.getStatement())
+    }
   }
 
   override def convertCheckOverflowExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
@@ -49,4 +52,10 @@ class Spark24ExpressionConverter(expressionFactory: SparkExpressionFactory, spar
     }
   }
 
+  override def convertCastExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
+    expression match {
+      case Cast(child, dataType, _) =>
+        performCastExpressionConversion(child, fields, dataType)
+    }
+  }
 }
