@@ -26,8 +26,8 @@ import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUt
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getRequiredOption;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
+import static com.google.cloud.spark.bigquery.SparkBigQueryUtil.scalaMapToJavaMap;
 import static java.lang.String.format;
-import static scala.collection.JavaConversions.mapAsJavaMap;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
@@ -197,7 +197,7 @@ public class SparkBigQueryConfig
     dataSourceVersion.updateOptionsMap(optionsMap);
     return SparkBigQueryConfig.from(
         ImmutableMap.copyOf(optionsMap),
-        ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll())),
+        ImmutableMap.copyOf(scalaMapToJavaMap(spark.conf().getAll())),
         spark.sparkContext().hadoopConfiguration(),
         customDefaults,
         spark.sparkContext().defaultParallelism(),

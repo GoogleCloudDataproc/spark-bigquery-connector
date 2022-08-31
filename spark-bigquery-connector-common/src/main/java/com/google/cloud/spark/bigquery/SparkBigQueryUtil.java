@@ -17,7 +17,6 @@ package com.google.cloud.spark.bigquery;
 
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.DEFAULT_FALLBACK;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getOptionFromMultipleParams;
-import static scala.collection.JavaConversions.mapAsJavaMap;
 
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
@@ -41,6 +40,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
+import scala.collection.Iterator;
 
 /** Spark related utilities */
 public class SparkBigQueryUtil {
@@ -162,7 +162,7 @@ public class SparkBigQueryUtil {
 
   public static TableId parseSimpleTableId(SparkSession spark, Map<String, String> options) {
     ImmutableMap<String, String> globalOptions =
-        ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll()));
+        ImmutableMap.copyOf(scalaMapToJavaMap(spark.conf().getAll()));
     return BigQueryConfigurationUtil.parseSimpleTableId(globalOptions, options);
   }
 
@@ -194,5 +194,17 @@ public class SparkBigQueryUtil {
     String tableParamStr = tableParam.get().trim().replaceAll("\\s+", " ");
     TableId tableId = BigQueryUtil.parseTableId(tableParamStr);
     return BigQueryUtil.friendlyTableName(tableId);
+  }
+
+  // scala version agnostic conversion, that's why no JavaConverters are used
+  public static <K, V> ImmutableMap<K, V> scalaMapToJavaMap(
+      scala.collection.immutable.Map<K, V> map) {
+    ImmutableMap.Builder<K, V> result = ImmutableMap.<K, V>builder();
+    Iterator<K> keysIterator = map.keys().iterator();
+    while (keysIterator.hasNext()) {
+      K key = keysIterator.next();
+      result.put(key, map.get(key).get());
+    }
+    return result.build();
   }
 }

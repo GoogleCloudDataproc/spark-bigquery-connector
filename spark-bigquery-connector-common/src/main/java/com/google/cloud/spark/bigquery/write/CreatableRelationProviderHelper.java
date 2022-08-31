@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.write;
 
-import static scala.collection.JavaConversions.mapAsJavaMap;
+import static com.google.cloud.spark.bigquery.SparkBigQueryUtil.scalaMapToJavaMap;
 
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
@@ -42,7 +42,7 @@ public class CreatableRelationProviderHelper {
       Dataset<Row> data,
       Map<String, String> customDefaults) {
 
-    Map<String, String> properties = mapAsJavaMap(parameters);
+    Map<String, String> properties = scalaMapToJavaMap(parameters);
     BigQueryInsertableRelationBase relation =
         createBigQueryInsertableRelation(sqlContext, data, properties, saveMode, customDefaults);
 
