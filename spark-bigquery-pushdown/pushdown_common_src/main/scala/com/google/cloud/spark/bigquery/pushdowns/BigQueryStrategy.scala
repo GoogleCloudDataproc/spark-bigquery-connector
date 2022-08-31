@@ -127,10 +127,6 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
     })
   }
 
-  def getFinalProjectionColumns(plan: LogicalPlan): Seq[NamedExpression] = {
-    getTopMostProjectNodeWithAliasedCasts(plan).get.projectList
-  }
-
   /**
    * Returns the first Project node that contains expressions in the projectList
    * of the form Alias(Cast(_,_,_)) while recursing down the LogicalPlan. This is
