@@ -134,7 +134,8 @@ trait GuiceInjectorCreator {
         Map.empty[String, String].asJava,
         Optional.ofNullable(schema.orNull),
         DataSourceVersion.V1,
-        /* tableIsMandatory */ true))
+        /* tableIsMandatory */ true,
+        java.util.Optional.empty()))
     injector
   }
 }

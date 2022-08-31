@@ -47,6 +47,7 @@ public class InjectorFactory {
             customDefaults,
             Optional.ofNullable(schema),
             DataSourceVersion.V2,
-            tableIsMandatory));
+            tableIsMandatory,
+            Optional.empty()));
   }
 }
