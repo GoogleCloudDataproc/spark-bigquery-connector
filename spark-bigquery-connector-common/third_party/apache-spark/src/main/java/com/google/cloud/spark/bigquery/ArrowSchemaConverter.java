@@ -391,6 +391,12 @@ public class ArrowSchemaConverter extends ColumnVector {
       this.accessor = vector;
     }
 
+    // Implemented this method for tpc-ds queries that cast from Decimal to Byte
+    @Override
+    byte getByte(int rowId) {
+      return accessor.getObject(rowId).byteValueExact();
+    }
+
     @Override
     final Decimal getDecimal(int rowId, int precision, int scale) {
       if (isNullAt(rowId)) return null;
@@ -414,6 +420,13 @@ public class ArrowSchemaConverter extends ColumnVector {
 
       BigDecimal bigDecimal = accessor.getObject(rowId);
       return UTF8String.fromString(bigDecimal.toPlainString());
+    }
+
+    // Implemented this method for reading BigNumeric values
+    @Override
+    final Decimal getDecimal(int rowId, int precision, int scale) {
+      if (isNullAt(rowId)) return null;
+      return Decimal.apply(accessor.getObject(rowId), precision, scale);
     }
   }
 
