@@ -7,7 +7,7 @@ import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
 class Spark33BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory)
   extends BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactory) {
   override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = {
-    // DataSourceV2ScanRelation is the relation that is used in the Spark 3.1 DatasourceV2 connector
+    // DataSourceV2ScanRelation is the relation that is used in the Spark 3.3 DatasourceV2 connector
     plan match {
       case scanRelation@DataSourceV2ScanRelation(_, _, _, _) =>
         scanRelation.scan match {
