@@ -425,12 +425,30 @@ abstract class SparkExpressionConverter {
      */
     val windowFrame =
       if (generateWindowFrame && windowSpecDefinition.orderSpec.nonEmpty) {
-        windowSpecDefinition.frameSpecification.sql
+        windowSpecDefinition.frameSpecification match {
+          case windowSpec: SpecifiedWindowFrame =>
+          (windowSpec.lower, windowSpec.upper) match {
+            case (lower: Literal, upper: Literal) =>
+              generateWindowFrameFromSpecDefinition(windowSpec, Math.abs(lower.value.asInstanceOf[Long]).toString + " " + ConstantString("PRECEDING"), Math.abs(upper.value.asInstanceOf[Long]).toString + " " + ConstantString("FOLLOWING"))
+            case (lower: Literal, upper: SpecialFrameBoundary) =>
+              generateWindowFrameFromSpecDefinition(windowSpec, Math.abs(lower.value.asInstanceOf[Long]).toString + " " + ConstantString("PRECEDING"), upper.sql)
+            case (lower: SpecialFrameBoundary, upper: Literal) =>
+              generateWindowFrameFromSpecDefinition(windowSpec, lower.sql, Math.abs(upper.value.asInstanceOf[Long]).toString + " " + ConstantString("FOLLOWING"))
+            case _ =>
+              windowSpecDefinition.frameSpecification.sql
+          }
+          case _ =>
+            windowSpecDefinition.frameSpecification.sql
+        }
       } else {
         ""
       }
 
     blockStatement(partitionBy + orderBy + windowFrame)
+  }
+
+  def generateWindowFrameFromSpecDefinition(windowSpec: SpecifiedWindowFrame, lower: String, upper: String): String = {
+    windowSpec.frameType.sql + " " + ConstantString("BETWEEN") + " " + lower + " " + ConstantString("AND") + " " + upper
   }
 
   /** Attempts a best effort conversion from a SparkType
