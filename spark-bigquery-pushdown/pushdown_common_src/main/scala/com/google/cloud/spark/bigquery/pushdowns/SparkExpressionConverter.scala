@@ -331,9 +331,6 @@ abstract class SparkExpressionConverter {
             }
           } + ConstantString("END")
 
-      case ScalarSubquery(plan, _, _) =>
-        convertScalarSubqueryExpression(plan)
-
       case Coalesce(columns) =>
         ConstantString(expression.prettyName.toUpperCase) + blockStatement(makeStatement(columns.map(convertStatement(_, fields)), ", "))
 
