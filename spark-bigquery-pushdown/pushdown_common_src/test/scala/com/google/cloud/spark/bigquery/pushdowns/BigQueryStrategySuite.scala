@@ -9,9 +9,9 @@ import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, Filter, Intersect
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.types.StructType
-import org.mockito.ArgumentMatchers.{any, anyObject}
-import org.mockito.{Mock, MockitoAnnotations}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
+import org.mockito.{Mock, MockitoAnnotations}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 

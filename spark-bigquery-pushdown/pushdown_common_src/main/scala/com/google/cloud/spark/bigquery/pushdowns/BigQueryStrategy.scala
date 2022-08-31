@@ -139,9 +139,6 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
    * because Spark adds a Project node with Alias(Cast(_,_,_)) in the projectList
    * if df.show is called by an end user. If an Aggregate, Join or Relation node
    * is encountered first, we return None
-   *
-   * @param plan
-   * @return
    */
   def getProjectNodeAddedByDataFrameShow(plan: LogicalPlan): Option[Project] = {
     plan.foreach {
