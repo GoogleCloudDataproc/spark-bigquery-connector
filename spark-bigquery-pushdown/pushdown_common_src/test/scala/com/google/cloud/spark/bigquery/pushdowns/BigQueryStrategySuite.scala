@@ -9,7 +9,7 @@ import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, Filter, Intersect
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.types.StructType
-import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.{any, anyObject}
 import org.mockito.{Mock, MockitoAnnotations}
 import org.mockito.Mockito.when
 import org.scalatest.BeforeAndAfter
@@ -68,6 +68,21 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     }.apply(logicalRelation)
 
     assert(returnedPlan == Nil)
+  }
+
+  test("exception thrown from createBigQueryPlan in generateBigQueryPlanFromLogicalPlan method") {
+    when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
+    when(sparkPlanFactoryMock.createBigQueryPlan(any(), any())).thenReturn(None)
+
+    val logicalRelation = LogicalRelation(directBigQueryRelationMock)
+
+    assertThrows[BigQueryPushdownException] {
+      new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock) {
+        override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
+
+        override def createUnionQuery(children: Seq[LogicalPlan]): Option[BigQuerySQLQuery] = None
+      }.generateBigQueryPlanFromLogicalPlan(logicalRelation)
+    }
   }
 
   test("hasUnsupportedNodes with unsupported node") {
