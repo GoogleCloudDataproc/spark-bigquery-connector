@@ -96,7 +96,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
     if (isDataFrameShowMethodInStackTrace) {
 
       // We first get the project node that has been added by Spark for df.show()
-      val projectNode = getProjectNodeAddedByDataFrameShow(cleanedPlan)
+      val projectNode = getTopMostProjectNodeWithAliasedCasts(cleanedPlan)
 
       // If the Project node exists, we first generate a BigQueryPlan with the
       // Project Node removed and then return a ProjectExec physical plan with
@@ -104,9 +104,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
       // Project node if the selected(projected) columns are all of type string.
       // In such a case, we don't have to return a ProjectExec SparkPlan
       if (projectNode.isDefined) {
-        val planWithoutProjectNode = removeNodeFromPlan(cleanedPlan, projectNode.asInstanceOf[LogicalPlan])
-        val bigQueryPlan = generateBigQueryPlanFromLogicalPlan(planWithoutProjectNode)
-        return Seq(sparkPlanFactory.createProjectPlan(getFinalProjectionColumns(cleanedPlan), bigQueryPlan).get)
+        return Seq(generatePhysicalProjectPlanFromLogicalPlan(cleanedPlan, projectNode.get))
       }
     }
 
@@ -130,7 +128,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
   }
 
   def getFinalProjectionColumns(plan: LogicalPlan): Seq[NamedExpression] = {
-    getProjectNodeAddedByDataFrameShow(plan).get.projectList
+    getTopMostProjectNodeWithAliasedCasts(plan).get.projectList
   }
 
   /**
@@ -140,7 +138,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
    * if df.show is called by an end user. If an Aggregate, Join or Relation node
    * is encountered first, we return None
    */
-  def getProjectNodeAddedByDataFrameShow(plan: LogicalPlan): Option[Project] = {
+  def getTopMostProjectNodeWithAliasedCasts(plan: LogicalPlan): Option[Project] = {
     plan.foreach {
       case _: Aggregate | _: Join | _: LogicalRelation | _:NamedRelation =>
         return None
@@ -162,6 +160,13 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
     val queryRoot = generateQueryFromPlan(plan)
     val bigQueryRDDFactory = getRDDFactory(queryRoot.get)
     sparkPlanFactory.createBigQueryPlan(queryRoot.get, bigQueryRDDFactory.get)
+      .getOrElse(throw new BigQueryPushdownException("Could not generate BigQuery physical plan from query"))
+  }
+
+  def generatePhysicalProjectPlanFromLogicalPlan(plan: LogicalPlan, projectNode: Project): SparkPlan = {
+    val planWithoutProjectNode = removeNodeFromPlan(plan, projectNode.asInstanceOf[LogicalPlan])
+    val bigQueryPlan = generateBigQueryPlanFromLogicalPlan(planWithoutProjectNode)
+    sparkPlanFactory.createProjectPlan(projectNode, bigQueryPlan)
       .getOrElse(throw new BigQueryPushdownException("Could not generate BigQuery physical plan from query"))
   }
 
