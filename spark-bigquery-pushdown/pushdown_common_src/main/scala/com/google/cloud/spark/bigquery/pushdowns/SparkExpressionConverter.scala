@@ -281,36 +281,6 @@ abstract class SparkExpressionConverter {
       case SortOrder(child, Descending, _, _) =>
         blockStatement(convertStatement(child, fields)) + "DESC"
 
-      case Cast(child, t, _) =>
-        getCastType(t) match {
-          case Some(cast) =>
-
-            /**
-             * For known unsupported data conversion, raise exception to break the pushdown process.
-             * For example, BigQuery doesn't support to convert DATE/TIMESTAMP to NUMBER
-             */
-            (child.dataType, t) match {
-              case (_: DateType | _: TimestampType,
-              _: IntegerType | _: LongType | _: FloatType | _: DoubleType | _: DecimalType) => {
-                throw new BigQueryPushdownUnsupportedException(
-                  "Pushdown failed due to unsupported conversion")
-              }
-
-              /**
-               * BigQuery doesn't support casting from Integer to Bytes (https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#cast_as_bytes)
-               * So handling this case separately.
-               */
-              case (_: IntegerType | _: LongType | _: FloatType | _: DoubleType | _: DecimalType ,_: ByteType) =>
-                ConstantString("CAST") +
-                  blockStatement(convertStatement(child, fields) + ConstantString("AS NUMERIC"))
-              case _ =>
-                ConstantString("CAST") +
-                  blockStatement(convertStatement(child, fields) + "AS" + cast)
-            }
-
-          case _ => convertStatement(child, fields)
-        }
-
       case ShiftLeft(child, position) =>
         blockStatement(convertStatement(child, fields) + ConstantString("<<") + convertStatement(position, fields))
 
