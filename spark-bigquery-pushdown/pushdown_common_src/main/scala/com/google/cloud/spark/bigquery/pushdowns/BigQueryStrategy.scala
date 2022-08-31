@@ -123,12 +123,10 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
    * @return The processed LogicalPlan removing all the empty Project plan's or SubQueryAlias, if the input has any
    */
   def cleanUpLogicalPlan(plan: LogicalPlan): LogicalPlan = {
-    val cleanedPlan = plan.transform({
+    plan.transform({
       case Project(Nil, child) => child
       case SubqueryAlias(_, child) => child
     })
-
-    cleanedPlan
   }
 
   def getFinalProjectionColumns(plan: LogicalPlan): Seq[NamedExpression] = {
@@ -220,6 +218,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
             case Aggregate(groups, fields, _) =>
               AggregateQuery(expressionConverter, expressionFactory, fields, groups, subQuery, alias.next)
 
+            // Special case for Spark 2.4 in which Spark SQL query has a limit and show() is called
             case Limit(limitExpr, Limit(_, Sort(orderExpr, true, _))) =>
               SortLimitQuery(expressionConverter, expressionFactory, Some(limitExpr), orderExpr, subQuery, alias.next)
 
