@@ -40,7 +40,7 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
 
   test("exception thrown in apply method") {
     when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
-    when(sparkPlanFactoryMock.createSparkPlan(any(classOf[BigQuerySQLQuery]),
+    when(sparkPlanFactoryMock.createBigQueryPlan(any(classOf[BigQuerySQLQuery]),
       any(classOf[BigQueryRDDFactory]))).thenThrow(new RuntimeException("Unable to create spark plan"))
 
     val logicalRelation = LogicalRelation(directBigQueryRelationMock)

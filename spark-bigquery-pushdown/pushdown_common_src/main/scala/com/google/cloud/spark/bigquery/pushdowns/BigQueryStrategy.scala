@@ -89,7 +89,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
     val queryRoot = generateQueryFromOriginalLogicalPlan(plan)
     val bigQueryRDDFactory = getRDDFactory(queryRoot.get)
 
-    val sparkPlan = sparkPlanFactory.createSparkPlan(queryRoot.get, bigQueryRDDFactory.get)
+    val sparkPlan = sparkPlanFactory.createBigQueryPlan(queryRoot.get, bigQueryRDDFactory.get)
     Seq(sparkPlan.get)
   }
 

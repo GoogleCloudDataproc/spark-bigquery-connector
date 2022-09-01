@@ -7,7 +7,7 @@ class Spark32PlanFactory extends SparkPlanFactory {
   /**
    * Generate SparkPlan from the output and RDD of the translated query
    */
-  override def createSparkPlan(queryRoot: BigQuerySQLQuery, bigQueryRDDFactory: BigQueryRDDFactory): Option[SparkPlan] = {
+  override def createBigQueryPlan(queryRoot: BigQuerySQLQuery, bigQueryRDDFactory: BigQueryRDDFactory): Option[SparkPlan] = {
     Some(Spark32BigQueryPushdownPlan(queryRoot.output, bigQueryRDDFactory.buildScanFromSQL(queryRoot.getStatement().toString)))
   }
 }

@@ -16,12 +16,25 @@
 
 package com.google.cloud.spark.bigquery.pushdowns
 
-import com.google.cloud.spark.bigquery.pushdowns.TestConstants.expressionFactory
-import org.apache.spark.sql.catalyst.expressions.{Alias, AttributeReference, ExprId}
-import org.apache.spark.sql.types.LongType
+import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
+import com.google.cloud.spark.bigquery.pushdowns.TestConstants.{expressionFactory, schoolIdAttributeReference, schoolNameAttributeReference}
+import org.apache.spark.sql.catalyst.expressions.{Alias, Ascending, AttributeReference, EqualTo, ExprId, Literal, SortOrder}
+import org.apache.spark.sql.catalyst.plans.logical.{Filter, Limit, Project, Sort}
+import org.apache.spark.sql.execution.datasources.LogicalRelation
+import org.apache.spark.sql.types.{LongType, StructType}
+import org.mockito.Mockito.when
+import org.mockito.{Mock, MockitoAnnotations}
+import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 
-class SparkBigQueryPushdownUtilSuite extends AnyFunSuite {
+class SparkBigQueryPushdownUtilSuite extends AnyFunSuite with BeforeAndAfter {
+  @Mock
+  private var directBigQueryRelationMock: DirectBigQueryRelation = _
+
+  before {
+    MockitoAnnotations.initMocks(this)
+  }
+
   test("blockStatement with EmptyBigQuerySQLStatement") {
     val bigQuerySQLStatement = EmptyBigQuerySQLStatement.apply()
     val returnedStatement = SparkBigQueryPushdownUtil.blockStatement(bigQuerySQLStatement)
@@ -75,5 +88,26 @@ class SparkBigQueryPushdownUtilSuite extends AnyFunSuite {
     assert(namedExpr1.exprId == returnedExpressions.head.exprId)
     assert("SUBQUERY_2_COL_1" == returnedExpressions(1).name)
     assert(namedExpr2.exprId == returnedExpressions(1).exprId)
+  }
+
+  test("removeNodeFromPlan") {
+    when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
+    when(directBigQueryRelationMock.getTableName).thenReturn("MY_BIGQUERY_TABLE")
+
+    val logicalRelation = LogicalRelation(directBigQueryRelationMock)
+
+    val filterPlan = Filter(EqualTo.apply(schoolIdAttributeReference, Literal(1234L)), logicalRelation)
+    val projectPlan = Project(Seq(schoolNameAttributeReference), filterPlan)
+    val sortPlan = Sort(Seq(SortOrder.apply(schoolIdAttributeReference, Ascending)), global = true, projectPlan)
+    val limitPlan = Limit(Literal(10), sortPlan)
+
+    val planWithProjectNodeRemoved = SparkBigQueryPushdownUtil.removeProjectNodeFromPlan(limitPlan, projectPlan)
+
+    val expectedPlan = Limit(Literal(10),
+      Sort(Seq(SortOrder.apply(schoolIdAttributeReference, Ascending)), global = true,
+        Filter(EqualTo.apply(schoolIdAttributeReference, Literal(1234L)),
+          logicalRelation)))
+
+    assert(planWithProjectNodeRemoved.fastEquals(expectedPlan))
   }
 }
