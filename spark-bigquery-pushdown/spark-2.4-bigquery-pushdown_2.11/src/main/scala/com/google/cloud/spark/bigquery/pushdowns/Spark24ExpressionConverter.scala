@@ -28,7 +28,7 @@ class Spark24ExpressionConverter(expressionFactory: SparkExpressionFactory, spar
     expression match {
       case ScalarSubquery(plan, _, _) =>
         blockStatement(new Spark24BigQueryStrategy(this, expressionFactory, sparkPlanFactory)
-          .generateQueryFromOriginalLogicalPlan(plan).get.getStatement())
+          .generateQueryFromPlan(plan).get.getStatement())
     }
   }
 
