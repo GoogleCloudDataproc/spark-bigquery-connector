@@ -111,6 +111,36 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
       "AS SUBQUERY_2 ORDER BY ( SCHOOLID ) ASC ) AS SUBQUERY_3 ORDER BY ( SCHOOLID ) ASC LIMIT 10")
   }
 
+  // Special case for Spark 2.4 in which Spark SQL query has a limit and show() is called
+  test("generateQueryFromPlan with 2 limits and Sort as outermost nodes") {
+    when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
+    when(directBigQueryRelationMock.getTableName).thenReturn("MY_BIGQUERY_TABLE")
+
+    val logicalRelation = LogicalRelation(directBigQueryRelationMock)
+
+    val filterPlan = Filter(EqualTo.apply(schoolIdAttributeReference, Literal(1234L)), logicalRelation)
+    val projectPlan = Project(Seq(schoolNameAttributeReference), filterPlan)
+    val sortPlan = Sort(Seq(SortOrder.apply(schoolIdAttributeReference, Ascending)), global = true, projectPlan)
+    val innerLimitPlan = Limit(Literal(10), sortPlan)
+    val outerLimitPlan = Limit(Literal(20), innerLimitPlan)
+
+    val returnedQueryOption = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock) {
+      override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
+
+      override def createUnionQuery(children: Seq[LogicalPlan]): Option[BigQuerySQLQuery] = None
+    }.generateQueryFromPlan(outerLimitPlan)
+    assert(returnedQueryOption.isDefined)
+
+    val returnedQuery = returnedQueryOption.get
+    assert(returnedQuery.getStatement().toString == "SELECT * FROM " +
+      "( SELECT * FROM ( SELECT * FROM ( SELECT ( SCHOOLNAME ) AS SUBQUERY_2_COL_0 FROM " +
+      "( SELECT * FROM ( SELECT * FROM `MY_BIGQUERY_TABLE` AS BQ_CONNECTOR_QUERY_ALIAS ) AS SUBQUERY_0 " +
+      "WHERE ( SCHOOLID = 1234 ) ) AS SUBQUERY_1 ) AS SUBQUERY_2 " +
+      "ORDER BY ( SCHOOLID ) ASC ) AS SUBQUERY_3 ORDER BY ( SCHOOLID ) ASC LIMIT 10 ) " +
+      "AS SUBQUERY_4 ORDER BY ( SCHOOLID ) ASC LIMIT 20")
+  }
+
+
   test("generateQueryFromPlan with aggregate plan") {
     when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
     when(directBigQueryRelationMock.getTableName).thenReturn("MY_BIGQUERY_TABLE")
