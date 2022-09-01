@@ -26,6 +26,8 @@ import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.spark.bigquery.BigQueryRelation;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
+import com.google.cloud.spark.bigquery.write.BigQueryInsertableRelationBase;
+import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.Serializable;
@@ -33,10 +35,13 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.spark.rdd.RDD;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.Filter;
+import org.apache.spark.sql.sources.InsertableRelation;
 import org.apache.spark.sql.sources.PrunedFilteredScan;
 import org.apache.spark.sql.sources.PrunedScan;
 import org.apache.spark.sql.sources.TableScan;
@@ -46,7 +51,7 @@ import scala.Function1;
 import scala.runtime.AbstractFunction1;
 
 public class DirectBigQueryRelation extends BigQueryRelation
-    implements TableScan, PrunedScan, PrunedFilteredScan {
+    implements TableScan, PrunedScan, PrunedFilteredScan, InsertableRelation {
 
   private final SparkBigQueryConfig options;
   private final TableInfo table;
@@ -183,6 +188,15 @@ public class DirectBigQueryRelation extends BigQueryRelation
         .range(0, numberOfRows, 1, sqlContext.sparkContext().defaultParallelism())
         .map(
             objectToInternalRowConverter, scala.reflect.ClassTag$.MODULE$.apply(InternalRow.class));
+  }
+
+  @Override
+  public void insert(Dataset<Row> data, boolean overwrite) {
+    SaveMode mode = overwrite ? SaveMode.Overwrite : SaveMode.Append;
+    BigQueryInsertableRelationBase bigQueryInsertableRelation =
+        new CreatableRelationProviderHelper()
+            .createBigQueryInsertableRelation(sqlContext, data, mode, options);
+    bigQueryInsertableRelation.insert(data, overwrite);
   }
 
   private static class ObjectToInternalRowConverter extends AbstractFunction1<Object, InternalRow>
