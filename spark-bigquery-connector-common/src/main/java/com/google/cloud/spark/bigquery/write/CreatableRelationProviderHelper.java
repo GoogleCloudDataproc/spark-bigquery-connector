@@ -92,6 +92,25 @@ public class CreatableRelationProviderHelper {
             .withTableIsMandatory(true)
             .build();
 
+    return createBigQueryInsertableRelationInternal(sqlContext, data, saveMode, injector);
+  }
+
+  public BigQueryInsertableRelationBase createBigQueryInsertableRelation(
+      SQLContext sqlContext, Dataset<Row> data, SaveMode saveMode, SparkBigQueryConfig config) {
+    Injector injector =
+        new InjectorBuilder()
+            .withDataSourceVersion(DataSourceVersion.V1)
+            .withSpark(sqlContext.sparkSession())
+            .withSchema(data.schema())
+            .withConfig(config)
+            .withTableIsMandatory(true)
+            .build();
+
+    return createBigQueryInsertableRelationInternal(sqlContext, data, saveMode, injector);
+  }
+
+  private BigQueryInsertableRelationBase createBigQueryInsertableRelationInternal(
+      SQLContext sqlContext, Dataset<Row> data, SaveMode saveMode, Injector injector) {
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
 
