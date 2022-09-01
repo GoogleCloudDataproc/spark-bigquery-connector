@@ -23,6 +23,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, Expression, NamedExpression, UnsafeProjection}
+import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project, UnaryNode}
 import org.apache.spark.sql.types.{StructField, StructType}
 
 import scala.collection.JavaConverters._
@@ -144,5 +145,15 @@ object SparkBigQueryPushdownUtil {
       val project = UnsafeProjection.create(schema)
       iter.map(project)
     }
+  }
+
+  /**
+   * Returns a copy of the LogicalPlan after removing the passed-in Project node
+   * from the plan.
+   */
+  def removeProjectNodeFromPlan(plan: LogicalPlan, nodeToRemove: Project): LogicalPlan = {
+    plan.transform({
+      case node@Project(_, child) if node.fastEquals(nodeToRemove) => child
+    })
   }
 }
