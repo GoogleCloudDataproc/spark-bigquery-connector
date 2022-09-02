@@ -15,9 +15,21 @@ import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
+
+  @Before
+  public void before() {
+    BigQueryConnectorUtils.enablePushdownSession(spark);
+  }
+
+  @After
+  public void after() {
+    BigQueryConnectorUtils.disablePushdownSession(spark);
+  }
 
   @Test
   public void testStringFunctionExpressions() {
@@ -27,6 +39,8 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
             .format("bigquery")
             .option("materializationDataset", testDataset.toString())
             .load(TestConstants.SHAKESPEARE_TABLE);
+
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(false);
     df =
         df.selectExpr(
                 "word",
@@ -51,6 +65,8 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                 "SOUNDEX(word) as soundex")
             .where("word = 'augurs'");
     List<Row> result = df.collectAsList();
+
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(true);
     Row r1 = result.get(0);
     assertThat(r1.get(0)).isEqualTo("augurs"); // word
     assertThat(r1.get(1)).isEqualTo(97); // ASCII(word)
@@ -86,6 +102,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
             .load("bigquery-public-data.google_political_ads.last_updated");
 
     df.createOrReplaceTempView("last_updated");
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(false);
 
     List<Row> result =
         spark
@@ -101,6 +118,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                     + "FROM last_updated")
             .collectAsList();
 
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(true);
     Row r1 = result.get(0);
 
     // Parsing the date rather than setting date to LocalDate.now() because the test will fail
@@ -125,6 +143,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
             .load(TestConstants.SHAKESPEARE_TABLE);
 
     df.createOrReplaceTempView("shakespeare");
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(false);
 
     List<Row> result =
         spark
@@ -139,6 +158,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                     + "WHERE word = 'augurs' AND corpus = 'sonnets'")
             .collectAsList();
 
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(true);
     // Note that for this row, word_count equals 1 and corpus_date equals 0
     Row r1 = result.get(0);
     assertThat(r1.get(0).toString()).isEqualTo("0"); // 1 & 0
@@ -156,6 +176,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
             .format("bigquery")
             .option("materializationDataset", testDataset.toString())
             .load(TestConstants.SHAKESPEARE_TABLE);
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(false);
     df =
         df.selectExpr(
                 "word",
@@ -183,6 +204,8 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                 "SIGNUM(word_count) as Signum")
             .where("word_count = 10 and word = 'glass'");
     List<Row> result = df.collectAsList();
+
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(true);
     Row r1 = result.get(0);
     assertThat(r1.get(0)).isEqualTo("glass"); // word
     assertThat(r1.get(1)).isEqualTo(10); // word_count
@@ -217,6 +240,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
             .option("materializationDataset", testDataset.toString())
             .load(TestConstants.SHAKESPEARE_TABLE);
     df.createOrReplaceTempView("shakespeare");
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(false);
     df =
         df.selectExpr(
                 "word",
@@ -233,8 +257,9 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                 "CAST(word_count + 1.99 as DECIMAL(17, 2)) / CAST(word_count + 2.99 as DECIMAL(17, 1)) < 0.9")
             .where("word_count = 10 and word = 'glass'")
             .orderBy("word_count");
-
     List<Row> result = df.collectAsList();
+
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(true);
     Row r1 = result.get(0);
     assertThat(r1.get(0)).isEqualTo("glass"); // word
     assertThat(r1.get(1)).isEqualTo(10); // word_count
@@ -260,6 +285,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
             .load(TestConstants.SHAKESPEARE_TABLE);
 
     df.createOrReplaceTempView("shakespeare");
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(false);
     Dataset<Row> words_with_word_count_100 =
         spark.sql("SELECT word, word_count FROM shakespeare WHERE word_count = 100");
     Dataset<Row> words_with_word_count_150 =
@@ -271,6 +297,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
         words_with_word_count_150.unionAll(words_with_word_count_100).collectAsList();
     List<Row> unionByNameList =
         words_with_word_count_100.unionByName(words_with_word_count_150).collectAsList();
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(true);
     assertThat(unionList.size()).isGreaterThan(0);
     assertThat(unionList.get(0).get(1)).isAnyOf(100L, 150L);
     assertThat(unionAllList.size()).isGreaterThan(0);
@@ -289,6 +316,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
             .load(TestConstants.SHAKESPEARE_TABLE);
 
     df.createOrReplaceTempView("shakespeare");
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(false);
 
     List<Row> result =
         spark
@@ -302,6 +330,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                     + "WHERE word IN ('glass', 'very_random_word') AND word_count != 99")
             .collectAsList();
 
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(true);
     Row r1 = result.get(0);
     assertThat(r1.get(0)).isEqualTo("glass"); // word
     assertThat(r1.get(1)).isEqualTo(true); // contains
@@ -351,6 +380,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
             .load(TestConstants.SHAKESPEARE_TABLE);
 
     df.createOrReplaceTempView("shakespeare");
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(false);
 
     df =
         spark.sql(
@@ -374,6 +404,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
         df.collectAsList().stream()
             .filter(row -> row.get(0).equals("augurs") && row.get(2).equals("sonnets"))
             .toArray();
+    assertThat(BigQueryConnectorUtils.pushdownCompleted).isEqualTo(true);
     assertThat(filteredRow.length).isEqualTo(1);
     GenericRowWithSchema row = (GenericRowWithSchema) filteredRow[0];
     assertThat(row.get(4))
