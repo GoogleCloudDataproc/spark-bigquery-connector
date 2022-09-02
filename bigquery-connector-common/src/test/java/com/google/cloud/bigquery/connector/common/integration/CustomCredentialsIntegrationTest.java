@@ -36,7 +36,8 @@ public class CustomCredentialsIntegrationTest {
   public void testCredentialsProvider() throws Exception {
     BigQueryCredentialsSupplier credentialsSupplier =
         new BigQueryCredentialsSupplier(
-            Optional.of(DefaultCredentialsDelegateGcloudCredentialsProvider.class.getCanonicalName()),
+            Optional.of(
+                DefaultCredentialsDelegateGcloudCredentialsProvider.class.getCanonicalName()),
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
@@ -46,7 +47,8 @@ public class CustomCredentialsIntegrationTest {
             Optional.empty());
     Credentials credentials = credentialsSupplier.getCredentials();
     assertThat(credentials).isInstanceOf(DefaultCredentialsDelegateCredentials.class);
-    DefaultCredentialsDelegateCredentials defaultCredentialsDelegateCredentials = (DefaultCredentialsDelegateCredentials) credentials;
+    DefaultCredentialsDelegateCredentials defaultCredentialsDelegateCredentials =
+        (DefaultCredentialsDelegateCredentials) credentials;
     assertThat(defaultCredentialsDelegateCredentials.getCallCount()).isEqualTo(0);
     BigQueryOptions options = BigQueryOptions.newBuilder().setCredentials(credentials).build();
     BigQuery bigQuery = options.getService();

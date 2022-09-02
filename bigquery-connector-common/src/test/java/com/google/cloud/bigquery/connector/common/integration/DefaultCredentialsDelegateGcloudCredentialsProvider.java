@@ -28,7 +28,8 @@ public class DefaultCredentialsDelegateGcloudCredentialsProvider implements Cred
 
   @Override
   public Credentials getCredentials() throws IOException {
-    return new DefaultCredentialsDelegateCredentials(new DefaultCredentialsDelegateAccessTokenProvider());
+    return new DefaultCredentialsDelegateCredentials(
+        new DefaultCredentialsDelegateAccessTokenProvider());
   }
 }
 
@@ -37,7 +38,8 @@ class DefaultCredentialsDelegateCredentials extends AccessTokenProviderCredentia
 
   public DefaultCredentialsDelegateCredentials(AccessTokenProvider accessTokenProvider) {
     super(accessTokenProvider);
-    this.accessTokenProviderForTest = (DefaultCredentialsDelegateAccessTokenProvider) accessTokenProvider;
+    this.accessTokenProviderForTest =
+        (DefaultCredentialsDelegateAccessTokenProvider) accessTokenProvider;
   }
 
   int getCallCount() {

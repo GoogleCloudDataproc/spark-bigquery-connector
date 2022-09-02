@@ -46,7 +46,9 @@ public class DataSourceV1ReadIntegrationTest extends ReadIntegrationTestBase {
         spark
             .read()
             .format("bigquery")
-            .option("credentialsProvider", DefaultCredentialsDelegateGcloudCredentialsProvider.class.getCanonicalName())
+            .option(
+                "credentialsProvider",
+                DefaultCredentialsDelegateGcloudCredentialsProvider.class.getCanonicalName())
             .load(TestConstants.SHAKESPEARE_TABLE);
     assertThat(df.count()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
   }
