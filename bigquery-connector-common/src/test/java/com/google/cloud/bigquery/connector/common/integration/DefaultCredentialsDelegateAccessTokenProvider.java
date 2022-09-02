@@ -18,34 +18,34 @@ package com.google.cloud.bigquery.connector.common.integration;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.connector.common.AccessTokenProvider;
-import com.google.common.io.CharStreams;
+
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.io.UncheckedIOException;
 import java.util.Date;
 
 /**
  * Basic implementation of AccessTokenProvider. Token TTL is very small to allow refresh testing.
  */
-public class GcloudAccessTokenProvider implements AccessTokenProvider {
+public class DefaultCredentialsDelegateAccessTokenProvider implements AccessTokenProvider {
 
+  private GoogleCredentials delegate;
   private int callCount = 0;
+
+  public DefaultCredentialsDelegateAccessTokenProvider() {
+    try {
+      this.delegate = GoogleCredentials.getApplicationDefault();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
 
   @Override
   public AccessToken getAccessToken() throws IOException {
-    try {
-      Process gcloud = new ProcessBuilder("gcloud", "auth", "print-access-token").start();
-      assertThat(gcloud.waitFor()).isEqualTo(0);
-      String token =
-          CharStreams.toString(
-                  new InputStreamReader(gcloud.getInputStream(), StandardCharsets.UTF_8))
-              .trim();
-      callCount++;
-      return new AccessToken(token, new Date(System.currentTimeMillis() + 2000));
-    } catch (InterruptedException e) {
-      throw new IOException("Failed to get token", e);
-    }
+    AccessToken accessToken = delegate.refreshAccessToken();
+    callCount++;
+    return new AccessToken(accessToken.getTokenValue(), new Date(System.currentTimeMillis() + 2000));
   }
 
   int getCallCount() {

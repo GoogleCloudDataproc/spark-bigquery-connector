@@ -24,20 +24,20 @@ import java.io.IOException;
 /**
  * Basic implementation of CredentialsProvider. Token TTL is very small to allow refresh testing.
  */
-public class GcloudCredentialsProvider implements CredentialsProvider {
+public class DefaultCredentialsDelegateGcloudCredentialsProvider implements CredentialsProvider {
 
   @Override
   public Credentials getCredentials() throws IOException {
-    return new GcloudCredentials(new GcloudAccessTokenProvider());
+    return new DefaultCredentialsDelegateCredentials(new DefaultCredentialsDelegateAccessTokenProvider());
   }
 }
 
-class GcloudCredentials extends AccessTokenProviderCredentials {
-  GcloudAccessTokenProvider accessTokenProviderForTest;
+class DefaultCredentialsDelegateCredentials extends AccessTokenProviderCredentials {
+  DefaultCredentialsDelegateAccessTokenProvider accessTokenProviderForTest;
 
-  public GcloudCredentials(AccessTokenProvider accessTokenProvider) {
+  public DefaultCredentialsDelegateCredentials(AccessTokenProvider accessTokenProvider) {
     super(accessTokenProvider);
-    this.accessTokenProviderForTest = (GcloudAccessTokenProvider) accessTokenProvider;
+    this.accessTokenProviderForTest = (DefaultCredentialsDelegateAccessTokenProvider) accessTokenProvider;
   }
 
   int getCallCount() {

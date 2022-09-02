@@ -18,7 +18,7 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.cloud.bigquery.connector.common.AccessTokenProvider;
-import com.google.cloud.bigquery.connector.common.integration.GcloudCredentialsProvider;
+import com.google.cloud.bigquery.connector.common.integration.DefaultCredentialsDelegateGcloudCredentialsProvider;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -46,7 +46,7 @@ public class DataSourceV1ReadIntegrationTest extends ReadIntegrationTestBase {
         spark
             .read()
             .format("bigquery")
-            .option("credentialsProvider", GcloudCredentialsProvider.class.getCanonicalName())
+            .option("credentialsProvider", DefaultCredentialsDelegateGcloudCredentialsProvider.class.getCanonicalName())
             .load(TestConstants.SHAKESPEARE_TABLE);
     assertThat(df.count()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
   }
