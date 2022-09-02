@@ -25,8 +25,6 @@ import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.TableId;
-
-import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;

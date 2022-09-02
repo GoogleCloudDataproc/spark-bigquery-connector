@@ -16,10 +16,9 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.auth.oauth2.AccessToken;
-
 import java.io.IOException;
 import java.io.Serializable;
 
 public interface AccessTokenProvider extends Serializable {
-    AccessToken getAccessToken() throws IOException;
+  AccessToken getAccessToken() throws IOException;
 }

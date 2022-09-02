@@ -279,7 +279,8 @@ public class SparkBigQueryConfig
     config.useParentProjectForMetadataOperations =
         getAnyBooleanOption(globalOptions, options, "useParentProjectForMetadataOperations", false);
     config.credentialsProviderFQCN = getAnyOption(globalOptions, options, "credentialsProvider");
-    config.accessToken = getAnyOption(globalOptions, options, "gcpAccessTokenProvider");
+    config.accessTokenProviderFQCN = getAnyOption(globalOptions, options, "gcpAccessTokenProvider");
+    config.accessToken = getAnyOption(globalOptions, options, "gcpAccessToken");
     config.credentialsKey = getAnyOption(globalOptions, options, "credentials");
     config.credentialsFile =
         fromJavaUtil(

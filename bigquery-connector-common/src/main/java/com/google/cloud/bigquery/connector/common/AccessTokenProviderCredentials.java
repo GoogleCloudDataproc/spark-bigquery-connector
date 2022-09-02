@@ -17,7 +17,7 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-
+import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 
 public class AccessTokenProviderCredentials extends GoogleCredentials {
@@ -31,5 +31,10 @@ public class AccessTokenProviderCredentials extends GoogleCredentials {
   @Override
   public AccessToken refreshAccessToken() throws IOException {
     return accessTokenProvider.getAccessToken();
+  }
+
+  @VisibleForTesting
+  public AccessTokenProvider getAccessTokenProvider() {
+    return accessTokenProvider;
   }
 }
