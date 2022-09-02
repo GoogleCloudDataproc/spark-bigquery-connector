@@ -11,6 +11,9 @@ trait SparkPlanFactory {
    */
   def createBigQueryPlan(queryRoot: BigQuerySQLQuery, bigQueryRDDFactory: BigQueryRDDFactory): Option[SparkPlan]
 
+  /**
+   * Generate physical Project plan from the projectList of the passed-in Project node
+   */
   def createProjectPlan(projectNode: Project, child: SparkPlan): Option[SparkPlan] = {
     Some(ProjectExec(projectNode.projectList, child))
   }

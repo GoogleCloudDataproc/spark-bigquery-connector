@@ -28,7 +28,7 @@ class Spark33ExpressionConverter(expressionFactory: SparkExpressionFactory, spar
     expression match {
       case ScalarSubquery(plan, _, _, joinCond) if joinCond.isEmpty =>
         blockStatement(new Spark33BigQueryStrategy(this, expressionFactory, sparkPlanFactory)
-          .generateQueryFromOriginalLogicalPlan(plan).get.getStatement())
+          .generateQueryFromPlan(plan).get.getStatement())
     }
   }
 
