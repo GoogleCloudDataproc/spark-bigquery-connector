@@ -73,7 +73,7 @@ public class TestConstants {
   static final long SHAKESPEARE_TABLE_NUM_ROWS = 164656L;
   static final String TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
   static final String BIGLAKE_CONNECTION_ID_ENV_VARIABLE = "BIGLAKE_CONNECTION_ID";
-  static final String TEMPORARY_GCS_BUCKET =
+  public static final String TEMPORARY_GCS_BUCKET =
       Preconditions.checkNotNull(
           System.getenv(TEMPORARY_GCS_BUCKET_ENV_VARIABLE),
           "Please set the %s env variable to point to a write enabled GCS bucket",
