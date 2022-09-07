@@ -1150,7 +1150,7 @@ spark.read.format("bigquery").option("credentialsProvider", "com.example.Example
 ```
 * In cases where the user has an internal service providing the Google AccessToken, a simplified custom implementation
   can be done, creating only the AccessToken and providing its TTL. Token refresh will re-generate a new token. In order
-  to use this, implement the 
+  to use this, implement the
   [com.google.cloud.bigquery.connector.common.AccessTokenProvider](https://github.com/GoogleCloudDataproc/spark-bigquery-connector/tree/master/bigquery-connector-common/src/main/java/com/google/cloud/bigquery/connector/common/AccessTokenProvider.java)
   interface. The fully qualified class name of the implementation should be provided in the `gcpAccessTokenProvider` option.
 ```
