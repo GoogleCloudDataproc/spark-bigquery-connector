@@ -1117,41 +1117,63 @@ You can also always repartition after reading in Spark.
 
 ### How do I authenticate outside GCE / Dataproc?
 
-Use a service account JSON key and `GOOGLE_APPLICATION_CREDENTIALS` as described [here](https://cloud.google.com/docs/authentication/getting-started).
+The connector needs an instance of a GoogleCredentials in order to connect to the BigQuery APIs. There are multiple
+options to provide it:
 
-Credentials can also be provided explicitly either as a parameter or from Spark runtime configuration.
-It can be passed in as a base64-encoded string directly, or a file path that contains the credentials (but not both).
-
-Example:
+* The default is to load the JSON key from the  `GOOGLE_APPLICATION_CREDENTIALS` environment variable, as described
+  [here](https://cloud.google.com/docs/authentication/getting-started).
+* In case the environment variable cannot be changed, the credentials file can be configured as
+  as a spark option. The file should reside on the same path on all the nodes of the cluster.
 ```
-spark.read.format("bigquery").option("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
-```
-or
-```
-spark.conf.set("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
-```
-
-Alternatively, specify the credentials file name.
-
-```
+// Globally
+spark.conf.set("credentialsFile", "</path/to/key/file>")
+// Per read/Write
 spark.read.format("bigquery").option("credentialsFile", "</path/to/key/file>")
 ```
-or
+* Credentials can also be provided explicitly, either as a parameter or from Spark runtime configuration.
+  They should be passed in as a base64-encoded string directly.
 ```
-spark.conf.set("credentialsFile", "</path/to/key/file>")
+// Globally
+spark.conf.set("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
+// Per read/Write
+spark.read.format("bigquery").option("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
 ```
-
-Another alternative to passing the credentials, is to pass the access token used for authenticating
-the API calls to the Google Cloud Platform APIs. You can get the access token by running
-`gcloud auth application-default print-access-token`.
-
+* If custom credentials creation is needed, then there is an option to create the Credentials
+  object independently, by implementing the
+  [com.google.api.gax.core.CredentialsProvider](https://github.com/googleapis/gax-java/blob/main/gax/src/main/java/com/google/api/gax/core/CredentialsProvider.java)
+  interface. The fully qualified class name of the implementation should be provided in the `credentialsProvider` option.
 ```
+// Globally
+spark.conf.set("credentialsProvider", "com.example.ExampleCredentialsProvider")
+// Per read/Write
+spark.read.format("bigquery").option("credentialsProvider", "com.example.ExampleCredentialsProvider")
+```
+* In cases where the user has an internal service providing the Google AccessToken, a simplified custom implementation
+  can be done, creating only the AccessToken and providing its TTL. Token refresh will re-generate a new token. In order
+  to use this, implement the 
+  [com.google.cloud.bigquery.connector.common.AccessTokenProvider](https://github.com/GoogleCloudDataproc/spark-bigquery-connector/tree/master/bigquery-connector-common/src/main/java/com/google/cloud/bigquery/connector/common/AccessTokenProvider.java)
+  interface. The fully qualified class name of the implementation should be provided in the `gcpAccessTokenProvider` option.
+```
+// Globally
+spark.conf.set("gcpAccessTokenProvider", "com.example.ExampleAccessTokenProvider")
+// Per read/Write
+spark.read.format("bigquery").option("gcpAccessTokenProvider", "com.example.ExampleAccessTokenProvider")
+```
+* For a simpler application, where access token refresh is not required, another alternative is to pass the access token
+  as the `gcpAccessToken` configuration option. You can get the access token by running
+  `gcloud auth application-default print-access-token`.
+```
+// Globally
+spark.conf.set("gcpAccessToken", "<access-token>")
+// Per read/Write
 spark.read.format("bigquery").option("gcpAccessToken", "<acccess-token>")
 ```
-or
-```
-spark.conf.set("gcpAccessToken", "<access-token>")
-```
+
+**Important:** The `CredentialsProvider` and  `AccessTokenProvider` need to be implemented in Java or
+other JVM language such as Scala or Kotlin. It must have a no-arg constructor. The jar containing
+the implementation should be on the cluster's classpath.
+
+**Notice:** Only one of the above options should be provided.
 
 ### How do I connect to GCP/BigQuery via Proxy?
 
