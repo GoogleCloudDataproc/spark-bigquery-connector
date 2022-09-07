@@ -4,6 +4,7 @@
 
 * PR #750: Adding support for custom credentials creation. See more [here](https://github.com/GoogleCloudDataproc/spark-bigquery-connector#how-do-i-authenticate-outside-gce--dataproc).
 * PR #745: Supporting load from query in spark-3.1-bigquery.
+* PR #767: Adding the option readSessionTimeoutInSeconds, to set the max timeout for a read session.
 
 ## 0.26.0 - 2022-07-18
 
