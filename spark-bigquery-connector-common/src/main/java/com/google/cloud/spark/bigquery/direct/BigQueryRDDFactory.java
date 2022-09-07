@@ -24,18 +24,23 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
+import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.spark.Partition;
+import org.apache.spark.SparkContext;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -141,7 +146,7 @@ public class BigQueryRDDFactory {
                 .filter(f -> requiredColumnSet.contains(f.getName()))
                 .collect(Collectors.toList()));
 
-    return BigQueryRDD.scanTable(
+    return createRDD(
         sqlContext,
         partitions.toArray(new BigQueryPartition[0]),
         readSession,
@@ -149,6 +154,60 @@ public class BigQueryRDDFactory {
         requiredColumns,
         options,
         bigQueryReadClientFactory);
+  }
+
+  // Moved from BigQueryRDD.scanTable
+  @VisibleForTesting
+  RDD<InternalRow> createRDD(
+      SQLContext sqlContext,
+      Partition[] partitions,
+      ReadSession readSession,
+      Schema bqSchema,
+      String[] columnsInOrder,
+      SparkBigQueryConfig options,
+      BigQueryClientFactory bigQueryClientFactory) {
+    // Unfortunately we need to use reflection here due to a cyclic dependency issue, and the fact
+    // that RDD constructor dependencies are different between Scala 2.12 and Scala 2.13. In Scala
+    // 2.13 `scala.collection.Seq` is mapped to `scala.collection.immutable.Seq` and this is why we
+    // need two classes each compiled against different Scala version. In addition, BigQueryRDD
+    // depends on BigQueryPartition (of this project), so we have a cyclic dependency. In order to
+    // solve it, we use reflection to dynamically load the appropriate BigQueryRDD version
+    String bigQueryRDDClassName = "com.google.cloud.spark.bigquery.direct.Scala213BigQueryRDD";
+    String scalaVersion = scala.util.Properties.versionNumberString();
+    if (scalaVersion.compareTo("2.13") < 0) {
+      // Run uses Scala 2.11/2.12
+      bigQueryRDDClassName = "com.google.cloud.spark.bigquery.direct.PreScala213BigQueryRDD";
+    }
+    try {
+      Class<? extends RDD<InternalRow>> clazz =
+          (Class<? extends RDD<InternalRow>>) Class.forName(bigQueryRDDClassName);
+      Constructor<? extends RDD<InternalRow>> constructor =
+          clazz.getConstructor(
+              SparkContext.class,
+              Partition[].class,
+              ReadSession.class,
+              Schema.class,
+              String[].class,
+              SparkBigQueryConfig.class,
+              BigQueryClientFactory.class);
+
+      RDD<InternalRow> bigQueryRDD =
+          constructor.newInstance(
+              sqlContext.sparkContext(),
+              partitions,
+              readSession,
+              bqSchema,
+              columnsInOrder,
+              options,
+              bigQueryClientFactory);
+
+      return bigQueryRDD;
+    } catch (Exception e) {
+      throw new BigQueryConnectorException(
+          String.format(
+              "Could not initialize a BigQuery RDD class of type [%s}", bigQueryRDDClassName),
+          e);
+    }
   }
 
   public long getNumBytes(TableDefinition tableDefinition) {

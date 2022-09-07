@@ -34,12 +34,31 @@ import java.util.List;
 import org.apache.spark.bigquery.BigNumericUDT;
 import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSqlUtils;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
-import org.apache.spark.sql.types.*;
+import org.apache.spark.sql.types.ArrayType;
+import org.apache.spark.sql.types.BinaryType;
+import org.apache.spark.sql.types.BooleanType;
+import org.apache.spark.sql.types.ByteType;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.DateType;
+import org.apache.spark.sql.types.Decimal;
+import org.apache.spark.sql.types.DecimalType;
+import org.apache.spark.sql.types.DoubleType;
+import org.apache.spark.sql.types.FloatType;
+import org.apache.spark.sql.types.IntegerType;
+import org.apache.spark.sql.types.LongType;
+import org.apache.spark.sql.types.MapType;
+import org.apache.spark.sql.types.ShortType;
+import org.apache.spark.sql.types.StringType;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.types.TimestampType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.collection.mutable.WrappedArray;
+import scala.collection.mutable.IndexedSeq;
 
 public class ProtobufUtils {
 
@@ -335,7 +354,7 @@ public class ProtobufUtils {
           protoValue.add(converted);
         }
       } else {
-        WrappedArray<Object> sparkArrayData = (WrappedArray<Object>) sparkValue;
+        IndexedSeq<Object> sparkArrayData = (IndexedSeq<Object>) sparkValue;
         int sparkArrayDataLength = sparkArrayData.length();
         for (int i = 0; i < sparkArrayDataLength; i++) {
           Object converted =
@@ -353,7 +372,7 @@ public class ProtobufUtils {
     if (sparkType instanceof StructType) {
       InternalRow internalRow = null;
       if (sparkValue instanceof Row) {
-        internalRow = InternalRow.apply(((Row) sparkValue).toSeq());
+        internalRow = SparkSqlUtils.getInstance().rowToInternalRow((Row) sparkValue);
       } else {
         internalRow = (InternalRow) sparkValue;
       }
