@@ -40,6 +40,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -308,7 +309,7 @@ public class BigQueryUtil {
       String fullyQualifiedClassName, Class<T> requiredClass) {
     try {
       Class<?> clazz = Class.forName(fullyQualifiedClassName);
-      Object result = clazz.newInstance();
+      Object result = clazz.getDeclaredConstructor().newInstance();
       if (!requiredClass.isInstance(result)) {
         throw new IllegalArgumentException(
             String.format(
@@ -316,7 +317,11 @@ public class BigQueryUtil {
                 clazz.getCanonicalName(), requiredClass.getCanonicalName()));
       }
       return (T) result;
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+    } catch (ClassNotFoundException
+        | InstantiationException
+        | IllegalAccessException
+        | InvocationTargetException
+        | NoSuchMethodException e) {
       throw new IllegalArgumentException(
           String.format(
               "Could not instantiate class [%s], implementing %s",
