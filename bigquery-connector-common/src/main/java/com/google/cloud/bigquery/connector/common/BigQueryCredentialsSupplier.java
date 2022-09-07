@@ -15,7 +15,11 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.createVerifiedInstance;
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.verifySerialization;
+
 import com.google.api.client.util.Base64;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.auth.Credentials;
 import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.AccessToken;
@@ -31,22 +35,38 @@ public class BigQueryCredentialsSupplier {
   private final Credentials credentials;
 
   public BigQueryCredentialsSupplier(
+      Optional<String> credentialsProviderFQCN,
+      Optional<String> accessTokenProviderFQCN,
       Optional<String> accessToken,
       Optional<String> credentialsKey,
       Optional<String> credentialsFile,
       Optional<URI> proxyUri,
       Optional<String> proxyUsername,
       Optional<String> proxyPassword) {
-    if (accessToken.isPresent()) {
-      this.credentials = createCredentialsFromAccessToken(accessToken.get());
-    } else if (credentialsKey.isPresent()) {
-      this.credentials =
-          createCredentialsFromKey(credentialsKey.get(), proxyUri, proxyUsername, proxyPassword);
-    } else if (credentialsFile.isPresent()) {
-      this.credentials =
-          createCredentialsFromFile(credentialsFile.get(), proxyUri, proxyUsername, proxyPassword);
-    } else {
-      this.credentials = createDefaultCredentials();
+    try {
+      if (credentialsProviderFQCN.isPresent()) {
+        CredentialsProvider credentialsProvider =
+            createVerifiedInstance(credentialsProviderFQCN.get(), CredentialsProvider.class);
+        this.credentials = verifySerialization(credentialsProvider.getCredentials());
+      } else if (accessTokenProviderFQCN.isPresent()) {
+        AccessTokenProvider accessTokenProvider =
+            createVerifiedInstance(accessTokenProviderFQCN.get(), AccessTokenProvider.class);
+        this.credentials =
+            new AccessTokenProviderCredentials(verifySerialization(accessTokenProvider));
+      } else if (accessToken.isPresent()) {
+        this.credentials = createCredentialsFromAccessToken(accessToken.get());
+      } else if (credentialsKey.isPresent()) {
+        this.credentials =
+            createCredentialsFromKey(credentialsKey.get(), proxyUri, proxyUsername, proxyPassword);
+      } else if (credentialsFile.isPresent()) {
+        this.credentials =
+            createCredentialsFromFile(
+                credentialsFile.get(), proxyUri, proxyUsername, proxyPassword);
+      } else {
+        this.credentials = createDefaultCredentials();
+      }
+    } catch (IOException e) {
+      throw new UncheckedIOException("Error creating credentials", e);
     }
   }
 

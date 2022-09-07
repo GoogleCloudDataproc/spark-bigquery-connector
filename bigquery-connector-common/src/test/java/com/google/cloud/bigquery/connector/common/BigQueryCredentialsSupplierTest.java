@@ -23,7 +23,10 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.gson.stream.MalformedJsonException;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -67,6 +70,8 @@ public class BigQueryCredentialsSupplierTest {
   public void testCredentialsFromAccessToken() {
     Credentials nonProxyCredentials =
         new BigQueryCredentialsSupplier(
+                Optional.empty(),
+                Optional.empty(),
                 Optional.of(ACCESS_TOKEN),
                 Optional.empty(),
                 Optional.empty(),
@@ -77,6 +82,8 @@ public class BigQueryCredentialsSupplierTest {
 
     Credentials proxyCredentials =
         new BigQueryCredentialsSupplier(
+                Optional.empty(),
+                Optional.empty(),
                 Optional.of(ACCESS_TOKEN),
                 Optional.empty(),
                 Optional.empty(),
@@ -105,6 +112,8 @@ public class BigQueryCredentialsSupplierTest {
     Credentials nonProxyCredentials =
         new BigQueryCredentialsSupplier(
                 Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
                 Optional.of(credentialsKey),
                 Optional.empty(),
                 Optional.empty(),
@@ -114,6 +123,8 @@ public class BigQueryCredentialsSupplierTest {
 
     Credentials proxyCredentials =
         new BigQueryCredentialsSupplier(
+                Optional.empty(),
+                Optional.empty(),
                 Optional.empty(),
                 Optional.of(credentialsKey),
                 Optional.empty(),
@@ -148,6 +159,8 @@ public class BigQueryCredentialsSupplierTest {
             () ->
                 new BigQueryCredentialsSupplier(
                         Optional.empty(),
+                        Optional.empty(),
+                        Optional.empty(),
                         Optional.of(credentialsKey),
                         Optional.empty(),
                         optionalProxyURI,
@@ -160,6 +173,8 @@ public class BigQueryCredentialsSupplierTest {
             IllegalArgumentException.class,
             () ->
                 new BigQueryCredentialsSupplier(
+                        Optional.empty(),
+                        Optional.empty(),
                         Optional.empty(),
                         Optional.of(credentialsKey),
                         Optional.empty(),
@@ -189,6 +204,8 @@ public class BigQueryCredentialsSupplierTest {
         new BigQueryCredentialsSupplier(
                 Optional.empty(),
                 Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
                 Optional.of(credentialsFile.getAbsolutePath()),
                 Optional.empty(),
                 Optional.empty(),
@@ -197,6 +214,8 @@ public class BigQueryCredentialsSupplierTest {
 
     Credentials proxyCredentials =
         new BigQueryCredentialsSupplier(
+                Optional.empty(),
+                Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.of(credentialsFile.getAbsolutePath()),
@@ -233,6 +252,8 @@ public class BigQueryCredentialsSupplierTest {
                 new BigQueryCredentialsSupplier(
                         Optional.empty(),
                         Optional.empty(),
+                        Optional.empty(),
+                        Optional.empty(),
                         Optional.of(credentialsFile.getAbsolutePath()),
                         optionalProxyURI,
                         Optional.empty(),
@@ -244,6 +265,8 @@ public class BigQueryCredentialsSupplierTest {
             IllegalArgumentException.class,
             () ->
                 new BigQueryCredentialsSupplier(
+                        Optional.empty(),
+                        Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
                         Optional.of(credentialsFile.getAbsolutePath()),
@@ -273,5 +296,61 @@ public class BigQueryCredentialsSupplierTest {
     json.put("project_id", projectId);
     json.put("quota_project_id", QUOTA_PROJECT);
     return json.toPrettyString();
+  }
+
+  @Test
+  public void testFallbackToDefault() throws Exception {
+    BigQueryCredentialsSupplier supplier =
+        new BigQueryCredentialsSupplier(
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty());
+    Credentials credentials = supplier.getCredentials();
+    assertThat(credentials).isEqualTo(GoogleCredentials.getApplicationDefault());
+  }
+
+  @Test
+  public void testExceptionIsThrownOnFile() throws Exception {
+    UncheckedIOException e =
+        assertThrows(
+            UncheckedIOException.class,
+            () -> {
+              new BigQueryCredentialsSupplier(
+                  Optional.empty(),
+                  Optional.empty(),
+                  Optional.empty(),
+                  Optional.empty(),
+                  Optional.of("/no/such/file"),
+                  Optional.empty(),
+                  Optional.empty(),
+                  Optional.empty());
+            });
+    assertThat(e.getMessage()).isEqualTo("Failed to create Credentials from file");
+    assertThat(e.getCause()).isInstanceOf(FileNotFoundException.class);
+  }
+
+  @Test
+  public void testExceptionIsThrownOnKey() throws Exception {
+    UncheckedIOException e =
+        assertThrows(
+            UncheckedIOException.class,
+            () -> {
+              new BigQueryCredentialsSupplier(
+                  Optional.empty(),
+                  Optional.empty(),
+                  Optional.empty(),
+                  Optional.of("bm8ga2V5IGhlcmU="), // "no key here"
+                  Optional.empty(),
+                  Optional.empty(),
+                  Optional.empty(),
+                  Optional.empty());
+            });
+    assertThat(e.getMessage()).isEqualTo("Failed to create Credentials from key");
+    assertThat(e.getCause()).isInstanceOf(MalformedJsonException.class);
   }
 }

@@ -25,6 +25,8 @@ import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.TableId;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -238,5 +240,40 @@ public class BigQueryUtilTest {
     assertThat(BigQueryUtil.schemaEquals(s1, s2, false, false)).isTrue();
     assertThat(BigQueryUtil.schemaEquals(s1, s3, false, false)).isTrue();
     assertThat(BigQueryUtil.schemaEquals(s2, s3, false, false)).isTrue();
+  }
+
+  @Test
+  public void testCreateVerifiedInstanceNoClass() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> BigQueryUtil.createVerifiedInstance("no.such.Class", String.class));
+  }
+
+  @Test
+  public void testCreateVerifiedInstanceFailedInheritance() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> BigQueryUtil.createVerifiedInstance("java.lang.String", Map.class));
+  }
+
+  @Test
+  public void testCreateVerifiedInstance() {
+    List result = BigQueryUtil.createVerifiedInstance("java.util.ArrayList", List.class);
+    assertThat(result).isNotNull();
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  public void testVerifySerialization() {
+    int[] source = new int[] {1, 2, 3};
+    int[] copy = BigQueryUtil.verifySerialization(source);
+    assertThat(copy).isEqualTo(source);
+  }
+
+  @Test
+  public void testVerifySerializationFail() {
+    final Object notSerializable = new Object();
+    assertThrows(
+        IllegalArgumentException.class, () -> BigQueryUtil.verifySerialization(notSerializable));
   }
 }
