@@ -24,7 +24,7 @@ import java.io.IOException;
 /**
  * Basic implementation of CredentialsProvider. Token TTL is very small to allow refresh testing.
  */
-public class DefaultCredentialsDelegateGcloudCredentialsProvider implements CredentialsProvider {
+public class DefaultCredentialsDelegateCredentialsProvider implements CredentialsProvider {
 
   @Override
   public Credentials getCredentials() throws IOException {

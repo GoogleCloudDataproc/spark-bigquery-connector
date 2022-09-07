@@ -37,7 +37,7 @@ public class CustomCredentialsIntegrationTest {
     BigQueryCredentialsSupplier credentialsSupplier =
         new BigQueryCredentialsSupplier(
             Optional.of(
-                DefaultCredentialsDelegateGcloudCredentialsProvider.class.getCanonicalName()),
+                DefaultCredentialsDelegateCredentialsProvider.class.getCanonicalName()),
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
