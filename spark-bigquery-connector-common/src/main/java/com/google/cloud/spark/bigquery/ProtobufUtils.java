@@ -127,7 +127,7 @@ public class ProtobufUtils {
       Descriptors.Descriptor descriptor = toDescriptor(schema);
       return ProtoSchemaConverter.convert(descriptor);
     } catch (Descriptors.DescriptorValidationException e) {
-      throw new IllegalArgumentException("Could not build Proto-Schema from Spark schema", e);
+      throw new IllegalArgumentException("Could not build Proto-Schema from BigQuery schema", e);
     }
   }
 

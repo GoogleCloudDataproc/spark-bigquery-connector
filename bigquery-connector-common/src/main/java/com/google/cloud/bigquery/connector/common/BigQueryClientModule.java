@@ -40,7 +40,7 @@ public class BigQueryClientModule implements com.google.inject.Module {
 
   @Provides
   @Singleton
-  public static HeaderProvider createtHeaderProvider(
+  public static HeaderProvider createHeaderProvider(
       BigQueryConfig config, UserAgentProvider userAgentProvider) {
     return HttpUtil.createHeaderProvider(config, userAgentProvider.getUserAgent());
   }
