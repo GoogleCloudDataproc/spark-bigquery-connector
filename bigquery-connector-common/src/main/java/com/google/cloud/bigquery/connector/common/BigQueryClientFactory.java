@@ -3,12 +3,15 @@ package com.google.cloud.bigquery.connector.common;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.api.gax.rpc.HeaderProvider;
+import com.google.api.gax.rpc.UnaryCallSettings;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadSettings;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
+import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
+import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.common.base.Objects;
 import java.io.IOException;
 import java.io.Serializable;
@@ -19,6 +22,7 @@ import java.util.Optional;
 import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.threeten.bp.Duration;
 
 /**
  * Since Guice recommends to avoid injecting closeable resources (see
@@ -134,6 +138,23 @@ public class BigQueryClientFactory implements Serializable {
           BigQueryReadSettings.newBuilder()
               .setTransportChannelProvider(transportBuilder.build())
               .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
+      if (bqConfig.getReadSessionTimeoutInSeconds().isPresent()) {
+        // Setting the read session timeout only of the user provided one using options or using the
+        // default timeouts
+        UnaryCallSettings.Builder<CreateReadSessionRequest, ReadSession> createReadSessionSettings =
+            clientSettings.getStubSettingsBuilder().createReadSessionSettings();
+        createReadSessionSettings.setRetrySettings(
+            createReadSessionSettings
+                .getRetrySettings()
+                .toBuilder()
+                .setInitialRpcTimeout(
+                    Duration.ofSeconds(bqConfig.getReadSessionTimeoutInSeconds().get()))
+                .setMaxRpcTimeout(
+                    Duration.ofSeconds(bqConfig.getReadSessionTimeoutInSeconds().get()))
+                .setTotalTimeout(
+                    Duration.ofSeconds(bqConfig.getReadSessionTimeoutInSeconds().get()))
+                .build());
+      }
       return BigQueryReadClient.create(clientSettings.build());
     } catch (IOException e) {
       throw new UncheckedIOException("Error creating BigQueryStorageReadClient", e);

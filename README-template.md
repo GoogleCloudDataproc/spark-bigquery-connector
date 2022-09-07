@@ -731,6 +731,14 @@ The API Supports a number of options to configure the read
      </td>
      <td>Write</td>
    </tr>
+   <tr>
+     <td><code>readSessionTimeoutInSeconds</code>
+     </td>
+     <td>  Used to set the timeout for a read session.
+          <br/> (Optional. Defaults to 10 minutes)
+     </td>
+     <td>Read</td>
+   </tr>
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter

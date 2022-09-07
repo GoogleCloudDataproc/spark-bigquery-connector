@@ -22,6 +22,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final Optional<String> endpoint;
   private final int cacheExpirationTimeInMinutes;
   private final ImmutableMap<String, String> bigQueryJobLabels;
+  private final Optional<Long> readSessionTimeoutInSeconds;
 
   BigQueryClientFactoryConfig(BigQueryConfig bigQueryConfig) {
     this.credentialsKey = bigQueryConfig.getCredentialsKey();
@@ -40,6 +41,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.endpoint = bigQueryConfig.getEndpoint();
     this.cacheExpirationTimeInMinutes = bigQueryConfig.getCacheExpirationTimeInMinutes();
     this.bigQueryJobLabels = bigQueryConfig.getBigQueryJobLabels();
+    this.readSessionTimeoutInSeconds = bigQueryConfig.getReadSessionTimeoutInSeconds();
   }
 
   @Override
@@ -118,6 +120,11 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   }
 
   @Override
+  public Optional<Long> getReadSessionTimeoutInSeconds() {
+    return readSessionTimeoutInSeconds;
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -140,7 +147,8 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
         && Objects.equal(bigQueryClientRetrySettings, that.bigQueryClientRetrySettings)
         && Objects.equal(bigQueryProxyConfig, that.bigQueryProxyConfig)
         && Objects.equal(endpoint, that.endpoint)
-        && Objects.equal(cacheExpirationTimeInMinutes, that.cacheExpirationTimeInMinutes);
+        && Objects.equal(cacheExpirationTimeInMinutes, that.cacheExpirationTimeInMinutes)
+        && Objects.equal(readSessionTimeoutInSeconds, that.readSessionTimeoutInSeconds);
   }
 
   @Override

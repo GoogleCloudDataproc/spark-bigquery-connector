@@ -455,4 +455,31 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .load();
     testShakespeare(df);
   }
+
+  @Test
+  public void testReadSessionTimeout() {
+    // setting the read session timeout to 1000 seconds to read
+    // `bigquery-public-data:samples.wikipedia` table
+    spark
+        .read()
+        .format("bigquery")
+        .option("table", TestConstants.WIKIPEDIA_TABLE)
+        .option("readSessionTimeoutInSeconds", 1000)
+        .load()
+        .take(10);
+    // setting the read session timeout to 1 second, to read the same table should throw run time
+    // exception
+    assertThrows(
+        "DEADLINE_EXCEEDED: deadline exceeded ",
+        com.google.api.gax.rpc.DeadlineExceededException.class,
+        () -> {
+          spark
+              .read()
+              .format("bigquery")
+              .option("table", TestConstants.WIKIPEDIA_TABLE)
+              .option("readSessionTimeoutInSeconds", 1)
+              .load()
+              .take(10);
+        });
+  }
 }
