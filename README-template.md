@@ -732,9 +732,9 @@ The API Supports a number of options to configure the read
      <td>Write</td>
    </tr>
    <tr>
-     <td><code>readSessionTimeoutInSeconds</code>
+     <td><code>createReadSessionTimeoutInSeconds</code>
      </td>
-     <td>  Used to set the timeout for a read session.
+     <td>  Used to override the timeout for CreateReadSession.
           <br/> (Optional. Defaults to 10 minutes)
      </td>
      <td>Read</td>

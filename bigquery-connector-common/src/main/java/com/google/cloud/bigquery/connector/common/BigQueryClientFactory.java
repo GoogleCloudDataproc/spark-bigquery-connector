@@ -138,7 +138,7 @@ public class BigQueryClientFactory implements Serializable {
           BigQueryReadSettings.newBuilder()
               .setTransportChannelProvider(transportBuilder.build())
               .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
-      if (bqConfig.getReadSessionTimeoutInSeconds().isPresent()) {
+      if (bqConfig.getCreateReadSessionTimeoutInSeconds().isPresent()) {
         // Setting the read session timeout only of the user provided one using options or using the
         // default timeouts
         UnaryCallSettings.Builder<CreateReadSessionRequest, ReadSession> createReadSessionSettings =
@@ -148,11 +148,11 @@ public class BigQueryClientFactory implements Serializable {
                 .getRetrySettings()
                 .toBuilder()
                 .setInitialRpcTimeout(
-                    Duration.ofSeconds(bqConfig.getReadSessionTimeoutInSeconds().get()))
+                    Duration.ofSeconds(bqConfig.getCreateReadSessionTimeoutInSeconds().get()))
                 .setMaxRpcTimeout(
-                    Duration.ofSeconds(bqConfig.getReadSessionTimeoutInSeconds().get()))
+                    Duration.ofSeconds(bqConfig.getCreateReadSessionTimeoutInSeconds().get()))
                 .setTotalTimeout(
-                    Duration.ofSeconds(bqConfig.getReadSessionTimeoutInSeconds().get()))
+                    Duration.ofSeconds(bqConfig.getCreateReadSessionTimeoutInSeconds().get()))
                 .build());
       }
       return BigQueryReadClient.create(clientSettings.build());

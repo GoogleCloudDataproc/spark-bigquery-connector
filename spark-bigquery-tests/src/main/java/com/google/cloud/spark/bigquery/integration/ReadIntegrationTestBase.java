@@ -457,18 +457,11 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   @Test
-  public void testReadSessionTimeout() {
-    // setting the read session timeout to 1000 seconds to read
-    // `bigquery-public-data:samples.wikipedia` table
-    spark
-        .read()
-        .format("bigquery")
-        .option("table", TestConstants.WIKIPEDIA_TABLE)
-        .option("readSessionTimeoutInSeconds", 1000)
-        .load()
-        .take(10);
-    // setting the read session timeout to 1 second, to read the same table should throw run time
-    // exception
+  public void testCreateReadSessionTimeout() {
+    // setting the CreateReadSession timeout to 1 second, to read the
+    // `bigquery-public-data:samples.github_nested` table should throw
+    // run time, DeadlineExceededException
+    // Using a bigger table to demonstrate this behavior
     assertThrows(
         "DEADLINE_EXCEEDED: deadline exceeded ",
         com.google.api.gax.rpc.DeadlineExceededException.class,
@@ -476,10 +469,24 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
           spark
               .read()
               .format("bigquery")
-              .option("table", TestConstants.WIKIPEDIA_TABLE)
-              .option("readSessionTimeoutInSeconds", 1)
+              .option("table", TestConstants.GITHUB_NESTED_TABLE)
+              .option("createReadSessionTimeoutInSeconds", 1)
               .load()
-              .take(10);
+              .collectAsList()
+              .size();
         });
+
+    //  whereas setting the CreateReadSession timeout to 1000 seconds should create the read session
+    // and work as intended. Using a smaller table(shakespeare) to demonstrate this behaviour
+    assertThat(
+            spark
+                .read()
+                .format("bigquery")
+                .option("table", TestConstants.SHAKESPEARE_TABLE)
+                .option("createReadSessionTimeoutInSeconds", 1000)
+                .load()
+                .collectAsList()
+                .size())
+        .isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
   }
 }

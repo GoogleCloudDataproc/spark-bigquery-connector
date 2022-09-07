@@ -401,7 +401,7 @@ public class BigQueryClientFactoryTest {
     }
 
     @Override
-    public Optional<Long> getReadSessionTimeoutInSeconds() {
+    public Optional<Long> getCreateReadSessionTimeoutInSeconds() {
       return Optional.empty();
     }
 

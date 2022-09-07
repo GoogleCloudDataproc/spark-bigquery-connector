@@ -51,5 +51,5 @@ public interface BigQueryConfig {
 
   ImmutableMap<String, String> getBigQueryJobLabels();
 
-  Optional<Long> getReadSessionTimeoutInSeconds();
+  Optional<Long> getCreateReadSessionTimeoutInSeconds();
 }

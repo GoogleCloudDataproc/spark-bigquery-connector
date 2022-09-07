@@ -68,7 +68,7 @@ public class TestConstants {
   static final DecimalType NUMERIC_SPARK_TYPE =
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   static final String SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare";
-  static final String WIKIPEDIA_TABLE = "bigquery-public-data:samples.wikipedia";
+  static final String GITHUB_NESTED_TABLE = "bigquery-public-data.samples.github_nested";
   static final long SHAKESPEARE_TABLE_NUM_ROWS = 164656L;
   static final String TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
   static final String BIGLAKE_CONNECTION_ID_ENV_VARIABLE = "BIGLAKE_CONNECTION_ID";

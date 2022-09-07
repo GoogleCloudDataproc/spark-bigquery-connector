@@ -41,7 +41,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.endpoint = bigQueryConfig.getEndpoint();
     this.cacheExpirationTimeInMinutes = bigQueryConfig.getCacheExpirationTimeInMinutes();
     this.bigQueryJobLabels = bigQueryConfig.getBigQueryJobLabels();
-    this.readSessionTimeoutInSeconds = bigQueryConfig.getReadSessionTimeoutInSeconds();
+    this.readSessionTimeoutInSeconds = bigQueryConfig.getCreateReadSessionTimeoutInSeconds();
   }
 
   @Override
@@ -120,7 +120,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   }
 
   @Override
-  public Optional<Long> getReadSessionTimeoutInSeconds() {
+  public Optional<Long> getCreateReadSessionTimeoutInSeconds() {
     return readSessionTimeoutInSeconds;
   }
 
