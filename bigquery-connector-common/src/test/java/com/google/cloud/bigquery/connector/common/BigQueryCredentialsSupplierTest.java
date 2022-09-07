@@ -23,16 +23,14 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.gson.stream.MalformedJsonException;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
-
-import com.google.gson.stream.MalformedJsonException;
 import org.junit.Test;
 
 public class BigQueryCredentialsSupplierTest {

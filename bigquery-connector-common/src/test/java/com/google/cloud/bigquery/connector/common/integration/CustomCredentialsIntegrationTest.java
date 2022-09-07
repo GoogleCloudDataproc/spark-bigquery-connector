@@ -36,8 +36,7 @@ public class CustomCredentialsIntegrationTest {
   public void testCredentialsProvider() throws Exception {
     BigQueryCredentialsSupplier credentialsSupplier =
         new BigQueryCredentialsSupplier(
-            Optional.of(
-                DefaultCredentialsDelegateCredentialsProvider.class.getCanonicalName()),
+            Optional.of(DefaultCredentialsDelegateCredentialsProvider.class.getCanonicalName()),
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
