@@ -458,26 +458,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testCreateReadSessionTimeout() {
-    // setting the CreateReadSession timeout to 1 second, to read the
-    // `bigquery-public-data:samples.wikipedia` table should throw
-    // run time, DeadlineExceededException
-    // Using a bigger table to demonstrate this behavior
-    assertThrows(
-        "DEADLINE_EXCEEDED: deadline exceeded ",
-        com.google.api.gax.rpc.DeadlineExceededException.class,
-        () -> {
-          spark
-              .read()
-              .format("bigquery")
-              .option("table", TestConstants.WIKIPEDIA_TABLE)
-              .option("createReadSessionTimeoutInSeconds", 1)
-              .load()
-              .collectAsList()
-              .size();
-        });
-
-    //  whereas setting the CreateReadSession timeout to 1000 seconds should create the read session
-    // and work as intended. Using a smaller table(shakespeare) to demonstrate this behaviour
+    // Setting the CreateReadSession timeout to 1000 seconds, which should create the read session
+    // since the timeout is more and data is less
     assertThat(
             spark
                 .read()
@@ -488,5 +470,28 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
                 .collectAsList()
                 .size())
         .isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+  }
+
+  @Test
+  public void testCreateReadSessionTimeoutWithLessTimeOnHugeData() {
+    // setting the CreateReadSession timeout to 1 second, to read the
+    // `bigquery-public-data.wikipedia.pageviews_2021` table should throw
+    // run time, DeadlineExceededException
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", TestConstants.PUBLIC_DATA_WIKIPEDIA_PAGEVIEWS_2021)
+            .option("createReadSessionTimeoutInSeconds", 1)
+            .option("preferredMinParallelism", "9000")
+            .load();
+    assertThrows(
+        "DEADLINE_EXCEEDED: deadline exceeded ",
+        com.google.api.gax.rpc.DeadlineExceededException.class,
+        () -> {
+          df.where(
+                  "views>1000 AND title='Google' AND DATE(datehour) BETWEEN DATE('2021-01-01') AND DATE('2021-07-01')")
+              .collect();
+        });
   }
 }
