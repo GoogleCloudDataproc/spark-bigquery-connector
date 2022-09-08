@@ -459,7 +459,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   @Test
   public void testCreateReadSessionTimeout() {
     // setting the CreateReadSession timeout to 1 second, to read the
-    // `bigquery-public-data:samples.github_nested` table should throw
+    // `bigquery-public-data:samples.wikipedia` table should throw
     // run time, DeadlineExceededException
     // Using a bigger table to demonstrate this behavior
     assertThrows(
@@ -469,7 +469,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
           spark
               .read()
               .format("bigquery")
-              .option("table", TestConstants.GITHUB_NESTED_TABLE)
+              .option("table", TestConstants.WIKIPEDIA_TABLE)
               .option("createReadSessionTimeoutInSeconds", 1)
               .load()
               .collectAsList()
