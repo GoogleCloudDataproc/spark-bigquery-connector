@@ -10,14 +10,14 @@ import org.mockito.{Mock, MockitoAnnotations}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 
-class Spark24ExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
+class Spark32ExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
   @Mock
   var directBigQueryRelationMock: DirectBigQueryRelation = _
   @Mock
   var sparkPlanFactoryMock: SparkPlanFactory = _
 
-  private val expressionFactory = new Spark24ExpressionFactory
-  private val expressionConverter = new Spark24ExpressionConverter(expressionFactory, sparkPlanFactoryMock)
+  private val expressionFactory = new Spark32ExpressionFactory
+  private val expressionConverter = new Spark32ExpressionConverter(expressionFactory, sparkPlanFactoryMock)
   private val fields = List(AttributeReference.apply("SchoolID", LongType)(ExprId.apply(1), List("SUBQUERY_2")))
 
   before {
@@ -43,7 +43,7 @@ class Spark24ExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
   }
 
   test("convertMathematicalExpressions with CheckOverflow") {
-    val checkOverflowExpression = CheckOverflow.apply(Literal.apply(233.45), DecimalType.apply(38, 10))
+    val checkOverflowExpression = CheckOverflow.apply(Literal.apply(233.45), DecimalType.apply(38, 10), nullOnOverflow = true)
     val bigQuerySQLStatement = expressionConverter.convertMathematicalExpressions(checkOverflowExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( 233.45 AS BIGDECIMAL )")

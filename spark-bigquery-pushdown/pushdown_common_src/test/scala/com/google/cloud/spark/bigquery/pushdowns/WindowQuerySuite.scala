@@ -93,7 +93,7 @@ class WindowQuerySuite extends AnyFunSuite {
         Seq(SortOrder.apply(schoolIdAttributeReference, Ascending)),
         SpecifiedWindowFrame.apply(RangeFrame, Literal.apply("abc"), UnboundedFollowing)))
     val windowAliasWithRangeWindowFrameWithAvgFunc = expressionFactory.createAlias(windowExpressionWithRangeWindowFrameWithAvg, "", ExprId.apply(12L), Seq.empty[String], Some(Metadata.empty))
-    assertThrows[org.apache.spark.sql.catalyst.analysis.UnresolvedException[_]] {
+    assertThrows[Exception] {
       WindowQuery(expressionConverter, expressionFactory, Seq(windowAliasWithRangeWindowFrameWithAvgFunc), sourceQuery, Some(Seq(schoolIdAttributeReference, schoolNameAttributeReference, windowAliasWithRangeWindowFrameWithAvgFunc.toAttribute)), SUBQUERY_0_ALIAS)
     }
   }
