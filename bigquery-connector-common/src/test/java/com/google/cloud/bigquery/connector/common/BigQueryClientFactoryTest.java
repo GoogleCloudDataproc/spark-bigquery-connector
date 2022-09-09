@@ -401,6 +401,11 @@ public class BigQueryClientFactoryTest {
     }
 
     @Override
+    public Optional<Long> getCreateReadSessionTimeoutInSeconds() {
+      return Optional.empty();
+    }
+
+    @Override
     public boolean equals(Object o) {
       if (this == o) {
         return true;

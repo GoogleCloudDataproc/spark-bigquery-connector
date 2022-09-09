@@ -180,6 +180,7 @@ public class SparkBigQueryConfig
   // used to create BigQuery ReadSessions
   private com.google.common.base.Optional<String> traceId;
   private ImmutableMap<String, String> bigQueryJobLabels = ImmutableMap.of();
+  private com.google.common.base.Optional<Long> createReadSessionTimeoutInSeconds;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -437,6 +438,10 @@ public class SparkBigQueryConfig
             });
 
     config.bigQueryJobLabels = parseBigQueryJobLabels(globalOptions, options);
+
+    config.createReadSessionTimeoutInSeconds =
+        getAnyOption(globalOptions, options, "createReadSessionTimeoutInSeconds")
+            .transform(Long::parseLong);
     return config;
   }
 
@@ -721,6 +726,11 @@ public class SparkBigQueryConfig
   @Override
   public int getCacheExpirationTimeInMinutes() {
     return cacheExpirationTimeInMinutes;
+  }
+
+  @Override
+  public Optional<Long> getCreateReadSessionTimeoutInSeconds() {
+    return createReadSessionTimeoutInSeconds.toJavaUtil();
   }
 
   @Override

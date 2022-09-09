@@ -455,4 +455,47 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .load();
     testShakespeare(df);
   }
+
+  /**
+   * Setting the CreateReadSession timeout to 1000 seconds, which should create the read session
+   * since the timeout is more and data is less
+   */
+  @Test
+  public void testCreateReadSessionTimeout() {
+    assertThat(
+            spark
+                .read()
+                .format("bigquery")
+                .option("table", TestConstants.SHAKESPEARE_TABLE)
+                .option("createReadSessionTimeoutInSeconds", 1000)
+                .load()
+                .collectAsList()
+                .size())
+        .isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+  }
+
+  /**
+   * Setting the CreateReadSession timeout to 1 second, to read the
+   * `bigquery-public-data.wikipedia.pageviews_2021` table. Should throw run time,
+   * DeadlineExceededException
+   */
+  @Test
+  public void testCreateReadSessionTimeoutWithLessTimeOnHugeData() {
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", TestConstants.PUBLIC_DATA_WIKIPEDIA_PAGEVIEWS_2021)
+            .option("createReadSessionTimeoutInSeconds", 1)
+            .option("preferredMinParallelism", "9000")
+            .load();
+    assertThrows(
+        "DEADLINE_EXCEEDED: deadline exceeded ",
+        com.google.api.gax.rpc.DeadlineExceededException.class,
+        () -> {
+          df.where(
+                  "views>1000 AND title='Google' AND DATE(datehour) BETWEEN DATE('2021-01-01') AND DATE('2021-07-01')")
+              .collect();
+        });
+  }
 }

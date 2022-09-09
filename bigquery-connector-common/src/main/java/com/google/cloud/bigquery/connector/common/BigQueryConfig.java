@@ -50,4 +50,6 @@ public interface BigQueryConfig {
   int getCacheExpirationTimeInMinutes();
 
   ImmutableMap<String, String> getBigQueryJobLabels();
+
+  Optional<Long> getCreateReadSessionTimeoutInSeconds();
 }
