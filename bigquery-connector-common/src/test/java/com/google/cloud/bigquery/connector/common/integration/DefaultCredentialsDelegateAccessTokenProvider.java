@@ -15,8 +15,8 @@
  */
 package com.google.cloud.bigquery.connector.common.integration;
 
-import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.bigquery.connector.common.AccessToken;
 import com.google.cloud.bigquery.connector.common.AccessTokenProvider;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -40,7 +40,7 @@ public class DefaultCredentialsDelegateAccessTokenProvider implements AccessToke
 
   @Override
   public AccessToken getAccessToken() throws IOException {
-    AccessToken accessToken = delegate.refreshAccessToken();
+    com.google.auth.oauth2.AccessToken accessToken = delegate.refreshAccessToken();
     callCount++;
     return new AccessToken(
         accessToken.getTokenValue(), new Date(System.currentTimeMillis() + 2000));

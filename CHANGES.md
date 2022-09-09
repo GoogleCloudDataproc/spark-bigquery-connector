@@ -2,7 +2,7 @@
 
 ## Next
 
-* PR #750: Adding support for custom credentials creation. See more [here](https://github.com/GoogleCloudDataproc/spark-bigquery-connector#how-do-i-authenticate-outside-gce--dataproc).
+* PR #750: Adding support for custom access token creation. See more [here](https://github.com/GoogleCloudDataproc/spark-bigquery-connector#how-do-i-authenticate-outside-gce--dataproc).
 * PR #745: Supporting load from query in spark-3.1-bigquery.
 
 ## 0.26.0 - 2022-07-18

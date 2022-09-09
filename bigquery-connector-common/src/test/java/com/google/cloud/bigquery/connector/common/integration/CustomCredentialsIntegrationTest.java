@@ -33,39 +33,9 @@ public class CustomCredentialsIntegrationTest {
       TableId.of("bigquery-public-data", "samples", "shakespeare");
 
   @Test
-  public void testCredentialsProvider() throws Exception {
-    BigQueryCredentialsSupplier credentialsSupplier =
-        new BigQueryCredentialsSupplier(
-            Optional.of(DefaultCredentialsDelegateCredentialsProvider.class.getCanonicalName()),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty());
-    Credentials credentials = credentialsSupplier.getCredentials();
-    assertThat(credentials).isInstanceOf(DefaultCredentialsDelegateCredentials.class);
-    DefaultCredentialsDelegateCredentials defaultCredentialsDelegateCredentials =
-        (DefaultCredentialsDelegateCredentials) credentials;
-    assertThat(defaultCredentialsDelegateCredentials.getCallCount()).isEqualTo(0);
-    BigQueryOptions options = BigQueryOptions.newBuilder().setCredentials(credentials).build();
-    BigQuery bigQuery = options.getService();
-    // first call
-    Table table = bigQuery.getTable(TABLE_ID);
-    assertThat(table).isNotNull();
-    assertThat(defaultCredentialsDelegateCredentials.getCallCount()).isEqualTo(1);
-    // second call
-    table = bigQuery.getTable(TABLE_ID);
-    assertThat(table).isNotNull();
-    assertThat(defaultCredentialsDelegateCredentials.getCallCount()).isEqualTo(2);
-  }
-
-  @Test
   public void testAccessTokenProvider() throws Exception {
     BigQueryCredentialsSupplier credentialsSupplier =
         new BigQueryCredentialsSupplier(
-            Optional.empty(),
             Optional.of(DefaultCredentialsDelegateAccessTokenProvider.class.getCanonicalName()),
             Optional.empty(),
             Optional.empty(),

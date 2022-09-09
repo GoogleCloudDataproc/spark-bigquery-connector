@@ -21,6 +21,8 @@ import java.util.Optional;
 
 public interface BigQueryConfig {
 
+  Optional<String> getAccessTokenProviderFQCN();
+
   Optional<String> getCredentialsKey();
 
   Optional<String> getCredentialsFile();

@@ -15,9 +15,19 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import java.io.IOException;
-import java.io.Serializable;
+import java.util.Date;
 
-public interface AccessTokenProvider extends Serializable {
-  AccessToken getAccessToken() throws IOException;
+/**
+ * As the com.google.auth.oauth2.AccessToken class is shaded in the final jar, this class provides
+ * the same functionality but maintains its package.
+ */
+public class AccessToken extends com.google.auth.oauth2.AccessToken {
+
+  /**
+   * @param tokenValue String representation of the access token.
+   * @param expirationTime Time when access token will expire.
+   */
+  public AccessToken(String tokenValue, Date expirationTime) {
+    super(tokenValue, expirationTime);
+  }
 }

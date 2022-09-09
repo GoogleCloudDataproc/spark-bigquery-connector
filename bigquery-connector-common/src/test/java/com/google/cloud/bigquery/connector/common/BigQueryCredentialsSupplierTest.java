@@ -71,7 +71,6 @@ public class BigQueryCredentialsSupplierTest {
     Credentials nonProxyCredentials =
         new BigQueryCredentialsSupplier(
                 Optional.empty(),
-                Optional.empty(),
                 Optional.of(ACCESS_TOKEN),
                 Optional.empty(),
                 Optional.empty(),
@@ -82,7 +81,6 @@ public class BigQueryCredentialsSupplierTest {
 
     Credentials proxyCredentials =
         new BigQueryCredentialsSupplier(
-                Optional.empty(),
                 Optional.empty(),
                 Optional.of(ACCESS_TOKEN),
                 Optional.empty(),
@@ -113,7 +111,6 @@ public class BigQueryCredentialsSupplierTest {
         new BigQueryCredentialsSupplier(
                 Optional.empty(),
                 Optional.empty(),
-                Optional.empty(),
                 Optional.of(credentialsKey),
                 Optional.empty(),
                 Optional.empty(),
@@ -123,7 +120,6 @@ public class BigQueryCredentialsSupplierTest {
 
     Credentials proxyCredentials =
         new BigQueryCredentialsSupplier(
-                Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.of(credentialsKey),
@@ -160,7 +156,6 @@ public class BigQueryCredentialsSupplierTest {
                 new BigQueryCredentialsSupplier(
                         Optional.empty(),
                         Optional.empty(),
-                        Optional.empty(),
                         Optional.of(credentialsKey),
                         Optional.empty(),
                         optionalProxyURI,
@@ -173,7 +168,6 @@ public class BigQueryCredentialsSupplierTest {
             IllegalArgumentException.class,
             () ->
                 new BigQueryCredentialsSupplier(
-                        Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
                         Optional.of(credentialsKey),
@@ -205,7 +199,6 @@ public class BigQueryCredentialsSupplierTest {
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
-                Optional.empty(),
                 Optional.of(credentialsFile.getAbsolutePath()),
                 Optional.empty(),
                 Optional.empty(),
@@ -214,7 +207,6 @@ public class BigQueryCredentialsSupplierTest {
 
     Credentials proxyCredentials =
         new BigQueryCredentialsSupplier(
-                Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
@@ -253,7 +245,6 @@ public class BigQueryCredentialsSupplierTest {
                         Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
-                        Optional.empty(),
                         Optional.of(credentialsFile.getAbsolutePath()),
                         optionalProxyURI,
                         Optional.empty(),
@@ -265,7 +256,6 @@ public class BigQueryCredentialsSupplierTest {
             IllegalArgumentException.class,
             () ->
                 new BigQueryCredentialsSupplier(
-                        Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
@@ -308,7 +298,6 @@ public class BigQueryCredentialsSupplierTest {
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
-            Optional.empty(),
             Optional.empty());
     Credentials credentials = supplier.getCredentials();
     assertThat(credentials).isEqualTo(GoogleCredentials.getApplicationDefault());
@@ -321,7 +310,6 @@ public class BigQueryCredentialsSupplierTest {
             UncheckedIOException.class,
             () -> {
               new BigQueryCredentialsSupplier(
-                  Optional.empty(),
                   Optional.empty(),
                   Optional.empty(),
                   Optional.empty(),
@@ -341,7 +329,6 @@ public class BigQueryCredentialsSupplierTest {
             UncheckedIOException.class,
             () -> {
               new BigQueryCredentialsSupplier(
-                  Optional.empty(),
                   Optional.empty(),
                   Optional.empty(),
                   Optional.of("bm8ga2V5IGhlcmU="), // "no key here"
