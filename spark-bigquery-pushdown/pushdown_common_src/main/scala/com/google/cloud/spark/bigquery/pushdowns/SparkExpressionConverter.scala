@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
 import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.{addAttributeStatement, blockStatement, makeStatement}
+import org.apache.commons.lang.{StringEscapeUtils, StringUtils}
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate._
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
@@ -181,13 +182,13 @@ abstract class SparkExpressionConverter {
       }
 
       case Contains(child, Literal(pattern: UTF8String, StringType)) =>
-        ConstantString("CONTAINS_SUBSTR") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString}'")
+        ConstantString("CONTAINS_SUBSTR") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString.replace( "'", "\\'")}'")
 
       case EndsWith(child, Literal(pattern: UTF8String, StringType)) =>
-        ConstantString("ENDS_WITH") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString}'")
+        ConstantString("ENDS_WITH") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString.replace( "'", "\\'")}'")
 
       case StartsWith(child, Literal(pattern: UTF8String, StringType)) =>
-        ConstantString("STARTS_WITH") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString}'")
+        ConstantString("STARTS_WITH") + blockStatement(convertStatement(child, fields) + "," + s"'${pattern.toString.replace( "'", "\\'")}'")
 
       case _ => null
     })
