@@ -138,23 +138,25 @@ public class BigQueryClientFactory implements Serializable {
           BigQueryReadSettings.newBuilder()
               .setTransportChannelProvider(transportBuilder.build())
               .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
-      if (bqConfig.getCreateReadSessionTimeoutInSeconds().isPresent()) {
-        // Setting the read session timeout only of the user provided one using options or using the
-        // default timeouts
-        UnaryCallSettings.Builder<CreateReadSessionRequest, ReadSession> createReadSessionSettings =
-            clientSettings.getStubSettingsBuilder().createReadSessionSettings();
-        createReadSessionSettings.setRetrySettings(
-            createReadSessionSettings
-                .getRetrySettings()
-                .toBuilder()
-                .setInitialRpcTimeout(
-                    Duration.ofSeconds(bqConfig.getCreateReadSessionTimeoutInSeconds().get()))
-                .setMaxRpcTimeout(
-                    Duration.ofSeconds(bqConfig.getCreateReadSessionTimeoutInSeconds().get()))
-                .setTotalTimeout(
-                    Duration.ofSeconds(bqConfig.getCreateReadSessionTimeoutInSeconds().get()))
-                .build());
-      }
+      bqConfig
+          .getCreateReadSessionTimeoutInSeconds()
+          .ifPresent(
+              timeoutInSeconds -> {
+                // Setting the read session timeout only if the user provided one using options or
+                // using the default timeout
+                UnaryCallSettings.Builder<CreateReadSessionRequest, ReadSession>
+                    createReadSessionSettings =
+                        clientSettings.getStubSettingsBuilder().createReadSessionSettings();
+                Duration timeout = Duration.ofSeconds(timeoutInSeconds);
+                createReadSessionSettings.setRetrySettings(
+                    createReadSessionSettings
+                        .getRetrySettings()
+                        .toBuilder()
+                        .setInitialRpcTimeout(timeout)
+                        .setMaxRpcTimeout(timeout)
+                        .setTotalTimeout(timeout)
+                        .build());
+              });
       return BigQueryReadClient.create(clientSettings.build());
     } catch (IOException e) {
       throw new UncheckedIOException("Error creating BigQueryStorageReadClient", e);

@@ -734,8 +734,9 @@ The API Supports a number of options to configure the read
    <tr>
      <td><code>createReadSessionTimeoutInSeconds</code>
      </td>
-     <td>  Used to override the timeout for CreateReadSession.
-          <br/> (Optional. Defaults to 10 minutes)
+     <td> The timeout in seconds to create a ReadSession when reading a table.
+          <br/> For Extremely large table this value should be increased.
+          <br/> (Optional. Defaults to 600 seconds)
      </td>
      <td>Read</td>
    </tr>

@@ -456,10 +456,12 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     testShakespeare(df);
   }
 
+  /**
+   * Setting the CreateReadSession timeout to 1000 seconds, which should create the read session
+   * since the timeout is more and data is less
+   */
   @Test
   public void testCreateReadSessionTimeout() {
-    // Setting the CreateReadSession timeout to 1000 seconds, which should create the read session
-    // since the timeout is more and data is less
     assertThat(
             spark
                 .read()
@@ -472,11 +474,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         .isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
   }
 
+  /**
+   * Setting the CreateReadSession timeout to 1 second, to read the
+   * `bigquery-public-data.wikipedia.pageviews_2021` table. Should throw run time,
+   * DeadlineExceededException
+   */
   @Test
   public void testCreateReadSessionTimeoutWithLessTimeOnHugeData() {
-    // setting the CreateReadSession timeout to 1 second, to read the
-    // `bigquery-public-data.wikipedia.pageviews_2021` table should throw
-    // run time, DeadlineExceededException
     Dataset<Row> df =
         spark
             .read()
