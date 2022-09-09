@@ -355,24 +355,24 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
   }
 
   test("convertBooleanExpressions with Contains") {
-    val containsExpression = Contains.apply(schoolIdAttributeReference, Literal("1234"))
+    val containsExpression = Contains.apply(schoolIdAttributeReference, Literal("123'4"))
     val bigQuerySQLStatement = expressionConverter.convertBooleanExpressions(containsExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "CONTAINS_SUBSTR ( SUBQUERY_2.SCHOOLID , '1234' )")
+    assert(bigQuerySQLStatement.get.toString == "CONTAINS_SUBSTR ( SUBQUERY_2.SCHOOLID , '123\\'4' )")
   }
 
   test("convertBooleanExpressions with Ends With") {
-    val endsWithExpression = EndsWith.apply(schoolIdAttributeReference, Literal("1234"))
+    val endsWithExpression = EndsWith.apply(schoolIdAttributeReference, Literal("123'4"))
     val bigQuerySQLStatement = expressionConverter.convertBooleanExpressions(endsWithExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "ENDS_WITH ( SUBQUERY_2.SCHOOLID , '1234' )")
+    assert(bigQuerySQLStatement.get.toString == "ENDS_WITH ( SUBQUERY_2.SCHOOLID , '123\\'4' )")
   }
 
   test("convertBooleanExpressions with Starts With") {
-    val startsWithExpression = StartsWith.apply(schoolIdAttributeReference, Literal("1234"))
+    val startsWithExpression = StartsWith.apply(schoolIdAttributeReference, Literal("123'4"))
     val bigQuerySQLStatement = expressionConverter.convertBooleanExpressions(startsWithExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "STARTS_WITH ( SUBQUERY_2.SCHOOLID , '1234' )")
+    assert(bigQuerySQLStatement.get.toString == "STARTS_WITH ( SUBQUERY_2.SCHOOLID , '123\\'4' )")
   }
 
   test("convertBooleanExpressions with non Boolean expression") {
