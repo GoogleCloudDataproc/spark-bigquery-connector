@@ -17,8 +17,7 @@ package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.cloud.bigquery.connector.common.AccessTokenProvider;
-import com.google.cloud.bigquery.connector.common.integration.DefaultCredentialsDelegateCredentialsProvider;
+import com.google.cloud.bigquery.connector.common.integration.DefaultCredentialsDelegateAccessTokenProvider;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -41,25 +40,14 @@ public class DataSourceV1ReadIntegrationTest extends ReadIntegrationTestBase {
   }
 
   @Test
-  public void testCustomCredentialsProvider() throws Exception {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option(
-                "credentialsProvider",
-                DefaultCredentialsDelegateCredentialsProvider.class.getCanonicalName())
-            .load(TestConstants.SHAKESPEARE_TABLE);
-    assertThat(df.count()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
-  }
-
-  @Test
   public void testCustomAccessTokenProvider() throws Exception {
     Dataset<Row> df =
         spark
             .read()
             .format("bigquery")
-            .option("gcpAccessTokenProvider", AccessTokenProvider.class.getCanonicalName())
+            .option(
+                "gcpAccessTokenProvider",
+                DefaultCredentialsDelegateAccessTokenProvider.class.getCanonicalName())
             .load(TestConstants.SHAKESPEARE_TABLE);
     assertThat(df.count()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
   }

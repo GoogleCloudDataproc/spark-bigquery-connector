@@ -1147,21 +1147,13 @@ spark.conf.set("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
 // Per read/Write
 spark.read.format("bigquery").option("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
 ```
-* If custom credentials creation is needed, then there is an option to create the Credentials
-  object independently, by implementing the
-  [com.google.api.gax.core.CredentialsProvider](https://github.com/googleapis/gax-java/blob/main/gax/src/main/java/com/google/api/gax/core/CredentialsProvider.java)
-  interface. The fully qualified class name of the implementation should be provided in the `credentialsProvider` option.
-```
-// Globally
-spark.conf.set("credentialsProvider", "com.example.ExampleCredentialsProvider")
-// Per read/Write
-spark.read.format("bigquery").option("credentialsProvider", "com.example.ExampleCredentialsProvider")
-```
-* In cases where the user has an internal service providing the Google AccessToken, a simplified custom implementation
+* In cases where the user has an internal service providing the Google AccessToken, a custom implementation
   can be done, creating only the AccessToken and providing its TTL. Token refresh will re-generate a new token. In order
   to use this, implement the
   [com.google.cloud.bigquery.connector.common.AccessTokenProvider](https://github.com/GoogleCloudDataproc/spark-bigquery-connector/tree/master/bigquery-connector-common/src/main/java/com/google/cloud/bigquery/connector/common/AccessTokenProvider.java)
-  interface. The fully qualified class name of the implementation should be provided in the `gcpAccessTokenProvider` option.
+  interface. The fully qualified class name of the implementation should be provided in the `gcpAccessTokenProvider`
+  option. `AccessTokenProvider` must be implemented in Java or other JVM language such as Scala or Kotlin. It must
+  have a no-arg constructor. The jar containing the implementation should be on the cluster's classpath.
 ```
 // Globally
 spark.conf.set("gcpAccessTokenProvider", "com.example.ExampleAccessTokenProvider")

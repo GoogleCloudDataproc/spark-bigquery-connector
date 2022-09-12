@@ -326,6 +326,11 @@ public class BigQueryClientFactoryTest {
     }
 
     @Override
+    public Optional<String> getAccessTokenProviderFQCN() {
+      return Optional.empty();
+    }
+
+    @Override
     public Optional<String> getCredentialsKey() {
       return Optional.empty();
     }
