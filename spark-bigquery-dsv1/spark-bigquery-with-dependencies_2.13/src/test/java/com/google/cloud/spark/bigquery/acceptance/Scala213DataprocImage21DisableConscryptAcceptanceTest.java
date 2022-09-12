@@ -17,7 +17,10 @@ package com.google.cloud.spark.bigquery.acceptance;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
+@Ignore
+// A placeholder until a Scala 2.13 image is released
 public class Scala213DataprocImage21DisableConscryptAcceptanceTest
     extends DataprocAcceptanceTestBase {
 
