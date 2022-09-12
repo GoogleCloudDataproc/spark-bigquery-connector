@@ -130,7 +130,7 @@ abstract class SparkExpressionConverter {
               Option(l.value).map(_.asInstanceOf[Int])
             ) + " DAY)" // s"DATE_ADD(DATE "1970-01-01", INTERVAL ${l.value} DAY)
           case TimestampType =>
-            ConstantString("TIMESTAMP_MICROS(") + l.toString() + ")"
+            ConstantString("TIMESTAMP_MICROS(") + LongVariable(Option(l.value).map(_.asInstanceOf[Long])) + ")"
           case _ =>
             l.value match {
               case v: Int => IntVariable(Some(v)).toStatement

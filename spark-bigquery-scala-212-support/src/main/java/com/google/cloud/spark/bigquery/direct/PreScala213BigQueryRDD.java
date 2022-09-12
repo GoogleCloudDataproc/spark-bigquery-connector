@@ -26,7 +26,6 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.spark.bigquery.InternalRowIterator;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import org.apache.spark.Dependency;
@@ -35,12 +34,14 @@ import org.apache.spark.Partition;
 import org.apache.spark.SparkContext;
 import org.apache.spark.TaskContext;
 import org.apache.spark.rdd.RDD;
-import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.catalyst.InternalRow;
-import scala.collection.JavaConverters;
+import scala.collection.Seq;
+import scala.collection.Seq$;
 
-// Ported this class from Scala to Java with no change in functionality
-class BigQueryRDD extends RDD<InternalRow> {
+// This method relies on the scala.Seq alias, which is different in Scala 2.12 and 2.13. In Scala
+// 2.12 scala.Seq points to scala.collection.Seq whereas in Scala 2.13 it points to
+// scala.collection.immutable.Seq.
+class PreScala213BigQueryRDD extends RDD<InternalRow> {
 
   private final Partition[] partitions;
   private final ReadSession readSession;
@@ -49,7 +50,7 @@ class BigQueryRDD extends RDD<InternalRow> {
   private final SparkBigQueryConfig options;
   private final BigQueryClientFactory bigQueryClientFactory;
 
-  public BigQueryRDD(
+  public PreScala213BigQueryRDD(
       SparkContext sparkContext,
       Partition[] parts,
       ReadSession readSession,
@@ -59,9 +60,7 @@ class BigQueryRDD extends RDD<InternalRow> {
       BigQueryClientFactory bigQueryClientFactory) {
     super(
         sparkContext,
-        JavaConverters.collectionAsScalaIterableConverter(new ArrayList<Dependency<?>>())
-            .asScala()
-            .toSeq(),
+        (Seq<Dependency<?>>) Seq$.MODULE$.<Dependency<?>>newBuilder().result(),
         scala.reflect.ClassTag$.MODULE$.apply(InternalRow.class));
 
     this.partitions = parts;
@@ -102,33 +101,14 @@ class BigQueryRDD extends RDD<InternalRow> {
               options.getSchema());
     }
 
-    return new InterruptibleIterator<>(
+    return new InterruptibleIterator<InternalRow>(
         context,
-        JavaConverters.asScalaIteratorConverter(
-                new InternalRowIterator(readRowsResponseIterator, converter, readRowsHelper))
-            .asScala());
+        new ScalaIterator<InternalRow>(
+            new InternalRowIterator(readRowsResponseIterator, converter, readRowsHelper)));
   }
 
   @Override
   public Partition[] getPartitions() {
     return partitions;
-  }
-
-  public static BigQueryRDD scanTable(
-      SQLContext sqlContext,
-      Partition[] partitions,
-      ReadSession readSession,
-      Schema bqSchema,
-      String[] columnsInOrder,
-      SparkBigQueryConfig options,
-      BigQueryClientFactory bigQueryClientFactory) {
-    return new BigQueryRDD(
-        sqlContext.sparkContext(),
-        partitions,
-        readSession,
-        bqSchema,
-        columnsInOrder,
-        options,
-        bigQueryClientFactory);
   }
 }

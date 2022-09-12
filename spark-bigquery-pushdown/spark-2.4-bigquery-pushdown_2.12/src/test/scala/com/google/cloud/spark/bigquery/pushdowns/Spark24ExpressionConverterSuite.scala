@@ -4,7 +4,7 @@ import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, CheckOverflow, ExprId, Literal, ScalarSubquery, UnaryMinus}
 import org.apache.spark.sql.catalyst.plans.logical.Aggregate
 import org.apache.spark.sql.execution.datasources.LogicalRelation
-import org.apache.spark.sql.types.{DecimalType, LongType, StructType}
+import org.apache.spark.sql.types.{DecimalType, LongType, StructType, TimestampType}
 import org.mockito.Mockito.when
 import org.mockito.{Mock, MockitoAnnotations}
 import org.scalatest.BeforeAndAfter
@@ -47,5 +47,12 @@ class Spark24ExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val bigQuerySQLStatement = expressionConverter.convertMathematicalExpressions(checkOverflowExpression, fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "CAST ( 233.45 AS BIGDECIMAL )")
+  }
+
+  test("convertBasicExpressions with Timestamp literal") {
+    // Internally, a timestamp is stored as the number of microseconds from the epoch of 1970-01-01T00
+    val bigQuerySQLStatement = expressionConverter.convertBasicExpressions(Literal(1230219000000000L, TimestampType), fields)
+    assert(bigQuerySQLStatement.isDefined)
+    assert(bigQuerySQLStatement.get.toString == "TIMESTAMP_MICROS( 1230219000000000 )")
   }
 }

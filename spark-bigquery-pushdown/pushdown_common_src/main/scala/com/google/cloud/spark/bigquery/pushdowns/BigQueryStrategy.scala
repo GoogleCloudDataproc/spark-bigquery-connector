@@ -136,10 +136,15 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
     plan.foreach {
       case _: Aggregate | _: Join | _: LogicalRelation | _:NamedRelation =>
         return None
+
       case projectNode@Project(projectList, _) =>
         projectList.foreach {
-          case Alias(Cast(_, _, _), _) =>
-            return Some(projectNode)
+          case Alias(child, _) =>
+            child match {
+              case CastExpressionExtractor(_) => return Some(projectNode)
+
+              case _ =>
+            }
           case _ =>
         }
         return None

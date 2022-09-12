@@ -10,6 +10,7 @@ import java.util.Iterator;
 import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSqlUtils;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,7 @@ public class DataSourceWriterContextPartitionHandler
     try {
       while (rowIterator.hasNext()) {
         Row row = rowIterator.next();
-        InternalRow internalRow = InternalRow.apply(row.toSeq());
+        InternalRow internalRow = SparkSqlUtils.getInstance().rowToInternalRow(row);
         dataWriterContext.write(internalRow);
       }
       return Iterators.forArray(dataWriterContext.commit());

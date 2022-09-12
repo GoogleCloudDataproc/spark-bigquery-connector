@@ -2,6 +2,7 @@
 
 ## Next
 
+* Added new Scala 2.13 connector, aimed at Spark versions from 3.2 and above
 * PR #750: Adding support for custom access token creation. See more [here](https://github.com/GoogleCloudDataproc/spark-bigquery-connector#how-do-i-authenticate-outside-gce--dataproc).
 * PR #745: Supporting load from query in spark-3.1-bigquery.
 * PR #767: Adding the option createReadSessionTimeoutInSeconds, to override the timeout for CreateReadSession.
