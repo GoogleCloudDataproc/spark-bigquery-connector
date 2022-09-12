@@ -169,9 +169,12 @@ public class BigQueryRDDFactory {
     // Unfortunately we need to use reflection here due to a cyclic dependency issue, and the fact
     // that RDD constructor dependencies are different between Scala 2.12 and Scala 2.13. In Scala
     // 2.13 `scala.collection.Seq` is mapped to `scala.collection.immutable.Seq` and this is why we
-    // need two classes each compiled against different Scala version. In addition, BigQueryRDD
-    // depends on BigQueryPartition (of this project), so we have a cyclic dependency. In order to
-    // solve it, we use reflection to dynamically load the appropriate BigQueryRDD version
+    // need two classes each compiled against different Scala version.
+    //
+    // The BigQueryRDD implementations have a compilation dependency on BigQueryPartition (of this
+    // project), while the BigQueryRDDFactory need to initialize them, so we have a cyclic
+    // dependency. In order to solve it, we use reflection to dynamically load the appropriate
+    // BigQueryRDD version.
     String bigQueryRDDClassName = "com.google.cloud.spark.bigquery.direct.Scala213BigQueryRDD";
     String scalaVersion = scala.util.Properties.versionNumberString();
     if (scalaVersion.compareTo("2.13") < 0) {
