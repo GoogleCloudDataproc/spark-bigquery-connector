@@ -22,7 +22,6 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.junit.Test;
 
-// Ported this class from Scala to Java with no change in functionality
 public class Scala213BigQueryRDDTest {
 
   @Test

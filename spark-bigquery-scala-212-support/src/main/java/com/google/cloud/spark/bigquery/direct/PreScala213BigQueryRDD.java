@@ -38,7 +38,9 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import scala.collection.Seq;
 import scala.collection.Seq$;
 
-// Ported this class from Scala to Java with no change in functionality
+// This method relies on the scala.Seq alias, which is different in Scala 2.12 and 2.13. In Scala
+// 2.12 scala.Seq points to scala.collection.Seq whereas in Scala 2.13 it points to
+// scala.collection.immutable.Seq.
 class PreScala213BigQueryRDD extends RDD<InternalRow> {
 
   private final Partition[] partitions;

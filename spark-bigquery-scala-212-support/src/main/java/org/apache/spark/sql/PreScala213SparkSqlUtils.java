@@ -41,7 +41,9 @@ public class PreScala213SparkSqlUtils extends SparkSqlUtils {
     return InternalRow.fromSeq(row.toSeq());
   }
 
-  @Override
+  // This method relies on the scala.Seq alias, which is different in Scala 2.12 and 2.13. In Scala
+  // 2.12 scala.Seq points to scala.collection.Seq whereas in Scala 2.13 it points to
+  // scala.collection.immutable.Seq.   @Override
   public ExpressionEncoder<Row> createExpressionEncoder(StructType schema) {
     List<Attribute> attributes =
         JavaConverters.asJavaCollection(toAttributes(schema)).stream()

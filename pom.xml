@@ -73,12 +73,7 @@
       </activation>
       <modules>
         <module>spark-bigquery-dsv1</module>
-        <module>spark-bigquery-pushdown/spark-bigquery-pushdown-parent</module>
-        <module>spark-bigquery-pushdown/spark-bigquery-pushdown-common_2.11</module>
-        <module>spark-bigquery-pushdown/spark-2.4-bigquery-pushdown_2.11</module>
-        <module>spark-bigquery-pushdown/spark-bigquery-pushdown-common_2.12</module>
-        <module>spark-bigquery-pushdown/spark-2.4-bigquery-pushdown_2.12</module>
-        <module>spark-bigquery-pushdown/spark-3.1-bigquery-pushdown_2.12</module>
+        <module>spark-bigquery-pushdown</module>
       </modules>
     </profile>
     <profile>

@@ -33,7 +33,7 @@ public class Scala213SparkSqlUtils extends SparkSqlUtils {
 
   @Override
   public boolean supportsScalaVersion(String scalaVersion) {
-    return scalaVersion.compareTo("2.13") > 0;
+    return scalaVersion.compareTo("2.13") >= 0;
   }
 
   @Override
@@ -41,6 +41,9 @@ public class Scala213SparkSqlUtils extends SparkSqlUtils {
     return InternalRow.fromSeq(row.toSeq());
   }
 
+  // This method relies on the scala.Seq alias, which is different in Scala 2.12 and 2.13. In Scala
+  // 2.12 scala.Seq points to scala.collection.Seq whereas in Scala 2.13 it points to
+  // scala.collection.immutable.Seq.
   @Override
   public ExpressionEncoder<Row> createExpressionEncoder(StructType schema) {
     List<Attribute> attributes =
