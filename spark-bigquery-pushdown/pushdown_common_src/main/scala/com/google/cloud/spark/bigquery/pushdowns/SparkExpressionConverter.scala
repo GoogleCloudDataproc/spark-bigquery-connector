@@ -336,6 +336,8 @@ abstract class SparkExpressionConverter {
            _: Upper | _: StringInstr | _: InitCap |
            _: Substring =>
         ConstantString(expression.prettyName.toUpperCase()) + blockStatement(convertStatements(fields, expression.children: _*))
+      case _: Like =>
+        convertLikeExpression(expression, fields)
       case RegExpExtract(child, Literal(pattern: UTF8String, StringType), idx) =>
         ConstantString("REGEXP_EXTRACT") + blockStatement(convertStatement(child, fields) + "," + s"r'${pattern.toString}'" + "," + convertStatement(idx, fields))
      case _: RegExpReplace =>
@@ -494,4 +496,6 @@ abstract class SparkExpressionConverter {
   def convertUnaryMinusExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement
 
   def convertCastExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement
+
+  def convertLikeExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement
 }

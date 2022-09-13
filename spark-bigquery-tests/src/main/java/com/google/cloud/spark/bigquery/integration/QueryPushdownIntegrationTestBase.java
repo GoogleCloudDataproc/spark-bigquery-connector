@@ -63,7 +63,10 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
                 "REGEXP_EXTRACT(word, '([A-Za-z]+$)', 1) as regexp_extract",
                 "REGEXP_REPLACE(word, '([A-Za-z]+$)', 'replacement') as regexp_replace",
                 "SUBSTR(word, 2, 2) as substr",
-                "SOUNDEX(word) as soundex")
+                "SOUNDEX(word) as soundex",
+                "LIKE(word, '%aug%urs%') as like_with_percent",
+                "LIKE(word, 'a_g_rs') as like_with_underscore",
+                "LIKE(word, 'b_g_rs') as like_with_underscore_return_false")
             .where("word = 'augurs'");
     List<Row> result = df.collectAsList();
     Row r1 = result.get(0);
@@ -88,6 +91,9 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
         .isEqualTo("replacement"); // REGEXP_REPLACE(word, '([A-Za-z]+$)', 'replacement')
     assertThat(r1.get(18)).isEqualTo("ug"); // SUBSTR(word, 2, 2)
     assertThat(r1.get(19)).isEqualTo("A262"); // SOUNDEX(word)
+    assertThat(r1.get(20)).isEqualTo(true); // LIKE(word, '%aug%urs%')
+    assertThat(r1.get(21)).isEqualTo(true); // LIKE(word, 'a_g_rs')
+    assertThat(r1.get(22)).isEqualTo(false); // LIKE(word, 'b_g_rs')
   }
 
   @Test
