@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */package com.google.cloud.spark.bigquery.acceptance;
+ */ package com.google.cloud.spark.bigquery.acceptance;
 
 import java.util.Collections;
 import org.junit.AfterClass;
