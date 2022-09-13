@@ -15,6 +15,8 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static com.google.cloud.spark.bigquery.SparkBigQueryConfig.BIGQUERY_JOB_LABEL_PREFIX;
+import static com.google.cloud.spark.bigquery.SparkBigQueryConfig.BIGQUERY_TABLE_LABEL_PREFIX;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
@@ -411,7 +413,28 @@ public class SparkBigQueryConfigTest {
             .put("bigQueryJobLabel.baz", "2")
             .build();
     ImmutableMap<String, String> labels =
-        SparkBigQueryConfig.parseBigQueryLabels(globalOptions, options, "bigQueryJobLabel");
+        SparkBigQueryConfig.parseBigQueryLabels(globalOptions, options, BIGQUERY_JOB_LABEL_PREFIX);
+    assertThat(labels).hasSize(3);
+    assertThat(labels).containsEntry("foo", "2");
+    assertThat(labels).containsEntry("bar", "1");
+    assertThat(labels).containsEntry("baz", "2");
+  }
+
+  @Test
+  public void testTableLabelOverride() {
+    ImmutableMap<String, String> globalOptions =
+        ImmutableMap.<String, String>builder()
+            .put("bigQueryTableLabel.foo", "1")
+            .put("bigQueryTableLabel.bar", "1")
+            .build();
+    ImmutableMap<String, String> options =
+        ImmutableMap.<String, String>builder()
+            .put("bigQueryTableLabel.foo", "2")
+            .put("bigQueryTableLabel.baz", "2")
+            .build();
+    ImmutableMap<String, String> labels =
+        SparkBigQueryConfig.parseBigQueryLabels(
+            globalOptions, options, BIGQUERY_TABLE_LABEL_PREFIX);
     assertThat(labels).hasSize(3);
     assertThat(labels).containsEntry("foo", "2");
     assertThat(labels).containsEntry("bar", "1");

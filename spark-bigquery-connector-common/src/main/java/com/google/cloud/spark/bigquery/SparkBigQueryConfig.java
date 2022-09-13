@@ -437,8 +437,10 @@ public class SparkBigQueryConfig
               return traceIdParam;
             });
 
-    config.bigQueryJobLabels = parseBigQueryLabels(globalOptions, options, BIGQUERY_JOB_LABEL_PREFIX);
-    config.bigQueryTableLabels = parseBigQueryLabels(globalOptions, options, BIGQUERY_TABLE_LABEL_PREFIX);
+    config.bigQueryJobLabels =
+        parseBigQueryLabels(globalOptions, options, BIGQUERY_JOB_LABEL_PREFIX);
+    config.bigQueryTableLabels =
+        parseBigQueryLabels(globalOptions, options, BIGQUERY_TABLE_LABEL_PREFIX);
 
     config.createReadSessionTimeoutInSeconds =
         getAnyOption(globalOptions, options, "createReadSessionTimeoutInSeconds")
@@ -451,7 +453,9 @@ public class SparkBigQueryConfig
   // prefix.
   // The `options` map overrides the `globalOptions` map.
   static ImmutableMap<String, String> parseBigQueryLabels(
-      ImmutableMap<String, String> globalOptions, ImmutableMap<String, String> options, String labelPrefix) {
+      ImmutableMap<String, String> globalOptions,
+      ImmutableMap<String, String> options,
+      String labelPrefix) {
 
     String lowerCasePrefix = labelPrefix.toLowerCase(Locale.ROOT);
 
@@ -772,7 +776,6 @@ public class SparkBigQueryConfig
     return bigQueryJobLabels;
   }
 
-  @Override
   public ImmutableMap<String, String> getBigQueryTableLabels() {
     return bigQueryTableLabels;
   }

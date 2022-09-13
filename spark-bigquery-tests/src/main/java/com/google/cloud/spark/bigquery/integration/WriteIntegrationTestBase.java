@@ -149,6 +149,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("intermediateFormat", format)
         .option("writeMethod", writeMethod.toString())
+        .option("bigQueryTableLabel.foo", "bar")
         .save();
   }
 
