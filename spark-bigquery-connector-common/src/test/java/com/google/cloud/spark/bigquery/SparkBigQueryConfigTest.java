@@ -411,7 +411,7 @@ public class SparkBigQueryConfigTest {
             .put("bigQueryJobLabel.baz", "2")
             .build();
     ImmutableMap<String, String> labels =
-        SparkBigQueryConfig.parseBigQueryJobLabels(globalOptions, options);
+        SparkBigQueryConfig.parseBigQueryLabels(globalOptions, options, "bigQueryJobLabel");
     assertThat(labels).hasSize(3);
     assertThat(labels).containsEntry("foo", "2");
     assertThat(labels).containsEntry("bar", "1");

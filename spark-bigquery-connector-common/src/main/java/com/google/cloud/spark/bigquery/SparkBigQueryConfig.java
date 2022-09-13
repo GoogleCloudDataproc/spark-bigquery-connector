@@ -125,6 +125,7 @@ public class SparkBigQueryConfig
   private static final WriteMethod DEFAULT_WRITE_METHOD = WriteMethod.INDIRECT;
   public static final int DEFAULT_CACHE_EXPIRATION_IN_MINUTES = 15;
   static final String BIGQUERY_JOB_LABEL_PREFIX = "bigQueryJobLabel.";
+  static final String BIGQUERY_TABLE_LABEL_PREFIX = "bigQueryTableLabel.";
 
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
@@ -179,6 +180,7 @@ public class SparkBigQueryConfig
   // used to create BigQuery ReadSessions
   private com.google.common.base.Optional<String> traceId;
   private ImmutableMap<String, String> bigQueryJobLabels = ImmutableMap.of();
+  private ImmutableMap<String, String> bigQueryTableLabels = ImmutableMap.of();
   private com.google.common.base.Optional<Long> createReadSessionTimeoutInSeconds;
 
   @VisibleForTesting
@@ -435,7 +437,8 @@ public class SparkBigQueryConfig
               return traceIdParam;
             });
 
-    config.bigQueryJobLabels = parseBigQueryJobLabels(globalOptions, options);
+    config.bigQueryJobLabels = parseBigQueryLabels(globalOptions, options, BIGQUERY_JOB_LABEL_PREFIX);
+    config.bigQueryTableLabels = parseBigQueryLabels(globalOptions, options, BIGQUERY_TABLE_LABEL_PREFIX);
 
     config.createReadSessionTimeoutInSeconds =
         getAnyOption(globalOptions, options, "createReadSessionTimeoutInSeconds")
@@ -447,10 +450,10 @@ public class SparkBigQueryConfig
   // takes only the options with the BIGQUERY_JOB_LABEL_PREFIX prefix, and strip them of this
   // prefix.
   // The `options` map overrides the `globalOptions` map.
-  static ImmutableMap<String, String> parseBigQueryJobLabels(
-      ImmutableMap<String, String> globalOptions, ImmutableMap<String, String> options) {
+  static ImmutableMap<String, String> parseBigQueryLabels(
+      ImmutableMap<String, String> globalOptions, ImmutableMap<String, String> options, String labelPrefix) {
 
-    String lowerCasePrefix = BIGQUERY_JOB_LABEL_PREFIX.toLowerCase(Locale.ROOT);
+    String lowerCasePrefix = labelPrefix.toLowerCase(Locale.ROOT);
 
     ImmutableMap<String, String> allOptions =
         ImmutableMap.<String, String>builder() //
@@ -461,7 +464,7 @@ public class SparkBigQueryConfig
     ImmutableMap.Builder<String, String> result = ImmutableMap.<String, String>builder();
     for (Map.Entry<String, String> entry : allOptions.entrySet()) {
       if (entry.getKey().toLowerCase(Locale.ROOT).startsWith(lowerCasePrefix)) {
-        result.put(entry.getKey().substring(BIGQUERY_JOB_LABEL_PREFIX.length()), entry.getValue());
+        result.put(entry.getKey().substring(labelPrefix.length()), entry.getValue());
       }
     }
 
@@ -767,6 +770,11 @@ public class SparkBigQueryConfig
   @Override
   public ImmutableMap<String, String> getBigQueryJobLabels() {
     return bigQueryJobLabels;
+  }
+
+  @Override
+  public ImmutableMap<String, String> getBigQueryTableLabels() {
+    return bigQueryTableLabels;
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
