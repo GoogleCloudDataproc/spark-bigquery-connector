@@ -65,7 +65,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
       // and return Nil because if we are not able to translate the plan, then
       // we let Spark handle it
       case e: Exception =>
-        logInfo("Query pushdown failed: ", e)
+        logDebug("Query pushdown failed: ", e)
         Nil
     }
   }
@@ -80,7 +80,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
       case _: LogicalRelation | _: NamedRelation | _: Expand =>
 
       case subPlan =>
-        logInfo(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
+        logDebug(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
         return true
     }
 
