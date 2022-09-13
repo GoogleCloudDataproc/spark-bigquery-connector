@@ -16,7 +16,7 @@
 
 package com.google.cloud.spark.bigquery.pushdowns
 import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.blockStatement
-import org.apache.spark.sql.catalyst.expressions.{Attribute, Cast, CheckOverflow, Expression, ScalarSubquery, UnaryMinus}
+import org.apache.spark.sql.catalyst.expressions.{Attribute, Cast, CheckOverflow, Expression, Like, ScalarSubquery, UnaryMinus}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 
 /**
@@ -55,6 +55,13 @@ class Spark31ExpressionConverter(expressionFactory: SparkExpressionFactory, spar
     expression match {
       case Cast(child, dataType, _) =>
         performCastExpressionConversion(child, fields, dataType)
+    }
+  }
+
+  override def convertLikeExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
+    expression match {
+      case Like(left, right, _) =>
+        convertStatement(left, fields) + "LIKE" + convertStatement(right, fields)
     }
   }
 }
