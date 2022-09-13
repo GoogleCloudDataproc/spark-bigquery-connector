@@ -19,8 +19,9 @@ import org.junit.Test;
 public class BigNumericDataprocServerlessAcceptanceTestBase
     extends DataprocServerlessAcceptanceTestBase {
 
-  public BigNumericDataprocServerlessAcceptanceTestBase(String connectorJarPrefix) {
-    super(connectorJarPrefix);
+  public BigNumericDataprocServerlessAcceptanceTestBase(
+      String connectorJarPrefix, String s8sImageVersion) {
+    super(connectorJarPrefix, s8sImageVersion);
   }
 
   @Test

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google Inc. All Rights Reserved.
+ * Copyright 2022 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,10 @@ package com.google.cloud.spark.bigquery.acceptance;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
+@Ignore
+// A placeholder until a Scala 2.13 image is released
 public class Scala213DataprocImage21DisableConscryptAcceptanceTest
     extends DataprocAcceptanceTestBase {
 

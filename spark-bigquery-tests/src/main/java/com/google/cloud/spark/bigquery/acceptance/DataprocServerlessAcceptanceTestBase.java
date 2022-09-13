@@ -31,6 +31,7 @@ import com.google.cloud.dataproc.v1.CreateBatchRequest;
 import com.google.cloud.dataproc.v1.EnvironmentConfig;
 import com.google.cloud.dataproc.v1.ExecutionConfig;
 import com.google.cloud.dataproc.v1.PySparkBatch;
+import com.google.cloud.dataproc.v1.RuntimeConfig;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -48,10 +49,12 @@ public class DataprocServerlessAcceptanceTestBase {
   String testId = String.format("%s-%s", testName, System.currentTimeMillis());
   AcceptanceTestContext context = new AcceptanceTestContext(testId, generateClusterName(testId));
 
-  String connectorJarPrefix;
+  private final String connectorJarPrefix;
+  private final String s8sImageVersion;
 
-  public DataprocServerlessAcceptanceTestBase(String connectorJarPrefix) {
+  public DataprocServerlessAcceptanceTestBase(String connectorJarPrefix, String s8sImageVersion) {
     this.connectorJarPrefix = connectorJarPrefix;
+    this.s8sImageVersion = s8sImageVersion;
   }
 
   @Before
@@ -93,6 +96,7 @@ public class DataprocServerlessAcceptanceTestBase {
         Batch.newBuilder()
             .setName(parent + "/batches/" + context.clusterId)
             .setPysparkBatch(createPySparkBatchBuilder(context, testName, pythonZipUri, args))
+            .setRuntimeConfig(RuntimeConfig.newBuilder().setVersion(s8sImageVersion))
             .setEnvironmentConfig(
                 EnvironmentConfig.newBuilder()
                     .setExecutionConfig(

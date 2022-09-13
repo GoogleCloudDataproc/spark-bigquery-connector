@@ -10,8 +10,9 @@ import org.junit.Test;
 public class ReadSheakspeareDataprocServerlessAcceptanceTestBase
     extends DataprocServerlessAcceptanceTestBase {
 
-  public ReadSheakspeareDataprocServerlessAcceptanceTestBase(String connectorJarPrefix) {
-    super(connectorJarPrefix);
+  public ReadSheakspeareDataprocServerlessAcceptanceTestBase(
+      String connectorJarPrefix, String s8sImageVersion) {
+    super(connectorJarPrefix, s8sImageVersion);
   }
 
   @Test

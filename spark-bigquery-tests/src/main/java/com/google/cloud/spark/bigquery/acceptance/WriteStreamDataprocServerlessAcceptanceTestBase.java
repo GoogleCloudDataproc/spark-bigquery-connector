@@ -11,8 +11,9 @@ import org.junit.Test;
 public class WriteStreamDataprocServerlessAcceptanceTestBase
     extends DataprocServerlessAcceptanceTestBase {
 
-  public WriteStreamDataprocServerlessAcceptanceTestBase(String connectorJarPrefix) {
-    super(connectorJarPrefix);
+  public WriteStreamDataprocServerlessAcceptanceTestBase(
+      String connectorJarPrefix, String s8sImageVersion) {
+    super(connectorJarPrefix, s8sImageVersion);
   }
 
   @Test
