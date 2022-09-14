@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery
 
 import com.google.api.client.util.Base64
 import com.google.cloud.bigquery._
+import com.google.cloud.bigquery.connector.common.okera.AuthorizeQuery
 import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.inject._
@@ -105,25 +106,25 @@ class BigQueryRelationProviderSuite
   }
 
   test("table exists") {
-    when(bigQueryClient.getReadTable(any(classOf[BigQueryClient.ReadTableOptions])))
+    when(bigQueryClient.getReadTable(any(classOf[BigQueryClient.ReadTableOptions]), any(classOf[AuthorizeQuery])))
       .thenReturn(table)
 
     val relation = provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
       "parentProject" -> ID.getProject()))
     assert(relation.isInstanceOf[DirectBigQueryRelation])
 
-    verify(bigQueryClient).getReadTable(any(classOf[BigQueryClient.ReadTableOptions]))
+    verify(bigQueryClient).getReadTable(any(classOf[BigQueryClient.ReadTableOptions]), any(classOf[AuthorizeQuery]))
   }
 
   test("table does not exist") {
-    when(bigQueryClient.getReadTable(any(classOf[BigQueryClient.ReadTableOptions])))
+    when(bigQueryClient.getReadTable(any(classOf[BigQueryClient.ReadTableOptions]), any(classOf[AuthorizeQuery])))
       .thenReturn(null)
 
     assertThrows[RuntimeException] {
       provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
         "parentProject" -> ID.getProject()))
     }
-    verify(bigQueryClient).getReadTable(any(classOf[BigQueryClient.ReadTableOptions]))
+    verify(bigQueryClient).getReadTable(any(classOf[BigQueryClient.ReadTableOptions]), any(classOf[AuthorizeQuery]))
   }
 
   test("Credentials parameter is used to initialize BigQueryOptions") {
