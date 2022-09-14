@@ -20,6 +20,7 @@ import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableDefinition.Type.{EXTERNAL, MATERIALIZED_VIEW, TABLE, VIEW}
 import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryClientModule, BigQueryUtil}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
+import com.google.cloud.spark.bigquery.okera.BigQueryPlanner
 import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper
 import com.google.common.collect.ImmutableMap
 import com.google.inject.{Guice, Injector}
@@ -74,7 +75,8 @@ class BigQueryRelationProvider(
     val injector = getGuiceInjectorCreator().createGuiceInjector(sqlContext, parameters, schema)
     val opts = injector.getInstance(classOf[SparkBigQueryConfig])
     val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
-    val tableInfo = bigQueryClient.getReadTable(opts.toReadTableOptions)
+    val planner = new BigQueryPlanner(sqlContext)
+    val tableInfo = bigQueryClient.getReadTable(opts.toReadTableOptions, planner)
     val tableName = BigQueryUtil.friendlyTableName(opts.getTableId)
     val bigQueryReadClientFactory = injector.getInstance(classOf[BigQueryClientFactory])
     val table = Option(tableInfo)

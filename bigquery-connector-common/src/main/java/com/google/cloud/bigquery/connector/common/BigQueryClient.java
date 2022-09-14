@@ -37,6 +37,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.connector.common.okera.AuthorizeQuery;
 import com.google.cloud.http.BaseHttpServiceException;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
@@ -227,38 +228,13 @@ public class BigQueryClient {
         tableId.getProject(), tableId.getDataset(), tableId.getTable());
   }
 
-  public TableInfo getReadTable(ReadTableOptions options) {
+  public TableInfo getReadTable(ReadTableOptions options, AuthorizeQuery auth) {
     Optional<String> query = options.query();
-    // first, let check if this is a query
-    if (query.isPresent()) {
-      // in this case, let's materialize it and use it as the table
-      validateViewsEnabled(options);
-      String sql = query.get();
-      return materializeQueryToTable(sql, options.expirationTimeInMinutes());
-    }
-
-    TableInfo table = getTable(options.tableId());
-    if (table == null) {
-      return null;
-    }
-
-    TableDefinition tableDefinition = table.getDefinition();
-    TableDefinition.Type tableType = tableDefinition.getType();
-    if (TableDefinition.Type.TABLE == tableType || TableDefinition.Type.EXTERNAL == tableType) {
-      return table;
-    }
-    if (TableDefinition.Type.VIEW == tableType
-        || TableDefinition.Type.MATERIALIZED_VIEW == tableType) {
-      validateViewsEnabled(options);
-      // view materialization is done in a lazy manner, so it can occur only when the data is read
-      return table;
-    }
-    // not regular table or a view
-    throw new BigQueryConnectorException(
-        BigQueryErrorCode.UNSUPPORTED,
-        String.format(
-            "Table type '%s' of table '%s.%s' is not supported",
-            tableType, table.getTableId().getDataset(), table.getTableId().getTable()));
+    String sql =
+        query.orElse("SELECT * FROM `" + BigQueryUtil.friendlyTableName(options.tableId()) + "`");
+    String authQuery = auth.authorizeQuery(sql);
+    validateViewsEnabled(options);
+    return materializeQueryToTable(authQuery, options.expirationTimeInMinutes());
   }
 
   private void validateViewsEnabled(ReadTableOptions options) {
@@ -610,16 +586,13 @@ public class BigQueryClient {
     }
 
     TableInfo createTableFromQuery() {
-      log.debug("destinationTable is %s", destinationTable);
       JobInfo jobInfo =
           JobInfo.of(
               jobConfigurationFactory
                   .createQueryJobConfigurationBuilder(querySql)
                   .setDestinationTable(destinationTable)
                   .build());
-      log.debug("running query %s", jobInfo);
       Job job = waitForJob(bigQueryClient.create(jobInfo));
-      log.debug("job has finished. %s", job);
       if (job.getStatus().getError() != null) {
         throw BigQueryUtil.convertToBigQueryException(job.getStatus().getError());
       }

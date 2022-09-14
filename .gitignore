@@ -29,7 +29,7 @@ dependency-reduced-pom.xml
 # ad-hoc tests, should not be added to git
 AdAdHocITSuite.scala
 
-# VSCode Specific
+# VSCode and extentions
 .bloop/
 .metals/
 .vscode/
