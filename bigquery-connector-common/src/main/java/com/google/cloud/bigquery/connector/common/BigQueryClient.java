@@ -229,12 +229,16 @@ public class BigQueryClient {
   }
 
   public TableInfo getReadTable(ReadTableOptions options, AuthorizeQuery auth) {
-    Optional<String> query = options.query();
-    String sql =
-        query.orElse("SELECT * FROM `" + BigQueryUtil.friendlyTableName(options.tableId()) + "`");
+    String sql = getSqlFromTableOptions(options);
     String authQuery = auth.authorizeQuery(sql);
     validateViewsEnabled(options);
     return materializeQueryToTable(authQuery, options.expirationTimeInMinutes());
+  }
+
+  private String getSqlFromTableOptions(ReadTableOptions options) {
+    return options
+        .query()
+        .orElse("SELECT * FROM `" + BigQueryUtil.friendlyTableName(options.tableId()) + "`");
   }
 
   private void validateViewsEnabled(ReadTableOptions options) {
