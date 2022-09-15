@@ -1,6 +1,3 @@
-
-
-
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException

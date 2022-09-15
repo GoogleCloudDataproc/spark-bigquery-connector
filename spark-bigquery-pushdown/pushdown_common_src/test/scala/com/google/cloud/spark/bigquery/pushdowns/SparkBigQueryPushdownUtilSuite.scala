@@ -1,5 +1,3 @@
-
-
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
