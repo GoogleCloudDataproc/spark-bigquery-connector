@@ -33,7 +33,7 @@ case $STEP in
   # Download maven and all the dependencies
   init)
     checkenv
-    $MVN install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2
+    $MVN install -DskipTests -Pdsv1,dsv2
     exit
     ;;
 
