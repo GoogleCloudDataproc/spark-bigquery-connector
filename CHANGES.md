@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.27.0 - 2022-09-20
 
 * Added new Scala 2.13 connector, aimed at Spark versions from 3.2 and above
 * PR #750: Adding support for custom access token creation. See more [here](https://github.com/GoogleCloudDataproc/spark-bigquery-connector#how-do-i-authenticate-outside-gce--dataproc).
