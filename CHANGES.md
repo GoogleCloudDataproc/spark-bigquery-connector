@@ -2,6 +2,11 @@
 
 ## Next
 
+* BigQuery API has been upgraded to version 2.16.1
+* BigQuery Storage API has been upgraded to version 2.21.0
+* gRPC has been upgraded to version 1.49.1
+* Netty has been upgraded to version 4.1.82.Final
+
 ## 0.27.0 - 2022-09-20
 
 * Added new Scala 2.13 connector, aimed at Spark versions from 3.2 and above
