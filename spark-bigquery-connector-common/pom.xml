@@ -124,4 +124,53 @@
             </plugin>
         </plugins>
     </build>
+  
+   <repositories>
+    <repository>
+      <id>cerebro.releases.repo</id>
+      <name>libs-release</name>
+      <url>https://cerebro.jfrog.io/cerebro/libs-release</url>
+    </repository>
+    <repository>
+      <id>cerebro.snapshots.repo</id>
+      <name>libs-snapshot</name>
+      <url>https://cerebro.jfrog.io/cerebro/libs-snapshot</url>
+    </repository>
+    <repository>
+      <id>cdh.rcs.releases.repo</id>
+      <url>https://repository.cloudera.com/artifactory/libs-release-local</url>
+      <name>CDH Releases Repository</name>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>cdh.releases.repo</id>
+      <url>https://repository.cloudera.com/artifactory/libs-release/</url>
+      <name>CDH Releases Repository</name>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>cdh.snapshots.repo</id>
+      <url>https://repository.cloudera.com/content/repositories/snapshots</url>
+      <name>CDH Snapshots Repository</name>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>cloudera.thirdparty.repo</id>
+      <url>https://repository.cloudera.com/content/repositories/third-party</url>
+      <name>Cloudera Third Party Repository</name>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>mvn-central</id>
+      <url>https://repo1.maven.org/maven2/</url>
+    </repository>
+  </repositories>         
 </project>
