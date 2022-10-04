@@ -462,6 +462,15 @@ The API Supports a number of options to configure the read
    <td>Read</td>
   </tr>
   <tr valign="top">
+   <td><code>bigQueryTableLabel</code>
+   </td>
+   <td>Can be used to add labels to the table while writing to a table. Multiple
+       labels can be set.
+       <br/>(Optional)
+   </td>
+   <td>Write</td>
+  </tr>
+  <tr valign="top">
    <td><code>traceApplicationName</code>
    </td>
    <td>Application name used to trace BigQuery Storage read and write sessions.
