@@ -33,6 +33,7 @@ import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1.ProtoSchema;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -53,6 +54,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   private final RetrySettings bigqueryDataWriterHelperRetrySettings;
   private final Optional<String> traceId;
   private final boolean enableModeCheckForSchemaFields;
+  private final ImmutableMap<String, String> tableLabels;
 
   private final BigQueryTable tableToWrite;
   private final String tablePathForBigQueryStorage;
@@ -76,7 +78,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       StructType sparkSchema,
       RetrySettings bigqueryDataWriterHelperRetrySettings,
       Optional<String> traceId,
-      boolean enableModeCheckForSchemaFields)
+      boolean enableModeCheckForSchemaFields,
+      ImmutableMap<String, String> tableLabels)
       throws IllegalArgumentException {
     this.bigQueryClient = bigQueryClient;
     this.writeClientFactory = bigQueryWriteClientFactory;
@@ -86,6 +89,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     this.bigqueryDataWriterHelperRetrySettings = bigqueryDataWriterHelperRetrySettings;
     this.traceId = traceId;
     this.enableModeCheckForSchemaFields = enableModeCheckForSchemaFields;
+    this.tableLabels = tableLabels;
     Schema bigQuerySchema = toBigQuerySchema(sparkSchema);
     try {
       this.protoSchema = toProtoSchema(sparkSchema);
@@ -210,6 +214,13 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
           bigQueryClient.deleteTable(tableToWrite.getTableId()),
           new BigQueryConnectorException(
               String.format("Could not delete temporary table %s from BigQuery", tableToWrite)));
+    }
+
+    if (!tableLabels.isEmpty()) {
+      TableInfo originalTableInfo = bigQueryClient.getTable(destinationTableId);
+      TableInfo.Builder updatedTableInfo = originalTableInfo.toBuilder();
+      updatedTableInfo.setLabels(tableLabels);
+      bigQueryClient.update(updatedTableInfo.build());
     }
   }
 

@@ -28,6 +28,7 @@ import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
@@ -171,6 +172,28 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     writeToBigQuery(additonalData(), SaveMode.Append);
     assertThat(testTableNumberOfRows()).isEqualTo(4);
     assertThat(additionalDataValuesExist()).isTrue();
+  }
+
+  @Test
+  public void testWriteToBigQuery_WithTableLabels() {
+    Dataset<Row> df = initialData();
+
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("table", fullTableName())
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("intermediateFormat", "avro")
+        .option("writeMethod", writeMethod.toString())
+        .option("bigQueryTableLabel.alice", "bob")
+        .option("bigQueryTableLabel.foo", "bar")
+        .save();
+
+    Table bigQueryTable = bq.getTable(testDataset.toString(), testTable);
+    Map<String, String> tableLabels = bigQueryTable.getLabels();
+    assertEquals(2, tableLabels.size());
+    assertEquals("bob", tableLabels.get("alice"));
+    assertEquals("bar", tableLabels.get("foo"));
   }
 
   @Test
