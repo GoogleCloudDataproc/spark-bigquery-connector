@@ -97,9 +97,9 @@ abstract class SparkExpressionConverter {
             ConstantString("COALESCE") + blockStatement( ConstantString("CAST") + blockStatement(convertStatement(right, fields) + ConstantString("AS STRING") ) + "," + ConstantString("\"\"") )
         )
 
-      case b: BinaryOperator =>
+      case b@BinaryOperator(left, right) =>
         blockStatement(
-          convertStatement(b.left, fields) + b.symbol + convertStatement(b.right, fields)
+          convertStatement(left, fields) + b.symbol + convertStatement(right, fields)
         )
       case l: Literal =>
         l.dataType match {

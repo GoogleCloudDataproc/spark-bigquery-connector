@@ -30,8 +30,8 @@ class BinaryOperationExtractorSuite extends AnyFunSuite  {
     val joinPlan = Join(leftChildPlan, rightChildPlan, JoinType.apply("inner"), None)
     val plan = BinaryOperationExtractor.unapply(joinPlan)
     assert(plan.isDefined)
-    assert(plan.get._1 == leftChildPlan)
-    assert(plan.get._2 == rightChildPlan)
+    assert(plan.get.children.head == leftChildPlan)
+    assert(plan.get.children(1) == rightChildPlan)
   }
 
   test("non supported binary node") {
