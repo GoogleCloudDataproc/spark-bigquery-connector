@@ -146,24 +146,30 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
                         || SchemaConverters.getDescriptionOrCommentOfField(field).isPresent())
             .collect(Collectors.toMap(StructField::name, Function.identity()));
 
-    if (!fieldsToUpdate.isEmpty()) {
-      logger.debug("updating schema, found fields to update: {}", fieldsToUpdate.keySet());
+    if (!fieldsToUpdate.isEmpty() || !config.getBigQueryTableLabels().isEmpty()) {
       TableInfo originalTableInfo = bigQueryClient.getTable(config.getTableIdWithoutThePartition());
-      TableDefinition originalTableDefinition = originalTableInfo.getDefinition();
-      Schema originalSchema = originalTableDefinition.getSchema();
-      Schema updatedSchema =
-          Schema.of(
-              originalSchema.getFields().stream()
-                  .map(
-                      field ->
-                          Optional.ofNullable(fieldsToUpdate.get(field.getName()))
-                              .map(sparkSchemaField -> updatedField(field, sparkSchemaField))
-                              .orElse(field))
-                  .collect(Collectors.toList()));
-      TableInfo.Builder updatedTableInfo =
-          originalTableInfo
-              .toBuilder()
-              .setDefinition(originalTableDefinition.toBuilder().setSchema(updatedSchema).build());
+      TableInfo.Builder updatedTableInfo = originalTableInfo.toBuilder();
+
+      if (!fieldsToUpdate.isEmpty()) {
+        logger.debug("updating schema, found fields to update: {}", fieldsToUpdate.keySet());
+        TableDefinition originalTableDefinition = originalTableInfo.getDefinition();
+        Schema originalSchema = originalTableDefinition.getSchema();
+        Schema updatedSchema =
+            Schema.of(
+                originalSchema.getFields().stream()
+                    .map(
+                        field ->
+                            Optional.ofNullable(fieldsToUpdate.get(field.getName()))
+                                .map(sparkSchemaField -> updatedField(field, sparkSchemaField))
+                                .orElse(field))
+                    .collect(Collectors.toList()));
+        updatedTableInfo.setDefinition(
+            originalTableDefinition.toBuilder().setSchema(updatedSchema).build());
+      }
+
+      if (!config.getBigQueryTableLabels().isEmpty()) {
+        updatedTableInfo.setLabels(config.getBigQueryTableLabels());
+      }
 
       bigQueryClient.update(updatedTableInfo.build());
     }
