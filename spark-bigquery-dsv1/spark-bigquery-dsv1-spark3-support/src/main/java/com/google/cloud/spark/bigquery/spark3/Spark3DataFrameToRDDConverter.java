@@ -15,23 +15,18 @@
  */
 package com.google.cloud.spark.bigquery.spark3;
 
+import com.google.cloud.spark.bigquery.DataFrameToRDDConverter;
 import java.io.Serializable;
-import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSqlUtils;
 import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.catalyst.analysis.SimpleAnalyzer$;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder.Deserializer;
-import org.apache.spark.sql.catalyst.encoders.RowEncoder;
-import org.apache.spark.sql.catalyst.expressions.Attribute;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.Iterator;
-import scala.collection.JavaConversions;
-import scala.collection.JavaConverters;
 import scala.reflect.ClassTag;
 import scala.reflect.ClassTag$;
 import scala.runtime.AbstractFunction1;
@@ -41,18 +36,8 @@ public class Spark3DataFrameToRDDConverter implements DataFrameToRDDConverter {
   @Override
   public RDD<Row> convertToRDD(Dataset<Row> data) {
     StructType schema = data.schema();
-
-    List<Attribute> attributes =
-        JavaConversions.asJavaCollection(schema.toAttributes()).stream()
-            .map(Attribute::toAttribute)
-            .collect(Collectors.toList());
-
     final ExpressionEncoder<Row> expressionEncoder =
-        RowEncoder.apply(schema)
-            .resolveAndBind(
-                JavaConverters.asScalaIteratorConverter(attributes.iterator()).asScala().toSeq(),
-                SimpleAnalyzer$.MODULE$);
-
+        SparkSqlUtils.getInstance().createExpressionEncoder(schema);
     final Deserializer<Row> deserializer = expressionEncoder.createDeserializer();
     ClassTag<Row> classTag = ClassTag$.MODULE$.apply(Row.class);
 

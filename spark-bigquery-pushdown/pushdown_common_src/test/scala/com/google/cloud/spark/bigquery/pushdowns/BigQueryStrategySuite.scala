@@ -241,12 +241,14 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
       override def productArity: Int = 1
 
       override def canEqual(that: Any): Boolean = true
+
+      protected def withNewChildrenInternal(newChildren: IndexedSeq[LogicalPlan]): LogicalPlan = this
     }
 
     assert(bigQueryStrategy.getTopMostProjectNodeWithAliasedCasts(namedRelation).isEmpty)
   }
 
-  test("getTopMostProjectNodeWithAliasedCasts should return Project") {
+  test("getTopMostProjectNodeWithAliasedCasts with Project without Aliased Cast child") {
     when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
     when(directBigQueryRelationMock.getTableName).thenReturn("MY_BIGQUERY_TABLE")
 
@@ -255,8 +257,30 @@ class BigQueryStrategySuite extends AnyFunSuite with BeforeAndAfter {
     val aggregateExpression = Alias.apply(AggregateExpression.apply(Count.apply(schoolIdAttributeReference), Complete, isDistinct = false), "COUNT")()
     val aggregatePlan = Aggregate(Seq(schoolNameAttributeReference), Seq(aggregateExpression), logicalRelation)
 
-    val projectList = Seq(Alias(Cast(schoolIdAttributeReference, StringType), "id")(), schoolNameAttributeReference)
-    val projectPlan = Project(projectList, logicalRelation)
+    val projectList = Seq(schoolNameAttributeReference, Alias(schoolNameAttributeReference, "school-name")())
+    val projectPlan = Project(projectList, aggregatePlan)
+    val returnAnswerPlan = ReturnAnswer(projectPlan)
+
+    val bigQueryStrategy = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock) {
+      override def generateQueryFromPlanForDataSourceV2(plan: LogicalPlan): Option[BigQuerySQLQuery] = None
+
+      override def createUnionQuery(children: Seq[LogicalPlan]): Option[BigQuerySQLQuery] = None
+    }
+
+    assert(bigQueryStrategy.getTopMostProjectNodeWithAliasedCasts(returnAnswerPlan).isEmpty)
+  }
+
+  test("getTopMostProjectNodeWithAliasedCasts should return Project with Aliased Cast child") {
+    when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
+    when(directBigQueryRelationMock.getTableName).thenReturn("MY_BIGQUERY_TABLE")
+
+    val logicalRelation = LogicalRelation(directBigQueryRelationMock)
+
+    val aggregateExpression = Alias.apply(AggregateExpression.apply(Count.apply(schoolIdAttributeReference), Complete, isDistinct = false), "COUNT")()
+    val aggregatePlan = Aggregate(Seq(schoolNameAttributeReference), Seq(aggregateExpression), logicalRelation)
+
+    val projectList = Seq(schoolNameAttributeReference, Alias(schoolNameAttributeReference, "school-name")(), Alias(Cast(schoolIdAttributeReference, StringType), "id")())
+    val projectPlan = Project(projectList, aggregatePlan)
     val returnAnswerPlan = ReturnAnswer(projectPlan)
 
     val bigQueryStrategy = new BigQueryStrategy(expressionConverter, expressionFactory, sparkPlanFactoryMock) {

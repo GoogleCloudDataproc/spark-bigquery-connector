@@ -57,7 +57,6 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.collection.JavaConversions;
 
 public class BigQueryDataSourceReaderContext {
 
@@ -126,7 +125,7 @@ public class BigQueryDataSourceReaderContext {
     }
     // We want to keep the key order
     this.fields = new LinkedHashMap<>();
-    for (StructField field : JavaConversions.seqAsJavaList(convertedSchema)) {
+    for (StructField field : convertedSchema.fields()) {
       fields.put(field.name(), field);
     }
     this.applicationId = applicationId;

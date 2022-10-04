@@ -20,9 +20,14 @@
   </licenses>
   <dependencies>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>spark-bigquery-connector-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-sql_2.12</artifactId>
-      <version>3.0.0</version>
+      <version>3.2.0</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>

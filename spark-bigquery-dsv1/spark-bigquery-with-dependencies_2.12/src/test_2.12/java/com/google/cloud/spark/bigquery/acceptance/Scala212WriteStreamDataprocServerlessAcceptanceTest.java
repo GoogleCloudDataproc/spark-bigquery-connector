@@ -18,7 +18,7 @@ package com.google.cloud.spark.bigquery.acceptance;
 public class Scala212WriteStreamDataprocServerlessAcceptanceTest extends WriteStreamDataprocServerlessAcceptanceTestBase {
 
     public Scala212WriteStreamDataprocServerlessAcceptanceTest() {
-        super("spark-bigquery");
+        super("spark-bigquery", "1.0");
     }
 
     // tests from superclass

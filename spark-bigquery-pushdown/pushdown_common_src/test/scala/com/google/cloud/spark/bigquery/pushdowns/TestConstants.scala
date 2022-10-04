@@ -44,6 +44,11 @@ object TestConstants {
          val castExpression = expression.asInstanceOf[Cast]
          performCastExpressionConversion(castExpression.child, fields, castExpression.dataType)
       }
+
+      override def convertLikeExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement = {
+         throw new UnsupportedOperationException("Like expression is supported " +
+           "only from Spark version specific implementations of SparkExpressionConverter")
+      }
    }
 
    @Mock

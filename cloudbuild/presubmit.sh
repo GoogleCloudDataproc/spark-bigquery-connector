@@ -33,13 +33,13 @@ case $STEP in
   # Download maven and all the dependencies
   init)
     checkenv
-    $MVN install -DskipTests -Pdsv1_2.12,dsv2
+    $MVN install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2
     exit
     ;;
 
   # Run unit tests
   unittest)
-    $MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv2
+    $MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2
     # Upload test coverage report to Codecov
     bash <(curl -s https://codecov.io/bash) -K -F "${STEP}"
     ;;
@@ -47,6 +47,11 @@ case $STEP in
   # Run integration tests
   integrationtest-2.12)
     $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12
+    ;;
+
+  # Run integration tests
+  integrationtest-2.13)
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.13
     ;;
 
   # Run integration tests

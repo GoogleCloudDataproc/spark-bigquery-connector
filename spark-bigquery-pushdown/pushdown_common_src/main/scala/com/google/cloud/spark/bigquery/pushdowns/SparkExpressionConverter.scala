@@ -1,19 +1,3 @@
-/*
- * Copyright 2022 Google Inc. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
@@ -130,7 +114,7 @@ abstract class SparkExpressionConverter {
               Option(l.value).map(_.asInstanceOf[Int])
             ) + " DAY)" // s"DATE_ADD(DATE "1970-01-01", INTERVAL ${l.value} DAY)
           case TimestampType =>
-            ConstantString("TIMESTAMP_MICROS(") + l.toString() + ")"
+            ConstantString("TIMESTAMP_MICROS(") + LongVariable(Option(l.value).map(_.asInstanceOf[Long])) + ")"
           case _ =>
             l.value match {
               case v: Int => IntVariable(Some(v)).toStatement
@@ -336,6 +320,8 @@ abstract class SparkExpressionConverter {
            _: Upper | _: StringInstr | _: InitCap |
            _: Substring =>
         ConstantString(expression.prettyName.toUpperCase()) + blockStatement(convertStatements(fields, expression.children: _*))
+      case _: Like =>
+        convertLikeExpression(expression, fields)
       case RegExpExtract(child, Literal(pattern: UTF8String, StringType), idx) =>
         ConstantString("REGEXP_EXTRACT") + blockStatement(convertStatement(child, fields) + "," + s"r'${pattern.toString}'" + "," + convertStatement(idx, fields))
      case _: RegExpReplace =>
@@ -494,4 +480,6 @@ abstract class SparkExpressionConverter {
   def convertUnaryMinusExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement
 
   def convertCastExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement
+
+  def convertLikeExpression(expression: Expression, fields: Seq[Attribute]): BigQuerySQLStatement
 }

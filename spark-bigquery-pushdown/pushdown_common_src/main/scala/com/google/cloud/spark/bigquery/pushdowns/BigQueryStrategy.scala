@@ -1,19 +1,3 @@
-/*
- * Copyright 2022 Google Inc. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.{BigQueryPushdownException, BigQueryPushdownUnsupportedException}
@@ -65,7 +49,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
       // and return Nil because if we are not able to translate the plan, then
       // we let Spark handle it
       case e: Exception =>
-        logInfo("Query pushdown failed: ", e)
+        logDebug("Query pushdown failed: ", e)
         Nil
     }
   }
@@ -80,7 +64,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
       case _: LogicalRelation | _: NamedRelation | _: Expand =>
 
       case subPlan =>
-        logInfo(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
+        logDebug(s"LogicalPlan has unsupported node for query pushdown : ${subPlan.nodeName} in ${subPlan.getClass.getName}")
         return true
     }
 
@@ -136,10 +120,15 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
     plan.foreach {
       case _: Aggregate | _: Join | _: LogicalRelation | _:NamedRelation =>
         return None
+
       case projectNode@Project(projectList, _) =>
         projectList.foreach {
-          case Alias(Cast(_, _, _), _) =>
-            return Some(projectNode)
+          case Alias(child, _) =>
+            child match {
+              case CastExpressionExtractor(_) => return Some(projectNode)
+
+              case _ =>
+            }
           case _ =>
         }
         return None

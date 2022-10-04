@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.spark3;
+package com.google.cloud.spark.bigquery;
 
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Dataset;

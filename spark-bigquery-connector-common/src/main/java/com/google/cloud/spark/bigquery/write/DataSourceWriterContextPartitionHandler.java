@@ -1,3 +1,18 @@
+/*
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.google.cloud.spark.bigquery.write;
 
 import com.google.cloud.spark.bigquery.write.context.DataWriterContext;
@@ -10,6 +25,7 @@ import java.util.Iterator;
 import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSqlUtils;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +57,7 @@ public class DataSourceWriterContextPartitionHandler
     try {
       while (rowIterator.hasNext()) {
         Row row = rowIterator.next();
-        InternalRow internalRow = InternalRow.apply(row.toSeq());
+        InternalRow internalRow = SparkSqlUtils.getInstance().rowToInternalRow(row);
         dataWriterContext.write(internalRow);
       }
       return Iterators.forArray(dataWriterContext.commit());

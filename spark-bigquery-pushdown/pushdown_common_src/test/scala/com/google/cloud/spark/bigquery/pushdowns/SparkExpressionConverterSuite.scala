@@ -1,20 +1,3 @@
-/*
- * Copyright 2022 Google Inc. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.BigQueryPushdownUnsupportedException
@@ -241,13 +224,6 @@ class SparkExpressionConverterSuite extends AnyFunSuite with BeforeAndAfter {
     val bigQuerySQLStatement = expressionConverter.convertBasicExpressions(Literal(17007, DateType), fields)
     assert(bigQuerySQLStatement.isDefined)
     assert(bigQuerySQLStatement.get.toString == "DATE_ADD(DATE \"1970-01-01\", INTERVAL 17007  DAY)")
-  }
-
-  test("convertBasicExpressions with Timestamp literal") {
-    // Internally, a timestamp is stored as the number of microseconds from the epoch of 1970-01-01T00
-    val bigQuerySQLStatement = expressionConverter.convertBasicExpressions(Literal(1230219000000000L, TimestampType), fields)
-    assert(bigQuerySQLStatement.isDefined)
-    assert(bigQuerySQLStatement.get.toString == "TIMESTAMP_MICROS( 1230219000000000 )")
   }
 
   test("convertBasicExpressions with Integer literal") {

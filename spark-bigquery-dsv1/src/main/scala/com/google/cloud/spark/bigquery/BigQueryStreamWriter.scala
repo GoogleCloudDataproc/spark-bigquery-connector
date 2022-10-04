@@ -17,12 +17,12 @@
 package com.google.cloud.spark.bigquery
 
 import com.google.cloud.bigquery.connector.common.BigQueryClient
-import com.google.cloud.spark.bigquery.spark3.{DataFrameToRDDConverter, Spark3DataFrameToRDDConverter}
+import com.google.cloud.spark.bigquery.spark2.Spark2DataFrameToRDDConverter
+import com.google.cloud.spark.bigquery.spark3.Spark3DataFrameToRDDConverter
 import com.google.cloud.spark.bigquery.write.BigQueryWriteHelper
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
-import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.StructType
 
@@ -74,21 +74,6 @@ private[bigquery] object BigQueryStreamWriter extends Logging {
       throw new NotImplementedError("Updates are not yet supported")
     } else {
       SaveMode.Append
-    }
-  }
-
-  class Spark2DataFrameToRDDConverter extends DataFrameToRDDConverter {
-
-    override def convertToRDD(data: Dataset[Row]): RDD[Row] = {
-      val schema: StructType = data.schema
-      val expressionEncoder = RowEncoder(schema).resolveAndBind()
-
-      val rowRdd: RDD[Row] =
-        data.queryExecution.toRdd.mapPartitions(
-          iter =>
-            iter.map(internalRow => expressionEncoder.fromRow(internalRow)))
-
-      rowRdd
     }
   }
 
