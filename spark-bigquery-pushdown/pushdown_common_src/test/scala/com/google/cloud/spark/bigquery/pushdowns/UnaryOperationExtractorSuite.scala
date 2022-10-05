@@ -15,49 +15,49 @@ class UnaryOperationExtractorSuite extends AnyFunSuite {
     val filterExpression = EqualTo.apply(schoolIdAttributeReference, Literal(1234L))
     val filterPlan = Filter(filterExpression, childPlan)
     val plan = UnaryOperationExtractor.unapply(filterPlan)
-    assertReturnedPlan(plan)
+    assertReturnedPlan(plan, filterPlan)
   }
 
   test("Project") {
     val projectPlan = Project(Seq(), childPlan)
     val plan = UnaryOperationExtractor.unapply(projectPlan)
-    assertReturnedPlan(plan)
+    assertReturnedPlan(plan, projectPlan)
   }
 
   test("GlobalLimit") {
     val globalLimitPlan = GlobalLimit(Literal(21), childPlan)
     val plan = UnaryOperationExtractor.unapply(globalLimitPlan)
-    assertReturnedPlan(plan)
+    assertReturnedPlan(plan, globalLimitPlan)
   }
 
   test("LocalLimit") {
     val localLimitPlan = LocalLimit(Literal(21), childPlan)
     val plan = UnaryOperationExtractor.unapply(localLimitPlan)
-    assertReturnedPlan(plan)
+    assertReturnedPlan(plan, localLimitPlan)
   }
 
   test("Aggregate") {
     val aggregatePlan = Aggregate(Seq(), Seq() , childPlan)
     val plan = UnaryOperationExtractor.unapply(aggregatePlan)
-    assertReturnedPlan(plan)
+    assertReturnedPlan(plan, aggregatePlan)
   }
 
   test("Sort") {
     val sortPlan = Sort(Seq(), global = false, childPlan)
     val plan = UnaryOperationExtractor.unapply(sortPlan)
-    assertReturnedPlan(plan)
+    assertReturnedPlan(plan, sortPlan)
   }
 
   test("ReturnAnswer") {
     val returnAnswerPlan = ReturnAnswer(childPlan)
     val plan = UnaryOperationExtractor.unapply(returnAnswerPlan)
-    assertReturnedPlan(plan)
+    assertReturnedPlan(plan, returnAnswerPlan)
   }
 
   test("Window") {
     val windowPlan = Window(Seq(), Seq(), Seq(), childPlan)
     val plan = UnaryOperationExtractor.unapply(windowPlan)
-    assertReturnedPlan(plan)
+    assertReturnedPlan(plan, windowPlan)
   }
 
   test("non supported unary node") {
@@ -66,10 +66,11 @@ class UnaryOperationExtractorSuite extends AnyFunSuite {
     assert(plan.isEmpty)
   }
 
-  def assertReturnedPlan(plan: Option[LogicalPlan]): Unit = {
+  def assertReturnedPlan(plan: Option[LogicalPlan], originalPlan: LogicalPlan): Unit = {
     assert(plan.isDefined)
-    assert(plan.get.isInstanceOf[Range])
-    assert(plan.get == childPlan)
+    assert(plan.get == originalPlan)
+    assert(plan.get.children.head.isInstanceOf[Range])
+    assert(plan.get.children.head == childPlan)
   }
 
 }
