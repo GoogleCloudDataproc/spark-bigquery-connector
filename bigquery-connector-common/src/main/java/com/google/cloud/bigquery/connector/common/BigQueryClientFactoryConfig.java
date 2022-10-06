@@ -35,7 +35,8 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final int bigQueryClientReadTimeout;
   private final RetrySettings bigQueryClientRetrySettings;
   private final BigQueryProxyConfig bigQueryProxyConfig;
-  private final Optional<String> endpoint;
+  private final Optional<String> bigQueryStorageGrpcEndpoint;
+  private final Optional<String> bigQueryHttpEndpoint;
   private final int cacheExpirationTimeInMinutes;
   private final ImmutableMap<String, String> bigQueryJobLabels;
   private final Optional<Long> createReadSessionTimeoutInSeconds;
@@ -55,7 +56,8 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.bigQueryClientReadTimeout = bigQueryConfig.getBigQueryClientReadTimeout();
     this.bigQueryClientRetrySettings = bigQueryConfig.getBigQueryClientRetrySettings();
     this.bigQueryProxyConfig = bigQueryConfig.getBigQueryProxyConfig();
-    this.endpoint = bigQueryConfig.getEndpoint();
+    this.bigQueryStorageGrpcEndpoint = bigQueryConfig.getBigQueryStorageGrpcEndpoint();
+    this.bigQueryHttpEndpoint = bigQueryConfig.getBigQueryHttpEndpoint();
     this.cacheExpirationTimeInMinutes = bigQueryConfig.getCacheExpirationTimeInMinutes();
     this.bigQueryJobLabels = bigQueryConfig.getBigQueryJobLabels();
     this.createReadSessionTimeoutInSeconds = bigQueryConfig.getCreateReadSessionTimeoutInSeconds();
@@ -127,8 +129,13 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   }
 
   @Override
-  public Optional<String> getEndpoint() {
-    return endpoint;
+  public Optional<String> getBigQueryStorageGrpcEndpoint() {
+    return bigQueryStorageGrpcEndpoint;
+  }
+
+  @Override
+  public Optional<String> getBigQueryHttpEndpoint() {
+    return bigQueryHttpEndpoint;
   }
 
   @Override
@@ -168,7 +175,8 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
         && Objects.equal(materializationDataset, that.materializationDataset)
         && Objects.equal(bigQueryClientRetrySettings, that.bigQueryClientRetrySettings)
         && Objects.equal(bigQueryProxyConfig, that.bigQueryProxyConfig)
-        && Objects.equal(endpoint, that.endpoint)
+        && Objects.equal(bigQueryStorageGrpcEndpoint, that.bigQueryStorageGrpcEndpoint)
+        && Objects.equal(bigQueryHttpEndpoint, that.bigQueryHttpEndpoint)
         && Objects.equal(cacheExpirationTimeInMinutes, that.cacheExpirationTimeInMinutes)
         && Objects.equal(createReadSessionTimeoutInSeconds, that.createReadSessionTimeoutInSeconds);
   }
@@ -188,7 +196,8 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
         bigQueryClientReadTimeout,
         bigQueryClientRetrySettings,
         bigQueryProxyConfig,
-        endpoint,
+        bigQueryStorageGrpcEndpoint,
+        bigQueryHttpEndpoint,
         cacheExpirationTimeInMinutes);
   }
 }

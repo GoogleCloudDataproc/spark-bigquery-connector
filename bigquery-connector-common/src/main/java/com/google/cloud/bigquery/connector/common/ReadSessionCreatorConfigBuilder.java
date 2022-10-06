@@ -33,7 +33,8 @@ public class ReadSessionCreatorConfigBuilder {
   private OptionalInt preferredMinParallelism = OptionalInt.empty();
   private int defaultParallelism = 1000;
   private Optional<String> requestEncodedBase = Optional.empty();
-  private Optional<String> endpoint = Optional.empty();
+  private Optional<String> bigQueryStorageGrpcEndpoint = Optional.empty();
+  private Optional<String> bigQueryHttpEndpoint = Optional.empty();
   private int backgroundParsingThreads = 0;
   private boolean pushAllFilters = true;
   int prebufferResponses = 1;
@@ -101,8 +102,15 @@ public class ReadSessionCreatorConfigBuilder {
     return this;
   }
 
-  public ReadSessionCreatorConfigBuilder setEndpoint(Optional<String> endpoint) {
-    this.endpoint = endpoint;
+  public ReadSessionCreatorConfigBuilder setBigQueryStorageGrpcEndpoint(
+      Optional<String> bigQueryStorageGrpcEndpoint) {
+    this.bigQueryStorageGrpcEndpoint = bigQueryStorageGrpcEndpoint;
+    return this;
+  }
+
+  public ReadSessionCreatorConfigBuilder setBigQueryHttpEndpoint(
+      Optional<String> bigQueryHttpEndpoint) {
+    this.bigQueryHttpEndpoint = bigQueryHttpEndpoint;
     return this;
   }
 
@@ -150,7 +158,8 @@ public class ReadSessionCreatorConfigBuilder {
         preferredMinParallelism,
         defaultParallelism,
         requestEncodedBase,
-        endpoint,
+        bigQueryStorageGrpcEndpoint,
+        bigQueryHttpEndpoint,
         backgroundParsingThreads,
         pushAllFilters,
         prebufferResponses,

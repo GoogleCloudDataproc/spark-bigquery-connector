@@ -71,7 +71,7 @@ public class BigQueryClientFactory implements Serializable {
     synchronized (readClientMap) {
       if (!readClientMap.containsKey(this)) {
         BigQueryReadClient bigQueryReadClient =
-            createBigQueryReadClient(this.bqConfig.getEndpoint());
+            createBigQueryReadClient(this.bqConfig.getBigQueryStorageGrpcEndpoint());
         Runtime.getRuntime()
             .addShutdownHook(new Thread(() -> shutdownBigQueryReadClient(bigQueryReadClient)));
         readClientMap.put(this, bigQueryReadClient);
@@ -84,7 +84,8 @@ public class BigQueryClientFactory implements Serializable {
   public BigQueryWriteClient getBigQueryWriteClient() {
     synchronized (writeClientMap) {
       if (!writeClientMap.containsKey(this)) {
-        BigQueryWriteClient bigQueryWriteClient = createBigQueryWriteClient();
+        BigQueryWriteClient bigQueryWriteClient =
+            createBigQueryWriteClient(this.bqConfig.getBigQueryStorageGrpcEndpoint());
         Runtime.getRuntime()
             .addShutdownHook(new Thread(() -> shutdownBigQueryWriteClient(bigQueryWriteClient)));
         writeClientMap.put(this, bigQueryWriteClient);
@@ -140,15 +141,7 @@ public class BigQueryClientFactory implements Serializable {
 
   private BigQueryReadClient createBigQueryReadClient(Optional<String> endpoint) {
     try {
-      InstantiatingGrpcChannelProvider.Builder transportBuilder =
-          BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
-              .setHeaderProvider(headerProvider);
-      setProxyConfig(transportBuilder);
-      endpoint.ifPresent(
-          e -> {
-            log.info("Overriding endpoint to: ", e);
-            transportBuilder.setEndpoint(e);
-          });
+      InstantiatingGrpcChannelProvider.Builder transportBuilder = createTransportBuilder(endpoint);
       BigQueryReadSettings.Builder clientSettings =
           BigQueryReadSettings.newBuilder()
               .setTransportChannelProvider(transportBuilder.build())
@@ -178,12 +171,9 @@ public class BigQueryClientFactory implements Serializable {
     }
   }
 
-  private BigQueryWriteClient createBigQueryWriteClient() {
+  private BigQueryWriteClient createBigQueryWriteClient(Optional<String> endpoint) {
     try {
-      InstantiatingGrpcChannelProvider.Builder transportBuilder =
-          BigQueryWriteSettings.defaultGrpcTransportProviderBuilder()
-              .setHeaderProvider(headerProvider);
-      setProxyConfig(transportBuilder);
+      InstantiatingGrpcChannelProvider.Builder transportBuilder = createTransportBuilder(endpoint);
       BigQueryWriteSettings.Builder clientSettings =
           BigQueryWriteSettings.newBuilder()
               .setTransportChannelProvider(transportBuilder.build())
@@ -192,6 +182,20 @@ public class BigQueryClientFactory implements Serializable {
     } catch (IOException e) {
       throw new BigQueryConnectorException("Error creating BigQueryWriteClient", e);
     }
+  }
+
+  private InstantiatingGrpcChannelProvider.Builder createTransportBuilder(
+      Optional<String> endpoint) {
+    InstantiatingGrpcChannelProvider.Builder transportBuilder =
+        BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
+            .setHeaderProvider(headerProvider);
+    setProxyConfig(transportBuilder);
+    endpoint.ifPresent(
+        e -> {
+          log.info("Overriding endpoint to: ", e);
+          transportBuilder.setEndpoint(e);
+        });
+    return transportBuilder;
   }
 
   private void setProxyConfig(InstantiatingGrpcChannelProvider.Builder transportBuilder) {
