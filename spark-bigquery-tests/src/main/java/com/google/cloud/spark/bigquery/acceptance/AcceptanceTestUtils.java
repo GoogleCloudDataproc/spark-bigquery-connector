@@ -174,6 +174,6 @@ public class AcceptanceTestUtils {
   }
 
   public static String generateClusterName(String testId) {
-    return String.format("sbc-acceptance-test-%s", testId);
+    return String.format("sbc-acceptance-%s", testId);
   }
 }
