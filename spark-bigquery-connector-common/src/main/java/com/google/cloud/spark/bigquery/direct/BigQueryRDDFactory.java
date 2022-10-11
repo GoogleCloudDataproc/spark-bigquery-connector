@@ -37,7 +37,6 @@ import com.google.common.collect.Streams;
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -57,13 +56,8 @@ public class BigQueryRDDFactory {
 
   private static final Logger log = LoggerFactory.getLogger(BigQueryRDDFactory.class);
 
-  // Label to add to Query Job indicating that it was invoked as part of query pushdown
-  private static final Map<String, String> QUERY_PUSHDOWN_JOB_LABELS =
-      new HashMap<String, String>() {
-        {
-          put("queryFromPushdown", "true");
-        }
-      };
+  private static final String QUERY_JOB_LABEL = "query_source";
+  private static final String QUERY_PUSHDOWN_JOB_LABEL_VALUE = "spark_query_pushdown";
 
   private final BigQueryClient bigQueryClient;
   private final SparkBigQueryConfig options;
@@ -90,7 +84,14 @@ public class BigQueryRDDFactory {
 
     TableInfo actualTable =
         bigQueryClient.materializeQueryToTable(
-            sql, options.getMaterializationExpirationTimeInMinutes(), QUERY_PUSHDOWN_JOB_LABELS);
+            sql,
+            options.getMaterializationExpirationTimeInMinutes(),
+            // Label to add to Query Job indicating that it was invoked as part of query pushdown
+            new HashMap<String, String>() {
+              {
+                put(QUERY_JOB_LABEL, QUERY_PUSHDOWN_JOB_LABEL_VALUE);
+              }
+            });
 
     TableDefinition actualTableDefinition = actualTable.getDefinition();
 

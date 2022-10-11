@@ -45,7 +45,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -434,11 +434,11 @@ public class BigQueryClient {
    *
    * @param querySql the query to be run
    * @param expirationTimeInMinutes the time in minutes until the table is expired and auto-deleted
-   * @param queryJobLabels the labels to insert on the query job
+   * @param additionalQueryJobLabels the labels to insert on the query job
    * @return a reference to the table
    */
   public TableInfo materializeQueryToTable(
-      String querySql, int expirationTimeInMinutes, Map<String, String> queryJobLabels) {
+      String querySql, int expirationTimeInMinutes, Map<String, String> additionalQueryJobLabels) {
     TableId destinationTableId = createDestinationTable(Optional.empty(), Optional.empty());
     DestinationTableBuilder tableBuilder =
         new DestinationTableBuilder(
@@ -447,7 +447,7 @@ public class BigQueryClient {
             destinationTableId,
             expirationTimeInMinutes,
             jobConfigurationFactory,
-            queryJobLabels);
+            additionalQueryJobLabels);
 
     return materializeTable(querySql, tableBuilder);
   }
@@ -482,7 +482,7 @@ public class BigQueryClient {
               destinationTableId,
               expirationTimeInMinutes,
               jobConfigurationFactory,
-              new HashMap<>()));
+              Collections.emptyMap()));
     } catch (Exception e) {
       throw new BigQueryConnectorException(
           BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
@@ -638,7 +638,7 @@ public class BigQueryClient {
     final TableId destinationTable;
     final int expirationTimeInMinutes;
     final JobConfigurationFactory jobConfigurationFactory;
-    final Map<String, String> queryJobLabels;
+    final Map<String, String> additionalQueryJobLabels;
 
     DestinationTableBuilder(
         BigQueryClient bigQueryClient,
@@ -646,13 +646,13 @@ public class BigQueryClient {
         TableId destinationTable,
         int expirationTimeInMinutes,
         JobConfigurationFactory jobConfigurationFactory,
-        Map<String, String> queryJobLabels) {
+        Map<String, String> additionalQueryJobLabels) {
       this.bigQueryClient = bigQueryClient;
       this.querySql = querySql;
       this.destinationTable = destinationTable;
       this.expirationTimeInMinutes = expirationTimeInMinutes;
       this.jobConfigurationFactory = jobConfigurationFactory;
-      this.queryJobLabels = queryJobLabels;
+      this.additionalQueryJobLabels = additionalQueryJobLabels;
     }
 
     @Override
@@ -667,8 +667,8 @@ public class BigQueryClient {
               .createQueryJobConfigurationBuilder(querySql)
               .setDestinationTable(destinationTable);
 
-      if (!queryJobLabels.isEmpty()) {
-        queryJobConfigurationBuilder.setLabels(queryJobLabels);
+      if (!additionalQueryJobLabels.isEmpty()) {
+        queryJobConfigurationBuilder.setLabels(additionalQueryJobLabels);
       }
 
       JobInfo jobInfo = JobInfo.of(queryJobConfigurationBuilder.build());
