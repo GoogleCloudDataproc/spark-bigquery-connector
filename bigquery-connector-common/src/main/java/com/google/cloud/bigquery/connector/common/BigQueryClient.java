@@ -45,6 +45,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -429,6 +430,29 @@ public class BigQueryClient {
   }
 
   /**
+   * Runs the provided query on BigQuery and saves the result in a temporary table.
+   *
+   * @param querySql the query to be run
+   * @param expirationTimeInMinutes the time in minutes until the table is expired and auto-deleted
+   * @param queryJobLabels the labels to insert on the query job
+   * @return a reference to the table
+   */
+  public TableInfo materializeQueryToTable(
+      String querySql, int expirationTimeInMinutes, Map<String, String> queryJobLabels) {
+    TableId destinationTableId = createDestinationTable(Optional.empty(), Optional.empty());
+    DestinationTableBuilder tableBuilder =
+        new DestinationTableBuilder(
+            this,
+            querySql,
+            destinationTableId,
+            expirationTimeInMinutes,
+            jobConfigurationFactory,
+            queryJobLabels);
+
+    return materializeTable(querySql, tableBuilder);
+  }
+
+  /**
    * Runs the provided query on BigQuery and saves the result in a temporary table. This method is
    * intended to be used to materialize views, so the view location (based on its TableId) is taken
    * as a location for the temporary table, removing the need to set the materializationProject and
@@ -457,7 +481,21 @@ public class BigQueryClient {
               querySql,
               destinationTableId,
               expirationTimeInMinutes,
-              jobConfigurationFactory));
+              jobConfigurationFactory,
+              new HashMap<>()));
+    } catch (Exception e) {
+      throw new BigQueryConnectorException(
+          BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
+          String.format(
+              "Error creating destination table using the following query: [%s]", querySql),
+          e);
+    }
+  }
+
+  private TableInfo materializeTable(
+      String querySql, DestinationTableBuilder destinationTableBuilder) {
+    try {
+      return destinationTableCache.get(querySql, destinationTableBuilder);
     } catch (Exception e) {
       throw new BigQueryConnectorException(
           BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
@@ -600,18 +638,21 @@ public class BigQueryClient {
     final TableId destinationTable;
     final int expirationTimeInMinutes;
     final JobConfigurationFactory jobConfigurationFactory;
+    final Map<String, String> queryJobLabels;
 
     DestinationTableBuilder(
         BigQueryClient bigQueryClient,
         String querySql,
         TableId destinationTable,
         int expirationTimeInMinutes,
-        JobConfigurationFactory jobConfigurationFactory) {
+        JobConfigurationFactory jobConfigurationFactory,
+        Map<String, String> queryJobLabels) {
       this.bigQueryClient = bigQueryClient;
       this.querySql = querySql;
       this.destinationTable = destinationTable;
       this.expirationTimeInMinutes = expirationTimeInMinutes;
       this.jobConfigurationFactory = jobConfigurationFactory;
+      this.queryJobLabels = queryJobLabels;
     }
 
     @Override
@@ -621,12 +662,16 @@ public class BigQueryClient {
 
     TableInfo createTableFromQuery() {
       log.debug("destinationTable is %s", destinationTable);
-      JobInfo jobInfo =
-          JobInfo.of(
-              jobConfigurationFactory
-                  .createQueryJobConfigurationBuilder(querySql)
-                  .setDestinationTable(destinationTable)
-                  .build());
+      QueryJobConfiguration.Builder queryJobConfigurationBuilder =
+          jobConfigurationFactory
+              .createQueryJobConfigurationBuilder(querySql)
+              .setDestinationTable(destinationTable);
+
+      if (!queryJobLabels.isEmpty()) {
+        queryJobConfigurationBuilder.setLabels(queryJobLabels);
+      }
+
+      JobInfo jobInfo = JobInfo.of(queryJobConfigurationBuilder.build());
       log.debug("running query %s", jobInfo);
       Job job = waitForJob(bigQueryClient.create(jobInfo));
       log.debug("job has finished. %s", job);
