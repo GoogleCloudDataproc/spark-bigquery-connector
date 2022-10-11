@@ -46,6 +46,7 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -205,7 +206,8 @@ public class BigQueryClient {
     QueryJobConfiguration queryConfig =
         jobConfigurationFactory
             .createQueryJobConfigurationBuilder(
-                sqlFromFormat(queryFormat, destinationTableId, temporaryTableId))
+                sqlFromFormat(queryFormat, destinationTableId, temporaryTableId),
+                Collections.emptyMap())
             .setUseLegacySql(false)
             .build();
 
@@ -664,12 +666,8 @@ public class BigQueryClient {
       log.debug("destinationTable is %s", destinationTable);
       QueryJobConfiguration.Builder queryJobConfigurationBuilder =
           jobConfigurationFactory
-              .createQueryJobConfigurationBuilder(querySql)
+              .createQueryJobConfigurationBuilder(querySql, additionalQueryJobLabels)
               .setDestinationTable(destinationTable);
-
-      if (!additionalQueryJobLabels.isEmpty()) {
-        queryJobConfigurationBuilder.setLabels(additionalQueryJobLabels);
-      }
 
       JobInfo jobInfo = JobInfo.of(queryJobConfigurationBuilder.build());
       log.debug("running query %s", jobInfo);
@@ -707,11 +705,16 @@ public class BigQueryClient {
       this.labels = ImmutableMap.copyOf(labels);
     }
 
-    QueryJobConfiguration.Builder createQueryJobConfigurationBuilder(String querySql) {
+    QueryJobConfiguration.Builder createQueryJobConfigurationBuilder(
+        String querySql, Map<String, String> additionalQueryJobLabels) {
       QueryJobConfiguration.Builder builder = QueryJobConfiguration.newBuilder(querySql);
+      Map<String, String> allLabels = new HashMap<>(additionalQueryJobLabels);
+
       if (labels != null && !labels.isEmpty()) {
-        builder.setLabels(labels);
+        allLabels.putAll(labels);
       }
+
+      builder.setLabels(allLabels);
       return builder;
     }
 
