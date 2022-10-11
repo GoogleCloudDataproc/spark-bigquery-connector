@@ -334,9 +334,9 @@ public class SparkBigQueryConfigTest {
     assertThat(config.isViewsEnabled()).isTrue();
     assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("bucket"));
     assertThat(config.toReadSessionCreatorConfig().getBigQueryStorageGrpcEndpoint().get())
-            .isEqualTo("bqsge");
+        .isEqualTo("bqsge");
     assertThat(config.toReadSessionCreatorConfig().getBigQueryHttpEndpoint().get())
-            .isEqualTo("bqhe");
+        .isEqualTo("bqhe");
     assertThat(config.toReadSessionCreatorConfig().getRequestEncodedBase().get()).isEqualTo("ec");
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.DIRECT);
   }
