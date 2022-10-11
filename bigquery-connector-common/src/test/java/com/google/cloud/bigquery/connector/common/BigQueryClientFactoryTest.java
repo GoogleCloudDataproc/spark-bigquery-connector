@@ -334,10 +334,10 @@ public class BigQueryClientFactoryTest {
 
   private class TestBigQueryConfig implements BigQueryConfig {
 
-    private final Optional<String> endpoint;
+    private final Optional<String> bigQueryStorageGrpcEndpoint;
 
-    TestBigQueryConfig(Optional<String> endpoint) {
-      this.endpoint = endpoint;
+    TestBigQueryConfig(Optional<String> bigQueryStorageGrpcEndpoint) {
+      this.bigQueryStorageGrpcEndpoint = bigQueryStorageGrpcEndpoint;
     }
 
     @Override
@@ -406,8 +406,13 @@ public class BigQueryClientFactoryTest {
     }
 
     @Override
-    public Optional<String> getEndpoint() {
-      return endpoint;
+    public Optional<String> getBigQueryStorageGrpcEndpoint() {
+      return bigQueryStorageGrpcEndpoint;
+    }
+
+    @Override
+    public Optional<String> getBigQueryHttpEndpoint() {
+      return Optional.empty();
     }
 
     @Override
@@ -434,12 +439,12 @@ public class BigQueryClientFactoryTest {
         return false;
       }
       TestBigQueryConfig that = (TestBigQueryConfig) o;
-      return Objects.equal(endpoint, that.endpoint);
+      return Objects.equal(bigQueryStorageGrpcEndpoint, that.bigQueryStorageGrpcEndpoint);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hashCode(endpoint);
+      return Objects.hashCode(bigQueryStorageGrpcEndpoint);
     }
   }
 }

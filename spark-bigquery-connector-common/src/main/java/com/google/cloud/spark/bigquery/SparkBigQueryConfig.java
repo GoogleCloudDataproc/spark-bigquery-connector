@@ -166,7 +166,8 @@ public class SparkBigQueryConfig
   boolean pushAllFilters = true;
   boolean enableModeCheckForSchemaFields = true;
   private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
-  private com.google.common.base.Optional<String> storageReadEndpoint = empty();
+  private com.google.common.base.Optional<String> bigQueryStorageGrpcEndpoint = empty();
+  private com.google.common.base.Optional<String> bigQueryHttpEndpoint = empty();
   private int numBackgroundThreadsPerStream = 0;
   private int numPrebufferReadRowsResponses = MIN_BUFFERED_RESPONSES_PER_STREAM;
   private int numStreamsPerPartition = MIN_STREAMS_PER_PARTITION;
@@ -376,7 +377,9 @@ public class SparkBigQueryConfig
       loadSchemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION);
     }
     config.loadSchemaUpdateOptions = loadSchemaUpdateOptions.build();
-    config.storageReadEndpoint = getAnyOption(globalOptions, options, "bqStorageReadEndpoint");
+    config.bigQueryStorageGrpcEndpoint =
+        getAnyOption(globalOptions, options, "bigQueryStorageGrpcEndpoint");
+    config.bigQueryHttpEndpoint = getAnyOption(globalOptions, options, "bigQueryHttpEndpoint");
     config.encodedCreateReadSessionRequest =
         getAnyOption(globalOptions, options, "bqEncodedCreateReadSessionRequest");
     config.numBackgroundThreadsPerStream =
@@ -728,8 +731,13 @@ public class SparkBigQueryConfig
   }
 
   @Override
-  public Optional<String> getEndpoint() {
-    return storageReadEndpoint.toJavaUtil();
+  public Optional<String> getBigQueryStorageGrpcEndpoint() {
+    return bigQueryStorageGrpcEndpoint.toJavaUtil();
+  }
+
+  @Override
+  public Optional<String> getBigQueryHttpEndpoint() {
+    return bigQueryHttpEndpoint.toJavaUtil();
   }
 
   @Override
@@ -793,7 +801,8 @@ public class SparkBigQueryConfig
         .setMaxParallelism(getMaxParallelism())
         .setPreferredMinParallelism(getPreferredMinParallelism())
         .setRequestEncodedBase(encodedCreateReadSessionRequest.toJavaUtil())
-        .setEndpoint(storageReadEndpoint.toJavaUtil())
+        .setBigQueryStorageGrpcEndpoint(bigQueryStorageGrpcEndpoint.toJavaUtil())
+        .setBigQueryHttpEndpoint(bigQueryHttpEndpoint.toJavaUtil())
         .setBackgroundParsingThreads(numBackgroundThreadsPerStream)
         .setPushAllFilters(pushAllFilters)
         .setPrebufferReadRowsResponses(numPrebufferReadRowsResponses)

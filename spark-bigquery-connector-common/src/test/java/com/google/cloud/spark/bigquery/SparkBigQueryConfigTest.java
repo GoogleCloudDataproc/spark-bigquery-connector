@@ -314,7 +314,8 @@ public class SparkBigQueryConfigTest {
         ImmutableMap.<String, String>builder()
             .put("viewsEnabled", "true")
             .put("spark.datasource.bigquery.temporaryGcsBucket", "bucket")
-            .put("bqStorageReadEndpoint", "ep")
+            .put("bigQueryStorageGrpcEndpoint", "bqsge")
+            .put("bigQueryHttpEndpoint", "bqhe")
             .put("bqEncodedCreateReadSessionRequest", "ec")
             .put("writeMethod", "direct")
             .build();
@@ -332,7 +333,10 @@ public class SparkBigQueryConfigTest {
 
     assertThat(config.isViewsEnabled()).isTrue();
     assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("bucket"));
-    assertThat(config.toReadSessionCreatorConfig().endpoint().get()).isEqualTo("ep");
+    assertThat(config.toReadSessionCreatorConfig().getBigQueryStorageGrpcEndpoint().get())
+        .isEqualTo("bqsge");
+    assertThat(config.toReadSessionCreatorConfig().getBigQueryHttpEndpoint().get())
+        .isEqualTo("bqhe");
     assertThat(config.toReadSessionCreatorConfig().getRequestEncodedBase().get()).isEqualTo("ec");
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.DIRECT);
   }

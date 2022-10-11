@@ -17,6 +17,7 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Optional;
 import java.util.OptionalInt;
 
@@ -33,7 +34,8 @@ public class ReadSessionCreatorConfigBuilder {
   private OptionalInt preferredMinParallelism = OptionalInt.empty();
   private int defaultParallelism = 1000;
   private Optional<String> requestEncodedBase = Optional.empty();
-  private Optional<String> endpoint = Optional.empty();
+  private Optional<String> bigQueryStorageGrpcEndpoint = Optional.empty();
+  private Optional<String> bigQueryHttpEndpoint = Optional.empty();
   private int backgroundParsingThreads = 0;
   private boolean pushAllFilters = true;
   int prebufferResponses = 1;
@@ -41,97 +43,123 @@ public class ReadSessionCreatorConfigBuilder {
   private CompressionCodec arrowCompressionCodec = CompressionCodec.COMPRESSION_UNSPECIFIED;
   private Optional<String> traceId = Optional.empty();
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setViewsEnabled(boolean viewsEnabled) {
     this.viewsEnabled = viewsEnabled;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setMaterializationProject(
       Optional<String> materializationProject) {
     this.materializationProject = materializationProject;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setMaterializationDataset(
       Optional<String> materializationDataset) {
     this.materializationDataset = materializationDataset;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setMaterializationExpirationTimeInMinutes(
       int materializationExpirationTimeInMinutes) {
     this.materializationExpirationTimeInMinutes = materializationExpirationTimeInMinutes;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setReadDataFormat(DataFormat readDataFormat) {
     this.readDataFormat = readDataFormat;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setMaxReadRowsRetries(int maxReadRowsRetries) {
     this.maxReadRowsRetries = maxReadRowsRetries;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setViewEnabledParamName(String viewEnabledParamName) {
     this.viewEnabledParamName = viewEnabledParamName;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setMaxParallelism(OptionalInt maxParallelism) {
     this.maxParallelism = maxParallelism;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setPreferredMinParallelism(
       OptionalInt preferredMinParallelism) {
     this.preferredMinParallelism = preferredMinParallelism;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setDefaultParallelism(int defaultParallelism) {
     this.defaultParallelism = defaultParallelism;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setRequestEncodedBase(
       Optional<String> requestEncodedBase) {
     this.requestEncodedBase = requestEncodedBase;
     return this;
   }
 
-  public ReadSessionCreatorConfigBuilder setEndpoint(Optional<String> endpoint) {
-    this.endpoint = endpoint;
+  @CanIgnoreReturnValue
+  public ReadSessionCreatorConfigBuilder setBigQueryStorageGrpcEndpoint(
+      Optional<String> bigQueryStorageGrpcEndpoint) {
+    this.bigQueryStorageGrpcEndpoint = bigQueryStorageGrpcEndpoint;
     return this;
   }
 
+  @CanIgnoreReturnValue
+  public ReadSessionCreatorConfigBuilder setBigQueryHttpEndpoint(
+      Optional<String> bigQueryHttpEndpoint) {
+    this.bigQueryHttpEndpoint = bigQueryHttpEndpoint;
+    return this;
+  }
+
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setBackgroundParsingThreads(int backgroundParsingThreads) {
     this.backgroundParsingThreads = backgroundParsingThreads;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setPushAllFilters(boolean pushAllFilters) {
     this.pushAllFilters = pushAllFilters;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setPrebufferReadRowsResponses(int prebufferResponses) {
     this.prebufferResponses = prebufferResponses;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setStreamsPerPartition(int streamsPerPartition) {
     this.streamsPerPartition = streamsPerPartition;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setArrowCompressionCodec(
       CompressionCodec arrowCompressionCodec) {
     this.arrowCompressionCodec = arrowCompressionCodec;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setTraceId(Optional<String> traceId) {
     this.traceId = traceId;
     return this;
@@ -150,7 +178,8 @@ public class ReadSessionCreatorConfigBuilder {
         preferredMinParallelism,
         defaultParallelism,
         requestEncodedBase,
-        endpoint,
+        bigQueryStorageGrpcEndpoint,
+        bigQueryHttpEndpoint,
         backgroundParsingThreads,
         pushAllFilters,
         prebufferResponses,

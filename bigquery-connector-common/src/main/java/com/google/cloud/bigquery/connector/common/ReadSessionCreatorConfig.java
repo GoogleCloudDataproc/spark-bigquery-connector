@@ -32,7 +32,8 @@ public class ReadSessionCreatorConfig {
   private final OptionalInt preferredMinParallelism;
   private final int defaultParallelism;
   private final Optional<String> requestEncodedBase;
-  private final Optional<String> endpoint;
+  private final Optional<String> bigQueryStorageGrpcEndpoint;
+  private final Optional<String> bigQueryHttpEndpoint;
   private final int backgroundParsingThreads;
   private final boolean pushAllFilters;
   private final int prebufferResponses;
@@ -52,7 +53,8 @@ public class ReadSessionCreatorConfig {
       OptionalInt preferredMinParallelism,
       int defaultParallelism,
       Optional<String> requestEncodedBase,
-      Optional<String> endpoint,
+      Optional<String> bigQueryStorageGrpcEndpoint,
+      Optional<String> bigQueryHttpEndpoint,
       int backgroundParsingThreads,
       boolean pushAllFilters,
       int prebufferResponses,
@@ -70,7 +72,8 @@ public class ReadSessionCreatorConfig {
     this.preferredMinParallelism = preferredMinParallelism;
     this.defaultParallelism = defaultParallelism;
     this.requestEncodedBase = requestEncodedBase;
-    this.endpoint = endpoint;
+    this.bigQueryStorageGrpcEndpoint = bigQueryStorageGrpcEndpoint;
+    this.bigQueryHttpEndpoint = bigQueryHttpEndpoint;
     this.backgroundParsingThreads = backgroundParsingThreads;
     this.pushAllFilters = pushAllFilters;
     this.prebufferResponses = prebufferResponses;
@@ -123,8 +126,12 @@ public class ReadSessionCreatorConfig {
     return this.requestEncodedBase;
   }
 
-  public Optional<String> endpoint() {
-    return this.endpoint;
+  public Optional<String> getBigQueryStorageGrpcEndpoint() {
+    return bigQueryStorageGrpcEndpoint;
+  }
+
+  public Optional<String> getBigQueryHttpEndpoint() {
+    return bigQueryHttpEndpoint;
   }
 
   public int backgroundParsingThreads() {
@@ -137,7 +144,10 @@ public class ReadSessionCreatorConfig {
 
   public ReadRowsHelper.Options toReadRowsHelperOptions() {
     return new ReadRowsHelper.Options(
-        getMaxReadRowsRetries(), endpoint(), backgroundParsingThreads(), getPrebufferResponses());
+        getMaxReadRowsRetries(),
+        getBigQueryStorageGrpcEndpoint(),
+        backgroundParsingThreads(),
+        getPrebufferResponses());
   }
 
   public int streamsPerPartition() {

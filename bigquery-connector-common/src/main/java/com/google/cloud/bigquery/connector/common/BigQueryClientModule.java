@@ -112,6 +112,8 @@ public class BigQueryClientModule implements com.google.inject.Module {
               proxyConfig.getProxyPassword()));
     }
 
+    config.getBigQueryHttpEndpoint().ifPresent(options::setHost);
+
     options.setTransportOptions(httpTransportOptionsBuilder.build());
     return new BigQueryClient(
         options.build().getService(),
