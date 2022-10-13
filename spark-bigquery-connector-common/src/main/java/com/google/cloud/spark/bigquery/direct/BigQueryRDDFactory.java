@@ -33,6 +33,7 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import java.lang.reflect.Constructor;
 import java.util.List;
@@ -54,6 +55,9 @@ import org.slf4j.LoggerFactory;
 public class BigQueryRDDFactory {
 
   private static final Logger log = LoggerFactory.getLogger(BigQueryRDDFactory.class);
+
+  private static final String QUERY_JOB_LABEL = "query_source";
+  private static final String QUERY_PUSHDOWN_JOB_LABEL_VALUE = "spark_query_pushdown";
 
   private final BigQueryClient bigQueryClient;
   private final SparkBigQueryConfig options;
@@ -80,7 +84,12 @@ public class BigQueryRDDFactory {
 
     TableInfo actualTable =
         bigQueryClient.materializeQueryToTable(
-            sql, options.getMaterializationExpirationTimeInMinutes());
+            sql,
+            options.getMaterializationExpirationTimeInMinutes(),
+            // Label to add to Query Job indicating that it was invoked as part of query pushdown
+            ImmutableMap.<String, String>builder()
+                .put(QUERY_JOB_LABEL, QUERY_PUSHDOWN_JOB_LABEL_VALUE)
+                .build());
 
     TableDefinition actualTableDefinition = actualTable.getDefinition();
 
