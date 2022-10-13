@@ -664,12 +664,13 @@ public class BigQueryClient {
 
     TableInfo createTableFromQuery() {
       log.debug("destinationTable is %s", destinationTable);
-      QueryJobConfiguration.Builder queryJobConfigurationBuilder =
-          jobConfigurationFactory
-              .createQueryJobConfigurationBuilder(querySql, additionalQueryJobLabels)
-              .setDestinationTable(destinationTable);
+      JobInfo jobInfo =
+          JobInfo.of(
+              jobConfigurationFactory
+                  .createQueryJobConfigurationBuilder(querySql, additionalQueryJobLabels)
+                  .setDestinationTable(destinationTable)
+                  .build());
 
-      JobInfo jobInfo = JobInfo.of(queryJobConfigurationBuilder.build());
       log.debug("running query %s", jobInfo);
       Job job = waitForJob(bigQueryClient.create(jobInfo));
       log.debug("job has finished. %s", job);
