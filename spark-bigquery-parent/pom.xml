@@ -111,6 +111,11 @@
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-bigquery</artifactId>
                 <version>${google-cloud-bigquery.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-netty-shaded</artifactId>
+                    </exclusion></exclusions>
             </dependency>
             <dependency>
                 <groupId>com.google.cloud</groupId>
