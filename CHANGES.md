@@ -4,6 +4,7 @@
 
 * PR #792: Added ability to set table labels while writing to a BigQuery table
 * PR #796: Allowing custom BigQuery API endpoints
+* PR #803: Removed grpc-netty-shaded from the connector jar
 * Protocol Buffers has been upgraded to version 3.21.7, addressing CVE-2022-3171
 * BigQuery API has been upgraded to version 2.16.1
 * BigQuery Storage API has been upgraded to version 2.21.0
