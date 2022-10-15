@@ -87,6 +87,7 @@ public class ProtobufUtils {
                   LegacySQLTypeName.BIGNUMERIC,
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(LegacySQLTypeName.STRING, DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
+              .put(LegacySQLTypeName.JSON, DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(
                   LegacySQLTypeName.TIMESTAMP,
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64)
