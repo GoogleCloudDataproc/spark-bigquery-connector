@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.27.1 - 2022-10-18
 
 * PR #792: Added ability to set table labels while writing to a BigQuery table
