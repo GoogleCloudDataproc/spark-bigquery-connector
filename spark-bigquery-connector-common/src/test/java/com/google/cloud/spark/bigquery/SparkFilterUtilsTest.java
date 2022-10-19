@@ -58,6 +58,7 @@ public class SparkFilterUtilsTest {
         new ArrayList(
             Arrays.asList(
                 EqualTo.apply("foo", "manatee"),
+                EqualNullSafe.apply("foo", "manatee"),
                 GreaterThan.apply("foo", "aardvark"),
                 GreaterThanOrEqual.apply("bar", 2),
                 LessThan.apply("foo", "zebra"),
@@ -91,19 +92,17 @@ public class SparkFilterUtilsTest {
   public void testInvalidFilters() {
     Filter valid1 = EqualTo.apply("foo", "bar");
     Filter valid2 = EqualTo.apply("bar", 1);
-    Filter invalid1 = EqualNullSafe.apply("foo", "bar");
-    Filter invalid2 =
-        And.apply(EqualTo.apply("foo", "bar"), Not.apply(EqualNullSafe.apply("bar", 1)));
+    Filter valid3 = EqualNullSafe.apply("foo", "bar");
     Filter avroValid = Or.apply(IsNull.apply("foo"), IsNotNull.apply("foo"));
     Iterable<Filter> unhandled =
         SparkFilterUtils.unhandledFilters(
-            pushAllFilters, dataFormat, valid1, valid2, invalid1, invalid2, avroValid);
+            pushAllFilters, dataFormat, valid1, valid2, valid3, avroValid);
     if (pushAllFilters) {
       assertThat(unhandled).isEmpty();
     } else if (dataFormat == AVRO) {
-      assertThat(unhandled).containsExactly(invalid1, invalid2);
+      assertThat(unhandled).isEmpty();
     } else {
-      assertThat(unhandled).containsExactly(invalid1, invalid2, avroValid);
+      assertThat(unhandled).containsExactly(avroValid);
     }
   }
 
@@ -168,6 +167,9 @@ public class SparkFilterUtilsTest {
   public void testNumericAndNullFilters() {
 
     assertThat(SparkFilterUtils.compileFilter(EqualTo.apply("foo", 1))).isEqualTo("`foo` = 1");
+    assertThat(SparkFilterUtils.compileFilter(EqualNullSafe.apply("foo", 1)))
+        .isEqualTo(
+            "`foo` IS NULL AND 1 IS NULL OR `foo` IS NOT NULL AND 1 IS NOT NULL AND `foo` = 1");
     assertThat(SparkFilterUtils.compileFilter(GreaterThan.apply("foo", 2))).isEqualTo("`foo` > 2");
     assertThat(SparkFilterUtils.compileFilter(GreaterThanOrEqual.apply("foo", 3)))
         .isEqualTo("`foo` >= 3");

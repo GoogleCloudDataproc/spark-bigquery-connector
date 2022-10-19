@@ -50,6 +50,11 @@ public class SparkFilterUtils {
       return isFilterWithNamedFieldHandled(
           pushAllFilters, filter, readDataFormat, fields, equalTo.attribute());
     }
+    if (filter instanceof EqualNullSafe) {
+      EqualNullSafe equalNullSafe = (EqualNullSafe) filter;
+      return isFilterWithNamedFieldHandled(
+          pushAllFilters, filter, readDataFormat, fields, equalNullSafe.attribute());
+    }
     if (filter instanceof GreaterThan) {
       GreaterThan greaterThan = (GreaterThan) filter;
       return isFilterWithNamedFieldHandled(
@@ -149,12 +154,9 @@ public class SparkFilterUtils {
         || filter instanceof IsNotNull
         || filter instanceof StringStartsWith
         || filter instanceof StringEndsWith
-        || filter instanceof StringContains) {
+        || filter instanceof StringContains
+        || filter instanceof EqualNullSafe) {
       return true;
-    }
-    // There is no direct equivalent of EqualNullSafe in Google standard SQL.
-    if (filter instanceof EqualNullSafe) {
-      return false;
     }
     if (filter instanceof And) {
       And and = (And) filter;
@@ -220,6 +222,14 @@ public class SparkFilterUtils {
     if (filter instanceof EqualTo) {
       EqualTo equalTo = (EqualTo) filter;
       return format("%s = %s", quote(equalTo.attribute()), compileValue(equalTo.value()));
+    }
+    if (filter instanceof EqualNullSafe) {
+      EqualNullSafe equalNullSafe = (EqualNullSafe) filter;
+      String left = quote(equalNullSafe.attribute());
+      String right = compileValue(equalNullSafe.value());
+      return format(
+          "%1$s IS NULL AND %2$s IS NULL OR %1$s IS NOT NULL AND %2$s IS NOT NULL AND %1$s = %2$s",
+          left, right);
     }
     if (filter instanceof GreaterThan) {
       GreaterThan greaterThan = (GreaterThan) filter;
