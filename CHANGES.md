@@ -2,6 +2,8 @@
 
 ## Next
 
+* PR #807: jackson-databind has been upgraded to version 2.13.4.2, addressing CVE-2022-42003
+
 ## 0.27.1 - 2022-10-18
 
 * PR #792: Added ability to set table labels while writing to a BigQuery table
