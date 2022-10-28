@@ -30,7 +30,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.connector.catalog.Identifier;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.catalog.SupportsWrite;
 import org.apache.spark.sql.connector.catalog.Table;
@@ -48,40 +47,42 @@ public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
           TableCapability.BATCH_READ, TableCapability.V1_BATCH_WRITE, TableCapability.TRUNCATE);
 
   private Injector injector;
-  private TableId tableId;
+  private Optional<TableId> tableId;
   private StructType schema;
 
-  private BigQueryTable(Injector injector, TableId tableId, StructType schema) {
+  private BigQueryTable(Injector injector, Optional<TableId> tableId, StructType schema) {
     this.injector = injector;
     this.tableId = tableId;
     this.schema = schema;
   }
 
+  private BigQueryTable(Injector injector, StructType schema) {
+    this(injector, /*tableId=*/ Optional.empty(), schema);
+  }
+
   public static BigQueryTable fromConfigurationAndSchema(
       Injector injector, StructType sparkProvidedSchema) {
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
-    return createInternal(injector, config.getTableId(), sparkProvidedSchema);
+    return createInternal(injector, sparkProvidedSchema);
   }
 
-  public static BigQueryTable fromIdentifier(Injector injector, Identifier ident) {
-    BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
-    return createInternal(
-        injector, ((BigQueryIdentifier) ident).getTableId(), /*sparkProvidedSchema*/ null);
-  }
-
-  private static BigQueryTable createInternal(
+  public static BigQueryTable fromIdentifier(
       Injector injector, TableId tableId, StructType sparkProvidedSchema) {
+    return new BigQueryTable(injector, Optional.of(tableId), sparkProvidedSchema);
+  }
+
+  private static BigQueryTable createInternal(Injector injector, StructType sparkProvidedSchema) {
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
     TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
     if (tableInfo == null) {
-      return new BigQueryTable(injector, tableId, sparkProvidedSchema);
+      return new BigQueryTable(injector, sparkProvidedSchema);
     }
     StructType schema =
         sparkProvidedSchema != null
             ? sparkProvidedSchema
             : SchemaConverters.toSpark(tableInfo.getDefinition().getSchema());
-    return new BigQueryTable(injector, tableInfo.getTableId(), schema);
+    return new BigQueryTable(injector, schema);
   }
 
   @Override
@@ -104,6 +105,9 @@ public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
 
   @Override
   public String name() {
+    if (tableId.isPresent()) {
+      return tableId.get().getTable();
+    }
     return injector.getInstance(SparkBigQueryConfig.class).getTableId().getTable();
   }
 

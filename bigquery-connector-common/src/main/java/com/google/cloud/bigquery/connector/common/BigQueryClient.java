@@ -297,7 +297,7 @@ public class BigQueryClient {
     return bigQuery.listDatasets(projectId).iterateAll();
   }
 
-  Iterable<Table> listTables(DatasetId datasetId, TableDefinition.Type... types) {
+  public Iterable<TableInfo> listTables(DatasetId datasetId, TableDefinition.Type... types) {
     Set<TableDefinition.Type> allowedTypes = ImmutableSet.copyOf(types);
     Iterable<Table> allTables = bigQuery.listTables(datasetId).iterateAll();
     return StreamSupport.stream(allTables.spliterator(), false)
