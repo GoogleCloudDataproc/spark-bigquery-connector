@@ -59,6 +59,7 @@ public class BigQueryClientModule implements com.google.inject.Module {
     BigQueryProxyConfig proxyConfig = config.getBigQueryProxyConfig();
     return new BigQueryCredentialsSupplier(
         config.getAccessTokenProviderFQCN(),
+        config.getAccessTokenProviderConfig(),
         config.getAccessToken(),
         config.getCredentialsKey(),
         config.getCredentialsFile(),

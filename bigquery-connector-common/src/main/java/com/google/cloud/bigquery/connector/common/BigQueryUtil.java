@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -306,10 +307,15 @@ public class BigQueryUtil {
    * class
    */
   public static <T> T createVerifiedInstance(
-      String fullyQualifiedClassName, Class<T> requiredClass) {
+      String fullyQualifiedClassName, Class<T> requiredClass, Object... constructorArgs) {
     try {
       Class<?> clazz = Class.forName(fullyQualifiedClassName);
-      Object result = clazz.getDeclaredConstructor().newInstance();
+      Object result = clazz.getDeclaredConstructor(
+              Arrays.stream(constructorArgs)
+                      .map(Object::getClass)
+                      .toArray((IntFunction<Class<?>[]>) Class[]::new))
+              .newInstance(constructorArgs);
+
       if (!requiredClass.isInstance(result)) {
         throw new IllegalArgumentException(
             String.format(

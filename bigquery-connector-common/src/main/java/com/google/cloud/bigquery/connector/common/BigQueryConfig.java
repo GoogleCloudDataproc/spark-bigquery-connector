@@ -23,6 +23,8 @@ public interface BigQueryConfig {
 
   Optional<String> getAccessTokenProviderFQCN();
 
+  Optional<String> getAccessTokenProviderConfig();
+
   Optional<String> getCredentialsKey();
 
   Optional<String> getCredentialsFile();
