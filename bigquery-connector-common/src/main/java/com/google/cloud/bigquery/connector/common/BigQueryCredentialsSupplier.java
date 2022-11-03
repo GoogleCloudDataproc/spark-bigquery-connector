@@ -44,8 +44,15 @@ public class BigQueryCredentialsSupplier {
       Optional<String> proxyPassword) {
     if (accessTokenProviderFQCN.isPresent()) {
       AccessTokenProvider accessTokenProvider =
-              accessTokenProviderConfig.map(providerConfig -> createVerifiedInstance(accessTokenProviderFQCN.get(), AccessTokenProvider.class, providerConfig))
-                      .orElseGet(() -> createVerifiedInstance(accessTokenProviderFQCN.get(), AccessTokenProvider.class));
+          accessTokenProviderConfig
+              .map(
+                  providerConfig ->
+                      createVerifiedInstance(
+                          accessTokenProviderFQCN.get(), AccessTokenProvider.class, providerConfig))
+              .orElseGet(
+                  () ->
+                      createVerifiedInstance(
+                          accessTokenProviderFQCN.get(), AccessTokenProvider.class));
       this.credentials =
           new AccessTokenProviderCredentials(verifySerialization(accessTokenProvider));
     } else if (accessToken.isPresent()) {

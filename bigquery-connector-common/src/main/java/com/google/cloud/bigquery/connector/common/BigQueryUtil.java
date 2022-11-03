@@ -310,8 +310,10 @@ public class BigQueryUtil {
       String fullyQualifiedClassName, Class<T> requiredClass, Object... constructorArgs) {
     try {
       Class<?> clazz = Class.forName(fullyQualifiedClassName);
-      Object result = clazz.getDeclaredConstructor(
-              Arrays.stream(constructorArgs)
+      Object result =
+          clazz
+              .getDeclaredConstructor(
+                  Arrays.stream(constructorArgs)
                       .map(Object::getClass)
                       .toArray((IntFunction<Class<?>[]>) Class[]::new))
               .newInstance(constructorArgs);

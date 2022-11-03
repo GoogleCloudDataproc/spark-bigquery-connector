@@ -22,11 +22,8 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.connector.common.AccessToken;
-import com.google.cloud.bigquery.connector.common.AccessTokenProvider;
 import com.google.cloud.bigquery.connector.common.AccessTokenProviderCredentials;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
-import java.io.IOException;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -65,26 +62,24 @@ public class CustomCredentialsIntegrationTest {
     assertThat(accessTokenProvider.getCallCount()).isEqualTo(2);
   }
 
-
   @Test
   public void testAccessTokenProviderWithConfig() throws Exception {
     BigQueryCredentialsSupplier credentialsSupplier =
-            new BigQueryCredentialsSupplier(
-                    Optional.of(ConfiguredAccessTokenProvider.class.getCanonicalName()),
-                    Optional.of("some-config"),
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty());
+        new BigQueryCredentialsSupplier(
+            Optional.of(ConfiguredAccessTokenProvider.class.getCanonicalName()),
+            Optional.of("some-config"),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty());
     Credentials credentials = credentialsSupplier.getCredentials();
     assertThat(credentials).isInstanceOf(AccessTokenProviderCredentials.class);
     ConfiguredAccessTokenProvider accessTokenProvider =
-            (ConfiguredAccessTokenProvider)
-                    ((AccessTokenProviderCredentials) credentials).getAccessTokenProvider();
+        (ConfiguredAccessTokenProvider)
+            ((AccessTokenProviderCredentials) credentials).getAccessTokenProvider();
 
     assertThat(accessTokenProvider.getAccessToken().getTokenValue()).isEqualTo("some-config");
   }
-
 }
