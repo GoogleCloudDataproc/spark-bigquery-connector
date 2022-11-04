@@ -42,6 +42,7 @@ import org.apache.spark.sql.types.FloatType;
 import org.apache.spark.sql.types.IntegerType;
 import org.apache.spark.sql.types.LongType;
 import org.apache.spark.sql.types.MapType;
+import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.NullType;
 import org.apache.spark.sql.types.ShortType;
 import org.apache.spark.sql.types.StringType;
@@ -63,12 +64,12 @@ public class AvroSchemaConverter {
       new Conversions.DecimalConversion();
 
   public static Schema sparkSchemaToAvroSchema(StructType sparkSchema) {
-    return sparkTypeToRawAvroType(sparkSchema, false, "root");
+    return sparkTypeToRawAvroType(sparkSchema, Metadata.empty(), false, "root");
   }
 
-  static Schema sparkTypeToRawAvroType(DataType dataType, boolean nullable, String recordName) {
+  static Schema sparkTypeToRawAvroType(DataType dataType, Metadata metadata, boolean nullable, String recordName) {
     SchemaBuilder.TypeBuilder<Schema> builder = SchemaBuilder.builder();
-    Schema avroType = sparkTypeToRawAvroType(dataType, recordName, builder);
+    Schema avroType = sparkTypeToRawAvroType(dataType, metadata, recordName, builder);
 
     if (nullable) {
       avroType = Schema.createUnion(avroType, NULL);
@@ -78,7 +79,7 @@ public class AvroSchemaConverter {
   }
 
   static Schema sparkTypeToRawAvroType(
-      DataType dataType, String recordName, SchemaBuilder.TypeBuilder<Schema> builder) {
+      DataType dataType, Metadata metadata, String recordName, SchemaBuilder.TypeBuilder<Schema> builder) {
     if (dataType instanceof BinaryType) {
       return builder.bytesType();
     }
@@ -106,7 +107,13 @@ public class AvroSchemaConverter {
       }
     }
     if (dataType instanceof StringType) {
-      return builder.stringType();
+      // Allows loading Avro strings as JSON
+      // https://cloud.google.com/bigquery/docs/loading-data-cloud-storage-avro#extract_json_data_from_avro_data
+      if (metadata.getString("sqlType") == "JSON") {
+        return builder.stringBuilder().prop("sqlType", "JSON").endString();
+      } else {
+        return builder.stringType();
+      }
     }
     if (dataType instanceof TimestampType) {
       // return builder.TIMESTAMP; FIXME: Restore this correct conversion when the Vortex
@@ -122,20 +129,22 @@ public class AvroSchemaConverter {
           .items(
               sparkTypeToRawAvroType(
                   ((ArrayType) dataType).elementType(),
+                  metadata,
                   ((ArrayType) dataType).containsNull(),
                   recordName));
     }
     if (dataType instanceof StructType) {
       SchemaBuilder.FieldAssembler<Schema> fieldsAssembler = builder.record(recordName).fields();
       for (StructField field : ((StructType) dataType).fields()) {
-        Schema avroType = sparkTypeToRawAvroType(field.dataType(), field.nullable(), field.name());
+        Schema avroType = sparkTypeToRawAvroType(field.dataType(), field.metadata(), field.nullable(), field.name());
+
         fieldsAssembler.name(field.name()).type(avroType).noDefault();
       }
       return fieldsAssembler.endRecord();
     }
     if (dataType instanceof UserDefinedType) {
       DataType userDefinedType = ((UserDefinedType) dataType).sqlType();
-      return sparkTypeToRawAvroType(userDefinedType, recordName, builder);
+      return sparkTypeToRawAvroType(userDefinedType, metadata, recordName, builder);
     }
     if (dataType instanceof MapType) {
       throw new IllegalArgumentException(SchemaConverters.MAPTYPE_ERROR_MESSAGE);
