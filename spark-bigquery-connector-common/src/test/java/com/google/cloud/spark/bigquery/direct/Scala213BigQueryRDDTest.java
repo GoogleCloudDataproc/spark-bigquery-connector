@@ -33,6 +33,7 @@ public class Scala213BigQueryRDDTest {
         new BigQueryRDDFactory(
             null /* bigQueryClient */,
             null /* bigQueryReadClientFactory */,
+            null /* bigQueryTracerFactory */,
             null /* options */,
             sparkSession.sqlContext());
     RDD<InternalRow> result =
@@ -43,7 +44,8 @@ public class Scala213BigQueryRDDTest {
             null /* Schema */,
             null /* columnsInOrder */,
             null /* options */,
-            null /* bigQueryReadClientFactory */);
+            null /* bigQueryReadClientFactory */,
+            null /* bigQueryTracerFactory */);
 
     assertThat(result).isInstanceOf(Scala213BigQueryRDD.class);
   }

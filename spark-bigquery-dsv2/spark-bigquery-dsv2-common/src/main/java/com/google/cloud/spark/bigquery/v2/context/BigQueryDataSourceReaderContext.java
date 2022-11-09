@@ -132,7 +132,8 @@ public class BigQueryDataSourceReaderContext {
     this.options = options;
     this.sqlContext = sqlContext;
     this.bigQueryRDDFactory =
-        new BigQueryRDDFactory(bigQueryClient, bigQueryReadClientFactory, options, sqlContext);
+        new BigQueryRDDFactory(
+            bigQueryClient, bigQueryReadClientFactory, bigQueryTracerFactory, options, sqlContext);
   }
 
   public StructType readSchema() {
@@ -261,7 +262,8 @@ public class BigQueryDataSourceReaderContext {
           schema,
           selectedFields,
           readSessionResponse.getReadSession().getAvroSchema().getSchema(),
-          userProvidedSchema);
+          userProvidedSchema,
+          null /* bigQueryStorageReadRowTracer */);
     }
     throw new IllegalArgumentException(
         "No known converted for " + readSessionCreatorConfig.getReadDataFormat());

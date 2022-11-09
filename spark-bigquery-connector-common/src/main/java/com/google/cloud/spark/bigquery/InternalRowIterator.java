@@ -16,6 +16,7 @@
 
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.collect.ImmutableList;
@@ -27,25 +28,32 @@ public class InternalRowIterator implements Iterator<InternalRow> {
   private Iterator<ReadRowsResponse> readRowsResponses;
   private ReadRowsResponseToInternalRowIteratorConverter converter;
   private ReadRowsHelper readRowsHelper;
+  private final BigQueryStorageReadRowsTracer bigQueryStorageReadRowsTracer;
   private Iterator<InternalRow> rows = ImmutableList.<InternalRow>of().iterator();
 
   public InternalRowIterator(
       Iterator<ReadRowsResponse> readRowsResponses,
       ReadRowsResponseToInternalRowIteratorConverter converter,
-      ReadRowsHelper readRowsHelper) {
+      ReadRowsHelper readRowsHelper,
+      BigQueryStorageReadRowsTracer bigQueryStorageReadRowsTracer) {
     this.readRowsResponses = readRowsResponses;
     this.converter = converter;
     this.readRowsHelper = readRowsHelper;
+    this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
   }
 
   @Override
   public boolean hasNext() {
     while (!rows.hasNext()) {
+      bigQueryStorageReadRowsTracer.readRowsResponseRequested();
       if (!readRowsResponses.hasNext()) {
         readRowsHelper.close();
         return false;
       }
       ReadRowsResponse readRowsResponse = readRowsResponses.next();
+      bigQueryStorageReadRowsTracer.readRowsResponseObtained(
+          readRowsResponse == null ? 0 : converter.getBatchSizeInBytes(readRowsResponse));
+      bigQueryStorageReadRowsTracer.rowsParseStarted();
       rows = converter.convert(readRowsResponse);
     }
 
