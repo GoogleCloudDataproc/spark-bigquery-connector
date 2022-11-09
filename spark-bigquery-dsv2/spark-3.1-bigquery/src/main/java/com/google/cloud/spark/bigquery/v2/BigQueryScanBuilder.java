@@ -15,11 +15,15 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.spark.bigquery.SupportsQueryPushdown;
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.spark.sql.connector.read.Batch;
+import org.apache.spark.sql.connector.read.InputPartition;
+import org.apache.spark.sql.connector.read.PartitionReaderFactory;
 import org.apache.spark.sql.connector.read.Scan;
 import org.apache.spark.sql.connector.read.ScanBuilder;
 import org.apache.spark.sql.connector.read.Statistics;
@@ -34,7 +38,8 @@ import org.apache.spark.sql.types.StructType;
  * in DataSourceV2Relation
  */
 public class BigQueryScanBuilder
-    implements Scan,
+    implements Batch,
+        Scan,
         ScanBuilder,
         SupportsPushDownFilters,
         SupportsPushDownRequiredColumns,
@@ -45,6 +50,10 @@ public class BigQueryScanBuilder
 
   public BigQueryScanBuilder(BigQueryDataSourceReaderContext ctx) {
     this.ctx = ctx;
+  }
+
+  public TableId getTableId() {
+    return ctx.getTableId();
   }
 
   @Override
@@ -79,8 +88,7 @@ public class BigQueryScanBuilder
 
   @Override
   public Batch toBatch() {
-    // create read session
-    return new BigQueryBatch(ctx);
+    return this;
   }
 
   @Override
@@ -98,5 +106,47 @@ public class BigQueryScanBuilder
     // Return the combined filters (pushed + global) here since Spark 3.1 does not create a Filter
     // node in the LogicalPlan
     return ctx.getCombinedFilter();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    BigQueryScanBuilder that = (BigQueryScanBuilder) o;
+    return getTableId().equals(that.getTableId())
+        && readSchema().equals(that.readSchema())
+        && // compare Spark schemas to ignore field ids
+        getPushdownFilters().equals(that.getPushdownFilters());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getTableId(), readSchema(), getPushdownFilters());
+  }
+
+  @Override
+  public InputPartition[] planInputPartitions() {
+    // As each result has another template type we cannot set this to the same variable and to share
+    // code
+    if (ctx.enableBatchRead()) {
+      return ctx.planBatchInputPartitionContexts()
+          .map(inputPartitionContext -> new BigQueryInputPartition(inputPartitionContext))
+          .toArray(InputPartition[]::new);
+    } else {
+      return ctx.planInputPartitionContexts()
+          .map(inputPartitionContext -> new BigQueryInputPartition(inputPartitionContext))
+          .toArray(InputPartition[]::new);
+    }
+  }
+
+  @Override
+  public PartitionReaderFactory createReaderFactory() {
+    return new BigQueryPartitionReaderFactory();
   }
 }
