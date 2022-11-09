@@ -22,6 +22,8 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Iterator on InternalRow that wraps the conversion from Avro/Arrow schema to InternalRow */
 public class InternalRowIterator implements Iterator<InternalRow> {
@@ -30,6 +32,7 @@ public class InternalRowIterator implements Iterator<InternalRow> {
   private ReadRowsHelper readRowsHelper;
   private final BigQueryStorageReadRowsTracer bigQueryStorageReadRowsTracer;
   private Iterator<InternalRow> rows = ImmutableList.<InternalRow>of().iterator();
+  private static final Logger log = LoggerFactory.getLogger(InternalRowIterator.class);
 
   public InternalRowIterator(
       Iterator<ReadRowsResponse> readRowsResponses,
@@ -47,7 +50,13 @@ public class InternalRowIterator implements Iterator<InternalRow> {
     while (!rows.hasNext()) {
       bigQueryStorageReadRowsTracer.readRowsResponseRequested();
       if (!readRowsResponses.hasNext()) {
-        readRowsHelper.close();
+        try {
+          bigQueryStorageReadRowsTracer.finished();
+        } catch (Exception e) {
+          log.debug("Failure finishing tracer. stream:{} exception:{}", readRowsHelper, e);
+        } finally {
+          readRowsHelper.close();
+        }
         return false;
       }
       ReadRowsResponse readRowsResponse = readRowsResponses.next();
