@@ -14,7 +14,6 @@
   <name>BigQuery DataSource v2 for Spark 3.3</name>
   <properties>
     <spark.version>3.3.0</spark.version>
-    <shade.skip>false</shade.skip>
   </properties>
   <licenses>
     <license>
