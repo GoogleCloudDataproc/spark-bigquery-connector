@@ -103,6 +103,7 @@ class PreScala213BigQueryRDD extends RDD<InternalRow> {
             bigQueryClientFactory,
             request,
             options.toReadSessionCreatorConfig().toReadRowsHelperOptions());
+    tracer.startStream();
     Iterator<ReadRowsResponse> readRowsResponseIterator = readRowsHelper.readRows();
 
     ReadRowsResponseToInternalRowIteratorConverter converter;
