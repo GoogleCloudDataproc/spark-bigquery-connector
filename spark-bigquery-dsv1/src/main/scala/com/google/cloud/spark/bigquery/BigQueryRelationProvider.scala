@@ -18,7 +18,7 @@ package com.google.cloud.spark.bigquery
 import java.util.Optional
 import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableDefinition.Type.{EXTERNAL, MATERIALIZED_VIEW, TABLE, VIEW}
-import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryClientModule, BigQueryTracerFactory, BigQueryUtil}
+import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryClientModule, LoggingBigQueryTracerFactory, BigQueryUtil}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper
 import com.google.common.collect.ImmutableMap
@@ -77,7 +77,7 @@ class BigQueryRelationProvider(
     val tableInfo = bigQueryClient.getReadTable(opts.toReadTableOptions)
     val tableName = BigQueryUtil.friendlyTableName(opts.getTableId)
     val bigQueryReadClientFactory = injector.getInstance(classOf[BigQueryClientFactory])
-    val bigQueryTracerFactory = injector.getInstance(classOf[BigQueryTracerFactory])
+    val bigQueryTracerFactory = injector.getInstance(classOf[LoggingBigQueryTracerFactory])
     val table = Option(tableInfo)
       .getOrElse(sys.error(s"Table $tableName not found"))
     table.getDefinition[TableDefinition].getType match {

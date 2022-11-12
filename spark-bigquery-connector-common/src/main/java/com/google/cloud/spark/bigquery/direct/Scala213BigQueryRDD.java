@@ -20,21 +20,19 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
-import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.cloud.spark.bigquery.InternalRowIterator;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.base.Joiner;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.apache.spark.Dependency;
 import org.apache.spark.InterruptibleIterator;
 import org.apache.spark.Partition;
@@ -81,11 +79,7 @@ class Scala213BigQueryRDD extends RDD<InternalRow> {
     this.bigQueryTracerFactory = bigQueryTracerFactory;
     this.options = options;
     this.bqSchema = bqSchema;
-    this.streamNames =
-        readSession.getStreamsList().stream()
-            .map(ReadStream::getName)
-            // This formulation is used to guarantee a serializable list.
-            .collect(Collectors.toCollection(ArrayList::new));
+    this.streamNames = BigQueryUtil.getStreamNames(readSession);
   }
 
   @Override
