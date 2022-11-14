@@ -170,12 +170,7 @@ public class TestConstants {
                           copy(new StructField("i", DataTypes.LongType, true, Metadata.empty()))),
                       true),
                   true,
-                  Metadata.empty()),
-              new StructField(
-                  "str_json",
-                  DataTypes.StringType,
-                  true,
-                  new MetadataBuilder().putString("sqlType", "JSON").build())));
+                  Metadata.empty())));
 
   public static String ALL_TYPES_TABLE_QUERY_TEMPLATE =
       // Use DDL to support required fields
