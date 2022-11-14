@@ -230,14 +230,14 @@ public class BigQueryDirectDataWriterHelper {
   /**
    * Appends any data that remains in the protoRows, waits for 500 milliseconds, and finalizes the
    * write-stream. This also closes the internal StreamWriter, so that the helper instance is not
-   * usable after calling <code>commit()</code>.
+   * usable after calling <code>finalizeStream()</code>.
    *
    * @return The finalized row-count of the write-stream.
    * @throws IOException If the row-count returned by the FinalizeWriteStreamResponse does not match
    *     the expected offset (which is equal to the number of rows appended thus far).
    * @see this#writeStreamRowCount
    */
-  public long commit() throws IOException {
+  public long finalizeStream() throws IOException {
     if (this.protoRows.getSerializedRowsCount() != 0) {
       sendAppendRowsRequest();
     }

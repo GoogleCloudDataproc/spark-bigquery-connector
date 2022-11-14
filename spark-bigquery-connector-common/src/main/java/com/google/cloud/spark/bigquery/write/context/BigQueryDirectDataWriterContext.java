@@ -88,9 +88,9 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
 
   @Override
   public WriterCommitMessageContext commit() throws IOException {
-    logger.debug("Data Writer {} commit()", partitionId);
+    logger.debug("Data Writer {} finalizeStream()", partitionId);
 
-    long rowCount = writerHelper.commit();
+    long rowCount = writerHelper.finalizeStream();
     String writeStreamName = writerHelper.getWriteStreamName();
 
     logger.debug(
