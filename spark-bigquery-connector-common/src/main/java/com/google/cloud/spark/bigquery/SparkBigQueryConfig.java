@@ -160,6 +160,7 @@ public class SparkBigQueryConfig
   com.google.common.base.Optional<JobInfo.CreateDisposition> createDisposition = empty();
   boolean optimizedEmptyProjection = true;
   boolean useAvroLogicalTypes = false;
+  ImmutableList<String> decimalTargetTypes = ImmutableList.of();
   ImmutableList<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.of();
   int materializationExpirationTimeInMinutes;
   int maxReadRowsRetries = 3;
@@ -377,6 +378,11 @@ public class SparkBigQueryConfig
       loadSchemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION);
     }
     config.loadSchemaUpdateOptions = loadSchemaUpdateOptions.build();
+    com.google.common.base.Optional<String[]> decimalTargetTypes = getOption(options,
+        "decimalTargetTypes").transform(s -> s.split(","));
+    if (decimalTargetTypes.isPresent()) {
+      config.decimalTargetTypes = ImmutableList.copyOf(decimalTargetTypes.get());
+    }
     config.bigQueryStorageGrpcEndpoint =
         getAnyOption(globalOptions, options, "bigQueryStorageGrpcEndpoint");
     config.bigQueryHttpEndpoint = getAnyOption(globalOptions, options, "bigQueryHttpEndpoint");
@@ -638,6 +644,10 @@ public class SparkBigQueryConfig
   @Override
   public boolean isUseAvroLogicalTypes() {
     return useAvroLogicalTypes;
+  }
+
+  public ImmutableList<String> getDecimalTargetTypes() {
+    return decimalTargetTypes;
   }
 
   public boolean isViewsEnabled() {

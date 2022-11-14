@@ -544,6 +544,10 @@ public class BigQueryClient {
       jobConfiguration.setUseAvroLogicalTypes(true);
     }
 
+    if (!options.getDecimalTargetTypes().isEmpty()) {
+      jobConfiguration.setDecimalTargetTypes(options.getDecimalTargetTypes());
+    }
+
     if (!options.getLoadSchemaUpdateOptions().isEmpty()) {
       jobConfiguration.setSchemaUpdateOptions(options.getLoadSchemaUpdateOptions());
     }
@@ -628,6 +632,8 @@ public class BigQueryClient {
     Optional<ImmutableList<String>> getClusteredFields();
 
     boolean isUseAvroLogicalTypes();
+
+    List<String> getDecimalTargetTypes();
 
     List<JobInfo.SchemaUpdateOption> getLoadSchemaUpdateOptions();
 
