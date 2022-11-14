@@ -378,8 +378,8 @@ public class SparkBigQueryConfig
       loadSchemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION);
     }
     config.loadSchemaUpdateOptions = loadSchemaUpdateOptions.build();
-    com.google.common.base.Optional<String[]> decimalTargetTypes = getOption(options,
-        "decimalTargetTypes").transform(s -> s.split(","));
+    com.google.common.base.Optional<String[]> decimalTargetTypes =
+        getOption(options, "decimalTargetTypes").transform(s -> s.split(","));
     if (decimalTargetTypes.isPresent()) {
       config.decimalTargetTypes = ImmutableList.copyOf(decimalTargetTypes.get());
     }
