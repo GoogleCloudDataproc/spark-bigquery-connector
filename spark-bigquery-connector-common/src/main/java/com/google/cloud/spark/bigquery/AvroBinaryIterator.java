@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 public class AvroBinaryIterator implements Iterator<InternalRow> {
 
   private static final Logger log = LoggerFactory.getLogger(AvroBinaryIterator.class);
-  private final BigQueryStorageReadRowsTracer bigQueryStorageReadRowsTracer;
+  private final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer;
   private int numberOfRowsParsed = 0;
   GenericDatumReader reader;
   List<String> columnsInOrder;
@@ -57,7 +57,7 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
       org.apache.avro.Schema schema,
       ByteString rowsInBytes,
       Optional<StructType> userProvidedSchema,
-      BigQueryStorageReadRowsTracer bigQueryStorageReadRowsTracer) {
+      Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
     reader = new GenericDatumReader<GenericRecord>(schema);
     this.bqSchema = bqSchema;
     this.columnsInOrder = columnsInOrder;
@@ -70,8 +70,8 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
   public boolean hasNext() {
     try {
       // Avro iterator is used in both V1 and V2
-      if (bigQueryStorageReadRowsTracer != null && in.isEnd()) {
-        bigQueryStorageReadRowsTracer.rowsParseFinished(numberOfRowsParsed);
+      if (bigQueryStorageReadRowsTracer.isPresent() && in.isEnd()) {
+        bigQueryStorageReadRowsTracer.get().rowsParseFinished(numberOfRowsParsed);
       }
       return !in.isEnd();
     } catch (IOException e) {

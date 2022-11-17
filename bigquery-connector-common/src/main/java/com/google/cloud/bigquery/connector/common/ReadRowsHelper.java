@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 public class ReadRowsHelper implements AutoCloseable {
   private static final Logger logger = LoggerFactory.getLogger(ReadRowsHelper.class);
   private final Options options;
+  private final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer;
 
   public static final class Options implements Serializable {
     private final int maxReadRowsRetries;
@@ -73,11 +74,13 @@ public class ReadRowsHelper implements AutoCloseable {
   public ReadRowsHelper(
       BigQueryClientFactory bigQueryReadClientFactory,
       ReadRowsRequest.Builder request,
-      Options options) {
+      Options options,
+      Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
     this.bigQueryReadClientFactory =
         requireNonNull(bigQueryReadClientFactory, "bigQueryReadClientFactory cannot be null");
     this.requests = ImmutableList.of(requireNonNull(request, "request cannot be null"));
     this.options = options;
+    this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
   }
 
   public ReadRowsHelper(
@@ -88,9 +91,11 @@ public class ReadRowsHelper implements AutoCloseable {
         requireNonNull(bigQueryReadClientFactory, "bigQueryReadClientFactory cannot be null");
     this.requests = requireNonNull(requests, "request cannot be null");
     this.options = options;
+    this.bigQueryStorageReadRowsTracer = Optional.empty();
   }
 
   public Iterator<ReadRowsResponse> readRows() {
+    bigQueryStorageReadRowsTracer.ifPresent(tracer -> tracer.startStream());
     BigQueryReadClient client = bigQueryReadClientFactory.getBigQueryReadClient();
 
     incomingStream =

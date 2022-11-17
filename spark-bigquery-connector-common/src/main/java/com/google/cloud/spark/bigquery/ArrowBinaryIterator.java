@@ -42,7 +42,7 @@ import org.apache.spark.sql.vectorized.ColumnarBatch;
 public class ArrowBinaryIterator implements Iterator<InternalRow> {
 
   private static long maxAllocation = Long.MAX_VALUE;
-  private final BigQueryStorageReadRowsTracer bigQueryStorageReadRowsTracer;
+  private final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer;
   ArrowReaderIterator arrowReaderIterator;
   Iterator<InternalRow> currentIterator;
   List<String> columnsInOrder;
@@ -53,7 +53,7 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
       ByteString schema,
       ByteString rowsInBytes,
       Optional<StructType> userProvidedSchema,
-      BigQueryStorageReadRowsTracer bigQueryStorageReadRowsTracer) {
+      Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
     BufferAllocator allocator =
         ArrowUtil.newRootAllocator(maxAllocation)
             .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);
@@ -109,8 +109,8 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
 
     ColumnarBatch batch = new ColumnarBatch(columns);
     batch.setNumRows(root.getRowCount());
-    if (bigQueryStorageReadRowsTracer != null) {
-      bigQueryStorageReadRowsTracer.rowsParseFinished(root.getRowCount());
+    if (bigQueryStorageReadRowsTracer.isPresent()) {
+      bigQueryStorageReadRowsTracer.get().rowsParseFinished(root.getRowCount());
     }
     return batch.rowIterator();
   }

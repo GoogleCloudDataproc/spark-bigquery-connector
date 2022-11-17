@@ -245,7 +245,7 @@ public class BigQueryUtil {
   /**
    * Create a list of read stream names of given read session.
    *
-   * @param readSession
+   * @param readSession BQ read session handle
    * @return list of stream names, empty if read session is null
    */
   public static List<String> getStreamNames(ReadSession readSession) {

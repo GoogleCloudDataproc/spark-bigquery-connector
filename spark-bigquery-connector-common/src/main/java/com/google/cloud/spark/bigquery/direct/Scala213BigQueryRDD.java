@@ -33,6 +33,7 @@ import com.google.common.base.Joiner;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import org.apache.spark.Dependency;
 import org.apache.spark.InterruptibleIterator;
 import org.apache.spark.Partition;
@@ -96,8 +97,8 @@ class Scala213BigQueryRDD extends RDD<InternalRow> {
         new ReadRowsHelper(
             bigQueryClientFactory,
             request,
-            options.toReadSessionCreatorConfig().toReadRowsHelperOptions());
-    tracer.startStream();
+            options.toReadSessionCreatorConfig().toReadRowsHelperOptions(),
+            Optional.of(tracer));
     Iterator<ReadRowsResponse> readRowsResponseIterator = readRowsHelper.readRows();
 
     ReadRowsResponseToInternalRowIteratorConverter converter;
@@ -108,14 +109,14 @@ class Scala213BigQueryRDD extends RDD<InternalRow> {
               Arrays.asList(columnsInOrder),
               readSession.getAvroSchema().getSchema(),
               options.getSchema(),
-              tracer);
+              Optional.of(tracer));
     } else {
       converter =
           ReadRowsResponseToInternalRowIteratorConverter.arrow(
               Arrays.asList(columnsInOrder),
               readSession.getArrowSchema().getSerializedSchema(),
               options.getSchema(),
-              tracer);
+              Optional.of(tracer));
     }
 
     return new InterruptibleIterator<InternalRow>(

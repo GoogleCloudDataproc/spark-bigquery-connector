@@ -88,7 +88,7 @@ class SchemaIteratorSuite extends FunSuite {
     }
 
     val avroBinaryIterator = new AvroBinaryIterator(bqSchema,
-      columnsInOrder.asJava, avroSchema, avroByteString, Optional.empty(), null)
+      columnsInOrder.asJava, avroSchema, avroByteString, Optional.empty(), Optional.empty())
 
     if (avroBinaryIterator.hasNext) {
       avroSparkRow = avroBinaryIterator.next()
@@ -161,7 +161,7 @@ class SchemaIteratorSuite extends FunSuite {
 
     val arrowBinaryIterator =
       new ArrowBinaryIterator(
-        columnsInOrder.asJava, arrowSchema, arrowByteString, Optional.empty(), null).asScala
+        columnsInOrder.asJava, arrowSchema, arrowByteString, Optional.empty(), Optional.empty()).asScala
 
     while (arrowBinaryIterator.hasNext) {
       val arrowSparkRow = arrowBinaryIterator.next()

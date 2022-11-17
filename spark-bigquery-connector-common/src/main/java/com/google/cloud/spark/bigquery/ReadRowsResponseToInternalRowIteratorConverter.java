@@ -35,7 +35,7 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
       final List<String> columnsInOrder,
       final String rawAvroSchema,
       final Optional<StructType> userProvidedSchema,
-      final BigQueryStorageReadRowsTracer bigQueryStorageReadRowsTracer) {
+      final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
     return new Avro(
         bqSchema,
         columnsInOrder,
@@ -48,7 +48,7 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
       final List<String> columnsInOrder,
       final ByteString arrowSchema,
       final Optional<StructType> userProvidedSchema,
-      final BigQueryStorageReadRowsTracer bigQueryStorageReadRowsTracer) {
+      final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
     return new Arrow(
         columnsInOrder,
         arrowSchema,
@@ -66,14 +66,14 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
     private final List<String> columnsInOrder;
     private final String rawAvroSchema;
     private final com.google.common.base.Optional<StructType> userProvidedSchema;
-    private final BigQueryStorageReadRowsTracer bigQueryStorageReadRowsTracer;
+    private final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer;
 
     public Avro(
         Schema bqSchema,
         List<String> columnsInOrder,
         String rawAvroSchema,
         com.google.common.base.Optional<StructType> userProvidedSchema,
-        BigQueryStorageReadRowsTracer bigQueryStorageReadRowsTracer) {
+        Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
       this.bqSchema = bqSchema;
       this.columnsInOrder = columnsInOrder;
       this.rawAvroSchema = rawAvroSchema;
@@ -103,13 +103,13 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
     private final List<String> columnsInOrder;
     private final ByteString arrowSchema;
     private final com.google.common.base.Optional<StructType> userProvidedSchema;
-    private final BigQueryStorageReadRowsTracer bigQueryStorageReadRowsTracer;
+    private final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer;
 
     public Arrow(
         List<String> columnsInOrder,
         ByteString arrowSchema,
         com.google.common.base.Optional<StructType> userProvidedSchema,
-        BigQueryStorageReadRowsTracer bigQueryStorageReadRowsTracer) {
+        Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
       this.columnsInOrder = columnsInOrder;
       this.arrowSchema = arrowSchema;
       this.userProvidedSchema = userProvidedSchema;
