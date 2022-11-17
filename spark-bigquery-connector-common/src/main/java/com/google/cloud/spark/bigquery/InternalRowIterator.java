@@ -62,6 +62,7 @@ public class InternalRowIterator implements Iterator<InternalRow> {
       ReadRowsResponse readRowsResponse = readRowsResponses.next();
       bigQueryStorageReadRowsTracer.readRowsResponseObtained(
           readRowsResponse == null ? 0 : converter.getBatchSizeInBytes(readRowsResponse));
+      bigQueryStorageReadRowsTracer.nextBatchNeeded();
       bigQueryStorageReadRowsTracer.rowsParseStarted();
       rows = converter.convert(readRowsResponse);
     }
