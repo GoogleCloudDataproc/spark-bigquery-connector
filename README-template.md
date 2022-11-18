@@ -626,7 +626,7 @@ The API Supports a number of options to configure the read
     <tr valign="top">
            <td><code>clusteredFields</code>
             </td>
-            <td>Comma separated list of non-repeated, top level columns.
+            <td>A string of non-repeated, top level columns seperated by comma.
                <br/>(Optional).
             </td>
             <td>Write</td>
