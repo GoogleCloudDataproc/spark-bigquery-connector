@@ -764,130 +764,34 @@ the options, for example `spark.conf.set("temporaryGcsBucket", "some-bucket")` c
 
 With the exception of `DATETIME` and `TIME` all BigQuery data types directed map into the corresponding Spark SQL data type. Here are all of the mappings:
 
-<!--- TODO(#2): Convert to markdown -->
-<table>
-  <tr valign="top">
-   <td><strong>BigQuery Standard SQL Data Type </strong>
-   </td>
-   <td><strong>Spark SQL</strong>
-<p>
-<strong>Data Type</strong>
-   </td>
-   <td><strong>Notes</strong>
-   </td>
-  </tr>
-  <tr valign="top">
-   <td><strong><code>BOOL</code></strong>
-   </td>
-   <td><strong><code>BooleanType</code></strong>
-   </td>
-   <td>
-   </td>
-  </tr>
-  <tr valign="top">
-   <td><strong><code>INT64</code></strong>
-   </td>
-   <td><strong><code>LongType</code></strong>
-   </td>
-   <td>
-   </td>
-  </tr>
-  <tr valign="top">
-   <td><strong><code>FLOAT64</code></strong>
-   </td>
-   <td><strong><code>DoubleType</code></strong>
-   </td>
-   <td>
-   </td>
-  </tr>
-  <tr valign="top">
-   <td><strong><code>NUMERIC</code></strong>
-   </td>
-   <td><strong><code>DecimalType</code></strong>
-   </td>
-   <td>
-     This preserves <code>NUMERIC</code>'s full 38 digits of precision and 9 digits of scope.
-   </td>
-  </tr>
-  <tr valign="top">
-     <td><strong><code>BIGNUMERIC</code></strong>
-     </td>
-     <td><strong><code>BigNumericUDT (UserDefinedType)</code></strong>
-     </td>
-     <td>
-       Scala/Java: BigNumericUDT DataType internally uses java.math.BigDecimal to hold the BigNumeric data.
-       <p> Python: BigNumericUDT DataType internally used python's Decimal class to hold the BigNumeric data.
-     </td>
-    </tr>
-  <tr valign="top">
-   <td><strong><code>STRING</code></strong>
-   </td>
-   <td><strong><code>StringType</code></strong>
-   </td>
-   <td>
-   </td>
-  </tr>
-  <tr valign="top">
-   <td><strong><code>BYTES</code></strong>
-   </td>
-   <td><strong><code>BinaryType</code></strong>
-   </td>
-   <td>
-   </td>
-  </tr>
-  <tr valign="top">
-   <td><strong><code>STRUCT</code></strong>
-   </td>
-   <td><strong><code>StructType</code></strong>
-   </td>
-   <td>
-   </td>
-  </tr>
-  <tr valign="top">
-   <td><strong><code>ARRAY</code></strong>
-   </td>
-   <td><strong><code>ArrayType</code></strong>
-   </td>
-   <td>
-   </td>
-  </tr>
-  <tr valign="top">
-   <td><strong><code>TIMESTAMP</code></strong>
-   </td>
-   <td><strong><code>TimestampType</code></strong>
-   </td>
-   <td>
-   </td>
-  </tr>
-  <tr valign="top">
-   <td><strong><code>DATE</code></strong>
-   </td>
-   <td><strong><code>DateType</code></strong>
-   </td>
-   <td>
-   </td>
-  </tr>
-  <tr valign="top">
-   <td><strong><code>DATETIME</code></strong>
-   </td>
-   <td><strong><code>StringType</code></strong>
-   </td>
-   <td>Spark has no DATETIME type. Casting to TIMESTAMP uses a configured TimeZone, which defaults to the local timezone (UTC in GCE / Dataproc).
-<p>
-We are considering adding an optional TimeZone property to allow automatically  converting to TimeStamp, this would be consistent with Spark's handling of CSV/JSON (except they always try to convert when inferring schema, and default to the local timezone)
-   </td>
-  </tr>
-  <tr valign="top">
-   <td><strong><code>TIME</code></strong>
-   </td>
-   <td><strong><code>LongType</code></strong>
-   </td>
-   <td>Spark has no TIME type. The generated longs, which indicate <a href="https://avro.apache.org/docs/1.8.0/spec.html#Time+%2528microsecond+precision%2529">microseconds since midnight</a> can be safely cast to TimestampType, but this causes the date to be inferred as the current day. Thus times are left as longs and user can cast if they like.
-<p>
-When casting to Timestamp TIME have the same TimeZone issues as DATETIME
-   </td>
-  </tr>
-</table>
+| **BigQuery Standard SQL Data Type**  | **Spark SQL Data Type**               | **Notes**       |
+| ------------------------------------ | ------------------------------------- | --------------- |
+| **`BOOL`**                           | **`BooleanType`**                     |                 |
+| **`INT64`**                          | **`LongType`**                        |                 |
+| **`FLOAT64`**                        | **`DoubleType`**                      |                 |
+| **`NUMERIC`**                        | **`DecimalType`**                     | See notes below |
+| **`BIGNUMERIC`**                     | **`BigNumericUDT (UserDefinedType)`** | See notes below |
+| **`STRING`**                         | **`StringType`**                      |                 |
+| **`BYTES`**                          | **`BinaryType`**                      |                 |
+| **`STRUCT`**                         | **`StructType`**                      |                 |
+| **`ARRAY`**                          | **`ArrayType`**                       |                 |
+| **`TIMESTAMP`**                      | **`TimestampType`**                   |                 |
+| **`DATE`**                           | **`DateType`**                        |                 |
+| **`DATETIME`**                       | **`StringType`**                      | See notes below |
+| **`TIME`**                           | **`LongType`**                        | See notes below |
+
+
+* **`NUMERIC`**
+  * This preserves `NUMERIC`'s full 38 digits of precision and 9 digits of scope.
+* **`BIGNUMERIC`**
+  * Scala/Java: BigNumericUDT DataType internally uses java.math.BigDecimal to hold the BigNumeric data.
+  * Python: BigNumericUDT DataType internally used python's Decimal class to hold the BigNumeric data. 
+* **`DATETIME`**
+  * Spark has no DATETIME type. Casting to TIMESTAMP uses a configured TimeZone, which defaults to the local timezone (UTC in GCE / Dataproc).
+  * We are considering adding an optional TimeZone property to allow automatically  converting to TimeStamp, this would be consistent with Spark's handling of CSV/JSON (except they always try to convert when inferring schema, and default to the local timezone)
+* **`TIME`**
+  * Spark has no TIME type. The generated longs, which indicate [microseconds since midnight](https://avro.apache.org/docs/1.8.0/spec.html#Time+%2528microsecond+precision%2529) can be safely cast to TimestampType, but this causes the date to be inferred as the current day. Thus times are left as longs and user can cast if they like.
+  * When casting to Timestamp TIME have the same TimeZone issues as DATETIME
 
 #### Spark ML Data Types Support
 
