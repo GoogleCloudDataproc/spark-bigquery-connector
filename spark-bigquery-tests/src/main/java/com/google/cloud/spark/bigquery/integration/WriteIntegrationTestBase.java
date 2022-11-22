@@ -593,7 +593,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     }
   }
 
-  @Test public void testWriteEmptyDataFrame() throws Exception {
+  @Test
+  public void testWriteEmptyDataFrame() throws Exception {
     Dataset<Row> df = spark.createDataFrame(Collections.emptyList(), Link.class);
     writeToBigQuery(df, SaveMode.Append);
     assertThat(testTableNumberOfRows()).isEqualTo(0);
