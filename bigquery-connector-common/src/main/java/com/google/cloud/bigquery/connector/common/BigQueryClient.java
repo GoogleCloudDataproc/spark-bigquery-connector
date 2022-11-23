@@ -602,6 +602,13 @@ public class BigQueryClient {
     }
   }
 
+  /** Creates the table with the given schema, only if it does not exist yet. */
+  public void createTableIfNeeded(TableId tableId, Schema bigQuerySchema) {
+    if (!tableExists(tableId)) {
+      createTable(tableId, bigQuerySchema);
+    }
+  }
+
   public interface ReadTableOptions {
     TableId tableId();
 

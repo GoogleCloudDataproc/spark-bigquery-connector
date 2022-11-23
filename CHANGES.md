@@ -3,6 +3,7 @@
 ## Next
 
 * PR #807: jackson-databind has been upgraded to version 2.13.4.2, addressing CVE-2022-42003
+* Issue #821: Fixing direct write of empty DataFrames
 
 ## 0.27.1 - 2022-10-18
 

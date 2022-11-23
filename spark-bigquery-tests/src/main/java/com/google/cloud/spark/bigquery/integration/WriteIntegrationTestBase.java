@@ -43,6 +43,7 @@ import com.google.inject.ProvisionException;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -590,6 +591,13 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         assertThat(description.isPresent()).isFalse();
       }
     }
+  }
+
+  @Test
+  public void testWriteEmptyDataFrame() throws Exception {
+    Dataset<Row> df = spark.createDataFrame(Collections.emptyList(), Link.class);
+    writeToBigQuery(df, SaveMode.Append);
+    assertThat(testTableNumberOfRows()).isEqualTo(0);
   }
 
   private StructType structType(StructField... fields) {

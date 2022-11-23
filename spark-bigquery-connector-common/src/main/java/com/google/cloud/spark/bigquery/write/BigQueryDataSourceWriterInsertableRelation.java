@@ -15,7 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.write;
 
+import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.write.context.BigQueryDirectDataSourceWriterContext;
 import com.google.cloud.spark.bigquery.write.context.BigQueryIndirectDataSourceWriterContext;
@@ -56,30 +58,38 @@ public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertab
       throw new IllegalArgumentException("Unknown write method " + writeMethod);
     }
     // Here we are mimicking the DataSource v2 API behaviour in oder to use the shared code. The
-    // partition handler
-    // iterates on each partition separately, invoking the DataWriter interface. The result of the
-    // iteration is a
-    // WriterCommitMessageContext which is used to perform the global commit, or abort if needed.
+    // partition handler iterates on each partition separately, invoking the DataWriter interface.
+    // The result of the iteration is a WriterCommitMessageContext which is used to perform the
+    // global commit, or abort if needed.
     try {
-      DataSourceWriterContextPartitionHandler partitionHandler =
-          new DataSourceWriterContextPartitionHandler(
-              ctx.createWriterContextFactory(), System.currentTimeMillis());
-
       JavaRDD<Row> rowsRDD = data.toJavaRDD();
       int numPartitions = rowsRDD.getNumPartitions();
-      JavaRDD<WriterCommitMessageContext> writerCommitMessagesRDD =
-          rowsRDD.mapPartitionsWithIndex(partitionHandler, false);
-      WriterCommitMessageContext[] writerCommitMessages =
-          writerCommitMessagesRDD.collect().toArray(new WriterCommitMessageContext[0]);
-      if (writerCommitMessages.length == numPartitions) {
-        ctx.commit(writerCommitMessages);
+      if (numPartitions == 0) {
+        // The DataFrame is empty, no streams will be generated. We need to create the table if it
+        // does not exist.
+        Schema bigQuerySchema = SchemaConverters.toBigQuerySchema(data.schema());
+        bigQueryClient.createTableIfNeeded(getTableId(), bigQuerySchema);
       } else {
-        // missing commit messages, so abort
-        logger.warn(
-            "It seems that {} out of {} partitions have failed, aborting",
-            numPartitions - writerCommitMessages.length,
-            writerCommitMessages.length);
-        ctx.abort(writerCommitMessages);
+        // Write the data into separate WriteStream (one oer partition, return the
+        // WriterCommitMessageContext containing the stream name.
+        DataSourceWriterContextPartitionHandler partitionHandler =
+            new DataSourceWriterContextPartitionHandler(
+                ctx.createWriterContextFactory(), System.currentTimeMillis());
+
+        JavaRDD<WriterCommitMessageContext> writerCommitMessagesRDD =
+            rowsRDD.mapPartitionsWithIndex(partitionHandler, false);
+        WriterCommitMessageContext[] writerCommitMessages =
+            writerCommitMessagesRDD.collect().toArray(new WriterCommitMessageContext[0]);
+        if (writerCommitMessages.length == numPartitions) {
+          ctx.commit(writerCommitMessages);
+        } else {
+          // missing commit messages, so abort
+          logger.warn(
+              "It seems that {} out of {} partitions have failed, aborting",
+              numPartitions - writerCommitMessages.length,
+              writerCommitMessages.length);
+          ctx.abort(writerCommitMessages);
+        }
       }
     } catch (Exception e) {
       logger.warn("unexpected issue trying to save " + data, e);
