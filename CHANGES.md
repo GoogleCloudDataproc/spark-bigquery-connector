@@ -2,8 +2,13 @@
 
 ## Next
 
-* PR #807: jackson-databind has been upgraded to version 2.13.4.2, addressing CVE-2022-42003
 * Issue #821: Fixing direct write of empty DataFrames
+* Jackson has been upgraded to version 2.14.0, addressing CVE-2022-42003
+* Protocol Buffers has been upgraded to version 3.21.9
+* BigQuery API has been upgraded to version 2.19.1
+* BigQuery Storage API has been upgraded to version 2.26.0
+* gRPC has been upgraded to version 1.51.0
+* Netty has been upgraded to version 4.1.85.Final
 
 ## 0.27.1 - 2022-10-18
 
