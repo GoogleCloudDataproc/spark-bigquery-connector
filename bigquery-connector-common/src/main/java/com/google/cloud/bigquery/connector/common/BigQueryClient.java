@@ -544,6 +544,10 @@ public class BigQueryClient {
       jobConfiguration.setUseAvroLogicalTypes(true);
     }
 
+    if (!options.getDecimalTargetTypes().isEmpty()) {
+      jobConfiguration.setDecimalTargetTypes(options.getDecimalTargetTypes());
+    }
+
     if (!options.getLoadSchemaUpdateOptions().isEmpty()) {
       jobConfiguration.setSchemaUpdateOptions(options.getLoadSchemaUpdateOptions());
     }
@@ -598,6 +602,13 @@ public class BigQueryClient {
     }
   }
 
+  /** Creates the table with the given schema, only if it does not exist yet. */
+  public void createTableIfNeeded(TableId tableId, Schema bigQuerySchema) {
+    if (!tableExists(tableId)) {
+      createTable(tableId, bigQuerySchema);
+    }
+  }
+
   public interface ReadTableOptions {
     TableId tableId();
 
@@ -628,6 +639,8 @@ public class BigQueryClient {
     Optional<ImmutableList<String>> getClusteredFields();
 
     boolean isUseAvroLogicalTypes();
+
+    List<String> getDecimalTargetTypes();
 
     List<JobInfo.SchemaUpdateOption> getLoadSchemaUpdateOptions();
 

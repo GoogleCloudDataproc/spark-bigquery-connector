@@ -47,6 +47,7 @@ public class BigQueryScanBuilder
         SupportsQueryPushdown {
 
   private BigQueryDataSourceReaderContext ctx;
+  private InputPartition[] partitions;
 
   public BigQueryScanBuilder(BigQueryDataSourceReaderContext ctx) {
     this.ctx = ctx;
@@ -134,15 +135,21 @@ public class BigQueryScanBuilder
   public InputPartition[] planInputPartitions() {
     // As each result has another template type we cannot set this to the same variable and to share
     // code
-    if (ctx.enableBatchRead()) {
-      return ctx.planBatchInputPartitionContexts()
-          .map(inputPartitionContext -> new BigQueryInputPartition(inputPartitionContext))
-          .toArray(InputPartition[]::new);
-    } else {
-      return ctx.planInputPartitionContexts()
-          .map(inputPartitionContext -> new BigQueryInputPartition(inputPartitionContext))
-          .toArray(InputPartition[]::new);
+    if (partitions != null) {
+      return partitions;
     }
+    if (ctx.enableBatchRead()) {
+      partitions =
+          ctx.planBatchInputPartitionContexts()
+              .map(inputPartitionContext -> new BigQueryInputPartition(inputPartitionContext))
+              .toArray(InputPartition[]::new);
+    } else {
+      partitions =
+          ctx.planInputPartitionContexts()
+              .map(inputPartitionContext -> new BigQueryInputPartition(inputPartitionContext))
+              .toArray(InputPartition[]::new);
+    }
+    return partitions;
   }
 
   @Override
