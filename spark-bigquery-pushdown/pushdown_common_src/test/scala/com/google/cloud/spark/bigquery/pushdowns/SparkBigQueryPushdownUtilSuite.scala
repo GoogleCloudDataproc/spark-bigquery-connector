@@ -2,10 +2,10 @@ package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.pushdowns.TestConstants.{expressionFactory, schoolIdAttributeReference, schoolNameAttributeReference}
-import org.apache.spark.sql.catalyst.expressions.{Alias, Ascending, AttributeReference, EqualTo, ExprId, Literal, SortOrder}
-import org.apache.spark.sql.catalyst.plans.logical.{Filter, Limit, Project, Sort}
+import org.apache.spark.sql.catalyst.expressions.{Alias, Ascending, AttributeReference, Cast, EqualTo, ExprId, Literal, NamedExpression, SortOrder}
+import org.apache.spark.sql.catalyst.plans.logical.{Filter, Limit, LocalLimit, Project, Sort}
 import org.apache.spark.sql.execution.datasources.LogicalRelation
-import org.apache.spark.sql.types.{LongType, StructType}
+import org.apache.spark.sql.types.{FloatType, IntegerType, LongType, StringType, StructType}
 import org.mockito.Mockito.when
 import org.mockito.{Mock, MockitoAnnotations}
 import org.scalatest.BeforeAndAfter
@@ -93,5 +93,44 @@ class SparkBigQueryPushdownUtilSuite extends AnyFunSuite with BeforeAndAfter {
           logicalRelation)))
 
     assert(planWithProjectNodeRemoved.fastEquals(expectedPlan))
+  }
+
+  test("updateTheLogicalPlan") {
+    when(directBigQueryRelationMock.schema).thenReturn(StructType.apply(Seq()))
+    when(directBigQueryRelationMock.getTableName).thenReturn("MY_BIGQUERY_TABLE")
+
+    val logicalRelation = LogicalRelation(directBigQueryRelationMock)
+
+    val schoolIdAttributeReference: AttributeReference = AttributeReference.apply("SchoolID", LongType)(ExprId.apply(0L))
+    val filterPlan = Filter(EqualTo.apply(schoolIdAttributeReference, Literal(1234L)), logicalRelation)
+    val projectPlan = Project(Seq(expressionFactory.createAlias(schoolIdAttributeReference, schoolIdAttributeReference.name, ExprId.apply(1L), Seq.empty, None)), filterPlan)
+    val limitPlan = Limit(Literal(10), projectPlan)
+
+    val planWithProjectNodeRemoved = SparkBigQueryPushdownUtil.addProjectNodeToThePlan(limitPlan, projectPlan, expressionFactory)
+
+    assert(planWithProjectNodeRemoved.children.size == 1)
+    assert(planWithProjectNodeRemoved.children(0).isInstanceOf[LocalLimit])
+
+    // Root node of the plan is of type LocalLimit with 1 child, newly added ProjectPlan
+    val actualLimitPlan = planWithProjectNodeRemoved.children(0)
+    assert(actualLimitPlan.children.size == 1)
+    assert(actualLimitPlan.children(0).isInstanceOf[Project])
+
+    // The newly added Project plan has list of NamedExpressions which are cast to string
+    val addedProjectPlan = actualLimitPlan.children(0).asInstanceOf[Project]
+    addedProjectPlan.projectList.foreach(node => assert(node.isInstanceOf[Alias]))
+    addedProjectPlan.projectList.foreach(node => assert(node.asInstanceOf[Alias].child.isInstanceOf[Cast]))
+    assert(addedProjectPlan.children.size == 1)
+    assert(addedProjectPlan.children(0).isInstanceOf[Project])
+
+    // The updated project plan where cast is removed from the project list (if there is any)
+    val updatedProjectPlan = addedProjectPlan.children(0).asInstanceOf[Project]
+    updatedProjectPlan.projectList.foreach(node => assert(node.isInstanceOf[Alias]))
+    updatedProjectPlan.projectList.foreach(node => assert(node.asInstanceOf[Alias].child.isInstanceOf[AttributeReference]))
+    assert(updatedProjectPlan.children.size == 1)
+
+    // the rest all plan should be the same
+    val actualFilterPlan = updatedProjectPlan.children(0)
+    assert(actualFilterPlan.fastEquals(filterPlan))
   }
 }

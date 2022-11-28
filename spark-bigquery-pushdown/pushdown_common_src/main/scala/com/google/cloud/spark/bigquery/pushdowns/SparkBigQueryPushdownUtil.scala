@@ -6,9 +6,10 @@ import com.google.common.collect.ImmutableList
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, Expression, NamedExpression, UnsafeProjection}
-import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project, UnaryNode}
-import org.apache.spark.sql.types.{StructField, StructType}
+import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeReference, Cast, EmptyRow, ExprId, Expression, NamedExpression, UnsafeProjection}
+import org.apache.spark.sql.catalyst.plans.logical.{GlobalLimit, LogicalPlan, Project, SubqueryAlias, UnaryNode}
+import org.apache.spark.sql.execution.ProjectExec
+import org.apache.spark.sql.types.{Metadata, StringType, StructField, StructType}
 
 import scala.collection.JavaConverters._
 
@@ -139,5 +140,52 @@ object SparkBigQueryPushdownUtil {
     plan.transform({
       case node@Project(_, child) if node.fastEquals(nodeToRemove) => child
     })
+  }
+
+  /**
+   * remove Cast from the projectList of the passed in Project node
+   */
+  def removeCastFromProjectList(node: Project, expressionFactory: SparkExpressionFactory): Project = {
+    var projectList: Seq[NamedExpression] = Seq()
+    node.projectList.foreach{
+      case Alias(child, name) =>
+        child match {
+          case CastExpressionExtractor(expression) => projectList = projectList :+ expressionFactory.createAlias(expression.asInstanceOf[Cast].child, name, NamedExpression.newExprId, Seq.empty, None)
+          case expression => projectList = projectList :+ expressionFactory.createAlias(expression, name, NamedExpression.newExprId, Seq.empty, None)
+        }
+      case node => projectList = projectList :+ node
+    }
+    Project(projectList, node.child)
+  }
+
+  /**
+   * Create a ProjectList with only Cast's of the passed in node ProjectList
+   */
+  def createProjectListWithCastToString(node: Project, expressionFactory: SparkExpressionFactory): Seq[NamedExpression] = {
+    var projectList: Seq[NamedExpression] = Seq()
+    node.projectList.foreach(
+      child =>
+        projectList = projectList :+ expressionFactory.createAlias(Cast.apply(child.toAttribute, StringType), child.name, NamedExpression.newExprId, Seq.empty, None)
+    )
+    projectList
+  }
+
+  /**
+   * Returns a copy of the updated LogicalPlan by adding a project plan to the passed in node.
+   * Takes in the LogicalPlan and the Project Plan to update.
+   * Remove the cast, if there is any from the passed project plan
+   * and adds another Project Plan on top of the passed node to update
+   */
+  def addProjectNodeToThePlan(plan: LogicalPlan, nodeToUpdate: Project, expressionFactory: SparkExpressionFactory): LogicalPlan = {
+    plan.transform({
+      case node@Project(_, _) if node.fastEquals(nodeToUpdate) =>
+        val projectWithoutCast = removeCastFromProjectList(nodeToUpdate, expressionFactory)
+        val projectListWithCast = createProjectListWithCastToString(projectWithoutCast, expressionFactory)
+        Project(projectListWithCast, projectWithoutCast)
+    })
+  }
+
+  def isLimitTheChildToProjectNode(node: Project): Boolean = {
+    if (node.child.isInstanceOf[GlobalLimit]) true else false
   }
 }
