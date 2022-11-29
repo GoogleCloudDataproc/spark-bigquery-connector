@@ -129,8 +129,9 @@ abstract class BigQuerySQLQuery(
    * @return SQL statement for this query.
    */
   def getStatement(useAlias: Boolean = false): BigQuerySQLStatement = {
+    val selectedColumns = if(columns.isEmpty || columns.get.isEmpty) ConstantString("*").toStatement else columns.get
     val statement =
-      ConstantString("SELECT") + columns.getOrElse(ConstantString("*").toStatement) + "FROM" +
+      ConstantString("SELECT") + selectedColumns + "FROM" +
         sourceStatement + suffixStatement
 
     if (useAlias) {
