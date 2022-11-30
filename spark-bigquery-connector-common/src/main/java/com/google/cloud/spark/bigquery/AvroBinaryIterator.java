@@ -36,7 +36,7 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
 
   private static final Logger log = LoggerFactory.getLogger(AvroBinaryIterator.class);
   private final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer;
-  private int numberOfRowsParsed = 0;
+  private long numberOfRowsParsed = 0;
   GenericDatumReader reader;
   List<String> columnsInOrder;
   BinaryDecoder in;
@@ -71,6 +71,10 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
     try {
       // Avro iterator is used in both V1 and V2
       if (bigQueryStorageReadRowsTracer.isPresent() && in.isEnd()) {
+        // Avro parsing is done row by row as opposed to Arrow where whole batch is processed once.
+        // Due to this, row parse time could potentially include some application time.
+        // One way to address this is to update tracer interface to support recording per row
+        // parsing time, along with batch mode.
         bigQueryStorageReadRowsTracer.get().rowsParseFinished(numberOfRowsParsed);
       }
       return !in.isEnd();
@@ -82,11 +86,7 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
   @Override
   public InternalRow next() {
     try {
-      // TODO(nileshny) : confirm if this is correct way to get number of Avro rows parsed
-      try {
-        numberOfRowsParsed = Math.addExact(numberOfRowsParsed, 1);
-      } catch (ArithmeticException ae) {;
-      }
+      numberOfRowsParsed++;
       return SchemaConverters.convertToInternalRow(
           bqSchema, columnsInOrder, (GenericRecord) reader.read(null, in), userProvidedSchema);
     } catch (IOException e) {

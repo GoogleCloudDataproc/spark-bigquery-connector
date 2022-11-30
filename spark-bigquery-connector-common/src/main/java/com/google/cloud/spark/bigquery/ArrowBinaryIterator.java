@@ -109,9 +109,7 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
 
     ColumnarBatch batch = new ColumnarBatch(columns);
     batch.setNumRows(root.getRowCount());
-    if (bigQueryStorageReadRowsTracer.isPresent()) {
-      bigQueryStorageReadRowsTracer.get().rowsParseFinished(root.getRowCount());
-    }
+    bigQueryStorageReadRowsTracer.ifPresent(tracer -> tracer.rowsParseFinished(root.getRowCount()));
     return batch.rowIterator();
   }
 }
