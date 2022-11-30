@@ -80,170 +80,173 @@ The following Spark functions/operations are supported in Query Pushdown.
 
 ### Aggregation Functions
 
-| Spark function name | Spark SQL function name |
-|---------------------|-------------------------|
-| Average             | avg                     |
-| Corr                | corr                    |
-| CovPopulation       | covar_pop               |
-| CovSample           | covar_samp              |
-| Count               | count 	                 |
-| Max                 | max                     |
-| Min                 | min                     |
-| StddevPop           | stddev_pop              |
-| StddevSamp          | stddev_samp             |
-| Sum                 | sum                     |
-| VariancePop         | var_pop                 |
-| VarianceSamp        | var_samp                |
+| Spark function name | Spark SQL function name                                                             |
+|---------------------|-------------------------------------------------------------------------------------|
+| Average             | [avg](https://spark.apache.org/docs/latest/api/sql/index.html#avg)                  |
+| Corr                | [corr](https://spark.apache.org/docs/latest/api/sql/index.html#corr)                |
+| CovPopulation       | [covar_pop](https://spark.apache.org/docs/latest/api/sql/index.html#covar_pop)      |
+| CovSample           | [covar_samp](https://spark.apache.org/docs/latest/api/sql/index.html#covar_samp)    |
+| Count               | [count](https://spark.apache.org/docs/latest/api/sql/index.html#count) 	            |
+| Max                 | [max](https://spark.apache.org/docs/latest/api/sql/index.html#max)                  |
+| Min                 | [min](https://spark.apache.org/docs/latest/api/sql/index.html#min)                  |
+| StddevPop           | [stddev_pop](https://spark.apache.org/docs/latest/api/sql/index.html#stddev_pop)    |
+| StddevSamp          | [stddev_samp](https://spark.apache.org/docs/latest/api/sql/index.html#stddev_samp)  |
+| Sum                 | [sum](https://spark.apache.org/docs/latest/api/sql/index.html#sum)                  |
+| VariancePop         | [var_pop](https://spark.apache.org/docs/latest/api/sql/index.html#var_pop)          |
+| VarianceSamp        | [var_samp](https://spark.apache.org/docs/latest/api/sql/index.html#var_samp)        |
 
 ### Boolean Functions
 
-| Spark function name   | Spark SQL function name |
-|:----------------------|:------------------------|
-| And                   | and                     |
-| Between               | between                 |
-| Contains              | contains                |
-| EndsWith              | endswith                |
-| EqualNullSafe         | <=>                     |
-| EqualTo               | ==                      |
-| GreaterThan           | \>                      |
-| GreaterThanOrEqual    | \>=                     |
-| In                    | in                      |
-| IsNull                | isnull                  |
-| IsNotNull             | isnotnull               |
-| LessThan              | <                       |
-| LessThanOrEqual       | <=                      |
-| Not                   | !                       |
-| Or                    | or                      |
-| StartsWith            | startswith              |
-| NotEqual              | !=                      |
-| NotGreaterThan        | <                       |
-| NotGreaterThanOrEqual | <=                      |
-| NotLessThan           | \>                      |
-| NotLessThanOrEqual    | >=                      |
+| Spark function name   | Spark SQL function name                                                           |
+|:----------------------|:----------------------------------------------------------------------------------|
+| And                   | [and](https://spark.apache.org/docs/latest/api/sql/index.html#and)                |
+| Between               | [between](https://spark.apache.org/docs/latest/api/sql/index.html#between)        |
+| Contains              | [contains](https://spark.apache.org/docs/latest/api/sql/index.html#contains)      |
+| EndsWith              | [endswith](https://spark.apache.org/docs/latest/api/sql/index.html#endswith)      |
+| EqualNullSafe         | [<=>](https://spark.apache.org/docs/latest/api/sql/index.html#_10)                |
+| EqualTo               | [==](https://spark.apache.org/docs/latest/api/sql/index.html#_13)                 |
+| GreaterThan           | [\>](https://spark.apache.org/docs/latest/api/sql/index.html#_14)                 |
+| GreaterThanOrEqual    | [\>=](https://spark.apache.org/docs/latest/api/sql/index.html#_15)                |
+| In                    | [in](https://spark.apache.org/docs/latest/api/sql/index.html#in)                  |
+| IsNull                | [isnull](https://spark.apache.org/docs/latest/api/sql/index.html#isnull)          |
+| IsNotNull             | [isnotnull](https://spark.apache.org/docs/latest/api/sql/index.html#isnotnull)    |
+| LessThan              | [<](https://spark.apache.org/docs/latest/api/sql/index.html#_8)                   |
+| LessThanOrEqual       | [<=](https://spark.apache.org/docs/latest/api/sql/index.html#_9)                  |
+| Not                   | [!](https://spark.apache.org/docs/latest/api/sql/index.html#_1)                   |
+| Or                    | [or](https://spark.apache.org/docs/latest/api/sql/index.html#or)                  |
+| StartsWith            | [startswith](https://spark.apache.org/docs/latest/api/sql/index.html#startswith)  |
+| NotEqual              | [!=](https://spark.apache.org/docs/latest/api/sql/index.html#_2)                  |
+| NotGreaterThan        | [<](https://spark.apache.org/docs/latest/api/sql/index.html#_8)                   |
+| NotGreaterThanOrEqual | [<=](https://spark.apache.org/docs/latest/api/sql/index.html#_9)                  |
+| NotLessThan           | [\>](https://spark.apache.org/docs/latest/api/sql/index.html#_14)                 |
+| NotLessThanOrEqual    | [>=](https://spark.apache.org/docs/latest/api/sql/index.html#_15)                 |
 
 ### Mathematical Functions
 
-| Spark function name  | Spark SQL function name |
-|:---------------------|:------------------------|
-| ‘+’ (addition)       | +                       |
-| ‘-‘ (subtraction)    | -                       |
-| ‘*’(multiplication)  | *                       |
-| ‘/' (division)       | /                       |
-| ‘-‘ (unary negation) | -                       |
-| Abs                  | abs                     |
-| Acos                 | acos                    |
-| Asin                 | asin                    |
-| Atan                 | atan                    |
-| CheckOverflow        |                         |
-| Cos                  | cos                     |
-| Cosh                 | cosh                    |
-| Exp                  | exp                     |
-| Floor                | floor                   |
-| Greatest             | greatest                |
-| Least                | least                   |
-| Log                  | log                     |
-| Log10                | log10                   |
-| Pi                   | pi                      |
-| Pow                  | pow                     |
-| PromotePrecision     |                         |
-| Rand                 | rand                    |
-| Round                | round                   |
-| Sin                  | sin                     |
-| Sinh                 | sinh                    |
-| Sqrt                 | sqrt                    |
-| Tan                  | tan                     |
-| Tanh                 | tanh                    |
-| IsNan                | isnan                   |
-| SigNum               | signum                  |
+| Spark function name  | Spark SQL function name                                                      |
+|:---------------------|:-----------------------------------------------------------------------------|
+| ‘+’ (addition)       | [+](https://spark.apache.org/docs/latest/api/sql/index.html#_6)              |
+| ‘-‘ (subtraction)    | [-](https://spark.apache.org/docs/latest/api/sql/index.html#-)               |
+| ‘*’(multiplication)  | [*](https://spark.apache.org/docs/latest/api/sql/index.html#_5)              |
+| ‘/’ (division)       | [/](https://spark.apache.org/docs/latest/api/sql/index.html#_7)              |
+| ‘-‘ (unary negation) | -                                                                            |
+| Abs                  | [abs](https://spark.apache.org/docs/latest/api/sql/index.html#abs)           |
+| Acos                 | [acos](https://spark.apache.org/docs/latest/api/sql/index.html#asin)         |
+| Asin                 | [asin](https://spark.apache.org/docs/latest/api/sql/index.html#asin)         |
+| Atan                 | [atan](https://spark.apache.org/docs/latest/api/sql/index.html#atan)         |
+| CheckOverflow        |                                                                              |
+| Cos                  | [cos](https://spark.apache.org/docs/latest/api/sql/index.html#cos)           |
+| Cosh                 | [cosh](https://spark.apache.org/docs/latest/api/sql/index.html#cosh)         |
+| Exp                  | [exp](https://spark.apache.org/docs/latest/api/sql/index.html#exp)           |
+| Floor                | [floor](https://spark.apache.org/docs/latest/api/sql/index.html#floor)       |
+| Greatest             | [greatest](https://spark.apache.org/docs/latest/api/sql/index.html#greatest) |
+| Least                | [least](https://spark.apache.org/docs/latest/api/sql/index.html#least)       |
+| Log                  | [log](https://spark.apache.org/docs/latest/api/sql/index.html#log)           |
+| Log10                | [log10](https://spark.apache.org/docs/latest/api/sql/index.html#log10)       |
+| Pi                   | [pi](https://spark.apache.org/docs/latest/api/sql/index.html#pi)             |
+| Pow                  | [pow](https://spark.apache.org/docs/latest/api/sql/index.html#pow)           |
+| PromotePrecision     |                                                                              |
+| Rand                 | [rand](https://spark.apache.org/docs/latest/api/sql/index.html#rand)         |
+| Round                | [round](https://spark.apache.org/docs/latest/api/sql/index.html#round)       |
+| Sin                  | [sin](https://spark.apache.org/docs/latest/api/sql/index.html#sin)           |
+| Sinh                 | [sinh](https://spark.apache.org/docs/latest/api/sql/index.html#sinh)         |
+| Sqrt                 | [sqrt](https://spark.apache.org/docs/latest/api/sql/index.html#sqrt)         |
+| Tan                  | [tan](https://spark.apache.org/docs/latest/api/sql/index.html#tan)           |
+| Tanh                 | [tanh](https://spark.apache.org/docs/latest/api/sql/index.html#tanh)         |
+| IsNan                | [isnan](https://spark.apache.org/docs/latest/api/sql/index.html#isnan)       |
+| SigNum               | [signum](https://spark.apache.org/docs/latest/api/sql/index.html#signum)     |
 
 ### Miscellaneous Operators
 
-| Spark function name    | Spark SQL function name |
-|:-----------------------|:------------------------|
-| Alias (AS expressions) |                         |
-| BitwiseAnd             | bit_and, &              |
-| BitwiseNot             | ~                       |
-| BitwiseOr              | Bit_or,                 |
-| BitwiseXor             | Bit_xor, ^              |
-| CaseWhen               | case                    |
-| Cast(child, t, _)      | cast                    |
-| Coalesce               | coalesce                |
-| If                     | if                      |
-| IsNull                 | ifnull                  |
-| IsNotNull              | isnotnull               |
-| ScalarSubquery         |                         |
-| ShiftLeft              | shiftleft               |
-| ShiftRight             | shiftright              |
-| SortOrder              |                         |
-| UnscaledValue          |                         |
+| Spark function name    | Spark SQL function name                                                                                                                      |
+|:-----------------------|:---------------------------------------------------------------------------------------------------------------------------------------------|
+| Alias (AS expressions) |                                                                                                                                              |
+| BitwiseAnd             | [Bit_and](https://spark.apache.org/docs/latest/api/sql/index.html#bit_and) ,[&](https://spark.apache.org/docs/latest/api/sql/index.html#_4)  |
+| BitwiseNot             | [~](https://spark.apache.org/docs/latest/api/sql/index.html#_19)                                                                             |
+| BitwiseOr              | [Bit_or](https://spark.apache.org/docs/latest/api/sql/index.html#bit_or)                                                                     |
+| BitwiseXor             | [Bit_xor](https://spark.apache.org/docs/latest/api/sql/index.html#bit_xor), [^](https://spark.apache.org/docs/latest/api/sql/index.html#_16) |
+| CaseWhen               | [case](https://spark.apache.org/docs/latest/api/sql/index.html#case)                                                                         |
+| Cast(child, t, _)      | [cast](https://spark.apache.org/docs/latest/api/sql/index.html#cast)                                                                         |
+| Coalesce               | [coalesce](https://spark.apache.org/docs/latest/api/sql/index.html#coalesce)                                                                 |
+| If                     | [if](https://spark.apache.org/docs/latest/api/sql/index.html#if)                                                                             |
+| IsNull                 | [ifnull](https://spark.apache.org/docs/latest/api/sql/index.html#ifnull)                                                                     |
+| IsNotNull              | [isnotnull](https://spark.apache.org/docs/latest/api/sql/index.html#isnotnull)                                                               |
+| ScalarSubquery         |                                                                                                                                              |
+| ShiftLeft              | [shiftleft](https://spark.apache.org/docs/latest/api/sql/index.html#shiftleft)                                                               |
+| ShiftRight             | [shiftright](https://spark.apache.org/docs/latest/api/sql/index.html#shiftright)                                                             |
+| SortOrder              |                                                                                                                                              |
+| UnscaledValue          |                                                                                                                                              |
 
 ### String Functions
 
-| Spark function name | Spark SQL function name |
-|:--------------------|:------------------------|
-| Ascii               | ascii                   |
-| Concat(children)    | concat                  |
-| Contains            | contains                |
-| EndsWith            | endswith                |
-| Length              | length                  |
-| Like                | like                    |
-| Lower               | lower                   |
-| StartsWith          | startswith              |
-| StringLPad          | lpad                    |
-| StringRPad          | rpad                    |
-| StringTranslate     | translate               |
-| StringTrim          | trim                    |
-| StringTrimLeft      | ltrim                   |
-| StringTrimRight     | rtrim                   |
-| Substring           | Substring, substr       |
-| Upper               | upper                   |
-| StringInstr         | instr                   |
-| InitCap             | initcap                 |
-| SoundEx             | soundex                 |
-| RegExpExtract       | regexp_extract          |
-| RegExpReplace       | regexp_replace          |
-| FormatString        | format_string           |
-| FormatNumber        | format_number           |
-| Base64              | base64                  |
-| UnBase64            | unbase64                |
-| Upper               | upper                   |
+| Spark function name | Spark SQL function name                                                                                                                                  |
+|:--------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Ascii               | [ascii](https://spark.apache.org/docs/latest/api/sql/index.html#ascii)                                                                                   |
+| Concat(children)    | [concat](https://spark.apache.org/docs/latest/api/sql/index.html#concat)                                                                                 |
+| Contains            | [contains](https://spark.apache.org/docs/latest/api/sql/index.html#contains)                                                                             |
+| EndsWith            | [endswith](https://spark.apache.org/docs/latest/api/sql/index.html#endswith)                                                                             |
+| Length              | [length](https://spark.apache.org/docs/latest/api/sql/index.html#length)                                                                                 |
+| Like                | [like](https://spark.apache.org/docs/latest/api/sql/index.html#like)                                                                                     |
+| Lower               | [lower](https://spark.apache.org/docs/latest/api/sql/index.html#lower)                                                                                   |
+| StartsWith          | [startswith](https://spark.apache.org/docs/latest/api/sql/index.html#startswith)                                                                         |
+| StringLPad          | [lpad](https://spark.apache.org/docs/latest/api/sql/index.html#lpad)                                                                                     |
+| StringRPad          | [rpad](https://spark.apache.org/docs/latest/api/sql/index.html#rpad)                                                                                     |
+| StringTranslate     | [translate](https://spark.apache.org/docs/latest/api/sql/index.html#translate)                                                                           |
+| StringTrim          | [trim](https://spark.apache.org/docs/latest/api/sql/index.html#trim)                                                                                     |
+| StringTrimLeft      | [ltrim](https://spark.apache.org/docs/latest/api/sql/index.html#ltrim)                                                                                   |
+| StringTrimRight     | [rtrim](https://spark.apache.org/docs/latest/api/sql/index.html#rtrim)                                                                                   |
+| Substring           | [Substring](https://spark.apache.org/docs/latest/api/sql/index.html#substring), [substr](https://spark.apache.org/docs/latest/api/sql/index.html#substr) |
+| Upper               | [upper](https://spark.apache.org/docs/latest/api/sql/index.html#upper)                                                                                   |
+| StringInstr         | [instr](https://spark.apache.org/docs/latest/api/sql/index.html#instr)                                                                                   |
+| InitCap             | [initcap](https://spark.apache.org/docs/latest/api/sql/index.html#initcap)                                                                               |
+| SoundEx             | [soundex](https://spark.apache.org/docs/latest/api/sql/index.html#soundex)                                                                               |
+| RegExpExtract       | [regexp_extract](https://spark.apache.org/docs/latest/api/sql/index.html#regexp_extract)                                                                 |
+| RegExpReplace       | [regexp_replace](https://spark.apache.org/docs/latest/api/sql/index.html#regexp_replace)                                                                 |
+| FormatString        | [format_string](https://spark.apache.org/docs/latest/api/sql/index.html#format_string)                                                                   |
+| FormatNumber        | [format_number](https://spark.apache.org/docs/latest/api/sql/index.html#format_number)                                                                   |
+| Base64              | [base64](https://spark.apache.org/docs/latest/api/sql/index.html#base64)                                                                                 |
+| UnBase64            | [unbase64](https://spark.apache.org/docs/latest/api/sql/index.html#unbase64)                                                                             |
+| Upper               | [upper](https://spark.apache.org/docs/latest/api/sql/index.html#upper)                                                                                   |
+
 
 #### Date Functions
 
-| Spark function name | Spark SQL function name |
-|:--------------------|:------------------------|
-| DateAdd             | date_add                |
-| DateSub             | date_sub                |
-| Month               | month                   |
-| Quarter             | quarter                 |
-| DateTrunc           | date_trunc              |
-| Year                | year                    |
+| Spark function name | Spark SQL function name                                                          |
+|:--------------------|:---------------------------------------------------------------------------------|
+| DateAdd             | [date_add](https://spark.apache.org/docs/latest/api/sql/index.html#date_add)     |
+| DateSub             | [date_sub](https://spark.apache.org/docs/latest/api/sql/index.html#date_sub)     |
+| Month               | [month](https://spark.apache.org/docs/latest/api/sql/index.html#month)           |
+| Quarter             | [quarter](https://spark.apache.org/docs/latest/api/sql/index.html#quarter)       |
+| DateTrunc           | [date_trunc](https://spark.apache.org/docs/latest/api/sql/index.html#date_trunc) |
+| Year                | [year](https://spark.apache.org/docs/latest/api/sql/index.html#year)             |
+
 
 ### Window Functions
 
-| Spark function name | Spark SQL function name |
-|:--------------------|:------------------------|
-| DenseRank           | dense_rank              |
-| Rank                | rank                    |
-| RowNumber           | row_number              |
-| PercentRank         | percent_rank            |
+| Spark function name | Spark SQL function name                                                              |
+|:--------------------|:-------------------------------------------------------------------------------------|
+| DenseRank           | [dense_rank](https://spark.apache.org/docs/latest/api/sql/index.html#dense_rank)     |
+| Rank                | [rank](https://spark.apache.org/docs/latest/api/sql/index.html#rank)                 |
+| RowNumber           | [row_number](https://spark.apache.org/docs/latest/api/sql/index.html#row_number)     |
+| PercentRank         | [percent_rank](https://spark.apache.org/docs/latest/api/sql/index.html#percent_rank) |
+
 
 ### Relational Operators
 
-| Spark function name                                                        | Spark SQL function name      |
-|:---------------------------------------------------------------------------|:-----------------------------|
-| Aggregate functions and group-by clauses                                   | GROUP BY clause              |
-| Distinct                                                                   | DISTINCT clause              |
-| Exists                                                                     | EXISTS clause                |
-| Filters                                                                    | WHERE clause                 |
-| In/InSet                                                                   | IN clause                    |
-| Having                                                                     | HAVING clause                |
-| Joins (Inner, LeftOuter, RightOuter, FullOuter, Cross, LeftSemi, LeftAnti) | JOIN clause                  |
-| Limits                                                                     | LIMIT clause                 |
-| Projections                                                                | SELECT clause                |
-| Sorts (ORDER BY)                                                           | ORDER BY and SORT BY clauses |
-| Union and Union All                                                        | UNION and UNION ALL clauses  |
-| Window functions and Windowing clauses                                     | WINDOW clause                |
+| Spark function name                                                        | Spark SQL function name                                                                                                                                                                 |
+|:---------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Aggregate functions and group-by clauses                                   | [GROUP BY clause](https://spark.apache.org/docs/3.3.0/sql-ref-syntax-qry-select-groupby.html)                                                                                           |
+| Distinct                                                                   | [DISTINCT clause](https://spark.apache.org/docs/3.3.0/sql-ref-null-semantics.html#innot-in-subquery-)                                                                                   |
+| Exists                                                                     | [EXISTS clause](https://spark.apache.org/docs/3.3.0/sql-ref-null-semantics.html#innot-in-subquery-)                                                                                     |
+| Filters                                                                    | [WHERE clause](https://spark.apache.org/docs/3.3.0/sql-ref-syntax-qry-select-where.html)                                                                                                |
+| In/InSet                                                                   | [IN clause](https://spark.apache.org/docs/3.3.0/sql-ref-null-semantics.html#innot-in-subquery-)                                                                                         |
+| Having                                                                     | [HAVING clause](https://spark.apache.org/docs/3.3.0/sql-ref-syntax-qry-select-having.html)                                                                                              |
+| Joins (Inner, LeftOuter, RightOuter, FullOuter, Cross, LeftSemi, LeftAnti) | [JOIN clause](https://spark.apache.org/docs/3.3.0/sql-ref-syntax-qry-select-join.html#content)                                                                                          |
+| Limits                                                                     | [LIMIT clause](https://spark.apache.org/docs/3.3.0/sql-ref-syntax-qry-select-limit.html)                                                                                                |
+| Projections                                                                | [SELECT clause](https://spark.apache.org/docs/3.3.0/sql-ref-syntax-qry-select.html)                                                                                                     |
+| Sorts (ORDER BY)                                                           | [ORDER BY](https://spark.apache.org/docs/3.3.0/sql-ref-syntax-qry-select-orderby.html) and [SORT BY](https://spark.apache.org/docs/3.3.0/sql-ref-syntax-qry-select-sortby.html) clauses |
+| Union and Union All                                                        | [UNION and UNION ALL clauses](https://spark.apache.org/docs/3.3.0/sql-ref-syntax-qry-select-setops.html#union)                                                                          |
+| Window functions and Windowing clauses                                     | [WINDOW clause](https://spark.apache.org/docs/3.3.0/sql-ref-syntax-qry-select-window.html#content)                                                                                      |
 
 
 ## Caveats/Limitations
