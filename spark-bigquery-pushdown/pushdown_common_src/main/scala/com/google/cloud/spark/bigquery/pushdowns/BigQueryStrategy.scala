@@ -3,10 +3,11 @@ package com.google.cloud.spark.bigquery.pushdowns
 import com.google.cloud.bigquery.connector.common.{BigQueryPushdownException, BigQueryPushdownUnsupportedException}
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil.isDataFrameShowMethodInStackTrace
 import com.google.cloud.spark.bigquery.direct.{BigQueryRDDFactory, DirectBigQueryRelation}
-import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.{convertExpressionToNamedExpression, removeProjectNodeFromPlan}
+import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.{convertExpressionToNamedExpression, removeProjectNodeFromPlan, addProjectNodeToThePlan, isLimitTheChildToProjectNode}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Strategy
 import org.apache.spark.sql.catalyst.analysis.NamedRelation
+import org.apache.spark.sql.catalyst.expressions.NamedExpression.unapply
 import org.apache.spark.sql.catalyst.expressions.{Alias, Cast, NamedExpression}
 import org.apache.spark.sql.catalyst.plans._
 import org.apache.spark.sql.catalyst.plans.logical._
@@ -72,7 +73,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
   }
 
   def generateSparkPlanFromLogicalPlan(plan: LogicalPlan): Seq[SparkPlan] = {
-    val cleanedPlan = cleanUpLogicalPlan(plan)
+    var cleanedPlan = cleanUpLogicalPlan(plan)
 
     // We have to handle the case where df.show() was called by an end user
     // differently because Spark can insert a Project node on top of the
@@ -80,7 +81,7 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
     if (isDataFrameShowMethodInStackTrace) {
 
       // We first get the project node that has been added by Spark for df.show()
-      val projectNodeAddedBySpark = getTopMostProjectNodeWithAliasedCasts(cleanedPlan)
+      var projectNodeAddedBySpark = getTopMostProjectNodeWithAliasedCasts(cleanedPlan)
 
       // If the Project node exists, we first create a BigQueryPlan after
       // removing the extra Project node and then create a physical Project plan
@@ -88,6 +89,16 @@ abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, e
       // Project node if the selected(projected) columns are all of type string.
       // In such a case, we don't have to return a ProjectExec SparkPlan
       if (projectNodeAddedBySpark.isDefined) {
+        if(!isLimitTheChildToProjectNode(projectNodeAddedBySpark.get)) {
+          // If limit is not the child to the Project node in case of show(),
+          // spark adds cast to the existing Project node instead of adding another Project node as happening above.
+          // Found this issue in Query 9 of TPCDS where query doesn't have limit and the Project has multiple ScalarSubQueries.
+          // To handle this case, we update the project node by removing the casts and then add an additional Project Node as parent to that node
+          // which has the cast to all the expressions in project list
+          // and do the same as above.
+          cleanedPlan = addProjectNodeToThePlan(cleanedPlan, projectNodeAddedBySpark.get, expressionFactory)
+          projectNodeAddedBySpark = getTopMostProjectNodeWithAliasedCasts(cleanedPlan)
+        }
         return Seq(generateProjectPlanFromLogicalPlan(cleanedPlan, projectNodeAddedBySpark.get))
       }
     }
