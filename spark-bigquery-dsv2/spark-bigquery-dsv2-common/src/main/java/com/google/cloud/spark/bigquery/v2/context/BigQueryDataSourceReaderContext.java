@@ -356,6 +356,10 @@ public class BigQueryDataSourceReaderContext {
     return BigQueryUtil.friendlyTableName(tableId);
   }
 
+  public TableId getTableId() {
+    return tableId;
+  }
+
   public BigQueryRDDFactory getBigQueryRddFactory() {
     return this.bigQueryRDDFactory;
   }
