@@ -27,6 +27,8 @@ import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.storage.v1.ReadSession;
+import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
 import com.google.common.collect.HashMultimap;
@@ -240,6 +242,20 @@ public class BigQueryUtil {
     return fieldListEquals(s1.getFields(), s2.getFields(), enableModeCheckForSchemaFields);
   }
 
+  /**
+   * Create a list of read stream names of given read session.
+   *
+   * @param readSession BQ read session handle
+   * @return list of stream names, empty if read session is null
+   */
+  public static List<String> getStreamNames(ReadSession readSession) {
+    return readSession == null
+        ? new ArrayList<>()
+        : readSession.getStreamsList().stream()
+            .map(ReadStream::getName)
+            // This formulation is used to guarantee a serializable list.
+            .collect(Collectors.toCollection(ArrayList::new));
+  }
   // We need this method as the BigQuery API may leave the mode field as null in case of NULLABLE
   @VisibleForTesting
   static boolean fieldEquals(Field f1, Field f2, boolean enableModeCheckForSchemaFields) {

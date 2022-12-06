@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.protobuf.ByteString;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -34,6 +35,8 @@ import org.slf4j.LoggerFactory;
 public class AvroBinaryIterator implements Iterator<InternalRow> {
 
   private static final Logger log = LoggerFactory.getLogger(AvroBinaryIterator.class);
+  private final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer;
+  private long numberOfRowsParsed = 0;
   GenericDatumReader reader;
   List<String> columnsInOrder;
   BinaryDecoder in;
@@ -53,17 +56,27 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
       List<String> columnsInOrder,
       org.apache.avro.Schema schema,
       ByteString rowsInBytes,
-      Optional<StructType> userProvidedSchema) {
+      Optional<StructType> userProvidedSchema,
+      Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
     reader = new GenericDatumReader<GenericRecord>(schema);
     this.bqSchema = bqSchema;
     this.columnsInOrder = columnsInOrder;
     in = new DecoderFactory().binaryDecoder(rowsInBytes.toByteArray(), null);
     this.userProvidedSchema = userProvidedSchema;
+    this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
   }
 
   @Override
   public boolean hasNext() {
     try {
+      // Avro iterator is used in both V1 and V2
+      if (bigQueryStorageReadRowsTracer.isPresent() && in.isEnd()) {
+        // Avro parsing is done row by row as opposed to Arrow where whole batch is processed once.
+        // Due to this, row parse time could potentially include some application time.
+        // One way to address this is to update tracer interface to support recording per row
+        // parsing time, along with batch mode.
+        bigQueryStorageReadRowsTracer.get().rowsParseFinished(numberOfRowsParsed);
+      }
       return !in.isEnd();
     } catch (IOException e) {
       throw new UncheckedIOException(e);
@@ -73,6 +86,7 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
   @Override
   public InternalRow next() {
     try {
+      numberOfRowsParsed++;
       return SchemaConverters.convertToInternalRow(
           bqSchema, columnsInOrder, (GenericRecord) reader.read(null, in), userProvidedSchema);
     } catch (IOException e) {

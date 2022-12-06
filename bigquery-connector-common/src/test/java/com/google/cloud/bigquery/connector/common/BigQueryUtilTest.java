@@ -25,6 +25,10 @@ import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.storage.v1.ReadSession;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
+import com.google.cloud.bigquery.storage.v1.ReadStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -275,5 +279,32 @@ public class BigQueryUtilTest {
     final Object notSerializable = new Object();
     assertThrows(
         IllegalArgumentException.class, () -> BigQueryUtil.verifySerialization(notSerializable));
+  }
+
+  @Test
+  public void testGetStreamNames() {
+    List<String> streamNames =
+        BigQueryUtil.getStreamNames(
+            ReadSession.newBuilder().addStreams(ReadStream.newBuilder().setName("0")).build());
+    assertThat(streamNames).isEqualTo(Arrays.asList("0"));
+    streamNames =
+        BigQueryUtil.getStreamNames(
+            ReadSession.newBuilder()
+                .addStreams(ReadStream.newBuilder().setName("0"))
+                .addStreams(ReadStream.newBuilder().setName("1"))
+                .build());
+    assertThat(streamNames).hasSize(2);
+    assertThat(streamNames).containsAnyIn(Arrays.asList("0", "1"));
+  }
+
+  @Test
+  public void testEmptyGetStreamNames() {
+    TableReadOptions tableReadOptions = TableReadOptions.newBuilder().build();
+    List<String> streamNames =
+        BigQueryUtil.getStreamNames(
+            ReadSession.newBuilder().setName("abc").setReadOptions(tableReadOptions).build());
+    assertThat(streamNames).hasSize(0);
+    streamNames = BigQueryUtil.getStreamNames(null);
+    assertThat(streamNames).hasSize(0);
   }
 }

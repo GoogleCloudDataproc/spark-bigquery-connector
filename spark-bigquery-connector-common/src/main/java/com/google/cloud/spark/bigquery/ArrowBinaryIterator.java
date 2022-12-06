@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.connector.common.ArrowReaderIterator;
 import com.google.cloud.bigquery.connector.common.ArrowUtil;
+import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 import java.io.ByteArrayInputStream;
@@ -41,6 +42,7 @@ import org.apache.spark.sql.vectorized.ColumnarBatch;
 public class ArrowBinaryIterator implements Iterator<InternalRow> {
 
   private static long maxAllocation = Long.MAX_VALUE;
+  private final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer;
   ArrowReaderIterator arrowReaderIterator;
   Iterator<InternalRow> currentIterator;
   List<String> columnsInOrder;
@@ -50,7 +52,8 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
       List<String> columnsInOrder,
       ByteString schema,
       ByteString rowsInBytes,
-      Optional<StructType> userProvidedSchema) {
+      Optional<StructType> userProvidedSchema,
+      Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
     BufferAllocator allocator =
         ArrowUtil.newRootAllocator(maxAllocation)
             .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);
@@ -73,6 +76,8 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
     this.userProvidedFieldMap =
         userProvidedFieldList.stream()
             .collect(Collectors.toMap(StructField::name, Function.identity()));
+
+    this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
   }
 
   @Override
@@ -104,6 +109,7 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
 
     ColumnarBatch batch = new ColumnarBatch(columns);
     batch.setNumRows(root.getRowCount());
+    bigQueryStorageReadRowsTracer.ifPresent(tracer -> tracer.rowsParseFinished(root.getRowCount()));
     return batch.rowIterator();
   }
 }

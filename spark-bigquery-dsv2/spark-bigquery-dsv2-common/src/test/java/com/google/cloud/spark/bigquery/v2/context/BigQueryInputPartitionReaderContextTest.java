@@ -99,6 +99,7 @@ public class BigQueryInputPartitionReaderContextTest {
             ALL_TYPES_TABLE_BIGQUERY_SCHEMA,
             ALL_TYPES_TABLE_FIELDS,
             ALL_TYPES_TABLE_AVRO_RAW_SCHEMA,
+            Optional.empty(),
             Optional.empty());
 
     BigQueryInputPartitionReaderContext reader =

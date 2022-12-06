@@ -21,6 +21,7 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import java.util.Iterator;
+import java.util.Optional;
 import org.apache.spark.sql.catalyst.InternalRow;
 
 public class BigQueryInputPartitionContext implements InputPartitionContext<InternalRow> {
@@ -46,7 +47,7 @@ public class BigQueryInputPartitionContext implements InputPartitionContext<Inte
     ReadRowsRequest.Builder readRowsRequest =
         ReadRowsRequest.newBuilder().setReadStream(streamName);
     ReadRowsHelper readRowsHelper =
-        new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequest, options);
+        new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequest, options, Optional.empty());
     Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
     return new BigQueryInputPartitionReaderContext(readRowsResponses, converter, readRowsHelper);
   }

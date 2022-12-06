@@ -25,6 +25,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
+import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
@@ -62,16 +63,19 @@ public class BigQueryRDDFactory {
   private final BigQueryClient bigQueryClient;
   private final SparkBigQueryConfig options;
   private final BigQueryClientFactory bigQueryReadClientFactory;
+  private final BigQueryTracerFactory bigQueryTracerFactory;
   private final SQLContext sqlContext;
 
   public BigQueryRDDFactory(
       BigQueryClient bigQueryClient,
       BigQueryClientFactory bigQueryReadClientFactory,
+      BigQueryTracerFactory bigQueryTracerFactory,
       SparkBigQueryConfig options,
       SQLContext sqlContext) {
     this.bigQueryClient = bigQueryClient;
     this.options = options;
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+    this.bigQueryTracerFactory = bigQueryTracerFactory;
     this.sqlContext = sqlContext;
   }
 
@@ -162,7 +166,8 @@ public class BigQueryRDDFactory {
         prunedSchema,
         requiredColumns,
         options,
-        bigQueryReadClientFactory);
+        bigQueryReadClientFactory,
+        bigQueryTracerFactory);
   }
 
   // Moved from BigQueryRDD.scanTable
@@ -174,7 +179,8 @@ public class BigQueryRDDFactory {
       Schema bqSchema,
       String[] columnsInOrder,
       SparkBigQueryConfig options,
-      BigQueryClientFactory bigQueryClientFactory) {
+      BigQueryClientFactory bigQueryClientFactory,
+      BigQueryTracerFactory bigQueryTracerFactory) {
     // Unfortunately we need to use reflection here due to a cyclic dependency issue, and the fact
     // that RDD constructor dependencies are different between Scala 2.12 and Scala 2.13. In Scala
     // 2.13 `scala.collection.Seq` is mapped to `scala.collection.immutable.Seq` and this is why we
@@ -201,7 +207,8 @@ public class BigQueryRDDFactory {
               Schema.class,
               String[].class,
               SparkBigQueryConfig.class,
-              BigQueryClientFactory.class);
+              BigQueryClientFactory.class,
+              BigQueryTracerFactory.class);
 
       RDD<InternalRow> bigQueryRDD =
           constructor.newInstance(
@@ -211,7 +218,8 @@ public class BigQueryRDDFactory {
               bqSchema,
               columnsInOrder,
               options,
-              bigQueryClientFactory);
+              bigQueryClientFactory,
+              bigQueryTracerFactory);
 
       return bigQueryRDD;
     } catch (Exception e) {

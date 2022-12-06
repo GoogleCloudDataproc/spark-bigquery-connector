@@ -15,8 +15,15 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import javax.inject.Inject;
+
 public class LoggingBigQueryTracerFactory implements BigQueryTracerFactory {
   private final int logIntervalPowerOf2;
+
+  @Inject
+  public LoggingBigQueryTracerFactory() {
+    this(/*Log every 2^14 batches*/ 14);
+  }
 
   LoggingBigQueryTracerFactory(int logIntervalPowerOf2) {
     this.logIntervalPowerOf2 = logIntervalPowerOf2;

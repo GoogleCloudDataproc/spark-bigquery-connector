@@ -21,6 +21,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.spark.bigquery.BigQueryRelation;
@@ -57,6 +58,7 @@ public class DirectBigQueryRelation extends BigQueryRelation
   private final TableInfo table;
   private final BigQueryClient bigQueryClient;
   private final BigQueryClientFactory bigQueryReadClientFactory;
+  private final BigQueryTracerFactory bigQueryTracerFactory;
   private final SQLContext sqlContext;
   private final TableDefinition defaultTableDefinition;
   private final BigQueryRDDFactory bigQueryRDDFactory;
@@ -69,16 +71,19 @@ public class DirectBigQueryRelation extends BigQueryRelation
       TableInfo table,
       BigQueryClient bigQueryClient,
       BigQueryClientFactory bigQueryReadClientFactory,
+      BigQueryTracerFactory bigQueryTracerFactory,
       SQLContext sqlContext) {
     super(options, table, sqlContext);
     this.options = options;
     this.table = table;
     this.bigQueryClient = bigQueryClient;
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+    this.bigQueryTracerFactory = bigQueryTracerFactory;
     this.sqlContext = sqlContext;
     this.defaultTableDefinition = table.getDefinition();
     this.bigQueryRDDFactory =
-        new BigQueryRDDFactory(bigQueryClient, bigQueryReadClientFactory, options, sqlContext);
+        new BigQueryRDDFactory(
+            bigQueryClient, bigQueryReadClientFactory, bigQueryTracerFactory, options, sqlContext);
   }
 
   @Override
