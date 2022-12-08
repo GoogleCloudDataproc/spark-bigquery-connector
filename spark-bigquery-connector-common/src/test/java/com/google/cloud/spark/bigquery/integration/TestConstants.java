@@ -140,6 +140,7 @@ public class TestConstants {
               new StructField("tm", DataTypes.LongType, true, Metadata.empty()),
               new StructField("binary", DataTypes.BinaryType, true, Metadata.empty()),
               new StructField("float", DataTypes.DoubleType, true, Metadata.empty()),
+              new StructField("json_f", DataTypes.StringType, true, Metadata.empty()),
               new StructField(
                   "nums",
                   new StructType(
@@ -186,6 +187,7 @@ public class TestConstants {
               "tm time,",
               "binary bytes,",
               "float float64,",
+              "json_f json,",
               "nums struct<min numeric, max numeric, pi numeric, big_pi numeric>,",
               //          "big_numeric_nums struct<min bignumeric, max bignumeric>,",
               "int_arr array<int64>,",
@@ -203,6 +205,7 @@ public class TestConstants {
               "cast(\"01:23:45.678901\" as time) as tm,",
               "cast(\"bytes\" as bytes) as binary,",
               "4.2 as float,",
+              "JSON \'{\"json\":\"true\"}\' as json_f,",
               "struct(",
               "  cast(\"-99999999999999999999999999999.999999999\" as numeric) as min,",
               "  cast(\"99999999999999999999999999999.999999999\" as numeric) as max,",
@@ -219,7 +222,7 @@ public class TestConstants {
               "[(select as struct 1)] as int_struct_arr")
           .collect(Collectors.joining("\n"));
 
-  public static int ALL_TYPES_TABLE_SIZE = 160;
+  public static int ALL_TYPES_TABLE_SIZE = 166;
 
   static String STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE =
       Stream.of(
@@ -286,6 +289,7 @@ public class TestConstants {
           lit(5025678901L),
           lit("bytes").cast("BINARY"),
           lit(4.2),
+          lit("{\"json\":\"true\"}"),
           struct(
               lit("-99999999999999999999999999999.999999999").cast(BQ_NUMERIC),
               lit("99999999999999999999999999999.999999999").cast(BQ_NUMERIC),
@@ -334,6 +338,7 @@ public class TestConstants {
           .add(new StructField("timestamp", TimestampType, true, Metadata.empty()))
           .add(new StructField("binary", BinaryType, true, Metadata.empty()))
           .add(new StructField("float", DoubleType, true, Metadata.empty()))
+          .add(new StructField("json_f", StringType, true, Metadata.empty()))
           .add(
               new StructField(
                   "nums",
@@ -392,6 +397,7 @@ public class TestConstants {
           .add(new StructField("timestamp", TimestampType, true, Metadata.empty()))
           .add(new StructField("binary", BinaryType, true, Metadata.empty()))
           .add(new StructField("float", DoubleType, true, Metadata.empty()))
+          .add(new StructField("json_f", StringType, true, Metadata.empty()))
           .add(
               new StructField(
                   "nums",
@@ -443,6 +449,7 @@ public class TestConstants {
               98, 121, 116, 101, 115
             }, // byte[] representation of string "bytes" -> stored in BQ as Ynl0ZXM=
             1.2345,
+            "{\"json\":\"true\"}",
             RowFactory.create(
                 Decimal.apply(
                     new BigDecimal(
