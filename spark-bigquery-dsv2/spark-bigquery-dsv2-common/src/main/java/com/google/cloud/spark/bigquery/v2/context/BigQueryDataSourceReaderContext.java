@@ -17,7 +17,6 @@ package com.google.cloud.spark.bigquery.v2.context;
 
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
@@ -36,6 +35,7 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -95,7 +96,15 @@ public class BigQueryDataSourceReaderContext {
   private Filter[] pushedFilters = new Filter[] {};
   private Map<String, StructField> fields;
   private Optional<ImmutableList<String>> selectedFields = Optional.empty();
-  private Optional<ReadSessionResponse> readSessionResponse = Optional.empty();
+  // Lazy loading using Supplier will ensure that createReadSession is called only once and
+  // readSessionResponse is cached.
+  // Purpose is to create read session either in estimateStatistics or planInputPartitionContexts,
+  // whichever is called first.
+  // In Spark 3.1 connector, "estimateStatistics" is called before
+  // "planBatchInputPartitionContexts" or
+  // "planInputPartitionContexts". We will use this to get table statistics in estimateStatistics.
+  private Supplier<ReadSessionResponse> readSessionResponse =
+      Suppliers.memoize(this::createReadSession);
 
   public BigQueryDataSourceReaderContext(
       TableInfo table,
@@ -155,7 +164,6 @@ public class BigQueryDataSourceReaderContext {
       return createEmptyProjectionPartitions();
     }
 
-    createReadSession();
     ReadSession readSession = readSessionResponse.get().getReadSession();
 
     return readSession.getStreamsList().stream()
@@ -183,7 +191,6 @@ public class BigQueryDataSourceReaderContext {
       throw new IllegalStateException("Batch reads should not be enabled");
     }
 
-    createReadSession();
     ReadSession readSession = readSessionResponse.get().getReadSession();
 
     ImmutableList<String> tempSelectedFields = selectedFields.get();
@@ -253,33 +260,20 @@ public class BigQueryDataSourceReaderContext {
         "No known converted for " + readSessionCreatorConfig.getReadDataFormat());
   }
 
-  // Threadsafe method to create read session once.
-  // We need to create read session in or before estimateStatistics,
-  // so that metadata from read session response can be saved as table statistics and
-  // same is returned to Spark.
-  // "estimateStatistics" is called before "planBatchInputPartitionContexts" or
-  // "planInputPartitionContexts" in Java Spark 3.1 connector.
-  // But Java Spark 2.4 connector does not have same calling order.
-  // As this code is common for Spark 3.1 and 2.4, making this method "synchronized" to make sure
-  // readSessionResponse is created only
-  // once.
-  private synchronized void createReadSession() {
-    if (readSessionResponse.isPresent()) {
-      return;
-    }
+  private ReadSessionResponse createReadSession() {
     selectedFields =
         Optional.of(
             schema
                 .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
                 .orElse(ImmutableList.copyOf(fields.keySet())));
     Optional<String> filter = getCombinedFilter();
-    readSessionResponse =
-        Optional.of(readSessionCreator.create(tableId, selectedFields.get(), filter));
+    ReadSessionResponse response = readSessionCreator.create(tableId, selectedFields.get(), filter);
     logger.info(
         "Created read session for {}: {} for application id: {}",
         tableId.toString(),
-        readSessionResponse.get().getReadSession().getName(),
+        response.getReadSession().getName(),
         applicationId);
+    return response;
   }
 
   Stream<InputPartitionContext<InternalRow>> createEmptyProjectionPartitions() {
@@ -324,25 +318,33 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public StatisticsContext estimateStatistics() {
-    createReadSession();
     if (table.getDefinition().getType() == TableDefinition.Type.TABLE) {
-      // Create table def with stats from read session response
-      StandardTableDefinition tableDefinition =
-          StandardTableDefinition.newBuilder()
-              .setSchema(table.getDefinition().getSchema())
-              .setType(table.getDefinition().getType())
-              .setNumBytes(
-                  readSessionResponse.get().getReadSession().getEstimatedTotalBytesScanned())
-              // TODO(nileshny) : verify if setting this field is necessary and following is right
-              // way
-              .setNumLongTermBytes(
-                  readSessionResponse.get().getReadSession().getEstimatedTotalBytesScanned())
-              // TODO(nileshny) : Uncomment following when num of rows are available in proto:
-              // https://github.com/googleapis/java-bigquerystorage/blob/main/proto-google-cloud-bigquerystorage-v1/src/main/proto/google/cloud/bigquery/storage/v1/stream.proto
-              // .setNumRows(readSessionResponse.get().getReadSession().getEstimatedNumberRows())
-              .setNumRows(table.getNumRows().longValue())
-              .build();
-      return new StandardTableStatisticsContext(tableDefinition);
+      // Create StatisticsContext with infromation from read session response
+      final long tableSizeInBytes =
+          readSessionResponse.get().getReadSession().getEstimatedTotalBytesScanned();
+      // TODO(nileshny) : Uncomment following when num of rows are available in proto:
+      // https://github.com/googleapis/java-bigquerystorage/blob/main/proto-google-cloud-bigquerystorage-v1/src/main/proto/google/cloud/bigquery/storage/v1/stream.proto
+      // .setNumRows(readSessionResponse.get().getReadSession().getEstimatedNumberRows())
+      // OptionalLong numRowsInTable =
+      // readSessionResponse.get().getReadSession().getEstimatedNumberRows();
+      // TODO(nileshny) : Remove following line after getEstimatedNumberRows change is avaialble in
+      // repo.
+      final long numRowsInTable = table.getNumRows().longValue();
+
+      StatisticsContext tableStatisticsContext =
+          new StatisticsContext() {
+            @Override
+            public OptionalLong sizeInBytes() {
+              return OptionalLong.of(tableSizeInBytes);
+            }
+
+            @Override
+            public OptionalLong numRows() {
+              return OptionalLong.of(numRowsInTable);
+            }
+          };
+
+      return tableStatisticsContext;
     } else {
       return UNKNOWN_STATISTICS;
     }
