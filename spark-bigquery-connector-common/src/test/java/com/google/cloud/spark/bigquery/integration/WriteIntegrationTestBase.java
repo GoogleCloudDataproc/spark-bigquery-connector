@@ -677,6 +677,34 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(df.schema()).isEqualTo(allTypesTable.schema());
   }
 
+  @Test
+  public void testWriteJson() throws Exception {
+    Table table =
+        bq.create(
+            TableInfo.of(
+                TableId.of(testDataset.toString(), testTable),
+                StandardTableDefinition.of(Schema.of(Field.of("jf", LegacySQLTypeName.JSON)))));
+    assertThat(table).isNotNull();
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create("{\"key\":\"foo\",\"value\":1}"),
+                RowFactory.create("{\"key\":\"bar\",\"value\":2}")),
+            structType(StructField.apply("jf", DataTypes.StringType, true, Metadata.empty())));
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("writeMethod", writeMethod.toString())
+        .save();
+
+    Dataset<Row> result = spark.read().format("bigquery").load(String.format("SELECT jf.value FROM `%s.%s`",testDataset.toString(), testTable));
+    result.show();
+
+  }
+
   protected long numberOfRowsWith(String name) {
     try {
       return bq.query(
