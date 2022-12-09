@@ -20,6 +20,8 @@ import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Iterator;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.slf4j.Logger;
@@ -55,7 +57,11 @@ public class InternalRowIterator implements Iterator<InternalRow> {
         } catch (Exception e) {
           log.debug("Failure finishing tracer. stream:{} exception:{}", readRowsHelper, e);
         } finally {
-          readRowsHelper.close();
+          try {
+            readRowsHelper.close();
+          } catch (IOException e) {
+            throw new UncheckedIOException(e);
+          }
         }
         return false;
       }
