@@ -42,11 +42,12 @@ public class AvroIntermediateRecordWriter implements IntermediateRecordWriter {
   }
 
   @Override
+  public void flush() throws IOException {
+    dataFileWriter.flush();
+  }
+
+  @Override
   public void close() throws IOException {
-    try {
-      dataFileWriter.flush();
-    } finally {
-      dataFileWriter.close();
-    }
+    dataFileWriter.close();
   }
 }

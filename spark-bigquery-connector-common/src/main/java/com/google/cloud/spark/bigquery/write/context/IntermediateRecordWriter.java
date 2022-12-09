@@ -22,4 +22,6 @@ import org.apache.avro.generic.GenericRecord;
 public interface IntermediateRecordWriter extends Closeable {
 
   void write(GenericRecord avroRecord) throws IOException;
+
+  void flush() throws IOException;
 }

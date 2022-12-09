@@ -63,7 +63,7 @@ class BigQueryIndirectDataWriterContext implements DataWriterContext<InternalRow
 
   @Override
   public WriterCommitMessageContext commit() throws IOException {
-    intermediateRecordWriter.close();
+    intermediateRecordWriter.flush();
     return new BigQueryIndirectWriterCommitMessageContext(path.toString());
   }
 
@@ -76,6 +76,6 @@ class BigQueryIndirectDataWriterContext implements DataWriterContext<InternalRow
 
   @Override
   public void close() throws IOException {
-    // empty
+    intermediateRecordWriter.close();
   }
 }
