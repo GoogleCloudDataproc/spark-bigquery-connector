@@ -21,6 +21,8 @@ import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.collect.ImmutableList;
+
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
@@ -110,7 +112,7 @@ public class ReadRowsHelper implements AutoCloseable {
   }
 
   @Override
-  public void close() {
+  public void close() throws IOException {
     if (incomingStream != null) {
       try {
         // There appears to be a race when calling cancel for an already
