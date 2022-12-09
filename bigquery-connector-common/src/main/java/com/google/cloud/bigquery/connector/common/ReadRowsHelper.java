@@ -120,9 +120,9 @@ public class ReadRowsHelper implements AutoCloseable {
         incomingStream.cancel();
       } catch (Exception e) {
         logger.debug("Error on cancel call", e);
-      } finally{
+      } finally {
         incomingStream.close();
-        }
+      }
       incomingStream = null;
     }
   }
