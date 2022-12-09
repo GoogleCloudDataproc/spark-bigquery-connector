@@ -23,7 +23,6 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -203,7 +202,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse>, Clos
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() {
     client.close();
   }
 
