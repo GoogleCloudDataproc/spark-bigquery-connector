@@ -47,5 +47,6 @@ public class AvroIntermediateRecordWriter implements IntermediateRecordWriter {
       dataFileWriter.flush();
     } finally {
       dataFileWriter.close();
-    }  }
+    }
+  }
 }
