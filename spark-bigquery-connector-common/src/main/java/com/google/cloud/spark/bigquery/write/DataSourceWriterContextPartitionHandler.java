@@ -52,24 +52,25 @@ public class DataSourceWriterContextPartitionHandler
   @Override
   public Iterator<WriterCommitMessageContext> call(Integer partitionId, Iterator<Row> rowIterator)
       throws Exception {
-    DataWriterContext dataWriterContext =
-        dataWriterContextFactory.createDataWriterContext(partitionId, taskId, epoch);
-    try {
-      while (rowIterator.hasNext()) {
-        Row row = rowIterator.next();
-        InternalRow internalRow = SparkSqlUtils.getInstance().rowToInternalRow(row);
-        dataWriterContext.write(internalRow);
+    try (DataWriterContext dataWriterContext =
+        dataWriterContextFactory.createDataWriterContext(partitionId, taskId, epoch)) {
+      try {
+        while (rowIterator.hasNext()) {
+          Row row = rowIterator.next();
+          InternalRow internalRow = SparkSqlUtils.getInstance().rowToInternalRow(row);
+          dataWriterContext.write(internalRow);
+        }
+        return Iterators.forArray(dataWriterContext.commit());
+      } catch (Exception e) {
+        logger.warn(
+            "Encountered error writing partition {} in task id {} for epoch {}. Calling DataWriter.abort()",
+            partitionId,
+            taskId,
+            epoch,
+            e);
+        dataWriterContext.abort();
+        return ImmutableList.<WriterCommitMessageContext>of().iterator();
       }
-      return Iterators.forArray(dataWriterContext.commit());
-    } catch (Exception e) {
-      logger.warn(
-          "Encountered error writing partition {} in task id {} for epoch {}. Calling DataWriter.abort()",
-          partitionId,
-          taskId,
-          epoch,
-          e);
-      dataWriterContext.abort();
-      return ImmutableList.<WriterCommitMessageContext>of().iterator();
     }
   }
 }
