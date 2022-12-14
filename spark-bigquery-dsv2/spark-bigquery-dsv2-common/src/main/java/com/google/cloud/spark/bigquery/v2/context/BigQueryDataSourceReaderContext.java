@@ -35,6 +35,7 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -46,6 +47,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -93,6 +95,16 @@ public class BigQueryDataSourceReaderContext {
   private Optional<StructType> userProvidedSchema;
   private Filter[] pushedFilters = new Filter[] {};
   private Map<String, StructField> fields;
+  private Optional<ImmutableList<String>> selectedFields = Optional.empty();
+  // Lazy loading using Supplier will ensure that createReadSession is called only once and
+  // readSessionResponse is cached.
+  // Purpose is to create read session either in estimateStatistics or planInputPartitionContexts,
+  // whichever is called first.
+  // In Spark 3.1 connector, "estimateStatistics" is called before
+  // "planBatchInputPartitionContexts" or
+  // "planInputPartitionContexts". We will use this to get table statistics in estimateStatistics.
+  private Supplier<ReadSessionResponse> readSessionResponse =
+      Suppliers.memoize(this::createReadSession);
 
   public BigQueryDataSourceReaderContext(
       TableInfo table,
@@ -152,19 +164,8 @@ public class BigQueryDataSourceReaderContext {
       return createEmptyProjectionPartitions();
     }
 
-    ImmutableList<String> selectedFields =
-        schema
-            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-            .orElse(ImmutableList.copyOf(fields.keySet()));
-    Optional<String> filter = getCombinedFilter();
-    ReadSessionResponse readSessionResponse =
-        readSessionCreator.create(tableId, selectedFields, filter);
-    ReadSession readSession = readSessionResponse.getReadSession();
-    logger.info(
-        "Created read session for {}: {} for application id: {}",
-        tableId.toString(),
-        readSession.getName(),
-        applicationId);
+    ReadSession readSession = readSessionResponse.get().getReadSession();
+
     return readSession.getStreamsList().stream()
         .map(
             stream ->
@@ -172,7 +173,8 @@ public class BigQueryDataSourceReaderContext {
                     bigQueryReadClientFactory,
                     stream.getName(),
                     readSessionCreatorConfig.toReadRowsHelperOptions(),
-                    createConverter(selectedFields, readSessionResponse, userProvidedSchema)));
+                    createConverter(
+                        selectedFields.get(), readSessionResponse.get(), userProvidedSchema)));
   }
 
   public Optional<String> getCombinedFilter() {
@@ -188,31 +190,20 @@ public class BigQueryDataSourceReaderContext {
     if (!enableBatchRead()) {
       throw new IllegalStateException("Batch reads should not be enabled");
     }
-    ImmutableList<String> selectedFields =
-        schema
-            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-            .orElse(ImmutableList.copyOf(fields.keySet()));
-    Optional<String> filter = getCombinedFilter();
-    ReadSessionResponse readSessionResponse =
-        readSessionCreator.create(tableId, selectedFields, filter);
-    ReadSession readSession = readSessionResponse.getReadSession();
-    logger.info(
-        "Created read session for {}: {} for application id: {}",
-        tableId.toString(),
-        readSession.getName(),
-        applicationId);
 
-    if (selectedFields.isEmpty()) {
+    ReadSession readSession = readSessionResponse.get().getReadSession();
+
+    ImmutableList<String> tempSelectedFields = selectedFields.get();
+    if (tempSelectedFields.isEmpty()) {
       // means select *
       Schema tableSchema =
-          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
-      selectedFields =
+          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.get().getReadTableInfo());
+      tempSelectedFields =
           tableSchema.getFields().stream()
               .map(Field::getName)
               .collect(ImmutableList.toImmutableList());
     }
-
-    ImmutableList<String> partitionSelectedFields = selectedFields;
+    ImmutableList<String> partitionSelectedFields = tempSelectedFields;
     return Streams.stream(
             Iterables.partition(
                 readSession.getStreamsList(), readSessionCreatorConfig.streamsPerPartition()))
@@ -227,7 +218,7 @@ public class BigQueryDataSourceReaderContext {
                         .collect(Collectors.toCollection(ArrayList::new)),
                     readSessionCreatorConfig.toReadRowsHelperOptions(),
                     partitionSelectedFields,
-                    readSessionResponse,
+                    readSessionResponse.get(),
                     userProvidedSchema));
   }
 
@@ -267,6 +258,22 @@ public class BigQueryDataSourceReaderContext {
     }
     throw new IllegalArgumentException(
         "No known converted for " + readSessionCreatorConfig.getReadDataFormat());
+  }
+
+  private ReadSessionResponse createReadSession() {
+    selectedFields =
+        Optional.of(
+            schema
+                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+                .orElse(ImmutableList.copyOf(fields.keySet())));
+    Optional<String> filter = getCombinedFilter();
+    ReadSessionResponse response = readSessionCreator.create(tableId, selectedFields.get(), filter);
+    logger.info(
+        "Created read session for {}: {} for application id: {}",
+        tableId.toString(),
+        response.getReadSession().getName(),
+        applicationId);
+    return response;
   }
 
   Stream<InputPartitionContext<InternalRow>> createEmptyProjectionPartitions() {
@@ -311,9 +318,36 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public StatisticsContext estimateStatistics() {
-    return table.getDefinition().getType() == TableDefinition.Type.TABLE
-        ? new StandardTableStatisticsContext(table.getDefinition())
-        : UNKNOWN_STATISTICS;
+    if (table.getDefinition().getType() == TableDefinition.Type.TABLE) {
+      // Create StatisticsContext with infromation from read session response
+      final long tableSizeInBytes =
+          readSessionResponse.get().getReadSession().getEstimatedTotalBytesScanned();
+      // TODO(nileshny) : Uncomment following when num of rows are available in proto:
+      // https://github.com/googleapis/java-bigquerystorage/blob/main/proto-google-cloud-bigquerystorage-v1/src/main/proto/google/cloud/bigquery/storage/v1/stream.proto
+      // .setNumRows(readSessionResponse.get().getReadSession().getEstimatedNumberRows())
+      // OptionalLong numRowsInTable =
+      // readSessionResponse.get().getReadSession().getEstimatedNumberRows();
+      // TODO(nileshny) : Remove following line after getEstimatedNumberRows change is avaialble in
+      // repo.
+      final long numRowsInTable = table.getNumRows().longValue();
+
+      StatisticsContext tableStatisticsContext =
+          new StatisticsContext() {
+            @Override
+            public OptionalLong sizeInBytes() {
+              return OptionalLong.of(tableSizeInBytes);
+            }
+
+            @Override
+            public OptionalLong numRows() {
+              return OptionalLong.of(numRowsInTable);
+            }
+          };
+
+      return tableStatisticsContext;
+    } else {
+      return UNKNOWN_STATISTICS;
+    }
   }
 
   public String getTableName() {
