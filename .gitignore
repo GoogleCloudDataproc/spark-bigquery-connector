@@ -14,6 +14,7 @@ project/boot/
 project/plugins/project/
 dependency-reduced-pom.xml
 *.versionsBackup
+.mvn/wrapper/maven-wrapper.jar
 
 # Scala-IDE specific
 .scala_dependencies
@@ -28,3 +29,6 @@ dependency-reduced-pom.xml
 
 # ad-hoc tests, should not be added to git
 AdAdHocITSuite.scala
+
+# Mac
+.DS_Store
