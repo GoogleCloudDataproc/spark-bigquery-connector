@@ -32,6 +32,7 @@ import org.apache.spark.sql.types.ArrayType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
@@ -161,7 +162,12 @@ public class TestConstants {
                           copy(new StructField("i", DataTypes.LongType, true, Metadata.empty()))),
                       true),
                   true,
-                  Metadata.empty())));
+                  Metadata.empty()),
+              new StructField(
+                  "str_json",
+                  DataTypes.StringType,
+                  true,
+                  new MetadataBuilder().putString("sqlType", "JSON").build())));
   public static Column[] ALL_TYPES_TABLE_COLS =
       new Column[] {
         lit(42L),

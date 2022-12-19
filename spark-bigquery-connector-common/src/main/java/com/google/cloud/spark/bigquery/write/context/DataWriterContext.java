@@ -23,7 +23,7 @@ import java.io.IOException;
  *
  * @param <T>
  */
-public interface DataWriterContext<T> extends Closeable {
+public interface DataWriterContext<T> extends Closeable, AutoCloseable {
   void write(T row) throws IOException;
 
   WriterCommitMessageContext commit() throws IOException;

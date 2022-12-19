@@ -162,7 +162,8 @@ public class SchemaConverters {
 
     if (LegacySQLTypeName.STRING.equals(bqField.getType())
         || LegacySQLTypeName.DATETIME.equals(bqField.getType())
-        || LegacySQLTypeName.GEOGRAPHY.equals(bqField.getType())) {
+        || LegacySQLTypeName.GEOGRAPHY.equals(bqField.getType())
+        || LegacySQLTypeName.JSON.equals(bqField.getType())) {
       return UTF8String.fromBytes(((Utf8) value).getBytes());
     }
 
@@ -322,6 +323,8 @@ public class SchemaConverters {
           field.getSubFields().stream().map(SchemaConverters::convert).collect(Collectors.toList());
       return new StructType(structFields.toArray(new StructField[0]));
     } else if (LegacySQLTypeName.GEOGRAPHY.equals(field.getType())) {
+      return DataTypes.StringType;
+    } else if (LegacySQLTypeName.JSON.equals(field.getType())) {
       return DataTypes.StringType;
     } else {
       throw new IllegalStateException("Unexpected type: " + field.getType());

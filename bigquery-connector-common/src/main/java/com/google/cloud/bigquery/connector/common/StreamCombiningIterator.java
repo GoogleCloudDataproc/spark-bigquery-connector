@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import java.io.Closeable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -39,7 +40,7 @@ import java.util.stream.Collectors;
  * more ReadRows calls into single iterator to potentially increase perceived client throughput if
  * that becomes a bottleneck for processing.
  */
-public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
+public class StreamCombiningIterator implements Iterator<ReadRowsResponse>, Closeable {
   private static final Object EOS = new Object();
   // Contains either a ReadRowsResponse, or a terminal object of throwable OR EOS
   // This class is engineered keep responses below capacity unless a terminal state has
@@ -198,6 +199,11 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
         client.readRowsCallable().call(request.build(), observer);
       }
     }
+  }
+
+  @Override
+  public void close() {
+    client.close();
   }
 
   class Observer implements ResponseObserver<ReadRowsResponse> {

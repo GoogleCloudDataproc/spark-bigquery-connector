@@ -15,13 +15,12 @@
  */
 package com.google.cloud.spark.bigquery.v2.context;
 
+import java.io.Closeable;
 import java.io.IOException;
 
-public interface InputPartitionReaderContext<T> {
+public interface InputPartitionReaderContext<T> extends Closeable {
 
   boolean next() throws IOException;
 
   T get();
-
-  void close() throws IOException;
 }

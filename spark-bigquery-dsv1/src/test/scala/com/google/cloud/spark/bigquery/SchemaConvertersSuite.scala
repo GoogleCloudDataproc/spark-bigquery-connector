@@ -37,6 +37,13 @@ class SchemaConvertersSuite extends org.scalatest.FunSuite {
     assert(expected == result)
   }
 
+  test("single field schema conversion for json") {
+    val bqSchema = Schema.of(Field.of("foo", JSON))
+    val expected = StructType(Seq(StructField("foo", StringType)))
+    val result = SchemaConverters.toSpark(bqSchema)
+    assert(expected == result)
+  }
+
   test("full field schema conversion") {
     val bqSchema = Schema.of(
       Field.of("foo", STRING),

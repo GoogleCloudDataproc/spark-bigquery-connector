@@ -100,6 +100,10 @@ public class AvroSchemaConverterTest {
                         ImmutableList.of(
                             new Schema.Field(
                                 "i", nullable(Schema.Type.LONG), null, (Object) null)))))));
+    checkField(
+        fields[14],
+        "str_json",
+        nullable(SchemaBuilder.builder().stringBuilder().prop("sqlType", "JSON").endString()));
   }
 
   @Test

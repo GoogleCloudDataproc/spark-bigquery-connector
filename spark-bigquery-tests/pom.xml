@@ -31,6 +31,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>spark-bigquery-connector-common</artifactId>
+      <version>${project.version}</version>
+      <classifier>tests</classifier>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>spark-bigquery-scala-212-support</artifactId>
       <version>${project.version}</version>
     </dependency>
