@@ -3,13 +3,14 @@
 ## Next
 
 * Issue #821: Fixing direct write of empty DataFrames
-* Jackson has been upgraded to version 2.14.0, addressing CVE-2022-42003
-* Protocol Buffers has been upgraded to version 3.21.9
-* BigQuery API has been upgraded to version 2.19.1
-* BigQuery Storage API has been upgraded to version 2.26.0
-* gRPC has been upgraded to version 1.51.0
-* Netty has been upgraded to version 4.1.85.Final
+* Jackson has been upgraded to version 2.14.1, addressing CVE-2022-42003
+* BigQuery API has been upgraded to version 2.20.0
+* BigQuery Storage API has been upgraded to version 2.27.0
+* GAX has been upgraded to version 2.20.1
 * Guice has been upgraded to version 5.1.0
+* gRPC has been upgraded to version 1.51.1
+* Netty has been upgraded to version 4.1.86.Final
+* Protocol Buffers has been upgraded to version 3.21.12
 
 ## 0.27.1 - 2022-10-18
 
