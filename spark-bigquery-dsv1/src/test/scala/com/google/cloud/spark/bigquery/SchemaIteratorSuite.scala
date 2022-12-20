@@ -24,7 +24,8 @@ import org.apache.avro.{Schema => AvroSchema}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.{ArrayType, BinaryType}
 import org.apache.spark.sql.types._
-import org.scalatest.{FunSuite, Ignore}
+import org.scalatest.Ignore
+import org.scalatest.funsuite.AnyFunSuite
 
 import java.util.Optional
 
@@ -35,7 +36,7 @@ import scala.collection.JavaConverters._
  * underlying BigQuery source
  */
 @Ignore
-class SchemaIteratorSuite extends FunSuite {
+class SchemaIteratorSuite extends AnyFunSuite {
 
   test("compare arrow and avro results") {
     // rows in the form of bytes string in both arrow and avro format
