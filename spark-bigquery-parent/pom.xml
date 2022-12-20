@@ -262,12 +262,12 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>4.9.0</version>
+                <version>4.10.0</version>
             </dependency>
             <dependency>
                 <groupId>org.conscrypt</groupId>
                 <artifactId>conscrypt-openjdk-uber</artifactId>
-                <version>2.5.1</version>
+                <version>2.5.2</version>
                 <scope>provided</scope>
             </dependency>
         </dependencies>
@@ -417,7 +417,7 @@
             <plugin>
                 <groupId>org.commonjava.maven.plugins</groupId>
                 <artifactId>directory-maven-plugin</artifactId>
-                <version>0.1</version>
+                <version>1.0</version>
                 <executions>
                     <execution>
                         <id>directories</id>
@@ -438,7 +438,7 @@
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
-                <version>2.27.2</version>
+                <version>2.28.0</version>
                 <configuration>
                     <formats>
                         <format>
@@ -636,7 +636,7 @@
                      <plugin>
                         <groupId>org.sonatype.plugins</groupId>
                         <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.7</version>
+                        <version>1.6.13</version>
                         <extensions>true</extensions>
                         <configuration>
                             <serverId>ossrh</serverId>

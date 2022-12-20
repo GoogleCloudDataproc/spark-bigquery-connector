@@ -9,6 +9,7 @@
 * BigQuery Storage API has been upgraded to version 2.26.0
 * gRPC has been upgraded to version 1.51.0
 * Netty has been upgraded to version 4.1.85.Final
+* Guice has been upgraded to version 5.1.0
 
 ## 0.27.1 - 2022-10-18
 
