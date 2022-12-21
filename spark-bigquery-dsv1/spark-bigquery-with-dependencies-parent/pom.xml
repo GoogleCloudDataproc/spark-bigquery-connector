@@ -39,6 +39,10 @@
               <shadedPattern>com.google.cloud.spark.bigquery.repackaged.android</shadedPattern>
             </relocation>
             <relocation>
+              <pattern>autovalue.shaded</pattern>
+              <shadedPattern>com.google.cloud.spark.bigquery.repackaged.autovalue.shaded</shadedPattern>
+            </relocation>
+            <relocation>
               <pattern>avro.shaded</pattern>
               <shadedPattern>com.google.cloud.spark.bigquery.repackaged.avro.shaded</shadedPattern>
             </relocation>
@@ -93,6 +97,10 @@
               <pattern>org.apache.arrow</pattern>
               <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.apache.arrow
               </shadedPattern>
+            </relocation>
+            <relocation>
+              <pattern>org.apache.beam</pattern>
+              <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.apache.beam</shadedPattern>
             </relocation>
             <relocation>
               <pattern>org.apache.commons</pattern>
