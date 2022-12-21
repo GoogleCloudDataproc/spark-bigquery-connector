@@ -27,10 +27,11 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.mockito.{Mock, MockitoAnnotations}
-import org.scalatest.{BeforeAndAfter, FunSuite}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.funsuite.AnyFunSuite
 
 class BigQueryRelationProviderSuite
-  extends FunSuite
+  extends AnyFunSuite
     with BeforeAndAfter {
 
   // TODO(#23) Add test case covering 'credentials' and 'credentialsFile' options

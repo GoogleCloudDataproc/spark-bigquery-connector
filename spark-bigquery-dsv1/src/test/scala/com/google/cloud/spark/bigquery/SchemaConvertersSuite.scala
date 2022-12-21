@@ -20,8 +20,9 @@ import com.google.cloud.bigquery.Field.Mode
 import com.google.cloud.bigquery.LegacySQLTypeName._
 import com.google.cloud.bigquery.{Field, Schema}
 import org.apache.spark.sql.types._
+import org.scalatest.funsuite.AnyFunSuite
 
-class SchemaConvertersSuite extends org.scalatest.FunSuite {
+class SchemaConvertersSuite extends AnyFunSuite {
 
   test("empty schema conversion") {
     val bqSchema = Schema.of()
