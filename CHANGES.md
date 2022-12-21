@@ -2,8 +2,9 @@
 
 ## Next
 
-* Issue #821: Fixing direct write of empty DataFrames
 * Jackson has been upgraded to version 2.14.0, addressing CVE-2022-42003
+* Issue #821: Fixing direct write of empty DataFrames
+* Issue #828: Fixing unshaded artifacts
 * Protocol Buffers has been upgraded to version 3.21.9
 * BigQuery API has been upgraded to version 2.19.1
 * BigQuery Storage API has been upgraded to version 2.26.0

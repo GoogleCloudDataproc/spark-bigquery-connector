@@ -97,6 +97,12 @@
               </shadedPattern>
             </relocation>
             <relocation>
+              <pattern>autovalue.shaded</pattern>
+              <shadedPattern>
+                  com.google.cloud.spark.bigquery.repackaged.autovalue.shaded
+              </shadedPattern>
+            </relocation>
+            <relocation>
               <pattern>avro.shaded</pattern>
               <shadedPattern>
                 com.google.cloud.spark.bigquery.repackaged.avro.shaded
