@@ -26,10 +26,4 @@ public class DataSourceV1IndirectWriteIntegrationTest extends DataSourceV1WriteI
 
   // additional tests are from the super-class
 
-  @Test
-  public void foo() throws Exception {
-    testWriteJson();
-  }
-
-
 }
