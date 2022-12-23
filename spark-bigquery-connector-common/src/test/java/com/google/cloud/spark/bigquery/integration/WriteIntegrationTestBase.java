@@ -60,6 +60,8 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.hamcrest.CoreMatchers;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import scala.Some;
@@ -681,6 +683,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testWriteJson() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
     Table table =
         bq.create(
             TableInfo.of(
