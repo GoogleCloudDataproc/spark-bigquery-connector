@@ -517,7 +517,7 @@ public class BigQueryClient {
         jobConfigurationFactory
             .createLoadJobConfigurationBuilder(options, sourceUris, formatOptions)
             .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
-            .setWriteDisposition(writeDisposition) ;
+            .setWriteDisposition(writeDisposition);
 
     if (schema.isPresent()) {
       jobConfiguration.setSchema(schema.get());

@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery.write.context;
 
 import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
@@ -50,10 +49,10 @@ public interface DataSourceWriterContext {
 
   static Optional<DataSourceWriterContext> create(
       Injector injector,
-                    String writeUUID,
-                    StructType schema,
-                    SaveMode mode,
-                    Map<String, String> options) {
+      String writeUUID,
+      StructType schema,
+      SaveMode mode,
+      Map<String, String> options) {
     SparkBigQueryConfig tableConfig = injector.getInstance(SparkBigQueryConfig.class);
     if (tableConfig.getTableId() == null) {
       // the config was created for the catalog, we need to parse the tableId from the options

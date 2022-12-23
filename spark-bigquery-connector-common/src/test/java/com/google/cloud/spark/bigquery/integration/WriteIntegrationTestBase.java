@@ -49,7 +49,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -60,8 +59,6 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
-import org.hamcrest.CoreMatchers;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import scala.Some;
@@ -707,7 +704,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .save();
 
     // validating by querying a sub-field of the json
-    Dataset<Row> resultDF = spark
+    Dataset<Row> resultDF =
+        spark
             .read()
             .format("bigquery")
             .option("viewsEnabled", "true")
@@ -715,11 +713,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .load(String.format("SELECT jf.value FROM `%s.%s`", testDataset.toString(), testTable));
     // collecting the data to validate its content
     List<String> result =
-        resultDF
-            .collectAsList()
-            .stream()
-            .map(row -> row.getString(0))
-            .collect(Collectors.toList());
+        resultDF.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
     assertThat(result).containsExactly("1", "2");
   }
 
