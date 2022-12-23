@@ -26,6 +26,8 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.StructType
 
+import java.util.Optional
+
 private[bigquery] object BigQueryStreamWriter extends Logging {
 
   /**
@@ -52,7 +54,7 @@ private[bigquery] object BigQueryStreamWriter extends Logging {
     val table = Option(bigQueryClient.getTable(opts.getTableId))
     val saveMode = getSaveMode(outputMode)
     val helper = new BigQueryWriteHelper(
-      bigQueryClient, sqlContext, saveMode, opts, dataFrame, table.isDefined)
+      bigQueryClient, sqlContext, saveMode, opts, dataFrame, Optional.ofNullable(table))
     helper.writeDataFrameToBigQuery
   }
 
