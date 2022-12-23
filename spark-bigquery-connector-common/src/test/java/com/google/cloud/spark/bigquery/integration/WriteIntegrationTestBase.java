@@ -48,6 +48,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -695,14 +697,27 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .format("bigquery")
         .mode(SaveMode.Append)
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("intermediateFormat", "AVRO")
         .option("dataset", testDataset.toString())
         .option("table", testTable)
         .option("writeMethod", writeMethod.toString())
         .save();
 
-    Dataset<Row> result = spark.read().format("bigquery").load(String.format("SELECT jf.value FROM `%s.%s`",testDataset.toString(), testTable));
-    result.show();
-
+    // validating by querying a sub-field of the json
+    Dataset<Row> resultDF = spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", "true")
+            .option("materializationDataset", testDataset.toString())
+            .load(String.format("SELECT jf.value FROM `%s.%s`", testDataset.toString(), testTable));
+    // collecting the data to validate its content
+    List<String> result =
+        resultDF
+            .collectAsList()
+            .stream()
+            .map(row -> row.getString(0))
+            .collect(Collectors.toList());
+    assertThat(result).containsExactly("1", "2");
   }
 
   protected long numberOfRowsWith(String name) {

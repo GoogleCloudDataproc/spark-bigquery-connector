@@ -39,7 +39,7 @@ public class BigQueryDeprecatedIndirectInsertableRelation extends BigQueryInsert
     // the helper also supports the v2 api
     SaveMode saveMode = overwrite ? SaveMode.Overwrite : SaveMode.Append;
     BigQueryWriteHelper helper =
-        new BigQueryWriteHelper(bigQueryClient, sqlContext, saveMode, config, data, exists());
+        new BigQueryWriteHelper(bigQueryClient, sqlContext, saveMode, config, data, table);
     helper.writeDataFrameToBigQuery();
   }
 }
