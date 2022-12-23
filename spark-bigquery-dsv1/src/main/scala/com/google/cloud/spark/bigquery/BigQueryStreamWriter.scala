@@ -54,7 +54,7 @@ private[bigquery] object BigQueryStreamWriter extends Logging {
     val table = Option(bigQueryClient.getTable(opts.getTableId))
     val saveMode = getSaveMode(outputMode)
     val helper = new BigQueryWriteHelper(
-      bigQueryClient, sqlContext, saveMode, opts, dataFrame, Optional.ofNullable(table))
+      bigQueryClient, sqlContext, saveMode, opts, dataFrame, Optional.ofNullable(table.orNull))
     helper.writeDataFrameToBigQuery
   }
 
