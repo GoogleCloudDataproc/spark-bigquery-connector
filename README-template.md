@@ -887,6 +887,14 @@ We are considering adding an optional TimeZone property to allow automatically  
 When casting to Timestamp TIME have the same TimeZone issues as DATETIME
    </td>
   </tr>
+  <tr valign="top">
+   <td><strong><code>JSON</code></strong>
+   </td>
+   <td><strong><code>StringType</code></strong>
+   </td>
+   <td>Spark has no JSON type. The values are read as String. In order to write JSON back to BigQuery, write to an existing table. When using the <code>DIRECT</code> write method, the <code>AVRO</code> intermediate format is <b>required</b>.
+   </td>
+  </tr>
 </table>
 
 #### Spark ML Data Types Support
