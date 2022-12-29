@@ -764,22 +764,21 @@ the options, for example `spark.conf.set("temporaryGcsBucket", "some-bucket")` c
 
 With the exception of `DATETIME` and `TIME` all BigQuery data types directed map into the corresponding Spark SQL data type. Here are all of the mappings:
 
-| **BigQuery Standard SQL Data Type**  | **Spark SQL Data Type**               | **Notes**       |
-| ------------------------------------ | ------------------------------------- | --------------- |
-| **`BOOL`**                           | **`BooleanType`**                     |                 |
-| **`INT64`**                          | **`LongType`**                        |                 |
-| **`FLOAT64`**                        | **`DoubleType`**                      |                 |
-| **`NUMERIC`**                        | **`DecimalType`**                     | See notes below |
-| **`BIGNUMERIC`**                     | **`BigNumericUDT (UserDefinedType)`** | See notes below |
-| **`STRING`**                         | **`StringType`**                      |                 |
-| **`BYTES`**                          | **`BinaryType`**                      |                 |
-| **`STRUCT`**                         | **`StructType`**                      |                 |
-| **`ARRAY`**                          | **`ArrayType`**                       |                 |
-| **`TIMESTAMP`**                      | **`TimestampType`**                   |                 |
-| **`DATE`**                           | **`DateType`**                        |                 |
-| **`DATETIME`**                       | **`StringType`**                      | See notes below |
-| **`TIME`**                           | **`LongType`**                        | See notes below |
-
+| **BigQuery Standard SQL Data Type**  | **Spark SQL Data Type**               |
+| ------------------------------------ | ------------------------------------- |
+| **`BOOL`**                           | **`BooleanType`**                     |
+| **`INT64`**                          | **`LongType`**                        |
+| **`FLOAT64`**                        | **`DoubleType`**                      |
+| **`NUMERIC`**                        | **`DecimalType`**                     |
+| **`BIGNUMERIC`**                     | **`BigNumericUDT (UserDefinedType)`** |
+| **`STRING`**                         | **`StringType`**                      |
+| **`BYTES`**                          | **`BinaryType`**                      |
+| **`STRUCT`**                         | **`StructType`**                      |
+| **`ARRAY`**                          | **`ArrayType`**                       |
+| **`TIMESTAMP`**                      | **`TimestampType`**                   |
+| **`DATE`**                           | **`DateType`**                        |
+| **`DATETIME`**                       | **`StringType`**                      |
+| **`TIME`**                           | **`LongType`**                        |
 
 * **`NUMERIC`**
   * This preserves `NUMERIC`'s full 38 digits of precision and 9 digits of scope.
