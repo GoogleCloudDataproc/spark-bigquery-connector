@@ -141,7 +141,10 @@ public class TestConstants {
               new StructField("binary", DataTypes.BinaryType, true, Metadata.empty()),
               new StructField("float", DataTypes.DoubleType, true, Metadata.empty()),
               new StructField(
-                  "json_f", DataTypes.StringType, true, Metadata.fromJson("{\"sqlType\":\"JSON\"}")),
+                  "json_f",
+                  DataTypes.StringType,
+                  true,
+                  Metadata.fromJson("{\"sqlType\":\"JSON\"}")),
               new StructField(
                   "nums",
                   new StructType(
