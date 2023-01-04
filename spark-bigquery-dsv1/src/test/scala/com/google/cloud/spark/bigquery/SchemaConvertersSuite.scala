@@ -40,7 +40,7 @@ class SchemaConvertersSuite extends AnyFunSuite {
 
   test("single field schema conversion for json") {
     val bqSchema = Schema.of(Field.of("foo", JSON))
-    val expected = StructType(Seq(StructField("foo", StringType)))
+    val expected = StructType(Seq(StructField("foo", StringType, true, Metadata.fromJson("{\"sqlType\":\"JSON\"}"))))
     val result = SchemaConverters.toSpark(bqSchema)
     assert(expected == result)
   }
