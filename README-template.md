@@ -892,7 +892,12 @@ When casting to Timestamp TIME have the same TimeZone issues as DATETIME
    </td>
    <td><strong><code>StringType</code></strong>
    </td>
-   <td>Spark has no JSON type. The values are read as String. In order to write JSON back to BigQuery, write to an existing table. When using the <code>DIRECT</code> write method, the <code>AVRO</code> intermediate format is <b>required</b>.
+   <td>Spark has no JSON type. The values are read as String. In order to write JSON back to BigQuery, the following conditions are <b>REQUIRED</b>:
+       <ul>
+          <li>Use the <code>INDIRECT</code> write method</li>
+          <li>Use the <code>AVRO</code> intermediate format</li>
+          <li>The DataFrame field <b>MUST</b> be of type <code>String</code> and has an entry of sqlType=JSON in its metadata</li>
+       </ul>
    </td>
   </tr>
 </table>

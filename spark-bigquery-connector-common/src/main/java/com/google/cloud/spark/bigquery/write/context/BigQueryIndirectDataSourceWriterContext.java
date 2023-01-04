@@ -140,12 +140,13 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     JobInfo.WriteDisposition writeDisposition =
         SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
 
+    Schema schema =
+        tableInfo
+            .map(info -> info.getDefinition().getSchema())
+            .orElseGet(() -> SchemaConverters.toBigQuerySchema(sparkSchema));
+
     bigQueryClient.loadDataIntoTable(
-        config,
-        optimizedSourceUris,
-        FormatOptions.avro(),
-        writeDisposition,
-        tableInfo.map(info -> info.getDefinition().getSchema()));
+        config, optimizedSourceUris, FormatOptions.avro(), writeDisposition, Optional.of(schema));
   }
 
   void updateMetadataIfNeeded() {

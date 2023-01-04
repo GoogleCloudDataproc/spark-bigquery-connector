@@ -679,7 +679,52 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteJson() throws Exception {
+  public void testWriteJsonToANewTable() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create("{\"key\":\"foo\",\"value\":1}"),
+                RowFactory.create("{\"key\":\"bar\",\"value\":2}")),
+            structType(
+                StructField.apply(
+                    "jf",
+                    DataTypes.StringType,
+                    true,
+                    Metadata.fromJson("{\"sqlType\":\"JSON\"}"))));
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("intermediateFormat", "AVRO")
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("writeMethod", writeMethod.toString())
+        .save();
+
+    Table table = bq.getTable(TableId.of(testDataset.toString(), testTable));
+    assertThat(table).isNotNull();
+    Schema schema = table.getDefinition().getSchema();
+    assertThat(schema).isNotNull();
+    assertThat(schema.getFields()).hasSize(1);
+    assertThat(schema.getFields().get(0).getType()).isEqualTo(LegacySQLTypeName.JSON);
+
+    // validating by querying a sub-field of the json
+    Dataset<Row> resultDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", "true")
+            .option("materializationDataset", testDataset.toString())
+            .load(String.format("SELECT jf.value FROM `%s.%s`", testDataset.toString(), testTable));
+    // collecting the data to validate its content
+    List<String> result =
+        resultDF.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
+    assertThat(result).containsExactly("1", "2");
+  }
+
+  @Test
+  public void testWriteJsonToAnExistingTable() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
     Table table =
         bq.create(

@@ -127,12 +127,12 @@ public class BigQueryWriteHelper {
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
     JobInfo.WriteDisposition writeDisposition =
         SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
+    Schema schema =
+        tableInfo
+            .map(info -> info.getDefinition().getSchema())
+            .orElseGet(() -> SchemaConverters.toBigQuerySchema(data.schema()));
     bigQueryClient.loadDataIntoTable(
-        config,
-        optimizedSourceUris,
-        formatOptions,
-        writeDisposition,
-        tableInfo.map(info -> info.getDefinition().getSchema()));
+        config, optimizedSourceUris, formatOptions, writeDisposition, Optional.of(schema));
   }
 
   String friendlyTableName() {
