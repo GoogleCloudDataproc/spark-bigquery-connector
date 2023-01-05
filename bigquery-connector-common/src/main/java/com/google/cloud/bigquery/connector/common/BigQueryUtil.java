@@ -267,7 +267,8 @@ public class BigQueryUtil {
    *
    * @param sourceField the field which is to be written
    * @param destinationField the field into which the source is to be written
-   * @param enableModeCheckForSchemaFields if true, both the fields' mode checks are compared, skipped otherwise
+   * @param enableModeCheckForSchemaFields if true, both the fields' mode checks are compared,
+   *     skipped otherwise
    * @return true if the source field is writable into destination field, false otherwise
    */
   @VisibleForTesting
