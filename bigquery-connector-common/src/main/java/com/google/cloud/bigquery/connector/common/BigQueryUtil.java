@@ -266,9 +266,9 @@ public class BigQueryUtil {
    * as the BigQuery API may leave the mode field as null in case of NULLABLE
    *
    * @param sourceField the field which is to be written
-   * @param destinationField
-   * @param enableModeCheckForSchemaFields
-   * @return
+   * @param destinationField the field into which the source is to be written
+   * @param enableModeCheckForSchemaFields if true, both the fields' mode checks are compared, skipped otherwise
+   * @return true if the source field is writable into destination field, false otherwise
    */
   @VisibleForTesting
   static boolean fieldWritable(
