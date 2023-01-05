@@ -19,6 +19,7 @@ steps:
     # Many tests, so it takes time
     timeout: 10800s
   - name: 'gcr.io/cloud-builders/gsutil'
+    id: 'copy-jars'
     entrypoint: 'bash'
     args:
     - '-c'
@@ -30,31 +31,30 @@ steps:
       
         # Upload nightly artifacts to the snapshot bucket and mark nightly snapshot
         gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.11/$revision/spark-bigquery-with-dependencies_2.11-$revision.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.11-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.11-nightly-snapshot.jar"
+        gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.11-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.11-nightly-snapshot-sparksense.jar"
       
         gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.12/$revision/spark-bigquery-with-dependencies_2.12-$revision.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.12-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar"
+        gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.12-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.12-nightly-snapshot-sparksense.jar"
 
         gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.13/$revision/spark-bigquery-with-dependencies_2.13-$revision.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.13-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.13-nightly-snapshot.jar"
+        gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.13-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.13-nightly-snapshot-sparksense.jar"
       
         gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-2.4-bigquery/$revision-preview/spark-2.4-bigquery-$revision-preview.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-2.4-bigquery-$revision-preview.jar" "gs://$bucket/spark-2.4-bigquery-nightly-snapshot-preview.jar"
+        gsutil cp "gs://$bucket/spark-2.4-bigquery-$revision-preview.jar" "gs://$bucket/spark-2.4-bigquery-nightly-snapshot-preview-sparksense.jar"
       
         gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-3.1-bigquery/$revision-preview/spark-3.1-bigquery-$revision-preview.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-3.1-bigquery-$revision-preview.jar" "gs://$bucket/spark-3.1-bigquery-nightly-snapshot-preview.jar"
+        gsutil cp "gs://$bucket/spark-3.1-bigquery-$revision-preview.jar" "gs://$bucket/spark-3.1-bigquery-nightly-snapshot-preview-sparksense.jar"
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    id: 'sparksense'
+    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots']
+    waitFor: ['copy-jars']
+
   - name: 'gcr.io/cloud-builders/docker'
     id: 'docker-push'
     args: ['push', 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly:latest']
 
 images: ['gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly']
-
-  - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'bash'
-    args:
-    - |
-        gcloud dataproc jobs submit spark --project=google.com:hadoop-cloud-dev --class=com.google.cloud.performance.BenchmarkRunner --jars=gs://suryasoma-public/sparksense/jars/runID/spark-benchmark-kit-1.0-SNAPSHOT-jar-with-dependencies.jar --cluster=suryasoma-sparksense-bq --region=us-central1 -- --benchmark=tpcds --jarLocation=gs://suryasoma-public/sparksense/jars/runID/spark-benchmark-kit-1.0-SNAPSHOT-jar-with-dependencies.jar --bqJarLocation=gs://spark-lib-nightly-snapshots/spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar --resultLocation=gs://suryasoma-public/sparksense/tpcds/Dec29/bq --iterations=3 --bqTablePath=surya_spark_sense_test  --tempBucket=suryasoma-test-cicd --runType=bq --database=tpcds_1T --runID=V1_20_BQ --queriesToRun=q1,q2
-    
-
 options:
   machineType: 'N1_HIGHCPU_32'
