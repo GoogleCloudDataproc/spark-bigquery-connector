@@ -3,6 +3,7 @@ set -euxo pipefail
 readonly bucket=$1
 
 echo "start"
+gcloud config set project google.com:hadoop-cloud-dev
 gcloud dataproc jobs submit spark --project=google.com:hadoop-cloud-dev --class=com.google.cloud.performance.BenchmarkRunner \
           --jars=gs://suryasoma-public/sparksense/jars/runID/spark-benchmark-kit-1.0-SNAPSHOT-jar-with-dependencies.jar \
           --cluster=sparksense-v1-20-bq --region=us-central1 \
