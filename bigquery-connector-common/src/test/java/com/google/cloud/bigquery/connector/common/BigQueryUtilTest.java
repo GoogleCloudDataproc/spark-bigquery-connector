@@ -166,12 +166,12 @@ public class BigQueryUtilTest {
             Field.newBuilder("foo", StandardSQLTypeName.INT64).build(),
             Field.newBuilder("bar", StandardSQLTypeName.STRING).build());
 
-    assertThat(BigQueryUtil.schemaEquals(s1, s2, true, true)).isTrue();
-    assertThat(BigQueryUtil.schemaEquals(s1, s2, false, true)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, true, true)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true)).isTrue();
   }
 
   @Test
-  public void testSchemaEqualsNoFieldOrder() {
+  public void testSchemaWritableNoFieldOrder() {
     Schema s1 =
         Schema.of(
             Field.newBuilder("foo", StandardSQLTypeName.INT64).build(),
@@ -181,8 +181,8 @@ public class BigQueryUtilTest {
             Field.newBuilder("bar", StandardSQLTypeName.STRING).build(),
             Field.newBuilder("foo", StandardSQLTypeName.INT64).build());
 
-    assertThat(BigQueryUtil.schemaEquals(s1, s2, true, true)).isFalse();
-    assertThat(BigQueryUtil.schemaEquals(s1, s2, false, true)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, true, true)).isFalse();
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true)).isTrue();
   }
 
   @Test
@@ -190,30 +190,79 @@ public class BigQueryUtilTest {
     Field f1 = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
     Field f2 =
         Field.newBuilder("foo", StandardSQLTypeName.INT64).setMode(Field.Mode.NULLABLE).build();
-    assertThat(BigQueryUtil.fieldEquals(f1, f2, true)).isTrue();
+    assertThat(BigQueryUtil.fieldWritable(f1, f2, true)).isTrue();
   }
 
   @Test
-  public void testSchemaEqualsWithNulls() {
+  public void testSchemaWritableWithNulls() {
     Schema s =
         Schema.of(
             Field.newBuilder("foo", StandardSQLTypeName.INT64).build(),
             Field.newBuilder("bar", StandardSQLTypeName.STRING).build());
-    assertThat(BigQueryUtil.schemaEquals(s, null, false, true)).isFalse();
+    assertThat(BigQueryUtil.schemaWritable(s, null, false, true)).isFalse();
     // two nulls
-    assertThat(BigQueryUtil.schemaEquals(null, null, false, true)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(null, null, false, true)).isTrue();
   }
 
   @Test
-  public void testFieldEqualsWithNulls() {
+  public void testFieldWritableWithNulls() {
     Field f = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
-    assertThat(BigQueryUtil.fieldEquals(f, null, true)).isFalse();
+    assertThat(BigQueryUtil.fieldWritable(f, null, true)).isFalse();
     // two nulls
-    assertThat(BigQueryUtil.fieldEquals(null, null, true)).isTrue();
+    assertThat(BigQueryUtil.fieldWritable(null, null, true)).isTrue();
   }
 
   @Test
-  public void testSchemaEqualsWithEnableModeCheckForSchemaFields() {
+  public void testFieldWritable() {
+    Field src =
+        Field.newBuilder("foo", StandardSQLTypeName.INT64)
+            .setDescription("desc1")
+            .setScale(1L)
+            .setPrecision(2L)
+            .build();
+    Field dest =
+        Field.newBuilder("foo", StandardSQLTypeName.INT64).setScale(2L).setPrecision(2L).build();
+    assertThat(BigQueryUtil.fieldWritable(src, dest, true)).isTrue();
+  }
+
+  @Test
+  public void testFieldWritableMaxLength() {
+    Field f1 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setMaxLength(1L).build();
+    Field f2 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setMaxLength(2L).build();
+    Field f3 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setMaxLength(3L).build();
+    Field f4 = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
+    assertThat(BigQueryUtil.fieldWritable(f1, f2, true)).isTrue();
+    assertThat(BigQueryUtil.fieldWritable(f3, f2, true)).isFalse();
+    assertThat(BigQueryUtil.fieldWritable(f3, f4, true)).isFalse();
+    assertThat(BigQueryUtil.fieldWritable(f4, f2, true)).isFalse();
+  }
+
+  @Test
+  public void testFieldWritableScale() {
+    Field f1 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setScale(1L).build();
+    Field f2 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setScale(2L).build();
+    Field f3 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setScale(3L).build();
+    Field f4 = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
+    assertThat(BigQueryUtil.fieldWritable(f1, f2, true)).isTrue();
+    assertThat(BigQueryUtil.fieldWritable(f3, f2, true)).isFalse();
+    assertThat(BigQueryUtil.fieldWritable(f3, f4, true)).isFalse();
+    assertThat(BigQueryUtil.fieldWritable(f4, f2, true)).isFalse();
+  }
+
+  @Test
+  public void testFieldWritablePrecision() {
+    Field f1 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setPrecision(1L).build();
+    Field f2 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setPrecision(2L).build();
+    Field f3 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setPrecision(3L).build();
+    Field f4 = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
+    assertThat(BigQueryUtil.fieldWritable(f1, f2, true)).isTrue();
+    assertThat(BigQueryUtil.fieldWritable(f3, f2, true)).isFalse();
+    assertThat(BigQueryUtil.fieldWritable(f3, f4, true)).isFalse();
+    assertThat(BigQueryUtil.fieldWritable(f4, f2, true)).isFalse();
+  }
+
+  @Test
+  public void testSchemaWritableWithEnableModeCheckForSchemaFields() {
     Schema s1 =
         Schema.of(
             Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.NULLABLE).build());
@@ -224,13 +273,13 @@ public class BigQueryUtilTest {
         Schema.of(
             Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.REPEATED).build());
 
-    assertThat(BigQueryUtil.schemaEquals(s1, s2, false, true)).isFalse();
-    assertThat(BigQueryUtil.schemaEquals(s1, s3, false, true)).isFalse();
-    assertThat(BigQueryUtil.schemaEquals(s2, s3, false, true)).isFalse();
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true)).isFalse();
+    assertThat(BigQueryUtil.schemaWritable(s1, s3, false, true)).isFalse();
+    assertThat(BigQueryUtil.schemaWritable(s2, s3, false, true)).isFalse();
   }
 
   @Test
-  public void testSchemaEqualsWithDisableNullableFieldCheck() {
+  public void testSchemaWritableWithDisableNullableFieldCheck() {
     Schema s1 =
         Schema.of(
             Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.NULLABLE).build());
@@ -241,9 +290,9 @@ public class BigQueryUtilTest {
         Schema.of(
             Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.REPEATED).build());
 
-    assertThat(BigQueryUtil.schemaEquals(s1, s2, false, false)).isTrue();
-    assertThat(BigQueryUtil.schemaEquals(s1, s3, false, false)).isTrue();
-    assertThat(BigQueryUtil.schemaEquals(s2, s3, false, false)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, false)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s1, s3, false, false)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s2, s3, false, false)).isTrue();
   }
 
   @Test

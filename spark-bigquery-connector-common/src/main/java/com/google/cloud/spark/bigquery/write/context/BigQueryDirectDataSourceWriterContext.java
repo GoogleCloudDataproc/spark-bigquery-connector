@@ -124,7 +124,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
       Schema tableSchema = destinationTable.getDefinition().getSchema();
       Preconditions.checkArgument(
-          BigQueryUtil.schemaEquals(
+          BigQueryUtil.schemaWritable(
               tableSchema,
               bigQuerySchema, /* regardFieldOrder */
               false,

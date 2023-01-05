@@ -221,25 +221,29 @@ public class BigQueryUtil {
    * Compares to Schema instances for equality. Unlike Schema.equals(), here the caller can
    * disregard the schema's field order.
    *
-   * @param s1 the first schema to compare
-   * @param s2 the second schema to compare
+   * @param sourceSchema the first schema to compare
+   * @param destinationSchema the second schema to compare
    * @param regardFieldOrder whether to regard the field order in the comparison
    * @return true is the two schema equal each other, false otherwise
    */
-  public static boolean schemaEquals(
-      Schema s1, Schema s2, boolean regardFieldOrder, boolean enableModeCheckForSchemaFields) {
-    if (s1 == s2) {
+  public static boolean schemaWritable(
+      Schema sourceSchema,
+      Schema destinationSchema,
+      boolean regardFieldOrder,
+      boolean enableModeCheckForSchemaFields) {
+    if (sourceSchema == destinationSchema) {
       return true;
     }
     // if both are null we would have caught it earlier
-    if (s1 == null || s2 == null) {
+    if (sourceSchema == null || destinationSchema == null) {
       return false;
     }
     if (regardFieldOrder) {
-      return s1.equals(s2);
+      return sourceSchema.equals(destinationSchema);
     }
     // compare field by field
-    return fieldListEquals(s1.getFields(), s2.getFields(), enableModeCheckForSchemaFields);
+    return fieldListWritable(
+        sourceSchema.getFields(), destinationSchema.getFields(), enableModeCheckForSchemaFields);
   }
 
   /**
@@ -256,52 +260,77 @@ public class BigQueryUtil {
             // This formulation is used to guarantee a serializable list.
             .collect(Collectors.toCollection(ArrayList::new));
   }
-  // We need this method as the BigQuery API may leave the mode field as null in case of NULLABLE
+
+  /**
+   * Check to see if the source field can be writen into the destination field. We need this method
+   * as the BigQuery API may leave the mode field as null in case of NULLABLE
+   *
+   * @param sourceField the field which is to be written
+   * @param destinationField the field into which the source is to be written
+   * @param enableModeCheckForSchemaFields if true, both the fields' mode checks are compared,
+   *     skipped otherwise
+   * @return true if the source field is writable into destination field, false otherwise
+   */
   @VisibleForTesting
-  static boolean fieldEquals(Field f1, Field f2, boolean enableModeCheckForSchemaFields) {
-    if (f1 == f2) {
+  static boolean fieldWritable(
+      Field sourceField, Field destinationField, boolean enableModeCheckForSchemaFields) {
+    if (sourceField == destinationField) {
       return true;
     }
     // if both are null we would have caught it earlier
-    if (f1 == null || f2 == null) {
+    if (sourceField == null || destinationField == null) {
       return false;
     }
 
-    if (!fieldListEquals(f1.getSubFields(), f2.getSubFields(), enableModeCheckForSchemaFields)) {
+    if (!fieldListWritable(
+        sourceField.getSubFields(),
+        destinationField.getSubFields(),
+        enableModeCheckForSchemaFields)) {
       return false;
     }
 
-    return Objects.equal(f1.getName(), f2.getName())
-        && Objects.equal(f1.getType(), f2.getType())
+    return Objects.equal(sourceField.getName(), destinationField.getName())
+        && Objects.equal(sourceField.getType(), destinationField.getType())
         && (!enableModeCheckForSchemaFields
-            || Objects.equal(nullableIfNull(f1.getMode()), nullableIfNull(f2.getMode())))
-        && Objects.equal(f1.getDescription(), f2.getDescription())
-        && Objects.equal(f1.getPolicyTags(), f2.getPolicyTags())
-        && Objects.equal(f1.getMaxLength(), f2.getMaxLength())
-        && Objects.equal(f1.getScale(), f2.getScale())
-        && Objects.equal(f1.getPrecision(), f2.getPrecision());
+            || Objects.equal(
+                nullableIfNull(sourceField.getMode()), nullableIfNull(destinationField.getMode())))
+        && ((sourceField.getMaxLength() == null && destinationField.getMaxLength() == null)
+            || (sourceField.getMaxLength() != null
+                && destinationField.getMaxLength() != null
+                && sourceField.getMaxLength() <= destinationField.getMaxLength()))
+        && ((sourceField.getScale() == null && destinationField.getScale() == null)
+            || (sourceField.getScale() != null
+                && destinationField.getScale() != null
+                && sourceField.getScale() <= destinationField.getScale()))
+        && ((sourceField.getPrecision() == null && destinationField.getPrecision() == null)
+            || (sourceField.getPrecision() != null
+                && destinationField.getPrecision() != null
+                && sourceField.getPrecision() <= destinationField.getPrecision()));
   }
 
   @VisibleForTesting
-  static boolean fieldListEquals(
-      FieldList fl1, FieldList fl2, boolean enableModeCheckForSchemaFields) {
-    if (fl1 == fl2) {
+  static boolean fieldListWritable(
+      FieldList sourceFieldList,
+      FieldList destinationFieldList,
+      boolean enableModeCheckForSchemaFields) {
+    if (sourceFieldList == destinationFieldList) {
       return true;
     }
     // if both are null we would have caught it earlier
-    if (fl1 == null || fl2 == null) {
+    if (sourceFieldList == null || destinationFieldList == null) {
       return false;
     }
 
-    Map<String, Field> fieldsMap1 =
-        fl1.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
-    Map<String, Field> fieldsMap2 =
-        fl2.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
+    Map<String, Field> sourceFieldsMap =
+        sourceFieldList.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
+    Map<String, Field> destinationFieldsMap =
+        destinationFieldList.stream()
+            .collect(Collectors.toMap(Field::getName, Function.identity()));
 
-    for (Map.Entry<String, Field> e : fieldsMap1.entrySet()) {
+    for (Map.Entry<String, Field> e : sourceFieldsMap.entrySet()) {
       Field f1 = e.getValue();
-      Field f2 = fieldsMap2.get(e.getKey());
-      if (!fieldEquals(f1, f2, enableModeCheckForSchemaFields)) {
+      Field f2 = destinationFieldsMap.get(e.getKey());
+      if (!fieldWritable(f1, f2, enableModeCheckForSchemaFields)) {
         return false;
       }
     }
