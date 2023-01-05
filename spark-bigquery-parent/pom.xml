@@ -10,7 +10,7 @@
     <description>Parent project for all the Spark BigQuery Connector artifacts
     </description>
     <url>https://github.com/GoogleCloudDataproc/spark-bigquery-connector</url>
-f
+
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
