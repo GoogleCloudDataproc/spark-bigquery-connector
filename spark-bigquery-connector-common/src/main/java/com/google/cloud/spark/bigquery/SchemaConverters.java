@@ -269,7 +269,7 @@ public class SchemaConverters {
       metadata.putString("comment", field.getDescription());
     }
     // JSON
-    if (field.getType() == LegacySQLTypeName.JSON) {
+    if (LegacySQLTypeName.JSON.equals(field.getType())) {
       metadata.putString("sqlType", "JSON");
     }
 
