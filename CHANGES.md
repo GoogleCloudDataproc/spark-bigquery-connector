@@ -5,7 +5,10 @@
 * Adding support for the [JSON](https://cloud.google.com/bigquery/docs/reference/standard-sql/json-data) data type.
   Thanks to @abhijeet-lele and @jonathan-ostrander for their contributions!
 * Issue #821: Fixing direct write of empty DataFrames
-* Issue #828: Fixing unshaded artifacts
+* PR #832: Fixed client closing
+* Issue #838: Fixing unshaded artifacts
+* PR #848: Making schema comparison on write less strict
+* PR #852: fixed `enableListInference` usage when using the default intermediate format
 * Jackson has been upgraded to version 2.14.1, addressing CVE-2022-42003
 * BigQuery API has been upgraded to version 2.20.0
 * BigQuery Storage API has been upgraded to version 2.27.0
