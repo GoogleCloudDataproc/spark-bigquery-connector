@@ -57,7 +57,7 @@ public class BigQueryWriteHelper {
   private final SaveMode saveMode;
   private final SparkBigQueryConfig config;
   private final Dataset<Row> data;
-  private final boolean tableExists;
+  private final Optional<TableInfo> tableInfo;
   private final Configuration conf;
   private final Path gcsPath;
   private final Optional<IntermediateDataCleaner> createTemporaryPathDeleter;
@@ -68,13 +68,13 @@ public class BigQueryWriteHelper {
       SaveMode saveMode,
       SparkBigQueryConfig config,
       Dataset<Row> data,
-      boolean tableExists) {
+      Optional<TableInfo> tableInfo) {
     this.bigQueryClient = bigQueryClient;
     verifySaveMode(saveMode);
     this.saveMode = saveMode;
     this.config = config;
     this.data = data;
-    this.tableExists = tableExists;
+    this.tableInfo = tableInfo;
     this.conf = sqlContext.sparkContext().hadoopConfiguration();
     this.gcsPath =
         SparkBigQueryUtil.createGcsPath(config, conf, sqlContext.sparkContext().applicationId());
@@ -88,7 +88,7 @@ public class BigQueryWriteHelper {
     // to file on the BigQuery side.
     if (config
         .getCreateDisposition()
-        .map(cd -> !tableExists && cd == JobInfo.CreateDisposition.CREATE_NEVER)
+        .map(cd -> !tableExists() && cd == JobInfo.CreateDisposition.CREATE_NEVER)
         .orElse(false)) {
       throw new BigQueryConnectorException(
           String.format(
@@ -127,7 +127,12 @@ public class BigQueryWriteHelper {
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
     JobInfo.WriteDisposition writeDisposition =
         SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
-    bigQueryClient.loadDataIntoTable(config, optimizedSourceUris, formatOptions, writeDisposition);
+    Schema schema =
+        tableInfo
+            .map(info -> info.getDefinition().getSchema())
+            .orElseGet(() -> SchemaConverters.toBigQuerySchema(data.schema()));
+    bigQueryClient.loadDataIntoTable(
+        config, optimizedSourceUris, formatOptions, writeDisposition, Optional.of(schema));
   }
 
   String friendlyTableName() {
@@ -202,5 +207,9 @@ public class BigQueryWriteHelper {
     if (saveMode == SaveMode.ErrorIfExists || saveMode == SaveMode.Ignore) {
       throw new UnsupportedOperationException("SaveMode " + saveMode + " is not supported");
     }
+  }
+
+  private boolean tableExists() {
+    return tableInfo.isPresent();
   }
 }

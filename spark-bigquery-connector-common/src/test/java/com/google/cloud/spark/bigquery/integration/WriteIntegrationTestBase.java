@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -675,6 +676,90 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     // read from cache
     assertThat(df.head()).isEqualTo(allTypesTable.head());
     assertThat(df.schema()).isEqualTo(allTypesTable.schema());
+  }
+
+  @Test
+  public void testWriteJsonToANewTable() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create("{\"key\":\"foo\",\"value\":1}"),
+                RowFactory.create("{\"key\":\"bar\",\"value\":2}")),
+            structType(
+                StructField.apply(
+                    "jf",
+                    DataTypes.StringType,
+                    true,
+                    Metadata.fromJson("{\"sqlType\":\"JSON\"}"))));
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("intermediateFormat", "AVRO")
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("writeMethod", writeMethod.toString())
+        .save();
+
+    Table table = bq.getTable(TableId.of(testDataset.toString(), testTable));
+    assertThat(table).isNotNull();
+    Schema schema = table.getDefinition().getSchema();
+    assertThat(schema).isNotNull();
+    assertThat(schema.getFields()).hasSize(1);
+    assertThat(schema.getFields().get(0).getType()).isEqualTo(LegacySQLTypeName.JSON);
+
+    // validating by querying a sub-field of the json
+    Dataset<Row> resultDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", "true")
+            .option("materializationDataset", testDataset.toString())
+            .load(String.format("SELECT jf.value FROM `%s.%s`", testDataset.toString(), testTable));
+    // collecting the data to validate its content
+    List<String> result =
+        resultDF.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
+    assertThat(result).containsExactly("1", "2");
+  }
+
+  @Test
+  public void testWriteJsonToAnExistingTable() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    Table table =
+        bq.create(
+            TableInfo.of(
+                TableId.of(testDataset.toString(), testTable),
+                StandardTableDefinition.of(Schema.of(Field.of("jf", LegacySQLTypeName.JSON)))));
+    assertThat(table).isNotNull();
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create("{\"key\":\"foo\",\"value\":1}"),
+                RowFactory.create("{\"key\":\"bar\",\"value\":2}")),
+            structType(StructField.apply("jf", DataTypes.StringType, true, Metadata.empty())));
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("intermediateFormat", "AVRO")
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("writeMethod", writeMethod.toString())
+        .save();
+
+    // validating by querying a sub-field of the json
+    Dataset<Row> resultDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", "true")
+            .option("materializationDataset", testDataset.toString())
+            .load(String.format("SELECT jf.value FROM `%s.%s`", testDataset.toString(), testTable));
+    // collecting the data to validate its content
+    List<String> result =
+        resultDF.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
+    assertThat(result).containsExactly("1", "2");
   }
 
   protected long numberOfRowsWith(String name) {

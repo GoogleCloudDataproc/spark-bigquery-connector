@@ -66,6 +66,8 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   private final Path gcsPath;
   private final Optional<IntermediateDataCleaner> intermediateDataCleaner;
 
+  private Optional<TableInfo> tableInfo = Optional.empty();
+
   public BigQueryIndirectDataSourceWriterContext(
       BigQueryClient bigQueryClient,
       SparkBigQueryConfig config,
@@ -127,14 +129,24 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     }
   }
 
+  @Override
+  public void setTableInfo(TableInfo tableInfo) {
+    this.tableInfo = Optional.ofNullable(tableInfo);
+  }
+
   void loadDataToBigQuery(List<String> sourceUris) throws IOException {
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
     JobInfo.WriteDisposition writeDisposition =
         SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
 
+    Schema schema =
+        tableInfo
+            .map(info -> info.getDefinition().getSchema())
+            .orElseGet(() -> SchemaConverters.toBigQuerySchema(sparkSchema));
+
     bigQueryClient.loadDataIntoTable(
-        config, optimizedSourceUris, FormatOptions.avro(), writeDisposition);
+        config, optimizedSourceUris, FormatOptions.avro(), writeDisposition, Optional.of(schema));
   }
 
   void updateMetadataIfNeeded() {
