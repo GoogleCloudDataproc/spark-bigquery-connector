@@ -322,18 +322,17 @@ public class SparkBigQueryConfig
             && Boolean.valueOf(getRequiredOption(options, VALIDATE_SPARK_AVRO_PARAM, () -> "true"));
     boolean enableListInferenceForParquetMode =
         getAnyBooleanOption(globalOptions, options, ENABLE_LIST_INFERENCE, false);
-    config.intermediateFormat =
+    String intermediateFormatOption =
         getAnyOption(globalOptions, options, INTERMEDIATE_FORMAT_OPTION)
             .transform(String::toLowerCase)
-            .transform(
-                format ->
-                    IntermediateFormat.from(
-                        format,
-                        sparkVersion,
-                        sqlConf,
-                        validateSparkAvro,
-                        enableListInferenceForParquetMode))
-            .or(DEFAULT_INTERMEDIATE_FORMAT);
+            .or(DEFAULT_INTERMEDIATE_FORMAT.getDataSource());
+    config.intermediateFormat =
+        IntermediateFormat.from(
+            intermediateFormatOption,
+            sparkVersion,
+            sqlConf,
+            validateSparkAvro,
+            enableListInferenceForParquetMode);
     String readDataFormatParam =
         getAnyOption(globalOptions, options, READ_DATA_FORMAT_OPTION)
             .transform(String::toUpperCase)
