@@ -59,6 +59,6 @@ steps:
     args: ['push', 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly:latest']
 
 images: ['gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly']
+logsBucket: 'gs://suryasoma-test-cicd'
 options:
   machineType: 'N1_HIGHCPU_32'
-  logging: CLOUD_LOGGING_ONLY
