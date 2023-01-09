@@ -22,7 +22,7 @@ case $STEP in
           --jars=gs://suryasoma-public/sparksense/jars/runID/spark-benchmark-kit-1.0-SNAPSHOT-jar-with-dependencies.jar \
           --cluster=spark-sense-v2-20-bq --region=us-central1 \
           -- --benchmark=tpcds --jarLocation=gs://suryasoma-public/sparksense/jars/runID/spark-benchmark-kit-1.0-SNAPSHOT-jar-with-dependencies.jar \
-          --bqJarLocation=gs://$bucket/spark-2.4-bigquery-nightly-snapshot-preview-sparksense.jar \
+          --bqJarLocation=gs://$bucket/spark-3.1-bigquery-nightly-snapshot-preview-sparksense.jar \
           --resultLocation=gs://suryasoma-public/sparksense/tpcds/bq --iterations=3 \
           --bqTablePath=spark_sense_tpcds_bigquery_runID  --tempBucket=suryasoma-public \
           --runType=bq --database=tpcds_1T_partitioned_gcs --runID=V2_20_BQ --queriesToRun=q1,q2
