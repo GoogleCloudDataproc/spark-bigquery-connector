@@ -53,7 +53,7 @@ steps:
 
   - name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
-    id: 'sparksense-v1-20-bq'
+    id: 'sparksense-v2-20-bq'
     args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots', 'v2-20-bq']
 #    waitFor: ['copy-jars']
 
