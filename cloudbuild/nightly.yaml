@@ -61,3 +61,4 @@ steps:
 images: ['gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly']
 options:
   machineType: 'N1_HIGHCPU_32'
+  logging: CLOUD_LOGGING_ONLY
