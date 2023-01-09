@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.28.0 - 2023-01-09
 
 * Adding support for the [JSON](https://cloud.google.com/bigquery/docs/reference/standard-sql/json-data) data type.
   Thanks to @abhijeet-lele and @jonathan-ostrander for their contributions!
