@@ -52,7 +52,7 @@ steps:
     entrypoint: 'bash'
     id: 'sparksense'
     args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots']
-    waitFor: ['copy-jars']
+#    waitFor: ['copy-jars']
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'docker-push'
