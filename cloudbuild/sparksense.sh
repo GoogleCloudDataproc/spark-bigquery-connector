@@ -38,4 +38,9 @@ case $STEP in
           --bqTablePath=spark_sense_tpcds_bigquery_runID  --tempBucket=suryasoma-public \
           --runType=bq --database=tpcds_1T_partitioned_gcs --runID=GCS_20 --queriesToRun=q1,q2
           ;;
+  *)
+    echo "Unknown step $STEP"
+    exit 1
+    ;;
+esac
 echo "done"
