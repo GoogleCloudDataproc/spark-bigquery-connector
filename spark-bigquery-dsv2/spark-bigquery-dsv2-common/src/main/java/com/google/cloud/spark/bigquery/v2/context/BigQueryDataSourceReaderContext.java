@@ -322,14 +322,7 @@ public class BigQueryDataSourceReaderContext {
       // Create StatisticsContext with infromation from read session response
       final long tableSizeInBytes =
           readSessionResponse.get().getReadSession().getEstimatedTotalBytesScanned();
-      // TODO(nileshny) : Uncomment following when num of rows are available in proto:
-      // https://github.com/googleapis/java-bigquerystorage/blob/main/proto-google-cloud-bigquerystorage-v1/src/main/proto/google/cloud/bigquery/storage/v1/stream.proto
-      // .setNumRows(readSessionResponse.get().getReadSession().getEstimatedNumberRows())
-      // OptionalLong numRowsInTable =
-      // readSessionResponse.get().getReadSession().getEstimatedNumberRows();
-      // TODO(nileshny) : Remove following line after getEstimatedNumberRows change is avaialble in
-      // repo.
-      final long numRowsInTable = table.getNumRows().longValue();
+      final long numRowsInTable = readSessionResponse.get().getReadSession().getEstimatedRowCount();
 
       StatisticsContext tableStatisticsContext =
           new StatisticsContext() {
