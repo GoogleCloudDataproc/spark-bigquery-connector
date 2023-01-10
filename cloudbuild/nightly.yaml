@@ -17,7 +17,7 @@ steps:
       - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
       - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
     # Many tests, so it takes time
-    timeout: 10800s
+#    timeout: 10800s
 
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'copy-jars'
