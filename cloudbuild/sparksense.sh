@@ -14,7 +14,7 @@ case $STEP in
               --bqJarLocation=gs://$bucket/spark-bigquery-with-dependencies_2.12-nightly-snapshot-sparksense.jar \
               --resultLocation=gs://suryasoma-public/sparksense/tpcds/bq --iterations=3 \
               --bqTablePath=spark_sense_tpcds_bigquery_runID  --tempBucket=suryasoma-public \
-              --runType=bq --database=tpcds_1T_partitioned_gcs --runID=V1_20_BQ --queriesToRun=q1,q2
+              --runType=bq --database=tpcds_1T_partitioned_gcs --runID=V1_20_BQ
               ;;
 
   v2-20-bq)
@@ -25,7 +25,7 @@ case $STEP in
           --bqJarLocation=gs://$bucket/spark-3.1-bigquery-nightly-snapshot-preview-sparksense.jar \
           --resultLocation=gs://suryasoma-public/sparksense/tpcds/bq --iterations=3 \
           --bqTablePath=spark_sense_tpcds_bigquery_runID  --tempBucket=suryasoma-public \
-          --runType=bq --database=tpcds_1T_partitioned_gcs --runID=V2_20_BQ --queriesToRun=q1,q2
+          --runType=bq --database=tpcds_1T_partitioned_gcs --runID=V2_20_BQ
           ;;
 
   gcs-20)
@@ -36,11 +36,10 @@ case $STEP in
           --bqJarLocation=gs://$bucket/spark-bigquery-with-dependencies_2.12-nightly-snapshot-sparksense.jar \
           --resultLocation=gs://suryasoma-public/sparksense/tpcds/bq --iterations=3 \
           --bqTablePath=spark_sense_tpcds_bigquery_runID  --tempBucket=suryasoma-public \
-          --runType=bq --database=tpcds_1T_partitioned_gcs --runID=GCS_20 --queriesToRun=q1,q2
+          --runType=bq --database=tpcds_1T_partitioned_gcs --runID=GCS_20
           ;;
   *)
     echo "Unknown step $STEP"
     exit 1
     ;;
 esac
-echo "done"
