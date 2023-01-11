@@ -33,7 +33,7 @@ import org.apache.spark.sql.sources.CreatableRelationProvider;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 
-public class BigQueryTableProvider extends BaseBigQuerySource
+public class Spark31BigQueryTableProvider extends BaseBigQuerySource
     implements TableProvider, CreatableRelationProvider {
 
   private static final Transform[] EMPTY_TRANSFORM_ARRAY = {};
