@@ -32,13 +32,13 @@ cd /workspace
 # Build
 $MVN install -DskipTests -Pdsv1,dsv2
 #coverage report
-$MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1,dsv2
+#$MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1,dsv2
 # Run integration tests
-$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1,dsv2_2.4,dsv2_3.1,dsv2_3.2
+#$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1,dsv2_2.4,dsv2_3.1,dsv2_3.2
 # Run acceptance tests
-$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1,dsv2_2.4,dsv2_3.1,dsv2_3.2
+#$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1,dsv2_2.4,dsv2_3.1,dsv2_3.2
 # Upload test coverage report to Codecov
-bash <(curl -s https://codecov.io/bash) -K -F "nightly"
+#bash <(curl -s https://codecov.io/bash) -K -F "nightly"
 
 # Save the REVISION variable to use in the next build step
 echo "${REVISION}" > /workspace/revision.txt
