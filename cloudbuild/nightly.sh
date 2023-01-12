@@ -39,7 +39,7 @@ $MVN install -DskipTests # -Pdsv1,dsv2
 #bash <(curl -s https://codecov.io/bash) -K -F "nightly"
 
 # Preparing repository
-$MVN dependency:go-offline -Pcoverage,integration,dsv1,dsv2_2.4,dsv2_3.1
+$MVN dependency:go-offline # -Pcoverage,integration,dsv1,dsv2_2.4,dsv2_3.1
 
 # Save the REVISION variable to use in the next build step
 echo "${REVISION}" > /workspace/revision.txt
