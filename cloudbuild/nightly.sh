@@ -28,7 +28,7 @@ readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.rep
 cd /workspace
 
 # Build
-$MVN install -DskipTests -Pdsv1,dsv2
+$MVN install -DskipTests # -Pdsv1,dsv2
 #coverage report
 #$MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1,dsv2
 # Run integration tests
