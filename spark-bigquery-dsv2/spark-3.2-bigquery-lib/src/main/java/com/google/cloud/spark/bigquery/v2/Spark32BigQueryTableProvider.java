@@ -1,4 +1,4 @@
-/*                                           
+/*
  * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,11 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-public class Spark32BigQueryTableProvider extends Spark31BigQueryTableProvider {   
+public class Spark32BigQueryTableProvider extends Spark31BigQueryTableProvider {
   // empty
 }
-
-
-
-
-
