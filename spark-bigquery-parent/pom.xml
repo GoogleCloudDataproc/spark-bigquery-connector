@@ -515,6 +515,10 @@
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.android</shadedPattern>
                         </relocation>
                         <relocation>
+                            <pattern>autovalue</pattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.autovalue</shadedPattern>
+                        </relocation>
+                       <relocation>
                             <pattern>avro.shaded</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.avro.shaded</shadedPattern>
                         </relocation>
