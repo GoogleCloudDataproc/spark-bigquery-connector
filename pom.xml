@@ -184,7 +184,7 @@
       <modules>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-common</module>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
-        <module>spark-bigquery-dsv2/spark-3-bigquery-common</module>
+        <module>spark-bigquery-dsv2/spark-3.1-bigquery-lib</module>
         <module>spark-bigquery-dsv2/spark-3.1-bigquery</module>
         <module>spark-bigquery-pushdown/spark-bigquery-pushdown-parent</module>
         <module>spark-bigquery-pushdown/spark-bigquery-pushdown-common_2.12</module>
@@ -199,7 +199,8 @@
       <modules>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-common</module>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
-        <module>spark-bigquery-dsv2/spark-3-bigquery-common</module>
+        <module>spark-bigquery-dsv2/spark-3.1-bigquery-lib</module>
+        <module>spark-bigquery-dsv2/spark-3.2-bigquery-lib</module>
         <module>spark-bigquery-dsv2/spark-3.2-bigquery</module>
         <module>spark-bigquery-pushdown/spark-bigquery-pushdown-parent</module>
         <module>spark-bigquery-pushdown/spark-bigquery-pushdown-common_2.12</module>
@@ -216,7 +217,9 @@
       <modules>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-common</module>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
-        <module>spark-bigquery-dsv2/spark-3-bigquery-common</module>
+        <module>spark-bigquery-dsv2/spark-3.1-bigquery-lib</module>
+        <module>spark-bigquery-dsv2/spark-3.2-bigquery-lib</module>
+        <module>spark-bigquery-dsv2/spark-3.3-bigquery-lib</module>
         <module>spark-bigquery-dsv2/spark-3.3-bigquery</module>
         <module>spark-bigquery-pushdown/spark-bigquery-pushdown-parent</module>
         <module>spark-bigquery-pushdown/spark-bigquery-pushdown-common_2.13</module>
