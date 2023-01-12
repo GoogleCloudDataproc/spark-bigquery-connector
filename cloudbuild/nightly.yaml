@@ -2,7 +2,7 @@ steps:
   # 1. Create a Docker image containing hadoop-connectors repo
   - name: 'gcr.io/cloud-builders/docker'
     id: 'docker-build'
-    args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly', '-f', 'cloudbuild/Dockerfile', '.']
+    args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly', '-f', 'cloudbuild/Dockerfile.nightly', '.']
 
 # 2. Fetch maven and dependencies
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly'
@@ -27,23 +27,26 @@ steps:
         revision="$(cat /workspace/revision.txt)"
       
         # Upload nightly artifacts to the snapshot bucket and mark nightly snapshot
-        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.11/$revision/spark-bigquery-with-dependencies_2.11-$revision.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.11-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.11-nightly-snapshot.jar"
+        echo gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.11/$revision/spark-bigquery-with-dependencies_2.11-$revision.jar" "gs://$bucket"
+        echo gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.11-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.11-nightly-snapshot.jar"
       
-        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.12/$revision/spark-bigquery-with-dependencies_2.12-$revision.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.12-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar"
+        echo gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.12/$revision/spark-bigquery-with-dependencies_2.12-$revision.jar" "gs://$bucket"
+        echo gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.12-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar"
 
-        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.13/$revision/spark-bigquery-with-dependencies_2.13-$revision.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.13-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.13-nightly-snapshot.jar"
+        echo gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.13/$revision/spark-bigquery-with-dependencies_2.13-$revision.jar" "gs://$bucket"
+        echo gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.13-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.13-nightly-snapshot.jar"
       
-        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-2.4-bigquery/$revision-preview/spark-2.4-bigquery-$revision-preview.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-2.4-bigquery-$revision-preview.jar" "gs://$bucket/spark-2.4-bigquery-nightly-snapshot-preview.jar"
+        echo gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-2.4-bigquery/$revision-preview/spark-2.4-bigquery-$revision-preview.jar" "gs://$bucket"
+        echo gsutil cp "gs://$bucket/spark-2.4-bigquery-$revision-preview.jar" "gs://$bucket/spark-2.4-bigquery-nightly-snapshot-preview.jar"
       
-        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-3.1-bigquery/$revision-preview/spark-3.1-bigquery-$revision-preview.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-3.1-bigquery-$revision-preview.jar" "gs://$bucket/spark-3.1-bigquery-nightly-snapshot-preview.jar"
+        echo gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-3.1-bigquery/$revision-preview/spark-3.1-bigquery-$revision-preview.jar" "gs://$bucket"
+        echo gsutil cp "gs://$bucket/spark-3.1-bigquery-$revision-preview.jar" "gs://$bucket/spark-3.1-bigquery-nightly-snapshot-preview.jar"
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'docker-push'
-    args: ['push', 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly:latest']
+    id: 'build-presubmit-base'
+    args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit-base:latest', '-f', 'cloudbuild/Dockerfile.presubmit-base', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-presubmit-base'
+    args: ['push', 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit-base:latest']
 
 images: ['gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly']
 

@@ -1,0 +1,9 @@
+# This Dockerfile creates an image for running nightly builds.
+FROM openjdk:8
+
+RUN \
+  mkdir -p /var/share/m2 && \
+  cp -r /workspace/.repository /var/share/m2/repository && \
+  cp /workspace/revision.txt /var/share/m2/repository && \
+  rm -fr /var/share/m2/repository/com/google/cloud/spark && \
+  echo "Image ready with repository"
