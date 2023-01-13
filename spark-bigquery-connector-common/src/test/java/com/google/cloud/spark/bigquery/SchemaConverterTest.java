@@ -152,11 +152,12 @@ public class SchemaConverterTest {
 
   @Test
   public void testDecimalTypeConversion() throws Exception {
-    assertThat(toBigQueryType(NUMERIC_SPARK_TYPE)).isEqualTo(LegacySQLTypeName.NUMERIC);
+    assertThat(toBigQueryType(NUMERIC_SPARK_TYPE, Metadata.empty()))
+        .isEqualTo(LegacySQLTypeName.NUMERIC);
 
     try {
       DecimalType wayTooBig = DataTypes.createDecimalType(38, 38);
-      toBigQueryType(wayTooBig);
+      toBigQueryType(wayTooBig, Metadata.empty());
       fail("Did not throw an error for a decimal that's too wide for big-query");
     } catch (IllegalArgumentException e) {
     }
@@ -167,7 +168,8 @@ public class SchemaConverterTest {
     // FIXME: restore this check when the Vortex team adds microsecond precision, and Timestamp
     // conversion can be fixed.
     // assertThat(toBigQueryType(DataTypes.TimestampType)).isEqualTo(LegacySQLTypeName.TIMESTAMP);
-    assertThat(toBigQueryType(DataTypes.DateType)).isEqualTo(LegacySQLTypeName.DATE);
+    assertThat(toBigQueryType(DataTypes.DateType, Metadata.empty()))
+        .isEqualTo(LegacySQLTypeName.DATE);
   }
 
   @Test
@@ -256,6 +258,9 @@ public class SchemaConverterTest {
           DataTypes.createMapType(DataTypes.IntegerType, DataTypes.StringType),
           true,
           Metadata.empty());
+  public final StructField SPARK_JSON_FIELD =
+      new StructField(
+          "json_f", DataTypes.StringType, true, Metadata.fromJson("{\"sqlType\":\"JSON\"}"));
 
   public final StructType BIG_SPARK_SCHEMA =
       new StructType()
@@ -267,7 +272,8 @@ public class SchemaConverterTest {
           .add(SPARK_BOOLEAN_FIELD)
           .add(SPARK_BINARY_FIELD)
           .add(SPARK_DATE_FIELD)
-          .add(SPARK_TIMESTAMP_FIELD);
+          .add(SPARK_TIMESTAMP_FIELD)
+          .add(SPARK_JSON_FIELD);
 
   public final Field BIGQUERY_INTEGER_FIELD =
       Field.newBuilder("Number", LegacySQLTypeName.INTEGER, (FieldList) null)
@@ -313,6 +319,10 @@ public class SchemaConverterTest {
       Field.newBuilder("TimeStamp", LegacySQLTypeName.TIMESTAMP, (FieldList) null)
           .setMode(Field.Mode.NULLABLE)
           .build();
+  public final Field BIGQUERY_JSON_FIELD =
+      Field.newBuilder("json_f", LegacySQLTypeName.JSON, (FieldList) null)
+          .setMode(Field.Mode.NULLABLE)
+          .build();
 
   public final Schema BIG_BIGQUERY_SCHEMA =
       Schema.of(
@@ -324,7 +334,8 @@ public class SchemaConverterTest {
           BIGQUERY_BOOLEAN_FIELD,
           BIGQUERY_BYTES_FIELD,
           BIGQUERY_DATE_FIELD,
-          BIGQUERY_TIMESTAMP_FIELD);
+          BIGQUERY_TIMESTAMP_FIELD,
+          BIGQUERY_JSON_FIELD);
 
   public final StructType BIG_SPARK_SCHEMA2 =
       new StructType()
@@ -354,7 +365,8 @@ public class SchemaConverterTest {
                           new StructField(
                               "datetime", DataTypes.StringType, true, Metadata.empty())),
                   true,
-                  Metadata.empty()));
+                  Metadata.empty()))
+          .add(SPARK_JSON_FIELD);
 
   public final Schema BIG_BIGQUERY_SCHEMA2 =
       Schema.of(
@@ -374,7 +386,8 @@ public class SchemaConverterTest {
               LegacySQLTypeName.RECORD,
               Field.of("time", LegacySQLTypeName.TIME),
               Field.of("timestamp", LegacySQLTypeName.TIMESTAMP),
-              Field.of("datetime", LegacySQLTypeName.DATETIME)));
+              Field.of("datetime", LegacySQLTypeName.DATETIME)),
+          BIGQUERY_JSON_FIELD);
 
   public final Schema BIG_BIGQUERY_SCHEMA2_WITH_PSEUDO_COLUMNS =
       Schema.of(
@@ -395,6 +408,7 @@ public class SchemaConverterTest {
               Field.of("time", LegacySQLTypeName.TIME),
               Field.of("timestamp", LegacySQLTypeName.TIMESTAMP),
               Field.of("datetime", LegacySQLTypeName.DATETIME)),
+          BIGQUERY_JSON_FIELD,
           Field.newBuilder("_PARTITIONTIME", LegacySQLTypeName.TIMESTAMP)
               .setMode(Field.Mode.NULLABLE)
               .build(),

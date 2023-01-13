@@ -109,7 +109,7 @@ public class AvroSchemaConverter {
     if (dataType instanceof StringType) {
       // Allows loading Avro strings as JSON
       // https://cloud.google.com/bigquery/docs/loading-data-cloud-storage-avro#extract_json_data_from_avro_data
-      if (metadata.contains("sqlType") && "JSON".equals(metadata.getString("sqlType"))) {
+      if (SparkBigQueryUtil.isJson(metadata)) {
         return builder.stringBuilder().prop("sqlType", "JSON").endString();
       } else {
         return builder.stringType();

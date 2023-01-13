@@ -268,6 +268,10 @@ public class SchemaConverters {
       metadata.putString("description", field.getDescription());
       metadata.putString("comment", field.getDescription());
     }
+    // JSON
+    if (LegacySQLTypeName.JSON.equals(field.getType())) {
+      metadata.putString("sqlType", "JSON");
+    }
 
     return new StructField(field.getName(), dataType, nullable, metadata.build());
   }
@@ -370,7 +374,7 @@ public class SchemaConverters {
       subFields = sparkToBigQueryFields((StructType) sparkType, depth + 1);
       fieldType = LegacySQLTypeName.RECORD;
     } else {
-      fieldType = toBigQueryType(sparkType);
+      fieldType = toBigQueryType(sparkType, sparkField.metadata());
     }
 
     Field.Builder fieldBuilder =
@@ -396,7 +400,7 @@ public class SchemaConverters {
   }
 
   @VisibleForTesting
-  protected static LegacySQLTypeName toBigQueryType(DataType elementType) {
+  protected static LegacySQLTypeName toBigQueryType(DataType elementType, Metadata metadata) {
     if (elementType instanceof BinaryType) {
       return LegacySQLTypeName.BYTES;
     }
@@ -426,6 +430,9 @@ public class SchemaConverters {
       return LegacySQLTypeName.BIGNUMERIC;
     }
     if (elementType instanceof StringType) {
+      if (SparkBigQueryUtil.isJson(metadata)) {
+        return LegacySQLTypeName.JSON;
+      }
       return LegacySQLTypeName.STRING;
     }
     if (elementType instanceof TimestampType) {

@@ -511,13 +511,20 @@ public class BigQueryClient {
       LoadDataOptions options,
       List<String> sourceUris,
       FormatOptions formatOptions,
-      JobInfo.WriteDisposition writeDisposition) {
+      JobInfo.WriteDisposition writeDisposition,
+      Optional<Schema> schema) {
     LoadJobConfiguration.Builder jobConfiguration =
         jobConfigurationFactory
             .createLoadJobConfigurationBuilder(options, sourceUris, formatOptions)
             .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
-            .setWriteDisposition(writeDisposition)
-            .setAutodetect(true);
+            .setWriteDisposition(writeDisposition);
+
+    if (schema.isPresent()) {
+      jobConfiguration.setSchema(schema.get());
+    } else {
+      // no schema, probably table does not exist
+      jobConfiguration.setAutodetect(true);
+    }
 
     options.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
 

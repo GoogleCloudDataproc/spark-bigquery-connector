@@ -931,4 +931,21 @@ public class SparkBigQueryConfigTest {
         SparkBigQueryConfig.IntermediateFormat.missingAvroException("2.4.8", cause);
     assertThat(after24.getMessage()).contains("org.apache.spark:spark-avro_2.13:2.4.8");
   }
+
+  @Test
+  public void testEnableListInterfaceWithDefaultIntermediateFormat() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("enableListInference", "true")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getIntermediateFormat())
+        .isEqualTo(SparkBigQueryConfig.IntermediateFormat.PARQUET_LIST_INFERENCE_ENABLED);
+  }
 }

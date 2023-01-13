@@ -40,6 +40,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
+import org.apache.spark.sql.types.Metadata;
 import scala.collection.Iterator;
 
 /** Spark related utilities */
@@ -217,5 +218,9 @@ public class SparkBigQueryUtil {
     }
 
     return false;
+  }
+
+  public static boolean isJson(Metadata metadata) {
+    return metadata.contains("sqlType") && "JSON".equals(metadata.getString("sqlType"));
   }
 }

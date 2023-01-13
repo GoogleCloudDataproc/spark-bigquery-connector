@@ -21,10 +21,12 @@ if [ -z "${CODECOV_TOKEN}" ]; then
   exit 1
 fi
 
+readonly M2REPO="/var/local/m2/repository"
 readonly DATE="$(date +%Y%m%d)"
 readonly REVISION="0.0.${DATE}"
-readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository -Drevision=${REVISION}"
+readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=${M2REPO} -Drevision=${REVISION}"
 
+mkdir -p ${M2REPO}
 cd /workspace
 
 # Build
@@ -32,9 +34,9 @@ $MVN install -DskipTests -Pdsv1,dsv2
 #coverage report
 $MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1,dsv2
 # Run integration tests
-$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1,dsv2_2.4,dsv2_3.1
+$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1,dsv2_2.4,dsv2_3.1,dsv2_3.2
 # Run acceptance tests
-$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1,dsv2_2.4,dsv2_3.1
+$MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1,dsv2_2.4,dsv2_3.1,dsv2_3.2
 # Upload test coverage report to Codecov
 bash <(curl -s https://codecov.io/bash) -K -F "nightly"
 

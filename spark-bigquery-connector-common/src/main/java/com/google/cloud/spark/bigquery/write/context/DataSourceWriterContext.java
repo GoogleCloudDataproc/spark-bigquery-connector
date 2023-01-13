@@ -45,6 +45,8 @@ public interface DataSourceWriterContext {
 
   void abort(WriterCommitMessageContext[] messages);
 
+  void setTableInfo(TableInfo tableInfo);
+
   static Optional<DataSourceWriterContext> create(
       Injector injector,
       String writeUUID,
@@ -114,6 +116,7 @@ public interface DataSourceWriterContext {
             writerInjector.getInstance(BigQueryIndirectDataSourceWriterContext.class);
         break;
     }
+    dataSourceWriterContext.setTableInfo(table);
     return Optional.of(dataSourceWriterContext);
   }
 }

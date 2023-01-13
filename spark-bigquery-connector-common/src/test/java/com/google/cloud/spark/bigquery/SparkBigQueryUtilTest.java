@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
+import org.apache.spark.sql.types.Metadata;
 import org.junit.Test;
 
 public class SparkBigQueryUtilTest {
@@ -72,5 +73,23 @@ public class SparkBigQueryUtilTest {
     TableId tableId = SparkBigQueryUtil.parseSimpleTableId(spark, options);
     assertThat(tableId.getDataset()).isEqualTo("dataset");
     assertThat(tableId.getTable()).isEqualTo("table");
+  }
+
+  @Test
+  public void testIsJson_SqlTypeJson() {
+    Metadata metadata = Metadata.fromJson("{\"sqlType\":\"JSON\"}");
+    assertThat(SparkBigQueryUtil.isJson(metadata)).isTrue();
+  }
+
+  @Test
+  public void testIsJson_SqlTypeOther() {
+    Metadata metadata = Metadata.fromJson("{\"sqlType\":\"OTHER\"}");
+    assertThat(SparkBigQueryUtil.isJson(metadata)).isFalse();
+  }
+
+  @Test
+  public void testIsJson_NoSqlType() {
+    Metadata metadata = Metadata.empty();
+    assertThat(SparkBigQueryUtil.isJson(metadata)).isFalse();
   }
 }

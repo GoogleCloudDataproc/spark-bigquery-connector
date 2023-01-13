@@ -13,6 +13,7 @@
     <name>BigQuery DataSource v1 shaded distributable for Scala 2.13</name>
     <properties>
         <scala.binary.version>2.13</scala.binary.version>
+        <shade.skip>false</shade.skip>
     </properties>
     <licenses>
         <license>

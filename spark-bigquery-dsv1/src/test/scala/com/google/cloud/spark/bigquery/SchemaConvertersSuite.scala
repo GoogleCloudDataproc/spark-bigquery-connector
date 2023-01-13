@@ -20,8 +20,9 @@ import com.google.cloud.bigquery.Field.Mode
 import com.google.cloud.bigquery.LegacySQLTypeName._
 import com.google.cloud.bigquery.{Field, Schema}
 import org.apache.spark.sql.types._
+import org.scalatest.funsuite.AnyFunSuite
 
-class SchemaConvertersSuite extends org.scalatest.FunSuite {
+class SchemaConvertersSuite extends AnyFunSuite {
 
   test("empty schema conversion") {
     val bqSchema = Schema.of()
@@ -39,7 +40,7 @@ class SchemaConvertersSuite extends org.scalatest.FunSuite {
 
   test("single field schema conversion for json") {
     val bqSchema = Schema.of(Field.of("foo", JSON))
-    val expected = StructType(Seq(StructField("foo", StringType)))
+    val expected = StructType(Seq(StructField("foo", StringType, true, Metadata.fromJson("{\"sqlType\":\"JSON\"}"))))
     val result = SchemaConverters.toSpark(bqSchema)
     assert(expected == result)
   }

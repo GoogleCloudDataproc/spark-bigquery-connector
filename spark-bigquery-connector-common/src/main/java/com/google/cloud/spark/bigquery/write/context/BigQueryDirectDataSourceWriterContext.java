@@ -60,6 +60,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   private final String tablePathForBigQueryStorage;
 
   private BigQueryWriteClient writeClient;
+  private Optional<TableInfo> tableInfo = Optional.absent();
 
   enum WritingMode {
     IGNORE_INPUTS,
@@ -124,7 +125,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
       Schema tableSchema = destinationTable.getDefinition().getSchema();
       Preconditions.checkArgument(
-          BigQueryUtil.schemaEquals(
+          BigQueryUtil.schemaWritable(
               tableSchema,
               bigQuerySchema, /* regardFieldOrder */
               false,
@@ -239,6 +240,11 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     if (tableToWrite.toDeleteOnAbort()) {
       bigQueryClient.deleteTable(tableToWrite.getTableId());
     }
+  }
+
+  @Override
+  public void setTableInfo(TableInfo tableInfo) {
+    this.tableInfo = Optional.fromNullable(tableInfo);
   }
 
   // Used for the getOrCreateTable output, to indicate if the table should be deleted on abort
