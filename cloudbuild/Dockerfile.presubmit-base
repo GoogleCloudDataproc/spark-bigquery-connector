@@ -5,6 +5,7 @@ WORKDIR /workspace
 
 RUN \
   mkdir -p /var/share/m2 && \
+  ls -la /workspace/ && \
   cp -r /workspace/.repository /var/share/m2/repository && \
   cp /workspace/revision.txt /var/share/m2/repository && \
   rm -fr /var/share/m2/repository/com/google/cloud/spark && \
