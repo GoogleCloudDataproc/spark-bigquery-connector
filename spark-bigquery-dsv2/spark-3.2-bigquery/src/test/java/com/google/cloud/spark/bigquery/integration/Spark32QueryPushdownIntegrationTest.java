@@ -13,8 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.integration;
 
-public class Spark32BigQueryTableProvider extends Spark31BigQueryTableProvider {
-  // empty
+import com.google.cloud.spark.bigquery.BigQueryConnectorUtils;
+import org.junit.Before;
+
+public class Spark32QueryPushdownIntegrationTest extends QueryPushdownIntegrationTestBase {
+
+  @Before
+  public void before() {
+    BigQueryConnectorUtils.enablePushdownSession(spark);
+  }
 }

@@ -13,8 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.acceptance;
 
-public class Spark32BigQueryTableProvider extends Spark31BigQueryTableProvider {
-  // empty
+public class Spark32BigNumericDataprocServerlessAcceptanceTest
+    extends BigNumericDataprocServerlessAcceptanceTestBase {
+
+  public Spark32BigNumericDataprocServerlessAcceptanceTest() {
+    super("spark-3.2-bigquery", "1.0");
+  }
+
+  // tests from superclass
+
 }

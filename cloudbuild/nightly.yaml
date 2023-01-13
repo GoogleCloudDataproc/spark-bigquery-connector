@@ -41,6 +41,9 @@ steps:
       
         gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-3.1-bigquery/$revision-preview/spark-3.1-bigquery-$revision-preview.jar" "gs://$bucket"
         gsutil cp "gs://$bucket/spark-3.1-bigquery-$revision-preview.jar" "gs://$bucket/spark-3.1-bigquery-nightly-snapshot-preview.jar"
+
+        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-3.2-bigquery/$revision-preview/spark-3.2-bigquery-$revision-preview.jar" "gs://$bucket"
+        gsutil cp "gs://$bucket/spark-3.2-bigquery-$revision-preview.jar" "gs://$bucket/spark-3.2-bigquery-nightly-snapshot-preview.jar"
   - name: 'gcr.io/cloud-builders/docker'
     id: 'docker-push'
     args: ['push', 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly:latest']

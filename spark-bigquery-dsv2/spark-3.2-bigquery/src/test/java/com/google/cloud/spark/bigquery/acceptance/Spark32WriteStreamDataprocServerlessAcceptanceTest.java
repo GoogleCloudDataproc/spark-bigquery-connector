@@ -13,8 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery.acceptance;
 
-public class Spark32BigQueryTableProvider extends Spark31BigQueryTableProvider {
-  // empty
+import org.junit.Ignore;
+
+@Ignore // spark-3.2-bigquery does not support streaming yet
+public class Spark32WriteStreamDataprocServerlessAcceptanceTest
+    extends WriteStreamDataprocServerlessAcceptanceTestBase {
+
+  public Spark32WriteStreamDataprocServerlessAcceptanceTest() {
+    super("spark-3.2-bigquery", "1.0");
+  }
+
+  // tests from superclass
+
 }
