@@ -1,6 +1,8 @@
 # This Dockerfile creates an image for running nightly builds.
 FROM openjdk:8
 
+WORKDIR /workspace
+
 RUN \
   mkdir -p /var/share/m2 && \
   cp -r /workspace/.repository /var/share/m2/repository && \
