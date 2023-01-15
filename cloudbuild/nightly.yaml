@@ -72,4 +72,3 @@ images: ['gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly']
 logsBucket: 'gs://suryasoma-test-cicd'
 options:
   machineType: 'N1_HIGHCPU_32'
-timeout: 86400s
