@@ -10,17 +10,17 @@ steps:
     args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots','v1-20-bq']
     waitFor: ['docker-build']
 
-  - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'bash'
-    id: 'sparksense-v2-20-bq'
-    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots', 'v2-20-bq']
-    waitFor: ['docker-build']
-
-  - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'bash'
-    id: 'sparksense-gcs-20'
-    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots', 'gcs-20']
-    waitFor: ['docker-build']
+#  - name: 'gcr.io/cloud-builders/gcloud'
+#    entrypoint: 'bash'
+#    id: 'sparksense-v2-20-bq'
+#    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots', 'v2-20-bq']
+#    waitFor: ['docker-build']
+#
+#  - name: 'gcr.io/cloud-builders/gcloud'
+#    entrypoint: 'bash'
+#    id: 'sparksense-gcs-20'
+#    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots', 'gcs-20']
+#    waitFor: ['docker-build']
 
 #  - name: 'gcr.io/cloud-builders/gcloud'
 #    entrypoint: 'bash'
