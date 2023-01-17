@@ -27,6 +27,8 @@ import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.common.collect.ImmutableList;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -67,6 +69,7 @@ public class ReadSessionCreator {
    */
   public ReadSessionResponse create(
       TableId table, ImmutableList<String> selectedFields, Optional<String> filter) {
+    Instant sessionPrepStartTime = Instant.now();
     TableInfo tableDetails = bigQueryClient.getTable(table);
 
     TableInfo actualTable = getActualTable(tableDetails, selectedFields, filter);
@@ -125,6 +128,7 @@ public class ReadSessionCreator {
                   log.debug("using default max parallelism [{}]", defaultMaxStreamCount);
                   return defaultMaxStreamCount;
                 });
+    Instant sessionPrepEndTime = Instant.now();
 
     ReadSession readSession =
         bigQueryReadClient.createReadSession(
@@ -152,7 +156,15 @@ public class ReadSessionCreator {
           readSession.getStreamsCount(),
           readSession.getName());
     }
+    Instant sessionCreationEndTime = Instant.now();
 
+    log.info(
+        "Read session {} creation started: {} Completed: {} PrepDuration: {} SessionCreationDuration: {}",
+        readSession.getName(),
+        sessionPrepStartTime,
+        sessionCreationEndTime,
+        Duration.between(sessionPrepStartTime, sessionPrepEndTime),
+        Duration.between(sessionPrepEndTime, sessionCreationEndTime));
     return new ReadSessionResponse(readSession, actualTable);
   }
 
