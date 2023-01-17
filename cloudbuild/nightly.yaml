@@ -46,23 +46,41 @@ steps:
 #        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-3.1-bigquery/$revision-preview/spark-3.1-bigquery-$revision-preview.jar" "gs://$bucket"
 #        gsutil cp "gs://$bucket/spark-3.1-bigquery-$revision-preview.jar" "gs://$bucket/spark-3.1-bigquery-nightly-snapshot-preview-sparksense.jar"
 
-  - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'bash'
-    id: 'sparksense-v1-20-bq'
-    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots','v1-20-bq']
-    waitFor: ['docker-build']
-
-  - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'bash'
-    id: 'sparksense-v2-20-bq'
-    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots', 'v2-20-bq']
-    waitFor: ['docker-build']
-
-  - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'bash'
-    id: 'sparksense-gcs'
-    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots', 'gcs-20']
-    waitFor: ['docker-build']
+#  - name: 'gcr.io/cloud-builders/gcloud'
+#    entrypoint: 'bash'
+#    id: 'sparksense-v1-20-bq'
+#    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots','v1-20-bq']
+#    waitFor: ['docker-build']
+#
+#  - name: 'gcr.io/cloud-builders/gcloud'
+#    entrypoint: 'bash'
+#    id: 'sparksense-v2-20-bq'
+#    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots', 'v2-20-bq']
+#    waitFor: ['docker-build']
+#
+#  - name: 'gcr.io/cloud-builders/gcloud'
+#    entrypoint: 'bash'
+#    id: 'sparksense-gcs-20'
+#    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots', 'gcs-20']
+#    waitFor: ['docker-build']
+#
+#  - name: 'gcr.io/cloud-builders/gcloud'
+#    entrypoint: 'bash'
+#    id: 'sparksense-v1-21-bq'
+#    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots','v1-21-bq']
+#    waitFor: ['docker-build']
+#
+#  - name: 'gcr.io/cloud-builders/gcloud'
+#    entrypoint: 'bash'
+#    id: 'sparksense-v2-21-bq'
+#    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots', 'v2-21-bq']
+#    waitFor: ['docker-build']
+#
+#  - name: 'gcr.io/cloud-builders/gcloud'
+#    entrypoint: 'bash'
+#    id: 'sparksense-gcs-21'
+#    args: ['/workspace/cloudbuild/sparksense.sh', 'spark-lib-nightly-snapshots', 'gcs-21']
+#    waitFor: ['docker-build']
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'docker-push'
