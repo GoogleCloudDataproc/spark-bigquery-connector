@@ -28,7 +28,7 @@ echo $SPARK_JOB_PROPERTIES
 gcloud config set project google.com:hadoop-cloud-dev
 case $STEP in
   v1-20-bq)
-    gcloud dataproc jobs submit spark --project=PROJECT \
+    gcloud dataproc jobs submit spark --project=$PROJECT \
           --class=$CLASS \
           --jars=$SPARK_BENCHMARK_KIT_JAR \
           --cluster=spark-sense-c2d-v1-20-bq \
