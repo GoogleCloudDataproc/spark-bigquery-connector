@@ -13,7 +13,7 @@ steps:
            'spark-sense-n2d-v1-20-bq', #cluster #TODO-rename to spark-sense-c2d-v1-20-bq
            'us-central1', #cluster-region
            'tpcds', #bechmark
-           'spark-bigquery-with-dependencies_2.12-nightly-snapshot-sparksense.jar', #BQ jar
+           'spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar', #BQ jar
            'bq', #runType
            'tpcds_1T_partitioned_gcs', #database
     ]
@@ -28,7 +28,7 @@ steps:
            'spark-sense-n2d-v2-20-bq', #cluster #TODO-rename to spark-sense-c2d-v2-20-bq
            'us-central1', #cluster-region
            'tpcds', #bechmark
-           'spark-3.1-bigquery-nightly-snapshot-preview-sparksense.jar', #BQ jar
+           'spark-3.1-bigquery-nightly-snapshot-preview.jar', #BQ jar
            'bq', #runType
            'tpcds_1T_partitioned_gcs', #database
     ]
@@ -43,7 +43,7 @@ steps:
            'spark-sense-n2d-gcs-20', #cluster #TODO-rename to spark-sense-c2d-gcs-20
            'us-central1', #cluster-region
            'tpcds', #bechmark
-           'spark-bigquery-with-dependencies_2.12-nightly-snapshot-sparksense.jar', #BQ jar
+           'spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar', #BQ jar
            'gcs', #runType
            'tpcds_sf1000', #database
     ]
@@ -59,7 +59,7 @@ steps:
 #           'spark-sense-c2d-v1-21-bq', #cluster
 #           'us-central1', #cluster-region
 #           'tpcds', #bechmark
-#           'spark-bigquery-with-dependencies_2.12-nightly-snapshot-sparksense.jar', #BQ jar
+#           'spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar', #BQ jar
 #           'bq', #runType
 #           'tpcds_1T_partitioned_gcs', #database
 #    ]
@@ -74,7 +74,7 @@ steps:
 #           'spark-sense-c2d-v2-21-bq', #cluster
 #           'us-central1', #cluster-region
 #           'tpcds', #bechmark
-#           'spark-3.1-bigquery-nightly-snapshot-preview-sparksense.jar', #BQ jar
+#           'spark-3.1-bigquery-nightly-snapshot-preview.jar', #BQ jar
 #           'bq', #runType
 #           'tpcds_1T_partitioned_gcs', #database
 #    ]
@@ -89,7 +89,7 @@ steps:
 #           'spark-sense-c2d-21-gcs', #cluster
 #           'us-central1', #cluster-region
 #           'tpcds', #bechmark
-#           'spark-bigquery-with-dependencies_2.12-nightly-snapshot-sparksense.jar', #BQ jar
+#           'spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar', #BQ jar
 #           'gcs', #runType
 #           'tpcds_sf1000', #database
 #    ]

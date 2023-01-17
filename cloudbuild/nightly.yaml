@@ -44,6 +44,14 @@ steps:
       
         gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-3.2-bigquery/$revision-preview/spark-3.2-bigquery-$revision-preview.jar" "gs://$bucket"
         gsutil cp "gs://$bucket/spark-3.2-bigquery-$revision-preview.jar" "gs://$bucket/spark-3.2-bigquery-nightly-snapshot-preview.jar"
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'spark-sense-trigger'
+    entrypoint: 'bash'
+        args:
+        - '-c'
+        - |
+            gcloud pubsub topics publish spark-sense-nightly --message="trigger spark-sense run" 
+
   - name: 'gcr.io/cloud-builders/docker'
     id: 'docker-push'
     args: ['push', 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly:latest']
