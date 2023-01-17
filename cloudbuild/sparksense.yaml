@@ -10,7 +10,7 @@ steps:
     args: ['/workspace/cloudbuild/sparksense.sh',
            'spark-lib-nightly-snapshots', #connector bucket
            'V1_20_BQ', #runId
-           'spark-sense-c2d-v1-20-bq', #cluster
+           'spark-sense-n2d-v1-20-bq', #cluster #TODO-rename to spark-sense-c2d-v1-20-bq
            'us-central1', #cluster-region
            'tpcds', #bechmark
            'spark-bigquery-with-dependencies_2.12-nightly-snapshot-sparksense.jar', #BQ jar
@@ -25,7 +25,7 @@ steps:
     args: ['/workspace/cloudbuild/sparksense.sh',
            'spark-lib-nightly-snapshots', #connector bucket
            'V2_20_BQ', #runId
-           'spark-sense-c2d-v2-20-bq-1', #cluster #TODO-rename to spark-sense-c2d-v2-20-bq
+           'spark-sense-n2d-v2-20-bq', #cluster #TODO-rename to spark-sense-c2d-v2-20-bq
            'us-central1', #cluster-region
            'tpcds', #bechmark
            'spark-3.1-bigquery-nightly-snapshot-preview-sparksense.jar', #BQ jar
@@ -40,7 +40,7 @@ steps:
     args: ['/workspace/cloudbuild/sparksense.sh',
            'spark-lib-nightly-snapshots', #connector bucket
            'GCS_20', #runId
-           'spark-sense-c2d-20-gcs', #cluster
+           'spark-sense-n2d-gcs-20', #cluster #TODO-rename to spark-sense-c2d-gcs-20
            'us-central1', #cluster-region
            'tpcds', #bechmark
            'spark-bigquery-with-dependencies_2.12-nightly-snapshot-sparksense.jar', #BQ jar
