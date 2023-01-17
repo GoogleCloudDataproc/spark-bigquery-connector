@@ -25,7 +25,7 @@ steps:
     args: ['/workspace/cloudbuild/sparksense.sh',
            'spark-lib-nightly-snapshots', #connector bucket
            'V2_20_BQ', #runId
-           'spark-sense-c2d-v2-20-bq', #cluster
+           'spark-sense-c2d-v2-20-bq-1', #cluster #TODO-rename to spark-sense-c2d-v2-20-bq
            'us-central1', #cluster-region
            'tpcds', #bechmark
            'spark-3.1-bigquery-nightly-snapshot-preview-sparksense.jar', #BQ jar
