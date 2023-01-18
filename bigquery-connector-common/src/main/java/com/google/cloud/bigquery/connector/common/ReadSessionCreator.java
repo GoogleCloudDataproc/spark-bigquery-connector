@@ -145,26 +145,28 @@ public class ReadSessionCreator {
                 .setPreferredMinStreamCount(preferredMinStreamCount)
                 .build());
 
-    if (readSession != null && readSession.getStreamsCount() != maxStreamCount) {
+    if (readSession != null) {
+      Instant sessionCreationEndTime = Instant.now();
       log.info(
-          "Requested {} max partitions, but only received {} "
-              + "from the BigQuery Storage API for session {}. Notice that the "
-              + "number of streams in actual may be lower than the requested number, depending on "
-              + "the amount parallelism that is reasonable for the table and the maximum amount of "
-              + "parallelism allowed by the system.",
-          maxStreamCount,
-          readSession.getStreamsCount(),
-          readSession.getName());
+          "Read session {} creation started: {} Completed: {} PrepDuration: {} SessionCreationDuration: {}",
+          readSession.getName(),
+          sessionPrepStartTime,
+          sessionCreationEndTime,
+          Duration.between(sessionPrepStartTime, sessionPrepEndTime),
+          Duration.between(sessionPrepEndTime, sessionCreationEndTime));
+      if (readSession.getStreamsCount() != maxStreamCount) {
+        log.info(
+            "Requested {} max partitions, but only received {} "
+                + "from the BigQuery Storage API for session {}. Notice that the "
+                + "number of streams in actual may be lower than the requested number, depending on "
+                + "the amount parallelism that is reasonable for the table and the maximum amount of "
+                + "parallelism allowed by the system.",
+            maxStreamCount,
+            readSession.getStreamsCount(),
+            readSession.getName());
+      }
     }
-    Instant sessionCreationEndTime = Instant.now();
 
-    log.info(
-        "Read session {} creation started: {} Completed: {} PrepDuration: {} SessionCreationDuration: {}",
-        readSession.getName(),
-        sessionPrepStartTime,
-        sessionCreationEndTime,
-        Duration.between(sessionPrepStartTime, sessionPrepEndTime),
-        Duration.between(sessionPrepEndTime, sessionCreationEndTime));
     return new ReadSessionResponse(readSession, actualTable);
   }
 
