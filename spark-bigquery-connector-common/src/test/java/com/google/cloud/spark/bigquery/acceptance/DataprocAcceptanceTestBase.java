@@ -85,10 +85,14 @@ public class DataprocAcceptanceTestBase {
     Map<String, String> properties =
         clusterProperties.stream()
             .collect(Collectors.toMap(ClusterProperty::getKey, ClusterProperty::getValue));
-    String clusterName = createClusterIfNeeded(dataprocImageVersion, testId, properties);
-    AcceptanceTestContext acceptanceTestContext = new AcceptanceTestContext(testId, clusterName);
-    uploadConnectorJar(
-        CONNECTOR_JAR_DIRECTORY, connectorJarPrefix, acceptanceTestContext.connectorJarUri);
+    String testBaseGcsDir = AcceptanceTestUtils.createTestBaseGcsDir(testId);
+    String connectorJarUri = testBaseGcsDir + "/connector.jar";
+    uploadConnectorJar(CONNECTOR_JAR_DIRECTORY, connectorJarPrefix, connectorJarUri);
+
+    String clusterName =
+        createClusterIfNeeded(dataprocImageVersion, testId, properties, connectorJarUri);
+    AcceptanceTestContext acceptanceTestContext =
+        new AcceptanceTestContext(testId, clusterName, testBaseGcsDir, connectorJarUri);
     createBqDataset(acceptanceTestContext.bqDataset);
     return acceptanceTestContext;
   }
@@ -102,7 +106,11 @@ public class DataprocAcceptanceTestBase {
   }
 
   protected static String createClusterIfNeeded(
-      String dataprocImageVersion, String testId, Map<String, String> properties) throws Exception {
+      String dataprocImageVersion,
+      String testId,
+      Map<String, String> properties,
+      String connectorJarUri)
+      throws Exception {
     String clusterName = generateClusterName(testId);
     cluster(
         client ->
@@ -110,7 +118,7 @@ public class DataprocAcceptanceTestBase {
                 .createClusterAsync(
                     PROJECT_ID,
                     REGION,
-                    createCluster(clusterName, dataprocImageVersion, properties))
+                    createCluster(clusterName, dataprocImageVersion, properties, connectorJarUri))
                 .get());
     return clusterName;
   }
@@ -128,16 +136,26 @@ public class DataprocAcceptanceTestBase {
   }
 
   private static Cluster createCluster(
-      String clusterName, String dataprocImageVersion, Map<String, String> properties) {
+      String clusterName,
+      String dataprocImageVersion,
+      Map<String, String> properties,
+      String connectorJarUri) {
     return Cluster.newBuilder()
         .setClusterName(clusterName)
         .setProjectId(PROJECT_ID)
         .setConfig(
             ClusterConfig.newBuilder()
+                .addInitializationActions(
+                    NodeInitializationAction.newBuilder()
+                        .setExecutableFile(
+                            String.format(
+                                "gs://goog-dataproc-initialization-actions-%s/connectors/connectors.sh",
+                                REGION)))
                 .setGceClusterConfig(
                     GceClusterConfig.newBuilder()
                         .setNetworkUri("default")
-                        .setZoneUri(REGION + "-a"))
+                        .setZoneUri(REGION + "-a")
+                        .putMetadata("spark-bigquery-connector-url", connectorJarUri))
                 .setMasterConfig(
                     InstanceGroupConfig.newBuilder()
                         .setNumInstances(1)
