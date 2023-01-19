@@ -27,6 +27,8 @@ import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.common.collect.ImmutableList;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -67,6 +69,7 @@ public class ReadSessionCreator {
    */
   public ReadSessionResponse create(
       TableId table, ImmutableList<String> selectedFields, Optional<String> filter) {
+    Instant sessionPrepStartTime = Instant.now();
     TableInfo tableDetails = bigQueryClient.getTable(table);
 
     TableInfo actualTable = getActualTable(tableDetails, selectedFields, filter);
@@ -125,6 +128,7 @@ public class ReadSessionCreator {
                   log.debug("using default max parallelism [{}]", defaultMaxStreamCount);
                   return defaultMaxStreamCount;
                 });
+    Instant sessionPrepEndTime = Instant.now();
 
     ReadSession readSession =
         bigQueryReadClient.createReadSession(
@@ -141,16 +145,26 @@ public class ReadSessionCreator {
                 .setPreferredMinStreamCount(preferredMinStreamCount)
                 .build());
 
-    if (readSession != null && readSession.getStreamsCount() != maxStreamCount) {
+    if (readSession != null) {
+      Instant sessionCreationEndTime = Instant.now();
       log.info(
-          "Requested {} max partitions, but only received {} "
-              + "from the BigQuery Storage API for session {}. Notice that the "
-              + "number of streams in actual may be lower than the requested number, depending on "
-              + "the amount parallelism that is reasonable for the table and the maximum amount of "
-              + "parallelism allowed by the system.",
-          maxStreamCount,
-          readSession.getStreamsCount(),
-          readSession.getName());
+          "Read session {} creation started: {} Completed: {} PrepDuration: {} SessionCreationDuration: {}",
+          readSession.getName(),
+          sessionPrepStartTime,
+          sessionCreationEndTime,
+          Duration.between(sessionPrepStartTime, sessionPrepEndTime),
+          Duration.between(sessionPrepEndTime, sessionCreationEndTime));
+      if (readSession.getStreamsCount() != maxStreamCount) {
+        log.info(
+            "Requested {} max partitions, but only received {} "
+                + "from the BigQuery Storage API for session {}. Notice that the "
+                + "number of streams in actual may be lower than the requested number, depending on "
+                + "the amount parallelism that is reasonable for the table and the maximum amount of "
+                + "parallelism allowed by the system.",
+            maxStreamCount,
+            readSession.getStreamsCount(),
+            readSession.getName());
+      }
     }
 
     return new ReadSessionResponse(readSession, actualTable);
