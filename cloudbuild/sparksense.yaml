@@ -10,7 +10,7 @@ steps:
     args: ['/workspace/cloudbuild/sparksense.sh',
            'spark-lib-nightly-snapshots', #connector bucket
            'V1_20_BQ', #runId
-           'spark-sense-n2d-v1-20-bq', #cluster #TODO-rename to spark-sense-c2d-v1-20-bq
+           'spark-sense-c2d-v1-20-bq', #cluster
            'us-central1', #cluster-region
            'tpcds', #bechmark
            'spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar', #BQ jar
@@ -25,7 +25,7 @@ steps:
     args: ['/workspace/cloudbuild/sparksense.sh',
            'spark-lib-nightly-snapshots', #connector bucket
            'V2_20_BQ', #runId
-           'spark-sense-n2d-v2-20-bq', #cluster #TODO-rename to spark-sense-c2d-v2-20-bq
+           'spark-sense-c2d-v2-20-bq', #cluster
            'us-central1', #cluster-region
            'tpcds', #bechmark
            'spark-3.1-bigquery-nightly-snapshot-preview.jar', #BQ jar
@@ -40,7 +40,7 @@ steps:
     args: ['/workspace/cloudbuild/sparksense.sh',
            'spark-lib-nightly-snapshots', #connector bucket
            'GCS_20', #runId
-           'spark-sense-n2d-gcs-20', #cluster #TODO-rename to spark-sense-c2d-gcs-20
+           'spark-sense-c2d-gcs-20', #cluster
            'us-central1', #cluster-region
            'tpcds', #bechmark
            'spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar', #BQ jar
@@ -49,7 +49,7 @@ steps:
     ]
     waitFor: ['docker-build']
 
-
+# TODO - uncomment this once everything works fine for image 2.1
 #  - name: 'gcr.io/cloud-builders/gcloud'
 #    entrypoint: 'bash'
 #    id: 'sparksense-v1-21-bq'
