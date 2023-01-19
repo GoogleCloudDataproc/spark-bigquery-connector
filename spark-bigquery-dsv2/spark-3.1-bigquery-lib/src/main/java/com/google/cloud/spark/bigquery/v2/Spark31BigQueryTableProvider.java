@@ -49,11 +49,11 @@ public class Spark31BigQueryTableProvider extends BaseBigQuerySource
     return getBigQueryTableInternal(schema, properties);
   }
 
-  private BigQueryTable getBigQueryTableInternal(Map<String, String> properties) {
+  private Spark31BigQueryTable getBigQueryTableInternal(Map<String, String> properties) {
     return getBigQueryTableInternal(null, properties);
   }
 
-  private BigQueryTable getBigQueryTableInternal(
+  private Spark31BigQueryTable getBigQueryTableInternal(
       StructType schema, Map<String, String> properties) {
     Injector injector =
         new InjectorBuilder()
@@ -62,7 +62,7 @@ public class Spark31BigQueryTableProvider extends BaseBigQuerySource
             .withTableIsMandatory(true)
             .withDataSourceVersion(DataSourceVersion.V2)
             .build();
-    BigQueryTable table = BigQueryTable.fromConfigurationAndSchema(injector, schema);
+    Spark31BigQueryTable table = Spark31BigQueryTable.fromConfigurationAndSchema(injector, schema);
     return table;
   }
 
