@@ -40,7 +40,7 @@ steps:
     args: ['/workspace/cloudbuild/sparksense.sh',
            'spark-lib-nightly-snapshots', #connector bucket
            'GCS_20', #runId
-           'spark-sense-c2d-gcs-20', #cluster
+           'spark-sense-c2d-20-gcs', #cluster
            'us-central1', #cluster-region
            'tpcds', #bechmark
            'spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar', #BQ jar
