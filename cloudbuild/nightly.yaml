@@ -8,7 +8,7 @@ steps:
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly'
     id: 'maven-build'
     entrypoint: 'bash'
-    args: ['/workspace/cloudbuild/nightly.sh']
+    args: ['/workspace/cloudbuild/nightly.sh', 'build']
     env:
       - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
       - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
@@ -16,38 +16,10 @@ steps:
       - 'SERVERLESS_NETWORK_URI=${_SERVERLESS_NETWORK_URI}'
       - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
       - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
-  - name: 'gcr.io/cloud-builders/gsutil'
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly'
+    id: 'copy-to-gcs'
     entrypoint: 'bash'
-    args:
-    - '-c'
-    - |
-        bucket="spark-lib-nightly-snapshots"
-      
-        # Get the REVISION variable from the previous step
-        revision="$(cat /workspace/revision.txt)"
-      
-        # Upload nightly artifacts to the snapshot bucket and mark nightly snapshot
-        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.11/$revision/spark-bigquery-with-dependencies_2.11-$revision.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.11-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.11-nightly-snapshot.jar"
-      
-        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.12/$revision/spark-bigquery-with-dependencies_2.12-$revision.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.12-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar"
-
-        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-bigquery-with-dependencies_2.13/$revision/spark-bigquery-with-dependencies_2.13-$revision.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-bigquery-with-dependencies_2.13-$revision.jar" "gs://$bucket/spark-bigquery-with-dependencies_2.13-nightly-snapshot.jar"
-      
-        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-2.4-bigquery/$revision-preview/spark-2.4-bigquery-$revision-preview.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-2.4-bigquery-$revision-preview.jar" "gs://$bucket/spark-2.4-bigquery-nightly-snapshot-preview.jar"
-      
-        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-3.1-bigquery/$revision-preview/spark-3.1-bigquery-$revision-preview.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-3.1-bigquery-$revision-preview.jar" "gs://$bucket/spark-3.1-bigquery-nightly-snapshot-preview.jar"
-      
-        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-3.2-bigquery/$revision-preview/spark-3.2-bigquery-$revision-preview.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-3.2-bigquery-$revision-preview.jar" "gs://$bucket/spark-3.2-bigquery-nightly-snapshot-preview.jar"
-      
-        gsutil cp "/workspace/.repository/com/google/cloud/spark/spark-3.3-bigquery/$revision-preview/spark-3.3-bigquery-$revision-preview.jar" "gs://$bucket"
-        gsutil cp "gs://$bucket/spark-3.3-bigquery-$revision-preview.jar" "gs://$bucket/spark-3.3-bigquery-nightly-snapshot-preview.jar"
-
+    args: ['/workspace/cloudbuild/nightly.sh', 'copy-to-gcs']
 # Trigger to start spark-sense
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'spark-sense-trigger'
