@@ -25,11 +25,12 @@ public class AcceptanceTestContext {
   final String bqTable;
   final String bqStreamTable;
 
-  public AcceptanceTestContext(String testId, String clusterId) {
+  public AcceptanceTestContext(
+      String testId, String clusterId, String testBaseGcsDir, String connectorJarUri) {
     this.testId = testId;
     this.clusterId = clusterId;
-    this.testBaseGcsDir = AcceptanceTestUtils.createTestBaseGcsDir(testId);
-    this.connectorJarUri = this.testBaseGcsDir + "/connector.jar";
+    this.testBaseGcsDir = testBaseGcsDir;
+    this.connectorJarUri = connectorJarUri;
     this.bqDataset = "bq_acceptance_test_dataset_" + testId.replace("-", "_");
     this.bqTable = "bq_acceptance_test_table_" + testId.replace("-", "_");
     this.bqStreamTable = "bq_write_stream_test_table_" + testId.replace("-", "_");
