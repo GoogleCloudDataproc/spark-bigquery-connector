@@ -16,24 +16,23 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
+import com.google.cloud.spark.bigquery.DataSourceVersion;
+import com.google.cloud.spark.bigquery.InjectorBuilder;
+import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import com.google.inject.Injector;
-import org.apache.spark.sql.connector.catalog.Identifier;
-import org.apache.spark.sql.connector.read.ScanBuilder;
+import org.apache.spark.sql.catalog.Table;
 import org.apache.spark.sql.types.StructType;
-import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 
-public class Spark32BigQueryTable extends Spark31BigQueryTable {
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Map;
 
-  protected Spark32BigQueryTable(Injector injector, TableId tableId, StructType schema) {
-    super(injector, tableId, schema);
-  }
+@FunctionalInterface
+public interface BigQueryTableCreator {
 
-  @Override
-  public ScanBuilder newScanBuilder(CaseInsensitiveStringMap options) {
-    BigQueryDataSourceReaderContext ctx = createBigQueryDataSourceReaderContext(options);
-    return new Spark32BigQueryScanBuilder(ctx);
-  }
+    Table create(Injector injector, TableId tableId, StructType schema);
 }

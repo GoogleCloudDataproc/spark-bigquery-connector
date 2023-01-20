@@ -46,24 +46,11 @@ public class Spark31BigQueryTableProvider extends BaseBigQuerySource
   @Override
   public Table getTable(
       StructType schema, Transform[] partitioning, Map<String, String> properties) {
-    return getBigQueryTableInternal(schema, properties);
+    return Spark3Util.createBigQueryTableInstance(Spark31BigQueryTable.class, schema, properties);
   }
 
-  private Spark31BigQueryTable getBigQueryTableInternal(Map<String, String> properties) {
-    return getBigQueryTableInternal(null, properties);
-  }
-
-  private Spark31BigQueryTable getBigQueryTableInternal(
-      StructType schema, Map<String, String> properties) {
-    Injector injector =
-        new InjectorBuilder()
-            .withOptions(properties)
-            .withSchema(schema)
-            .withTableIsMandatory(true)
-            .withDataSourceVersion(DataSourceVersion.V2)
-            .build();
-    Spark31BigQueryTable table = Spark31BigQueryTable.fromConfigurationAndSchema(injector, schema);
-    return table;
+  protected Table getBigQueryTableInternal(Map<String, String> properties) {
+    return Spark3Util.createBigQueryTableInstance(Spark31BigQueryTable.class, null, properties);
   }
 
   @Override
