@@ -15,23 +15,21 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import org.apache.spark.sql.connector.catalog.Table;
-import org.apache.spark.sql.connector.expressions.Transform;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
+import com.google.inject.Injector;
+import org.apache.spark.sql.connector.read.ScanBuilder;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.util.CaseInsensitiveStringMap;
+public class Spark33BigQueryTable extends Spark32BigQueryTable {
 
-import java.util.Map;
-
-public class Spark33BigQueryTableProvider extends Spark32BigQueryTableProvider {
-  // empty
-  @Override
-  public Table getTable(
-          StructType schema, Transform[] partitioning, Map<String, String> properties) {
-      return Spark3Util.createBigQueryTableInstance(Spark33BigQueryTable.class, schema, properties);
+  protected Spark33BigQueryTable(Injector injector, TableId tableId, StructType schema) {
+    super(injector, tableId, schema);
   }
 
-    @Override
-    protected Table getBigQueryTableInternal(Map<String, String> properties) {
-        return Spark3Util.createBigQueryTableInstance(Spark33BigQueryTable.class, null, properties);
-    }
-
+  @Override
+  public ScanBuilder newScanBuilder(CaseInsensitiveStringMap options) {
+    BigQueryDataSourceReaderContext ctx = createBigQueryDataSourceReaderContext(options);
+    return new Spark33BigQueryScanBuilder(ctx);
+  }
 }

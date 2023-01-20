@@ -23,7 +23,6 @@ import java.util.Map;
 
 public class Spark32BigQueryTableProvider extends Spark31BigQueryTableProvider {
 
-
     @Override
     public Table getTable(
             StructType schema, Transform[] partitioning, Map<String, String> properties) {
