@@ -19,36 +19,73 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
+import com.google.cloud.spark.bigquery.DataSourceVersion;
+import com.google.cloud.spark.bigquery.InjectorBuilder;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.inject.Injector;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Map;
+
 import org.apache.spark.sql.types.StructType;
 
 public class Spark3Util {
 
-  static <T> T createBigQueryTableInstance(
-      Class<T> clazz, Injector injector, TableId tableId, StructType sparkProvidedSchema) {
-    try {
-      Constructor<T> constructor =
-          clazz.getConstructor(Injector.class, TableId.class, StructType.class);
-      BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
-      SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
-      TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
-      if (tableInfo == null) {
-        return constructor.newInstance(injector, tableId, sparkProvidedSchema);
-      }
-      StructType schema =
-          sparkProvidedSchema != null
-              ? sparkProvidedSchema
-              : SchemaConverters.toSpark(tableInfo.getDefinition().getSchema());
-      return constructor.newInstance(injector, tableInfo.getTableId(), schema);
-    } catch (NoSuchMethodException
-        | InstantiationException
-        | IllegalAccessException
-        | InvocationTargetException e) {
-      throw new BigQueryConnectorException("Could not create BigQueryTable instance", e);
+    static <T> T createBigQueryTableInstance(Class<T> clazz,
+                                             StructType sparkProvidedSchema, Map<String, String> properties) {
+        try {
+            Injector injector =
+                    new InjectorBuilder()
+                            .withOptions(properties)
+                            .withSchema(sparkProvidedSchema)
+                            .withTableIsMandatory(true)
+                            .withDataSourceVersion(DataSourceVersion.V2)
+                            .build();
+            Constructor<T> constructor =
+                    clazz.getConstructor(Injector.class, TableId.class, StructType.class);
+            BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
+            SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
+            TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
+            if (tableInfo == null) {
+                return constructor.newInstance(injector, config.getTableId(), sparkProvidedSchema);
+            }
+            StructType schema =
+                    sparkProvidedSchema != null
+                            ? sparkProvidedSchema
+                            : SchemaConverters.toSpark(tableInfo.getDefinition().getSchema());
+            return constructor.newInstance(injector, tableInfo.getTableId(), schema);
+        } catch (NoSuchMethodException
+                 | InstantiationException
+                 | IllegalAccessException
+                 | InvocationTargetException e) {
+            throw new BigQueryConnectorException("Could not create BigQueryTable instance", e);
+        }
     }
-  }
+
+
+    static <T> T createBigQueryTableInstance(
+            Class<T> clazz, Injector injector, TableId tableId, StructType sparkProvidedSchema) {
+        try {
+            Constructor<T> constructor =
+                    clazz.getConstructor(Injector.class, TableId.class, StructType.class);
+            BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
+            SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
+            TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
+            if (tableInfo == null) {
+                return constructor.newInstance(injector, tableId, sparkProvidedSchema);
+            }
+            StructType schema =
+                    sparkProvidedSchema != null
+                            ? sparkProvidedSchema
+                            : SchemaConverters.toSpark(tableInfo.getDefinition().getSchema());
+            return constructor.newInstance(injector, tableInfo.getTableId(), schema);
+        } catch (NoSuchMethodException
+                 | InstantiationException
+                 | IllegalAccessException
+                 | InvocationTargetException e) {
+            throw new BigQueryConnectorException("Could not create BigQueryTable instance", e);
+        }
+    }
 }
