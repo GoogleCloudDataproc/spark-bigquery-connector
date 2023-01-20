@@ -30,11 +30,11 @@ steps:
 #        gcloud pubsub topics publish spark-sense-nightly --message="trigger spark-sense run" 
 
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'docker-build'
+    id: 'docker-build-presubmit-base'
     args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit-base', '-f', 'cloudbuild/Dockerfile.presubmit-base', '.']
 
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'docker-push'
+    id: 'docker-push-presubmit-base'
     args: ['push', 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit-base:latest']
 
 
