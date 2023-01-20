@@ -25,7 +25,7 @@ function checkenv() {
   fi
 }
 
-readonly M2REPO="/var/local/m2/repository"
+readonly M2REPO="/workspace/.repository"
 readonly DATE="$(date +%Y%m%d)"
 readonly REVISION="0.0.${DATE}"
 readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=${M2REPO} -Drevision=${REVISION}"
