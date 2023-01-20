@@ -49,7 +49,7 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
   protected TableId tableId;
   protected StructType schema;
 
-  protected Spark31BigQueryTable(Injector injector, TableId tableId, StructType schema) {
+  public Spark31BigQueryTable(Injector injector, TableId tableId, StructType schema) {
     this.injector = injector;
     this.tableId = tableId;
     this.schema = schema;
