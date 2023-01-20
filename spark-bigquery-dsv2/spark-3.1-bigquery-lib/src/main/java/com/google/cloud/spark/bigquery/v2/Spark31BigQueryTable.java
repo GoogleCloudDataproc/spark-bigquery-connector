@@ -54,23 +54,7 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
     this.tableId = tableId;
     this.schema = schema;
   }
-
-  public static Spark31BigQueryTable fromConfigurationAndSchema(
-      Injector injector, StructType sparkProvidedSchema) {
-    SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
-    return Spark3Util.createBigQueryTableInstance(
-        Spark31BigQueryTable.class, injector, config.getTableId(), sparkProvidedSchema);
-  }
-
-  public static Spark31BigQueryTable fromIdentifier(Injector injector, Identifier ident) {
-    BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
-    return Spark3Util.createBigQueryTableInstance(
-        Spark31BigQueryTable.class,
-        injector,
-        ((BigQueryIdentifier) ident).getTableId(), /*sparkProvidedSchema*/
-        null);
-  }
-
+  
   @Override
   public ScanBuilder newScanBuilder(CaseInsensitiveStringMap options) {
     BigQueryDataSourceReaderContext ctx = createBigQueryDataSourceReaderContext(options);
