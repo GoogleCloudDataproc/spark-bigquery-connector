@@ -2,7 +2,6 @@
 FROM openjdk:8
 
 RUN \
-  RUN curl -sSL https://sdk.cloud.google.com | bash && \
   mkdir -p /var/share/m2 && \
   gsutil -m cp -r gs://$BUCKET/repository /var/share/m2/repository && \
   rm -fr /var/share/m2/repository/com/google/cloud/spark && \
