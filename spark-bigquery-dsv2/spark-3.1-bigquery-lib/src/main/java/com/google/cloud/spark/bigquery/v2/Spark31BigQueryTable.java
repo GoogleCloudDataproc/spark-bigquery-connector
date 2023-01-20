@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
@@ -28,7 +27,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.connector.catalog.Identifier;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.catalog.SupportsWrite;
 import org.apache.spark.sql.connector.catalog.Table;
@@ -54,7 +52,7 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
     this.tableId = tableId;
     this.schema = schema;
   }
-  
+
   @Override
   public ScanBuilder newScanBuilder(CaseInsensitiveStringMap options) {
     BigQueryDataSourceReaderContext ctx = createBigQueryDataSourceReaderContext(options);
