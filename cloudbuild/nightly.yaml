@@ -16,24 +16,27 @@ steps:
       - 'SERVERLESS_NETWORK_URI=${_SERVERLESS_NETWORK_URI}'
       - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
       - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly'
-    id: 'copy-to-gcs'
-    entrypoint: 'bash'
-    args: ['/workspace/cloudbuild/nightly.sh', 'copy-to-gcs']
+#  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly'
+#    id: 'copy-to-gcs'
+#    entrypoint: 'bash'
+#    args: ['/workspace/cloudbuild/nightly.sh', 'copy-to-gcs']
 # Trigger to start spark-sense
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'spark-sense-trigger'
-    entrypoint: 'bash'
-    args:
-    - '-c'
-    - |
-        gcloud pubsub topics publish spark-sense-nightly --message="trigger spark-sense run" 
+#  - name: 'gcr.io/cloud-builders/gcloud'
+#    id: 'spark-sense-trigger'
+#    entrypoint: 'bash'
+#    args:
+#    - '-c'
+#    - |
+#        gcloud pubsub topics publish spark-sense-nightly --message="trigger spark-sense run" 
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'docker-build'
+    args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit-base', '-f', 'cloudbuild/Dockerfile.presubmit-base', '.']
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'docker-push'
-    args: ['push', 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly:latest']
+    args: ['push', 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit-base:latest']
 
-images: ['gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly']
 
 # Many tests, so it takes time
 timeout: 10800s
