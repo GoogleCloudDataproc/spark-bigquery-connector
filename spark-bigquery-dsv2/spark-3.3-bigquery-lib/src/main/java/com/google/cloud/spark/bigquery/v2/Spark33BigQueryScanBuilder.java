@@ -21,5 +21,4 @@ public class Spark33BigQueryScanBuilder extends Spark32BigQueryScanBuilder {
   public Spark33BigQueryScanBuilder(BigQueryDataSourceReaderContext ctx) {
     super(ctx);
   }
-
 }

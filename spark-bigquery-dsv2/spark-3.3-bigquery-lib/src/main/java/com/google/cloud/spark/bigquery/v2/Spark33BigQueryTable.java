@@ -21,6 +21,7 @@ import com.google.inject.Injector;
 import org.apache.spark.sql.connector.read.ScanBuilder;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
+
 public class Spark33BigQueryTable extends Spark32BigQueryTable {
 
   protected Spark33BigQueryTable(Injector injector, TableId tableId, StructType schema) {

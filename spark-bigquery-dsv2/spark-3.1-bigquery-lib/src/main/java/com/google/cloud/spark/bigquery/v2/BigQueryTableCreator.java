@@ -16,23 +16,12 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.connector.common.BigQueryClient;
-import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
-import com.google.cloud.spark.bigquery.DataSourceVersion;
-import com.google.cloud.spark.bigquery.InjectorBuilder;
-import com.google.cloud.spark.bigquery.SchemaConverters;
-import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.inject.Injector;
-import org.apache.spark.sql.catalog.Table;
+import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.types.StructType;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Map;
 
 @FunctionalInterface
 public interface BigQueryTableCreator {
 
-    Table create(Injector injector, TableId tableId, StructType schema);
+  Table create(Injector injector, TableId tableId, StructType schema);
 }

@@ -16,13 +16,9 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
-import org.apache.spark.sql.connector.expressions.NamedReference;
-import org.apache.spark.sql.connector.read.SupportsRuntimeFiltering;
-import org.apache.spark.sql.sources.Filter;
 
 public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder {
   public Spark32BigQueryScanBuilder(BigQueryDataSourceReaderContext ctx) {
     super(ctx);
   }
-
 }

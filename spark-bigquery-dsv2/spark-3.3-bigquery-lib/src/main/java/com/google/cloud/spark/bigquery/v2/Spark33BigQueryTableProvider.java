@@ -15,23 +15,21 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import java.util.Map;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.expressions.Transform;
 import org.apache.spark.sql.types.StructType;
-
-import java.util.Map;
 
 public class Spark33BigQueryTableProvider extends Spark32BigQueryTableProvider {
   // empty
   @Override
   public Table getTable(
-          StructType schema, Transform[] partitioning, Map<String, String> properties) {
-      return Spark3Util.createBigQueryTableInstance(Spark33BigQueryTable.class, schema, properties);
+      StructType schema, Transform[] partitioning, Map<String, String> properties) {
+    return Spark3Util.createBigQueryTableInstance(Spark33BigQueryTable::new, schema, properties);
   }
 
-    @Override
-    protected Table getBigQueryTableInternal(Map<String, String> properties) {
-        return Spark3Util.createBigQueryTableInstance(Spark33BigQueryTable.class, null, properties);
-    }
-
+  @Override
+  protected Table getBigQueryTableInternal(Map<String, String> properties) {
+    return Spark3Util.createBigQueryTableInstance(Spark33BigQueryTable::new, null, properties);
+  }
 }
