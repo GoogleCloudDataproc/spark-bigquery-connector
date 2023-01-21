@@ -46,8 +46,8 @@ public class Spark31BigQueryScanBuilder
         SupportsReportStatistics,
         SupportsQueryPushdown {
 
-  private BigQueryDataSourceReaderContext ctx;
-  private InputPartition[] partitions;
+  protected BigQueryDataSourceReaderContext ctx;
+  protected InputPartition[] partitions;
 
   public Spark31BigQueryScanBuilder(BigQueryDataSourceReaderContext ctx) {
     this.ctx = ctx;

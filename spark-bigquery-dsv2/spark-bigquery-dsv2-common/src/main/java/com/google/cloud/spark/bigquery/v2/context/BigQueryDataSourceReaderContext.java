@@ -41,6 +41,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,6 +97,7 @@ public class BigQueryDataSourceReaderContext {
   private Filter[] pushedFilters = new Filter[] {};
   private Map<String, StructField> fields;
   private Optional<ImmutableList<String>> selectedFields = Optional.empty();
+  private List<ArrowInputPartitionContext> plannedInputPartitionContexts;
   // Lazy loading using Supplier will ensure that createReadSession is called only once and
   // readSessionResponse is cached.
   // Purpose is to create read session either in estimateStatistics or planInputPartitionContexts,
@@ -204,22 +206,26 @@ public class BigQueryDataSourceReaderContext {
               .collect(ImmutableList.toImmutableList());
     }
     ImmutableList<String> partitionSelectedFields = tempSelectedFields;
-    return Streams.stream(
-            Iterables.partition(
-                readSession.getStreamsList(), readSessionCreatorConfig.streamsPerPartition()))
-        .map(
-            streams ->
-                new ArrowInputPartitionContext(
-                    bigQueryReadClientFactory,
-                    bigQueryTracerFactory,
-                    streams.stream()
-                        .map(ReadStream::getName)
-                        // This formulation is used to guarantee a serializable list.
-                        .collect(Collectors.toCollection(ArrayList::new)),
-                    readSessionCreatorConfig.toReadRowsHelperOptions(),
-                    partitionSelectedFields,
-                    readSessionResponse.get(),
-                    userProvidedSchema));
+    plannedInputPartitionContexts =
+        Streams.stream(
+                Iterables.partition(
+                    readSession.getStreamsList(), readSessionCreatorConfig.streamsPerPartition()))
+            .map(
+                streams ->
+                    new ArrowInputPartitionContext(
+                        bigQueryReadClientFactory,
+                        bigQueryTracerFactory,
+                        streams.stream()
+                            .map(ReadStream::getName)
+                            // This formulation is used to guarantee a serializable list.
+                            .collect(Collectors.toCollection(ArrayList::new)),
+                        readSessionCreatorConfig.toReadRowsHelperOptions(),
+                        partitionSelectedFields,
+                        readSessionResponse.get(),
+                        userProvidedSchema))
+            .collect(Collectors.toList());
+    return plannedInputPartitionContexts.stream()
+        .map(ctx -> (InputPartitionContext<ColumnarBatch>) ctx);
   }
 
   private boolean isEmptySchema() {
@@ -305,12 +311,67 @@ public class BigQueryDataSourceReaderContext {
         unhandledFilters.add(filter);
       }
     }
+    // TODO(zhoufang): adds a dummy filter to make Dynamic Partition Pruning work.
+    // https://github.com/apache/spark/blob/29258964cae45cea43617ade971fb4ea9fe2902a/sql/core/src/main/scala/org/apache/spark/sql/execution/dynamicpruning/PartitionPruning.scala#L214
+    unhandledFilters.add(new AlwaysTrue());
     pushedFilters = handledFilters.stream().toArray(Filter[]::new);
     return unhandledFilters.stream().toArray(Filter[]::new);
   }
 
+  // Backport from Spark 3.0
+  static class AlwaysTrue extends Filter {
+
+    @Override
+    public String[] references() {
+      return new String[0];
+    }
+  }
+
   public Filter[] pushedFilters() {
     return pushedFilters;
+  }
+
+  public void filter(Filter[] filters) {
+    logger.info(String.format("Use Dynamic Partition Pruning runtime filters: %s", filters));
+    if (plannedInputPartitionContexts == null) {
+      logger.error("Should have planned partitions.");
+      return;
+    }
+
+    pushedFilters =
+        Stream.concat(Arrays.stream(pushedFilters), Arrays.stream(filters)).toArray(Filter[]::new);
+    // Copies previous planned input partition contexts.
+    List<ArrowInputPartitionContext> previousInputPartitionContexts = plannedInputPartitionContexts;
+    // Creates a new read session, this creates a new plannedInputPartitionContexts.
+    planBatchInputPartitionContexts();
+
+    if (plannedInputPartitionContexts.size() > previousInputPartitionContexts.size()) {
+      logger.error(
+          String.format(
+              "New partitions should not be more than originally planned. Previously had %d streams, now has %d.",
+              previousInputPartitionContexts.size(), plannedInputPartitionContexts.size()));
+      return;
+    }
+    logger.info(
+        String.format(
+            "Use Dynamic Partition Pruning, originally planned %d, adjust to %d partitions",
+            previousInputPartitionContexts.size(), plannedInputPartitionContexts.size()));
+
+    // TODO: Spread streams more evenly. This solution reduces the parallelism as it potentially
+    // leaves partitions without streams while other may have more than one stream.
+
+    // first let's update the streams in the previous planned partitions
+    for (int i = 0; i < plannedInputPartitionContexts.size(); i++) {
+      previousInputPartitionContexts
+          .get(i)
+          .resetStreamNamesFrom(plannedInputPartitionContexts.get(i));
+    }
+    // second, clear the redundant partitions
+    for (int i = plannedInputPartitionContexts.size();
+        i < previousInputPartitionContexts.size();
+        i++) {
+      previousInputPartitionContexts.get(i).clearStreamsList();
+    }
   }
 
   public void pruneColumns(StructType requiredSchema) {
