@@ -38,7 +38,7 @@ case $STEP in
   build)
     checkenv
     # Build
-    $MVN install -DskipTests -Pdsv2_3.1
+    $MVN install -DskipTests
     #coverage report
 #    $MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1,dsv2
     # Run integration tests
