@@ -3,6 +3,6 @@ FROM openjdk:8
 
 RUN \
   mkdir -p /var/share/m2 && \
-  cp -r gs://workspace/.repository /var/share/m2/repository && \
+  cp -r /workspace/.repository /var/share/m2/repository && \
   rm -fr /var/share/m2/repository/com/google/cloud/spark && \
   echo "Image ready with repository"
