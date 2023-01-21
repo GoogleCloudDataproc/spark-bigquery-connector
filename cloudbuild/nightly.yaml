@@ -16,6 +16,9 @@ steps:
       - 'SERVERLESS_NETWORK_URI=${_SERVERLESS_NETWORK_URI}'
       - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
       - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
+    volumes:
+    - name: 'persistent'
+      path: '/persistent'
 #  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly'
 #    id: 'copy-to-gcs'
 #    entrypoint: 'bash'
@@ -29,13 +32,23 @@ steps:
 #    - |
 #        gcloud pubsub topics publish spark-sense-nightly --message="trigger spark-sense run" 
 
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly'
+    id: 'ls'
+    entrypoint: 'bash'
+    args: ['-c', 'ls -la']
   - name: 'gcr.io/cloud-builders/docker'
     id: 'docker-build-presubmit-base'
     args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit-base', '-f', 'cloudbuild/Dockerfile.presubmit-base', '.']
+    volumes:
+    - name: 'persistent'
+      path: '/persistent'
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'docker-push-presubmit-base'
     args: ['push', 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit-base:latest']
+    volumes:
+    - name: 'persistent'
+      path: '/persistent'
 
 
 # Many tests, so it takes time
