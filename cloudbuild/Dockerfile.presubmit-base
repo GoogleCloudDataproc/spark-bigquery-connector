@@ -1,7 +1,7 @@
 # This Dockerfile creates an image for running nightly builds.
 FROM openjdk:8
 
-ADD /workspace/.repository /var/share/m2/repository
+ADD .repository /var/share/m2/repository
 
 RUN \
   rm -fr /var/share/m2/repository/com/google/cloud/spark && \
