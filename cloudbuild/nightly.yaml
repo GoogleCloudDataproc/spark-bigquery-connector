@@ -2,7 +2,7 @@ steps:
   # 1. Create a Docker image containing hadoop-connectors repo
   - name: 'gcr.io/cloud-builders/docker'
     id: 'docker-build'
-    args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly', '-f', 'cloudbuild/Dockerfile', '.']
+    args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly', '-f', 'cloudbuild/Dockerfile.nightly', '.']
 
 # 2. Fetch maven and dependencies
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly'
@@ -30,10 +30,12 @@ steps:
         gcloud pubsub topics publish spark-sense-nightly --message="trigger spark-sense run" 
 
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'docker-push'
-    args: ['push', 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly:latest']
+    id: 'docker-build-presubmit-base'
+    args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit-base', '-f', 'cloudbuild/Dockerfile.presubmit-base', '.']
 
-images: ['gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly']
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'docker-push-presubmit-base'
+    args: ['push', 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit-base:latest']
 
 # Many tests, so it takes time
 timeout: 10800s
