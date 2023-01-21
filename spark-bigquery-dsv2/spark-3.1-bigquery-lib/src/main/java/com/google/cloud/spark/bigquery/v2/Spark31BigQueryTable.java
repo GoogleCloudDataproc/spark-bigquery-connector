@@ -16,10 +16,7 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
-import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderModule;
@@ -30,7 +27,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.connector.catalog.Identifier;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.catalog.SupportsWrite;
 import org.apache.spark.sql.connector.catalog.Table;
@@ -41,51 +37,30 @@ import org.apache.spark.sql.connector.write.WriteBuilder;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 
-public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
+public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite {
 
   public static final ImmutableSet<TableCapability> TABLE_CAPABILITIES =
       ImmutableSet.of(
           TableCapability.BATCH_READ, TableCapability.V1_BATCH_WRITE, TableCapability.TRUNCATE);
 
-  private Injector injector;
-  private TableId tableId;
-  private StructType schema;
+  protected Injector injector;
+  protected TableId tableId;
+  protected StructType schema;
 
-  private BigQueryTable(Injector injector, TableId tableId, StructType schema) {
+  public Spark31BigQueryTable(Injector injector, TableId tableId, StructType schema) {
     this.injector = injector;
     this.tableId = tableId;
     this.schema = schema;
   }
 
-  public static BigQueryTable fromConfigurationAndSchema(
-      Injector injector, StructType sparkProvidedSchema) {
-    SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
-    return createInternal(injector, config.getTableId(), sparkProvidedSchema);
-  }
-
-  public static BigQueryTable fromIdentifier(Injector injector, Identifier ident) {
-    BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
-    return createInternal(
-        injector, ((BigQueryIdentifier) ident).getTableId(), /*sparkProvidedSchema*/ null);
-  }
-
-  private static BigQueryTable createInternal(
-      Injector injector, TableId tableId, StructType sparkProvidedSchema) {
-    BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
-    SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
-    TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
-    if (tableInfo == null) {
-      return new BigQueryTable(injector, tableId, sparkProvidedSchema);
-    }
-    StructType schema =
-        sparkProvidedSchema != null
-            ? sparkProvidedSchema
-            : SchemaConverters.toSpark(tableInfo.getDefinition().getSchema());
-    return new BigQueryTable(injector, tableInfo.getTableId(), schema);
-  }
-
   @Override
   public ScanBuilder newScanBuilder(CaseInsensitiveStringMap options) {
+    BigQueryDataSourceReaderContext ctx = createBigQueryDataSourceReaderContext(options);
+    return new Spark31BigQueryScanBuilder(ctx);
+  }
+
+  protected BigQueryDataSourceReaderContext createBigQueryDataSourceReaderContext(
+      CaseInsensitiveStringMap options) {
     SparkBigQueryConfig tableScanConfig =
         SparkBigQueryConfig.from(
             options,
@@ -99,7 +74,7 @@ public class BigQueryTable implements Table, SupportsRead, SupportsWrite {
             new BigQueryDataSourceReaderModule(Optional.of(tableScanConfig)));
     BigQueryDataSourceReaderContext ctx =
         readerInjector.getInstance(BigQueryDataSourceReaderContext.class);
-    return new BigQueryScanBuilder(ctx);
+    return ctx;
   }
 
   @Override

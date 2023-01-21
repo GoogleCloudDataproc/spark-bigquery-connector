@@ -15,11 +15,8 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.DataSourceVersion;
-import com.google.cloud.spark.bigquery.InjectorBuilder;
 import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper;
 import com.google.common.collect.ImmutableMap;
-import com.google.inject.Injector;
 import java.util.Map;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -46,24 +43,11 @@ public class Spark31BigQueryTableProvider extends BaseBigQuerySource
   @Override
   public Table getTable(
       StructType schema, Transform[] partitioning, Map<String, String> properties) {
-    return getBigQueryTableInternal(schema, properties);
+    return Spark3Util.createBigQueryTableInstance(Spark31BigQueryTable::new, schema, properties);
   }
 
-  private BigQueryTable getBigQueryTableInternal(Map<String, String> properties) {
-    return getBigQueryTableInternal(null, properties);
-  }
-
-  private BigQueryTable getBigQueryTableInternal(
-      StructType schema, Map<String, String> properties) {
-    Injector injector =
-        new InjectorBuilder()
-            .withOptions(properties)
-            .withSchema(schema)
-            .withTableIsMandatory(true)
-            .withDataSourceVersion(DataSourceVersion.V2)
-            .build();
-    BigQueryTable table = BigQueryTable.fromConfigurationAndSchema(injector, schema);
-    return table;
+  protected Table getBigQueryTableInternal(Map<String, String> properties) {
+    return Spark3Util.createBigQueryTableInstance(Spark31BigQueryTable::new, null, properties);
   }
 
   @Override

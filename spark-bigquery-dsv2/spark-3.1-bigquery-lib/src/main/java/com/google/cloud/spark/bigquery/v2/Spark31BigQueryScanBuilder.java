@@ -37,7 +37,7 @@ import org.apache.spark.sql.types.StructType;
  * Both Scan and ScanBuilder implementation, otherwise estimateStatistics() is not called due to bug
  * in DataSourceV2Relation
  */
-public class BigQueryScanBuilder
+public class Spark31BigQueryScanBuilder
     implements Batch,
         Scan,
         ScanBuilder,
@@ -49,7 +49,7 @@ public class BigQueryScanBuilder
   private BigQueryDataSourceReaderContext ctx;
   private InputPartition[] partitions;
 
-  public BigQueryScanBuilder(BigQueryDataSourceReaderContext ctx) {
+  public Spark31BigQueryScanBuilder(BigQueryDataSourceReaderContext ctx) {
     this.ctx = ctx;
   }
 
@@ -119,7 +119,7 @@ public class BigQueryScanBuilder
       return false;
     }
 
-    BigQueryScanBuilder that = (BigQueryScanBuilder) o;
+    Spark31BigQueryScanBuilder that = (Spark31BigQueryScanBuilder) o;
     return getTableId().equals(that.getTableId())
         && readSchema().equals(that.readSchema())
         && // compare Spark schemas to ignore field ids
