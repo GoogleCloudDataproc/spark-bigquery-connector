@@ -36,5 +36,7 @@ public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
   }
 
   @Override
-  public void filter(Filter[] filters) {}
+  public void filter(Filter[] filters) {
+    ctx.filter(filters);
+  }
 }
