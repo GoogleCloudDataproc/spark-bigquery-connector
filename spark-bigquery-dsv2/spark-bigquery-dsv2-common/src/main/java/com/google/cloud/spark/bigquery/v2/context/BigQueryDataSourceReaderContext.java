@@ -311,20 +311,9 @@ public class BigQueryDataSourceReaderContext {
         unhandledFilters.add(filter);
       }
     }
-    // TODO(zhoufang): adds a dummy filter to make Dynamic Partition Pruning work.
-    // https://github.com/apache/spark/blob/29258964cae45cea43617ade971fb4ea9fe2902a/sql/core/src/main/scala/org/apache/spark/sql/execution/dynamicpruning/PartitionPruning.scala#L214
-    unhandledFilters.add(new AlwaysTrue());
+
     pushedFilters = handledFilters.stream().toArray(Filter[]::new);
     return unhandledFilters.stream().toArray(Filter[]::new);
-  }
-
-  // Backport from Spark 3.0
-  static class AlwaysTrue extends Filter {
-
-    @Override
-    public String[] references() {
-      return new String[0];
-    }
   }
 
   public Filter[] pushedFilters() {
