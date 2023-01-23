@@ -16,10 +16,12 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import org.apache.spark.sql.connector.expressions.Expressions;
 import org.apache.spark.sql.connector.expressions.NamedReference;
 import org.apache.spark.sql.connector.read.SupportsRuntimeFiltering;
+import org.apache.spark.sql.sources.AlwaysTrue;
 import org.apache.spark.sql.sources.Filter;
 
 public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
@@ -40,17 +42,16 @@ public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
     ctx.filter(filters);
   }
 
-  //  @Override
-  //  public Filter[] pushFilters(Filter[] filters) {
-  //    Filter[] defaultUnhandledFilters = ctx.pushFilters(filters);
-  //    // TODO(zhoufang): adds a dummy filter to make Dynamic Partition Pruning work.
-  //    //
-  // https://github.com/apache/spark/blob/29258964cae45cea43617ade971fb4ea9fe2902a/sql/core/src/main/scala/org/apache/spark/sql/execution/dynamicpruning/PartitionPruning.scala#L214
-  //    ImmutableList<Filter> unhandledFilters =
-  //        ImmutableList.<Filter>builder() //
-  //            .add(defaultUnhandledFilters) //
-  //            .add(new AlwaysTrue()) //
-  //            .build();
-  //    return unhandledFilters.stream().toArray(Filter[]::new);
-  //  }
+  @Override
+  public Filter[] pushFilters(Filter[] filters) {
+    Filter[] defaultUnhandledFilters = ctx.pushFilters(filters);
+    // TODO(zhoufang): adds a dummy filter to make Dynamic Partition Pruning work.
+    // https://github.com/apache/spark/blob/29258964cae45cea43617ade971fb4ea9fe2902a/sql/core/src/main/scala/org/apache/spark/sql/execution/dynamicpruning/PartitionPruning.scala#L214
+    ImmutableList<Filter> unhandledFilters =
+        ImmutableList.<Filter>builder() //
+            .add(defaultUnhandledFilters) //
+            .add(new AlwaysTrue()) //
+            .build();
+    return unhandledFilters.stream().toArray(Filter[]::new);
+  }
 }
