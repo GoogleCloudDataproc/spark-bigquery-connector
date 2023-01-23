@@ -24,9 +24,5 @@ public class Spark32ReadByFormatIntegrationTest extends ReadByFormatIntegrationT
   }
 
   // tests are from the super-class
-
-  @Test
-  public void foo() {
-    testCachedViewWithDifferentColumnsForSelectAndFilter();
-  }
+  
 }
