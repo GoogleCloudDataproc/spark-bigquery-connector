@@ -15,8 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import org.junit.Test;
-
 public class Spark32ReadByFormatIntegrationTest extends ReadByFormatIntegrationTestBase {
 
   public Spark32ReadByFormatIntegrationTest() {
@@ -24,5 +22,5 @@ public class Spark32ReadByFormatIntegrationTest extends ReadByFormatIntegrationT
   }
 
   // tests are from the super-class
-  
+
 }
