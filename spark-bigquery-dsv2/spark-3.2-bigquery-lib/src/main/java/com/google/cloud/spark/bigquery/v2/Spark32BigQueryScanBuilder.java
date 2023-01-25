@@ -42,16 +42,16 @@ public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
     ctx.filter(filters);
   }
 
-  @Override
-  public Filter[] pushFilters(Filter[] filters) {
-    Filter[] defaultUnhandledFilters = ctx.pushFilters(filters);
-    // TODO(zhoufang): adds a dummy filter to make Dynamic Partition Pruning work.
-    // https://github.com/apache/spark/blob/29258964cae45cea43617ade971fb4ea9fe2902a/sql/core/src/main/scala/org/apache/spark/sql/execution/dynamicpruning/PartitionPruning.scala#L214
-    ImmutableList<Filter> unhandledFilters =
-        ImmutableList.<Filter>builder() //
-            .add(defaultUnhandledFilters) //
-            .add(new AlwaysTrue()) //
-            .build();
-    return unhandledFilters.stream().toArray(Filter[]::new);
-  }
+//  @Override
+//  public Filter[] pushFilters(Filter[] filters) {
+//    Filter[] defaultUnhandledFilters = ctx.pushFilters(filters);
+//    // TODO(zhoufang): adds a dummy filter to make Dynamic Partition Pruning work.
+//    // https://github.com/apache/spark/blob/29258964cae45cea43617ade971fb4ea9fe2902a/sql/core/src/main/scala/org/apache/spark/sql/execution/dynamicpruning/PartitionPruning.scala#L214
+//    ImmutableList<Filter> unhandledFilters =
+//        ImmutableList.<Filter>builder() //
+//            .add(defaultUnhandledFilters) //
+//            .add(new AlwaysTrue()) //
+//            .build();
+//    return unhandledFilters.stream().toArray(Filter[]::new);
+//  }
 }
