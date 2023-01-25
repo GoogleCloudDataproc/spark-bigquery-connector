@@ -2,10 +2,10 @@ steps:
   # 1. Create a Docker image containing hadoop-connectors repo
   - name: 'gcr.io/cloud-builders/docker'
     id: 'docker-build'
-    args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit', '--build-arg', 'PROJECT_ID=${PROJECT_ID}', '-f', 'cloudbuild/Dockerfile', '.']
+    args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit:$BUILD_ID', '--build-arg', 'PROJECT_ID=${PROJECT_ID}', '-f', 'cloudbuild/Dockerfile', '.']
 
 # 2. Fetch maven and dependencies
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit:$BUILD_ID'
     id: 'init'
     waitFor: ['docker-build']
     entrypoint: 'bash'
@@ -14,7 +14,7 @@ steps:
     - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
 
 # 3. Run unit tests
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit:$BUILD_ID'
     id: 'unit-tests'
     waitFor: ['init']
     entrypoint: 'bash'
@@ -23,7 +23,7 @@ steps:
     - 'CODECOV_TOKEN=${_CODECOV_TOKEN}'
 
 # 4a. Run integration tests concurrently with unit tests (DSv1, Scala 2.12)
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit:$BUILD_ID'
     id: 'integration-tests-2.12'
     waitFor: ['unit-tests']
     entrypoint: 'bash'
@@ -34,7 +34,7 @@ steps:
       - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
 
 # 4b. Run integration tests concurrently with unit tests (DSv1, Scala 2.13)
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit:$BUILD_ID'
     id: 'integration-tests-2.13'
     waitFor: ['unit-tests']
     entrypoint: 'bash'
@@ -45,7 +45,7 @@ steps:
     - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
 
 # 4c. Run integration tests concurrently with unit tests (DSv2, Spark 2.4)
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit:$BUILD_ID'
     id: 'integration-tests-2.4'
     waitFor: ['integration-tests-2.12']
     entrypoint: 'bash'
@@ -56,7 +56,7 @@ steps:
     - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
 
 # 4d. Run integration tests concurrently with unit tests (DSv2, Spark 3.1)
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit:$BUILD_ID'
     id: 'integration-tests-3.1'
     waitFor: ['integration-tests-2.13']
     entrypoint: 'bash'
@@ -67,7 +67,7 @@ steps:
       - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
 
 # 4e. Run integration tests concurrently with unit tests (DSv2, Spark 3.2)
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit:$BUILD_ID'
     id: 'integration-tests-3.2'
     waitFor: ['integration-tests-2.4']
     entrypoint: 'bash'
@@ -78,7 +78,7 @@ steps:
       - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
 
 # 4f. Run integration tests concurrently with unit tests (DSv2, Spark 3.3)
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit:$BUILD_ID'
     id: 'integration-tests-3.3'
     waitFor: ['integration-tests-3.1']
     entrypoint: 'bash'
@@ -89,7 +89,7 @@ steps:
       - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
 
   # 5. Upload coverage to CodeCov
-  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit:$BUILD_ID'
     id: 'upload-it-to-codecov'
     waitFor: ['integration-tests-2.12','integration-tests-2.13','integration-tests-2.4','integration-tests-3.1','integration-tests-3.2','integration-tests-3.3']
     entrypoint: 'bash'
