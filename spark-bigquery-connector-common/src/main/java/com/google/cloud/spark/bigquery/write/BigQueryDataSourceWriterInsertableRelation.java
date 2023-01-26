@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery.write;
 
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.write.context.BigQueryDirectDataSourceWriterContext;
@@ -92,8 +93,8 @@ public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertab
         }
       }
     } catch (Exception e) {
-      logger.warn("unexpected issue trying to save " + data, e);
       ctx.abort(new WriterCommitMessageContext[] {});
+      throw new BigQueryConnectorException("unexpected issue trying to save " + data, e);
     }
   }
 }
