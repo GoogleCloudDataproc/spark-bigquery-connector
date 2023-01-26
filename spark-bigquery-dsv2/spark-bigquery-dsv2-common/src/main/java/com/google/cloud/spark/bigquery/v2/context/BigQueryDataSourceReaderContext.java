@@ -105,8 +105,7 @@ public class BigQueryDataSourceReaderContext {
   // In Spark 3.1 connector, "estimateStatistics" is called before
   // "planBatchInputPartitionContexts" or
   // "planInputPartitionContexts". We will use this to get table statistics in estimateStatistics.
-  private Supplier<ReadSessionResponse> readSessionResponse =
-      Suppliers.memoize(this::createReadSession);
+  private Supplier<ReadSessionResponse> readSessionResponse;
 
   public BigQueryDataSourceReaderContext(
       TableInfo table,
@@ -148,6 +147,11 @@ public class BigQueryDataSourceReaderContext {
     this.bigQueryRDDFactory =
         new BigQueryRDDFactory(
             bigQueryClient, bigQueryReadClientFactory, bigQueryTracerFactory, options, sqlContext);
+    resetReadSessionResponse();
+  }
+
+  private void resetReadSessionResponse() {
+    this.readSessionResponse = Suppliers.memoize(this::createReadSession);
   }
 
   public StructType readSchema() {
@@ -331,6 +335,7 @@ public class BigQueryDataSourceReaderContext {
         Stream.concat(Arrays.stream(pushedFilters), Arrays.stream(filters)).toArray(Filter[]::new);
     // Copies previous planned input partition contexts.
     List<ArrowInputPartitionContext> previousInputPartitionContexts = plannedInputPartitionContexts;
+    resetReadSessionResponse();
     // Creates a new read session, this creates a new plannedInputPartitionContexts.
     planBatchInputPartitionContexts();
 
