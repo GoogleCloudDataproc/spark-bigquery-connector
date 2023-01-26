@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.collect.ImmutableList;
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -95,6 +96,12 @@ public class ReadRowsHelper implements AutoCloseable {
   }
 
   public Iterator<ReadRowsResponse> readRows() {
+    if (requests.isEmpty()) {
+      // Partition is empty, probably due to dynamic partition pruning. Cannot return
+      // StreamCombiningIterator as it
+      // requires at least one request
+      return Collections.emptyIterator();
+    }
     bigQueryStorageReadRowsTracer.ifPresent(tracer -> tracer.startStream());
     BigQueryReadClient client = bigQueryReadClientFactory.getBigQueryReadClient();
 
