@@ -54,46 +54,6 @@
     <module>spark-bigquery-python-lib</module>
   </modules>
 
-  <build>
-    <extensions>
-      <extension>
-        <groupId>com.github.seahen</groupId>
-        <artifactId>maven-s3-wagon</artifactId>
-        <version>1.3.3</version>
-      </extension>
-    </extensions>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
-        <version>3.2.0</version>
-        <executions>
-          <execution>
-            <id>attach-sources</id>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
-
-  <distributionManagement>
-    <repository>
-      <id>aws-releases</id>
-      <url>s3://aiq-artifacts/releases</url>
-    </repository>
-    <snapshotRepository>
-      <id>aws-snapshots</id>
-      <url>s3://aiq-artifacts/snapshots</url>
-    </snapshotRepository>
-    <site>
-      <id>apache.website</id>
-      <url>scpexe://people.apache.org/www/hadoop.apache.org/docs/r${project.version}</url>
-    </site>
-  </distributionManagement>
-
   <profiles>
     <profile>
       <id>all</id>

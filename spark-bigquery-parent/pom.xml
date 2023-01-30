@@ -37,19 +37,23 @@
     </scm>
 
     <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
         <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <id>aws-releases</id>
+            <url>s3://aiq-artifacts/releases</url>
         </repository>
+        <snapshotRepository>
+            <id>aws-snapshots</id>
+            <url>s3://aiq-artifacts/snapshots</url>
+        </snapshotRepository>
+        <site>
+            <id>apache.website</id>
+            <url>scpexe://people.apache.org/www/hadoop.apache.org/docs/r${project.version}</url>
+        </site>
     </distributionManagement>
 
     <properties>
         <gpg.skip>true</gpg.skip>
-        <revision>0.0.1-SNAPSHOT</revision>
+        <revision>0.26.0-aiq1</revision>
 
         <avro.version>1.11.1</avro.version>
         <arrow.version>10.0.1</arrow.version>

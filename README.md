@@ -1236,37 +1236,31 @@ If the same parameter is set at multiple places the order of priority is as foll
 option("key", "value") > spark.conf > hadoop configuration
 
 ## AIQ DEV
+`spark-bigquery-parent` is the main parent project, but we really
+only care about building `spark-bigquery-pushdown/spark-2.4-bigquery-pushdown_2.12`.
+
 # Prereqs
 
 # Version
-Bump to the next `-aiq#` version
-```
-./mvnw versions:set -DgenerateBackupPoms=false
-```
+Bump `revision` in `spark-bigquery-parent` to the next `-aiq#` version
 
 # Build
-This places artifacts in `~/.m2/repository/org/apache/hadoop/`
+This places artifacts in `~/.m2/repository/`
 ```
-./mvn clean install -DskipTests
+./mvnw clean install -DskipTests
 ```
 
 # Tests
-Full tests are expensive to run and flaky
+Full tests are flaky, some require configuring GCP settings, so just make sure projects
+we care about are passing.
 ```
-mvn verify -DtestsThreadCount=1
-```
-
-So you can run individual tests on the projects affected
-```
-cd hadoop-tools/hadoop-aws
-mvn verify -DtestsThreadCount=1
+./mvnw verify -DtestsThreadCount=1
 ```
 
 # Deploy
 To deploy to S3 at our bucket `s3://s3.amazonaws.com/aiq-artifacts`
 ```
-mvn deploy -DskipTests
+./mvnw deploy -DskipTests
 ```
 
-Based off of https://nuvalence.io/blog/using-a-s3-bucket-as-a-maven-repository
-Note we put the user/password in ~/.m2/settings.xml so it's not checked in
+Note the user/password for S3 should come from ~/.m2/settings.xml, which was setup by the AIQ laptop script.
