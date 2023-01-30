@@ -1234,3 +1234,47 @@ You can set the following in the hadoop configuration as well.
 If the same parameter is set at multiple places the order of priority is as follows:
 
 option("key", "value") > spark.conf > hadoop configuration
+
+## AIQ DEV
+# Prereqs
+
+# Version
+Bump to the next `-aiq#` version
+```
+mvnw versions:set -DgenerateBackupPoms=false
+```
+
+# Build
+This places artifacts in `~/.m2/repository/org/apache/hadoop/`
+```
+mvn clean install -DskipTests
+```
+
+# Tests
+Full tests are expensive to run and flaky
+```
+mvn verify -DtestsThreadCount=1
+```
+
+So you can run individual tests on the projects affected
+```
+cd hadoop-tools/hadoop-aws
+mvn verify -DtestsThreadCount=1
+```
+
+# Deploy
+To deploy to S3 at our bucket `s3://s3.amazonaws.com/aiq-artifacts`
+```
+mvn deploy -DskipTests
+```
+
+Based off of https://nuvalence.io/blog/using-a-s3-bucket-as-a-maven-repository
+Note we put the user/password in ~/.m2/settings.xml so it's not checked in
+
+As of 03/2022 these are places that reference Hadoop which you'll likely need to
+change when building new hadoop jars
+
+https://github.com/ActionIQ/aiq/blob/e27ff5acadcd94a9d4fe8197962e38f6ae2358a2/deploy/ansible/group_vars/all/globals.yaml#L61
+https://github.com/ActionIQ/flame/blob/2.4/pom.xml#L2908
+https://github.com/ActionIQ-OSS/aws-glue-data-catalog-client-for-apache-hive-metastore/blob/4f81546817c3340a50151de73708ae764ed21385/pom.xml#L31
+https://github.com/ActionIQ-OSS/hive/blob/release-1.2.1-spark2/pom.xml#L137
