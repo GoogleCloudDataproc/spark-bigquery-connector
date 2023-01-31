@@ -1242,7 +1242,7 @@ only care about building `spark-bigquery-pushdown/spark-2.4-bigquery-pushdown_2.
 # Prereqs
 
 # Version
-Bump `revision` in `spark-bigquery-parent` to the next `-aiq#` version
+Bump `revision` in `spark-bigquery-parent/pom.xml` to the next `-aiq#` version
 
 # Build
 This places artifacts in `~/.m2/repository/`
@@ -1251,10 +1251,11 @@ This places artifacts in `~/.m2/repository/`
 ```
 
 # Tests
-Full tests are flaky, some require configuring GCP settings, so just make sure projects
-we care about are passing.
+Full tests dont work, they require configuring GCP settings, so just make sure projects
+we care about are passing. Or if you are making a change, confirm the same tests fail with
+and without the change.
 ```
-./mvnw verify -DtestsThreadCount=1
+./mvnw test -fn
 ```
 
 # Deploy
@@ -1263,4 +1264,4 @@ To deploy to S3 at our bucket `s3://s3.amazonaws.com/aiq-artifacts`
 ./mvnw deploy -DskipTests
 ```
 
-Note the user/password for S3 should come from ~/.m2/settings.xml, which was setup by the AIQ laptop script.
+The user/password for S3 should come from ~/.m2/settings.xml, which was created by the AIQ laptop script.

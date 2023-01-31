@@ -36,13 +36,26 @@ public class BigQueryConfigurationUtil {
 
   private BigQueryConfigurationUtil() {}
 
+  public static <T> java.util.Optional<T> googOptionToJava(
+      com.google.common.base.Optional<T> googOpt) {
+    return java.util.Optional.ofNullable(googOpt.orNull());
+  }
+
+  public static <T> com.google.common.base.Optional<T> javaOptionToGoog(
+      java.util.Optional<T> javaOpt) {
+    if (javaOpt == null) {
+      return null;
+    } else {
+      return com.google.common.base.Optional.fromNullable(javaOpt.orElse((T) null));
+    }
+  }
+
   public static com.google.common.base.Supplier<String> defaultBilledProject() {
     return () -> BigQueryOptions.getDefaultInstance().getProjectId();
   }
 
   public static String getRequiredOption(Map<String, String> options, String name) {
-    return getOption(options, name, DEFAULT_FALLBACK)
-        .toJavaUtil()
+    return googOptionToJava(getOption(options, name, DEFAULT_FALLBACK))
         .orElseThrow(() -> new IllegalArgumentException(format("Option %s required.", name)));
   }
 
@@ -58,10 +71,10 @@ public class BigQueryConfigurationUtil {
 
   public static com.google.common.base.Optional<String> getOption(
       Map<String, String> options, String name, Supplier<Optional<String>> fallback) {
-    return fromJavaUtil(
+    return javaOptionToGoog(
         firstPresent(
             java.util.Optional.ofNullable(options.get(name.toLowerCase())),
-            fallback.get().toJavaUtil()));
+            googOptionToJava(fallback.get())));
   }
 
   public static com.google.common.base.Optional<String> getOptionFromMultipleParams(
@@ -107,7 +120,7 @@ public class BigQueryConfigurationUtil {
   }
 
   public static com.google.common.base.Optional fromJavaUtil(java.util.Optional o) {
-    return com.google.common.base.Optional.fromJavaUtil(o);
+    return javaOptionToGoog(o);
   }
 
   /** TableId that does not include partition decorator */
@@ -122,8 +135,8 @@ public class BigQueryConfigurationUtil {
     Optional<String> projectParam = getOption(options, "project").or(fallbackProject);
     return parseTableId(
         tableParam,
-        datasetParam.toJavaUtil(),
-        projectParam.toJavaUtil(), /* datePartition */
+        googOptionToJava(datasetParam),
+        googOptionToJava(projectParam), /* datePartition */
         java.util.Optional.empty());
   }
 
@@ -132,7 +145,7 @@ public class BigQueryConfigurationUtil {
       java.util.Optional<String> fallbackProject,
       java.util.Optional<String> fallbackDataset) {
     return parseSimpleTableId(
-        options, Optional.fromJavaUtil(fallbackProject), Optional.fromJavaUtil(fallbackDataset));
+        options, javaOptionToGoog(fallbackProject), javaOptionToGoog(fallbackDataset));
   }
 
   public static TableId parseSimpleTableId(
