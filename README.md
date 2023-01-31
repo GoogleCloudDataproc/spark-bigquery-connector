@@ -1240,6 +1240,7 @@ option("key", "value") > spark.conf > hadoop configuration
 only care about building `spark-bigquery-pushdown/spark-2.4-bigquery-pushdown_2.12`.
 
 # Prereqs
+???
 
 # Version
 Bump `revision` in `spark-bigquery-parent/pom.xml` to the next `-aiq#` version

@@ -58,7 +58,7 @@
     <profile>
       <id>all</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
         <module>spark-bigquery-dsv1</module>
@@ -165,7 +165,7 @@
     <profile>
       <id>dsv2_2.4</id>
       <activation>
-        <activeByDefault>false</activeByDefault>
+        <activeByDefault>true</activeByDefault>
       </activation>
       <modules>
         <module>spark-bigquery-dsv2/spark-bigquery-dsv2-common</module>
