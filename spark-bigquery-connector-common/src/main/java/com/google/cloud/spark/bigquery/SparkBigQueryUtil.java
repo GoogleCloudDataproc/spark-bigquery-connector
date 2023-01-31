@@ -20,6 +20,7 @@ import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUt
 
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.common.annotations.VisibleForTesting;
@@ -40,6 +41,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
+import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.Metadata;
 import scala.collection.Iterator;
 
@@ -222,5 +224,18 @@ public class SparkBigQueryUtil {
 
   public static boolean isJson(Metadata metadata) {
     return metadata.contains("sqlType") && "JSON".equals(metadata.getString("sqlType"));
+  }
+
+  public static Filter[] extractPartitionFilters(TableInfo table, Filter[] filters) {
+    Optional<String> partitionField = BigQueryUtil.getPartitionField(table);
+    return partitionField.map(field -> filtersOnField(filters, field)).orElse(new Filter[] {});
+  }
+
+  @VisibleForTesting
+  static Filter[] filtersOnField(Filter[] filters, String field) {
+    return Stream.of(filters)
+        .filter(
+            filter -> Stream.of(filter.references()).anyMatch(reference -> reference.equals(field)))
+        .toArray(Filter[]::new);
   }
 }

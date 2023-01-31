@@ -19,11 +19,16 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TimePartitioning;
 import com.google.common.collect.ImmutableMap;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
+import org.apache.spark.sql.sources.Filter;
+import org.apache.spark.sql.sources.IsNotNull;
 import org.apache.spark.sql.types.Metadata;
 import org.junit.Test;
 
@@ -91,5 +96,38 @@ public class SparkBigQueryUtilTest {
   public void testIsJson_NoSqlType() {
     Metadata metadata = Metadata.empty();
     assertThat(SparkBigQueryUtil.isJson(metadata)).isFalse();
+  }
+
+  @Test
+  public void testExtractPartitionFilters_no_match() {
+    Filter[] filters =
+        SparkBigQueryUtil.extractPartitionFilters(
+            TableInfo.of(
+                TableId.of("dataset", "table"),
+                StandardTableDefinition.newBuilder()
+                    .setTimePartitioning(
+                        TimePartitioning.newBuilder(TimePartitioning.Type.DAY)
+                            .setField("foo")
+                            .build())
+                    .build()),
+            new Filter[] {IsNotNull.apply("bar")});
+    assertThat(filters).isEmpty();
+  }
+
+  @Test
+  public void testExtractPartitionFilters_has_match() {
+    Filter[] filters =
+        SparkBigQueryUtil.extractPartitionFilters(
+            TableInfo.of(
+                TableId.of("dataset", "table"),
+                StandardTableDefinition.newBuilder()
+                    .setTimePartitioning(
+                        TimePartitioning.newBuilder(TimePartitioning.Type.DAY)
+                            .setField("foo")
+                            .build())
+                    .build()),
+            new Filter[] {IsNotNull.apply("foo")});
+    assertThat(filters).hasLength(1);
+    assertThat(filters[0].references()).asList().containsExactly("foo");
   }
 }

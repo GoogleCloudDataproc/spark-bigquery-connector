@@ -22,9 +22,14 @@ import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Field.Mode;
+import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
+import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
@@ -32,6 +37,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Test;
 
 public class BigQueryUtilTest {
@@ -355,5 +362,62 @@ public class BigQueryUtilTest {
     assertThat(streamNames).hasSize(0);
     streamNames = BigQueryUtil.getStreamNames(null);
     assertThat(streamNames).hasSize(0);
+  }
+
+  @Test
+  public void testGetPartitionField_not_standard_table() {
+    TableInfo info = TableInfo.of(TableId.of("foo", "bar"), ViewDefinition.of("Select 1 as test"));
+    assertThat(BigQueryUtil.getPartitionField(info).isPresent()).isFalse();
+  }
+
+  @Test
+  public void testGetPartitionField_no_partitioning() {
+    TableInfo info =
+        TableInfo.of(TableId.of("foo", "bar"), StandardTableDefinition.newBuilder().build());
+    assertThat(BigQueryUtil.getPartitionField(info).isPresent()).isFalse();
+  }
+
+  @Test
+  public void testGetPartitionField_time_partitioning() {
+    TableInfo info =
+        TableInfo.of(
+            TableId.of("foo", "bar"),
+            StandardTableDefinition.newBuilder()
+                .setTimePartitioning(
+                    TimePartitioning.newBuilder(TimePartitioning.Type.DAY).setField("test").build())
+                .build());
+    Optional<String> partitionField = BigQueryUtil.getPartitionField(info);
+    assertThat(partitionField.isPresent()).isTrue();
+    assertThat(partitionField.get()).isEqualTo("test");
+  }
+
+  @Test
+  public void testGetPartitionField_range_partitioning() {
+    TableInfo info =
+        TableInfo.of(
+            TableId.of("foo", "bar"),
+            StandardTableDefinition.newBuilder()
+                .setRangePartitioning(RangePartitioning.newBuilder().setField("test").build())
+                .build());
+    Optional<String> partitionField = BigQueryUtil.getPartitionField(info);
+    assertThat(partitionField.isPresent()).isTrue();
+    assertThat(partitionField.get()).isEqualTo("test");
+  }
+
+  @Test
+  public void testFilterLengthInLimit_no_filter() {
+    assertThat(BigQueryUtil.filterLengthInLimit(Optional.empty())).isTrue();
+  }
+
+  @Test
+  public void testFilterLengthInLimit_small_filter() {
+    assertThat(BigQueryUtil.filterLengthInLimit(Optional.of("`foo` > 5"))).isTrue();
+  }
+
+  @Test
+  public void testFilterLengthInLimit_very_large_filter() {
+    String tooLarge =
+        IntStream.range(0, 2 + 2 << 20).mapToObj(i -> "a").collect(Collectors.joining());
+    assertThat(BigQueryUtil.filterLengthInLimit(Optional.of(tooLarge))).isFalse();
   }
 }

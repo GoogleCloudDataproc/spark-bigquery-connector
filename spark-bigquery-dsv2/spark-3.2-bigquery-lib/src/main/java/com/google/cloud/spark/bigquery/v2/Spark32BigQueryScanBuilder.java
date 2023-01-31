@@ -24,6 +24,7 @@ import org.apache.spark.sql.sources.Filter;
 
 public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
     implements SupportsRuntimeFiltering {
+
   public Spark32BigQueryScanBuilder(BigQueryDataSourceReaderContext ctx) {
     super(ctx);
   }
