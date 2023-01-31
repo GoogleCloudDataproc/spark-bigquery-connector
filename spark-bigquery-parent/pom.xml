@@ -53,7 +53,7 @@
 
     <properties>
         <gpg.skip>true</gpg.skip>
-        <revision>0.26.0-aiq2</revision>
+        <revision>0.28.0-aiq1</revision>
 
         <avro.version>1.11.1</avro.version>
         <arrow.version>10.0.1</arrow.version>
