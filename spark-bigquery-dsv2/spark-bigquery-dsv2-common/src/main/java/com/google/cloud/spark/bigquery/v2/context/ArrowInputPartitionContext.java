@@ -15,7 +15,8 @@
  */
 package com.google.cloud.spark.bigquery.v2.context;
 
-import static com.google.common.base.Optional.fromJavaUtil;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.javaOptionToGoog;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.googOptionToJava;
 
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
@@ -59,7 +60,7 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
     this.serializedArrowSchema =
         readSessionResponse.getReadSession().getArrowSchema().getSerializedSchema();
     this.tracerFactory = tracerFactory;
-    this.userProvidedSchema = fromJavaUtil(userProvidedSchema);
+    this.userProvidedSchema = javaOptionToGoog(userProvidedSchema);
   }
 
   public InputPartitionReaderContext<ColumnarBatch> createPartitionReaderContext() {
@@ -80,7 +81,7 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
         readRowsHelper,
         selectedFields,
         tracer,
-        userProvidedSchema.toJavaUtil(),
+        googOptionToJava(userProvidedSchema),
         options.numBackgroundThreads());
   }
 

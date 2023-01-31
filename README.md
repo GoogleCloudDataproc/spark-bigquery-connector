@@ -1236,11 +1236,9 @@ If the same parameter is set at multiple places the order of priority is as foll
 option("key", "value") > spark.conf > hadoop configuration
 
 ## AIQ DEV
-`spark-bigquery-parent` is the main parent project, but we really
-only care about building `spark-bigquery-pushdown/spark-2.4-bigquery-pushdown_2.12`.
 
 # Prereqs
-???
+The user/password for S3 should come from ~/.m2/settings.xml, which was created by the AIQ laptop script.
 
 # Version
 Bump `revision` in `spark-bigquery-parent/pom.xml` to the next `-aiq#` version
@@ -1264,5 +1262,3 @@ To deploy to S3 at our bucket `s3://s3.amazonaws.com/aiq-artifacts`
 ```
 ./mvnw deploy -DskipTests
 ```
-
-The user/password for S3 should come from ~/.m2/settings.xml, which was created by the AIQ laptop script.

@@ -18,12 +18,13 @@ package com.google.cloud.spark.bigquery;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.DEFAULT_FALLBACK;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.defaultBilledProject;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.empty;
-import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.fromJavaUtil;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getAnyBooleanOption;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getAnyOption;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getOption;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getOptionFromMultipleParams;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getRequiredOption;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.javaOptionToGoog;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.googOptionToJava;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
 import static com.google.cloud.spark.bigquery.SparkBigQueryUtil.scalaMapToJavaMap;
@@ -241,19 +242,20 @@ public class SparkBigQueryConfig
         materializationConfiguration.getMaterializationExpirationTimeInMinutes();
     // get the table details
     com.google.common.base.Optional<String> fallbackDataset = config.materializationDataset;
-    Optional<String> fallbackProject =
+    Optional<String> fallbackProject = googOptionToJava(
         com.google.common.base.Optional.fromNullable(
-                hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY))
-            .toJavaUtil();
-    Optional<String> tableParam =
+            hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY))
+    );
+    Optional<String> tableParam = googOptionToJava(
         getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
-            .toJavaUtil();
-    Optional<String> datasetParam = getOption(options, "dataset").or(fallbackDataset).toJavaUtil();
+    );
+    Optional<String> datasetParam = googOptionToJava(
+        getOption(options, "dataset").or(fallbackDataset));
     Optional<String> projectParam =
-        firstPresent(getOption(options, "project").toJavaUtil(), fallbackProject);
+        firstPresent(googOptionToJava(getOption(options, "project")), fallbackProject);
     config.partitionType =
         getOption(options, "partitionType").transform(TimePartitioning.Type::valueOf);
-    Optional<String> datePartitionParam = getOption(options, DATE_PARTITION_PARAM).toJavaUtil();
+    Optional<String> datePartitionParam = googOptionToJava(getOption(options, DATE_PARTITION_PARAM));
     datePartitionParam.ifPresent(
         date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
     // checking for query
@@ -286,15 +288,17 @@ public class SparkBigQueryConfig
     config.accessToken = getAnyOption(globalOptions, options, "gcpAccessToken");
     config.credentialsKey = getAnyOption(globalOptions, options, "credentials");
     config.credentialsFile =
-        fromJavaUtil(
+        javaOptionToGoog(
             firstPresent(
-                getAnyOption(globalOptions, options, "credentialsFile").toJavaUtil(),
-                com.google.common.base.Optional.fromNullable(
-                        hadoopConfiguration.get(GCS_CONFIG_CREDENTIALS_FILE_PROPERTY))
-                    .toJavaUtil()));
+                googOptionToJava(getAnyOption(globalOptions, options, "credentialsFile")),
+                googOptionToJava(com.google.common.base.Optional.fromNullable(
+                  hadoopConfiguration.get(GCS_CONFIG_CREDENTIALS_FILE_PROPERTY)
+                ))
+            )
+        );
     config.accessToken = getAnyOption(globalOptions, options, "gcpAccessToken");
     config.filter = getOption(options, "filter");
-    config.schema = fromJavaUtil(schema);
+    config.schema = javaOptionToGoog(schema);
     config.maxParallelism =
         getOptionFromMultipleParams(
                 options, ImmutableList.of("maxParallelism", "parallelism"), DEFAULT_FALLBACK)
@@ -529,10 +533,16 @@ public class SparkBigQueryConfig
   public Credentials createCredentials() {
 
     return new BigQueryCredentialsSupplier(
+<<<<<<< HEAD
             accessTokenProviderFQCN.toJavaUtil(),
             accessToken.toJavaUtil(),
             credentialsKey.toJavaUtil(),
             credentialsFile.toJavaUtil(),
+=======
+            googOptionToJava(accessToken),
+            googOptionToJava(credentialsKey),
+            googOptionToJava(credentialsFile),
+>>>>>>> 6fa7b4d (Fix)
             sparkBigQueryProxyAndHttpConfig.getProxyUri(),
             sparkBigQueryProxyAndHttpConfig.getProxyUsername(),
             sparkBigQueryProxyAndHttpConfig.getProxyPassword())
@@ -557,7 +567,7 @@ public class SparkBigQueryConfig
   }
 
   public Optional<String> getQuery() {
-    return query.toJavaUtil();
+    return googOptionToJava(query);
   }
 
   @Override
@@ -577,25 +587,25 @@ public class SparkBigQueryConfig
 
   @Override
   public Optional<String> getCredentialsKey() {
-    return credentialsKey.toJavaUtil();
+    return googOptionToJava(credentialsKey);
   }
 
   @Override
   public Optional<String> getCredentialsFile() {
-    return credentialsFile.toJavaUtil();
+    return googOptionToJava(credentialsFile);
   }
 
   @Override
   public Optional<String> getAccessToken() {
-    return accessToken.toJavaUtil();
+    return googOptionToJava(accessToken);
   }
 
   public Optional<String> getFilter() {
-    return filter.toJavaUtil();
+    return googOptionToJava(filter);
   }
 
   public Optional<StructType> getSchema() {
-    return schema.toJavaUtil();
+    return googOptionToJava(schema);
   }
 
   public OptionalInt getMaxParallelism() {
@@ -613,15 +623,15 @@ public class SparkBigQueryConfig
   }
 
   public Optional<String> getTemporaryGcsBucket() {
-    return temporaryGcsBucket.toJavaUtil();
+    return googOptionToJava(temporaryGcsBucket);
   }
 
   public Optional<String> getPersistentGcsBucket() {
-    return persistentGcsBucket.toJavaUtil();
+    return googOptionToJava(persistentGcsBucket);
   }
 
   public Optional<String> getPersistentGcsPath() {
-    return persistentGcsPath.toJavaUtil();
+    return googOptionToJava(persistentGcsPath);
   }
 
   public IntermediateFormat getIntermediateFormat() {
@@ -655,16 +665,16 @@ public class SparkBigQueryConfig
 
   @Override
   public Optional<String> getMaterializationProject() {
-    return materializationProject.toJavaUtil();
+    return googOptionToJava(materializationProject);
   }
 
   @Override
   public Optional<String> getMaterializationDataset() {
-    return materializationDataset.toJavaUtil();
+    return googOptionToJava(materializationDataset);
   }
 
   public Optional<String> getPartitionField() {
-    return partitionField.toJavaUtil();
+    return googOptionToJava(partitionField);
   }
 
   public OptionalLong getPartitionExpirationMs() {
@@ -674,11 +684,11 @@ public class SparkBigQueryConfig
   }
 
   public Optional<Boolean> getPartitionRequireFilter() {
-    return partitionRequireFilter.toJavaUtil();
+    return googOptionToJava(partitionRequireFilter);
   }
 
   public Optional<TimePartitioning.Type> getPartitionType() {
-    return partitionType.toJavaUtil();
+    return googOptionToJava(partitionType);
   }
 
   public TimePartitioning.Type getPartitionTypeOrDefault() {
@@ -686,11 +696,11 @@ public class SparkBigQueryConfig
   }
 
   public Optional<ImmutableList<String>> getClusteredFields() {
-    return clusteredFields.transform(fields -> ImmutableList.copyOf(fields)).toJavaUtil();
+    return googOptionToJava(clusteredFields.transform(fields -> ImmutableList.copyOf(fields)));
   }
 
   public Optional<JobInfo.CreateDisposition> getCreateDisposition() {
-    return createDisposition.toJavaUtil();
+    return googOptionToJava(createDisposition);
   }
 
   public boolean isOptimizedEmptyProjection() {
@@ -740,6 +750,7 @@ public class SparkBigQueryConfig
   }
 
   @Override
+<<<<<<< HEAD
   public Optional<String> getBigQueryStorageGrpcEndpoint() {
     return bigQueryStorageGrpcEndpoint.toJavaUtil();
   }
@@ -747,6 +758,10 @@ public class SparkBigQueryConfig
   @Override
   public Optional<String> getBigQueryHttpEndpoint() {
     return bigQueryHttpEndpoint.toJavaUtil();
+=======
+  public Optional<String> getEndpoint() {
+    return googOptionToJava(storageReadEndpoint);
+>>>>>>> 6fa7b4d (Fix)
   }
 
   @Override
@@ -785,7 +800,7 @@ public class SparkBigQueryConfig
   }
 
   public Optional<String> getTraceId() {
-    return traceId.toJavaUtil();
+    return googOptionToJava(traceId);
   }
 
   @Override
@@ -800,24 +815,29 @@ public class SparkBigQueryConfig
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
     return new ReadSessionCreatorConfigBuilder()
         .setViewsEnabled(viewsEnabled)
-        .setMaterializationProject(materializationProject.toJavaUtil())
-        .setMaterializationDataset(materializationDataset.toJavaUtil())
+        .setMaterializationProject(googOptionToJava(materializationProject))
+        .setMaterializationDataset(googOptionToJava(materializationDataset))
         .setMaterializationExpirationTimeInMinutes(materializationExpirationTimeInMinutes)
         .setReadDataFormat(readDataFormat)
         .setMaxReadRowsRetries(maxReadRowsRetries)
         .setViewEnabledParamName(VIEWS_ENABLED_OPTION)
         .setDefaultParallelism(defaultParallelism)
         .setMaxParallelism(getMaxParallelism())
+<<<<<<< HEAD
         .setPreferredMinParallelism(getPreferredMinParallelism())
         .setRequestEncodedBase(encodedCreateReadSessionRequest.toJavaUtil())
         .setBigQueryStorageGrpcEndpoint(bigQueryStorageGrpcEndpoint.toJavaUtil())
         .setBigQueryHttpEndpoint(bigQueryHttpEndpoint.toJavaUtil())
+=======
+        .setRequestEncodedBase(googOptionToJava(encodedCreateReadSessionRequest))
+        .setEndpoint(googOptionToJava(storageReadEndpoint))
+>>>>>>> 6fa7b4d (Fix)
         .setBackgroundParsingThreads(numBackgroundThreadsPerStream)
         .setPushAllFilters(pushAllFilters)
         .setPrebufferReadRowsResponses(numPrebufferReadRowsResponses)
         .setStreamsPerPartition(numStreamsPerPartition)
         .setArrowCompressionCodec(arrowCompressionCodec)
-        .setTraceId(traceId.toJavaUtil())
+        .setTraceId(googOptionToJava(traceId))
         .build();
   }
 

@@ -15,6 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.write.context;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.javaOptionToGoog;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.googOptionToJava;
+
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
@@ -68,9 +71,14 @@ public class BigQueryDataSourceWriterModule implements Module {
         mode,
         sparkSchema,
         bigqueryDataWriteHelperRetrySettings,
+<<<<<<< HEAD
         com.google.common.base.Optional.fromJavaUtil(tableConfig.getTraceId()),
         tableConfig.getEnableModeCheckForSchemaFields(),
         tableConfig.getBigQueryTableLabels()); // needs to be serializable
+=======
+        javaOptionToGoog(tableConfig.getTraceId()),
+        tableConfig.getEnableModeCheckForSchemaFields()); // needs to be serializable
+>>>>>>> 6fa7b4d (Fix)
   }
 
   @Singleton
