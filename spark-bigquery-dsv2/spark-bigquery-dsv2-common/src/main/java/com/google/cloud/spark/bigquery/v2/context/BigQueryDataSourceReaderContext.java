@@ -335,7 +335,8 @@ public class BigQueryDataSourceReaderContext {
     Filter[] partitionFilters = SparkBigQueryUtil.extractPartitionFilters(table, filters);
 
     pushedFilters =
-        Stream.concat(Arrays.stream(pushedFilters), Arrays.stream(partitionFilters)).toArray(Filter[]::new);
+        Stream.concat(Arrays.stream(pushedFilters), Arrays.stream(partitionFilters))
+            .toArray(Filter[]::new);
     Optional<String> combinedFilter = getCombinedFilter();
     if (!BigQueryUtil.filterLengthInLimit(combinedFilter)) {
       logger.warn(
