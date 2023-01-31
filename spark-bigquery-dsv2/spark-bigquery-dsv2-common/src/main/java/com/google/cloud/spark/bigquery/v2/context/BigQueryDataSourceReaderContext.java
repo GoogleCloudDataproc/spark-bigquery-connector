@@ -33,7 +33,6 @@ import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
 import com.google.common.base.Suppliers;
@@ -332,11 +331,8 @@ public class BigQueryDataSourceReaderContext {
       return;
     }
 
-    Filter[] partitionFilters = SparkBigQueryUtil.extractPartitionFilters(table, filters);
-
     pushedFilters =
-        Stream.concat(Arrays.stream(pushedFilters), Arrays.stream(partitionFilters))
-            .toArray(Filter[]::new);
+        Stream.concat(Arrays.stream(pushedFilters), Arrays.stream(filters)).toArray(Filter[]::new);
     Optional<String> combinedFilter = getCombinedFilter();
     if (!BigQueryUtil.filterLengthInLimit(combinedFilter)) {
       logger.warn(
