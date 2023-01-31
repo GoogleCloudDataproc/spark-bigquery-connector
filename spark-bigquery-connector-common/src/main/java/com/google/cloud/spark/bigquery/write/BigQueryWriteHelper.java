@@ -113,13 +113,17 @@ public class BigQueryWriteHelper {
     }
   }
 
+  private static <T> Stream<T> guavaStreamFromIter(java.util.Iterator<T> iterator) {
+    return java.util.stream.StreamSupport.stream(java.util.Spliterators.spliteratorUnknownSize(iterator, 0), false);
+  }
+
   void loadDataToBigQuery() throws IOException {
     FileSystem fs = gcsPath.getFileSystem(conf);
     FormatOptions formatOptions = config.getIntermediateFormat().getFormatOptions();
     String suffix = "." + formatOptions.getType().toLowerCase();
     List<String> sourceUris =
         SparkBigQueryUtil.optimizeLoadUriListForSpark(
-            Streams.stream(HdfsUtils.toJavaUtilIterator(fs.listFiles(gcsPath, false)))
+            guavaStreamFromIter(HdfsUtils.toJavaUtilIterator(fs.listFiles(gcsPath, false)))
                 .map(file -> file.getPath().toString())
                 .filter(path -> path.toLowerCase().endsWith(suffix))
                 .collect(Collectors.toList()));

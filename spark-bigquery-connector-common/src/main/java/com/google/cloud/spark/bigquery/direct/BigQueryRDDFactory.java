@@ -34,9 +34,12 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+<<<<<<< HEAD
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import java.lang.reflect.Constructor;
+=======
+>>>>>>> f469353 (Fix)
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -126,6 +129,30 @@ public class BigQueryRDDFactory {
             "");
   }
 
+  private static <T, R> Stream<R> guavaMapWithIndex(Stream<T> stream, final com.google.common.collect.Streams.FunctionWithIndex<? super T, ? extends R> function) {
+    com.google.common.base.Preconditions.checkNotNull(stream);
+    com.google.common.base.Preconditions.checkNotNull(function);
+    boolean isParallel = stream.isParallel();
+    java.util.Spliterator<T> fromSpliterator = stream.spliterator();
+    Stream var10000;
+    final java.util.Iterator<T> fromIterator = java.util.Spliterators.iterator(fromSpliterator);
+    var10000 = java.util.stream.StreamSupport.stream(new java.util.Spliterators.AbstractSpliterator<R>(fromSpliterator.estimateSize(), fromSpliterator.characteristics() & 80) {
+      long index = 0L;
+
+      public boolean tryAdvance(java.util.function.Consumer<? super R> action) {
+        if (fromIterator.hasNext()) {
+          action.accept(function.apply(fromIterator.next(), (long)(this.index++)));
+          return true;
+        } else {
+          return false;
+        }
+      }
+    }, isParallel);
+    java.util.Objects.requireNonNull(stream);
+    return (Stream)var10000.onClose(stream::close);
+  }
+
+
   // Creates BigQueryRDD from the BigQuery table that is passed in. Note that we return RDD<?>
   // instead of BigQueryRDD or RDD<InternalRow>. This is because the casting rules in Java are a lot
   // stricter than Java due to which we cannot go from RDD<InternalRow> to RDD<Row>
@@ -141,10 +168,9 @@ public class BigQueryRDDFactory {
     TableInfo actualTable = readSessionResponse.getReadTableInfo();
 
     List<BigQueryPartition> partitions =
-        Streams.mapWithIndex(
+        guavaMapWithIndex(
                 readSession.getStreamsList().stream(),
-                (readStream, index) ->
-                    new BigQueryPartition(readStream.getName(), Math.toIntExact(index)))
+                (readStream, index) -> new BigQueryPartition(readStream.getName(), Math.toIntExact(index)))
             .collect(Collectors.toList());
 
     log.info(
