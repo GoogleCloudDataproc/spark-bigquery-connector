@@ -15,6 +15,8 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import java.time.Duration;
 import java.time.Instant;
 import org.slf4j.Logger;
@@ -116,16 +118,18 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
   }
 
   private void logData() {
-    log.info(
-        "{}: Started: {} Ended: {} Parse Timings: {}  Time in Spark: {} Time waiting for service: {} Bytes/s: {} Rows/s: {}",
-        streamName,
-        startTime,
-        endTime == null ? "" : endTime.toString(),
-        format(parseTime),
-        difference(sparkTime, parseTime),
-        format(serviceTime),
-        perSecond(serviceTime, bytes),
-        perSecond(parseTime, rows));
+    JsonObject jsonObject = new JsonObject();
+    jsonObject.addProperty("Stream Name", streamName);
+    jsonObject.addProperty("Started", startTime == null ? "" : startTime.toString());
+    jsonObject.addProperty("Ended", endTime == null ? "" : endTime.toString());
+    jsonObject.addProperty("Parse Timings", format(parseTime));
+    jsonObject.addProperty("Time in Spark", difference(sparkTime, parseTime));
+    jsonObject.addProperty("Time waiting for service", format(serviceTime));
+    jsonObject.addProperty("Bytes/s", perSecond(serviceTime, bytes));
+    jsonObject.addProperty("Rows/s", perSecond(parseTime, rows));
+    jsonObject.addProperty("Bytes", bytes);
+    jsonObject.addProperty("Rows", rows);
+    log.info("Tracer Logs:{}", new Gson().toJson(jsonObject));
     linesLogged++;
   }
 
