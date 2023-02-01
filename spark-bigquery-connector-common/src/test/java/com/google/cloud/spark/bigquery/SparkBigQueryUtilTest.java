@@ -101,7 +101,7 @@ public class SparkBigQueryUtilTest {
 
   @Test
   public void testExtractPartitionFilters_no_match() {
-    Filter[] filters =
+    ImmutableList<Filter> filters =
         SparkBigQueryUtil.extractPartitionFilters(
             TableInfo.of(
                 TableId.of("dataset", "table"),
@@ -117,7 +117,7 @@ public class SparkBigQueryUtilTest {
 
   @Test
   public void testExtractPartitionFilters_has_match() {
-    Filter[] filters =
+    ImmutableList<Filter>filters =
         SparkBigQueryUtil.extractPartitionFilters(
             TableInfo.of(
                 TableId.of("dataset", "table"),
@@ -128,7 +128,7 @@ public class SparkBigQueryUtilTest {
                             .build())
                     .build()),
             ImmutableList.of(IsNotNull.apply("foo")));
-    assertThat(filters).hasLength(1);
-    assertThat(filters[0].references()).asList().containsExactly("foo");
+    assertThat(filters).hasSize(1);
+    assertThat(filters.get(0).references()).asList().containsExactly("foo");
   }
 }
