@@ -23,6 +23,7 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
@@ -110,7 +111,7 @@ public class SparkBigQueryUtilTest {
                             .setField("foo")
                             .build())
                     .build()),
-            new Filter[] {IsNotNull.apply("bar")});
+            ImmutableList.of(IsNotNull.apply("bar")));
     assertThat(filters).isEmpty();
   }
 
@@ -126,7 +127,7 @@ public class SparkBigQueryUtilTest {
                             .setField("foo")
                             .build())
                     .build()),
-            new Filter[] {IsNotNull.apply("foo")});
+            ImmutableList.of(IsNotNull.apply("foo")));
     assertThat(filters).hasLength(1);
     assertThat(filters[0].references()).asList().containsExactly("foo");
   }

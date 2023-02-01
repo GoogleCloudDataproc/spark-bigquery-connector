@@ -412,6 +412,7 @@ public class BigQueryUtil {
       return Optional.empty();
     }
 
+    @SuppressWarnings("Varifier")
     StandardTableDefinition sdt = (StandardTableDefinition) definition;
     TimePartitioning timePartitioning = sdt.getTimePartitioning();
     if (timePartitioning != null) {
