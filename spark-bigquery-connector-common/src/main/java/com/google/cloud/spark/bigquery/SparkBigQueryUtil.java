@@ -226,9 +226,10 @@ public class SparkBigQueryUtil {
     return metadata.contains("sqlType") && "JSON".equals(metadata.getString("sqlType"));
   }
 
-  public static ImmutableList<Filter> extractPartitionFilters(TableInfo table, ImmutableList<Filter> filters) {
+  public static ImmutableList<Filter> extractPartitionFilters(
+      TableInfo table, ImmutableList<Filter> filters) {
     Optional<String> partitionField = BigQueryUtil.getPartitionField(table);
-    return partitionField.map(field -> filtersOnField(filters, field)).orElse(new Filter[] {});
+    return partitionField.map(field -> filtersOnField(filters, field)).orElse(ImmutableList.of());
   }
 
   @VisibleForTesting

@@ -117,7 +117,7 @@ public class SparkBigQueryUtilTest {
 
   @Test
   public void testExtractPartitionFilters_has_match() {
-    ImmutableList<Filter>filters =
+    ImmutableList<Filter> filters =
         SparkBigQueryUtil.extractPartitionFilters(
             TableInfo.of(
                 TableId.of("dataset", "table"),
