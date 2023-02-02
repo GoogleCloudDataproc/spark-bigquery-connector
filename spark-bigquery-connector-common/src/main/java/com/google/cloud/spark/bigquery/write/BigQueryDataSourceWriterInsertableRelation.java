@@ -85,11 +85,11 @@ public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertab
           ctx.commit(writerCommitMessages);
         } else {
           // missing commit messages, so abort
-          logger.warn(
-              "It seems that {} out of {} partitions have failed, aborting",
-              numPartitions - writerCommitMessages.length,
-              writerCommitMessages.length);
           ctx.abort(writerCommitMessages);
+          throw new BigQueryConnectorException(
+              String.format(
+                  "It seems that %s out of %s partitions have failed, aborting",
+                  numPartitions - writerCommitMessages.length, writerCommitMessages.length));
         }
       }
     } catch (Exception e) {
