@@ -16,9 +16,36 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
+import java.util.Arrays;
+import org.apache.spark.sql.connector.expressions.Expressions;
+import org.apache.spark.sql.connector.expressions.NamedReference;
+import org.apache.spark.sql.connector.read.SupportsRuntimeFiltering;
+import org.apache.spark.sql.sources.Filter;
 
-public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder {
+public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
+    implements SupportsRuntimeFiltering {
+
   public Spark32BigQueryScanBuilder(BigQueryDataSourceReaderContext ctx) {
     super(ctx);
+  }
+
+  @Override
+  public NamedReference[] filterAttributes() {
+    return Arrays.stream(ctx.readSchema().fieldNames())
+        .map(Expressions::column)
+        .toArray(NamedReference[]::new);
+  }
+
+  @Override
+  public void filter(Filter[] filters) {
+    ctx.filter(filters);
+  }
+
+  @Override
+  public Filter[] pushFilters(Filter[] filters) {
+    ctx.pushFilters(filters);
+    // We tell Spark that all filters were unhandled, in order to trigger DPP if needed
+    // The relevant filters (usually all of them) where pushed to the Read API by `ctx`
+    return filters;
   }
 }

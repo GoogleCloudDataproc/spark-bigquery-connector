@@ -21,5 +21,4 @@ public class Spark33ReadIntegrationTest extends ReadIntegrationTestBase {
   }
 
   // tests are from the super-class
-
 }

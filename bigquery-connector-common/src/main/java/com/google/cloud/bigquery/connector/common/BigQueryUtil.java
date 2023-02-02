@@ -25,8 +25,13 @@ import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.annotations.VisibleForTesting;
@@ -43,6 +48,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -74,6 +80,10 @@ public class BigQueryUtil {
   private static final Pattern QUALIFIED_TABLE_REGEX =
       Pattern.compile(
           format("^(((%s)[:.])?(%s)\\.)?(%s)$$", PROJECT_PATTERN, DATASET_PATTERN, TABLE_PATTERN));
+
+  // Based on
+  // https://cloud.google.com/bigquery/docs/reference/storage/rpc/google.cloud.bigquery.storage.v1#google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions
+  private static final int MAX_FILTER_LENGTH_IN_BYTES = 2 << 20;
 
   private BigQueryUtil() {}
 
@@ -394,5 +404,31 @@ public class BigQueryUtil {
       throw new IllegalArgumentException(
           "Serialization test of " + obj.getClass().getCanonicalName() + " failed", e);
     }
+  }
+
+  public static Optional<String> getPartitionField(TableInfo tableInfo) {
+    TableDefinition definition = tableInfo.getDefinition();
+    if (!(definition instanceof StandardTableDefinition)) {
+      return Optional.empty();
+    }
+
+    @SuppressWarnings("Varifier")
+    StandardTableDefinition sdt = (StandardTableDefinition) definition;
+    TimePartitioning timePartitioning = sdt.getTimePartitioning();
+    if (timePartitioning != null) {
+      return Optional.of(timePartitioning.getField());
+    }
+    RangePartitioning rangePartitioning = sdt.getRangePartitioning();
+    if (rangePartitioning != null) {
+      return Optional.of(rangePartitioning.getField());
+    }
+    // no partitioning
+    return Optional.empty();
+  }
+
+  public static boolean filterLengthInLimit(Optional<String> filter) {
+    return filter
+        .map(f -> f.getBytes(StandardCharsets.UTF_8).length < MAX_FILTER_LENGTH_IN_BYTES)
+        .orElse(Boolean.TRUE);
   }
 }

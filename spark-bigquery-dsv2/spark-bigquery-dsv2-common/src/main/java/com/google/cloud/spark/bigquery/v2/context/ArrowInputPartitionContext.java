@@ -27,6 +27,7 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -38,7 +39,7 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
 
   private final BigQueryClientFactory bigQueryReadClientFactory;
   private final BigQueryTracerFactory tracerFactory;
-  private final List<String> streamNames;
+  private List<String> streamNames;
   private final ReadRowsHelper.Options options;
   private final ImmutableList<String> selectedFields;
   private final ByteString serializedArrowSchema;
@@ -87,5 +88,13 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
   @Override
   public boolean supportColumnarReads() {
     return true;
+  }
+
+  public void resetStreamNamesFrom(ArrowInputPartitionContext ctx) {
+    this.streamNames = ImmutableList.copyOf(ctx.streamNames);
+  }
+
+  public void clearStreamsList() {
+    this.streamNames = Collections.emptyList();
   }
 }
