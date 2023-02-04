@@ -23,6 +23,7 @@ import com.google.auth.Credentials;
 import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.RangePartitioning;
@@ -424,6 +425,19 @@ public class BigQueryUtil {
     }
     // no partitioning
     return Optional.empty();
+  }
+
+  public static ImmutableList<String> getClusteringFields(TableInfo tableInfo) {
+    TableDefinition definition = tableInfo.getDefinition();
+    if (!(definition instanceof StandardTableDefinition)) {
+      return ImmutableList.of();
+    }
+
+    Clustering clustering = ((StandardTableDefinition) definition).getClustering();
+    if (clustering == null) {
+      return ImmutableList.of();
+    }
+    return ImmutableList.copyOf(clustering.getFields());
   }
 
   public static boolean filterLengthInLimit(Optional<String> filter) {
