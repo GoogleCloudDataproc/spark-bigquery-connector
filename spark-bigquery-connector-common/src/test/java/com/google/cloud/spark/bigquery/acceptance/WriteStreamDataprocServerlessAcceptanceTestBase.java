@@ -52,8 +52,7 @@ public class WriteStreamDataprocServerlessAcceptanceTestBase
                 context.testBaseGcsDir + "/" + testName + "/json/",
                 context.bqDataset,
                 context.bqStreamTable,
-                AcceptanceTestUtils.BUCKET),
-            480);
+                AcceptanceTestUtils.BUCKET));
     assertThat(operationSnapshot.isDone()).isTrue();
     assertThat(operationSnapshot.getErrorMessage()).isEmpty();
 

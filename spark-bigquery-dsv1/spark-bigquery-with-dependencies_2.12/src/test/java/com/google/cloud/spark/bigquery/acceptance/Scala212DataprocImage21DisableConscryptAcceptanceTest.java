@@ -30,8 +30,7 @@ public class Scala212DataprocImage21DisableConscryptAcceptanceTest
   @BeforeClass
   public static void setup() throws Exception {
     context =
-        DataprocAcceptanceTestBase.setup(
-            "preview-debian11", "spark-bigquery", DISABLE_CONSCRYPT_LIST);
+        DataprocAcceptanceTestBase.setup("2.1-debian11", "spark-bigquery", DISABLE_CONSCRYPT_LIST);
   }
 
   @AfterClass

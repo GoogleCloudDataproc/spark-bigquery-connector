@@ -146,7 +146,9 @@ public class AcceptanceTestUtils {
                 false)
             .map(Blob::getBlobId)
             .toArray(BlobId[]::new);
-    storage.delete(blobIds);
+    if (blobIds.length > 1) {
+      storage.delete(blobIds);
+    }
   }
 
   public static void createBqDataset(String dataset) {

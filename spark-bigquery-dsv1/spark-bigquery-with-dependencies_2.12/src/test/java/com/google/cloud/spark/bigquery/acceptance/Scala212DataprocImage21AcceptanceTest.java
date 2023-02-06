@@ -30,8 +30,7 @@ public class Scala212DataprocImage21AcceptanceTest extends DataprocAcceptanceTes
   @BeforeClass
   public static void setup() throws Exception {
     context =
-        DataprocAcceptanceTestBase.setup(
-            "preview-debian11", "spark-bigquery", Collections.emptyList());
+        DataprocAcceptanceTestBase.setup("2.1-debian11", "spark-bigquery", Collections.emptyList());
   }
 
   @AfterClass
