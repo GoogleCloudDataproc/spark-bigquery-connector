@@ -75,7 +75,7 @@ below.
 | spark-3.1-bigquery                    |         |                     |                     |         | &check; | &check; | &check; |
 | spark-2.4-bigquery                    |         | &check;             | &check;             |         |         |         |         |
 | spark-bigquery-with-dependencies_2.13 |         |                     |                     |         |         | &check; | &check; |
-| spark-bigquery-with-dependencies_2.12 |         |                     | &check;             | &check; | &check; | &check; |         |
+| spark-bigquery-with-dependencies_2.12 |         |                     | &check;             | &check; | &check; | &check; | &check; |
 | spark-bigquery-with-dependencies_2.11 | &check; | &check;             |                     |         |         |         |         |
 
 ### Connector to Dataproc Image Compatibility Matrix
