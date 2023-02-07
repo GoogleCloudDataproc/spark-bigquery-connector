@@ -20,14 +20,6 @@ steps:
     id: 'copy-to-gcs'
     entrypoint: 'bash'
     args: ['/workspace/cloudbuild/nightly.sh', 'copy-to-gcs']
-# Trigger to start spark-sense
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'spark-sense-trigger'
-    entrypoint: 'bash'
-    args:
-    - '-c'
-    - |
-        gcloud pubsub topics publish spark-sense-nightly --message="trigger spark-sense run" 
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'docker-push'
