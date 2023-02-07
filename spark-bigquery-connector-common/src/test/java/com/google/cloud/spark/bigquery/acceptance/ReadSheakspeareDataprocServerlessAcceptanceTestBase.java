@@ -38,8 +38,7 @@ public class ReadSheakspeareDataprocServerlessAcceptanceTestBase
             testName,
             "read_shakespeare.py",
             null,
-            Arrays.asList(context.getResultsDirUri(testName)),
-            480);
+            Arrays.asList(context.getResultsDirUri(testName)));
     assertThat(operationSnapshot.isDone()).isTrue();
     assertThat(operationSnapshot.getErrorMessage()).isEmpty();
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
