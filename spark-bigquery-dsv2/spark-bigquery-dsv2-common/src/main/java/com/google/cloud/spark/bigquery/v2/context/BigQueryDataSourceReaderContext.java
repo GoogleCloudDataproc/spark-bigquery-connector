@@ -335,6 +335,13 @@ public class BigQueryDataSourceReaderContext {
     ImmutableList<Filter> newFilters =
         SparkBigQueryUtil.extractPartitionAndClusteringFilters(
             table, ImmutableList.copyOf(filters));
+    if (newFilters.isEmpty()) {
+      // no partitioning and no clustering, this is probably a dimension table.
+      // It means the filter combined filter won't change, so no need to create another read session
+      // we are done here.
+      logger.info("Could not find filters for partition of clustering field for table {}, aborting DPP filter", BigQueryUtil.friendlyTableName(tableId));
+      return;
+    }
     pushedFilters =
         Stream.concat(Arrays.stream(pushedFilters), newFilters.stream()).toArray(Filter[]::new);
     Optional<String> combinedFilter = getCombinedFilter();
