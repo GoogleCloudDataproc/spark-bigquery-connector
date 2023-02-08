@@ -27,6 +27,8 @@ import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.common.collect.ImmutableList;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -147,13 +149,20 @@ public class ReadSessionCreator {
 
     if (readSession != null) {
       Instant sessionCreationEndTime = Instant.now();
-      log.info(
-          "Read session {} creation started: {} Completed: {} PrepDuration: {} SessionCreationDuration: {}",
-          readSession.getName(),
-          sessionPrepStartTime,
-          sessionCreationEndTime,
-          Duration.between(sessionPrepStartTime, sessionPrepEndTime),
-          Duration.between(sessionPrepEndTime, sessionCreationEndTime));
+      JsonObject jsonObject = new JsonObject();
+      jsonObject.addProperty("readSessionName", readSession.getName());
+      jsonObject.addProperty("readSessionCreationStartTime", sessionPrepStartTime.toString());
+      jsonObject.addProperty("readSessionCreationEndTime", sessionCreationEndTime.toString());
+      jsonObject.addProperty(
+          "readSessionPrepDuration",
+          Duration.between(sessionPrepStartTime, sessionPrepEndTime).toMillis());
+      jsonObject.addProperty(
+          "readSessionCreationDuration",
+          Duration.between(sessionPrepEndTime, sessionCreationEndTime).toMillis());
+      jsonObject.addProperty(
+          "readSessionDuration",
+          Duration.between(sessionPrepStartTime, sessionCreationEndTime).toMillis());
+      log.info("Read session:{}", new Gson().toJson(jsonObject));
       if (readSession.getStreamsCount() != maxStreamCount) {
         log.info(
             "Requested {} max partitions, but only received {} "
