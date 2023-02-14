@@ -50,6 +50,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.Serializable;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
@@ -75,6 +76,7 @@ public class SparkBigQueryConfig
     implements BigQueryConfig, BigQueryClient.LoadDataOptions, Serializable {
 
   public static final int MAX_TRACE_ID_LENGTH = 256;
+  private static final ZoneId DEFAULT_DATETIME_ZONE_ID = ZoneId.of("UTC");
 
   public enum WriteMethod {
     DIRECT,
@@ -185,6 +187,7 @@ public class SparkBigQueryConfig
   private ImmutableMap<String, String> bigQueryJobLabels = ImmutableMap.of();
   private ImmutableMap<String, String> bigQueryTableLabels = ImmutableMap.of();
   private com.google.common.base.Optional<Long> createReadSessionTimeoutInSeconds;
+  private ZoneId datetimeZoneId;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -456,6 +459,11 @@ public class SparkBigQueryConfig
     config.createReadSessionTimeoutInSeconds =
         getAnyOption(globalOptions, options, "createReadSessionTimeoutInSeconds")
             .transform(Long::parseLong);
+
+    config.datetimeZoneId = getAnyOption(globalOptions, options, "datetimeZoneId")
+            .transform(ZoneId::of)
+            .or(DEFAULT_DATETIME_ZONE_ID);
+
     return config;
   }
 
@@ -766,6 +774,10 @@ public class SparkBigQueryConfig
   @Override
   public Optional<Long> getCreateReadSessionTimeoutInSeconds() {
     return createReadSessionTimeoutInSeconds.toJavaUtil();
+  }
+
+  public ZoneId getDatetimeZoneId() {
+    return datetimeZoneId;
   }
 
   @Override
