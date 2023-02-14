@@ -553,7 +553,7 @@ The API Supports a number of options to configure the read
        either "parquet","orc" or "avro". In order to use the Avro format, the
        spark-avro package must be added in runtime.
        <br/>(Optional. Defaults to <code>parquet</code>). On write only.
-       <br/><i>Not supported by the `DIRECT` write method.</i>
+       <br/><i>Supported only by the `spark-bigquery-with-dependencies_2.XX` connectors and just for the `INDIRECT` write method. The `spark-X.Y-bigquery` connectors use only AVRO as an intermediate format.</i>
    </td>
    <td>Write</td>
   </tr>
