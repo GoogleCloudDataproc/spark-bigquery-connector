@@ -20,6 +20,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.RangePartitioning;
@@ -33,6 +34,7 @@ import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -402,6 +404,34 @@ public class BigQueryUtilTest {
     Optional<String> partitionField = BigQueryUtil.getPartitionField(info);
     assertThat(partitionField.isPresent()).isTrue();
     assertThat(partitionField.get()).isEqualTo("test");
+  }
+
+  @Test
+  public void testGetClusteringFields_not_standard_table() {
+    TableInfo info = TableInfo.of(TableId.of("foo", "bar"), ViewDefinition.of("Select 1 as test"));
+    assertThat(BigQueryUtil.getClusteringFields(info)).isEmpty();
+  }
+
+  @Test
+  public void ttestGetClusteringFields_no_clustering() {
+    TableInfo info =
+        TableInfo.of(TableId.of("foo", "bar"), StandardTableDefinition.newBuilder().build());
+    assertThat(BigQueryUtil.getClusteringFields(info)).isEmpty();
+  }
+
+  @Test
+  public void testGetClusteringFields_time_partitioning() {
+    TableInfo info =
+        TableInfo.of(
+            TableId.of("foo", "bar"),
+            StandardTableDefinition.newBuilder()
+                .setClustering(
+                    Clustering.newBuilder().setFields(ImmutableList.of("c1", "c2")).build())
+                .build());
+    ImmutableList<String> clusteringFields = BigQueryUtil.getClusteringFields(info);
+    assertThat(clusteringFields).hasSize(2);
+    assertThat(clusteringFields).contains("c1");
+    assertThat(clusteringFields).contains("c2");
   }
 
   @Test

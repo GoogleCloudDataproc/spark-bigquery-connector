@@ -226,17 +226,26 @@ public class SparkBigQueryUtil {
     return metadata.contains("sqlType") && "JSON".equals(metadata.getString("sqlType"));
   }
 
-  public static ImmutableList<Filter> extractPartitionFilters(
+  public static ImmutableList<Filter> extractPartitionAndClusteringFilters(
       TableInfo table, ImmutableList<Filter> filters) {
+
     Optional<String> partitionField = BigQueryUtil.getPartitionField(table);
-    return partitionField.map(field -> filtersOnField(filters, field)).orElse(ImmutableList.of());
+    ImmutableList<String> clusteringFields = BigQueryUtil.getClusteringFields(table);
+
+    ImmutableList.Builder<String> filterFields = ImmutableList.builder();
+    partitionField.ifPresent(filterFields::add);
+    filterFields.addAll(clusteringFields);
+
+    return filterFields.build().stream()
+        .flatMap(field -> filtersOnField(filters, field))
+        .collect(ImmutableList.toImmutableList());
   }
 
   @VisibleForTesting
-  static ImmutableList<Filter> filtersOnField(ImmutableList<Filter> filters, String field) {
+  static Stream<Filter> filtersOnField(ImmutableList<Filter> filters, String field) {
     return filters.stream()
         .filter(
-            filter -> Stream.of(filter.references()).anyMatch(reference -> reference.equals(field)))
-        .collect(ImmutableList.toImmutableList());
+            filter ->
+                Stream.of(filter.references()).anyMatch(reference -> reference.equals(field)));
   }
 }

@@ -33,6 +33,7 @@ import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
 import com.google.common.base.Suppliers;
@@ -331,8 +332,20 @@ public class BigQueryDataSourceReaderContext {
       return;
     }
 
+    ImmutableList<Filter> newFilters =
+        SparkBigQueryUtil.extractPartitionAndClusteringFilters(
+            table, ImmutableList.copyOf(filters));
+    if (newFilters.isEmpty()) {
+      // no partitioning and no clustering, this is probably a dimension table.
+      // It means the filter combined filter won't change, so no need to create another read session
+      // we are done here.
+      logger.info(
+          "Could not find filters for partition of clustering field for table {}, aborting DPP filter",
+          BigQueryUtil.friendlyTableName(tableId));
+      return;
+    }
     pushedFilters =
-        Stream.concat(Arrays.stream(pushedFilters), Arrays.stream(filters)).toArray(Filter[]::new);
+        Stream.concat(Arrays.stream(pushedFilters), newFilters.stream()).toArray(Filter[]::new);
     Optional<String> combinedFilter = getCombinedFilter();
     if (!BigQueryUtil.filterLengthInLimit(combinedFilter)) {
       logger.warn(

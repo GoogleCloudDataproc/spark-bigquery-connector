@@ -102,7 +102,7 @@ public class SparkBigQueryUtilTest {
   @Test
   public void testExtractPartitionFilters_no_match() {
     ImmutableList<Filter> filters =
-        SparkBigQueryUtil.extractPartitionFilters(
+        SparkBigQueryUtil.extractPartitionAndClusteringFilters(
             TableInfo.of(
                 TableId.of("dataset", "table"),
                 StandardTableDefinition.newBuilder()
@@ -118,7 +118,7 @@ public class SparkBigQueryUtilTest {
   @Test
   public void testExtractPartitionFilters_has_match() {
     ImmutableList<Filter> filters =
-        SparkBigQueryUtil.extractPartitionFilters(
+        SparkBigQueryUtil.extractPartitionAndClusteringFilters(
             TableInfo.of(
                 TableId.of("dataset", "table"),
                 StandardTableDefinition.newBuilder()
