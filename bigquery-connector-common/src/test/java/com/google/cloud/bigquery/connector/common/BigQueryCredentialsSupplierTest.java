@@ -19,7 +19,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.api.client.json.GenericJson;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
@@ -277,7 +277,7 @@ public class BigQueryCredentialsSupplierTest {
 
   private String createServiceAccountJson(String projectId) throws Exception {
     GenericJson json = new GenericJson();
-    json.setFactory(JacksonFactory.getDefaultInstance());
+    json.setFactory(GsonFactory.getDefaultInstance());
     json.put("type", TYPE);
     json.put("client_id", CLIENT_ID);
     json.put("client_email", CLIENT_EMAIL);
