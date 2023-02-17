@@ -15,8 +15,12 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
+import java.util.Optional;
 import org.apache.spark.sql.connector.expressions.Expressions;
 import org.apache.spark.sql.connector.expressions.NamedReference;
 import org.apache.spark.sql.connector.read.SupportsRuntimeFiltering;
@@ -31,7 +35,15 @@ public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
 
   @Override
   public NamedReference[] filterAttributes() {
+    Optional<String> partitionField = BigQueryUtil.getPartitionField(ctx.getTableInfo());
+    ImmutableList<String> clusteringFields = BigQueryUtil.getClusteringFields(ctx.getTableInfo());
+
+    ImmutableSet.Builder<String> filterFieldsBuilder = ImmutableSet.builder();
+    partitionField.ifPresent(filterFieldsBuilder::add);
+    filterFieldsBuilder.addAll(clusteringFields);
+    ImmutableSet<String> filterFields = filterFieldsBuilder.build();
     return Arrays.stream(ctx.readSchema().fieldNames())
+        .filter(filterFields::contains)
         .map(Expressions::column)
         .toArray(NamedReference[]::new);
   }
