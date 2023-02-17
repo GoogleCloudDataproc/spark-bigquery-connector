@@ -4,7 +4,7 @@
 
 * Added two new connectors, `spark-3.2-bigquery` and `spark-3.3-bigquery` aimed to be used in Spark 3.2 and 3.3
   respectively. Those connectors implement new APIs and capabilities provided by the Spark Data Source V2 API. Both
-  connectors are in preview mode. 
+  connectors are in preview mode.
 * Dynamic partition pruning is supported in preview mode by `spark-3.2-bigquery` and `spark-3.3-bigquery`.
 * This is the last version of the Spark BigQuery connector for scala 2.11. The code will remain in the repository and
   can be compiled into a connector if needed.
