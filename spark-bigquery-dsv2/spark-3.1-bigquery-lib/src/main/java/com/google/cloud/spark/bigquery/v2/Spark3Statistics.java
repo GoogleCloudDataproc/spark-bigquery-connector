@@ -34,6 +34,6 @@ public class Spark3Statistics implements Statistics {
 
   @Override
   public OptionalLong numRows() {
-    return context.numRows();
+    return OptionalLong.empty();
   }
 }
