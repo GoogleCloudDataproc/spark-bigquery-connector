@@ -108,6 +108,6 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
 
   @Override
   public void close() throws IOException {
-    writerHelper.close();
+    // empty
   }
 }

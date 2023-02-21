@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
  * The class which sketches out the necessary functions in order for a Spark DataWriter to interact
  * with the BigQuery Storage Write API.
  */
-public class BigQueryDirectDataWriterHelper implements AutoCloseable {
+public class BigQueryDirectDataWriterHelper {
   final Logger logger = LoggerFactory.getLogger(BigQueryDirectDataWriterHelper.class);
 
   // multiplying with 0.95 so as to keep a buffer preventing the quota limits
@@ -324,10 +324,5 @@ public class BigQueryDirectDataWriterHelper implements AutoCloseable {
 
   public String getWriteStreamName() {
     return writeStreamName;
-  }
-
-  @Override
-  public void close() {
-    writeClient.close();
   }
 }
