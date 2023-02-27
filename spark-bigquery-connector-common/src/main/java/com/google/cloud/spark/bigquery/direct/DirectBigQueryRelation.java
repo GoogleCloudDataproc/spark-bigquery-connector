@@ -64,7 +64,7 @@ public class DirectBigQueryRelation extends BigQueryRelation
   private final TableDefinition defaultTableDefinition;
   private final BigQueryRDDFactory bigQueryRDDFactory;
 
-  private Filter[] pushedFilters = new Filter[] {};
+  private String compiledFilter = "";
 
   public static int emptyRowRDDsCreated = 0;
   private static final Logger log = LoggerFactory.getLogger(DirectBigQueryRelation.class);
@@ -118,25 +118,26 @@ public class DirectBigQueryRelation extends BigQueryRelation
         getTableName(),
         String.join(",", requiredColumns),
         Arrays.stream(filters).map(f -> f.toString()).collect(Collectors.joining(",")));
-    pushedFilters = Arrays.stream(filters).toArray(Filter[]::new);
-    String filter = getCompiledFilter(filters);
+    compiledFilter = getCompiledFilter(filters);
     ReadSessionCreator readSessionCreator =
         new ReadSessionCreator(
             options.toReadSessionCreatorConfig(), bigQueryClient, bigQueryReadClientFactory);
     if (options.isOptimizedEmptyProjection() && requiredColumns.length == 0) {
       TableInfo actualTable =
           readSessionCreator.getActualTable(
-              table, ImmutableList.copyOf(requiredColumns), BigQueryUtil.emptyIfNeeded(filter));
+              table,
+              ImmutableList.copyOf(requiredColumns),
+              BigQueryUtil.emptyIfNeeded(compiledFilter));
       return (RDD<Row>)
           generateEmptyRowRDD(
-              actualTable, readSessionCreator.isInputTableAView(table) ? "" : filter);
+              actualTable, readSessionCreator.isInputTableAView(table) ? "" : compiledFilter);
     } else if (requiredColumns.length == 0) {
       log.debug("Not using optimized empty projection");
     }
 
     return (RDD<Row>)
         bigQueryRDDFactory.createRddFromTable(
-            getTableId(), readSessionCreator, requiredColumns, filter);
+            getTableId(), readSessionCreator, requiredColumns, compiledFilter);
   }
 
   @Override
@@ -234,11 +235,11 @@ public class DirectBigQueryRelation extends BigQueryRelation
     return getTableId().equals(that.getTableId())
         && schema().equals(that.schema())
         && // compare Spark schemas to ignore field ids
-        getCompiledFilter(pushedFilters).equals(that.getCompiledFilter(that.pushedFilters));
+        compiledFilter.equals(that.compiledFilter);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getTableId(), schema(), getCompiledFilter(pushedFilters));
+    return Objects.hash(getTableId(), schema(), compiledFilter);
   }
 }
