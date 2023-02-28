@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.28.1 - 2023-02-27
 
 PR #904: Fixing premature client closing in certain cases, which causes RejectedExecutionException to be thrown
