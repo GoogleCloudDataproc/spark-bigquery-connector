@@ -15,6 +15,10 @@
 * gRPC has been upgraded to version 1.53.0
 * Netty has been upgraded to version 4.1.89.Final
 
+## 0.28.1 - 2023-02-27
+
+PR #904: Fixing premature client closing in certain cases, which causes RejectedExecutionException to be thrown
+
 ## 0.28.0 - 2023-01-09
 
 * Adding support for the [JSON](https://cloud.google.com/bigquery/docs/reference/standard-sql/json-data) data type.
