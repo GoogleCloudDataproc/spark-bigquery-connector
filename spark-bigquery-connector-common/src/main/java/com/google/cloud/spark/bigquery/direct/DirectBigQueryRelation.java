@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.spark.rdd.RDD;
@@ -62,6 +63,8 @@ public class DirectBigQueryRelation extends BigQueryRelation
   private final SQLContext sqlContext;
   private final TableDefinition defaultTableDefinition;
   private final BigQueryRDDFactory bigQueryRDDFactory;
+
+  private String compiledFilter = "";
 
   public static int emptyRowRDDsCreated = 0;
   private static final Logger log = LoggerFactory.getLogger(DirectBigQueryRelation.class);
@@ -115,25 +118,26 @@ public class DirectBigQueryRelation extends BigQueryRelation
         getTableName(),
         String.join(",", requiredColumns),
         Arrays.stream(filters).map(f -> f.toString()).collect(Collectors.joining(",")));
-
-    String filter = getCompiledFilter(filters);
+    compiledFilter = getCompiledFilter(filters);
     ReadSessionCreator readSessionCreator =
         new ReadSessionCreator(
             options.toReadSessionCreatorConfig(), bigQueryClient, bigQueryReadClientFactory);
     if (options.isOptimizedEmptyProjection() && requiredColumns.length == 0) {
       TableInfo actualTable =
           readSessionCreator.getActualTable(
-              table, ImmutableList.copyOf(requiredColumns), BigQueryUtil.emptyIfNeeded(filter));
+              table,
+              ImmutableList.copyOf(requiredColumns),
+              BigQueryUtil.emptyIfNeeded(compiledFilter));
       return (RDD<Row>)
           generateEmptyRowRDD(
-              actualTable, readSessionCreator.isInputTableAView(table) ? "" : filter);
+              actualTable, readSessionCreator.isInputTableAView(table) ? "" : compiledFilter);
     } else if (requiredColumns.length == 0) {
       log.debug("Not using optimized empty projection");
     }
 
     return (RDD<Row>)
         bigQueryRDDFactory.createRddFromTable(
-            getTableId(), readSessionCreator, requiredColumns, filter);
+            getTableId(), readSessionCreator, requiredColumns, compiledFilter);
   }
 
   @Override
@@ -215,5 +219,27 @@ public class DirectBigQueryRelation extends BigQueryRelation
 
   static String toSqlTableReference(TableId tableId) {
     return tableId.getProject() + '.' + tableId.getDataset() + '.' + tableId.getTable();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    DirectBigQueryRelation that = (DirectBigQueryRelation) o;
+    return getTableId().equals(that.getTableId())
+        && schema().equals(that.schema())
+        && // compare Spark schemas to ignore field ids
+        compiledFilter.equals(that.compiledFilter);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getTableId(), schema(), compiledFilter);
   }
 }
