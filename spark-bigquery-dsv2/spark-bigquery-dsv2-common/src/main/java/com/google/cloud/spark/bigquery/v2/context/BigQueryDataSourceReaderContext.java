@@ -316,9 +316,10 @@ public class BigQueryDataSourceReaderContext {
         unhandledFilters.add(filter);
       }
     }
-
-    pushedFilters = handledFilters.stream().toArray(Filter[]::new);
-    return unhandledFilters.stream().toArray(Filter[]::new);
+    // We tell Spark that all filters were unhandled, in order to trigger bloom filter, DPP if
+    // needed
+    pushedFilters = filters;
+    return filters;
   }
 
   public Filter[] pushedFilters() {
