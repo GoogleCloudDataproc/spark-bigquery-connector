@@ -23,6 +23,7 @@ import java.util.Optional;
 public class BigQueryClientFactoryConfig implements BigQueryConfig {
 
   private final Optional<String> accessTokenProviderFQCN;
+  private final Optional<String> accessTokenProviderConfig;
   private final Optional<String> credentialsKey;
   private final Optional<String> credentialsFile;
   private final Optional<String> accessToken;
@@ -43,6 +44,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
 
   BigQueryClientFactoryConfig(BigQueryConfig bigQueryConfig) {
     this.accessTokenProviderFQCN = bigQueryConfig.getAccessTokenProviderFQCN();
+    this.accessTokenProviderConfig = bigQueryConfig.getAccessTokenProviderConfig();
     this.credentialsKey = bigQueryConfig.getCredentialsKey();
     this.credentialsFile = bigQueryConfig.getCredentialsFile();
     this.accessToken = bigQueryConfig.getAccessToken();
@@ -66,6 +68,11 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   @Override
   public Optional<String> getAccessTokenProviderFQCN() {
     return accessTokenProviderFQCN;
+  }
+
+  @Override
+  public Optional<String> getAccessTokenProviderConfig() {
+    return accessTokenProviderConfig;
   }
 
   @Override

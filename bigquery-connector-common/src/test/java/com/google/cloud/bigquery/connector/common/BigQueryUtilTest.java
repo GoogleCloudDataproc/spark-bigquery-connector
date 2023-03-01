@@ -326,6 +326,14 @@ public class BigQueryUtilTest {
   }
 
   @Test
+  public void testCreateVerifiedInstanceWithArg() {
+    String result =
+        BigQueryUtil.createVerifiedInstance("java.lang.String", String.class, "test");
+    assertThat(result).isNotNull();
+    assertThat(result).isEqualTo("test");
+  }
+
+  @Test
   public void testVerifySerialization() {
     int[] source = new int[] {1, 2, 3};
     int[] copy = BigQueryUtil.verifySerialization(source);

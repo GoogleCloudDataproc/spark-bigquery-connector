@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.AccessTokenProviderCredentials;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
+import java.io.IOException;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -33,10 +34,11 @@ public class CustomCredentialsIntegrationTest {
       TableId.of("bigquery-public-data", "samples", "shakespeare");
 
   @Test
-  public void testAccessTokenProvider() throws Exception {
+  public void testAccessTokenProvider() {
     BigQueryCredentialsSupplier credentialsSupplier =
         new BigQueryCredentialsSupplier(
             Optional.of(DefaultCredentialsDelegateAccessTokenProvider.class.getCanonicalName()),
+            Optional.empty(),
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
@@ -59,5 +61,33 @@ public class CustomCredentialsIntegrationTest {
     table = bigQuery.getTable(TABLE_ID);
     assertThat(table).isNotNull();
     assertThat(accessTokenProvider.getCallCount()).isEqualTo(2);
+  }
+
+  @Test
+  public void testAccessTokenProvider_withConfig() throws IOException {
+    BigQueryCredentialsSupplier credentialsSupplier =
+        new BigQueryCredentialsSupplier(
+            Optional.of(DefaultCredentialsDelegateAccessTokenProvider.class.getCanonicalName()),
+            Optional.of("some-static-token"),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty());
+    Credentials credentials = credentialsSupplier.getCredentials();
+    assertThat(credentials).isInstanceOf(AccessTokenProviderCredentials.class);
+    DefaultCredentialsDelegateAccessTokenProvider accessTokenProvider =
+        (DefaultCredentialsDelegateAccessTokenProvider)
+            ((AccessTokenProviderCredentials) credentials).getAccessTokenProvider();
+    assertThat(accessTokenProvider.getCallCount()).isEqualTo(0);
+    assertThat(accessTokenProvider.getAccessToken().getTokenValue()).isEqualTo("some-static-token");
+
+    BigQueryOptions options = BigQueryOptions.newBuilder().setCredentials(credentials).build();
+    BigQuery bigQuery = options.getService();
+    // first call
+    Table table = bigQuery.getTable(TABLE_ID);
+    assertThat(table).isNotNull();
+    assertThat(accessTokenProvider.getCallCount()).isEqualTo(0);
   }
 }

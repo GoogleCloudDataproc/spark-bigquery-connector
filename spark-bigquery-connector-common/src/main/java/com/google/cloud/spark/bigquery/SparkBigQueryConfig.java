@@ -134,6 +134,7 @@ public class SparkBigQueryConfig
   String parentProjectId;
   boolean useParentProjectForMetadataOperations;
   com.google.common.base.Optional<String> accessTokenProviderFQCN;
+  com.google.common.base.Optional<String> accessTokenProviderConfig;
   com.google.common.base.Optional<String> credentialsKey;
   com.google.common.base.Optional<String> credentialsFile;
   com.google.common.base.Optional<String> accessToken;
@@ -283,6 +284,8 @@ public class SparkBigQueryConfig
     config.useParentProjectForMetadataOperations =
         getAnyBooleanOption(globalOptions, options, "useParentProjectForMetadataOperations", false);
     config.accessTokenProviderFQCN = getAnyOption(globalOptions, options, "gcpAccessTokenProvider");
+    config.accessTokenProviderConfig =
+        getAnyOption(globalOptions, options, "gcpAccessTokenProviderConfig");
     config.accessToken = getAnyOption(globalOptions, options, "gcpAccessToken");
     config.credentialsKey = getAnyOption(globalOptions, options, "credentials");
     config.credentialsFile =
@@ -530,6 +533,7 @@ public class SparkBigQueryConfig
 
     return new BigQueryCredentialsSupplier(
             accessTokenProviderFQCN.toJavaUtil(),
+            accessTokenProviderConfig.toJavaUtil(),
             accessToken.toJavaUtil(),
             credentialsKey.toJavaUtil(),
             credentialsFile.toJavaUtil(),
@@ -573,6 +577,11 @@ public class SparkBigQueryConfig
   @Override
   public Optional<String> getAccessTokenProviderFQCN() {
     return accessTokenProviderFQCN.toJavaUtil();
+  }
+
+  @Override
+  public Optional<String> getAccessTokenProviderConfig() {
+    return accessTokenProviderConfig.toJavaUtil();
   }
 
   @Override
