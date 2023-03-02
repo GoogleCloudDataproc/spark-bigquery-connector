@@ -263,17 +263,41 @@ public class SchemaConverters {
       dataType = new ArrayType(dataType, true);
     }
 
-    MetadataBuilder metadata = new MetadataBuilder();
+    MetadataBuilder metadataBuilder = new MetadataBuilder();
     if (field.getDescription() != null) {
-      metadata.putString("description", field.getDescription());
-      metadata.putString("comment", field.getDescription());
+      metadataBuilder.putString("description", field.getDescription());
+      metadataBuilder.putString("comment", field.getDescription());
     }
     // JSON
     if (LegacySQLTypeName.JSON.equals(field.getType())) {
-      metadata.putString("sqlType", "JSON");
+      metadataBuilder.putString("sqlType", "JSON");
     }
 
-    return new StructField(field.getName(), dataType, nullable, metadata.build());
+    Metadata metadata = metadataBuilder.build();
+    return convertMap(field, metadata) //
+        .orElse(new StructField(field.getName(), dataType, nullable, metadata));
+  }
+
+  static Optional<StructField> convertMap(Field field, Metadata metadata) {
+    if (field.getMode() != Field.Mode.REPEATED) {
+      return Optional.empty();
+    }
+    if (field.getType() != LegacySQLTypeName.RECORD) {
+      return Optional.empty();
+    }
+    FieldList subFields = field.getSubFields();
+    if (subFields.size() != 2) {
+      return Optional.empty();
+    }
+    try {
+      Field key = subFields.get("key");
+      Field value = subFields.get("value");
+      MapType mapType = DataTypes.createMapType(convert(key).dataType(), convert(value).dataType());
+      return Optional.of(new StructField(field.getName(), mapType, /* nullable */ false, metadata));
+    } catch (IllegalArgumentException e) {
+      // no "key" or "value" fields
+      return Optional.empty();
+    }
   }
 
   private static DataType getDataType(Field field) {
