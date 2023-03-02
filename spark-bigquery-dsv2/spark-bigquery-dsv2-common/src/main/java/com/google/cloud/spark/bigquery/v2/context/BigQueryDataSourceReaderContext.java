@@ -96,6 +96,7 @@ public class BigQueryDataSourceReaderContext {
   private Optional<StructType> schema;
   private Optional<StructType> userProvidedSchema;
   private Filter[] pushedFilters = new Filter[] {};
+  private Filter[] allFilters = new Filter[] {};
   private Map<String, StructField> fields;
   private Optional<ImmutableList<String>> selectedFields = Optional.empty();
   private List<ArrowInputPartitionContext> plannedInputPartitionContexts;
@@ -316,14 +317,18 @@ public class BigQueryDataSourceReaderContext {
         unhandledFilters.add(filter);
       }
     }
-    // We tell Spark that all filters were unhandled, in order to trigger bloom filter, DPP if
-    // needed
-    pushedFilters = filters;
-    return filters;
+
+    allFilters = filters;
+    pushedFilters = handledFilters.stream().toArray(Filter[]::new);
+    return unhandledFilters.stream().toArray(Filter[]::new);
   }
 
   public Filter[] pushedFilters() {
     return pushedFilters;
+  }
+
+  public Filter[] getAllFilters() {
+    return allFilters;
   }
 
   public void filter(Filter[] filters) {
