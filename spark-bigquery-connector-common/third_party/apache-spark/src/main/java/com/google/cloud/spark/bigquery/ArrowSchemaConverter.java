@@ -614,9 +614,8 @@ public class ArrowSchemaConverter extends ColumnVector {
       int index = rowId * ListVector.OFFSET_WIDTH;
       int start = offsets.getInt(index);
       int end = offsets.getInt(index + ListVector.OFFSET_WIDTH);
-      //arrayData.
-      ColumnVector keys = null;
-      ColumnVector values = null;
+      ColumnVector keys = arrayData.childColumns[0];
+      ColumnVector values = arrayData.childColumns[1];
       return new ColumnarMap(keys, values, start, end - start);
     }
   }

@@ -27,10 +27,14 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.spark.sql.Dataset;
@@ -229,7 +233,6 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
   @Test
   public void testConvertBigQueryMapToSparkMap() throws Exception {
-    Assume.assumeTrue(Boolean.valueOf(System.getenv("IS_IDE")));
     BigQuery bigQuery = IntegrationTestUtils.getBigquery();
     bigQuery.create(
         TableInfo.newBuilder(
@@ -260,8 +263,20 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     assertThat(mapField).isNotNull();
     assertThat(mapField.dataType())
         .isEqualTo(DataTypes.createMapType(DataTypes.StringType, DataTypes.LongType));
-    List<Row> result = df.collectAsList();
-    assertThat(result).hasSize(2);
+    List<Row> rowList = df.collectAsList();
+    assertThat(rowList).hasSize(2);
+    List<Map<?,?>> result = rowList.stream()
+        .map(row -> scalaMapToJavaMap(row.getMap(0)))
+        .collect(Collectors.toList());
+    assertThat(result).contains(ImmutableMap.of("a",Long.valueOf(1),"b",Long.valueOf(2)));
+    assertThat(result).contains(ImmutableMap.of("c",Long.valueOf(3)));
+
+  }
+
+  static <K,V> Map<K,V> scalaMapToJavaMap(scala.collection.Map<K,V> map) {
+    ImmutableMap.Builder<K,V> result = ImmutableMap.<K,V>builder();
+    map.foreach(entry -> result.put(entry._1(), entry._2()));
+    return result.build();
   }
 
   Dataset<Row> getViewDataFrame() {
