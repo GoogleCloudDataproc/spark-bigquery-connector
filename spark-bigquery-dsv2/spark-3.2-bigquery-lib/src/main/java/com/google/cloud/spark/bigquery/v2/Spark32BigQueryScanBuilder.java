@@ -52,12 +52,4 @@ public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
   public void filter(Filter[] filters) {
     ctx.filter(filters);
   }
-
-  @Override
-  public Filter[] pushFilters(Filter[] filters) {
-    ctx.pushFilters(filters);
-    // We tell Spark that all filters were unhandled, in order to trigger DPP if needed
-    // The relevant filters (usually all of them) where pushed to the Read API by `ctx`
-    return filters;
-  }
 }

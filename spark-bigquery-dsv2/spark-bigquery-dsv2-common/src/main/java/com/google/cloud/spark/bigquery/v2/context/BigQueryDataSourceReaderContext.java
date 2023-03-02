@@ -96,6 +96,7 @@ public class BigQueryDataSourceReaderContext {
   private Optional<StructType> schema;
   private Optional<StructType> userProvidedSchema;
   private Filter[] pushedFilters = new Filter[] {};
+  private Filter[] allFilters = new Filter[] {};
   private Map<String, StructField> fields;
   private Optional<ImmutableList<String>> selectedFields = Optional.empty();
   private List<ArrowInputPartitionContext> plannedInputPartitionContexts;
@@ -317,12 +318,17 @@ public class BigQueryDataSourceReaderContext {
       }
     }
 
+    allFilters = filters;
     pushedFilters = handledFilters.stream().toArray(Filter[]::new);
     return unhandledFilters.stream().toArray(Filter[]::new);
   }
 
   public Filter[] pushedFilters() {
     return pushedFilters;
+  }
+
+  public Filter[] getAllFilters() {
+    return allFilters;
   }
 
   public void filter(Filter[] filters) {
