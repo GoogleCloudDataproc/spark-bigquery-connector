@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.29.0 - 2023-03-03
 
 * Added two new connectors, `spark-3.2-bigquery` and `spark-3.3-bigquery` aimed to be used in Spark 3.2 and 3.3
