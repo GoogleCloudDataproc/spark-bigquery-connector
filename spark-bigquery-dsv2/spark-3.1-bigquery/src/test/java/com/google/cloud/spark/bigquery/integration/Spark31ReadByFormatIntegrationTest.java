@@ -15,8 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import org.junit.Test;
-
 public class Spark31ReadByFormatIntegrationTest extends ReadByFormatIntegrationTestBase {
 
   public Spark31ReadByFormatIntegrationTest() {
@@ -25,8 +23,4 @@ public class Spark31ReadByFormatIntegrationTest extends ReadByFormatIntegrationT
 
   // tests are from the super-class
 
-  @Test
-  public void foo() {
-    testCachedViewWithDifferentColumnsForSelectAndFilter();
-  }
 }

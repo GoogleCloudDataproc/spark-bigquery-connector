@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -578,7 +579,8 @@ public class ArrowSchemaConverter extends ColumnVector {
 
       // this is to support Array of StructType/StructVector
       if(userProvidedField != null) {
-        ArrayType arrayType = ((ArrayType)userProvidedField.dataType());
+        DataType dataType = userProvidedField.dataType();
+        ArrayType arrayType = dataType instanceof MapType ? convertMapTypeToArrayType((MapType) dataType) : (ArrayType) dataType;
         structField =
             new StructField(
                 vector.getDataVector().getName(),
@@ -588,6 +590,13 @@ public class ArrowSchemaConverter extends ColumnVector {
       }
 
       this.arrayData = new ArrowSchemaConverter(vector.getDataVector(), structField);
+    }
+
+    static ArrayType convertMapTypeToArrayType(MapType mapType) {
+      StructField key = StructField.apply("key", mapType.keyType(), false, Metadata.empty());
+      StructField value = StructField.apply("value", mapType.valueType(), mapType.valueContainsNull(), Metadata.empty());
+      StructField[] fields = new StructField[] { key, value};
+      return ArrayType.apply(new StructType(fields));
     }
 
     @Override

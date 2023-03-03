@@ -98,8 +98,4 @@ public class DataSourceV1ReadByFormatIntegrationTest extends ReadByFormatIntegra
 
   // additional tests are from the super-class
 
-  @Test
-  public void foo() throws Exception {
-    super.testConvertBigQueryMapToSparkMap();
-  }
 }
