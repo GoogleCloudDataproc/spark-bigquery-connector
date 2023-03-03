@@ -16,6 +16,7 @@
 * GAX has been upgraded to version 2.23.0
 * gRPC has been upgraded to version 1.53.0
 * Netty has been upgraded to version 4.1.89.Final
+* PR #915: Fixing the Issue #908
 
 ## 0.28.1 - 2023-02-27
 
