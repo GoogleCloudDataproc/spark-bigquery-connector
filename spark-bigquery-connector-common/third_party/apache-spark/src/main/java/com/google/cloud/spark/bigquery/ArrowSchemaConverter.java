@@ -628,53 +628,7 @@ public class ArrowSchemaConverter extends ColumnVector {
       return new ColumnarMap(keys, values, start, end - start);
     }
   }
-
-  private static class MapAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final ListVector accessor;
-    private final ArrowSchemaConverter arrayData;
-
-    MapAccessor(ListVector vector, StructField userProvidedField) {
-      super(vector);
-      this.accessor = vector;
-      StructField structField = null;
-
-      // this is to support Array of StructType/StructVector
-      if(userProvidedField != null) {
-        ArrayType arrayType = ((ArrayType)userProvidedField.dataType());
-        structField =
-            new StructField(
-                vector.getDataVector().getName(),
-                arrayType.elementType(),
-                arrayType.containsNull(),
-                Metadata.empty());// safe to pass empty metadata as it is not used anywhere
-      }
-
-      this.arrayData = new ArrowSchemaConverter(vector.getDataVector(), structField);
-    }
-
-    @Override
-    final boolean isNullAt(int rowId) {
-      if (accessor.getValueCount() > 0 && accessor.getValidityBuffer().capacity() == 0) {
-        return false;
-      } else {
-        return super.isNullAt(rowId);
-      }
-    }
-
-    @Override
-    ColumnarMap getMap(int rowId) {
-      ArrowBuf offsets = accessor.getOffsetBuffer();
-      int index = rowId * ListVector.OFFSET_WIDTH;
-      int start = offsets.getInt(index);
-      int end = offsets.getInt(index + ListVector.OFFSET_WIDTH);
-      ColumnVector keys = null;
-      ColumnVector values = null;
-      return new ColumnarMap(keys, values, start, end - start);
-      //return null; //new ColumnarArray(arrayData, );
-    }
-  }
-
+  
   /**
    * Any call to "get" method will throw UnsupportedOperationException.
    *
