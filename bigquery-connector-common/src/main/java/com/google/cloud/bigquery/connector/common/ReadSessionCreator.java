@@ -130,6 +130,13 @@ public class ReadSessionCreator {
                   log.debug("using default max parallelism [{}]", defaultMaxStreamCount);
                   return defaultMaxStreamCount;
                 });
+    int minStreamCount = preferredMinStreamCount;
+    if (minStreamCount > maxStreamCount) {
+      minStreamCount = maxStreamCount;
+      log.debug(
+          "preferred min parallelism is larger than the max parallelism, therefore setting it to max parallelism [{}]",
+          minStreamCount);
+    }
     Instant sessionPrepEndTime = Instant.now();
 
     ReadSession readSession =
@@ -144,7 +151,7 @@ public class ReadSessionCreator {
                         .setTable(tablePath)
                         .build())
                 .setMaxStreamCount(maxStreamCount)
-                .setPreferredMinStreamCount(Math.min(preferredMinStreamCount, maxStreamCount))
+                .setPreferredMinStreamCount(minStreamCount)
                 .build());
 
     if (readSession != null) {
