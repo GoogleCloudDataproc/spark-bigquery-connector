@@ -289,15 +289,17 @@ public class SchemaConverters {
     if (subFields.size() != 2) {
       return Optional.empty();
     }
-    try {
-      Field key = subFields.get("key");
-      Field value = subFields.get("value");
-      MapType mapType = DataTypes.createMapType(convert(key).dataType(), convert(value).dataType());
-      return Optional.of(new StructField(field.getName(), mapType, /* nullable */ false, metadata));
-    } catch (IllegalArgumentException e) {
+    Set<String> subFieldNames = subFields.stream().map(Field::getName).collect(Collectors.toSet());
+    if (!subFieldNames.contains("key") || !subFieldNames.contains("value")) {
       // no "key" or "value" fields
       return Optional.empty();
     }
+    Field key = subFields.get("key");
+    Field value = subFields.get("value");
+    MapType mapType = DataTypes.createMapType(convert(key).dataType(), convert(value).dataType());
+    // The returned type is not nullable because the original field is a REPEATED, not NULLABLE.
+    // There are some compromises we need to do as BigQuery has no native MAP type
+    return Optional.of(new StructField(field.getName(), mapType, /* nullable */ false, metadata));
   }
 
   private static DataType getDataType(Field field) {
