@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
@@ -224,6 +225,70 @@ public class SchemaConverterTest {
             SchemaConverters.getCustomDataType(
                 field.setDescription("foo {spark.type=matrix}").build()))
         .isEqualTo(Optional.of(SQLDataTypes.MatrixType()));
+  }
+
+  @Test
+  public void testConvertBigQueryMapToSparkMap_not_repeated() {
+    Optional<StructField> field =
+        SchemaConverters.convertMap(
+            Field.newBuilder("foo", LegacySQLTypeName.INTEGER).setMode(Mode.REQUIRED).build(),
+            Metadata.empty());
+    assertThat(field).isEqualTo(Optional.empty());
+  }
+
+  @Test
+  public void testConvertBigQueryMapToSparkMap_not_record() {
+    Optional<StructField> field =
+        SchemaConverters.convertMap(
+            Field.newBuilder("foo", LegacySQLTypeName.INTEGER).setMode(Mode.REPEATED).build(),
+            Metadata.empty());
+    assertThat(field).isEqualTo(Optional.empty());
+  }
+
+  @Test
+  public void testConvertBigQueryMapToSparkMap_wrong_record_size() {
+    Optional<StructField> field =
+        SchemaConverters.convertMap(
+            Field.newBuilder(
+                    "foo", LegacySQLTypeName.RECORD, Field.of("foo", LegacySQLTypeName.INTEGER))
+                .setMode(Mode.REPEATED)
+                .build(),
+            Metadata.empty());
+    assertThat(field).isEqualTo(Optional.empty());
+  }
+
+  @Test
+  public void testConvertBigQueryMapToSparkMap_wrong_record_fields() {
+    Optional<StructField> field =
+        SchemaConverters.convertMap(
+            Field.newBuilder(
+                    "foo",
+                    LegacySQLTypeName.RECORD,
+                    Field.of("foo", LegacySQLTypeName.INTEGER),
+                    Field.of("bar", LegacySQLTypeName.INTEGER))
+                .setMode(Mode.REPEATED)
+                .build(),
+            Metadata.empty());
+    assertThat(field).isEqualTo(Optional.empty());
+  }
+
+  @Test
+  public void testConvertBigQueryMapToSparkMap_with_actual_map() {
+    Optional<StructField> fieldOpt =
+        SchemaConverters.convertMap(
+            Field.newBuilder(
+                    "foo",
+                    LegacySQLTypeName.RECORD,
+                    Field.of("key", LegacySQLTypeName.INTEGER),
+                    Field.of("value", LegacySQLTypeName.STRING))
+                .setMode(Mode.REPEATED)
+                .build(),
+            Metadata.empty());
+    MapType longToStringMapType = DataTypes.createMapType(DataTypes.LongType, DataTypes.StringType);
+    assertThat(fieldOpt.isPresent()).isTrue();
+    StructField field = fieldOpt.get();
+    assertThat(field.dataType()).isEqualTo(longToStringMapType);
+    assertThat(field.name()).isEqualTo("foo");
   }
 
   public final StructType MY_STRUCT =

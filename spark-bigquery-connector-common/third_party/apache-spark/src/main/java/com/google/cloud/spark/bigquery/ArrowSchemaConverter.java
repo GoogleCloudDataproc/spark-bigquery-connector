@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -134,11 +135,8 @@ public class ArrowSchemaConverter extends ColumnVector {
 
   @Override
   public ColumnarMap getMap(int rowId) {
-    /**
-     *  BigQuery does not support Map type but this function needs to be overridden since this
-     *  class extends an abstract class
-     */
-    throw new UnsupportedOperationException();
+    if (isNullAt(rowId)) return null;
+    return accessor.getMap(rowId);
   }
 
   @Override
@@ -220,6 +218,8 @@ public class ArrowSchemaConverter extends ColumnVector {
       accessor = new ArrowSchemaConverter.TimestampMicroTZVectorAccessor((TimeStampMicroTZVector) vector);
     } else if (vector instanceof ListVector) {
       ListVector listVector = (ListVector) vector;
+      // Is it a map or an array?
+
       accessor = new ArrowSchemaConverter.ArrayAccessor(listVector, userProvidedField);
     } else if (vector instanceof StructVector) {
       StructVector structVector = (StructVector) vector;
@@ -318,6 +318,10 @@ public class ArrowSchemaConverter extends ColumnVector {
     }
 
     ColumnarArray getArray(int rowId) {
+      throw new UnsupportedOperationException();
+    }
+
+    ColumnarMap getMap(int rowId) {
       throw new UnsupportedOperationException();
     }
   }
@@ -575,7 +579,8 @@ public class ArrowSchemaConverter extends ColumnVector {
 
       // this is to support Array of StructType/StructVector
       if(userProvidedField != null) {
-        ArrayType arrayType = ((ArrayType)userProvidedField.dataType());
+        DataType dataType = userProvidedField.dataType();
+        ArrayType arrayType = dataType instanceof MapType ? convertMapTypeToArrayType((MapType) dataType) : (ArrayType) dataType;
         structField =
             new StructField(
                 vector.getDataVector().getName(),
@@ -585,6 +590,13 @@ public class ArrowSchemaConverter extends ColumnVector {
       }
 
       this.arrayData = new ArrowSchemaConverter(vector.getDataVector(), structField);
+    }
+
+    static ArrayType convertMapTypeToArrayType(MapType mapType) {
+      StructField key = StructField.apply("key", mapType.keyType(), false, Metadata.empty());
+      StructField value = StructField.apply("value", mapType.valueType(), mapType.valueContainsNull(), Metadata.empty());
+      StructField[] fields = new StructField[] { key, value};
+      return ArrayType.apply(new StructType(fields));
     }
 
     @Override
@@ -604,8 +616,19 @@ public class ArrowSchemaConverter extends ColumnVector {
       int end = offsets.getInt(index + ListVector.OFFSET_WIDTH);
       return new ColumnarArray(arrayData, start, end - start);
     }
-  }
 
+    @Override
+    ColumnarMap getMap(int rowId) {
+      ArrowBuf offsets = accessor.getOffsetBuffer();
+      int index = rowId * ListVector.OFFSET_WIDTH;
+      int start = offsets.getInt(index);
+      int end = offsets.getInt(index + ListVector.OFFSET_WIDTH);
+      ColumnVector keys = arrayData.childColumns[0];
+      ColumnVector values = arrayData.childColumns[1];
+      return new ColumnarMap(keys, values, start, end - start);
+    }
+  }
+  
   /**
    * Any call to "get" method will throw UnsupportedOperationException.
    *
