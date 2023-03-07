@@ -798,14 +798,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(mapField.getSubFields())
         .containsExactlyElementsIn(
             Arrays.asList(
-                Field.of("key", LegacySQLTypeName.STRING),
-                Field.of("value", LegacySQLTypeName.INTEGER)));
+                Field.newBuilder("key", LegacySQLTypeName.STRING).setMode(Mode.REQUIRED).build(),
+                Field.newBuilder("value", LegacySQLTypeName.INTEGER).setMode(Mode.NULLABLE).build()));
 
-    String sql = ("SELECT\n"
-        + "  (SELECT COUNT(f.key) FROM TABLE, UNNEST(mf) AS f) AS total_keys,\n"
-        + "  (SELECT COUNT(*) FROM TABLE) AS total_rows,\n"
-        + "  (SELECT f.value FROM TABLE, UNNEST(mf) AS f WHERE f.key='b') AS b_value;")
-        .replaceAll("TABLE", testDataset.toString() +"."+ testTable);
+    String sql =
+        ("SELECT\n"
+                + "  (SELECT COUNT(f.key) FROM TABLE, UNNEST(mf) AS f) AS total_keys,\n"
+                + "  (SELECT COUNT(*) FROM TABLE) AS total_rows,\n"
+                + "  (SELECT f.value FROM TABLE, UNNEST(mf) AS f WHERE f.key='b') AS b_value;")
+            .replaceAll("TABLE", testDataset.toString() + "." + testTable);
 
     // validating by querying a sub-field of the json
     Dataset<Row> resultDF =
@@ -817,7 +818,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .load(sql);
     // collecting the data to validate its content
     Row result = resultDF.head();
-    assertThat(result.getLong(0)).isEqualTo(4L);
+    assertThat(result.getLong(0)).isEqualTo(3L);
     assertThat(result.getLong(1)).isEqualTo(2L);
     assertThat(result.getLong(2)).isEqualTo(2L);
   }

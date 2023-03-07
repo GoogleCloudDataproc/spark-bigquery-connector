@@ -142,15 +142,21 @@ public class AvroSchemaConverter {
       }
       return fieldsAssembler.endRecord();
     }
+    if (dataType instanceof MapType) {
+      MapType mapType  = (MapType) dataType;
+      return builder.map()
+          .values(
+              sparkTypeToRawAvroType(
+                  mapType.valueType(),
+                  metadata,
+                  mapType.valueContainsNull(),
+                  "value" ));
+    }
     if (dataType instanceof UserDefinedType) {
       DataType userDefinedType = ((UserDefinedType) dataType).sqlType();
       return sparkTypeToRawAvroType(userDefinedType, metadata, recordName, builder);
     }
-    if (dataType instanceof MapType) {
-      throw new IllegalArgumentException(SchemaConverters.MAPTYPE_ERROR_MESSAGE);
-    } else {
-      throw new IllegalArgumentException("Data type not supported: " + dataType.simpleString());
-    }
+    throw new IllegalArgumentException("Data type not supported: " + dataType.simpleString());
   }
 
   public static GenericData.Record sparkRowToAvroGenericData(
