@@ -133,7 +133,7 @@ public class ReadSessionCreator {
     int minStreamCount = preferredMinStreamCount;
     if (minStreamCount > maxStreamCount) {
       minStreamCount = maxStreamCount;
-      log.debug(
+      log.warn(
           "preferred min parallelism is larger than the max parallelism, therefore setting it to max parallelism [{}]",
           minStreamCount);
     }
