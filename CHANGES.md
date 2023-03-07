@@ -16,6 +16,7 @@
 * GAX has been upgraded to version 2.23.0
 * gRPC has been upgraded to version 1.53.0
 * Netty has been upgraded to version 4.1.89.Final
+* Issue #908: Making sure that `preferred_min_stream_count` must be less than or equal to `max_stream_count`
 
 ## 0.28.1 - 2023-02-27
 
