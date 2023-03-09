@@ -799,7 +799,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .containsExactlyElementsIn(
             Arrays.asList(
                 Field.newBuilder("key", LegacySQLTypeName.STRING).setMode(Mode.REQUIRED).build(),
-                Field.newBuilder("value", LegacySQLTypeName.INTEGER).setMode(Mode.NULLABLE).build()));
+                Field.newBuilder("value", LegacySQLTypeName.INTEGER)
+                    .setMode(Mode.NULLABLE)
+                    .build()));
 
     String sql =
         ("SELECT\n"
