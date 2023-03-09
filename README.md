@@ -57,13 +57,15 @@ The latest version of the connector is publicly available in the following links
 
 | version    | Link                                                                                                                                                                                                                   |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Spark 3.1  | `gs://spark-lib/bigquery/spark-3.1-bigquery-0.28.0-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.1-bigquery-0.28.0-preview.jar))                        |
-| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-0.28.0-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-0.28.0-preview.jar))                        |
-| Scala 2.13 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-0.28.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-0.28.0.jar)) |
-| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.28.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.28.0.jar)) |
-| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.28.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.28.0.jar)) |
+| Spark 3.3  | `gs://spark-lib/bigquery/spark-3.3-bigquery-0.29.0-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.3-bigquery-0.29.0-preview.jar))                        |
+| Spark 3.2  | `gs://spark-lib/bigquery/spark-3.2-bigquery-0.29.0-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.2-bigquery-0.29.0-preview.jar))                        |
+| Spark 3.1  | `gs://spark-lib/bigquery/spark-3.1-bigquery-0.29.0-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.1-bigquery-0.29.0-preview.jar))                        |
+| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-0.29.0-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-0.29.0-preview.jar))                        |
+| Scala 2.13 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-0.29.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-0.29.0.jar)) |
+| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.29.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.29.0.jar)) |
+| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar)) |
 
-The first two versions are Java based connectors targeting Spark 2.4/Spark 3.1 of all Scala versions built on the new
+The first four versions are Java based connectors targeting Spark 2.4/3.1/3.2/3.3 of all Scala versions built on the new
 Data Source APIs (Data Source API v2) of Spark. They are still in preview mode.
 
 The final two connectors are Scala based connectors, please use the jar relevant to your Spark installation as outlined
@@ -72,20 +74,24 @@ below.
 ### Connector to Spark Compatibility Matrix
 | Connector \ Spark                     | 2.3     | 2.4<br>(Scala 2.11) | 2.4<br>(Scala 2.12) | 3.0     | 3.1     | 3.2     | 3.3     |
 |---------------------------------------|---------|---------------------|---------------------|---------|---------|---------|---------|
+| spark-3.3-bigquery                    |         |                     |                     |         |         |         | &check; |
+| spark-3.2-bigquery                    |         |                     |                     |         |         | &check; | &check; |
 | spark-3.1-bigquery                    |         |                     |                     |         | &check; | &check; | &check; |
 | spark-2.4-bigquery                    |         | &check;             | &check;             |         |         |         |         |
 | spark-bigquery-with-dependencies_2.13 |         |                     |                     |         |         | &check; | &check; |
-| spark-bigquery-with-dependencies_2.12 |         |                     | &check;             | &check; | &check; | &check; | &check; |
+| spark-bigquery-with-dependencies_2.12 |         |                     | &check;             | &check; | &check; | &check; |         |
 | spark-bigquery-with-dependencies_2.11 | &check; | &check;             |                     |         |         |         |         |
 
 ### Connector to Dataproc Image Compatibility Matrix
-| Connector \ Dataproc Image            | 1.3     | 1.4     | 1.5     | 2.0     | Serverless<br>Image 1.0 | Serverless<br>Image 2.0 |
-|---------------------------------------|---------|---------|---------|---------|-------------------------|-------------------------|
-| spark-3.1-bigquery                    |         |         |         | &check; | &check;                 | &check;                 |
-| spark-2.4-bigquery                    |         | &check; | &check; |         |                         |                         |
-| spark-bigquery-with-dependencies_2.13 |         |         |         |         |                         | &check;                 |
-| spark-bigquery-with-dependencies_2.12 |         |         | &check; | &check; | &check;                 |                         |
-| spark-bigquery-with-dependencies_2.11 | &check; | &check; |         |         |                         |                         |
+| Connector \ Dataproc Image            | 1.3     | 1.4     | 1.5     | 2.0     | 2.1     | Serverless<br>Image 1.0 | Serverless<br>Image 2.0 |
+|---------------------------------------|---------|---------|---------|---------|---------|-------------------------|-------------------------|
+| spark-3.3-bigquery                    |         |         |         |         | &check; | &check;                 | &check;                 |
+| spark-3.2-bigquery                    |         |         |         |         | &check; | &check;                 | &check;                 |
+| spark-3.1-bigquery                    |         |         |         | &check; | &check; | &check;                 | &check;                 |
+| spark-2.4-bigquery                    |         | &check; | &check; |         |         |                         |                         |
+| spark-bigquery-with-dependencies_2.13 |         |         |         |         |         |                         | &check;                 |
+| spark-bigquery-with-dependencies_2.12 |         |         | &check; | &check; | &check; | &check;                 |                         |
+| spark-bigquery-with-dependencies_2.11 | &check; | &check; |         |         |         |                         |                         |
 
 ### Maven / Ivy Package Usage
 The connector is also available from the
@@ -95,11 +101,13 @@ repository. It can be used using the `--packages` option or the
 
 | version    | Connector Artifact                                                                 |
 |------------|------------------------------------------------------------------------------------|
-| Spark 3.1  | `com.google.cloud.spark:spark-3.1-bigquery:0.28.0-preview`            |
-| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:0.28.0-preview`            |
-| Scala 2.13 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:0.28.0` |
-| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.28.0` |
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.28.0` |
+| Spark 3.3  | `com.google.cloud.spark:spark-3.3-bigquery:0.29.0-preview`            |
+| Spark 3.2  | `com.google.cloud.spark:spark-3.2-bigquery:0.29.0-preview`            |
+| Spark 3.1  | `com.google.cloud.spark:spark-3.1-bigquery:0.29.0-preview`            |
+| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:0.29.0-preview`            |
+| Scala 2.13 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:0.29.0` |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.29.0` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0` |
 
 ## Hello World Example
 
@@ -109,7 +117,7 @@ You can run a simple PySpark wordcount against the API without compilation by ru
 
 ```
 gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
-  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.28.0.jar \
+  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.29.0.jar \
   examples/python/shakespeare.py
 ```
 
@@ -117,7 +125,7 @@ gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
 
 ```
 gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
-  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.28.0.jar \
+  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar \
   examples/python/shakespeare.py
 ```
 
@@ -942,9 +950,9 @@ creating the job or added during runtime. See examples below:
 1) Adding python files while launching pyspark
 ```
 # use appropriate version for jar depending on the scala version
-pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.28.0.jar
-  --py-files gs://spark-lib/bigquery/spark-bigquery-support-0.28.0.zip
-  --files gs://spark-lib/bigquery/spark-bigquery-support-0.28.0.zip
+pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar
+  --py-files gs://spark-lib/bigquery/spark-bigquery-support-0.29.0.zip
+  --files gs://spark-lib/bigquery/spark-bigquery-support-0.29.0.zip
 ```
 
 2) Adding python files in Jupyter Notebook
@@ -954,14 +962,14 @@ from pyspark import SparkFiles
 # use appropriate version for jar depending on the scala version
 spark = SparkSession.builder\
   .appName('BigNumeric')\
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.28.0.jar')\
-  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support-0.28.0.zip')\
-  .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support-0.28.0.zip')\
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar')\
+  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support-0.29.0.zip')\
+  .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support-0.29.0.zip')\
   .getOrCreate()
 
 # extract the spark-bigquery-support zip file
 import zipfile
-with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.28.0.zip")) as zf:
+with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.29.0.zip")) as zf:
   zf.extractall()
 ```
 
@@ -970,10 +978,10 @@ with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.28.0.zip")) as zf:
 # use appropriate version for jar depending on the scala version
 spark = SparkSession.builder\
   .appName('BigNumeric')\
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.28.0.jar')\
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar')\
   .getOrCreate()
 
-spark.sparkContext.addPyFile("gs://spark-lib/bigquery/spark-bigquery-support-0.28.0.zip")
+spark.sparkContext.addPyFile("gs://spark-lib/bigquery/spark-bigquery-support-0.29.0.zip")
 ```
 
 Usage Example:
@@ -1081,7 +1089,7 @@ using the following code:
 ```python
 from pyspark.sql import SparkSession
 spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.28.0")
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0")
   .getOrCreate()
 df = spark.read.format("bigquery")
   .load("dataset.table")
@@ -1090,7 +1098,7 @@ df = spark.read.format("bigquery")
 **Scala:**
 ```python
 val spark = SparkSession.builder
-.config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.28.0")
+.config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0")
 .getOrCreate()
 val df = spark.read.format("bigquery")
 .load("dataset.table")
@@ -1098,7 +1106,7 @@ val df = spark.read.format("bigquery")
 
 In case Spark cluster is using Scala 2.12 (it's optional for Spark 2.4.x,
 mandatory in 3.0.x), then the relevant package is
-com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.28.0. In
+com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.29.0. In
 order to know which Scala version is used, please run the following code:
 
 **Python:**
@@ -1122,14 +1130,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery-with-dependencies_${scala.version}</artifactId>
-  <version>0.28.0</version>
+  <version>0.29.0</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.28.0"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.29.0"
 ```
 
 ## FAQ
@@ -1173,9 +1181,7 @@ spark.read.format("bigquery").option("credentials", "<SERVICE_ACCOUNT_JSON_IN_BA
   [com.google.cloud.bigquery.connector.common.AccessTokenProvider](https://github.com/GoogleCloudDataproc/spark-bigquery-connector/tree/master/bigquery-connector-common/src/main/java/com/google/cloud/bigquery/connector/common/AccessTokenProvider.java)
   interface. The fully qualified class name of the implementation should be provided in the `gcpAccessTokenProvider`
   option. `AccessTokenProvider` must be implemented in Java or other JVM language such as Scala or Kotlin. It must
-  either have a no-arg constructor or a constructor accepting a single `java.util.String` argument. This configuration
-  parameter can be supplied using the `gcpAccessTokenProviderConfig` option. If this is not provided then the no-arg
-  constructor wil be called. The jar containing the implementation should be on the cluster's classpath.
+  have a no-arg constructor. The jar containing the implementation should be on the cluster's classpath.
 ```
 // Globally
 spark.conf.set("gcpAccessTokenProvider", "com.example.ExampleAccessTokenProvider")
@@ -1191,6 +1197,10 @@ spark.conf.set("gcpAccessToken", "<access-token>")
 // Per read/Write
 spark.read.format("bigquery").option("gcpAccessToken", "<acccess-token>")
 ```
+
+**Important:** The `CredentialsProvider` and  `AccessTokenProvider` need to be implemented in Java or
+other JVM language such as Scala or Kotlin. It must have a no-arg constructor. The jar containing
+the implementation should be on the cluster's classpath.
 
 **Notice:** Only one of the above options should be provided.
 

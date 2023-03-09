@@ -15,8 +15,6 @@
  */
 package com.google.cloud.bigquery.connector.common.integration;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.connector.common.AccessToken;
 import com.google.cloud.bigquery.connector.common.AccessTokenProvider;
@@ -32,11 +30,16 @@ import java.util.Date;
  */
 public class DefaultCredentialsDelegateAccessTokenProvider implements AccessTokenProvider {
 
+  private String config;
   private GoogleCredentials delegate;
-  private String token;
   private int callCount = 0;
 
   public DefaultCredentialsDelegateAccessTokenProvider() {
+    this(null);
+  }
+
+  public DefaultCredentialsDelegateAccessTokenProvider(String config) {
+    this.config = config;
     try {
       this.delegate = GoogleCredentials.getApplicationDefault();
     } catch (IOException e) {
@@ -44,24 +47,19 @@ public class DefaultCredentialsDelegateAccessTokenProvider implements AccessToke
     }
   }
 
-  public DefaultCredentialsDelegateAccessTokenProvider(String token) {
-    this.token = token;
-  }
-
   @Override
   public AccessToken getAccessToken() throws IOException {
-    checkState(delegate != null || token != null);
-    if (token != null) {
-      return new AccessToken(token, new Date(System.currentTimeMillis() + 2000));
-    } else {
-      com.google.auth.oauth2.AccessToken accessToken = delegate.refreshAccessToken();
-      callCount++;
-      return new AccessToken(
-          accessToken.getTokenValue(), new Date(System.currentTimeMillis() + 2000));
-    }
+    com.google.auth.oauth2.AccessToken accessToken = delegate.refreshAccessToken();
+    callCount++;
+    return new AccessToken(
+        accessToken.getTokenValue(), new Date(System.currentTimeMillis() + 2000));
   }
 
   int getCallCount() {
     return callCount;
+  }
+
+  String getConfig() {
+    return config;
   }
 }

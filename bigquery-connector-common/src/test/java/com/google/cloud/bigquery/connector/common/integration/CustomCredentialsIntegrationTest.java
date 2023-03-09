@@ -24,7 +24,6 @@ import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.AccessTokenProviderCredentials;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
-import java.io.IOException;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -64,11 +63,11 @@ public class CustomCredentialsIntegrationTest {
   }
 
   @Test
-  public void testAccessTokenProvider_withConfig() throws IOException {
+  public void testAccessTokenProvider_withConfig() {
     BigQueryCredentialsSupplier credentialsSupplier =
         new BigQueryCredentialsSupplier(
             Optional.of(DefaultCredentialsDelegateAccessTokenProvider.class.getCanonicalName()),
-            Optional.of("some-static-token"),
+            Optional.of("some-configuration"),
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
@@ -81,7 +80,7 @@ public class CustomCredentialsIntegrationTest {
         (DefaultCredentialsDelegateAccessTokenProvider)
             ((AccessTokenProviderCredentials) credentials).getAccessTokenProvider();
     assertThat(accessTokenProvider.getCallCount()).isEqualTo(0);
-    assertThat(accessTokenProvider.getAccessToken().getTokenValue()).isEqualTo("some-static-token");
+    assertThat(accessTokenProvider.getConfig()).isEqualTo("some-configuration");
 
     BigQueryOptions options = BigQueryOptions.newBuilder().setCredentials(credentials).build();
     BigQuery bigQuery = options.getService();

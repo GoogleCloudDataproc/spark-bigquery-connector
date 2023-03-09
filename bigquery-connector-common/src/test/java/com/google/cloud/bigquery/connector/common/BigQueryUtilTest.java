@@ -327,8 +327,7 @@ public class BigQueryUtilTest {
 
   @Test
   public void testCreateVerifiedInstanceWithArg() {
-    String result =
-        BigQueryUtil.createVerifiedInstance("java.lang.String", String.class, "test");
+    String result = BigQueryUtil.createVerifiedInstance("java.lang.String", String.class, "test");
     assertThat(result).isNotNull();
     assertThat(result).isEqualTo("test");
   }
