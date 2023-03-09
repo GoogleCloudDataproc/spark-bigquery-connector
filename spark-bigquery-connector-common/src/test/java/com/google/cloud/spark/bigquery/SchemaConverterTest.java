@@ -318,7 +318,6 @@ public class SchemaConverterTest {
       new StructField(
           "json_f", DataTypes.StringType, true, Metadata.fromJson("{\"sqlType\":\"JSON\"}"));
 
-
   public final StructType BIG_SPARK_SCHEMA =
       new StructType()
           .add(SPARK_INTEGER_FIELD)
@@ -383,9 +382,14 @@ public class SchemaConverterTest {
           .build();
 
   public final Field BIGQUERY_MAP_FIELD =
-      Field.newBuilder("map_f", LegacySQLTypeName.RECORD, FieldList.of(
-          Field.newBuilder("key", LegacySQLTypeName.STRING).setMode(Mode.REQUIRED).build(),
-              Field.newBuilder("value", LegacySQLTypeName.INTEGER).setMode(Mode.NULLABLE).build()))
+      Field.newBuilder(
+              "map_f",
+              LegacySQLTypeName.RECORD,
+              FieldList.of(
+                  Field.newBuilder("key", LegacySQLTypeName.STRING).setMode(Mode.REQUIRED).build(),
+                  Field.newBuilder("value", LegacySQLTypeName.INTEGER)
+                      .setMode(Mode.NULLABLE)
+                      .build()))
           .setMode(Field.Mode.REPEATED)
           .build();
 
