@@ -18,16 +18,28 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assume.assumeTrue;
 
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
 
@@ -214,6 +226,52 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
     ColumnOrderTestClass row = dataset.head();
     assertThat(row).isEqualTo(TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_COLS);
+  }
+
+  @Test
+  public void testConvertBigQueryMapToSparkMap() throws Exception {
+    BigQuery bigQuery = IntegrationTestUtils.getBigquery();
+    bigQuery.create(
+        TableInfo.newBuilder(
+                TableId.of(testDataset.toString(), testTable),
+                StandardTableDefinition.of(
+                    Schema.of(
+                        Field.newBuilder(
+                                "map_field",
+                                LegacySQLTypeName.RECORD,
+                                FieldList.of(
+                                    Field.of("key", LegacySQLTypeName.STRING),
+                                    Field.of("value", LegacySQLTypeName.INTEGER)))
+                            .setMode(Field.Mode.REPEATED)
+                            .build())))
+            .build());
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "INSERT INTO %s.%s VALUES "
+                + "([STRUCT('a' as key, 1 as value),STRUCT('b' as key, 2 as value)]),"
+                + "([STRUCT('c' as key, 3 as value)])",
+            testDataset, testTable));
+
+    Dataset<Row> df =
+        spark.read().format("bigquery").load(String.format("%s.%s", testDataset, testTable));
+    StructType schema = df.schema();
+    assertThat(schema.size()).isEqualTo(1);
+    StructField mapField = schema.apply("map_field");
+    assertThat(mapField).isNotNull();
+    assertThat(mapField.dataType())
+        .isEqualTo(DataTypes.createMapType(DataTypes.StringType, DataTypes.LongType));
+    List<Row> rowList = df.collectAsList();
+    assertThat(rowList).hasSize(2);
+    List<Map<?, ?>> result =
+        rowList.stream().map(row -> scalaMapToJavaMap(row.getMap(0))).collect(Collectors.toList());
+    assertThat(result).contains(ImmutableMap.of("a", Long.valueOf(1), "b", Long.valueOf(2)));
+    assertThat(result).contains(ImmutableMap.of("c", Long.valueOf(3)));
+  }
+
+  static <K, V> Map<K, V> scalaMapToJavaMap(scala.collection.Map<K, V> map) {
+    ImmutableMap.Builder<K, V> result = ImmutableMap.<K, V>builder();
+    map.foreach(entry -> result.put(entry._1(), entry._2()));
+    return result.build();
   }
 
   Dataset<Row> getViewDataFrame() {

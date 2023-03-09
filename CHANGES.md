@@ -2,6 +2,8 @@
 
 ## Next
 
+## 0.29.0 - 2023-03-03
+
 * Added two new connectors, `spark-3.2-bigquery` and `spark-3.3-bigquery` aimed to be used in Spark 3.2 and 3.3
   respectively. Those connectors implement new APIs and capabilities provided by the Spark Data Source V2 API. Both
   connectors are in preview mode.
@@ -14,6 +16,7 @@
 * GAX has been upgraded to version 2.23.0
 * gRPC has been upgraded to version 1.53.0
 * Netty has been upgraded to version 4.1.89.Final
+* Issue #908: Making sure that `preferred_min_stream_count` must be less than or equal to `max_stream_count`
 
 ## 0.28.1 - 2023-02-27
 

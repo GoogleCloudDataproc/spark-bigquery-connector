@@ -215,4 +215,58 @@ public class ReadSessionCreatorTest {
     assertThat(createReadSessionRequest.getPreferredMinStreamCount())
         .isEqualTo(30); // 3 * given default parallelism
   }
+
+  @Test
+  public void testMinStreamCountGreaterThanMaxStreamCount() throws Exception {
+    // setting up
+    when(bigQueryClient.getTable(any())).thenReturn(table);
+    mockBigQueryRead.reset();
+    mockBigQueryRead.addResponse(
+        ReadSession.newBuilder().addStreams(ReadStream.newBuilder().setName("0")).build());
+    BigQueryClientFactory mockBigQueryClientFactory = mock(BigQueryClientFactory.class);
+    when(mockBigQueryClientFactory.getBigQueryReadClient()).thenReturn(client);
+
+    ReadSessionCreatorConfig config =
+        new ReadSessionCreatorConfigBuilder()
+            .setPreferredMinParallelism(OptionalInt.of(21_000))
+            .setMaxParallelism(OptionalInt.of(10))
+            .build();
+    ReadSessionCreator creator =
+        new ReadSessionCreator(config, bigQueryClient, mockBigQueryClientFactory);
+    ReadSessionResponse readSessionResponse =
+        creator.create(table.getTableId(), ImmutableList.of(), Optional.empty());
+    assertThat(readSessionResponse).isNotNull();
+    assertThat(readSessionResponse.getReadSession().getStreamsCount()).isEqualTo(1);
+    CreateReadSessionRequest createReadSessionRequest =
+        (CreateReadSessionRequest) mockBigQueryRead.getRequests().get(0);
+    assertThat(createReadSessionRequest.getMaxStreamCount()).isEqualTo(10);
+    assertThat(createReadSessionRequest.getPreferredMinStreamCount()).isEqualTo(10);
+  }
+
+  @Test
+  public void testMaxStreamCountWithoutMinStreamCount() throws Exception {
+    // setting up
+    when(bigQueryClient.getTable(any())).thenReturn(table);
+    mockBigQueryRead.reset();
+    mockBigQueryRead.addResponse(
+        ReadSession.newBuilder().addStreams(ReadStream.newBuilder().setName("0")).build());
+    BigQueryClientFactory mockBigQueryClientFactory = mock(BigQueryClientFactory.class);
+    when(mockBigQueryClientFactory.getBigQueryReadClient()).thenReturn(client);
+
+    ReadSessionCreatorConfig config =
+        new ReadSessionCreatorConfigBuilder()
+            .setDefaultParallelism(20)
+            .setMaxParallelism(OptionalInt.of(10))
+            .build();
+    ReadSessionCreator creator =
+        new ReadSessionCreator(config, bigQueryClient, mockBigQueryClientFactory);
+    ReadSessionResponse readSessionResponse =
+        creator.create(table.getTableId(), ImmutableList.of(), Optional.empty());
+    assertThat(readSessionResponse).isNotNull();
+    assertThat(readSessionResponse.getReadSession().getStreamsCount()).isEqualTo(1);
+    CreateReadSessionRequest createReadSessionRequest =
+        (CreateReadSessionRequest) mockBigQueryRead.getRequests().get(0);
+    assertThat(createReadSessionRequest.getMaxStreamCount()).isEqualTo(10);
+    assertThat(createReadSessionRequest.getPreferredMinStreamCount()).isEqualTo(10);
+  }
 }
