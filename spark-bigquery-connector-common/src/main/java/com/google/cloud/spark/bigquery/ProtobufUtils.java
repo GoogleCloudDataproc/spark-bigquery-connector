@@ -35,14 +35,12 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import org.apache.avro.util.Utf8;
 import org.apache.spark.bigquery.BigNumericUDT;
 import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSqlUtils;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
-import org.apache.spark.sql.catalyst.expressions.UnsafeMapData;
 import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.catalyst.util.MapData;
 import org.apache.spark.sql.types.ArrayType;
@@ -448,37 +446,43 @@ public class ProtobufUtils {
       // cache this conversion instead of re-creating it for every value
       StructType mapStructType = MAP_TYPE_STRUCT_TYPE_CACHE.getUnchecked(mapType);
       List<InternalRow> entries = new ArrayList<>();
-      if(sparkValue instanceof scala.collection.Map) {
+      if (sparkValue instanceof scala.collection.Map) {
         // Spark 3.x
-      scala.collection.Map map = (scala.collection.Map) sparkValue;
-      map.foreach(
-          new Function1<Tuple2, Object>() {
-            @Override
-            public Object apply(Tuple2 entry) {
-              return entries.add(new GenericInternalRow(new Object[] {entry._1(), entry._2()}));
-            }
+        scala.collection.Map map = (scala.collection.Map) sparkValue;
+        map.foreach(
+            new Function1<Tuple2, Object>() {
+              @Override
+              public Object apply(Tuple2 entry) {
+                return entries.add(new GenericInternalRow(new Object[] {entry._1(), entry._2()}));
+              }
 
-            @Override
-            public <A> Function1<A, Object> compose(Function1<A, Tuple2> g) {
-              return Function1.super.compose(g);
-            }
+              @Override
+              public <A> Function1<A, Object> compose(Function1<A, Tuple2> g) {
+                return Function1.super.compose(g);
+              }
 
-            @Override
-            public <A> Function1<Tuple2, A> andThen(Function1<Object, A> g) {
-              return Function1.super.andThen(g);
-            }
-          });
+              @Override
+              public <A> Function1<Tuple2, A> andThen(Function1<Object, A> g) {
+                return Function1.super.andThen(g);
+              }
+            });
       } else {
         // Spark 2.4
         MapData map = (MapData) sparkValue;
         Object[] keys = map.keyArray().toObjectArray(mapType.keyType());
         Object[] values = map.valueArray().toObjectArray(mapType.valueType());
-        for(int i = 0; i< map.numElements(); i++) {
-          Object key = convertSparkValueToProtoRowValue(mapType.keyType(), keys[i], /* nullable */ false, nestedTypeDescriptor);
-          Object value = convertSparkValueToProtoRowValue(mapType.valueType(), values[i], mapType.valueContainsNull(), nestedTypeDescriptor);
+        for (int i = 0; i < map.numElements(); i++) {
+          Object key =
+              convertSparkValueToProtoRowValue(
+                  mapType.keyType(), keys[i], /* nullable */ false, nestedTypeDescriptor);
+          Object value =
+              convertSparkValueToProtoRowValue(
+                  mapType.valueType(),
+                  values[i],
+                  mapType.valueContainsNull(),
+                  nestedTypeDescriptor);
           entries.add(new GenericInternalRow(new Object[] {key, value}));
         }
-
       }
       ArrayData resultArray = ArrayData.toArrayData(entries.stream().toArray());
       ArrayType resultArrayType = ArrayType.apply(mapStructType, /* containsNull */ false);
