@@ -87,6 +87,10 @@ public class CustomCredentialsIntegrationTest {
     // first call
     Table table = bigQuery.getTable(TABLE_ID);
     assertThat(table).isNotNull();
-    assertThat(accessTokenProvider.getCallCount()).isEqualTo(0);
+    assertThat(accessTokenProvider.getCallCount()).isEqualTo(1);
+    // second call
+    table = bigQuery.getTable(TABLE_ID);
+    assertThat(table).isNotNull();
+    assertThat(accessTokenProvider.getCallCount()).isEqualTo(2);
   }
 }
