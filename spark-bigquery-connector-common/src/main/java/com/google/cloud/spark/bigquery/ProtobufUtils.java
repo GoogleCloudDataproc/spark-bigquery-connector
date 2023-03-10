@@ -35,13 +35,16 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import org.apache.avro.util.Utf8;
 import org.apache.spark.bigquery.BigNumericUDT;
 import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSqlUtils;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
+import org.apache.spark.sql.catalyst.expressions.UnsafeMapData;
 import org.apache.spark.sql.catalyst.util.ArrayData;
+import org.apache.spark.sql.catalyst.util.MapData;
 import org.apache.spark.sql.types.ArrayType;
 import org.apache.spark.sql.types.BinaryType;
 import org.apache.spark.sql.types.BooleanType;
@@ -444,9 +447,10 @@ public class ProtobufUtils {
       // As the same map<key, value> will be converted to the same STRUCT<key, value>, it is best to
       // cache this conversion instead of re-creating it for every value
       StructType mapStructType = MAP_TYPE_STRUCT_TYPE_CACHE.getUnchecked(mapType);
+      List<InternalRow> entries = new ArrayList<>();
+      if(sparkValue instanceof scala.collection.Map) {
+        // Spark 3.x
       scala.collection.Map map = (scala.collection.Map) sparkValue;
-
-      List<InternalRow> entries = new ArrayList<>(map.size());
       map.foreach(
           new Function1<Tuple2, Object>() {
             @Override
@@ -464,12 +468,22 @@ public class ProtobufUtils {
               return Function1.super.andThen(g);
             }
           });
+      } else {
+        // Spark 2.4
+        MapData map = (MapData) sparkValue;
+        Object[] keys = map.keyArray().toObjectArray(mapType.keyType());
+        Object[] values = map.valueArray().toObjectArray(mapType.valueType());
+        for(int i = 0; i< map.numElements(); i++) {
+          Object key = convertSparkValueToProtoRowValue(mapType.keyType(), keys[i], /* nullable */ false, nestedTypeDescriptor);
+          Object value = convertSparkValueToProtoRowValue(mapType.valueType(), values[i], mapType.valueContainsNull(), nestedTypeDescriptor);
+          entries.add(new GenericInternalRow(new Object[] {key, value}));
+        }
 
-      ArrayData arrayData = ArrayData.toArrayData(entries.stream().toArray());
-      ArrayType mapArrayType = ArrayType.apply(mapStructType, /* containsNull */ false);
-
+      }
+      ArrayData resultArray = ArrayData.toArrayData(entries.stream().toArray());
+      ArrayType resultArrayType = ArrayType.apply(mapStructType, /* containsNull */ false);
       return convertSparkValueToProtoRowValue(
-          mapArrayType, arrayData, nullable, nestedTypeDescriptor);
+          resultArrayType, resultArray, nullable, nestedTypeDescriptor);
     }
 
     throw new IllegalStateException("Unexpected type: " + sparkType);
