@@ -66,7 +66,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Function1;
-import scala.Function2;
+import scala.Tuple2;
 import scala.collection.mutable.IndexedSeq;
 
 public class ProtobufUtils {
@@ -447,21 +447,21 @@ public class ProtobufUtils {
       scala.collection.Map map = (scala.collection.Map) sparkValue;
 
       List<InternalRow> entries = new ArrayList<>(map.size());
-      map.foreachEntry(
-          new Function2() {
+      map.foreach(
+          new Function1<Tuple2, Object>() {
             @Override
-            public Object apply(Object key, Object value) {
-              return entries.add(new GenericInternalRow(new Object[] {key, value}));
+            public Object apply(Tuple2 entry) {
+              return entries.add(new GenericInternalRow(new Object[] {entry._1(), entry._2()}));
             }
 
             @Override
-            public Function1 tupled() {
-              return Function2.super.tupled();
+            public <A> Function1<A, Object> compose(Function1<A, Tuple2> g) {
+              return Function1.super.compose(g);
             }
 
             @Override
-            public Function1 curried() {
-              return Function2.super.curried();
+            public <A> Function1<Tuple2, A> andThen(Function1<Object, A> g) {
+              return Function1.super.andThen(g);
             }
           });
 
