@@ -33,10 +33,11 @@ public class CustomCredentialsIntegrationTest {
       TableId.of("bigquery-public-data", "samples", "shakespeare");
 
   @Test
-  public void testAccessTokenProvider() throws Exception {
+  public void testAccessTokenProvider() {
     BigQueryCredentialsSupplier credentialsSupplier =
         new BigQueryCredentialsSupplier(
             Optional.of(DefaultCredentialsDelegateAccessTokenProvider.class.getCanonicalName()),
+            Optional.empty(),
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
@@ -49,6 +50,38 @@ public class CustomCredentialsIntegrationTest {
         (DefaultCredentialsDelegateAccessTokenProvider)
             ((AccessTokenProviderCredentials) credentials).getAccessTokenProvider();
     assertThat(accessTokenProvider.getCallCount()).isEqualTo(0);
+    BigQueryOptions options = BigQueryOptions.newBuilder().setCredentials(credentials).build();
+    BigQuery bigQuery = options.getService();
+    // first call
+    Table table = bigQuery.getTable(TABLE_ID);
+    assertThat(table).isNotNull();
+    assertThat(accessTokenProvider.getCallCount()).isEqualTo(1);
+    // second call
+    table = bigQuery.getTable(TABLE_ID);
+    assertThat(table).isNotNull();
+    assertThat(accessTokenProvider.getCallCount()).isEqualTo(2);
+  }
+
+  @Test
+  public void testAccessTokenProvider_withConfig() {
+    BigQueryCredentialsSupplier credentialsSupplier =
+        new BigQueryCredentialsSupplier(
+            Optional.of(DefaultCredentialsDelegateAccessTokenProvider.class.getCanonicalName()),
+            Optional.of("some-configuration"),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty());
+    Credentials credentials = credentialsSupplier.getCredentials();
+    assertThat(credentials).isInstanceOf(AccessTokenProviderCredentials.class);
+    DefaultCredentialsDelegateAccessTokenProvider accessTokenProvider =
+        (DefaultCredentialsDelegateAccessTokenProvider)
+            ((AccessTokenProviderCredentials) credentials).getAccessTokenProvider();
+    assertThat(accessTokenProvider.getCallCount()).isEqualTo(0);
+    assertThat(accessTokenProvider.getConfig()).isEqualTo("some-configuration");
+
     BigQueryOptions options = BigQueryOptions.newBuilder().setCredentials(credentials).build();
     BigQuery bigQuery = options.getService();
     // first call

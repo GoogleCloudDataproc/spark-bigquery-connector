@@ -23,14 +23,23 @@ import java.io.UncheckedIOException;
 import java.util.Date;
 
 /**
- * Basic implementation of AccessTokenProvider. Token TTL is very small to allow refresh testing.
+ * Basic implementation of AccessTokenProvider. This demonstrates a simple example of how
+ * configuration can be passed to the AccessTokenProvider implementation. In this case the
+ * configuration is simply treated as a token override in place of using {@link
+ * GoogleCredentials#getApplicationDefault}. Token TTL is very small to allow refresh testing.
  */
 public class DefaultCredentialsDelegateAccessTokenProvider implements AccessTokenProvider {
 
+  private String config;
   private GoogleCredentials delegate;
   private int callCount = 0;
 
   public DefaultCredentialsDelegateAccessTokenProvider() {
+    this(null);
+  }
+
+  public DefaultCredentialsDelegateAccessTokenProvider(String config) {
+    this.config = config;
     try {
       this.delegate = GoogleCredentials.getApplicationDefault();
     } catch (IOException e) {
@@ -48,5 +57,9 @@ public class DefaultCredentialsDelegateAccessTokenProvider implements AccessToke
 
   int getCallCount() {
     return callCount;
+  }
+
+  String getConfig() {
+    return config;
   }
 }

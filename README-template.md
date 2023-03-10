@@ -1187,7 +1187,9 @@ spark.read.format("bigquery").option("credentials", "<SERVICE_ACCOUNT_JSON_IN_BA
   [com.google.cloud.bigquery.connector.common.AccessTokenProvider](https://github.com/GoogleCloudDataproc/spark-bigquery-connector/tree/master/bigquery-connector-common/src/main/java/com/google/cloud/bigquery/connector/common/AccessTokenProvider.java)
   interface. The fully qualified class name of the implementation should be provided in the `gcpAccessTokenProvider`
   option. `AccessTokenProvider` must be implemented in Java or other JVM language such as Scala or Kotlin. It must
-  have a no-arg constructor. The jar containing the implementation should be on the cluster's classpath.
+  either have a no-arg constructor or a constructor accepting a single `java.util.String` argument. This configuration
+  parameter can be supplied using the `gcpAccessTokenProviderConfig` option. If this is not provided then the no-arg
+  constructor wil be called. The jar containing the implementation should be on the cluster's classpath.
 ```
 // Globally
 spark.conf.set("gcpAccessTokenProvider", "com.example.ExampleAccessTokenProvider")
@@ -1205,8 +1207,7 @@ spark.read.format("bigquery").option("gcpAccessToken", "<acccess-token>")
 ```
 
 **Important:** The `CredentialsProvider` and  `AccessTokenProvider` need to be implemented in Java or
-other JVM language such as Scala or Kotlin. It must have a no-arg constructor. The jar containing
-the implementation should be on the cluster's classpath.
+other JVM language such as Scala or Kotlin. The jar containing the implementation should be on the cluster's classpath.
 
 **Notice:** Only one of the above options should be provided.
 
