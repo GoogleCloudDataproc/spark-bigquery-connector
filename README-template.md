@@ -907,7 +907,7 @@ When casting to Timestamp TIME have the same TimeZone issues as DATETIME
    </td>
    <td><strong><code>MapType</code></strong>
    </td>
-   <td>BigQuery has no MAP type, so like other conversions like Apache Avro and BigQuery Load jobs, the connector converts a Spark Map to a REPEATED STRUCT&lt;key,value&gt;.
+   <td>BigQuery has no MAP type, therefore similar to other conversions like Apache Avro and BigQuery Load jobs, the connector converts a Spark Map to a REPEATED STRUCT&lt;key,value&gt;.
        This means that while writing and reading of maps is available, running a SQL on BigQuery that uses map semantics is not supported.
        To refer to the map's values using BigQuery SQL, please check the <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/arrays">BigQuery documentation</a>.
        Due to these incompatibilities, a few restrictions apply:
