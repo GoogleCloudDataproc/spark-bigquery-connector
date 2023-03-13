@@ -24,6 +24,7 @@ import static org.junit.Assume.assumeThat;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
@@ -39,6 +40,7 @@ import com.google.cloud.spark.bigquery.integration.model.Data;
 import com.google.cloud.spark.bigquery.integration.model.Friend;
 import com.google.cloud.spark.bigquery.integration.model.Link;
 import com.google.cloud.spark.bigquery.integration.model.Person;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.ProvisionException;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -760,6 +762,67 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     List<String> result =
         resultDF.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
     assertThat(result).containsExactly("1", "2");
+  }
+
+  @Test
+  public void testWriteMapToANewTable() throws Exception {
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create(ImmutableMap.of("a", new Long(1), "b", new Long(2))),
+                RowFactory.create(ImmutableMap.of("c", new Long(3)))),
+            structType(
+                StructField.apply(
+                    "mf",
+                    DataTypes.createMapType(DataTypes.StringType, DataTypes.LongType),
+                    false,
+                    Metadata.empty())));
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("intermediateFormat", "AVRO")
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("writeMethod", writeMethod.toString())
+        .save();
+
+    Table table = bq.getTable(TableId.of(testDataset.toString(), testTable));
+    assertThat(table).isNotNull();
+    Schema schema = table.getDefinition().getSchema();
+    assertThat(schema).isNotNull();
+    assertThat(schema.getFields()).hasSize(1);
+    Field mapField = schema.getFields().get(0);
+    assertThat(mapField.getType()).isEqualTo(LegacySQLTypeName.RECORD);
+    assertThat(mapField.getMode()).isEqualTo(Mode.REPEATED);
+    assertThat(mapField.getSubFields())
+        .containsExactlyElementsIn(
+            Arrays.asList(
+                Field.newBuilder("key", LegacySQLTypeName.STRING).setMode(Mode.REQUIRED).build(),
+                Field.newBuilder("value", LegacySQLTypeName.INTEGER)
+                    .setMode(Mode.NULLABLE)
+                    .build()));
+
+    String sql =
+        ("SELECT\n"
+                + "  (SELECT COUNT(f.key) FROM TABLE, UNNEST(mf) AS f) AS total_keys,\n"
+                + "  (SELECT COUNT(*) FROM TABLE) AS total_rows,\n"
+                + "  (SELECT f.value FROM TABLE, UNNEST(mf) AS f WHERE f.key='b') AS b_value;")
+            .replaceAll("TABLE", testDataset.toString() + "." + testTable);
+
+    // validating by querying a sub-field of the json
+    Dataset<Row> resultDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", "true")
+            .option("materializationDataset", testDataset.toString())
+            .load(sql);
+    // collecting the data to validate its content
+    Row result = resultDF.head();
+    assertThat(result.getLong(0)).isEqualTo(3L);
+    assertThat(result.getLong(1)).isEqualTo(2L);
+    assertThat(result.getLong(2)).isEqualTo(2L);
   }
 
   protected long numberOfRowsWith(String name) {

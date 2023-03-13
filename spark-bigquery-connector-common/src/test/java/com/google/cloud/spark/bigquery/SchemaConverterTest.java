@@ -143,15 +143,6 @@ public class SchemaConverterTest {
   }
 
   @Test
-  public void testSparkMapException() throws Exception {
-    try {
-      createBigQueryColumn(SPARK_MAP_FIELD, 0);
-      fail("Did not throw an error for an unsupported map-type");
-    } catch (IllegalArgumentException e) {
-    }
-  }
-
-  @Test
   public void testDecimalTypeConversion() throws Exception {
     assertThat(toBigQueryType(NUMERIC_SPARK_TYPE, Metadata.empty()))
         .isEqualTo(LegacySQLTypeName.NUMERIC);
@@ -319,9 +310,9 @@ public class SchemaConverterTest {
       new StructField("TimeStamp", DataTypes.TimestampType, true, Metadata.empty());
   public final StructField SPARK_MAP_FIELD =
       new StructField(
-          "Map",
-          DataTypes.createMapType(DataTypes.IntegerType, DataTypes.StringType),
-          true,
+          "map_f",
+          DataTypes.createMapType(DataTypes.StringType, DataTypes.LongType),
+          false,
           Metadata.empty());
   public final StructField SPARK_JSON_FIELD =
       new StructField(
@@ -338,7 +329,8 @@ public class SchemaConverterTest {
           .add(SPARK_BINARY_FIELD)
           .add(SPARK_DATE_FIELD)
           .add(SPARK_TIMESTAMP_FIELD)
-          .add(SPARK_JSON_FIELD);
+          .add(SPARK_JSON_FIELD)
+          .add(SPARK_MAP_FIELD);
 
   public final Field BIGQUERY_INTEGER_FIELD =
       Field.newBuilder("Number", LegacySQLTypeName.INTEGER, (FieldList) null)
@@ -389,6 +381,18 @@ public class SchemaConverterTest {
           .setMode(Field.Mode.NULLABLE)
           .build();
 
+  public final Field BIGQUERY_MAP_FIELD =
+      Field.newBuilder(
+              "map_f",
+              LegacySQLTypeName.RECORD,
+              FieldList.of(
+                  Field.newBuilder("key", LegacySQLTypeName.STRING).setMode(Mode.REQUIRED).build(),
+                  Field.newBuilder("value", LegacySQLTypeName.INTEGER)
+                      .setMode(Mode.NULLABLE)
+                      .build()))
+          .setMode(Field.Mode.REPEATED)
+          .build();
+
   public final Schema BIG_BIGQUERY_SCHEMA =
       Schema.of(
           BIGQUERY_INTEGER_FIELD,
@@ -400,7 +404,8 @@ public class SchemaConverterTest {
           BIGQUERY_BYTES_FIELD,
           BIGQUERY_DATE_FIELD,
           BIGQUERY_TIMESTAMP_FIELD,
-          BIGQUERY_JSON_FIELD);
+          BIGQUERY_JSON_FIELD,
+          BIGQUERY_MAP_FIELD);
 
   public final StructType BIG_SPARK_SCHEMA2 =
       new StructType()
@@ -431,7 +436,8 @@ public class SchemaConverterTest {
                               "datetime", DataTypes.StringType, true, Metadata.empty())),
                   true,
                   Metadata.empty()))
-          .add(SPARK_JSON_FIELD);
+          .add(SPARK_JSON_FIELD)
+          .add(SPARK_MAP_FIELD);
 
   public final Schema BIG_BIGQUERY_SCHEMA2 =
       Schema.of(
@@ -452,7 +458,8 @@ public class SchemaConverterTest {
               Field.of("time", LegacySQLTypeName.TIME),
               Field.of("timestamp", LegacySQLTypeName.TIMESTAMP),
               Field.of("datetime", LegacySQLTypeName.DATETIME)),
-          BIGQUERY_JSON_FIELD);
+          BIGQUERY_JSON_FIELD,
+          BIGQUERY_MAP_FIELD);
 
   public final Schema BIG_BIGQUERY_SCHEMA2_WITH_PSEUDO_COLUMNS =
       Schema.of(
@@ -474,6 +481,7 @@ public class SchemaConverterTest {
               Field.of("timestamp", LegacySQLTypeName.TIMESTAMP),
               Field.of("datetime", LegacySQLTypeName.DATETIME)),
           BIGQUERY_JSON_FIELD,
+          BIGQUERY_MAP_FIELD,
           Field.newBuilder("_PARTITIONTIME", LegacySQLTypeName.TIMESTAMP)
               .setMode(Field.Mode.NULLABLE)
               .build(),

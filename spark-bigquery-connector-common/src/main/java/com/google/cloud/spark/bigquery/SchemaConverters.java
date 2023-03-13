@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
@@ -51,7 +52,6 @@ public class SchemaConverters {
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   // The maximum nesting depth of a BigQuery RECORD:
   static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
-  static final String MAPTYPE_ERROR_MESSAGE = "MapType is unsupported.";
 
   /** Convert a BigQuery schema to a Spark schema */
   public static StructType toSpark(Schema schema) {
@@ -399,6 +399,18 @@ public class SchemaConverters {
     if (sparkType instanceof StructType) {
       subFields = sparkToBigQueryFields((StructType) sparkType, depth + 1);
       fieldType = LegacySQLTypeName.RECORD;
+    } else if (sparkType instanceof MapType) {
+      MapType mapType = (MapType) sparkType;
+      fieldMode = Field.Mode.REPEATED;
+      fieldType = LegacySQLTypeName.RECORD;
+      subFields =
+          FieldList.of(
+              Field.newBuilder("key", toBigQueryType(mapType.keyType(), sparkField.metadata()))
+                  .setMode(Mode.REQUIRED)
+                  .build(),
+              Field.newBuilder("value", toBigQueryType(mapType.valueType(), sparkField.metadata()))
+                  .setMode(mapType.valueContainsNull() ? Mode.NULLABLE : Mode.REQUIRED)
+                  .build());
     } else {
       fieldType = toBigQueryType(sparkType, sparkField.metadata());
     }
@@ -467,11 +479,7 @@ public class SchemaConverters {
     if (elementType instanceof DateType) {
       return LegacySQLTypeName.DATE;
     }
-    if (elementType instanceof MapType) {
-      throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
-    } else {
-      throw new IllegalArgumentException("Data type not expected: " + elementType.simpleString());
-    }
+    throw new IllegalArgumentException("Data type not expected: " + elementType.simpleString());
   }
 
   private static Field.Builder createBigQueryFieldBuilder(

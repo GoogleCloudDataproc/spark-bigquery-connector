@@ -24,6 +24,9 @@ import com.google.cloud.bigquery.storage.v1.ProtoSchema;
 import com.google.cloud.bigquery.storage.v1.ProtoSchemaConverter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
@@ -31,12 +34,15 @@ import com.google.protobuf.DynamicMessage;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.apache.spark.bigquery.BigNumericUDT;
 import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSqlUtils;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
+import org.apache.spark.sql.catalyst.util.MapData;
 import org.apache.spark.sql.types.ArrayType;
 import org.apache.spark.sql.types.BinaryType;
 import org.apache.spark.sql.types.BooleanType;
@@ -51,13 +57,17 @@ import org.apache.spark.sql.types.FloatType;
 import org.apache.spark.sql.types.IntegerType;
 import org.apache.spark.sql.types.LongType;
 import org.apache.spark.sql.types.MapType;
+import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.ShortType;
 import org.apache.spark.sql.types.StringType;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.types.TimestampType;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Function1;
+import scala.Tuple2;
 import scala.collection.mutable.IndexedSeq;
 
 public class ProtobufUtils {
@@ -72,7 +82,18 @@ public class ProtobufUtils {
   // For every message, a nested type is name "STRUCT"+i, where i is the
   // number of the corresponding field that is of this type in the containing message.
   private static final String RESERVED_NESTED_TYPE_NAME = "STRUCT";
-  private static final String MAPTYPE_ERROR_MESSAGE = "MapType is unsupported.";
+
+  private static final LoadingCache<MapType, StructType> MAP_TYPE_STRUCT_TYPE_CACHE =
+      CacheBuilder.<MapType, StructType>newBuilder()
+          .maximumSize(10_000) // 10,000 map types should be enough for most applications
+          .expireAfterWrite(24, TimeUnit.HOURS) // Type definition don't really expire
+          .build(
+              new CacheLoader<MapType, StructType>() {
+                @Override
+                public StructType load(MapType key) {
+                  return ProtobufUtils.createMapStructType(key);
+                }
+              });
 
   private static final ImmutableMap<LegacySQLTypeName, DescriptorProtos.FieldDescriptorProto.Type>
       BigQueryToProtoType =
@@ -419,7 +440,54 @@ public class ProtobufUtils {
     }
 
     if (sparkType instanceof MapType) {
-      throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
+      // converting the map into ARRAY<STRUCT<key, value>> and making a recursive call
+      MapType mapType = (MapType) sparkType;
+      // As the same map<key, value> will be converted to the same STRUCT<key, value>, it is best to
+      // cache this conversion instead of re-creating it for every value
+      StructType mapStructType = MAP_TYPE_STRUCT_TYPE_CACHE.getUnchecked(mapType);
+      List<InternalRow> entries = new ArrayList<>();
+      if (sparkValue instanceof scala.collection.Map) {
+        // Spark 3.x
+        scala.collection.Map map = (scala.collection.Map) sparkValue;
+        map.foreach(
+            new Function1<Tuple2, Object>() {
+              @Override
+              public Object apply(Tuple2 entry) {
+                return entries.add(new GenericInternalRow(new Object[] {entry._1(), entry._2()}));
+              }
+
+              @Override
+              public <A> Function1<A, Object> compose(Function1<A, Tuple2> g) {
+                return Function1.super.compose(g);
+              }
+
+              @Override
+              public <A> Function1<Tuple2, A> andThen(Function1<Object, A> g) {
+                return Function1.super.andThen(g);
+              }
+            });
+      } else {
+        // Spark 2.4
+        MapData map = (MapData) sparkValue;
+        Object[] keys = map.keyArray().toObjectArray(mapType.keyType());
+        Object[] values = map.valueArray().toObjectArray(mapType.valueType());
+        for (int i = 0; i < map.numElements(); i++) {
+          Object key =
+              convertSparkValueToProtoRowValue(
+                  mapType.keyType(), keys[i], /* nullable */ false, nestedTypeDescriptor);
+          Object value =
+              convertSparkValueToProtoRowValue(
+                  mapType.valueType(),
+                  values[i],
+                  mapType.valueContainsNull(),
+                  nestedTypeDescriptor);
+          entries.add(new GenericInternalRow(new Object[] {key, value}));
+        }
+      }
+      ArrayData resultArray = ArrayData.toArrayData(entries.stream().toArray());
+      ArrayType resultArrayType = ArrayType.apply(mapStructType, /* containsNull */ false);
+      return convertSparkValueToProtoRowValue(
+          resultArrayType, resultArray, nullable, nestedTypeDescriptor);
     }
 
     throw new IllegalStateException("Unexpected type: " + sparkType);
@@ -449,13 +517,21 @@ public class ProtobufUtils {
       }
 
       DescriptorProtos.FieldDescriptorProto.Builder protoFieldBuilder;
-      if (sparkType instanceof StructType) {
-        StructType structType = (StructType) sparkType;
+      if (sparkType instanceof StructType || sparkType instanceof MapType) {
         String nestedName =
             RESERVED_NESTED_TYPE_NAME
                 + messageNumber; // TODO: Maintain this as a reserved nested-type name, which no
         // column can have.
-        StructField[] subFields = structType.fields();
+        StructField[] subFields = null;
+        if (sparkType instanceof StructType) {
+          StructType structType = (StructType) sparkType;
+          subFields = structType.fields();
+        } else {
+          // Map type
+          MapType mapType = (MapType) sparkType;
+          fieldLabel = DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED;
+          subFields = createMapStructFields(mapType);
+        }
 
         DescriptorProtos.DescriptorProto.Builder nestedFieldTypeBuilder =
             descriptorBuilder.addNestedTypeBuilder().setName(nestedName);
@@ -474,9 +550,28 @@ public class ProtobufUtils {
     return descriptorBuilder.build();
   }
 
+  static StructType createMapStructType(MapType mapType) {
+    return new StructType(createMapStructFields(mapType));
+  }
+
+  @NotNull
+  static StructField[] createMapStructFields(MapType mapType) {
+    return new StructField[] {
+      StructField.apply( //
+          "key", //
+          mapType.keyType(), //
+          /* nullable */ false, //
+          Metadata.empty()),
+      StructField.apply( //
+          "value", //
+          mapType.valueType(), //
+          mapType.valueContainsNull(), //
+          Metadata.empty())
+    };
+  }
+
   private static DescriptorProtos.FieldDescriptorProto.Type toProtoFieldType(DataType sparkType) {
-    if (sparkType instanceof MapType) {
-      throw new IllegalArgumentException(MAPTYPE_ERROR_MESSAGE);
+    if (sparkType instanceof MapType) {;
     }
     return Preconditions.checkNotNull(
         SparkToProtoType.get(sparkType.json()),

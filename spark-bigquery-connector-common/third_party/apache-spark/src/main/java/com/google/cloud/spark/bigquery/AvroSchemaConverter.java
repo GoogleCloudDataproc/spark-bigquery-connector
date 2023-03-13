@@ -16,9 +16,11 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.common.base.Preconditions;
+import java.util.HashMap;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
+import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.util.Utf8;
@@ -29,6 +31,7 @@ import org.apache.spark.sql.catalyst.expressions.SpecializedGetters;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
+import org.apache.spark.sql.catalyst.util.MapData;
 import org.apache.spark.sql.types.ArrayType;
 import org.apache.spark.sql.types.BinaryType;
 import org.apache.spark.sql.types.BooleanType;
@@ -142,15 +145,21 @@ public class AvroSchemaConverter {
       }
       return fieldsAssembler.endRecord();
     }
+    if (dataType instanceof MapType) {
+      MapType mapType  = (MapType) dataType;
+      return builder.map()
+          .values(
+              sparkTypeToRawAvroType(
+                  mapType.valueType(),
+                  metadata,
+                  mapType.valueContainsNull(),
+                  "value" ));
+    }
     if (dataType instanceof UserDefinedType) {
       DataType userDefinedType = ((UserDefinedType) dataType).sqlType();
       return sparkTypeToRawAvroType(userDefinedType, metadata, recordName, builder);
     }
-    if (dataType instanceof MapType) {
-      throw new IllegalArgumentException(SchemaConverters.MAPTYPE_ERROR_MESSAGE);
-    } else {
-      throw new IllegalArgumentException("Data type not supported: " + dataType.simpleString());
-    }
+    throw new IllegalArgumentException("Data type not supported: " + dataType.simpleString());
   }
 
   public static GenericData.Record sparkRowToAvroGenericData(
@@ -321,6 +330,26 @@ public class AvroSchemaConverter {
           }
         }
         return structConverter.convert(internalRow);
+      };
+    }
+    if (sparkType instanceof MapType && avroType.getType() == Type.MAP) {
+      final MapType mapType = (MapType) sparkType;
+      final Converter keyConverter = createConverterFor(mapType.keyType(), Schema.create(Type.STRING));
+      Schema valueType = avroType.getValueType();
+      Schema nullableValueType = resolveNullableType(valueType, mapType.valueContainsNull());
+      final Converter valueConverter = createConverterFor(mapType.valueType(), nullableValueType);
+
+      return (getter, ordinal) -> {
+        HashMap<Utf8, Object> result = new HashMap<>();
+        MapData map = getter.getMap(ordinal);
+        ArrayData keys = map.keyArray();
+        ArrayData values = map.valueArray();
+        for(int i = 0; i< map.numElements(); i++) {
+          Utf8 key = (Utf8) keyConverter.convert(keys, i);
+          Object value = valueConverter.convert(values, i);
+          result.put(key, value);
+        }
+        return result;
       };
     }
     if (sparkType instanceof UserDefinedType) {
