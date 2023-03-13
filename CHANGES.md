@@ -2,6 +2,9 @@
 
 ## Next
 
+* Issue #522: Supporting Spark's Map type. Notice there are few restrictions as this is not a
+  BigQuery native type.
+
 ## 0.29.0 - 2023-03-03
 
 * Added two new connectors, `spark-3.2-bigquery` and `spark-3.3-bigquery` aimed to be used in Spark 3.2 and 3.3

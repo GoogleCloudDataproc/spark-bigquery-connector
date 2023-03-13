@@ -5,12 +5,6 @@
 The connector supports reading [Google BigQuery](https://cloud.google.com/bigquery/) tables into Spark's DataFrames, and writing DataFrames back into BigQuery.
 This is done by using the [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources) to communicate with BigQuery.
 
-## Unreleased Changes
-
-This Readme may include documentation for changes that haven't been released yet.  The latest release's documentation and source code are found here.
-
-https://github.com/GoogleCloudDataproc/spark-bigquery-connector/tree/0.24.2
-
 ## BigQuery Storage API
 The [Storage API](https://cloud.google.com/bigquery/docs/reference/storage) streams data in parallel directly from BigQuery via gRPC without using Google Cloud Storage as an intermediary.
 
@@ -905,6 +899,22 @@ When casting to Timestamp TIME have the same TimeZone issues as DATETIME
           <li>Use the <code>INDIRECT</code> write method</li>
           <li>Use the <code>AVRO</code> intermediate format</li>
           <li>The DataFrame field <b>MUST</b> be of type <code>String</code> and has an entry of sqlType=JSON in its metadata</li>
+       </ul>
+   </td>
+  </tr>
+  <tr valign="top" id="datatype:map">
+   <td><strong><code>ARRAY&lt;STRUCT&lt;key,value&gt;&gt;</code></strong>
+   </td>
+   <td><strong><code>MapType</code></strong>
+   </td>
+   <td>BigQuery has no MAP type, therefore similar to other conversions like Apache Avro and BigQuery Load jobs, the connector converts a Spark Map to a REPEATED STRUCT&lt;key,value&gt;.
+       This means that while writing and reading of maps is available, running a SQL on BigQuery that uses map semantics is not supported.
+       To refer to the map's values using BigQuery SQL, please check the <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/arrays">BigQuery documentation</a>.
+       Due to these incompatibilities, a few restrictions apply:
+       <ul>
+          <li>Keys can be Strings only</li>
+          <li>Values can be simple types (not structs)</li>
+          <li>For INDIRECT write, use the <code>AVRO</code> intermediate format. DIRECT write is supported as well</li>
        </ul>
    </td>
   </tr>
