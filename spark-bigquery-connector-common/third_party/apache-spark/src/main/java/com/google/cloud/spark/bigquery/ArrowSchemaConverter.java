@@ -458,18 +458,6 @@ public class ArrowSchemaConverter extends ColumnVector {
     }
 
     @Override
-    public final boolean isNullAt(int rowId) {
-      // optimization for if validity buffer is not set, it means all value are
-      // not null (Java should be still populating this vector, so this check
-      // might not be necessary).
-      if (vector.getValueCount() > 0 && vector.getValidityBuffer().capacity() == 0) {
-        return false;
-      } else {
-        return super.isNullAt(rowId);
-      }
-    }
-
-    @Override
     public final ColumnarArray getArray(int rowId) {
       ArrowBuf offsets = ((ListVector)vector).getOffsetBuffer();
       int index = rowId * ListVector.OFFSET_WIDTH;
@@ -489,7 +477,7 @@ public class ArrowSchemaConverter extends ColumnVector {
       return new ColumnarMap(keys, values, start, end - start);
     }
   }
-  
+
   /**
    * Any call to "get" method will throw UnsupportedOperationException.
    */
@@ -497,37 +485,35 @@ public class ArrowSchemaConverter extends ColumnVector {
     ArrowSchemaConverter childColumns[];
     StructAccessor(StructVector structVector, StructField userProvidedField) {
       super(structVector);
-      if(userProvidedField !=null)
+      if(userProvidedField !=null) {
+        List<StructField> structList =
+              Arrays.stream(((StructType) userProvidedField.dataType()).fields())
+                    .collect(Collectors.toList());
 
-    {
-      List<StructField> structList =
-              Arrays
-                      .stream(((StructType) userProvidedField.dataType()).fields())
-                      .collect(Collectors.toList());
+        this.childColumns = new ArrowSchemaConverter[structList.size()];
 
-      childColumns = new ArrowSchemaConverter[structList.size()];
+        Map<String, ValueVector> valueVectorMap =
+                structVector
+                        .getChildrenFromFields()
+                        .stream()
+                        .collect(Collectors.toMap(ValueVector::getName, valueVector -> valueVector));
 
-      Map<String, ValueVector> valueVectorMap =
-              structVector
-                      .getChildrenFromFields()
-                      .stream()
-                      .collect(Collectors.toMap(ValueVector::getName, valueVector -> valueVector));
-
-      for (int i = 0; i < childColumns.length; ++i) {
-        StructField structField = structList.get(i);
-        childColumns[i] =
-                newArrowSchemaConverter(valueVectorMap.get(structField.name()), structField);
-      }
-
-    } else
-
-    {
-      childColumns = new ArrowSchemaConverter[structVector.size()];
-      for (int i = 0; i < childColumns.length; ++i) {
-        childColumns[i] = newArrowSchemaConverter(structVector.getVectorById(i), /*userProvidedField=*/null);
+        for (int i = 0; i < childColumns.length; ++i) {
+          StructField structField = structList.get(i);
+          childColumns[i] =
+                  newArrowSchemaConverter(valueVectorMap.get(structField.name()), structField);
+        }
+      } else {
+        childColumns = new ArrowSchemaConverter[structVector.size()];
+        for (int i = 0; i < childColumns.length; ++i) {
+          childColumns[i] = newArrowSchemaConverter(structVector.getVectorById(i), /*userProvidedField=*/null);
+        }
       }
     }
-  }
+
+    @Override
+    public ColumnVector getChild(int ordinal) { return childColumns[ordinal]; }
+
 
     @Override
     public void close() {
