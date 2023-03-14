@@ -43,104 +43,90 @@ import org.apache.arrow.vector.types.pojo.Field;
  * arrow data types to the types supported by big query.
  */
 public class ArrowSchemaConverter extends ColumnVector {
-
-  private final ArrowSchemaConverter.ArrowVectorAccessor accessor;
-  private ArrowSchemaConverter[] childColumns;
+  protected final ValueVector vector;
 
   @Override
   public boolean hasNull() {
-    return accessor.getNullCount() > 0;
+    return vector.getNullCount() > 0;
   }
 
   @Override
   public int numNulls() {
-    return accessor.getNullCount();
+    return vector.getNullCount();
   }
 
   @Override
   public void close() {
-    if (childColumns != null) {
-      for (int i = 0; i < childColumns.length; i++) {
-        childColumns[i].close();
-        childColumns[i] = null;
-      }
-      childColumns = null;
-    }
-    accessor.close();
+    vector.close();
   }
 
   @Override
   public boolean isNullAt(int rowId) {
-    return accessor.isNullAt(rowId);
+    return vector.isNull(rowId);
   }
 
   @Override
   public boolean getBoolean(int rowId) {
-    return accessor.getBoolean(rowId);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public byte getByte(int rowId) {
-    return accessor.getByte(rowId);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public short getShort(int rowId) {
-    return accessor.getShort(rowId);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public int getInt(int rowId) {
-    return accessor.getInt(rowId);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public long getLong(int rowId) {
-    return accessor.getLong(rowId);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public float getFloat(int rowId) {
-    return accessor.getFloat(rowId);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public double getDouble(int rowId) {
-    return accessor.getDouble(rowId);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Decimal getDecimal(int rowId, int precision, int scale) {
-    if (isNullAt(rowId)) return null;
-    return accessor.getDecimal(rowId, precision, scale);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public UTF8String getUTF8String(int rowId) {
-    if (isNullAt(rowId)) return null;
-    return accessor.getUTF8String(rowId);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public byte[] getBinary(int rowId) {
-    if (isNullAt(rowId)) return null;
-    return accessor.getBinary(rowId);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ColumnarArray getArray(int rowId) {
-    if (isNullAt(rowId)) return null;
-    return accessor.getArray(rowId);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ColumnarMap getMap(int rowId) {
-    if (isNullAt(rowId)) return null;
-    return accessor.getMap(rowId);
+    throw new UnsupportedOperationException();
   }
 
   @Override
-  public ArrowSchemaConverter getChild(int ordinal) { return childColumns[ordinal]; }
+  public ColumnVector getChild(int ordinal) { throw new UnsupportedOperationException(); }
 
   private static DataType fromArrowType(ArrowType arrowType)
   {
@@ -189,266 +175,154 @@ public class ArrowSchemaConverter extends ColumnVector {
     return fromArrowType(field.getType());
   }
 
-
-  public ArrowSchemaConverter(ValueVector vector, StructField userProvidedField) {
-
+  ArrowSchemaConverter(ValueVector vector) {
     super(fromArrowField(vector.getField()));
+    this.vector = vector;
+  }
 
+  public static ArrowSchemaConverter newArrowSchemaConverter(ValueVector vector, StructField userProvidedField) {
     if (vector instanceof BitVector) {
-      accessor = new ArrowSchemaConverter.BooleanAccessor((BitVector) vector);
+      return new ArrowSchemaConverter.BooleanAccessor((BitVector) vector);
     } else if (vector instanceof BigIntVector) {
-      accessor = new ArrowSchemaConverter.LongAccessor((BigIntVector) vector);
+      return new ArrowSchemaConverter.LongAccessor((BigIntVector) vector);
     } else if (vector instanceof Float8Vector) {
-      accessor = new ArrowSchemaConverter.DoubleAccessor((Float8Vector) vector);
+      return new ArrowSchemaConverter.DoubleAccessor((Float8Vector) vector);
     } else if (vector instanceof DecimalVector) {
-      accessor = new ArrowSchemaConverter.DecimalAccessor((DecimalVector) vector);
+      return new ArrowSchemaConverter.DecimalAccessor((DecimalVector) vector);
     } else if (vector instanceof Decimal256Vector) {
-      accessor = new ArrowSchemaConverter.Decimal256Accessor((Decimal256Vector) vector);
+      return new ArrowSchemaConverter.Decimal256Accessor((Decimal256Vector) vector);
     } else if (vector instanceof VarCharVector) {
-      accessor = new ArrowSchemaConverter.StringAccessor((VarCharVector) vector);
+      return new ArrowSchemaConverter.StringAccessor((VarCharVector) vector);
     } else if (vector instanceof VarBinaryVector) {
-      accessor = new ArrowSchemaConverter.BinaryAccessor((VarBinaryVector) vector);
+      return new ArrowSchemaConverter.BinaryAccessor((VarBinaryVector) vector);
     } else if (vector instanceof DateDayVector) {
-      accessor = new ArrowSchemaConverter.DateAccessor((DateDayVector) vector);
+      return new ArrowSchemaConverter.DateAccessor((DateDayVector) vector);
     } else if (vector instanceof TimeMicroVector) {
-      accessor = new ArrowSchemaConverter.TimeMicroVectorAccessor((TimeMicroVector) vector);
+      return new ArrowSchemaConverter.TimeMicroVectorAccessor((TimeMicroVector) vector);
     } else if (vector instanceof TimeStampMicroVector) {
-      accessor = new ArrowSchemaConverter.TimestampMicroVectorAccessor((TimeStampMicroVector) vector);
+      return new ArrowSchemaConverter.TimestampMicroVectorAccessor((TimeStampMicroVector) vector);
     } else if (vector instanceof TimeStampMicroTZVector) {
-      accessor = new ArrowSchemaConverter.TimestampMicroTZVectorAccessor((TimeStampMicroTZVector) vector);
+      return new ArrowSchemaConverter.TimestampMicroTZVectorAccessor((TimeStampMicroTZVector) vector);
     } else if (vector instanceof ListVector) {
       ListVector listVector = (ListVector) vector;
-      // Is it a map or an array?
-
-      accessor = new ArrowSchemaConverter.ArrayAccessor(listVector, userProvidedField);
+      return new ArrowSchemaConverter.ArrayAccessor(listVector, userProvidedField);
     } else if (vector instanceof StructVector) {
       StructVector structVector = (StructVector) vector;
-      accessor = new ArrowSchemaConverter.StructAccessor(structVector);
-
-      if(userProvidedField != null) {
-        List<StructField> structList =
-            Arrays
-                .stream(((StructType)userProvidedField.dataType()).fields())
-                .collect(Collectors.toList());
-
-        childColumns = new ArrowSchemaConverter[structList.size()];
-
-        Map<String, ValueVector> valueVectorMap =
-            structVector
-                .getChildrenFromFields()
-                .stream()
-                .collect(Collectors.toMap(ValueVector::getName, valueVector -> valueVector));
-
-        for (int i = 0; i < childColumns.length; ++i) {
-          StructField structField = structList.get(i);
-          childColumns[i] =
-              new ArrowSchemaConverter(valueVectorMap.get(structField.name()), structField);
-        }
-
-      } else {
-        childColumns = new ArrowSchemaConverter[structVector.size()];
-        for (int i = 0; i < childColumns.length; ++i) {
-          childColumns[i] = new ArrowSchemaConverter(structVector.getVectorById(i), null);
-        }
-      }
+      return new ArrowSchemaConverter.StructAccessor(structVector, userProvidedField);
     } else {
       throw new UnsupportedOperationException();
     }
   }
 
-  private abstract static class ArrowVectorAccessor {
-
-    private final ValueVector vector;
-
-    ArrowVectorAccessor(ValueVector vector) {
-      this.vector = vector;
-    }
-
-    // TODO: should be final after removing ArrayAccessor workaround
-    boolean isNullAt(int rowId) {
-      return vector.isNull(rowId);
-    }
-
-    final int getNullCount() {
-      return vector.getNullCount();
-    }
-
-    final void close() {
-      vector.close();
-    }
-
-    boolean getBoolean(int rowId) {
-      throw new UnsupportedOperationException();
-    }
-
-    byte getByte(int rowId) {
-      throw new UnsupportedOperationException();
-    }
-
-    short getShort(int rowId) {
-      throw new UnsupportedOperationException();
-    }
-
-    int getInt(int rowId) {
-      throw new UnsupportedOperationException();
-    }
-
-    long getLong(int rowId) {
-      throw new UnsupportedOperationException();
-    }
-
-    float getFloat(int rowId) {
-      throw new UnsupportedOperationException();
-    }
-
-    double getDouble(int rowId) {
-      throw new UnsupportedOperationException();
-    }
-
-    Decimal getDecimal(int rowId, int precision, int scale) {
-      throw new UnsupportedOperationException();
-    }
-
-    UTF8String getUTF8String(int rowId) {
-      throw new UnsupportedOperationException();
-    }
-
-    byte[] getBinary(int rowId) {
-      throw new UnsupportedOperationException();
-    }
-
-    ColumnarArray getArray(int rowId) {
-      throw new UnsupportedOperationException();
-    }
-
-    ColumnarMap getMap(int rowId) {
-      throw new UnsupportedOperationException();
-    }
-  }
-
-  private static class BooleanAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final BitVector accessor;
+  private static class BooleanAccessor extends ArrowSchemaConverter {
 
     BooleanAccessor(BitVector vector) {
       super(vector);
-      this.accessor = vector;
     }
 
     @Override
-    final boolean getBoolean(int rowId) {
-      return accessor.get(rowId) == 1;
+    public final boolean getBoolean(int rowId) {
+      return ((BitVector)vector).get(rowId) == 1;
     }
   }
 
-  private static class LongAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final BigIntVector accessor;
+  private static class LongAccessor extends ArrowSchemaConverter {
 
     LongAccessor(BigIntVector vector) {
       super(vector);
-      this.accessor = vector;
     }
 
     @Override
-    byte getByte(int rowId) {
+    public final byte getByte(int rowId) {
       return (byte)getLong(rowId);
     }
 
     @Override
-    short getShort(int rowId) {
+    public final short getShort(int rowId) {
       return (short)getLong(rowId);
     }
 
     @Override
-    int getInt(int rowId) {
+    public final int getInt(int rowId) {
       return (int)getLong(rowId);
     }
 
     @Override
-    final long getLong(int rowId) {
-      return accessor.get(rowId);
+    public final long getLong(int rowId) {
+      return ((BigIntVector)vector).get(rowId);
     }
   }
 
-  private static class DoubleAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final Float8Vector accessor;
+  private static class DoubleAccessor extends ArrowSchemaConverter {
 
     DoubleAccessor(Float8Vector vector) {
       super(vector);
-      this.accessor = vector;
     }
 
     @Override
-    final double getDouble(int rowId) {
-      return accessor.get(rowId);
+    public final double getDouble(int rowId) {
+      return ((Float8Vector)vector).get(rowId);
     }
   }
 
-  private static class DecimalAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final DecimalVector accessor;
+  private static class DecimalAccessor extends ArrowSchemaConverter {
 
     DecimalAccessor(DecimalVector vector) {
       super(vector);
-      this.accessor = vector;
     }
 
     // Implemented this method for tpc-ds queries that cast from Decimal to Byte
     @Override
-    byte getByte(int rowId) {
-      return accessor.getObject(rowId).byteValueExact();
+    public byte getByte(int rowId) {
+      return ((DecimalVector)vector).getObject(rowId).byteValueExact();
     }
 
     @Override
-    final Decimal getDecimal(int rowId, int precision, int scale) {
+    public final Decimal getDecimal(int rowId, int precision, int scale) {
       if (isNullAt(rowId)) return null;
-      return Decimal.apply(accessor.getObject(rowId), precision, scale);
+      return Decimal.apply(((DecimalVector)vector).getObject(rowId), precision, scale);
     }
   }
 
-  private static class Decimal256Accessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final Decimal256Vector accessor;
+  private static class Decimal256Accessor extends ArrowSchemaConverter {
 
     Decimal256Accessor(Decimal256Vector vector) {
       super(vector);
-      this.accessor = vector;
     }
 
-    UTF8String getUTF8String(int rowId){
+    public UTF8String getUTF8String(int rowId){
       if (isNullAt(rowId)) {
         return null;
       }
 
-      BigDecimal bigDecimal = accessor.getObject(rowId);
+      BigDecimal bigDecimal = ((Decimal256Vector)vector).getObject(rowId);
       return UTF8String.fromString(bigDecimal.toPlainString());
     }
 
     // Implemented this method for reading BigNumeric values
     @Override
-    final Decimal getDecimal(int rowId, int precision, int scale) {
+    public final Decimal getDecimal(int rowId, int precision, int scale) {
       if (isNullAt(rowId)) return null;
-      return Decimal.apply(accessor.getObject(rowId), precision, scale);
+      return Decimal.apply(((Decimal256Vector)vector).getObject(rowId), precision, scale);
     }
   }
 
-  private static class StringAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final VarCharVector accessor;
-
+  private static class StringAccessor extends ArrowSchemaConverter {
     StringAccessor(VarCharVector vector) {
       super(vector);
-      this.accessor = vector;
     }
 
     @Override
-    final UTF8String getUTF8String(int rowId) {
-      if (this.accessor.isSet(rowId) == 0) {
+    public boolean isNullAt(int rowId) {
+      return ((VarCharVector)vector).isSet(rowId) == 0;
+    }
+
+    @Override
+    public final UTF8String getUTF8String(int rowId) {
+      if (((VarCharVector)vector).isSet(rowId) == 0) {
         return null;
       } else {
-        ArrowBuf offsets = accessor.getOffsetBuffer();
+        ArrowBuf offsets = ((VarCharVector)vector).getOffsetBuffer();
         int index = rowId * VarCharVector.OFFSET_WIDTH;
         int start = offsets.getInt(index);
         int end = offsets.getInt(index + VarCharVector.OFFSET_WIDTH);
@@ -458,81 +332,70 @@ public class ArrowSchemaConverter extends ColumnVector {
          * for performance reasons.
          */
         return UTF8String.fromAddress(/* base = */null,
-            accessor.getDataBuffer().memoryAddress() + start,
+                ((VarCharVector)vector).getDataBuffer().memoryAddress() + start,
             end - start);
       }
     }
   }
 
-  private static class BinaryAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final VarBinaryVector accessor;
-
+  private static class BinaryAccessor extends ArrowSchemaConverter {
     BinaryAccessor(VarBinaryVector vector) {
       super(vector);
-      this.accessor = vector;
     }
 
     @Override
-    final byte[] getBinary(int rowId) {
-      return accessor.getObject(rowId);
+    public final byte[] getBinary(int rowId) {
+      return ((VarBinaryVector)vector).getObject(rowId);
     }
   }
 
-  private static class DateAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final DateDayVector accessor;
+  private static class DateAccessor extends ArrowSchemaConverter { ;
 
     DateAccessor(DateDayVector vector) {
       super(vector);
-      this.accessor = vector;
     }
 
     /**
      * Interpreting Data here as int to keep it consistent with Avro.
      */
     @Override
-    final int getInt(int rowId) {
-      return accessor.get(rowId);
+    public final int getInt(int rowId) {
+      return ((DateDayVector)vector).get(rowId);
     }
   }
 
-  private static class TimeMicroVectorAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final TimeMicroVector accessor;
-
+  private static class TimeMicroVectorAccessor extends ArrowSchemaConverter {
     TimeMicroVectorAccessor(TimeMicroVector vector) {
       super(vector);
-      this.accessor = vector;
     }
 
     @Override
-    final long getLong(int rowId) {
-      return accessor.get(rowId);
+    public final long getLong(int rowId) {
+      return ((TimeMicroVector)vector).get(rowId);
     }
   }
 
 
-  private static class TimestampMicroVectorAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final TimeStampMicroVector accessor;
+  private static class TimestampMicroVectorAccessor extends ArrowSchemaConverter {
     private static final int ONE_THOUSAND = 1_000;
     private static final int ONE_MILLION = 1_000_000;
     private static final int ONE_BILLION = 1_000_000_000;
 
     TimestampMicroVectorAccessor(TimeStampMicroVector vector) {
       super(vector);
-      this.accessor = vector;
     }
 
     @Override
-    final long getLong(int rowId) {
-      return accessor.get(rowId);
+    public final long getLong(int rowId) {
+      return ((TimeStampMicroVector)vector).get(rowId);
     }
 
     @Override
-    final UTF8String getUTF8String(int rowId) {
-      long epoch = accessor.get(rowId);
+    public final UTF8String getUTF8String(int rowId) {
+      if (isNullAt(rowId)) {
+         return null;
+      }
+      long epoch = getLong(rowId);
       long seconds = epoch / ONE_MILLION;
       int nanoOfSeconds = (int)(epoch % ONE_MILLION) * ONE_THOUSAND;
 
@@ -552,29 +415,23 @@ public class ArrowSchemaConverter extends ColumnVector {
     }
   }
 
-  private static class TimestampMicroTZVectorAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
-
-    private final TimeStampMicroTZVector accessor;
-
+  private static class TimestampMicroTZVectorAccessor extends ArrowSchemaConverter {
     TimestampMicroTZVectorAccessor(TimeStampMicroTZVector vector) {
       super(vector);
-      this.accessor = vector;
     }
 
     @Override
-    final long getLong(int rowId) {
-      return accessor.get(rowId);
+    public final long getLong(int rowId) {
+      return ((TimeStampMicroTZVector)vector).get(rowId);
     }
   }
 
-  private static class ArrayAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
+  private static class ArrayAccessor extends ArrowSchemaConverter {
 
-    private final ListVector accessor;
     private final ArrowSchemaConverter arrayData;
 
     ArrayAccessor(ListVector vector, StructField userProvidedField) {
       super(vector);
-      this.accessor = vector;
       StructField structField = null;
 
       // this is to support Array of StructType/StructVector
@@ -589,8 +446,9 @@ public class ArrowSchemaConverter extends ColumnVector {
                 Metadata.empty());// safe to pass empty metadata as it is not used anywhere
       }
 
-      this.arrayData = new ArrowSchemaConverter(vector.getDataVector(), structField);
+      this.arrayData = newArrowSchemaConverter(vector.getDataVector(), structField);
     }
+
 
     static ArrayType convertMapTypeToArrayType(MapType mapType) {
       StructField key = StructField.apply("key", mapType.keyType(), false, Metadata.empty());
@@ -600,8 +458,11 @@ public class ArrowSchemaConverter extends ColumnVector {
     }
 
     @Override
-    final boolean isNullAt(int rowId) {
-      if (accessor.getValueCount() > 0 && accessor.getValidityBuffer().capacity() == 0) {
+    public final boolean isNullAt(int rowId) {
+      // optimization for if validity buffer is not set, it means all value are
+      // not null (Java should be still populating this vector, so this check
+      // might not be necessary).
+      if (vector.getValueCount() > 0 && vector.getValidityBuffer().capacity() == 0) {
         return false;
       } else {
         return super.isNullAt(rowId);
@@ -609,8 +470,8 @@ public class ArrowSchemaConverter extends ColumnVector {
     }
 
     @Override
-    final ColumnarArray getArray(int rowId) {
-      ArrowBuf offsets = accessor.getOffsetBuffer();
+    public final ColumnarArray getArray(int rowId) {
+      ArrowBuf offsets = ((ListVector)vector).getOffsetBuffer();
       int index = rowId * ListVector.OFFSET_WIDTH;
       int start = offsets.getInt(index);
       int end = offsets.getInt(index + ListVector.OFFSET_WIDTH);
@@ -618,29 +479,65 @@ public class ArrowSchemaConverter extends ColumnVector {
     }
 
     @Override
-    ColumnarMap getMap(int rowId) {
-      ArrowBuf offsets = accessor.getOffsetBuffer();
+    public ColumnarMap getMap(int rowId) {
+      ArrowBuf offsets = ((ListVector)vector).getOffsetBuffer();
       int index = rowId * ListVector.OFFSET_WIDTH;
       int start = offsets.getInt(index);
       int end = offsets.getInt(index + ListVector.OFFSET_WIDTH);
-      ColumnVector keys = arrayData.childColumns[0];
-      ColumnVector values = arrayData.childColumns[1];
+      ColumnVector keys = ((StructAccessor)arrayData).childColumns[0];
+      ColumnVector values = ((StructAccessor)arrayData).childColumns[1];
       return new ColumnarMap(keys, values, start, end - start);
     }
   }
   
   /**
    * Any call to "get" method will throw UnsupportedOperationException.
-   *
-   * Access struct values in a ArrowColumnVector doesn't use this accessor. Instead, it uses
-   * getStruct() method defined in the parent class. Any call to "get" method in this class is a
-   * bug in the code.
-   *
    */
-  private static class StructAccessor extends ArrowSchemaConverter.ArrowVectorAccessor {
+  private static class StructAccessor extends ArrowSchemaConverter {
+    ArrowSchemaConverter childColumns[];
+    StructAccessor(StructVector structVector, StructField userProvidedField) {
+      super(structVector);
+      if(userProvidedField !=null)
 
-    StructAccessor(StructVector vector) {
-      super(vector);
+    {
+      List<StructField> structList =
+              Arrays
+                      .stream(((StructType) userProvidedField.dataType()).fields())
+                      .collect(Collectors.toList());
+
+      childColumns = new ArrowSchemaConverter[structList.size()];
+
+      Map<String, ValueVector> valueVectorMap =
+              structVector
+                      .getChildrenFromFields()
+                      .stream()
+                      .collect(Collectors.toMap(ValueVector::getName, valueVector -> valueVector));
+
+      for (int i = 0; i < childColumns.length; ++i) {
+        StructField structField = structList.get(i);
+        childColumns[i] =
+                newArrowSchemaConverter(valueVectorMap.get(structField.name()), structField);
+      }
+
+    } else
+
+    {
+      childColumns = new ArrowSchemaConverter[structVector.size()];
+      for (int i = 0; i < childColumns.length; ++i) {
+        childColumns[i] = newArrowSchemaConverter(structVector.getVectorById(i), /*userProvidedField=*/null);
+      }
+    }
+  }
+
+    @Override
+    public void close() {
+      if (childColumns != null) {
+        for (ColumnVector v : childColumns) {
+          v.close();
+        }
+        childColumns = null;
+      }
+      vector.close();
     }
   }
 }

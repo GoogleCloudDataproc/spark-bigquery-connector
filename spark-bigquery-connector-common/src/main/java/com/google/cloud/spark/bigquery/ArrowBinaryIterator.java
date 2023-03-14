@@ -103,7 +103,8 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
             .map(name -> root.getVector(name))
             .map(
                 vector ->
-                    new ArrowSchemaConverter(vector, userProvidedFieldMap.get(vector.getName())))
+                    ArrowSchemaConverter.newArrowSchemaConverter(
+                        vector, userProvidedFieldMap.get(vector.getName())))
             .collect(Collectors.toList())
             .toArray(new ColumnVector[0]);
 
