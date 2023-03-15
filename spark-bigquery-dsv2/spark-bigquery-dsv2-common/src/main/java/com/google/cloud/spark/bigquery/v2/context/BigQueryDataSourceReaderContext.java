@@ -273,7 +273,8 @@ public class BigQueryDataSourceReaderContext {
           selectedFields,
           readSessionResponse.getReadSession().getAvroSchema().getSchema(),
           userProvidedSchema,
-          Optional.empty() /* bigQueryStorageReadRowTracer */);
+          /* bigQueryStorageReadRowTracer */ Optional.empty(),
+          SchemaConvertersConfiguration.from(options));
     }
     throw new IllegalArgumentException(
         "No known converted for " + readSessionCreatorConfig.getReadDataFormat());

@@ -59,6 +59,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
 
   private final BigQueryTable tableToWrite;
   private final String tablePathForBigQueryStorage;
+  private final SchemaConvertersConfiguration schemaConvertersConfiguration;
 
   private BigQueryWriteClient writeClient;
   private Optional<TableInfo> tableInfo = Optional.absent();
@@ -81,7 +82,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       RetrySettings bigqueryDataWriterHelperRetrySettings,
       Optional<String> traceId,
       boolean enableModeCheckForSchemaFields,
-      ImmutableMap<String, String> tableLabels)
+      ImmutableMap<String, String> tableLabels,
+      SchemaConvertersConfiguration schemaConvertersConfiguration)
       throws IllegalArgumentException {
     this.bigQueryClient = bigQueryClient;
     this.writeClientFactory = bigQueryWriteClientFactory;
@@ -92,9 +94,9 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     this.traceId = traceId;
     this.enableModeCheckForSchemaFields = enableModeCheckForSchemaFields;
     this.tableLabels = tableLabels;
+    this.schemaConvertersConfiguration = schemaConvertersConfiguration;
     Schema bigQuerySchema =
-        SchemaConverters.from(SchemaConvertersConfiguration.from(null))
-            .toBigQuerySchema(sparkSchema);
+        SchemaConverters.from(this.schemaConvertersConfiguration).toBigQuerySchema(sparkSchema);
     try {
       this.protoSchema = toProtoSchema(sparkSchema);
     } catch (IllegalArgumentException e) {

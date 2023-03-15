@@ -22,26 +22,30 @@ import com.google.cloud.bigquery.{Field, Schema}
 import org.apache.spark.sql.types._
 import org.scalatest.funsuite.AnyFunSuite
 
+import java.time.ZoneId
+
 class SchemaConvertersSuite extends AnyFunSuite {
+  
+  val schemaConverters = SchemaConverters.from(SchemaConvertersConfiguration.of(ZoneId.of("UTC")))
 
   test("empty schema conversion") {
     val bqSchema = Schema.of()
     val expected = StructType(Seq())
-    val result = SchemaConverters.toSpark(bqSchema)
+    val result = schemaConverters.toSpark(bqSchema)
     assert(expected == result)
   }
 
   test("single field schema conversion") {
     val bqSchema = Schema.of(Field.of("foo", STRING))
     val expected = StructType(Seq(StructField("foo", StringType)))
-    val result = SchemaConverters.toSpark(bqSchema)
+    val result = schemaConverters.toSpark(bqSchema)
     assert(expected == result)
   }
 
   test("single field schema conversion for json") {
     val bqSchema = Schema.of(Field.of("foo", JSON))
     val expected = StructType(Seq(StructField("foo", StringType, true, Metadata.fromJson("{\"sqlType\":\"JSON\"}"))))
-    val result = SchemaConverters.toSpark(bqSchema)
+    val result = schemaConverters.toSpark(bqSchema)
     assert(expected == result)
   }
 
@@ -72,7 +76,7 @@ class SchemaConvertersSuite extends AnyFunSuite {
         StructField("timestamp", TimestampType),
         StructField("datetime", StringType))))))
 
-    val result = SchemaConverters.toSpark(bqSchema)
+    val result = schemaConverters.toSpark(bqSchema)
     assert(expected == result)
   }
 
@@ -89,7 +93,7 @@ class SchemaConvertersSuite extends AnyFunSuite {
           .putString("comment", "foo")
           .build)
     ))
-    val result = SchemaConverters.toSpark(bqSchema)
+    val result = schemaConverters.toSpark(bqSchema)
     assert(expected == result)
   }
 }

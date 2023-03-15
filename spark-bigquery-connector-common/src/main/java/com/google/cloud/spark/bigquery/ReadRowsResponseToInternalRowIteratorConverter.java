@@ -31,17 +31,19 @@ import org.apache.spark.sql.types.StructType;
 public interface ReadRowsResponseToInternalRowIteratorConverter {
 
   static ReadRowsResponseToInternalRowIteratorConverter avro(
-      final com.google.cloud.bigquery.Schema bqSchema,
+      final Schema bqSchema,
       final List<String> columnsInOrder,
       final String rawAvroSchema,
       final Optional<StructType> userProvidedSchema,
-      final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
+      final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer,
+      final SchemaConvertersConfiguration schemaConvertersConfiguration) {
     return new Avro(
         bqSchema,
         columnsInOrder,
         rawAvroSchema,
         fromJavaUtil(userProvidedSchema),
-        fromJavaUtil(bigQueryStorageReadRowsTracer));
+        fromJavaUtil(bigQueryStorageReadRowsTracer),
+        schemaConvertersConfiguration);
   }
 
   static ReadRowsResponseToInternalRowIteratorConverter arrow(
@@ -68,6 +70,7 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
     private final com.google.common.base.Optional<StructType> userProvidedSchema;
     private final com.google.common.base.Optional<BigQueryStorageReadRowsTracer>
         bigQueryStorageReadRowsTracer;
+    private final SchemaConvertersConfiguration schemaConvertersConfiguration;
 
     public Avro(
         Schema bqSchema,
@@ -75,12 +78,14 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
         String rawAvroSchema,
         com.google.common.base.Optional<StructType> userProvidedSchema,
         com.google.common.base.Optional<BigQueryStorageReadRowsTracer>
-            bigQueryStorageReadRowsTracer) {
+            bigQueryStorageReadRowsTracer,
+        SchemaConvertersConfiguration schemaConvertersConfiguration) {
       this.bqSchema = bqSchema;
       this.columnsInOrder = columnsInOrder;
       this.rawAvroSchema = rawAvroSchema;
       this.userProvidedSchema = userProvidedSchema;
       this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
+      this.schemaConvertersConfiguration = schemaConvertersConfiguration;
     }
 
     @Override
@@ -91,7 +96,8 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
           new org.apache.avro.Schema.Parser().parse(rawAvroSchema),
           response.getAvroRows().getSerializedBinaryRows(),
           userProvidedSchema.toJavaUtil(),
-          bigQueryStorageReadRowsTracer.toJavaUtil());
+          bigQueryStorageReadRowsTracer.toJavaUtil(),
+          schemaConvertersConfiguration);
     }
 
     @Override

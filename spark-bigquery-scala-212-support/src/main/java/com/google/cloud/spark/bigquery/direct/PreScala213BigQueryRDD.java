@@ -119,7 +119,8 @@ class PreScala213BigQueryRDD extends RDD<InternalRow> {
               Arrays.asList(columnsInOrder),
               readSession.getAvroSchema().getSchema(),
               Optional.of(schema),
-              Optional.of(tracer));
+              Optional.of(tracer),
+              SchemaConvertersConfiguration.from(options));
     } else {
       converter =
           ReadRowsResponseToInternalRowIteratorConverter.arrow(
