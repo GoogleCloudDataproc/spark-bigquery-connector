@@ -42,22 +42,21 @@ import org.apache.arrow.vector.types.pojo.Field;
  * ArrowSchemaConverter class for accessing values and converting
  * arrow data types to the types supported by big query.
  */
-public abstract class ArrowSchemaConverter<T extends ValueVector> extends ColumnVector {
-  protected final T vector;
-
+public abstract class ArrowSchemaConverter extends ColumnVector {
+  public abstract ValueVector vector();
   @Override
   public boolean hasNull() {
-    return vector.getNullCount() > 0;
+    return vector().getNullCount() > 0;
   }
 
   @Override
   public int numNulls() {
-    return vector.getNullCount();
+    return vector().getNullCount();
   }
 
   @Override
   public void close() {
-    vector.close();
+    vector().close();
   }
 
   @Override
@@ -170,9 +169,8 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
     return fromArrowType(field.getType());
   }
 
-  ArrowSchemaConverter(T vector) {
+  ArrowSchemaConverter(ValueVector vector) {
     super(fromArrowField(vector.getField()));
-    this.vector = vector;
   }
 
   public static ArrowSchemaConverter newArrowSchemaConverter(ValueVector vector, StructField userProvidedField) {
@@ -209,10 +207,12 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
     }
   }
 
-  private static class BooleanAccessor extends ArrowSchemaConverter<BitVector> {
+  private static class BooleanAccessor extends ArrowSchemaConverter {
+    private final BitVector vector;
 
     BooleanAccessor(BitVector vector) {
       super(vector);
+      this.vector = vector;
     }
 
     @Override
@@ -224,12 +224,19 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
     public final boolean getBoolean(int rowId) {
       return vector.get(rowId) == 1;
     }
+
+    @Override
+    public final ValueVector vector() {
+      return vector;
+    }
   }
 
-  private static class LongAccessor extends ArrowSchemaConverter<BigIntVector> {
+  private static class LongAccessor extends ArrowSchemaConverter {
+    private final BigIntVector vector;
 
     LongAccessor(BigIntVector vector) {
       super(vector);
+      this.vector = vector;
     }
 
     @Override
@@ -256,12 +263,20 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
     public final long getLong(int rowId) {
       return vector.get(rowId);
     }
+
+    @Override
+    public final ValueVector vector() {
+      return vector;
+    }
+
   }
 
-  private static class DoubleAccessor extends ArrowSchemaConverter<Float8Vector> {
+  private static class DoubleAccessor extends ArrowSchemaConverter {
+    private final Float8Vector vector;
 
     DoubleAccessor(Float8Vector vector) {
       super(vector);
+      this.vector = vector;
     }
 
     @Override
@@ -273,12 +288,20 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
     public final double getDouble(int rowId) {
       return vector.get(rowId);
     }
+
+    @Override
+    public final ValueVector vector() {
+      return vector;
+    }
+
   }
 
-  private static class DecimalAccessor extends ArrowSchemaConverter<DecimalVector> {
+  private static class DecimalAccessor extends ArrowSchemaConverter {
+    private final DecimalVector vector;
 
     DecimalAccessor(DecimalVector vector) {
       super(vector);
+      this.vector = vector;
     }
 
     // Implemented this method for tpc-ds queries that cast from Decimal to Byte
@@ -297,12 +320,20 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
       if (isNullAt(rowId)) return null;
       return Decimal.apply(((DecimalVector)vector).getObject(rowId), precision, scale);
     }
+
+    @Override
+    public final ValueVector vector() {
+      return vector;
+    }
+
   }
 
-  private static class Decimal256Accessor extends ArrowSchemaConverter<Decimal256Vector> {
+  private static class Decimal256Accessor extends ArrowSchemaConverter {
+    private final Decimal256Vector vector;
 
     Decimal256Accessor(Decimal256Vector vector) {
       super(vector);
+      this.vector = vector;
     }
 
     @Override
@@ -326,11 +357,18 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
       if (isNullAt(rowId)) return null;
       return Decimal.apply(((Decimal256Vector)vector).getObject(rowId), precision, scale);
     }
+
+    @Override
+    public final ValueVector vector() {
+      return vector;
+    }
   }
 
-  private static class StringAccessor extends ArrowSchemaConverter<VarCharVector> {
+  private static class StringAccessor extends ArrowSchemaConverter {
+    private final VarCharVector vector;
     StringAccessor(VarCharVector vector) {
       super(vector);
+      this.vector = vector;
     }
 
     @Override
@@ -357,11 +395,18 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
             end - start);
       }
     }
+
+    @Override
+    public final ValueVector vector() {
+      return vector;
+    }
   }
 
-  private static class BinaryAccessor extends ArrowSchemaConverter<VarBinaryVector> {
+  private static class BinaryAccessor extends ArrowSchemaConverter {
+    private final VarBinaryVector vector;
     BinaryAccessor(VarBinaryVector vector) {
       super(vector);
+      this.vector = vector;
     }
 
     @Override
@@ -373,12 +418,20 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
     public final byte[] getBinary(int rowId) {
       return vector.getObject(rowId);
     }
+
+    @Override
+    public final ValueVector vector() {
+      return vector;
+    }
+
   }
 
-  private static class DateAccessor extends ArrowSchemaConverter<DateDayVector> { ;
+  private static class DateAccessor extends ArrowSchemaConverter { ;
+    private final DateDayVector vector;
 
     DateAccessor(DateDayVector vector) {
       super(vector);
+      this.vector = vector;
     }
 
     @Override
@@ -393,11 +446,20 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
     public final int getInt(int rowId) {
       return ((DateDayVector)vector).get(rowId);
     }
+
+    @Override
+    public final ValueVector vector() {
+      return vector;
+    }
+
   }
 
-  private static class TimeMicroVectorAccessor extends ArrowSchemaConverter<TimeMicroVector> {
+  private static class TimeMicroVectorAccessor extends ArrowSchemaConverter {
+    private final TimeMicroVector vector;
+
     TimeMicroVectorAccessor(TimeMicroVector vector) {
       super(vector);
+      this.vector = vector;
     }
 
     @Override
@@ -409,16 +471,25 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
     public final long getLong(int rowId) {
       return vector.get(rowId);
     }
+
+    @Override
+    public final ValueVector vector() {
+      return vector;
+    }
+
   }
 
 
-  private static class TimestampMicroVectorAccessor extends ArrowSchemaConverter<TimeStampMicroVector> {
+  private static class TimestampMicroVectorAccessor extends ArrowSchemaConverter {
     private static final int ONE_THOUSAND = 1_000;
     private static final int ONE_MILLION = 1_000_000;
     private static final int ONE_BILLION = 1_000_000_000;
 
+    private final TimeStampMicroVector vector;
+
     TimestampMicroVectorAccessor(TimeStampMicroVector vector) {
       super(vector);
+      this.vector = vector;
     }
 
     @Override
@@ -455,11 +526,20 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
       LocalDateTime dateTime = LocalDateTime.ofEpochSecond(seconds, nanoOfSeconds, ZoneOffset.UTC);
       return UTF8String.fromString(dateTime.toString());
     }
+
+    @Override
+    public final ValueVector vector() {
+      return vector;
+    }
+
   }
 
-  private static class TimestampMicroTZVectorAccessor extends ArrowSchemaConverter<TimeStampMicroTZVector> {
+  private static class TimestampMicroTZVectorAccessor extends ArrowSchemaConverter {
+    private final TimeStampMicroTZVector vector;
+
     TimestampMicroTZVectorAccessor(TimeStampMicroTZVector vector) {
       super(vector);
+      this.vector = vector;
     }
 
     @Override
@@ -472,14 +552,21 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
     public final long getLong(int rowId) {
       return vector.get(rowId);
     }
+
+    @Override
+    public final ValueVector vector() {
+      return vector;
+    }
   }
 
-  private static class ArrayAccessor extends ArrowSchemaConverter<ListVector> {
+  private static class ArrayAccessor extends ArrowSchemaConverter {
+    private final ListVector vector;
 
-    private final ArrowSchemaConverter<?> arrayData;
+    private final ArrowSchemaConverter arrayData;
 
     ArrayAccessor(ListVector vector, StructField userProvidedField) {
       super(vector);
+      this.vector = vector;
       StructField structField = null;
 
       // this is to support Array of StructType/StructVector
@@ -530,15 +617,24 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
       ColumnVector values = ((StructAccessor)arrayData).childColumns[1];
       return new ColumnarMap(keys, values, start, end - start);
     }
+
+    @Override
+    public final ValueVector vector() {
+      return vector;
+    }
+
   }
 
   /**
    * Any call to "get" method will throw UnsupportedOperationException.
    */
-  private static class StructAccessor extends ArrowSchemaConverter<StructVector> {
-    ArrowSchemaConverter<?> childColumns[];
+  private static class StructAccessor extends ArrowSchemaConverter {
+    private final StructVector vector;
+    private ArrowSchemaConverter childColumns[];
+
     StructAccessor(StructVector structVector, StructField userProvidedField) {
       super(structVector);
+      this.vector = structVector;
       if(userProvidedField !=null) {
         List<StructField> structList =
               Arrays.stream(((StructType) userProvidedField.dataType()).fields())
@@ -584,6 +680,11 @@ public abstract class ArrowSchemaConverter<T extends ValueVector> extends Column
         childColumns = null;
       }
       vector.close();
+    }
+
+    @Override
+    public final ValueVector vector() {
+      return vector;
     }
   }
 }
