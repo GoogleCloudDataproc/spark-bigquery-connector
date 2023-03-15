@@ -2,6 +2,9 @@
 
 ## Next
 
+* **Braking change** PR #923: BigQuery DATETIME type is now converted to Spark's Timestamp type.
+  As DATETIME has no time zone unlike Timestamp, the time zone is configured by the `datetimeZoneId`
+  configuration option
 * Issue #522: Supporting Spark's Map type. Notice there are few restrictions as this is not a
   BigQuery native type.
 
