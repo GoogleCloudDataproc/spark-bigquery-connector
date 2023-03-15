@@ -259,7 +259,8 @@ public class ArrowColumnBatchPartitionReaderContext
               .map(root::getVector)
               .map(
                   vector ->
-                      new ArrowSchemaConverter(vector, userProvidedFieldMap.get(vector.getName())))
+                      ArrowSchemaConverter.newArrowSchemaConverter(
+                          vector, userProvidedFieldMap.get(vector.getName())))
               .toArray(ColumnVector[]::new);
 
       currentBatch = new ColumnarBatch(columns);
