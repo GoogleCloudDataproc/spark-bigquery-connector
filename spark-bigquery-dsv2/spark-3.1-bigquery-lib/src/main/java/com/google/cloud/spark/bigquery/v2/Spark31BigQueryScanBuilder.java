@@ -63,6 +63,9 @@ public class Spark31BigQueryScanBuilder
 
   @Override
   public Scan build() {
+    // start creating ReadSession asynchronously
+    // no further pushFilters / pruneColumns expected from this point
+    ctx.build();
     return this; // new BigQueryScan(ctx);
   }
 

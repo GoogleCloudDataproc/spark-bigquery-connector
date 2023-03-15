@@ -49,6 +49,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -443,5 +445,12 @@ public class BigQueryDataSourceReaderContext {
 
   public TableInfo getTableInfo() {
     return this.table;
+  }
+
+  public void build() {
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    // Supplier provided by Suppliers.memoize is thread-safe
+    executor.submit(() -> readSessionResponse.get());
+    executor.shutdown();
   }
 }
