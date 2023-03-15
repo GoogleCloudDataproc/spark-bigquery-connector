@@ -87,8 +87,9 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
   public InternalRow next() {
     try {
       numberOfRowsParsed++;
-      return SchemaConverters.convertToInternalRow(
-          bqSchema, columnsInOrder, (GenericRecord) reader.read(null, in), userProvidedSchema);
+      return SchemaConverters.from(SchemaConvertersConfiguration.from(null))
+          .convertToInternalRow(
+              bqSchema, columnsInOrder, (GenericRecord) reader.read(null, in), userProvidedSchema);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }

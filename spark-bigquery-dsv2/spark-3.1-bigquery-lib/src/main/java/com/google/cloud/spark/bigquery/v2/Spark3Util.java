@@ -20,6 +20,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.InjectorBuilder;
 import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.inject.Injector;
 import java.util.Map;
@@ -48,7 +49,8 @@ public class Spark3Util {
     StructType schema =
         sparkProvidedSchema != null
             ? sparkProvidedSchema
-            : SchemaConverters.toSpark(tableInfo.getDefinition().getSchema());
+            : SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+                .toSpark(tableInfo.getDefinition().getSchema());
     return bigQueryTableCreator.create(injector, tableInfo.getTableId(), schema);
   }
 }

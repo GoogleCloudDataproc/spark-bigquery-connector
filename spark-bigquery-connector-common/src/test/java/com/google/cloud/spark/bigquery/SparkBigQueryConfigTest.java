@@ -32,6 +32,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
@@ -120,6 +121,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getTraceId().isPresent()).isFalse();
     assertThat(config.getBigQueryJobLabels()).isEmpty();
     assertThat(config.getEnableModeCheckForSchemaFields()).isTrue();
+    assertThat(config.getDatetimeZoneId()).isEqualTo(ZoneId.of("UTC"));
   }
 
   @Test
@@ -163,6 +165,7 @@ public class SparkBigQueryConfigTest {
                 .put("traceApplicationName", "traceApplicationName")
                 .put("bigQueryJobLabel.foo", "bar")
                 .put("enableModeCheckForSchemaFields", "false")
+                .put("datetimeZoneId", "Asia/Jerusalem")
                 .build());
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -212,6 +215,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryJobLabels()).hasSize(1);
     assertThat(config.getBigQueryJobLabels()).containsEntry("foo", "bar");
     assertThat(config.getEnableModeCheckForSchemaFields()).isFalse();
+    assertThat(config.getDatetimeZoneId()).isEqualTo(ZoneId.of("Asia/Jerusalem"));
   }
 
   @Test

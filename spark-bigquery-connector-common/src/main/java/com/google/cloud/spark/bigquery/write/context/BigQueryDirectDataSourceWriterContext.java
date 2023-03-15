@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery.write.context;
 
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
-import static com.google.cloud.spark.bigquery.SchemaConverters.toBigQuerySchema;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.Job;
@@ -31,6 +30,8 @@ import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsRequest;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1.ProtoSchema;
+import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -91,7 +92,9 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     this.traceId = traceId;
     this.enableModeCheckForSchemaFields = enableModeCheckForSchemaFields;
     this.tableLabels = tableLabels;
-    Schema bigQuerySchema = toBigQuerySchema(sparkSchema);
+    Schema bigQuerySchema =
+        SchemaConverters.from(SchemaConvertersConfiguration.from(null))
+            .toBigQuerySchema(sparkSchema);
     try {
       this.protoSchema = toProtoSchema(sparkSchema);
     } catch (IllegalArgumentException e) {

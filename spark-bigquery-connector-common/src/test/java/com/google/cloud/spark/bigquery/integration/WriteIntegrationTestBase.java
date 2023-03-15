@@ -34,6 +34,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig.WriteMethod;
 import com.google.cloud.spark.bigquery.integration.model.Data;
@@ -44,6 +45,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.inject.ProvisionException;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -220,8 +222,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .option("dataset", testDataset.toString())
             .option("table", testTable)
             .load();
-    Schema initialSchema = SchemaConverters.toBigQuerySchema(df.schema());
-    Schema readSchema = SchemaConverters.toBigQuerySchema(readDF.schema());
+    SchemaConverters sc = SchemaConverters.from(SchemaConvertersConfiguration.of(ZoneId.of("UTC")));
+    Schema initialSchema = sc.toBigQuerySchema(df.schema());
+    Schema readSchema = sc.toBigQuerySchema(readDF.schema());
     assertEquals(initialSchema, readSchema);
   }
 

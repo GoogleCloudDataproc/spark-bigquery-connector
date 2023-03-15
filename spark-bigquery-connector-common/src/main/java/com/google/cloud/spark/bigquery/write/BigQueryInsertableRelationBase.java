@@ -19,6 +19,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import java.math.BigInteger;
 import java.util.Optional;
@@ -54,7 +55,8 @@ public abstract class BigQueryInsertableRelationBase extends BaseRelation
 
   @Override
   public StructType schema() {
-    return SchemaConverters.toSpark(table.get().getDefinition().getSchema());
+    return SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+        .toSpark(table.get().getDefinition().getSchema());
   }
 
   /** Does this table exist? */

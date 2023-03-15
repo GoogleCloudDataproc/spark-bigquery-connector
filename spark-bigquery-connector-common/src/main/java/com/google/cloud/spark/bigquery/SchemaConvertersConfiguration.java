@@ -16,42 +16,44 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.common.base.Objects;
-
 import java.time.ZoneId;
+import javax.annotation.Nonnull;
 
 public class SchemaConvertersConfiguration {
 
-    private final ZoneId datetimeZoneId;
+  private final ZoneId datetimeZoneId;
 
-    private SchemaConvertersConfiguration(ZoneId datetimeZoneId) {
-        this.datetimeZoneId = datetimeZoneId;
-    }
+  private SchemaConvertersConfiguration(ZoneId datetimeZoneId) {
+    this.datetimeZoneId = datetimeZoneId;
+  }
 
-    public static SchemaConvertersConfiguration from(SparkBigQueryConfig config) {
-        return new SchemaConvertersConfiguration(config.getDatetimeZoneId());
-    }
+  public static SchemaConvertersConfiguration from(SparkBigQueryConfig config) {
+    return SchemaConvertersConfiguration.of(config.getDatetimeZoneId());
+  }
 
-    public ZoneId getDatetimeZoneId() {
-        return datetimeZoneId;
-    }
+  public static SchemaConvertersConfiguration of(@Nonnull ZoneId datetimeZoneId) {
+    return new SchemaConvertersConfiguration(datetimeZoneId);
+  }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SchemaConvertersConfiguration that = (SchemaConvertersConfiguration) o;
-        return Objects.equal(datetimeZoneId, that.datetimeZoneId);
-    }
+  public ZoneId getDatetimeZoneId() {
+    return datetimeZoneId;
+  }
 
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(datetimeZoneId);
-    }
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    SchemaConvertersConfiguration that = (SchemaConvertersConfiguration) o;
+    return Objects.equal(datetimeZoneId, that.datetimeZoneId);
+  }
 
-    @Override
-    public String toString() {
-        return "SchemaConvertersConfiguration{" +
-                "datetimeZoneId=" + datetimeZoneId +
-                '}';
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(datetimeZoneId);
+  }
+
+  @Override
+  public String toString() {
+    return "SchemaConvertersConfiguration{" + "datetimeZoneId=" + datetimeZoneId + '}';
+  }
 }

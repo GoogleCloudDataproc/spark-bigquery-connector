@@ -19,6 +19,7 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.write.context.BigQueryDirectDataSourceWriterContext;
 import com.google.cloud.spark.bigquery.write.context.BigQueryIndirectDataSourceWriterContext;
@@ -68,7 +69,9 @@ public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertab
       if (numPartitions == 0) {
         // The DataFrame is empty, no streams will be generated. We need to create the table if it
         // does not exist.
-        Schema bigQuerySchema = SchemaConverters.toBigQuerySchema(data.schema());
+        Schema bigQuerySchema =
+            SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+                .toBigQuerySchema(data.schema());
         bigQueryClient.createTableIfNeeded(getTableId(), bigQuerySchema);
       } else {
         // Write the data into separate WriteStream (one oer partition, return the

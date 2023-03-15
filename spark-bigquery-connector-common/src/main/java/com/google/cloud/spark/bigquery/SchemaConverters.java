@@ -53,10 +53,20 @@ public class SchemaConverters {
   // The maximum nesting depth of a BigQuery RECORD:
   static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
 
+  private final SchemaConvertersConfiguration configuration;
+
+  private SchemaConverters(SchemaConvertersConfiguration configuration) {
+    this.configuration = configuration;
+  }
+
+  public static SchemaConverters from(SchemaConvertersConfiguration configuration) {
+    return new SchemaConverters(configuration);
+  }
+
   /** Convert a BigQuery schema to a Spark schema */
-  public static StructType toSpark(Schema schema) {
+  public StructType toSpark(Schema schema) {
     List<StructField> fieldList =
-        schema.getFields().stream().map(SchemaConverters::convert).collect(Collectors.toList());
+        schema.getFields().stream().map(this::convert).collect(Collectors.toList());
     StructType structType = new StructType(fieldList.toArray(new StructField[0]));
 
     return structType;
@@ -66,7 +76,7 @@ public class SchemaConverters {
    * Retrieves and returns BigQuery Schema from TableInfo. If the table support pseudo columns, they
    * are added to schema before schema is returned to the caller.
    */
-  public static Schema getSchemaWithPseudoColumns(TableInfo tableInfo) {
+  public Schema getSchemaWithPseudoColumns(TableInfo tableInfo) {
     TimePartitioning timePartitioning = null;
     TableDefinition tableDefinition = tableInfo.getDefinition();
     if (tableDefinition instanceof StandardTableDefinition) {
@@ -93,7 +103,7 @@ public class SchemaConverters {
     return schema;
   }
 
-  public static InternalRow convertToInternalRow(
+  public InternalRow convertToInternalRow(
       Schema schema,
       List<String> namesInOrder,
       GenericRecord record,
@@ -105,7 +115,7 @@ public class SchemaConverters {
     return convertAll(schema.getFields(), record, namesInOrder, userProvidedFieldList);
   }
 
-  static Object convert(Field field, Object value, StructField userProvidedField) {
+  Object convert(Field field, Object value, StructField userProvidedField) {
     if (value == null) {
       return null;
     }
@@ -135,7 +145,7 @@ public class SchemaConverters {
     return customDatum.orElse(datum);
   }
 
-  private static StructField getStructFieldForRepeatedMode(StructField field) {
+  private StructField getStructFieldForRepeatedMode(StructField field) {
     StructField nestedField = null;
 
     if (field != null) {
@@ -150,7 +160,7 @@ public class SchemaConverters {
     return nestedField;
   }
 
-  static Object convertByBigQueryType(Field bqField, Object value, StructField userProvidedField) {
+  Object convertByBigQueryType(Field bqField, Object value, StructField userProvidedField) {
     if (LegacySQLTypeName.INTEGER.equals(bqField.getType())
         || LegacySQLTypeName.FLOAT.equals(bqField.getType())
         || LegacySQLTypeName.BOOLEAN.equals(bqField.getType())
@@ -206,7 +216,7 @@ public class SchemaConverters {
     throw new IllegalStateException("Unexpected type: " + bqField.getType());
   }
 
-  private static byte[] getBytes(ByteBuffer buf) {
+  private byte[] getBytes(ByteBuffer buf) {
     byte[] bytes = new byte[buf.remaining()];
     buf.get(bytes);
 
@@ -214,7 +224,7 @@ public class SchemaConverters {
   }
 
   // Schema is not recursive so add helper for sequence of fields
-  static GenericInternalRow convertAll(
+  GenericInternalRow convertAll(
       FieldList fieldList,
       GenericRecord record,
       List<String> namesInOrder,
@@ -253,7 +263,7 @@ public class SchemaConverters {
    *
    * <p>Not guaranteed to be stable across all versions of Spark.
    */
-  private static StructField convert(Field field) {
+  private StructField convert(Field field) {
     DataType dataType = getDataType(field);
     boolean nullable = true;
 
@@ -278,7 +288,7 @@ public class SchemaConverters {
         .orElse(new StructField(field.getName(), dataType, nullable, metadata));
   }
 
-  static Optional<StructField> convertMap(Field field, Metadata metadata) {
+  Optional<StructField> convertMap(Field field, Metadata metadata) {
     if (field.getMode() != Field.Mode.REPEATED) {
       return Optional.empty();
     }
@@ -302,12 +312,12 @@ public class SchemaConverters {
     return Optional.of(new StructField(field.getName(), mapType, /* nullable */ false, metadata));
   }
 
-  private static DataType getDataType(Field field) {
+  private DataType getDataType(Field field) {
     return getCustomDataType(field).orElseGet(() -> getStandardDataType(field));
   }
 
   @VisibleForTesting
-  static Optional<DataType> getCustomDataType(Field field) {
+  Optional<DataType> getCustomDataType(Field field) {
     // metadata is kept in the description
     String description = field.getDescription();
     if (description != null) {
@@ -321,7 +331,7 @@ public class SchemaConverters {
     return Optional.empty();
   }
 
-  private static DataType getStandardDataType(Field field) {
+  private DataType getStandardDataType(Field field) {
     if (LegacySQLTypeName.INTEGER.equals(field.getType())) {
       return DataTypes.LongType;
     } else if (LegacySQLTypeName.FLOAT.equals(field.getType())) {
@@ -350,7 +360,7 @@ public class SchemaConverters {
       return DataTypes.StringType;
     } else if (LegacySQLTypeName.RECORD.equals(field.getType())) {
       List<StructField> structFields =
-          field.getSubFields().stream().map(SchemaConverters::convert).collect(Collectors.toList());
+          field.getSubFields().stream().map(this::convert).collect(Collectors.toList());
       return new StructType(structFields.toArray(new StructField[0]));
     } else if (LegacySQLTypeName.GEOGRAPHY.equals(field.getType())) {
       return DataTypes.StringType;
@@ -362,7 +372,7 @@ public class SchemaConverters {
   }
 
   /** Spark ==> BigQuery Schema Converter utils: */
-  public static Schema toBigQuerySchema(StructType sparkSchema) {
+  public Schema toBigQuerySchema(StructType sparkSchema) {
     FieldList bigQueryFields = sparkToBigQueryFields(sparkSchema, 0);
     return Schema.of(bigQueryFields);
   }
@@ -370,7 +380,7 @@ public class SchemaConverters {
   /**
    * Returns a FieldList of all the Spark StructField objects, converted to BigQuery Field objects
    */
-  private static FieldList sparkToBigQueryFields(StructType sparkStruct, int depth) {
+  private FieldList sparkToBigQueryFields(StructType sparkStruct, int depth) {
     Preconditions.checkArgument(
         depth < MAX_BIGQUERY_NESTED_DEPTH, "Spark Schema exceeds BigQuery maximum nesting depth.");
     List<Field> bqFields = new ArrayList<>();
@@ -382,7 +392,7 @@ public class SchemaConverters {
 
   /** Converts a single StructField to a BigQuery Field (column). */
   @VisibleForTesting
-  protected static Field createBigQueryColumn(StructField sparkField, int depth) {
+  protected Field createBigQueryColumn(StructField sparkField, int depth) {
     DataType sparkType = sparkField.dataType();
     String fieldName = sparkField.name();
     Field.Mode fieldMode = (sparkField.nullable()) ? Field.Mode.NULLABLE : Field.Mode.REQUIRED;
@@ -438,7 +448,7 @@ public class SchemaConverters {
   }
 
   @VisibleForTesting
-  protected static LegacySQLTypeName toBigQueryType(DataType elementType, Metadata metadata) {
+  protected LegacySQLTypeName toBigQueryType(DataType elementType, Metadata metadata) {
     if (elementType instanceof BinaryType) {
       return LegacySQLTypeName.BYTES;
     }
@@ -482,7 +492,7 @@ public class SchemaConverters {
     throw new IllegalArgumentException("Data type not expected: " + elementType.simpleString());
   }
 
-  private static Field.Builder createBigQueryFieldBuilder(
+  private Field.Builder createBigQueryFieldBuilder(
       String name, LegacySQLTypeName type, Field.Mode mode, FieldList subFields) {
     return Field.newBuilder(name, type, subFields).setMode(mode);
   }

@@ -32,6 +32,7 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
@@ -129,8 +130,8 @@ public class BigQueryDataSourceReaderContext {
     this.readSessionCreator =
         new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
     this.globalFilter = globalFilter;
-    StructType convertedSchema =
-        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table));
+    SchemaConverters sc = SchemaConverters.from(SchemaConvertersConfiguration.from(options));
+    StructType convertedSchema = sc.toSpark(sc.getSchemaWithPseudoColumns(table));
     if (schema.isPresent()) {
       this.schema = schema;
       this.userProvidedSchema = schema;
@@ -158,8 +159,11 @@ public class BigQueryDataSourceReaderContext {
 
   public StructType readSchema() {
     // TODO: rely on Java code
-    return schema.orElse(
-        SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table)));
+    return schema.orElseGet(
+        () -> {
+          SchemaConverters sc = SchemaConverters.from(SchemaConvertersConfiguration.from(options));
+          return sc.toSpark(sc.getSchemaWithPseudoColumns(table));
+        });
   }
 
   public boolean enableBatchRead() {
@@ -205,7 +209,8 @@ public class BigQueryDataSourceReaderContext {
     if (tempSelectedFields.isEmpty()) {
       // means select *
       Schema tableSchema =
-          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.get().getReadTableInfo());
+          SchemaConverters.from(SchemaConvertersConfiguration.from(options))
+              .getSchemaWithPseudoColumns(readSessionResponse.get().getReadTableInfo());
       tempSelectedFields =
           tableSchema.getFields().stream()
               .map(Field::getName)
@@ -247,7 +252,8 @@ public class BigQueryDataSourceReaderContext {
     DataFormat format = readSessionCreatorConfig.getReadDataFormat();
     if (format == DataFormat.AVRO) {
       Schema schema =
-          SchemaConverters.getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
+          SchemaConverters.from(SchemaConvertersConfiguration.from(options))
+              .getSchemaWithPseudoColumns(readSessionResponse.getReadTableInfo());
       if (selectedFields.isEmpty()) {
         // means select *
         selectedFields =

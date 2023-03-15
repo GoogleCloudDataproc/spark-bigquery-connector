@@ -460,7 +460,8 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, "createReadSessionTimeoutInSeconds")
             .transform(Long::parseLong);
 
-    config.datetimeZoneId = getAnyOption(globalOptions, options, "datetimeZoneId")
+    config.datetimeZoneId =
+        getAnyOption(globalOptions, options, "datetimeZoneId")
             .transform(ZoneId::of)
             .or(DEFAULT_DATETIME_ZONE_ID);
 

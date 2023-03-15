@@ -25,6 +25,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
@@ -130,7 +131,10 @@ public class BigQueryWriteHelper {
     Schema schema =
         tableInfo
             .map(info -> info.getDefinition().getSchema())
-            .orElseGet(() -> SchemaConverters.toBigQuerySchema(data.schema()));
+            .orElseGet(
+                () ->
+                    SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+                        .toBigQuerySchema(data.schema()));
     bigQueryClient.loadDataIntoTable(
         config, optimizedSourceUris, formatOptions, writeDisposition, Optional.of(schema));
   }
