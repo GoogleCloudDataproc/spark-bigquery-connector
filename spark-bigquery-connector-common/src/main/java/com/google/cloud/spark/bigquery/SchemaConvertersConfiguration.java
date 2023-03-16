@@ -16,10 +16,11 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.common.base.Objects;
+import java.io.Serializable;
 import java.time.ZoneId;
 import javax.annotation.Nonnull;
 
-public class SchemaConvertersConfiguration {
+public class SchemaConvertersConfiguration implements Serializable {
 
   private final ZoneId datetimeZoneId;
 
