@@ -299,8 +299,7 @@ public class SparkBigQueryConfig
     config.filter = getOption(options, "filter");
     config.schema = fromJavaUtil(schema);
     config.maxParallelism =
-        getOptionFromMultipleParams(
-                options, ImmutableList.of("maxParallelism", "parallelism"), DEFAULT_FALLBACK)
+        getAnyOption(globalOptions, options, ImmutableList.of("maxParallelism", "parallelism"))
             .transform(Integer::valueOf)
             .orNull();
     config.preferredMinParallelism =
