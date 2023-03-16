@@ -424,7 +424,7 @@ public class ProtobufUtils {
     }
 
     if (sparkType instanceof BigNumericUDT) {
-      return sparkValue.toString();
+      return sparkValue;
     }
 
     if (sparkType instanceof BooleanType) {
