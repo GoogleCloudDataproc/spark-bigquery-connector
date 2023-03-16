@@ -82,8 +82,8 @@ public class AvroSchemaConverterTest {
                 null,
                 false,
                 ImmutableList.of(
-                    new Schema.Field("min", nullable(Schema.Type.STRING), null, (Object) null),
-                    new Schema.Field("max", nullable(Schema.Type.STRING), null, (Object) null)))));
+                    new Schema.Field("min", nullable(Schema.Type.BYTES), null, (Object) null),
+                    new Schema.Field("max", nullable(Schema.Type.BYTES), null, (Object) null)))));
 
     checkField(fields[12], "int_arr", nullable(Schema.createArray(nullable(Schema.Type.LONG))));
     checkField(

@@ -93,7 +93,7 @@ public class ProtobufUtilsTest {
                                 .addField(
                                     PROTO_STRING_FIELD.clone().setName("Numeric").setNumber(9))
                                 .addField(
-                                    PROTO_STRING_FIELD.clone().setName("BigNumeric").setNumber(10))
+                                    PROTO_BYTES_FIELD.clone().setName("BigNumeric").setNumber(10))
                                 .addField(
                                     PROTO_INTEGER_FIELD.clone().setName("TimeStamp").setNumber(11))
                                 .setName("Schema")
@@ -142,8 +142,7 @@ public class ProtobufUtilsTest {
                             new MathContext(BQ_NUMERIC_PRECISION)),
                         BQ_NUMERIC_PRECISION,
                         BQ_NUMERIC_SCALE),
-                    UTF8String.fromString(
-                        "-578960446186580977117854925043439539266.34992332820282019728792003956564819968")
+                    new byte[] {11, 0x7F}
                   })
             });
 
@@ -254,7 +253,7 @@ public class ProtobufUtilsTest {
       Field.newBuilder("Numeric", LegacySQLTypeName.NUMERIC).setMode(Field.Mode.REQUIRED).build();
   public final Field BIGQUERY_BIGNUMERIC_FIELD =
       Field.newBuilder("BigNumeric", LegacySQLTypeName.BIGNUMERIC)
-          .setMode(Field.Mode.REQUIRED)
+          .setMode(Field.Mode.NULLABLE)
           .build();
 
   public final Schema BIG_BIGQUERY_SCHEMA =
@@ -391,9 +390,7 @@ public class ProtobufUtilsTest {
                   .setField(
                       BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(10),
                       "-99999999999999999999999999999.999999999")
-                  .setField(
-                      BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(11),
-                      "-578960446186580977117854925043439539266.34992332820282019728792003956564819968")
+                  .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(11), new byte[] {11, 0x7F})
                   .build()
                   .toByteString())
           .build();

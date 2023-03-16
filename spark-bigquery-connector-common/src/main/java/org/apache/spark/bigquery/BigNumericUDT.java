@@ -1,36 +1,37 @@
 package org.apache.spark.bigquery;
 
+import com.google.cloud.bigquery.storage.v1.BigDecimalByteStringEncoder;
+import com.google.protobuf.ByteString;
 import java.math.BigDecimal;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.UserDefinedType;
-import org.apache.spark.unsafe.types.UTF8String;
 
 public class BigNumericUDT extends UserDefinedType<BigNumeric> {
 
   @Override
   public DataType sqlType() {
-    return DataTypes.StringType;
+    return DataTypes.BinaryType;
   }
 
   @Override
-  public UTF8String serialize(BigNumeric obj) {
-    String number = obj.getNumber().toPlainString();
-    return UTF8String.fromString(number);
+  public byte[] serialize(BigNumeric obj) {
+    return BigDecimalByteStringEncoder.encodeToBigNumericByteString(obj.getNumber()).toByteArray();
   }
 
   @Override
   public BigNumeric deserialize(Object datum) {
-    if (!(datum instanceof UTF8String)) {
+    if (!(datum instanceof byte[])) {
       throw new IllegalArgumentException(
-          "Failed to deserialize, was expecting an instance of UTF8String, "
+          "Failed to deserialize, was expecting an instance of byte[], "
               + "instead got an instance of "
               + datum.getClass());
     }
 
-    UTF8String utf8str = (UTF8String) datum;
-    BigNumeric bigNumeric = new BigNumeric(new BigDecimal(utf8str.toString()));
-    return bigNumeric;
+    byte[] byteArr = (byte[]) datum;
+    BigDecimal bigDecimal =
+        BigDecimalByteStringEncoder.decodeBigNumericByteString(ByteString.copyFrom(byteArr));
+    return new BigNumeric(bigDecimal);
   }
 
   @Override

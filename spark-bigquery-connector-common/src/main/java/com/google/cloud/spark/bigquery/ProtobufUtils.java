@@ -106,7 +106,7 @@ public class ProtobufUtils {
                   LegacySQLTypeName.NUMERIC, DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(
                   LegacySQLTypeName.BIGNUMERIC,
-                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
               .put(LegacySQLTypeName.STRING, DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(LegacySQLTypeName.JSON, DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(
@@ -145,7 +145,7 @@ public class ProtobufUtils {
                   NUMERIC_SPARK_TYPE.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(
                   BigQueryDataTypes.BigNumericType.json(),
-                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES)
               .put(
                   DataTypes.StringType.json(),
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)

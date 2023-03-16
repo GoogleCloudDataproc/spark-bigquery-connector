@@ -923,7 +923,7 @@ The BigNumeric data can be accessed via BigNumericUDT DataType which internally 
 to hold the BigNumeric data. The data can be read in either AVRO or ARROW formats.
 
 In order to write BigNumericUDT to BigQuery, use either ORC or PARQUET intermediate formats (currently we do not support
-AVRO). Notice that the data gets written to BigQuery as String.
+AVRO).
 
 Code examples:
 

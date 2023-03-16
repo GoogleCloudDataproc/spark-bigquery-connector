@@ -180,9 +180,7 @@ public class SchemaConverters {
     }
 
     if (LegacySQLTypeName.BIGNUMERIC.equals(bqField.getType())) {
-      byte[] bytes = getBytes((ByteBuffer) value);
-      BigDecimal bigDecimal = new BigDecimal(new BigInteger(bytes), BQ_BIG_NUMERIC_SCALE);
-      return UTF8String.fromString(bigDecimal.toString());
+      return getBytes((ByteBuffer) value);
     }
 
     if (LegacySQLTypeName.RECORD.equals(bqField.getType())) {
