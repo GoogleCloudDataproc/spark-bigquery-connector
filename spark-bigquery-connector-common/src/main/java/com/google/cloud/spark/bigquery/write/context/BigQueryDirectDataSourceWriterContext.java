@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery.write.context;
 
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
-import static com.google.cloud.spark.bigquery.SchemaConverters.toBigQuerySchema;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.Job;
@@ -31,6 +30,8 @@ import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsRequest;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1.ProtoSchema;
+import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -58,6 +59,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
 
   private final BigQueryTable tableToWrite;
   private final String tablePathForBigQueryStorage;
+  private final SchemaConvertersConfiguration schemaConvertersConfiguration;
 
   private BigQueryWriteClient writeClient;
   private Optional<TableInfo> tableInfo = Optional.absent();
@@ -80,7 +82,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       RetrySettings bigqueryDataWriterHelperRetrySettings,
       Optional<String> traceId,
       boolean enableModeCheckForSchemaFields,
-      ImmutableMap<String, String> tableLabels)
+      ImmutableMap<String, String> tableLabels,
+      SchemaConvertersConfiguration schemaConvertersConfiguration)
       throws IllegalArgumentException {
     this.bigQueryClient = bigQueryClient;
     this.writeClientFactory = bigQueryWriteClientFactory;
@@ -91,7 +94,9 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     this.traceId = traceId;
     this.enableModeCheckForSchemaFields = enableModeCheckForSchemaFields;
     this.tableLabels = tableLabels;
-    Schema bigQuerySchema = toBigQuerySchema(sparkSchema);
+    this.schemaConvertersConfiguration = schemaConvertersConfiguration;
+    Schema bigQuerySchema =
+        SchemaConverters.from(this.schemaConvertersConfiguration).toBigQuerySchema(sparkSchema);
     try {
       this.protoSchema = toProtoSchema(sparkSchema);
     } catch (IllegalArgumentException e) {

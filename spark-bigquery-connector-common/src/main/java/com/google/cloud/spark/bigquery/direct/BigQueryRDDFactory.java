@@ -31,6 +31,7 @@ import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -155,7 +156,8 @@ public class BigQueryRDDFactory {
     Set<String> requiredColumnSet = Stream.of(requiredColumns).collect(Collectors.toSet());
     Schema prunedSchema =
         Schema.of(
-            SchemaConverters.getSchemaWithPseudoColumns(actualTable).getFields().stream()
+            SchemaConverters.from(SchemaConvertersConfiguration.from(options))
+                .getSchemaWithPseudoColumns(actualTable).getFields().stream()
                 .filter(f -> requiredColumnSet.contains(f.getName()))
                 .collect(Collectors.toList()));
 

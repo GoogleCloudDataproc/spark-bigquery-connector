@@ -16,7 +16,7 @@
 package com.google.cloud.spark.bigquery
 
 import com.google.cloud.bigquery.Field.Mode
-import com.google.cloud.bigquery.LegacySQLTypeName.{BOOLEAN, BYTES, DATE, DATETIME, FLOAT, INTEGER, NUMERIC, RECORD, STRING, TIME, TIMESTAMP, JSON}
+import com.google.cloud.bigquery.LegacySQLTypeName.{BOOLEAN, BYTES, DATE, DATETIME, FLOAT, INTEGER, JSON, NUMERIC, RECORD, STRING, TIME, TIMESTAMP}
 import com.google.cloud.bigquery.{Field, Schema}
 import com.google.common.io.ByteStreams.toByteArray
 import com.google.protobuf.ByteString
@@ -27,8 +27,8 @@ import org.apache.spark.sql.types._
 import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
 
+import java.time.ZoneId
 import java.util.Optional
-
 import scala.collection.JavaConverters._
 
 /**
@@ -37,6 +37,9 @@ import scala.collection.JavaConverters._
  */
 @Ignore
 class SchemaIteratorSuite extends AnyFunSuite {
+
+  val schemaConvertersConfiguration = SchemaConvertersConfiguration.of(ZoneId.of("UTC"))
+  val schemaConverters = SchemaConverters.from(schemaConvertersConfiguration)
 
   test("compare arrow and avro results") {
     // rows in the form of bytes string in both arrow and avro format
@@ -73,7 +76,7 @@ class SchemaIteratorSuite extends AnyFunSuite {
       Field.newBuilder("int_struct_arr", RECORD,
         Field.of("i", INTEGER)).setMode(Mode.REPEATED).build())
 
-    val schemaFields = SchemaConverters.toSpark(bqSchema).fields
+    val schemaFields = schemaConverters.toSpark(bqSchema).fields
 
     var avroSparkRow: InternalRow = null
     var arrowSparkRow : InternalRow = null
@@ -89,7 +92,12 @@ class SchemaIteratorSuite extends AnyFunSuite {
     }
 
     val avroBinaryIterator = new AvroBinaryIterator(bqSchema,
-      columnsInOrder.asJava, avroSchema, avroByteString, Optional.empty(), Optional.empty())
+      columnsInOrder.asJava,
+      avroSchema,
+      avroByteString,
+      Optional.empty(),
+      Optional.empty(),
+      schemaConvertersConfiguration)
 
     if (avroBinaryIterator.hasNext) {
       avroSparkRow = avroBinaryIterator.next()
@@ -177,7 +185,7 @@ class SchemaIteratorSuite extends AnyFunSuite {
       Field.newBuilder("int_struct_arr", RECORD,
         Field.of("i", INTEGER)).setMode(Mode.REPEATED).build())
 
-    val schemaFields = SchemaConverters.toSpark(bqSchema).fields
+    val schemaFields = schemaConverters.toSpark(bqSchema).fields
 
     var avroSparkRow: InternalRow = null
     var arrowSparkRow: InternalRow = null
@@ -193,7 +201,12 @@ class SchemaIteratorSuite extends AnyFunSuite {
     }
 
     val avroBinaryIterator = new AvroBinaryIterator(bqSchema,
-      columnsInOrder.asJava, avroSchema, avroByteString, Optional.empty(), Optional.empty())
+      columnsInOrder.asJava,
+      avroSchema,
+      avroByteString,
+      Optional.empty(),
+      Optional.empty(),
+      schemaConvertersConfiguration)
 
     if (avroBinaryIterator.hasNext) {
       avroSparkRow = avroBinaryIterator.next()

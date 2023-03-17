@@ -25,6 +25,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
@@ -143,7 +144,10 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     Schema schema =
         tableInfo
             .map(info -> info.getDefinition().getSchema())
-            .orElseGet(() -> SchemaConverters.toBigQuerySchema(sparkSchema));
+            .orElseGet(
+                () ->
+                    SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+                        .toBigQuerySchema(sparkSchema));
 
     bigQueryClient.loadDataIntoTable(
         config, optimizedSourceUris, FormatOptions.avro(), writeDisposition, Optional.of(schema));

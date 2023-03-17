@@ -19,6 +19,7 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.write.IntermediateDataCleaner;
@@ -70,7 +71,8 @@ public class BigQueryDataSourceWriterModule implements Module {
         bigqueryDataWriteHelperRetrySettings,
         com.google.common.base.Optional.fromJavaUtil(tableConfig.getTraceId()),
         tableConfig.getEnableModeCheckForSchemaFields(),
-        tableConfig.getBigQueryTableLabels()); // needs to be serializable
+        tableConfig.getBigQueryTableLabels(),
+        SchemaConvertersConfiguration.from(tableConfig)); // needs to be serializable
   }
 
   @Singleton

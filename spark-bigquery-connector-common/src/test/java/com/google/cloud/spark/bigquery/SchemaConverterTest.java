@@ -44,6 +44,9 @@ public class SchemaConverterTest {
   // The maximum nesting depth of a BigQuery RECORD:
   private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
 
+  private static final SchemaConvertersConfiguration SCHEMA_CONVERTERS_CONFIGURATION =
+      SchemaConvertersConfiguration.from(new SparkBigQueryConfig());
+
   /*
   BigQuery -> Spark tests, translated from SchemaConvertersSuite.scala
    */
@@ -51,7 +54,7 @@ public class SchemaConverterTest {
   public void testEmptySchemaBigQueryToSparkConversion() throws Exception {
     Schema bqSchema = Schema.of();
     StructType expected = new StructType();
-    StructType result = SchemaConverters.toSpark(bqSchema);
+    StructType result = SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION).toSpark(bqSchema);
     assertThat(result).isEqualTo(expected);
   }
 
@@ -60,7 +63,7 @@ public class SchemaConverterTest {
     Schema bqSchema = Schema.of(Field.of("foo", LegacySQLTypeName.STRING));
     StructType expected =
         new StructType().add(new StructField("foo", DataTypes.StringType, true, Metadata.empty()));
-    StructType result = SchemaConverters.toSpark(bqSchema);
+    StructType result = SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION).toSpark(bqSchema);
     assertThat(result).isEqualTo(expected);
   }
 
@@ -70,7 +73,7 @@ public class SchemaConverterTest {
 
     StructType expected = BIG_SPARK_SCHEMA2;
 
-    StructType result = SchemaConverters.toSpark(bqSchema);
+    StructType result = SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION).toSpark(bqSchema);
     assertThat(result).isEqualTo(expected);
   }
 
@@ -94,26 +97,32 @@ public class SchemaConverterTest {
                         .putString("comment", "foo")
                         .build()));
 
-    StructType result = SchemaConverters.toSpark(bqSchema);
+    StructType result = SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION).toSpark(bqSchema);
     assertThat(result).isEqualTo(expected);
   }
 
   @Test
   public void testGetSchemaWithPseudoColumns() throws Exception {
     Schema result =
-        SchemaConverters.getSchemaWithPseudoColumns(buildTableInfo(BIG_BIGQUERY_SCHEMA2, null));
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .getSchemaWithPseudoColumns(buildTableInfo(BIG_BIGQUERY_SCHEMA2, null));
     assertThat(result).isEqualTo(BIG_BIGQUERY_SCHEMA2);
 
     result =
-        SchemaConverters.getSchemaWithPseudoColumns(
-            buildTableInfo(
-                BIG_BIGQUERY_SCHEMA2,
-                TimePartitioning.newBuilder(TimePartitioning.Type.DAY).setField("foo").build()));
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .getSchemaWithPseudoColumns(
+                buildTableInfo(
+                    BIG_BIGQUERY_SCHEMA2,
+                    TimePartitioning.newBuilder(TimePartitioning.Type.DAY)
+                        .setField("foo")
+                        .build()));
     assertThat(result).isEqualTo(BIG_BIGQUERY_SCHEMA2);
 
     result =
-        SchemaConverters.getSchemaWithPseudoColumns(
-            buildTableInfo(BIG_BIGQUERY_SCHEMA2, TimePartitioning.of(TimePartitioning.Type.DAY)));
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .getSchemaWithPseudoColumns(
+                buildTableInfo(
+                    BIG_BIGQUERY_SCHEMA2, TimePartitioning.of(TimePartitioning.Type.DAY)));
     assertThat(result).isEqualTo(BIG_BIGQUERY_SCHEMA2_WITH_PSEUDO_COLUMNS);
   }
 
@@ -134,7 +143,8 @@ public class SchemaConverterTest {
     StructType schema = BIG_SPARK_SCHEMA;
     Schema expected = BIG_BIGQUERY_SCHEMA;
 
-    Schema converted = toBigQuerySchema(schema);
+    Schema converted =
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION).toBigQuerySchema(schema);
 
     for (int i = 0; i < expected.getFields().size(); i++) {
       if (i == 8) continue; // FIXME: delete this line when Timestamp conversion can be restored.
@@ -144,12 +154,15 @@ public class SchemaConverterTest {
 
   @Test
   public void testDecimalTypeConversion() throws Exception {
-    assertThat(toBigQueryType(NUMERIC_SPARK_TYPE, Metadata.empty()))
+    assertThat(
+            SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+                .toBigQueryType(NUMERIC_SPARK_TYPE, Metadata.empty()))
         .isEqualTo(LegacySQLTypeName.NUMERIC);
 
     try {
       DecimalType wayTooBig = DataTypes.createDecimalType(38, 38);
-      toBigQueryType(wayTooBig, Metadata.empty());
+      SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+          .toBigQueryType(wayTooBig, Metadata.empty());
       fail("Did not throw an error for a decimal that's too wide for big-query");
     } catch (IllegalArgumentException e) {
     }
@@ -160,7 +173,9 @@ public class SchemaConverterTest {
     // FIXME: restore this check when the Vortex team adds microsecond precision, and Timestamp
     // conversion can be fixed.
     // assertThat(toBigQueryType(DataTypes.TimestampType)).isEqualTo(LegacySQLTypeName.TIMESTAMP);
-    assertThat(toBigQueryType(DataTypes.DateType, Metadata.empty()))
+    assertThat(
+            SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+                .toBigQueryType(DataTypes.DateType, Metadata.empty()))
         .isEqualTo(LegacySQLTypeName.DATE);
   }
 
@@ -168,13 +183,14 @@ public class SchemaConverterTest {
   public void testDescriptionConversion() throws Exception {
     String description = "I love bananas";
     Field result =
-        createBigQueryColumn(
-            new StructField(
-                "Field",
-                DataTypes.IntegerType,
-                true,
-                new MetadataBuilder().putString("description", description).build()),
-            0);
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .createBigQueryColumn(
+                new StructField(
+                    "Field",
+                    DataTypes.IntegerType,
+                    true,
+                    new MetadataBuilder().putString("description", description).build()),
+                0);
 
     assertThat(result.getDescription().equals(description));
   }
@@ -191,7 +207,8 @@ public class SchemaConverterTest {
     }
 
     try {
-      createBigQueryColumn(superRecursiveSchema.fields()[0], 0);
+      SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+          .createBigQueryColumn(superRecursiveSchema.fields()[0], 0);
       fail("Did not detect super-recursive schema of depth = 16.");
     } catch (IllegalArgumentException e) {
     }
@@ -203,78 +220,80 @@ public class SchemaConverterTest {
         Field.newBuilder(
             "test", LegacySQLTypeName.RECORD, Field.of("sub", LegacySQLTypeName.INTEGER));
     // no description
-    assertThat(SchemaConverters.getCustomDataType(field.build()).isPresent()).isFalse();
+    SchemaConverters sc = from(SCHEMA_CONVERTERS_CONFIGURATION);
+    assertThat(sc.getCustomDataType(field.build()).isPresent()).isFalse();
     // empty marker
-    assertThat(SchemaConverters.getCustomDataType(field.setDescription("foo").build()).isPresent())
-        .isFalse();
+    assertThat(sc.getCustomDataType(field.setDescription("foo").build()).isPresent()).isFalse();
     // only marker
-    assertThat(
-            SchemaConverters.getCustomDataType(field.setDescription("{spark.type=vector}").build()))
+    assertThat(sc.getCustomDataType(field.setDescription("{spark.type=vector}").build()))
         .isEqualTo(Optional.of(SQLDataTypes.VectorType()));
     // description and marker
-    assertThat(
-            SchemaConverters.getCustomDataType(
-                field.setDescription("foo {spark.type=matrix}").build()))
+    assertThat(sc.getCustomDataType(field.setDescription("foo {spark.type=matrix}").build()))
         .isEqualTo(Optional.of(SQLDataTypes.MatrixType()));
   }
 
   @Test
   public void testConvertBigQueryMapToSparkMap_not_repeated() {
     Optional<StructField> field =
-        SchemaConverters.convertMap(
-            Field.newBuilder("foo", LegacySQLTypeName.INTEGER).setMode(Mode.REQUIRED).build(),
-            Metadata.empty());
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .convertMap(
+                Field.newBuilder("foo", LegacySQLTypeName.INTEGER).setMode(Mode.REQUIRED).build(),
+                Metadata.empty());
     assertThat(field).isEqualTo(Optional.empty());
   }
 
   @Test
   public void testConvertBigQueryMapToSparkMap_not_record() {
     Optional<StructField> field =
-        SchemaConverters.convertMap(
-            Field.newBuilder("foo", LegacySQLTypeName.INTEGER).setMode(Mode.REPEATED).build(),
-            Metadata.empty());
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .convertMap(
+                Field.newBuilder("foo", LegacySQLTypeName.INTEGER).setMode(Mode.REPEATED).build(),
+                Metadata.empty());
     assertThat(field).isEqualTo(Optional.empty());
   }
 
   @Test
   public void testConvertBigQueryMapToSparkMap_wrong_record_size() {
     Optional<StructField> field =
-        SchemaConverters.convertMap(
-            Field.newBuilder(
-                    "foo", LegacySQLTypeName.RECORD, Field.of("foo", LegacySQLTypeName.INTEGER))
-                .setMode(Mode.REPEATED)
-                .build(),
-            Metadata.empty());
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .convertMap(
+                Field.newBuilder(
+                        "foo", LegacySQLTypeName.RECORD, Field.of("foo", LegacySQLTypeName.INTEGER))
+                    .setMode(Mode.REPEATED)
+                    .build(),
+                Metadata.empty());
     assertThat(field).isEqualTo(Optional.empty());
   }
 
   @Test
   public void testConvertBigQueryMapToSparkMap_wrong_record_fields() {
     Optional<StructField> field =
-        SchemaConverters.convertMap(
-            Field.newBuilder(
-                    "foo",
-                    LegacySQLTypeName.RECORD,
-                    Field.of("foo", LegacySQLTypeName.INTEGER),
-                    Field.of("bar", LegacySQLTypeName.INTEGER))
-                .setMode(Mode.REPEATED)
-                .build(),
-            Metadata.empty());
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .convertMap(
+                Field.newBuilder(
+                        "foo",
+                        LegacySQLTypeName.RECORD,
+                        Field.of("foo", LegacySQLTypeName.INTEGER),
+                        Field.of("bar", LegacySQLTypeName.INTEGER))
+                    .setMode(Mode.REPEATED)
+                    .build(),
+                Metadata.empty());
     assertThat(field).isEqualTo(Optional.empty());
   }
 
   @Test
   public void testConvertBigQueryMapToSparkMap_with_actual_map() {
     Optional<StructField> fieldOpt =
-        SchemaConverters.convertMap(
-            Field.newBuilder(
-                    "foo",
-                    LegacySQLTypeName.RECORD,
-                    Field.of("key", LegacySQLTypeName.INTEGER),
-                    Field.of("value", LegacySQLTypeName.STRING))
-                .setMode(Mode.REPEATED)
-                .build(),
-            Metadata.empty());
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .convertMap(
+                Field.newBuilder(
+                        "foo",
+                        LegacySQLTypeName.RECORD,
+                        Field.of("key", LegacySQLTypeName.INTEGER),
+                        Field.of("value", LegacySQLTypeName.STRING))
+                    .setMode(Mode.REPEATED)
+                    .build(),
+                Metadata.empty());
     MapType longToStringMapType = DataTypes.createMapType(DataTypes.LongType, DataTypes.StringType);
     assertThat(fieldOpt.isPresent()).isTrue();
     StructField field = fieldOpt.get();

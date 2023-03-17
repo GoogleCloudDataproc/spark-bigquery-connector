@@ -27,8 +27,10 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import java.time.ZoneId;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
@@ -148,6 +150,7 @@ public class BigQueryDirectDataSourceWriterContextTest {
         bigqueryDataWriterHelperRetrySettings,
         Optional.absent(),
         true,
-        ImmutableMap.<String, String>builder().build());
+        ImmutableMap.<String, String>builder().build(),
+        SchemaConvertersConfiguration.of(ZoneId.of("UTC")));
   }
 }

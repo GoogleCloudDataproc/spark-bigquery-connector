@@ -29,9 +29,11 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.spark.sql.Row;
@@ -84,7 +86,10 @@ public class IntegrationTestUtils {
         TableInfo.newBuilder(
                 tableId,
                 ExternalTableDefinition.newBuilder(
-                        sourceURI, SchemaConverters.toBigQuerySchema(schema), formatOptions)
+                        sourceURI,
+                        SchemaConverters.from(SchemaConvertersConfiguration.of(ZoneId.of("UTC")))
+                            .toBigQuerySchema(schema),
+                        formatOptions)
                     .setConnectionId(TestConstants.BIGLAKE_CONNECTION_ID)
                     .build())
             .build();

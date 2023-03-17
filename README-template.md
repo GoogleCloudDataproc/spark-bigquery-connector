@@ -755,6 +755,20 @@ The API Supports a number of options to configure the read
      </td>
      <td>Read</td>
    </tr>
+   <tr>
+     <td><code>datetimeZoneId</code>
+     </td>
+     <td> The time zone ID used to convert BigQuery's
+          <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#datetime_type">DATETIME</a>
+          into Spark's Timestamp, and vice versa.
+          <br/> The value should be a legal <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">time zone name</a>,
+          that appears is accepted by Java's <code>java.time.ZoneId</code>. The full list can be
+          seen by running <code>java.time.ZoneId.getAvailableZoneIds()</code> in Java/Scala, or
+          <code>sc._jvm.java.time.ZoneId.getAvailableZoneIds()</code> in pyspark.
+          <br/> (Optional. Defaults to <code>UTC</code>)
+     </td>
+     <td>Read/Write</td>
+   </tr>
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter
@@ -872,11 +886,9 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
   <tr valign="top">
    <td><strong><code>DATETIME</code></strong>
    </td>
-   <td><strong><code>StringType</code></strong>
+   <td><strong><code>TimestampType</code></strong>
    </td>
-   <td>Spark has no DATETIME type. Casting to TIMESTAMP uses a configured TimeZone, which defaults to the local timezone (UTC in GCE / Dataproc).
-<p>
-We are considering adding an optional TimeZone property to allow automatically  converting to TimeStamp, this would be consistent with Spark's handling of CSV/JSON (except they always try to convert when inferring schema, and default to the local timezone)
+   <td>Spark has no DATETIME type. The value is casted as a local time in the `datetimeZoneId` time zone.
    </td>
   </tr>
   <tr valign="top">

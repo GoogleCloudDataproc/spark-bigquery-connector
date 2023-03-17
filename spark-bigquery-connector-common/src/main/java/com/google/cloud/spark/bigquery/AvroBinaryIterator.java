@@ -43,6 +43,8 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
   Schema bqSchema;
   Optional<StructType> userProvidedSchema;
 
+  private final SchemaConverters schemaConverters;
+
   /**
    * An iterator for scanning over rows serialized in Avro format
    *
@@ -57,13 +59,15 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
       org.apache.avro.Schema schema,
       ByteString rowsInBytes,
       Optional<StructType> userProvidedSchema,
-      Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
+      Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer,
+      SchemaConvertersConfiguration schemaConvertersConfiguration) {
     reader = new GenericDatumReader<GenericRecord>(schema);
     this.bqSchema = bqSchema;
     this.columnsInOrder = columnsInOrder;
     in = new DecoderFactory().binaryDecoder(rowsInBytes.toByteArray(), null);
     this.userProvidedSchema = userProvidedSchema;
     this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
+    this.schemaConverters = SchemaConverters.from(schemaConvertersConfiguration);
   }
 
   @Override
@@ -87,7 +91,7 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
   public InternalRow next() {
     try {
       numberOfRowsParsed++;
-      return SchemaConverters.convertToInternalRow(
+      return schemaConverters.convertToInternalRow(
           bqSchema, columnsInOrder, (GenericRecord) reader.read(null, in), userProvidedSchema);
     } catch (IOException e) {
       throw new UncheckedIOException(e);

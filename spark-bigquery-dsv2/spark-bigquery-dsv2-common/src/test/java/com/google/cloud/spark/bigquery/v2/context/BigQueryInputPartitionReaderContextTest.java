@@ -20,8 +20,10 @@ import static com.google.common.truth.Truth.*;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.TextFormat;
+import java.time.ZoneId;
 import java.util.Iterator;
 import java.util.Optional;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -100,7 +102,8 @@ public class BigQueryInputPartitionReaderContextTest {
             ALL_TYPES_TABLE_FIELDS,
             ALL_TYPES_TABLE_AVRO_RAW_SCHEMA,
             Optional.empty(),
-            Optional.empty());
+            Optional.empty(),
+            SchemaConvertersConfiguration.of(ZoneId.of("UTC")));
 
     BigQueryInputPartitionReaderContext reader =
         new BigQueryInputPartitionReaderContext(readRowsResponses, converter, null);

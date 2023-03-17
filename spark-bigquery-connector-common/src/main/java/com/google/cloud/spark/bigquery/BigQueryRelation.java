@@ -46,9 +46,8 @@ public class BigQueryRelation extends BaseRelation {
 
   @Override
   public StructType schema() {
-    return options
-        .getSchema()
-        .orElse(SchemaConverters.toSpark(SchemaConverters.getSchemaWithPseudoColumns(table)));
+    SchemaConverters sc = SchemaConverters.from(SchemaConvertersConfiguration.from(options));
+    return options.getSchema().orElse(sc.toSpark(sc.getSchemaWithPseudoColumns(table)));
   }
 
   public TableId getTableId() {

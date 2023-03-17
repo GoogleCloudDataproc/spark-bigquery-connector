@@ -29,6 +29,7 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.spark.bigquery.InternalRowIterator;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.base.Joiner;
 import java.util.Arrays;
@@ -103,7 +104,12 @@ class Scala213BigQueryRDD extends RDD<InternalRow> {
             Optional.of(tracer));
     Iterator<ReadRowsResponse> readRowsResponseIterator = readRowsHelper.readRows();
 
-    StructType schema = options.getSchema().orElse(SchemaConverters.toSpark(bqSchema));
+    StructType schema =
+        options
+            .getSchema()
+            .orElse(
+                SchemaConverters.from(SchemaConvertersConfiguration.from(options))
+                    .toSpark(bqSchema));
 
     ReadRowsResponseToInternalRowIteratorConverter converter;
     if (options.getReadDataFormat().equals(DataFormat.AVRO)) {
@@ -113,7 +119,8 @@ class Scala213BigQueryRDD extends RDD<InternalRow> {
               Arrays.asList(columnsInOrder),
               readSession.getAvroSchema().getSchema(),
               Optional.of(schema),
-              Optional.of(tracer));
+              Optional.of(tracer),
+              SchemaConvertersConfiguration.from(options));
     } else {
       converter =
           ReadRowsResponseToInternalRowIteratorConverter.arrow(
