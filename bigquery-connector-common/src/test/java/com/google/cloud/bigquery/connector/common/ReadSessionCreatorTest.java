@@ -33,14 +33,19 @@ import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions;
+import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadSettings;
 import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
+import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.MockBigQueryRead;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.cloud.bigquery.storage.v1.stub.EnhancedBigQueryReadStub;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Arrays;
@@ -53,6 +58,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 public class ReadSessionCreatorTest {
   EnhancedBigQueryReadStub stub = mock(EnhancedBigQueryReadStub.class);
@@ -268,5 +274,136 @@ public class ReadSessionCreatorTest {
         (CreateReadSessionRequest) mockBigQueryRead.getRequests().get(0);
     assertThat(createReadSessionRequest.getMaxStreamCount()).isEqualTo(10);
     assertThat(createReadSessionRequest.getPreferredMinStreamCount()).isEqualTo(10);
+  }
+
+  private void testCacheMissScenario(
+      ReadSessionCreator creator,
+      String readSessionName,
+      ImmutableList<String> fields,
+      Optional<String> filter) {
+    ReadSession readSession = ReadSession.newBuilder().setName(readSessionName).build();
+    mockBigQueryRead.addResponse(readSession);
+    ReadSessionResponse response = creator.create(table.getTableId(), fields, filter);
+    assertThat(creator.getReadSessionCache().asMap().values()).contains(readSession);
+    assertThat(response.getReadSession()).isEqualTo(readSession);
+  }
+
+  @Test
+  public void testReadSessionCacheMiss() {
+    // setting up
+    when(bigQueryClient.getTable(any())).thenReturn(table);
+    mockBigQueryRead.reset();
+    BigQueryClientFactory mockBigQueryClientFactory = mock(BigQueryClientFactory.class);
+    when(mockBigQueryClientFactory.getBigQueryReadClient()).thenReturn(client);
+    ReadSessionCreatorConfig config =
+        new ReadSessionCreatorConfigBuilder()
+            .setMaxParallelism(OptionalInt.of(10))
+            .setReadDataFormat(DataFormat.ARROW)
+            .setEnableReadSessionCaching(true)
+            .build();
+    ReadSessionCreator creator =
+        new ReadSessionCreator(config, bigQueryClient, mockBigQueryClientFactory);
+    creator = Mockito.spy(creator);
+    Cache<CreateReadSessionRequest, ReadSession> cache = CacheBuilder.newBuilder().build();
+    Mockito.doReturn(cache).when(creator).getReadSessionCache();
+    int counter = 0;
+    testCacheMissScenario(creator, "rs" + ++counter, ImmutableList.of(), Optional.empty());
+    testCacheMissScenario(
+        creator, "rs" + ++counter, ImmutableList.of("foo", "bar"), Optional.empty());
+    testCacheMissScenario(
+        creator, "rs" + ++counter, ImmutableList.of("foo", "baz1"), Optional.empty());
+    testCacheMissScenario(creator, "rs" + ++counter, ImmutableList.of(), Optional.of("filter1"));
+    testCacheMissScenario(creator, "rs" + ++counter, ImmutableList.of(), Optional.of("filter2"));
+    testCacheMissScenario(
+        creator, "rs" + ++counter, ImmutableList.of("foo", "bar"), Optional.of("filter1"));
+    testCacheMissScenario(
+        creator, "rs" + ++counter, ImmutableList.of("foo", "bar"), Optional.of("filter2"));
+  }
+
+  private ReadSession addCacheEntry(
+      ReadSessionCreator creator,
+      String readSessionName,
+      ImmutableList<String> fields,
+      Optional<String> filter,
+      ReadSessionCreatorConfig config) {
+    ReadSession readSession = ReadSession.newBuilder().setName(readSessionName).build();
+    CreateReadSessionRequest request = CreateReadSessionRequest.newBuilder().build();
+    ReadSession.Builder requestedSession = request.getReadSession().toBuilder();
+    TableReadOptions.Builder readOptions = requestedSession.getReadOptionsBuilder();
+    filter.ifPresent(readOptions::setRowRestriction);
+    readOptions.addAllSelectedFields(fields);
+    readOptions.setArrowSerializationOptions(
+        ArrowSerializationOptions.newBuilder()
+            .setBufferCompression(config.getArrowCompressionCodec())
+            .build());
+    CreateReadSessionRequest key =
+        CreateReadSessionRequest.newBuilder()
+            .setParent("projects/" + bigQueryClient.getProjectId())
+            .setReadSession(
+                requestedSession
+                    .setDataFormat(config.getReadDataFormat())
+                    .setReadOptions(readOptions)
+                    .setTable(ReadSessionCreator.toTablePath(table.getTableId()))
+                    .build())
+            .setMaxStreamCount(config.getMaxParallelism().getAsInt())
+            .setPreferredMinStreamCount(3 * config.getDefaultParallelism())
+            .build();
+    creator.getReadSessionCache().put(key, readSession);
+    return readSession;
+  }
+
+  private void testCacheHitScenario(
+      ReadSessionCreator creator,
+      ReadSession expected,
+      ImmutableList<String> fields,
+      Optional<String> filter) {
+    ReadSessionResponse response = creator.create(table.getTableId(), fields, filter);
+    assertThat(response.getReadSession()).isEqualTo(expected);
+  }
+
+  @Test
+  public void testReadSessionCacheHit() {
+    // setting up
+    when(bigQueryClient.getTable(any())).thenReturn(table);
+    mockBigQueryRead.reset();
+    mockBigQueryRead.addResponse(ReadSession.newBuilder().setName("wrong-name").build());
+    // mockBigQueryRead.addException(new RuntimeException("Test: Cached ReadSession not used"));
+    BigQueryClientFactory mockBigQueryClientFactory = mock(BigQueryClientFactory.class);
+    when(mockBigQueryClientFactory.getBigQueryReadClient()).thenReturn(client);
+    int maxStreamCount = 20_000;
+    int defaultParallelism = 10;
+    ReadSessionCreatorConfig config =
+        new ReadSessionCreatorConfigBuilder()
+            .setDefaultParallelism(defaultParallelism)
+            .setMaxParallelism(OptionalInt.of(maxStreamCount))
+            .setReadDataFormat(DataFormat.ARROW)
+            .setEnableReadSessionCaching(true)
+            .setArrowCompressionCodec(CompressionCodec.COMPRESSION_UNSPECIFIED)
+            .build();
+    ReadSessionCreator creator =
+        new ReadSessionCreator(config, bigQueryClient, mockBigQueryClientFactory);
+    creator = Mockito.spy(creator);
+    Cache<CreateReadSessionRequest, ReadSession> cache = CacheBuilder.newBuilder().build();
+    Mockito.doReturn(cache).when(creator).getReadSessionCache();
+    // test cache hits
+    ReadSession expected1 =
+        addCacheEntry(creator, "r1", ImmutableList.of(), Optional.empty(), config);
+    testCacheHitScenario(creator, expected1, ImmutableList.of(), Optional.empty());
+    ReadSession expected2 =
+        addCacheEntry(
+            creator, "r2", ImmutableList.of("foo", "bar"), Optional.of("filter1"), config);
+    testCacheHitScenario(
+        creator, expected2, ImmutableList.of("foo", "bar"), Optional.of("filter1"));
+    ReadSession expected3 =
+        addCacheEntry(
+            creator, "r3", ImmutableList.of("foo", "bar"), Optional.of("filter2"), config);
+    testCacheHitScenario(
+        creator, expected3, ImmutableList.of("foo", "bar"), Optional.of("filter2"));
+    // re-test previous cache hits
+    testCacheHitScenario(creator, expected1, ImmutableList.of(), Optional.empty());
+    testCacheHitScenario(
+        creator, expected2, ImmutableList.of("foo", "bar"), Optional.of("filter1"));
+    testCacheHitScenario(
+        creator, expected3, ImmutableList.of("foo", "bar"), Optional.of("filter2"));
   }
 }

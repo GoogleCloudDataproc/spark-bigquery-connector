@@ -101,7 +101,7 @@ public class BigQueryDataSourceReaderContext {
   private Filter[] pushedFilters = new Filter[] {};
   private Filter[] allFilters = new Filter[] {};
   private Map<String, StructField> fields;
-  private Optional<ImmutableList<String>> selectedFields = Optional.empty();
+  private ImmutableList<String> selectedFields;
   private List<ArrowInputPartitionContext> plannedInputPartitionContexts;
   // Lazy loading using Supplier will ensure that createReadSession is called only once and
   // readSessionResponse is cached.
@@ -189,7 +189,7 @@ public class BigQueryDataSourceReaderContext {
                     stream.getName(),
                     readSessionCreatorConfig.toReadRowsHelperOptions(),
                     createConverter(
-                        selectedFields.get(), readSessionResponse.get(), userProvidedSchema)));
+                        selectedFields, readSessionResponse.get(), userProvidedSchema)));
   }
 
   public Optional<String> getCombinedFilter() {
@@ -208,7 +208,7 @@ public class BigQueryDataSourceReaderContext {
 
     ReadSession readSession = readSessionResponse.get().getReadSession();
 
-    ImmutableList<String> tempSelectedFields = selectedFields.get();
+    ImmutableList<String> tempSelectedFields = selectedFields;
     if (tempSelectedFields.isEmpty()) {
       // means select *
       Schema tableSchema =
@@ -285,14 +285,13 @@ public class BigQueryDataSourceReaderContext {
 
   private ReadSessionResponse createReadSession() {
     selectedFields =
-        Optional.of(
-            schema
-                .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
-                .orElse(ImmutableList.copyOf(fields.keySet())));
+        schema
+            .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
+            .orElse(ImmutableList.copyOf(fields.keySet()));
     Optional<String> filter = getCombinedFilter();
-    ReadSessionResponse response = readSessionCreator.create(tableId, selectedFields.get(), filter);
+    ReadSessionResponse response = readSessionCreator.create(tableId, selectedFields, filter);
     logger.info(
-        "Created read session for {}: {} for application id: {}",
+        "Got read session for {}: {} for application id: {}",
         tableId.toString(),
         response.getReadSession().getName(),
         applicationId);

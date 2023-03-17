@@ -177,6 +177,7 @@ public class SparkBigQueryConfig
   private int numStreamsPerPartition = MIN_STREAMS_PER_PARTITION;
   private com.google.common.base.Optional<Integer> flowControlWindowBytes =
       com.google.common.base.Optional.absent();
+  private boolean enableReadSessionCaching = false;
   private SparkBigQueryProxyAndHttpConfig sparkBigQueryProxyAndHttpConfig;
   private CompressionCodec arrowCompressionCodec = DEFAULT_ARROW_COMPRESSION_CODEC;
   private WriteMethod writeMethod = DEFAULT_WRITE_METHOD;
@@ -413,6 +414,8 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, "bqNumStreamsPerPartition")
             .transform(Integer::parseInt)
             .or(MIN_STREAMS_PER_PARTITION);
+    config.enableReadSessionCaching =
+        getAnyBooleanOption(globalOptions, options, "enableReadSessionCaching", false);
 
     String arrowCompressionCodecParam =
         getAnyOption(globalOptions, options, ARROW_COMPRESSION_CODEC_OPTION)
@@ -850,6 +853,7 @@ public class SparkBigQueryConfig
         .setStreamsPerPartition(numStreamsPerPartition)
         .setArrowCompressionCodec(arrowCompressionCodec)
         .setTraceId(traceId.toJavaUtil())
+        .setEnableReadSessionCaching(enableReadSessionCaching)
         .build();
   }
 

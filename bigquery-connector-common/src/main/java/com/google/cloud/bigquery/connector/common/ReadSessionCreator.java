@@ -26,12 +26,15 @@ import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +47,8 @@ public class ReadSessionCreator {
   public static final int DEFAULT_MIN_PARALLELISM_FACTOR = 3;
 
   private static final Logger log = LoggerFactory.getLogger(ReadSessionCreator.class);
+  private static final Cache<CreateReadSessionRequest, ReadSession> READ_SESSION_CACHE =
+      CacheBuilder.newBuilder().expireAfterWrite(4, TimeUnit.HOURS).maximumSize(1000).build();
 
   private final ReadSessionCreatorConfig config;
   private final BigQueryClient bigQueryClient;
@@ -95,10 +100,11 @@ public class ReadSessionCreator {
     ReadSession.Builder requestedSession = request.getReadSession().toBuilder();
     config.getTraceId().ifPresent(traceId -> requestedSession.setTraceId(traceId));
 
-    TableReadOptions.Builder readOptions = requestedSession.getReadOptionsBuilder();
-    if (!isInputTableAView(tableDetails)) {
-      filter.ifPresent(readOptions::setRowRestriction);
+    if (isInputTableAView(tableDetails)) {
+      filter = Optional.empty();
     }
+    TableReadOptions.Builder readOptions = requestedSession.getReadOptionsBuilder();
+    filter.ifPresent(readOptions::setRowRestriction);
     readOptions.addAllSelectedFields(selectedFields);
     readOptions.setArrowSerializationOptions(
         ArrowSerializationOptions.newBuilder()
@@ -139,23 +145,32 @@ public class ReadSessionCreator {
     }
     Instant sessionPrepEndTime = Instant.now();
 
-    ReadSession readSession =
-        bigQueryReadClient.createReadSession(
-            request
-                .newBuilder()
-                .setParent("projects/" + bigQueryClient.getProjectId())
-                .setReadSession(
-                    requestedSession
-                        .setDataFormat(config.getReadDataFormat())
-                        .setReadOptions(readOptions)
-                        .setTable(tablePath)
-                        .build())
-                .setMaxStreamCount(maxStreamCount)
-                .setPreferredMinStreamCount(minStreamCount)
-                .build());
+    CreateReadSessionRequest createReadSessionRequest =
+        request
+            .newBuilder()
+            .setParent("projects/" + bigQueryClient.getProjectId())
+            .setReadSession(
+                requestedSession
+                    .setDataFormat(config.getReadDataFormat())
+                    .setReadOptions(readOptions)
+                    .setTable(tablePath)
+                    .build())
+            .setMaxStreamCount(maxStreamCount)
+            .setPreferredMinStreamCount(minStreamCount)
+            .build();
+    if (config.isReadSessionCachingEnabled()
+        && getReadSessionCache().asMap().containsKey(createReadSessionRequest)) {
+      ReadSession readSession = getReadSessionCache().asMap().get(createReadSessionRequest);
+      log.info("Reusing read session: {}, for table: {}", readSession.getName(), table);
+      return new ReadSessionResponse(readSession, actualTable);
+    }
+    ReadSession readSession = bigQueryReadClient.createReadSession(createReadSessionRequest);
 
     if (readSession != null) {
       Instant sessionCreationEndTime = Instant.now();
+      if (config.isReadSessionCachingEnabled()) {
+        getReadSessionCache().put(createReadSessionRequest, readSession);
+      }
       JsonObject jsonObject = new JsonObject();
       jsonObject.addProperty("readSessionName", readSession.getName());
       jsonObject.addProperty("readSessionCreationStartTime", sessionPrepStartTime.toString());
@@ -186,7 +201,7 @@ public class ReadSessionCreator {
     return new ReadSessionResponse(readSession, actualTable);
   }
 
-  String toTablePath(TableId tableId) {
+  static String toTablePath(TableId tableId) {
     return format(
         "projects/%s/datasets/%s/tables/%s",
         tableId.getProject(), tableId.getDataset(), tableId.getTable());
@@ -237,5 +252,10 @@ public class ReadSessionCreator {
       return true;
     }
     return false;
+  }
+
+  // visible for testing
+  Cache<CreateReadSessionRequest, ReadSession> getReadSessionCache() {
+    return READ_SESSION_CACHE;
   }
 }
