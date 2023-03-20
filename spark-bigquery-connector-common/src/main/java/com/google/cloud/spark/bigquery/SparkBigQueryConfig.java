@@ -175,6 +175,8 @@ public class SparkBigQueryConfig
   private int numBackgroundThreadsPerStream = 0;
   private int numPrebufferReadRowsResponses = MIN_BUFFERED_RESPONSES_PER_STREAM;
   private int numStreamsPerPartition = MIN_STREAMS_PER_PARTITION;
+  private com.google.common.base.Optional<Integer> flowControlWindowBytes =
+      com.google.common.base.Optional.absent();
   private SparkBigQueryProxyAndHttpConfig sparkBigQueryProxyAndHttpConfig;
   private CompressionCodec arrowCompressionCodec = DEFAULT_ARROW_COMPRESSION_CODEC;
   private WriteMethod writeMethod = DEFAULT_WRITE_METHOD;
@@ -403,6 +405,10 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, "bqPrebufferResponsesPerStream")
             .transform(Integer::parseInt)
             .or(MIN_BUFFERED_RESPONSES_PER_STREAM);
+    config.flowControlWindowBytes =
+        getAnyOption(globalOptions, options, "bqFlowControlWindowBytes")
+            .transform(Integer::parseInt);
+
     config.numStreamsPerPartition =
         getAnyOption(globalOptions, options, "bqNumStreamsPerPartition")
             .transform(Integer::parseInt)
@@ -778,6 +784,11 @@ public class SparkBigQueryConfig
 
   public ZoneId getDatetimeZoneId() {
     return datetimeZoneId;
+  }
+
+  @Override
+  public Optional<Integer> getFlowControlWindowBytes() {
+    return flowControlWindowBytes.toJavaUtil();
   }
 
   @Override

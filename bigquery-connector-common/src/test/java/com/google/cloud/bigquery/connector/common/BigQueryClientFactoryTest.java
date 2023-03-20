@@ -436,6 +436,11 @@ public class BigQueryClientFactoryTest {
     }
 
     @Override
+    public Optional<Integer> getFlowControlWindowBytes() {
+      return Optional.of(2 << 20);
+    }
+
+    @Override
     public boolean equals(Object o) {
       if (this == o) {
         return true;

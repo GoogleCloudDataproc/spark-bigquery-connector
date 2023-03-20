@@ -905,6 +905,22 @@ public class SparkBigQueryConfigTest {
   }
 
   @Test
+  public void testBqFlowControWindow() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("bqFlowControlWindowBytes", "12345")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getFlowControlWindowBytes()).isEqualTo(Optional.of(12345));
+  }
+
+  @Test
   public void testBadCredentials() {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -937,7 +953,7 @@ public class SparkBigQueryConfigTest {
   }
 
   @Test
-  public void testEnableListInterfaceWithDefaultIntermediateFormat() {
+  public void testEnableListInferenceWithDefaultIntermediateFormat() {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(withParameter("enableListInference", "true")),
