@@ -110,6 +110,7 @@ public class BigQueryDataSourceReaderContext {
   // "planBatchInputPartitionContexts" or
   // "planInputPartitionContexts". We will use this to get table statistics in estimateStatistics.
   private Supplier<ReadSessionResponse> readSessionResponse;
+  private final ExecutorService asyncReadSessionExecutor = Executors.newSingleThreadExecutor();
 
   public BigQueryDataSourceReaderContext(
       TableInfo table,
@@ -448,9 +449,8 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public void build() {
-    ExecutorService executor = Executors.newSingleThreadExecutor();
     // Supplier provided by Suppliers.memoize is thread-safe
-    executor.submit(() -> readSessionResponse.get());
-    executor.shutdown();
+    asyncReadSessionExecutor.submit(() -> readSessionResponse.get());
+    asyncReadSessionExecutor.shutdown();
   }
 }
