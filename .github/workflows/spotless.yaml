@@ -13,8 +13,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-      with:
-        java-version: 8
-    - name: Spotless check
-      run: ./mvnw spotless:check -Pall
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+          cache: 'maven'
+
+      - name: Checkout coding style
+        run: ./mvnw spotless:check -Pall
