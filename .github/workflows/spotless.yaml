@@ -17,4 +17,4 @@ jobs:
       with:
         java-version: 8
     - name: Spotless check
-      run: ./mvnw spotless:check
+      run: ./mvnw spotless:check -Pall
