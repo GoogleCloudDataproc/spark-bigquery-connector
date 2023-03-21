@@ -266,7 +266,7 @@ df.write \
   .save("dataset.table")
 ```
 
-Writing to existing partitioned tables (date partitioned, ingestion time partitioned and range 
+Writing to existing partitioned tables (date partitioned, ingestion time partitioned and range
 partitioned) in APPEND save mode is fully supported by the connector and the BigQuery Storage Write
 API. Partition overwrite and the use of `datePartition`, `partitionField` and `partitionType` as
 described below is not supported at this moment by the direct write method.
