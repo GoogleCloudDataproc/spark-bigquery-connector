@@ -30,10 +30,10 @@ import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.common.base.Objects;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.netty.NettyChannelBuilder;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -151,16 +151,13 @@ public class BigQueryClientFactory implements Serializable {
       if (flowControlWindow.isPresent()) {
         ApiFunction<ManagedChannelBuilder, ManagedChannelBuilder> channelConfigurator =
             (ManagedChannelBuilder channelBuilder) -> {
-              try {
-                // Due to shading use duck typing to make setting this value more robust.
-                Method setFlowControlWindow =
-                    channelBuilder.getClass().getMethod("flowControlWindow", int.class);
-                setFlowControlWindow.invoke(channelBuilder, flowControlWindow.get());
-                log.info("Set Netty Flow Control Window to {} bytes", flowControlWindow.get());
-              } catch (Exception e) {
-                log.warn("Trouble setting Netty flow control window {} on {}", e, channelBuilder);
+              if (channelBuilder instanceof NettyChannelBuilder) {
+                log.info("Flow control window for netty set to {} bytes", flowControlWindow.get());
+                return ((NettyChannelBuilder) channelBuilder)
+                    .flowControlWindow(flowControlWindow.get());
+              } else {
+                log.info("Flow control window configured but underlying channel is not Netty");
               }
-              // Should be set as a side effect.
               return channelBuilder;
             };
 
