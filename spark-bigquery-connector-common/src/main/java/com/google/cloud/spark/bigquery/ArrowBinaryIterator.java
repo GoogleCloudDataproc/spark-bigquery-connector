@@ -47,13 +47,15 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
   Iterator<InternalRow> currentIterator;
   List<String> columnsInOrder;
   Map<String, StructField> userProvidedFieldMap;
+  SchemaConvertersConfiguration schemaConvertersConfiguration;
 
   public ArrowBinaryIterator(
       List<String> columnsInOrder,
       ByteString schema,
       ByteString rowsInBytes,
       Optional<StructType> userProvidedSchema,
-      Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
+      Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer,
+      SchemaConvertersConfiguration schemaConvertersConfiguration) {
     BufferAllocator allocator =
         ArrowUtil.newRootAllocator(maxAllocation)
             .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);
@@ -78,6 +80,7 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
             .collect(Collectors.toMap(StructField::name, Function.identity()));
 
     this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
+    this.schemaConvertersConfiguration = schemaConvertersConfiguration;
   }
 
   @Override
@@ -104,7 +107,9 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
             .map(
                 vector ->
                     ArrowSchemaConverter.newArrowSchemaConverter(
-                        vector, userProvidedFieldMap.get(vector.getName())))
+                        vector,
+                        userProvidedFieldMap.get(vector.getName()),
+                        schemaConvertersConfiguration))
             .collect(Collectors.toList())
             .toArray(new ColumnVector[0]);
 

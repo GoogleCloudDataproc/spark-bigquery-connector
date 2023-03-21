@@ -81,11 +81,7 @@ class SchemaIteratorSuite extends AnyFunSuite {
     var avroSparkRow: InternalRow = null
     var arrowSparkRow : InternalRow = null
 
-    val arrowBinaryIterator = new ArrowBinaryIterator(columnsInOrder.asJava,
-      arrowSchema,
-      arrowByteString,
-      Optional.empty(),
-      null).asScala
+    val arrowBinaryIterator = new ArrowBinaryIterator(columnsInOrder.asJava, arrowSchema, arrowByteString, Optional.empty(), null, schemaConvertersConfiguration).asScala
 
     if (arrowBinaryIterator.hasNext) {
        arrowSparkRow = arrowBinaryIterator.next();
@@ -190,11 +186,7 @@ class SchemaIteratorSuite extends AnyFunSuite {
     var avroSparkRow: InternalRow = null
     var arrowSparkRow: InternalRow = null
 
-    val arrowBinaryIterator = new ArrowBinaryIterator(columnsInOrder.asJava,
-      arrowSchema,
-      arrowByteString,
-      Optional.empty(),
-      Optional.empty()).asScala
+    val arrowBinaryIterator = new ArrowBinaryIterator(columnsInOrder.asJava, arrowSchema, arrowByteString, Optional.empty(), Optional.empty(), schemaConvertersConfiguration).asScala
 
     if (arrowBinaryIterator.hasNext) {
       arrowSparkRow = arrowBinaryIterator.next();
@@ -270,8 +262,7 @@ class SchemaIteratorSuite extends AnyFunSuite {
     val columnsInOrder = Seq("col_date_time")
 
     val arrowBinaryIterator =
-      new ArrowBinaryIterator(
-        columnsInOrder.asJava, arrowSchema, arrowByteString, Optional.empty(), Optional.empty()).asScala
+      new ArrowBinaryIterator(columnsInOrder.asJava, arrowSchema, arrowByteString, Optional.empty(), Optional.empty(), schemaConvertersConfiguration).asScala
 
     while (arrowBinaryIterator.hasNext) {
       val arrowSparkRow = arrowBinaryIterator.next()

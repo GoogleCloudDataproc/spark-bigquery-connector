@@ -50,6 +50,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -451,5 +455,20 @@ public class BigQueryUtil {
     return filter
         .map(f -> f.getBytes(StandardCharsets.UTF_8).length < MAX_FILTER_LENGTH_IN_BYTES)
         .orElse(Boolean.TRUE);
+  }
+
+  /**
+   * Converting the timestamp from UTC to another timezone. The timestamp is assumed to come from
+   * be in microseconds.
+   */
+  public static long convertUtcTimestampToTimeZone(long timestamp, ZoneId zone) {
+    long epochSeconds = timestamp / 1_000_000;
+    long epochMicros = timestamp % 1_000_000;
+    Instant i = Instant.ofEpochSecond(epochSeconds, epochMicros * 1000);
+    ZonedDateTime zonedDateTime = i.atZone(zone);
+    ZoneOffset offset = zonedDateTime.getOffset();
+    long zonedSecond = zonedDateTime.toLocalDateTime().toEpochSecond(offset);
+    return zonedSecond  * 1_000_000 + epochMicros;
+
   }
 }

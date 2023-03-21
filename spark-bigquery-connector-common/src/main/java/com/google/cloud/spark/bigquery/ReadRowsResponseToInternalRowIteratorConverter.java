@@ -50,12 +50,14 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
       final List<String> columnsInOrder,
       final ByteString arrowSchema,
       final Optional<StructType> userProvidedSchema,
-      final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
+      final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer,
+      final SchemaConvertersConfiguration schemaConvertersConfiguration) {
     return new Arrow(
         columnsInOrder,
         arrowSchema,
         fromJavaUtil(userProvidedSchema),
-        fromJavaUtil(bigQueryStorageReadRowsTracer));
+        fromJavaUtil(bigQueryStorageReadRowsTracer),
+        schemaConvertersConfiguration);
   }
 
   Iterator<InternalRow> convert(ReadRowsResponse response);
@@ -113,17 +115,20 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
     private final com.google.common.base.Optional<StructType> userProvidedSchema;
     private final com.google.common.base.Optional<BigQueryStorageReadRowsTracer>
         bigQueryStorageReadRowsTracer;
+    private final SchemaConvertersConfiguration schemaConvertersConfiguration;
 
     public Arrow(
         List<String> columnsInOrder,
         ByteString arrowSchema,
         com.google.common.base.Optional<StructType> userProvidedSchema,
         com.google.common.base.Optional<BigQueryStorageReadRowsTracer>
-            bigQueryStorageReadRowsTracer) {
+            bigQueryStorageReadRowsTracer,
+        SchemaConvertersConfiguration schemaConvertersConfiguration) {
       this.columnsInOrder = columnsInOrder;
       this.arrowSchema = arrowSchema;
       this.userProvidedSchema = userProvidedSchema;
       this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
+      this.schemaConvertersConfiguration = schemaConvertersConfiguration;
     }
 
     @Override
@@ -133,7 +138,8 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
           arrowSchema,
           response.getArrowRecordBatch().getSerializedRecordBatch(),
           userProvidedSchema.toJavaUtil(),
-          bigQueryStorageReadRowsTracer.toJavaUtil());
+          bigQueryStorageReadRowsTracer.toJavaUtil(),
+          schemaConvertersConfiguration);
     }
 
     @Override
