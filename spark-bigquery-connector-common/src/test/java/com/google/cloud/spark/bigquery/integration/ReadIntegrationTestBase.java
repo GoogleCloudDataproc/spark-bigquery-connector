@@ -458,7 +458,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testReadFromTableSnapshot() {
-    String snapshot = String.format("%s.%s.snapshot", PROJECT_ID, testDataset);
+    String snapshot = String.format("%s.%s.%s_snapshot", PROJECT_ID, testDataset, testTable);
     String allTypes =
         String.format("%s.%s.%s", PROJECT_ID, testDataset, TestConstants.ALL_TYPES_TABLE_NAME);
     IntegrationTestUtils.runQuery(
