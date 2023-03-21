@@ -4,6 +4,7 @@
 
 * Issue #522: Supporting Spark's Map type. Notice there are few restrictions as this is not a
   BigQuery native type.
+* Added support for reading BigQuery table snapshots.
 
 ## 0.29.0 - 2023-03-03
 

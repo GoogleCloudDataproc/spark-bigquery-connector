@@ -459,25 +459,29 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   @Test
   public void testReadFromTableSnapshot() {
     String snapshot = String.format("%s.%s.snapshot", PROJECT_ID, testDataset);
-    String allTypes = String.format("%s.%s.%s", PROJECT_ID, testDataset, TestConstants.ALL_TYPES_TABLE_NAME);
-    IntegrationTestUtils.runQuery(String.format(
-        "CREATE SNAPSHOT TABLE `%s` CLONE `%s`"
-        , snapshot, allTypes));
-    Row[] allTypesRows = (Row[]) spark
-        .read()
-        .format("bigquery")
-        .option("dataset", testDataset.toString())
-        .option("table", allTypes)
-        .load()
-        .collect();
-    Row[] snapshotRows = (Row[]) spark
-        .read()
-        .format("bigquery")
-        .option("dataset", testDataset.toString())
-        .option("table", snapshot)
-        .load()
-        .collect();
-    assertThat(allTypesRows).isEqualTo(snapshotRows);
+    String allTypes =
+        String.format("%s.%s.%s", PROJECT_ID, testDataset, TestConstants.ALL_TYPES_TABLE_NAME);
+    IntegrationTestUtils.runQuery(
+        String.format("CREATE SNAPSHOT TABLE `%s` CLONE `%s`", snapshot, allTypes));
+    Row[] allTypesRows =
+        (Row[])
+            spark
+                .read()
+                .format("bigquery")
+                .option("dataset", testDataset.toString())
+                .option("table", allTypes)
+                .load()
+                .collect();
+    Row[] snapshotRows =
+        (Row[])
+            spark
+                .read()
+                .format("bigquery")
+                .option("dataset", testDataset.toString())
+                .option("table", snapshot)
+                .load()
+                .collect();
+    assertThat(snapshotRows).isEqualTo(allTypesRows);
   }
 
   /**
