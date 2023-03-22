@@ -41,6 +41,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final int cacheExpirationTimeInMinutes;
   private final ImmutableMap<String, String> bigQueryJobLabels;
   private final Optional<Long> createReadSessionTimeoutInSeconds;
+  private final Optional<Integer> flowControlWindowBytes;
 
   BigQueryClientFactoryConfig(BigQueryConfig bigQueryConfig) {
     this.accessTokenProviderFQCN = bigQueryConfig.getAccessTokenProviderFQCN();
@@ -63,6 +64,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.cacheExpirationTimeInMinutes = bigQueryConfig.getCacheExpirationTimeInMinutes();
     this.bigQueryJobLabels = bigQueryConfig.getBigQueryJobLabels();
     this.createReadSessionTimeoutInSeconds = bigQueryConfig.getCreateReadSessionTimeoutInSeconds();
+    this.flowControlWindowBytes = bigQueryConfig.getFlowControlWindowBytes();
   }
 
   @Override
@@ -161,6 +163,11 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   }
 
   @Override
+  public Optional<Integer> getFlowControlWindowBytes() {
+    return flowControlWindowBytes;
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -185,7 +192,8 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
         && Objects.equal(bigQueryStorageGrpcEndpoint, that.bigQueryStorageGrpcEndpoint)
         && Objects.equal(bigQueryHttpEndpoint, that.bigQueryHttpEndpoint)
         && Objects.equal(cacheExpirationTimeInMinutes, that.cacheExpirationTimeInMinutes)
-        && Objects.equal(createReadSessionTimeoutInSeconds, that.createReadSessionTimeoutInSeconds);
+        && Objects.equal(createReadSessionTimeoutInSeconds, that.createReadSessionTimeoutInSeconds)
+        && Objects.equal(flowControlWindowBytes, that.flowControlWindowBytes);
   }
 
   @Override
@@ -205,6 +213,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
         bigQueryProxyConfig,
         bigQueryStorageGrpcEndpoint,
         bigQueryHttpEndpoint,
-        cacheExpirationTimeInMinutes);
+        cacheExpirationTimeInMinutes,
+        flowControlWindowBytes);
   }
 }

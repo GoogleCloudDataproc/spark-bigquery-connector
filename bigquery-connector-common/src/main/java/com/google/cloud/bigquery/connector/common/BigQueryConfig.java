@@ -58,4 +58,8 @@ public interface BigQueryConfig {
   ImmutableMap<String, String> getBigQueryJobLabels();
 
   Optional<Long> getCreateReadSessionTimeoutInSeconds();
+
+  // Get a static flow control window per RPC. When not set
+  // auto flow control is determined by Bandwidth Delay Product.
+  Optional<Integer> getFlowControlWindowBytes();
 }

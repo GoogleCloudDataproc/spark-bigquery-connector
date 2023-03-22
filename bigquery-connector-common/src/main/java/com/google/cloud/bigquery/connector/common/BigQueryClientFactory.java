@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.api.core.ApiFunction;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.api.gax.rpc.HeaderProvider;
@@ -28,6 +29,8 @@ import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.common.base.Objects;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.netty.NettyChannelBuilder;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
@@ -71,7 +74,9 @@ public class BigQueryClientFactory implements Serializable {
     synchronized (readClientMap) {
       if (!readClientMap.containsKey(this)) {
         BigQueryReadClient bigQueryReadClient =
-            createBigQueryReadClient(this.bqConfig.getBigQueryStorageGrpcEndpoint());
+            createBigQueryReadClient(
+                this.bqConfig.getBigQueryStorageGrpcEndpoint(),
+                this.bqConfig.getFlowControlWindowBytes());
         Runtime.getRuntime()
             .addShutdownHook(new Thread(() -> shutdownBigQueryReadClient(bigQueryReadClient)));
         readClientMap.put(this, bigQueryReadClient);
@@ -139,13 +144,30 @@ public class BigQueryClientFactory implements Serializable {
     return false;
   }
 
-  private BigQueryReadClient createBigQueryReadClient(Optional<String> endpoint) {
+  private BigQueryReadClient createBigQueryReadClient(
+      Optional<String> endpoint, Optional<Integer> flowControlWindow) {
     try {
       InstantiatingGrpcChannelProvider.Builder transportBuilder = createTransportBuilder(endpoint);
+      if (flowControlWindow.isPresent()) {
+        ApiFunction<ManagedChannelBuilder, ManagedChannelBuilder> channelConfigurator =
+            (ManagedChannelBuilder channelBuilder) -> {
+              if (channelBuilder instanceof NettyChannelBuilder) {
+                log.info("Flow control window for netty set to {} bytes", flowControlWindow.get());
+                return ((NettyChannelBuilder) channelBuilder)
+                    .flowControlWindow(flowControlWindow.get());
+              } else {
+                log.info("Flow control window configured but underlying channel is not Netty");
+              }
+              return channelBuilder;
+            };
+
+        transportBuilder = transportBuilder.setChannelConfigurator(channelConfigurator);
+      }
       BigQueryReadSettings.Builder clientSettings =
           BigQueryReadSettings.newBuilder()
               .setTransportChannelProvider(transportBuilder.build())
               .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
+
       bqConfig
           .getCreateReadSessionTimeoutInSeconds()
           .ifPresent(

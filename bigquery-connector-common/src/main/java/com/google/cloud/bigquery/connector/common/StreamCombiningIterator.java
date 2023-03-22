@@ -28,6 +28,8 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An iterator that combines one or more ReadRows requests into a single iterator. Ordering of
@@ -40,6 +42,7 @@ import java.util.stream.Collectors;
  * that becomes a bottleneck for processing.
  */
 public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
+  private static final Logger log = LoggerFactory.getLogger(StreamCombiningIterator.class);
   private static final Object EOS = new Object();
   // Contains either a ReadRowsResponse, or a terminal object of throwable OR EOS
   // This class is engineered keep responses below capacity unless a terminal state has
@@ -67,6 +70,12 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
         this.bufferEntriesPerStream > 0,
         "bufferEntriesPerstream must be positive.  Received: %s",
         this.bufferEntriesPerStream);
+    if (this.bufferEntriesPerStream > 0 || requests.size() > 0) {
+      log.info(
+          "new combining stream with {} streams and {} buffered entries",
+          this.bufferEntriesPerStream,
+          requests.size());
+    }
     // + 1 to leave space for terminal object.
     responses = new ArrayBlockingQueue<>((requests.size() * this.bufferEntriesPerStream) + 1);
     observersQueue = new ArrayBlockingQueue<>(requests.size() * this.bufferEntriesPerStream);
@@ -232,7 +241,6 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       // Ordering is important to ensure there is always an observer present for the given response.
       Preconditions.checkState(observersQueue.add(this));
       Preconditions.checkState(responses.add(value), "Expected capacity in responses");
-      int enqueued = enqueuedCount.incrementAndGet();
     }
 
     @Override
@@ -244,12 +252,10 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
         }
         synchronized (controllerLock) {
           this.controller = controller;
-
           controller.disableAutoInboundFlowControl();
-          int requestCount = bufferEntriesPerStream - enqueuedCount.get();
-          if (requestCount > 0) {
-            controller.request(requestCount);
-          }
+          // Regiest one more because request always decrements.
+          enqueuedCount.incrementAndGet();
+          request();
         }
       }
     }
@@ -279,13 +285,29 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
     }
 
     public synchronized void request() {
+
       if (cancelled) {
         return;
       }
       boolean canExit = false;
+      int count = enqueuedCount.decrementAndGet();
+
+      // Division by is somewhat arbitrary, a better solution would instument
+      // timing and start refreshing just in time.
+      if (count > (bufferEntriesPerStream / 4)) {
+        // Default netty/gRPC values can oversubscribe streams which can
+        // cause thread contention.  By waiting for the buffer to run down
+        // it causes natural thead back-pressure to allow application work
+        // to succeed.
+        return;
+      }
+      int addBack = bufferEntriesPerStream - count;
+      Preconditions.checkState(addBack > 0);
+      enqueuedCount.addAndGet(addBack);
+
       while (!canExit) {
+
         synchronized (controllerLock) {
-          enqueuedCount.decrementAndGet();
           if (controller == null) {
             return;
           }
@@ -298,11 +320,12 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
           // 3.  The stream has no more messages.
           // 4.  Stream is inactive (still initializing).
           try {
-            controller.request(1);
+            controller.request(addBack);
             canExit = true;
           } catch (RuntimeException e) {
             // controller might not be started and javadoc isn't clear if it is on its path
             // to shutdown on what should happen.
+            log.info("Exception on flow control request {} {}", e, builder.getReadStream());
           }
         }
       }
