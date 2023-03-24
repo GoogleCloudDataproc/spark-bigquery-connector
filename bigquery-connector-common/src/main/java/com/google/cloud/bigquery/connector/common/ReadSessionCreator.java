@@ -100,10 +100,10 @@ public class ReadSessionCreator {
     ReadSession.Builder requestedSession = request.getReadSession().toBuilder();
     config.getTraceId().ifPresent(traceId -> requestedSession.setTraceId(traceId));
 
-    if (isInputTableAView(tableDetails)) {
-      filter = Optional.empty();
-    }
     TableReadOptions.Builder readOptions = requestedSession.getReadOptionsBuilder();
+    if (!isInputTableAView(tableDetails)) {
+      filter.ifPresent(readOptions::setRowRestriction);
+    }
     filter.ifPresent(readOptions::setRowRestriction);
     readOptions.addAllSelectedFields(selectedFields);
     readOptions.setArrowSerializationOptions(
