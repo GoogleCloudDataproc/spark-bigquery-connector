@@ -104,7 +104,6 @@ public class ReadSessionCreator {
     if (!isInputTableAView(tableDetails)) {
       filter.ifPresent(readOptions::setRowRestriction);
     }
-    filter.ifPresent(readOptions::setRowRestriction);
     readOptions.addAllSelectedFields(selectedFields);
     readOptions.setArrowSerializationOptions(
         ArrowSerializationOptions.newBuilder()
