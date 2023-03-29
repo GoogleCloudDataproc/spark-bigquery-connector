@@ -17,7 +17,7 @@ package com.google.cloud.spark.bigquery
 
 import java.util.Optional
 import com.google.cloud.bigquery.TableDefinition
-import com.google.cloud.bigquery.TableDefinition.Type.{EXTERNAL, MATERIALIZED_VIEW, TABLE, VIEW}
+import com.google.cloud.bigquery.TableDefinition.Type.{EXTERNAL, MATERIALIZED_VIEW, TABLE, VIEW, SNAPSHOT}
 import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryClientModule, LoggingBigQueryTracerFactory, BigQueryUtil}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
 import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper
@@ -81,7 +81,7 @@ class BigQueryRelationProvider(
     val table = Option(tableInfo)
       .getOrElse(sys.error(s"Table $tableName not found"))
     table.getDefinition[TableDefinition].getType match {
-      case TABLE | EXTERNAL => new DirectBigQueryRelation(opts, table, bigQueryClient, bigQueryReadClientFactory, bigQueryTracerFactory, sqlContext)
+      case TABLE | EXTERNAL | SNAPSHOT => new DirectBigQueryRelation(opts, table, bigQueryClient, bigQueryReadClientFactory, bigQueryTracerFactory, sqlContext)
       case VIEW | MATERIALIZED_VIEW => if (opts.isViewsEnabled) {
         new DirectBigQueryRelation(opts, table, bigQueryClient, bigQueryReadClientFactory, bigQueryTracerFactory, sqlContext)
       } else {
