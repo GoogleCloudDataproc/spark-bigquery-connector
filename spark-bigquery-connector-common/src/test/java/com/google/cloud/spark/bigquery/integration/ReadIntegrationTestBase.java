@@ -456,6 +456,34 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     testShakespeare(df);
   }
 
+  @Test
+  public void testReadFromTableSnapshot() {
+    String snapshot = String.format("%s.%s.%s_snapshot", PROJECT_ID, testDataset, testTable);
+    String allTypes =
+        String.format("%s.%s.%s", PROJECT_ID, testDataset, TestConstants.ALL_TYPES_TABLE_NAME);
+    IntegrationTestUtils.runQuery(
+        String.format("CREATE SNAPSHOT TABLE `%s` CLONE `%s`", snapshot, allTypes));
+    Row[] allTypesRows =
+        (Row[])
+            spark
+                .read()
+                .format("bigquery")
+                .option("dataset", testDataset.toString())
+                .option("table", allTypes)
+                .load()
+                .collect();
+    Row[] snapshotRows =
+        (Row[])
+            spark
+                .read()
+                .format("bigquery")
+                .option("dataset", testDataset.toString())
+                .option("table", snapshot)
+                .load()
+                .collect();
+    assertThat(snapshotRows).isEqualTo(allTypesRows);
+  }
+
   /**
    * Setting the CreateReadSession timeout to 1000 seconds, which should create the read session
    * since the timeout is more and data is less

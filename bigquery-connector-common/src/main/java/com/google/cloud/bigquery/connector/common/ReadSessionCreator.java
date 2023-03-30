@@ -216,7 +216,9 @@ public class ReadSessionCreator {
       TableInfo table, ImmutableList<String> requiredColumns, String[] filters) {
     TableDefinition tableDefinition = table.getDefinition();
     TableDefinition.Type tableType = tableDefinition.getType();
-    if (TableDefinition.Type.TABLE == tableType || TableDefinition.Type.EXTERNAL == tableType) {
+    if (TableDefinition.Type.TABLE == tableType
+        || TableDefinition.Type.EXTERNAL == tableType
+        || TableDefinition.Type.SNAPSHOT == tableType) {
       return table;
     }
     if (isInputTableAView(table)) {
