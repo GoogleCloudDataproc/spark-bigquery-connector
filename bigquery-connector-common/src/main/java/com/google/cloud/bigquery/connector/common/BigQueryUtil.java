@@ -467,7 +467,6 @@ public class BigQueryUtil {
     Instant i = Instant.ofEpochSecond(epochSeconds, epochMicros * 1000);
     ZonedDateTime zonedDateTime = i.atZone(zone);
     ZoneOffset offset = zonedDateTime.getOffset();
-    long zonedSecond = zonedDateTime.toLocalDateTime().toEpochSecond(offset);
-    return zonedSecond * 1_000_000 + epochMicros;
+    return (epochSeconds + offset.getTotalSeconds()) * 1_000_000 + epochMicros;
   }
 }

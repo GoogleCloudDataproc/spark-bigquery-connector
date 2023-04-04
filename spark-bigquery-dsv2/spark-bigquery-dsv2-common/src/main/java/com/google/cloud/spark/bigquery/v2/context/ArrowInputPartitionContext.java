@@ -21,9 +21,11 @@ import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
+import com.google.cloud.bigquery.connector.common.ReadRowsHelper.Options;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
@@ -44,15 +46,17 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
   private final ImmutableList<String> selectedFields;
   private final ByteString serializedArrowSchema;
   private final com.google.common.base.Optional<StructType> userProvidedSchema;
+  private final SchemaConvertersConfiguration schemaConvertersConfiguration;
 
   public ArrowInputPartitionContext(
       BigQueryClientFactory bigQueryReadClientFactory,
       BigQueryTracerFactory tracerFactory,
       List<String> names,
-      ReadRowsHelper.Options options,
+      Options options,
       ImmutableList<String> selectedFields,
       ReadSessionResponse readSessionResponse,
-      Optional<StructType> userProvidedSchema) {
+      Optional<StructType> userProvidedSchema,
+      SchemaConvertersConfiguration schemaConvertersConfiguration) {
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
     this.streamNames = names;
     this.options = options;
@@ -61,6 +65,7 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
         readSessionResponse.getReadSession().getArrowSchema().getSerializedSchema();
     this.tracerFactory = tracerFactory;
     this.userProvidedSchema = fromJavaUtil(userProvidedSchema);
+    this.schemaConvertersConfiguration = schemaConvertersConfiguration;
   }
 
   public InputPartitionReaderContext<ColumnarBatch> createPartitionReaderContext() {
@@ -83,7 +88,8 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
         selectedFields,
         tracer,
         userProvidedSchema.toJavaUtil(),
-        options.numBackgroundThreads());
+        options.numBackgroundThreads(),
+        schemaConvertersConfiguration);
   }
 
   @Override

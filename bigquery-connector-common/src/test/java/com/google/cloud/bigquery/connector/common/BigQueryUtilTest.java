@@ -465,7 +465,7 @@ public class BigQueryUtilTest {
     long convertedTimestamp =
         BigQueryUtil.convertUtcTimestampToTimeZone(timestamp, ZoneId.of("Asia/Jerusalem"));
     // Jerusalem in DST is GMT-3
-    long expectedTimestamp = timestamp - 3 * 60 * 60 * 1_000_000;
+    long expectedTimestamp = timestamp + 3L * 60L * 60L * 1_000_000L;
     assertThat(convertedTimestamp).isEqualTo(expectedTimestamp);
   }
 }
