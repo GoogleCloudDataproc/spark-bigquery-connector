@@ -5,6 +5,11 @@
 * Issue #522: Supporting Spark's Map type. Notice there are few restrictions as this is not a
   BigQuery native type.
 * Added support for reading BigQuery table snapshots.
+* BigQuery API has been upgraded to version 2.24.4
+* BigQuery Storage API has been upgraded to version 2.34.2
+* GAX has been upgraded to version 2.24.0
+* gRPC has been upgraded to version 1.54.0
+* Netty has been upgraded to version 4.1.90.Final
 
 ## 0.29.0 - 2023-03-03
 
