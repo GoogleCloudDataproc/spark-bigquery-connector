@@ -458,8 +458,8 @@ public class BigQueryUtil {
   }
 
   /**
-   * Converting the timestamp from UTC to another timezone. The timestamp is assumed to come from
-   * be in microseconds.
+   * Converting the timestamp from UTC to another timezone. The timestamp is assumed to come from be
+   * in microseconds.
    */
   public static long convertUtcTimestampToTimeZone(long timestamp, ZoneId zone) {
     long epochSeconds = timestamp / 1_000_000;
@@ -468,7 +468,6 @@ public class BigQueryUtil {
     ZonedDateTime zonedDateTime = i.atZone(zone);
     ZoneOffset offset = zonedDateTime.getOffset();
     long zonedSecond = zonedDateTime.toLocalDateTime().toEpochSecond(offset);
-    return zonedSecond  * 1_000_000 + epochMicros;
-
+    return zonedSecond * 1_000_000 + epochMicros;
   }
 }
