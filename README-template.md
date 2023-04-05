@@ -1,3 +1,4 @@
+
 # Apache Spark SQL connector for Google BigQuery
 
 <!--- TODO(#2): split out into more documents. -->
@@ -768,6 +769,19 @@ The API Supports a number of options to configure the read
           seen by running <code>java.time.ZoneId.getAvailableZoneIds()</code> in Java/Scala, or
           <code>sc._jvm.java.time.ZoneId.getAvailableZoneIds()</code> in pyspark.
           <br/> (Optional. Defaults to <code>UTC</code>)
+     </td>
+     <td>Read/Write</td>
+   </tr>
+  <tr>
+     <td><code>queryJobPriority</code>
+     </td>
+     <td> Priority levels set for the job while reading data from BigQuery query. The permitted values are:
+          <ul>
+            <li><code>BATCH</code> - Query is queued and started as soon as idle resources are available, usually within a few minutes. If the query hasn't started within 3 hours, its priority is changed to <code>INTERACTIVE</code>.</li>
+            <li><code>INTERACTIVE</code> - Query is executed as soon as possible and count towards the concurrent rate limit and the daily rate limit.</li>
+          </ul>
+          For WRITE, this option will be effective when DIRECT write is used with OVERWRITE mode, where we overwrite the destination table using MERGE statement.
+          <br/> (Optional. Defaults to <code>INTERACTIVE</code>)
      </td>
      <td>Read/Write</td>
    </tr>

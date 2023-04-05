@@ -16,6 +16,7 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.gax.retrying.RetrySettings;
+import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 
@@ -62,4 +63,6 @@ public interface BigQueryConfig {
   // Get a static flow control window per RPC. When not set
   // auto flow control is determined by Bandwidth Delay Product.
   Optional<Integer> getFlowControlWindowBytes();
+
+  Priority getQueryJobPriority();
 }

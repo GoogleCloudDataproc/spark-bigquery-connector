@@ -30,6 +30,7 @@ import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
@@ -70,7 +71,8 @@ public class IntegrationTestUtils {
             Optional.empty(),
             Optional.empty(),
             destinationTableCache,
-            ImmutableMap.of());
+            ImmutableMap.of(),
+            SparkBigQueryConfig.DEFAULT_JOB_PRIORITY);
     bigQueryClient.query(query);
   }
 

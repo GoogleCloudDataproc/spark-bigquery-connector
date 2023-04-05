@@ -129,4 +129,23 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
               .load(badSql);
         });
   }
+
+  @Test
+  public void testQueryJobPriority() {
+    String random = String.valueOf(System.nanoTime());
+    String query =
+        String.format(
+            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
+            random, random);
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", true)
+            .option("materializationDataset", testDataset.toString())
+            .option("queryJobPriority", "batch")
+            .load(query);
+
+    validateResult(df);
+  }
 }

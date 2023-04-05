@@ -29,6 +29,7 @@ import com.google.cloud.bigquery.JobId;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
@@ -80,12 +81,13 @@ public class BigQueryClient {
       Optional<String> materializationProject,
       Optional<String> materializationDataset,
       Cache<String, TableInfo> destinationTableCache,
-      Map<String, String> labels) {
+      Map<String, String> labels,
+      Priority queryJobPriority) {
     this.bigQuery = bigQuery;
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
     this.destinationTableCache = destinationTableCache;
-    this.jobConfigurationFactory = new JobConfigurationFactory(labels);
+    this.jobConfigurationFactory = new JobConfigurationFactory(labels, queryJobPriority);
   }
 
   /**
@@ -348,7 +350,10 @@ public class BigQueryClient {
 
   public TableResult query(String sql) {
     try {
-      return bigQuery.query(QueryJobConfiguration.of(sql));
+      return bigQuery.query(
+          QueryJobConfiguration.newBuilder(sql)
+              .setPriority(jobConfigurationFactory.queryJobPriority)
+              .build());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new BigQueryException(
@@ -723,14 +728,17 @@ public class BigQueryClient {
 
   static class JobConfigurationFactory {
     private final ImmutableMap<String, String> labels;
+    private final Priority queryJobPriority;
 
-    public JobConfigurationFactory(Map<String, String> labels) {
+    public JobConfigurationFactory(Map<String, String> labels, Priority queryJobPriority) {
       this.labels = ImmutableMap.copyOf(labels);
+      this.queryJobPriority = queryJobPriority;
     }
 
     QueryJobConfiguration.Builder createQueryJobConfigurationBuilder(
         String querySql, Map<String, String> additionalQueryJobLabels) {
-      QueryJobConfiguration.Builder builder = QueryJobConfiguration.newBuilder(querySql);
+      QueryJobConfiguration.Builder builder =
+          QueryJobConfiguration.newBuilder(querySql).setPriority(queryJobPriority);
       Map<String, String> allLabels = new HashMap<>(additionalQueryJobLabels);
 
       if (labels != null && !labels.isEmpty()) {
