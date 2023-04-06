@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.api.gax.rpc.HeaderProvider;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.common.base.Objects;
@@ -438,6 +439,11 @@ public class BigQueryClientFactoryTest {
     @Override
     public Optional<Integer> getFlowControlWindowBytes() {
       return Optional.of(2 << 20);
+    }
+
+    @Override
+    public Priority getQueryJobPriority() {
+      return Priority.INTERACTIVE;
     }
 
     @Override

@@ -16,6 +16,8 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.gax.retrying.RetrySettings;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
@@ -42,6 +44,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final ImmutableMap<String, String> bigQueryJobLabels;
   private final Optional<Long> createReadSessionTimeoutInSeconds;
   private final Optional<Integer> flowControlWindowBytes;
+  private final QueryJobConfiguration.Priority queryJobPriority;
 
   BigQueryClientFactoryConfig(BigQueryConfig bigQueryConfig) {
     this.accessTokenProviderFQCN = bigQueryConfig.getAccessTokenProviderFQCN();
@@ -65,6 +68,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.bigQueryJobLabels = bigQueryConfig.getBigQueryJobLabels();
     this.createReadSessionTimeoutInSeconds = bigQueryConfig.getCreateReadSessionTimeoutInSeconds();
     this.flowControlWindowBytes = bigQueryConfig.getFlowControlWindowBytes();
+    this.queryJobPriority = bigQueryConfig.getQueryJobPriority();
   }
 
   @Override
@@ -165,6 +169,11 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   @Override
   public Optional<Integer> getFlowControlWindowBytes() {
     return flowControlWindowBytes;
+  }
+
+  @Override
+  public Priority getQueryJobPriority() {
+    return queryJobPriority;
   }
 
   @Override

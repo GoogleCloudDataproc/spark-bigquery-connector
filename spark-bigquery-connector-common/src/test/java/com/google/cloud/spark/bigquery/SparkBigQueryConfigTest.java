@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
@@ -122,6 +123,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryJobLabels()).isEmpty();
     assertThat(config.getEnableModeCheckForSchemaFields()).isTrue();
     assertThat(config.getDatetimeZoneId()).isEqualTo(ZoneId.of("UTC"));
+    assertThat(config.getQueryJobPriority()).isEqualTo(SparkBigQueryConfig.DEFAULT_JOB_PRIORITY);
   }
 
   @Test
@@ -166,6 +168,7 @@ public class SparkBigQueryConfigTest {
                 .put("bigQueryJobLabel.foo", "bar")
                 .put("enableModeCheckForSchemaFields", "false")
                 .put("datetimeZoneId", "Asia/Jerusalem")
+                .put("queryJobPriority", "batch")
                 .build());
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -216,6 +219,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryJobLabels()).containsEntry("foo", "bar");
     assertThat(config.getEnableModeCheckForSchemaFields()).isFalse();
     assertThat(config.getDatetimeZoneId()).isEqualTo(ZoneId.of("Asia/Jerusalem"));
+    assertThat(config.getQueryJobPriority()).isEqualTo(Priority.valueOf("BATCH"));
   }
 
   @Test

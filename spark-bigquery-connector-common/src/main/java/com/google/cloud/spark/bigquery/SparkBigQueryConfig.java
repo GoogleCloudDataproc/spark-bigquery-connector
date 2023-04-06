@@ -34,6 +34,8 @@ import com.google.auth.Credentials;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.ParquetOptions;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
@@ -128,6 +130,7 @@ public class SparkBigQueryConfig
   public static final int DEFAULT_CACHE_EXPIRATION_IN_MINUTES = 15;
   static final String BIGQUERY_JOB_LABEL_PREFIX = "bigQueryJobLabel.";
   static final String BIGQUERY_TABLE_LABEL_PREFIX = "bigQueryTableLabel.";
+  public static final Priority DEFAULT_JOB_PRIORITY = Priority.INTERACTIVE;
 
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
@@ -191,6 +194,7 @@ public class SparkBigQueryConfig
   private ImmutableMap<String, String> bigQueryTableLabels = ImmutableMap.of();
   private com.google.common.base.Optional<Long> createReadSessionTimeoutInSeconds;
   private ZoneId datetimeZoneId;
+  private QueryJobConfiguration.Priority queryJobPriority = DEFAULT_JOB_PRIORITY;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -472,6 +476,12 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, "datetimeZoneId")
             .transform(ZoneId::of)
             .or(DEFAULT_DATETIME_ZONE_ID);
+
+    config.queryJobPriority =
+        getAnyOption(globalOptions, options, "queryJobPriority")
+            .transform(String::toUpperCase)
+            .transform(Priority::valueOf)
+            .or(DEFAULT_JOB_PRIORITY);
 
     return config;
   }
@@ -792,6 +802,11 @@ public class SparkBigQueryConfig
   @Override
   public Optional<Integer> getFlowControlWindowBytes() {
     return flowControlWindowBytes.toJavaUtil();
+  }
+
+  @Override
+  public Priority getQueryJobPriority() {
+    return queryJobPriority;
   }
 
   @Override

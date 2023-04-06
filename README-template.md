@@ -771,6 +771,19 @@ The API Supports a number of options to configure the read
      </td>
      <td>Read/Write</td>
    </tr>
+  <tr>
+     <td><code>queryJobPriority</code>
+     </td>
+     <td> Priority levels set for the job while reading data from BigQuery query. The permitted values are:
+          <ul>
+            <li><code>BATCH</code> - Query is queued and started as soon as idle resources are available, usually within a few minutes. If the query hasn't started within 3 hours, its priority is changed to <code>INTERACTIVE</code>.</li>
+            <li><code>INTERACTIVE</code> - Query is executed as soon as possible and count towards the concurrent rate limit and the daily rate limit.</li>
+          </ul>
+          For WRITE, this option will be effective when DIRECT write is used with OVERWRITE mode, where the connector overwrites the destination table using MERGE statement.
+          <br/> (Optional. Defaults to <code>INTERACTIVE</code>)
+     </td>
+     <td>Read/Write</td>
+   </tr>
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter

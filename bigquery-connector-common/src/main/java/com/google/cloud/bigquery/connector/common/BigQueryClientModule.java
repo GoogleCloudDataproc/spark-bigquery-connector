@@ -121,6 +121,7 @@ public class BigQueryClientModule implements com.google.inject.Module {
         config.getMaterializationProject(),
         config.getMaterializationDataset(),
         destinationTableCache,
-        config.getBigQueryJobLabels());
+        config.getBigQueryJobLabels(),
+        config.getQueryJobPriority());
   }
 }
