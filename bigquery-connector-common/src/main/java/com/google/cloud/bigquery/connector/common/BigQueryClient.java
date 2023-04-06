@@ -351,8 +351,8 @@ public class BigQueryClient {
   public TableResult query(String sql) {
     try {
       return bigQuery.query(
-          QueryJobConfiguration.newBuilder(sql)
-              .setPriority(jobConfigurationFactory.queryJobPriority)
+          jobConfigurationFactory
+              .createQueryJobConfigurationBuilder(sql, Collections.emptyMap())
               .build());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
