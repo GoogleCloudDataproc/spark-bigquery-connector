@@ -10,6 +10,7 @@
 * GAX has been upgraded to version 2.24.0
 * gRPC has been upgraded to version 1.54.0
 * Netty has been upgraded to version 4.1.90.Final
+* PR #944: Added support to set query job priority
 
 ## 0.29.0 - 2023-03-03
 
