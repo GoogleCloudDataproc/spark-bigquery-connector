@@ -20,7 +20,9 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class BigQueryClientFactoryConfig implements BigQueryConfig {
 
@@ -29,6 +31,11 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final Optional<String> credentialsKey;
   private final Optional<String> credentialsFile;
   private final Optional<String> accessToken;
+  private final String loggedInUserName;
+  private final Set<String> loggedInUserGroups;
+  private final Optional<String> impersonationServiceAccount;
+  private final Optional<Map<String, String>> impersonationServiceAccountsForUsers;
+  private final Optional<Map<String, String>> impersonationServiceAccountsForGroups;
   private final String parentProjectId;
   private final boolean useParentProjectForMetadataOperations;
   private final boolean viewsEnabled;
@@ -52,6 +59,13 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.credentialsKey = bigQueryConfig.getCredentialsKey();
     this.credentialsFile = bigQueryConfig.getCredentialsFile();
     this.accessToken = bigQueryConfig.getAccessToken();
+    this.loggedInUserName = bigQueryConfig.getLoggedInUserName();
+    this.loggedInUserGroups = bigQueryConfig.getLoggedInUserGroups();
+    this.impersonationServiceAccountsForUsers =
+        bigQueryConfig.getImpersonationServiceAccountsForUsers();
+    this.impersonationServiceAccountsForGroups =
+        bigQueryConfig.getImpersonationServiceAccountsForGroups();
+    this.impersonationServiceAccount = bigQueryConfig.getImpersonationServiceAccount();
     this.parentProjectId = bigQueryConfig.getParentProjectId();
     this.useParentProjectForMetadataOperations =
         bigQueryConfig.useParentProjectForMetadataOperations();
@@ -94,6 +108,31 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   @Override
   public Optional<String> getAccessToken() {
     return accessToken;
+  }
+
+  @Override
+  public String getLoggedInUserName() {
+    return loggedInUserName;
+  }
+
+  @Override
+  public Set<String> getLoggedInUserGroups() {
+    return loggedInUserGroups;
+  }
+
+  @Override
+  public Optional<Map<String, String>> getImpersonationServiceAccountsForUsers() {
+    return impersonationServiceAccountsForUsers;
+  }
+
+  @Override
+  public Optional<Map<String, String>> getImpersonationServiceAccountsForGroups() {
+    return impersonationServiceAccountsForGroups;
+  }
+
+  @Override
+  public Optional<String> getImpersonationServiceAccount() {
+    return impersonationServiceAccount;
   }
 
   @Override
