@@ -5,6 +5,12 @@
 The connector supports reading [Google BigQuery](https://cloud.google.com/bigquery/) tables into Spark's DataFrames, and writing DataFrames back into BigQuery.
 This is done by using the [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources) to communicate with BigQuery.
 
+## Unreleased Changes
+
+This Readme may include documentation for changes that haven't been released yet.  The latest release's documentation and source code are found here.
+
+https://github.com/GoogleCloudDataproc/spark-bigquery-connector/blob/master/README.md
+
 ## BigQuery Storage API
 The [Storage API](https://cloud.google.com/bigquery/docs/reference/storage) streams data in parallel directly from BigQuery via gRPC without using Google Cloud Storage as an intermediary.
 
