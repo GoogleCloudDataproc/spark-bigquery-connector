@@ -131,7 +131,7 @@ gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
 
 ```
 gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
-  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar \
+  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar \
   examples/python/shakespeare.py
 ```
 
