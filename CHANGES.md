@@ -2,6 +2,14 @@
 
 ## Next
 
+* New connectors are out of preview and are now generally available! This includes all the new
+  connectors: spark-2.4-bigquery, spark-3.1-bigquery, spark-3.2-bigquery and spark-3.3-bigquery are GA and ready to be used in all workloads. Please
+  refer to the [compatibility matrix](https://github.com/GoogleCloudDataproc/spark-bigquery-connector#connector-to-spark-compatibility-matrix)
+  when using them.
+* Direct write method is out of preview and is now generally available!
+* `spark-bigquery-with-dependencies_2.11` is no longer published. If a recent version of the Scala
+  2.11 connector is needed, it can be built by checking out the code and running
+  `./mvnw install -Pdsv1_2.11`.
 * Issue #522: Supporting Spark's Map type. Notice there are few restrictions as this is not a
   BigQuery native type.
 * Added support for reading BigQuery table snapshots.
