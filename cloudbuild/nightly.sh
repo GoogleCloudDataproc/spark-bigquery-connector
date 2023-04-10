@@ -67,17 +67,17 @@ case $STEP in
     gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-with-dependencies_2.13/${BUILD_REVISION}/spark-bigquery-with-dependencies_2.13-${BUILD_REVISION}.jar" "gs://${BUCKET}"
     gsutil cp "gs://${BUCKET}/spark-bigquery-with-dependencies_2.13-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-with-dependencies_2.13-nightly-snapshot.jar"
 
-    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-2.4-bigquery/${BUILD_REVISION}-preview/spark-2.4-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}"
-    gsutil cp "gs://${BUCKET}/spark-2.4-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}/spark-2.4-bigquery-nightly-snapshot-preview.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-2.4-bigquery/${BUILD_REVISION}/spark-2.4-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-2.4-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-2.4-bigquery-nightly-snapshot.jar"
 
-    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-3.1-bigquery/${BUILD_REVISION}-preview/spark-3.1-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}"
-    gsutil cp "gs://${BUCKET}/spark-3.1-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}/spark-3.1-bigquery-nightly-snapshot-preview.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-3.1-bigquery/${BUILD_REVISION}/spark-3.1-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-3.1-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.1-bigquery-nightly-snapshot.jar"
 
-    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-3.2-bigquery/${BUILD_REVISION}-preview/spark-3.2-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}"
-    gsutil cp "gs://${BUCKET}/spark-3.2-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}/spark-3.2-bigquery-nightly-snapshot-preview.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-3.2-bigquery/${BUILD_REVISION}/spark-3.2-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-3.2-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.2-bigquery-nightly-snapshot.jar"
 
-    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-3.3-bigquery/${BUILD_REVISION}-preview/spark-3.3-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}"
-    gsutil cp "gs://${BUCKET}/spark-3.3-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}/spark-3.3-bigquery-nightly-snapshot-preview.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-3.3-bigquery/${BUILD_REVISION}/spark-3.3-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-3.3-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.3-bigquery-nightly-snapshot.jar"
 
     exit
     ;;
