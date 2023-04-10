@@ -3,7 +3,7 @@
 ## Next
 
 * New connectors are out of preview and are now generally available! This includes all the new
-  connectors: spark-2.4-bigquery, spark-3.1-bigquery, spark-3.2-bigquery and spark-3.3-bigquery are GA and ready to be used in all workloads. Please 
+  connectors: spark-2.4-bigquery, spark-3.1-bigquery, spark-3.2-bigquery and spark-3.3-bigquery are GA and ready to be used in all workloads. Please
   refer to the [compatibility matrix](https://github.com/GoogleCloudDataproc/spark-bigquery-connector#connector-to-spark-compatibility-matrix)
   when using them.
 * Direct write method is out of preview and is now generally available!
