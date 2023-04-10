@@ -10,7 +10,7 @@
   </parent>
 
   <artifactId>spark-3.3-bigquery-lib</artifactId>
-  <version>${revision}-preview</version>
+  <version>${revision}</version>
   <name>Connector code for BigQuery DataSource v2 for Spark 3.3</name>
   <properties>
     <spark.version>3.3.0</spark.version>

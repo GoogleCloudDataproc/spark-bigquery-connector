@@ -57,16 +57,16 @@ The latest version of the connector is publicly available in the following links
 
 | version    | Link                                                                                                                                                                                                                   |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Spark 3.3  | `gs://spark-lib/bigquery/spark-3.3-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.3-bigquery-${next-release-tag}-preview.jar))                        |
-| Spark 3.2  | `gs://spark-lib/bigquery/spark-3.2-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.2-bigquery-${next-release-tag}-preview.jar))                        |
-| Spark 3.1  | `gs://spark-lib/bigquery/spark-3.1-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.1-bigquery-${next-release-tag}-preview.jar))                        |
-| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}-preview.jar))                        |
+| Spark 3.3  | `gs://spark-lib/bigquery/spark-3.3-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.3-bigquery-${next-release-tag}.jar))                        |
+| Spark 3.2  | `gs://spark-lib/bigquery/spark-3.2-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.2-bigquery-${next-release-tag}.jar))                        |
+| Spark 3.1  | `gs://spark-lib/bigquery/spark-3.1-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.1-bigquery-${next-release-tag}.jar))                        |
+| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}.jar))                        |
 | Scala 2.13 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-${next-release-tag}.jar)) |
 | Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar)) |
 | Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar)) |
 
 The first four versions are Java based connectors targeting Spark 2.4/3.1/3.2/3.3 of all Scala versions built on the new
-Data Source APIs (Data Source API v2) of Spark. They are still in preview mode.
+Data Source APIs (Data Source API v2) of Spark.
 
 The final two connectors are Scala based connectors, please use the jar relevant to your Spark installation as outlined
 below.
@@ -101,10 +101,10 @@ repository. It can be used using the `--packages` option or the
 
 | version    | Connector Artifact                                                                 |
 |------------|------------------------------------------------------------------------------------|
-| Spark 3.3  | `com.google.cloud.spark:spark-3.3-bigquery:${next-release-tag}-preview`            |
-| Spark 3.2  | `com.google.cloud.spark:spark-3.2-bigquery:${next-release-tag}-preview`            |
-| Spark 3.1  | `com.google.cloud.spark:spark-3.1-bigquery:${next-release-tag}-preview`            |
-| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:${next-release-tag}-preview`            |
+| Spark 3.3  | `com.google.cloud.spark:spark-3.3-bigquery:${next-release-tag}`            |
+| Spark 3.2  | `com.google.cloud.spark:spark-3.2-bigquery:${next-release-tag}`            |
+| Spark 3.1  | `com.google.cloud.spark:spark-3.1-bigquery:${next-release-tag}`            |
+| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:${next-release-tag}`            |
 | Scala 2.13 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:${next-release-tag}` |
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:${next-release-tag}` |
 | Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:${next-release-tag}` |
@@ -253,7 +253,7 @@ note there are a few caveats:
 
 Writing DataFrames to BigQuery can be done using two methods: Direct and Indirect.
 
-#### Direct write using the BigQuery Storage Write API (preview)
+#### Direct write using the BigQuery Storage Write API
 
 In this method the data is written directly to BigQuery using the
 [BigQuery Storage Write API](https://cloud.google.com/bigquery/docs/write-api). In order to enable this option, please
@@ -276,8 +276,6 @@ page regarding the BigQuery Storage Write API pricing.
 
 **Important:** Please use version 0.24.2 and above for direct writes, as previous
 versions have a bug that may cause a table deletion in certain cases.
-
-**Important:** Direct write method is in preview mode
 
 #### Indirect write
 In this method the data is written first  to GCS, and then it is loaded it to BigQuery. A GCS bucket must be configured

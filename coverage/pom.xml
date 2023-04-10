@@ -83,12 +83,12 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-2.4-bigquery</artifactId>
-          <version>${project.version}-preview</version>
+          <version>${project.version}</version>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.1-bigquery</artifactId>
-          <version>${project.version}-preview</version>
+          <version>${project.version}</version>
         </dependency>
       </dependencies>
     </profile>
@@ -228,12 +228,12 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-2.4-bigquery</artifactId>
-          <version>${project.version}-preview</version>
+          <version>${project.version}</version>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.1-bigquery</artifactId>
-          <version>${project.version}-preview</version>
+          <version>${project.version}</version>
         </dependency>
       </dependencies>
     </profile>
@@ -246,7 +246,7 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-2.4-bigquery</artifactId>
-          <version>${project.version}-preview</version>
+          <version>${project.version}</version>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
@@ -274,7 +274,7 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.1-bigquery</artifactId>
-          <version>${project.version}-preview</version>
+          <version>${project.version}</version>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
@@ -302,7 +302,7 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.2-bigquery</artifactId>
-          <version>${project.version}-preview</version>
+          <version>${project.version}</version>
         </dependency>
       </dependencies>
     </profile>
@@ -315,7 +315,7 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.3-bigquery</artifactId>
-          <version>${project.version}-preview</version>
+          <version>${project.version}</version>
         </dependency>
       </dependencies>
     </profile>
