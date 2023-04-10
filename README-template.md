@@ -69,7 +69,6 @@ The latest version of the connector is publicly available in the following links
 | Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}.jar))                        |
 | Scala 2.13 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-${next-release-tag}.jar)) |
 | Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar)) |
-| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar)) |
 
 The first four versions are Java based connectors targeting Spark 2.4/3.1/3.2/3.3 of all Scala versions built on the new
 Data Source APIs (Data Source API v2) of Spark.
@@ -113,7 +112,6 @@ repository. It can be used using the `--packages` option or the
 | Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:${next-release-tag}`            |
 | Scala 2.13 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:${next-release-tag}` |
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:${next-release-tag}` |
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:${next-release-tag}` |
 
 ## Hello World Example
 
@@ -131,7 +129,7 @@ gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
 
 ```
 gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
-  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar \
+  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar \
   examples/python/shakespeare.py
 ```
 
@@ -997,7 +995,7 @@ creating the job or added during runtime. See examples below:
 1) Adding python files while launching pyspark
 ```
 # use appropriate version for jar depending on the scala version
-pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar
+pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar
   --py-files gs://spark-lib/bigquery/spark-bigquery-support-${next-release-tag}.zip
   --files gs://spark-lib/bigquery/spark-bigquery-support-${next-release-tag}.zip
 ```
@@ -1009,7 +1007,7 @@ from pyspark import SparkFiles
 # use appropriate version for jar depending on the scala version
 spark = SparkSession.builder\
   .appName('BigNumeric')\
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar')\
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar')\
   .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support-${next-release-tag}.zip')\
   .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support-${next-release-tag}.zip')\
   .getOrCreate()
@@ -1025,7 +1023,7 @@ with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-${next-release-tag}.
 # use appropriate version for jar depending on the scala version
 spark = SparkSession.builder\
   .appName('BigNumeric')\
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-${next-release-tag}.jar')\
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar')\
   .getOrCreate()
 
 spark.sparkContext.addPyFile("gs://spark-lib/bigquery/spark-bigquery-support-${next-release-tag}.zip")
@@ -1136,7 +1134,7 @@ using the following code:
 ```python
 from pyspark.sql import SparkSession
 spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:${next-release-tag}")
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:${next-release-tag}")
   .getOrCreate()
 df = spark.read.format("bigquery")
   .load("dataset.table")
@@ -1145,7 +1143,7 @@ df = spark.read.format("bigquery")
 **Scala:**
 ```python
 val spark = SparkSession.builder
-.config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:${next-release-tag}")
+.config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:${next-release-tag}")
 .getOrCreate()
 val df = spark.read.format("bigquery")
 .load("dataset.table")
