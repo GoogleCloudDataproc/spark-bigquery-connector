@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.30.0 - 2023-04-11
 
 * New connectors are out of preview and are now generally available! This includes all the new
