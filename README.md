@@ -57,16 +57,16 @@ The latest version of the connector is publicly available in the following links
 
 | version    | Link                                                                                                                                                                                                                   |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Spark 3.3  | `gs://spark-lib/bigquery/spark-3.3-bigquery-0.29.0-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.3-bigquery-0.29.0-preview.jar))                        |
-| Spark 3.2  | `gs://spark-lib/bigquery/spark-3.2-bigquery-0.29.0-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.2-bigquery-0.29.0-preview.jar))                        |
-| Spark 3.1  | `gs://spark-lib/bigquery/spark-3.1-bigquery-0.29.0-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.1-bigquery-0.29.0-preview.jar))                        |
-| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-0.29.0-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-0.29.0-preview.jar))                        |
-| Scala 2.13 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-0.29.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-0.29.0.jar)) |
-| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.29.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.29.0.jar)) |
-| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar)) |
+| Spark 3.3  | `gs://spark-lib/bigquery/spark-3.3-bigquery-0.30.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.3-bigquery-0.30.0.jar))                                        |
+| Spark 3.2  | `gs://spark-lib/bigquery/spark-3.2-bigquery-0.30.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.2-bigquery-0.30.0.jar))                                        |
+| Spark 3.1  | `gs://spark-lib/bigquery/spark-3.1-bigquery-0.30.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.1-bigquery-0.30.0.jar))                                        |
+| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-0.30.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-0.30.0.jar))                                        |
+| Scala 2.13 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-0.30.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-0.30.0.jar)) |
+| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.30.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.30.0.jar)) |
+| Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar))                           |
 
 The first four versions are Java based connectors targeting Spark 2.4/3.1/3.2/3.3 of all Scala versions built on the new
-Data Source APIs (Data Source API v2) of Spark. They are still in preview mode.
+Data Source APIs (Data Source API v2) of Spark.
 
 The final two connectors are Scala based connectors, please use the jar relevant to your Spark installation as outlined
 below.
@@ -101,13 +101,13 @@ repository. It can be used using the `--packages` option or the
 
 | version    | Connector Artifact                                                                 |
 |------------|------------------------------------------------------------------------------------|
-| Spark 3.3  | `com.google.cloud.spark:spark-3.3-bigquery:0.29.0-preview`            |
-| Spark 3.2  | `com.google.cloud.spark:spark-3.2-bigquery:0.29.0-preview`            |
-| Spark 3.1  | `com.google.cloud.spark:spark-3.1-bigquery:0.29.0-preview`            |
-| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:0.29.0-preview`            |
-| Scala 2.13 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:0.29.0` |
-| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.29.0` |
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0` |
+| Spark 3.3  | `com.google.cloud.spark:spark-3.3-bigquery:0.30.0`                    |
+| Spark 3.2  | `com.google.cloud.spark:spark-3.2-bigquery:0.30.0`                    |
+| Spark 3.1  | `com.google.cloud.spark:spark-3.1-bigquery:0.30.0`                    |
+| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:0.30.0`                    |
+| Scala 2.13 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:0.30.0` |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.30.0` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0`              |
 
 ## Hello World Example
 
@@ -117,7 +117,7 @@ You can run a simple PySpark wordcount against the API without compilation by ru
 
 ```
 gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
-  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.29.0.jar \
+  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.30.0.jar \
   examples/python/shakespeare.py
 ```
 
@@ -253,7 +253,7 @@ note there are a few caveats:
 
 Writing DataFrames to BigQuery can be done using two methods: Direct and Indirect.
 
-#### Direct write using the BigQuery Storage Write API (preview)
+#### Direct write using the BigQuery Storage Write API
 
 In this method the data is written directly to BigQuery using the
 [BigQuery Storage Write API](https://cloud.google.com/bigquery/docs/write-api). In order to enable this option, please
@@ -276,8 +276,6 @@ page regarding the BigQuery Storage Write API pricing.
 
 **Important:** Please use version 0.24.2 and above for direct writes, as previous
 versions have a bug that may cause a table deletion in certain cases.
-
-**Important:** Direct write method is in preview mode
 
 #### Indirect write
 In this method the data is written first  to GCS, and then it is loaded it to BigQuery. A GCS bucket must be configured
@@ -757,6 +755,33 @@ The API Supports a number of options to configure the read
      </td>
      <td>Read</td>
    </tr>
+   <tr>
+     <td><code>datetimeZoneId</code>
+     </td>
+     <td> The time zone ID used to convert BigQuery's
+          <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#datetime_type">DATETIME</a>
+          into Spark's Timestamp, and vice versa.
+          <br/> The value should be a legal <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">time zone name</a>,
+          that appears is accepted by Java's <code>java.time.ZoneId</code>. The full list can be
+          seen by running <code>java.time.ZoneId.getAvailableZoneIds()</code> in Java/Scala, or
+          <code>sc._jvm.java.time.ZoneId.getAvailableZoneIds()</code> in pyspark.
+          <br/> (Optional. Defaults to <code>UTC</code>)
+     </td>
+     <td>Read/Write</td>
+   </tr>
+  <tr>
+     <td><code>queryJobPriority</code>
+     </td>
+     <td> Priority levels set for the job while reading data from BigQuery query. The permitted values are:
+          <ul>
+            <li><code>BATCH</code> - Query is queued and started as soon as idle resources are available, usually within a few minutes. If the query hasn't started within 3 hours, its priority is changed to <code>INTERACTIVE</code>.</li>
+            <li><code>INTERACTIVE</code> - Query is executed as soon as possible and count towards the concurrent rate limit and the daily rate limit.</li>
+          </ul>
+          For WRITE, this option will be effective when DIRECT write is used with OVERWRITE mode, where the connector overwrites the destination table using MERGE statement.
+          <br/> (Optional. Defaults to <code>INTERACTIVE</code>)
+     </td>
+     <td>Read/Write</td>
+   </tr>
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter
@@ -874,11 +899,9 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
   <tr valign="top">
    <td><strong><code>DATETIME</code></strong>
    </td>
-   <td><strong><code>StringType</code></strong>
+   <td><strong><code>TimestampType</code></strong>
    </td>
-   <td>Spark has no DATETIME type. Casting to TIMESTAMP uses a configured TimeZone, which defaults to the local timezone (UTC in GCE / Dataproc).
-<p>
-We are considering adding an optional TimeZone property to allow automatically  converting to TimeStamp, this would be consistent with Spark's handling of CSV/JSON (except they always try to convert when inferring schema, and default to the local timezone)
+   <td>Spark has no DATETIME type. The value is casted as a local time in the `datetimeZoneId` time zone.
    </td>
   </tr>
   <tr valign="top">
@@ -901,6 +924,22 @@ When casting to Timestamp TIME have the same TimeZone issues as DATETIME
           <li>Use the <code>INDIRECT</code> write method</li>
           <li>Use the <code>AVRO</code> intermediate format</li>
           <li>The DataFrame field <b>MUST</b> be of type <code>String</code> and has an entry of sqlType=JSON in its metadata</li>
+       </ul>
+   </td>
+  </tr>
+  <tr valign="top" id="datatype:map">
+   <td><strong><code>ARRAY&lt;STRUCT&lt;key,value&gt;&gt;</code></strong>
+   </td>
+   <td><strong><code>MapType</code></strong>
+   </td>
+   <td>BigQuery has no MAP type, therefore similar to other conversions like Apache Avro and BigQuery Load jobs, the connector converts a Spark Map to a REPEATED STRUCT&lt;key,value&gt;.
+       This means that while writing and reading of maps is available, running a SQL on BigQuery that uses map semantics is not supported.
+       To refer to the map's values using BigQuery SQL, please check the <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/arrays">BigQuery documentation</a>.
+       Due to these incompatibilities, a few restrictions apply:
+       <ul>
+          <li>Keys can be Strings only</li>
+          <li>Values can be simple types (not structs)</li>
+          <li>For INDIRECT write, use the <code>AVRO</code> intermediate format. DIRECT write is supported as well</li>
        </ul>
    </td>
   </tr>
@@ -952,9 +991,9 @@ creating the job or added during runtime. See examples below:
 1) Adding python files while launching pyspark
 ```
 # use appropriate version for jar depending on the scala version
-pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar
-  --py-files gs://spark-lib/bigquery/spark-bigquery-support-0.29.0.zip
-  --files gs://spark-lib/bigquery/spark-bigquery-support-0.29.0.zip
+pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.30.0.jar
+  --py-files gs://spark-lib/bigquery/spark-bigquery-support-0.30.0.zip
+  --files gs://spark-lib/bigquery/spark-bigquery-support-0.30.0.zip
 ```
 
 2) Adding python files in Jupyter Notebook
@@ -964,14 +1003,14 @@ from pyspark import SparkFiles
 # use appropriate version for jar depending on the scala version
 spark = SparkSession.builder\
   .appName('BigNumeric')\
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar')\
-  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support-0.29.0.zip')\
-  .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support-0.29.0.zip')\
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.30.0.jar')\
+  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support-0.30.0.zip')\
+  .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support-0.30.0.zip')\
   .getOrCreate()
 
 # extract the spark-bigquery-support zip file
 import zipfile
-with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.29.0.zip")) as zf:
+with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.30.0.zip")) as zf:
   zf.extractall()
 ```
 
@@ -980,10 +1019,10 @@ with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.29.0.zip")) as zf:
 # use appropriate version for jar depending on the scala version
 spark = SparkSession.builder\
   .appName('BigNumeric')\
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar')\
+  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.30.0.jar')\
   .getOrCreate()
 
-spark.sparkContext.addPyFile("gs://spark-lib/bigquery/spark-bigquery-support-0.29.0.zip")
+spark.sparkContext.addPyFile("gs://spark-lib/bigquery/spark-bigquery-support-0.30.0.zip")
 ```
 
 Usage Example:
@@ -1091,7 +1130,7 @@ using the following code:
 ```python
 from pyspark.sql import SparkSession
 spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0")
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.30.0")
   .getOrCreate()
 df = spark.read.format("bigquery")
   .load("dataset.table")
@@ -1100,7 +1139,7 @@ df = spark.read.format("bigquery")
 **Scala:**
 ```python
 val spark = SparkSession.builder
-.config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0")
+.config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.30.0")
 .getOrCreate()
 val df = spark.read.format("bigquery")
 .load("dataset.table")
@@ -1108,7 +1147,7 @@ val df = spark.read.format("bigquery")
 
 In case Spark cluster is using Scala 2.12 (it's optional for Spark 2.4.x,
 mandatory in 3.0.x), then the relevant package is
-com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.29.0. In
+com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.30.0. In
 order to know which Scala version is used, please run the following code:
 
 **Python:**
@@ -1132,14 +1171,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery-with-dependencies_${scala.version}</artifactId>
-  <version>0.29.0</version>
+  <version>0.30.0</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.29.0"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.30.0"
 ```
 
 ## FAQ
@@ -1183,7 +1222,9 @@ spark.read.format("bigquery").option("credentials", "<SERVICE_ACCOUNT_JSON_IN_BA
   [com.google.cloud.bigquery.connector.common.AccessTokenProvider](https://github.com/GoogleCloudDataproc/spark-bigquery-connector/tree/master/bigquery-connector-common/src/main/java/com/google/cloud/bigquery/connector/common/AccessTokenProvider.java)
   interface. The fully qualified class name of the implementation should be provided in the `gcpAccessTokenProvider`
   option. `AccessTokenProvider` must be implemented in Java or other JVM language such as Scala or Kotlin. It must
-  have a no-arg constructor. The jar containing the implementation should be on the cluster's classpath.
+  either have a no-arg constructor or a constructor accepting a single `java.util.String` argument. This configuration
+  parameter can be supplied using the `gcpAccessTokenProviderConfig` option. If this is not provided then the no-arg
+  constructor wil be called. The jar containing the implementation should be on the cluster's classpath.
 ```
 // Globally
 spark.conf.set("gcpAccessTokenProvider", "com.example.ExampleAccessTokenProvider")
@@ -1201,8 +1242,7 @@ spark.read.format("bigquery").option("gcpAccessToken", "<acccess-token>")
 ```
 
 **Important:** The `CredentialsProvider` and  `AccessTokenProvider` need to be implemented in Java or
-other JVM language such as Scala or Kotlin. It must have a no-arg constructor. The jar containing
-the implementation should be on the cluster's classpath.
+other JVM language such as Scala or Kotlin. The jar containing the implementation should be on the cluster's classpath.
 
 **Notice:** Only one of the above options should be provided.
 

@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.30.0 - 2023-04-11
 
 * New connectors are out of preview and are now generally available! This includes all the new
   connectors: spark-2.4-bigquery, spark-3.1-bigquery, spark-3.2-bigquery and spark-3.3-bigquery are GA and ready to be used in all workloads. Please
