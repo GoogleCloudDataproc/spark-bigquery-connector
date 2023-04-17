@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -34,6 +35,7 @@ import java.security.PrivateKey;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
+import org.apache.beam.sdk.util.UnboundedScheduledExecutorService;
 import org.junit.Test;
 
 public class BigQueryClientFactoryTest {
@@ -71,6 +73,17 @@ public class BigQueryClientFactoryTest {
   public BigQueryClientFactoryTest() {
     when(bigQueryConfig.useParentProjectForMetadataOperations()).thenReturn(false);
     this.headerProvider = HttpUtil.createHeaderProvider(bigQueryConfig, "test-agent");
+  }
+
+  @Test
+  public void testDefaultSettings() {
+    BigQueryClientFactory clientFactory =
+        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    BigQueryReadClient readClient = clientFactory.getBigQueryReadClient();
+    assertNotNull(readClient);
+    assertThat(readClient.getSettings().getBackgroundExecutorProvider().getExecutor())
+        .isInstanceOf(UnboundedScheduledExecutorService.class);
   }
 
   @Test
