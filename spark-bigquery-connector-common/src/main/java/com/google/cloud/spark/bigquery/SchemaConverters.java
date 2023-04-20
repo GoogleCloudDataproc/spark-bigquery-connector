@@ -34,13 +34,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
-import org.apache.spark.bigquery.BigNumericUDT;
-import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
+import scala.annotation.meta.field;
 
 public class SchemaConverters {
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
@@ -181,18 +180,14 @@ public class SchemaConverters {
       return getBytes((ByteBuffer) value);
     }
 
-    if (LegacySQLTypeName.NUMERIC.equals(bqField.getType())) {
+    if (LegacySQLTypeName.NUMERIC.equals(bqField.getType())
+        || LegacySQLTypeName.BIGNUMERIC.equals(bqField.getType())) {
       byte[] bytes = getBytes((ByteBuffer) value);
-      BigDecimal b = new BigDecimal(new BigInteger(bytes), BQ_NUMERIC_SCALE);
-      Decimal d = Decimal.apply(b, BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
+      int scale = bqField.getScale().intValue();
+      BigDecimal b = new BigDecimal(new BigInteger(bytes), scale);
+      Decimal d = Decimal.apply(b, bqField.getPrecision().intValue(), scale);
 
       return d;
-    }
-
-    if (LegacySQLTypeName.BIGNUMERIC.equals(bqField.getType())) {
-      byte[] bytes = getBytes((ByteBuffer) value);
-      BigDecimal bigDecimal = new BigDecimal(new BigInteger(bytes), BQ_BIG_NUMERIC_SCALE);
-      return UTF8String.fromString(bigDecimal.toString());
     }
 
     if (LegacySQLTypeName.RECORD.equals(bqField.getType())) {
@@ -337,9 +332,17 @@ public class SchemaConverters {
     } else if (LegacySQLTypeName.FLOAT.equals(field.getType())) {
       return DataTypes.DoubleType;
     } else if (LegacySQLTypeName.NUMERIC.equals(field.getType())) {
-      return NUMERIC_SPARK_TYPE;
+      return DataTypes.createDecimalType(
+          field.getPrecision().intValue(), field.getScale().intValue());
     } else if (LegacySQLTypeName.BIGNUMERIC.equals(field.getType())) {
-      return BigQueryDataTypes.BigNumericType;
+      int precision = field.getPrecision().intValue();
+      if (precision > DecimalType.MAX_PRECISION()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "BigNumeric precision is too wide (%d), Spark can only handle decimal types with max precision of %d",
+                precision, DecimalType.MAX_PRECISION()));
+      }
+      return DataTypes.createDecimalType(precision, field.getScale().intValue());
     } else if (LegacySQLTypeName.STRING.equals(field.getType())) {
       return DataTypes.StringType;
     } else if (LegacySQLTypeName.BOOLEAN.equals(field.getType())) {
@@ -398,6 +401,8 @@ public class SchemaConverters {
     Field.Mode fieldMode = (sparkField.nullable()) ? Field.Mode.NULLABLE : Field.Mode.REQUIRED;
     FieldList subFields = null;
     LegacySQLTypeName fieldType;
+    OptionalLong scale = OptionalLong.empty();
+    long precision = 0;
 
     if (sparkType instanceof ArrayType) {
       ArrayType arrayType = (ArrayType) sparkType;
@@ -421,6 +426,14 @@ public class SchemaConverters {
               Field.newBuilder("value", toBigQueryType(mapType.valueType(), sparkField.metadata()))
                   .setMode(mapType.valueContainsNull() ? Mode.NULLABLE : Mode.REQUIRED)
                   .build());
+    } else if (sparkType instanceof DecimalType) {
+      DecimalType decimalType = (DecimalType) sparkType;
+      fieldType =
+          (decimalType.scale() > BQ_NUMERIC_SCALE)
+              ? LegacySQLTypeName.BIGNUMERIC
+              : LegacySQLTypeName.NUMERIC;
+      scale = OptionalLong.of(decimalType.scale());
+      precision = decimalType.precision();
     } else {
       fieldType = toBigQueryType(sparkType, sparkField.metadata());
     }
@@ -431,6 +444,12 @@ public class SchemaConverters {
 
     if (description.isPresent()) {
       fieldBuilder.setDescription(description.get());
+    }
+
+    // if this is a decimal type
+    if (scale.isPresent()) {
+      fieldBuilder.setPrecision(precision);
+      fieldBuilder.setScale(scale.getAsLong());
     }
 
     return fieldBuilder.build();
@@ -463,19 +482,6 @@ public class SchemaConverters {
     }
     if (elementType instanceof FloatType || elementType instanceof DoubleType) {
       return LegacySQLTypeName.FLOAT;
-    }
-    if (elementType instanceof DecimalType) {
-      DecimalType decimalType = (DecimalType) elementType;
-      if (decimalType.precision() <= BQ_NUMERIC_PRECISION
-          && decimalType.scale() <= BQ_NUMERIC_SCALE) {
-        return LegacySQLTypeName.NUMERIC;
-      } else {
-        throw new IllegalArgumentException(
-            "Decimal type is too wide to fit in BigQuery Numeric format");
-      }
-    }
-    if (elementType instanceof BigNumericUDT) {
-      return LegacySQLTypeName.BIGNUMERIC;
     }
     if (elementType instanceof StringType) {
       if (SparkBigQueryUtil.isJson(metadata)) {

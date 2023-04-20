@@ -35,8 +35,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import org.apache.spark.bigquery.BigNumericUDT;
-import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSqlUtils;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -143,9 +141,6 @@ public class ProtobufUtils {
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
               .put(
                   NUMERIC_SPARK_TYPE.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
-              .put(
-                  BigQueryDataTypes.BigNumericType.json(),
-                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(
                   DataTypes.StringType.json(),
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
@@ -421,10 +416,6 @@ public class ProtobufUtils {
 
     if (sparkType instanceof DecimalType) {
       return convertDecimalToString(sparkValue);
-    }
-
-    if (sparkType instanceof BigNumericUDT) {
-      return sparkValue.toString();
     }
 
     if (sparkType instanceof BooleanType) {
