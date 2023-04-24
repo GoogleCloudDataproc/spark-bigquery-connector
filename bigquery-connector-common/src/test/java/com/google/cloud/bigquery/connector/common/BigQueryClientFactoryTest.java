@@ -28,7 +28,6 @@ import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
-import com.google.cloud.spark.bigquery.UnboundedScheduledExecutorService;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import java.net.URI;

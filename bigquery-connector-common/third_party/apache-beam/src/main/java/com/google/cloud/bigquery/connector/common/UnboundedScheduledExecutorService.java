@@ -1,4 +1,4 @@
-package com.google.cloud.spark.bigquery;
+package com.google.cloud.bigquery.connector.common;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
