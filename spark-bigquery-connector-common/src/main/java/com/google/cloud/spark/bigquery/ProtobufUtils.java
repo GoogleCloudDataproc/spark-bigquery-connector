@@ -29,6 +29,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.DescriptorProtos.FieldDescriptorProto.Type;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import java.math.BigDecimal;
@@ -563,6 +564,9 @@ public class ProtobufUtils {
 
   private static DescriptorProtos.FieldDescriptorProto.Type toProtoFieldType(DataType sparkType) {
     if (sparkType instanceof MapType) {;
+    }
+    if (sparkType instanceof DecimalType) {
+      return Type.TYPE_STRING;
     }
     return Preconditions.checkNotNull(
         SparkToProtoType.get(sparkType.json()),

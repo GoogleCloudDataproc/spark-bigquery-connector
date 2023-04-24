@@ -144,8 +144,7 @@ public class ProtobufUtilsTest {
                             new MathContext(BQ_NUMERIC_PRECISION)),
                         BQ_NUMERIC_PRECISION,
                         BQ_NUMERIC_SCALE),
-                    UTF8String.fromString(
-                        "-578960446186580977117854925043439539266.34992332820282019728792003956564819968")
+                    Decimal.apply(new BigDecimal("0.78960446186580977117854925043439539146"))
                   })
             });
 
@@ -395,7 +394,7 @@ public class ProtobufUtilsTest {
                       "-99999999999999999999999999999.999999999")
                   .setField(
                       BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(11),
-                      "-578960446186580977117854925043439539266.34992332820282019728792003956564819968")
+                      "0.78960446186580977117854925043439539146")
                   .build()
                   .toByteString())
           .build();
