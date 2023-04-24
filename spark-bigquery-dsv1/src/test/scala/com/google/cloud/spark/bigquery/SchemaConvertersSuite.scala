@@ -56,7 +56,7 @@ class SchemaConvertersSuite extends AnyFunSuite {
       Field.newBuilder("required", BOOLEAN).setMode(Mode.REQUIRED).build(),
       Field.newBuilder("binary_arr", BYTES).setMode(Mode.REPEATED).build(),
       Field.of("float", FLOAT),
-      Field.of("numeric", NUMERIC),
+      Field.newBuilder("numeric", NUMERIC).setPrecision(38).setScale(9).build(),
       Field.of("date", DATE),
       Field.of("times", RECORD,
         Field.of("time", TIME),

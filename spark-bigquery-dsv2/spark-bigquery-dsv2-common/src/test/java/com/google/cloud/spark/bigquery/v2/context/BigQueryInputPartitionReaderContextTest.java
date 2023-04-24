@@ -39,7 +39,10 @@ public class BigQueryInputPartitionReaderContextTest {
           Field.of("bytes_f", LegacySQLTypeName.BYTES),
           Field.of("int_f", LegacySQLTypeName.INTEGER),
           Field.of("float_f", LegacySQLTypeName.FLOAT),
-          Field.of("numeric_f", LegacySQLTypeName.NUMERIC),
+          Field.newBuilder("numeric_f", LegacySQLTypeName.NUMERIC)
+              .setPrecision(38L)
+              .setScale(9L)
+              .build(),
           Field.of("boolean_f", LegacySQLTypeName.BOOLEAN),
           Field.of("timestamp_f", LegacySQLTypeName.TIMESTAMP),
           Field.of("date_f", LegacySQLTypeName.DATE),

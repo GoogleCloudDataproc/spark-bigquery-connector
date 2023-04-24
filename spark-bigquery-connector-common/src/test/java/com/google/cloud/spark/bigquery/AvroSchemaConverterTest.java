@@ -66,11 +66,11 @@ public class AvroSchemaConverterTest {
                 null,
                 false,
                 ImmutableList.of(
-                    new Schema.Field("min", nullable(decimal("min")), null, (Object) null),
-                    new Schema.Field("max", nullable(decimal("max")), null, (Object) null),
-                    new Schema.Field("pi", nullable(decimal("pi")), null, (Object) null),
+                    new Schema.Field("min", nullable(numericDecimal("min")), null, (Object) null),
+                    new Schema.Field("max", nullable(numericDecimal("max")), null, (Object) null),
+                    new Schema.Field("pi", nullable(numericDecimal("pi")), null, (Object) null),
                     new Schema.Field(
-                        "big_pi", nullable(decimal("big_pi")), null, (Object) null)))));
+                        "big_pi", nullable(numericDecimal("big_pi")), null, (Object) null)))));
 
     checkField(
         fields[11],
@@ -82,8 +82,10 @@ public class AvroSchemaConverterTest {
                 null,
                 false,
                 ImmutableList.of(
-                    new Schema.Field("min", nullable(Schema.Type.STRING), null, (Object) null),
-                    new Schema.Field("max", nullable(Schema.Type.STRING), null, (Object) null)))));
+                    new Schema.Field(
+                        "min", nullable(bignumericDecimal("min")), null, (Object) null),
+                    new Schema.Field(
+                        "max", nullable(bignumericDecimal("max")), null, (Object) null)))));
 
     checkField(fields[12], "int_arr", nullable(Schema.createArray(nullable(Schema.Type.LONG))));
     checkField(
@@ -215,7 +217,7 @@ public class AvroSchemaConverterTest {
         SchemaBuilder.record("root")
             .fields() //
             .name("decimal_f")
-            .type(decimal("decimal_f"))
+            .type(numericDecimal("decimal_f"))
             .noDefault() //
             .endRecord();
     GenericData.Record result =
@@ -291,8 +293,12 @@ public class AvroSchemaConverterTest {
     assertThat(field.schema()).isEqualTo(schema);
   }
 
-  private Schema decimal(String name) {
+  private Schema numericDecimal(String name) {
     return LogicalTypes.decimal(38, 9).addToSchema(SchemaBuilder.builder().bytesType());
+  }
+
+  private Schema bignumericDecimal(String name) {
+    return LogicalTypes.decimal(38, 38).addToSchema(SchemaBuilder.builder().bytesType());
   }
 
   Schema nullable(Schema schema) {
