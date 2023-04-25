@@ -212,7 +212,7 @@ public class TestConstants {
               "float float64,",
               "json_f json,",
               "nums struct<min numeric, max numeric, pi numeric, big_pi numeric>,",
-              //          "big_numeric_nums struct<min bignumeric, max bignumeric>,",
+              "big_numeric_nums struct<min bignumeric, max bignumeric>,",
               "int_arr array<int64>,",
               "int_struct_arr array<struct<i int64>>,",
               "nested_struct struct<int_null int64, str string, inner_struct struct<bl bool, str string, int_null int64>>",
@@ -237,9 +237,9 @@ public class TestConstants {
               "  cast(\"31415926535897932384626433832.795028841\" as numeric) as big_pi",
               ") as nums,",
               "struct(",
-              "cast(\"-578960446186580977117854925043439539266.34992332820282019728792003956564819968\" as bignumeric) as min,",
-              "cast(\"578960446186580977117854925043439539266.34992332820282019728792003956564819967\" as bignumeric) as max",
-              // ") as big_numeric_nums,",
+              "cast(\"-0.34992332820282019728792003956564819968\" as bignumeric) as min,",
+              "cast(\"0.34992332820282019728792003956564819967\" as bignumeric) as max",
+              ") as big_numeric_nums,",
               "[1, 2, 3] as int_arr,",
               "[(select as struct 1)] as int_struct_arr,",
               "struct(",
@@ -323,10 +323,8 @@ public class TestConstants {
               lit(3.14).cast(BQ_NUMERIC),
               lit("31415926535897932384626433832.795028841").cast(BQ_NUMERIC)),
           struct(
-              lit(
-                  "-578960446186580977117854925043439539266.34992332820282019728792003956564819968"),
-              lit(
-                  "578960446186580977117854925043439539266.34992332820282019728792003956564819967")),
+              lit("-0.34992332820282019728792003956564819968"),
+              lit("0.34992332820282019728792003956564819967")),
           array(lit(1), lit(2), lit(3)),
           array(struct(lit(1))),
           struct(lit(1), lit("stringa"), struct(lit(true), lit("stringaa"), lit(11))));
@@ -381,8 +379,7 @@ public class TestConstants {
                   "big_numeric_nums",
                   new StructType()
                       .add(new StructField("min", BQ_BIGNUMERIC, true, Metadata.empty()))
-                      .add(new StructField("max", BQ_BIGNUMERIC, true, Metadata.empty()))
-                      .add(new StructField("pi", BQ_BIGNUMERIC, true, Metadata.empty())),
+                      .add(new StructField("max", BQ_BIGNUMERIC, true, Metadata.empty())),
                   true,
                   Metadata.empty()))
           .add(new StructField("int_arr", new ArrayType(IntegerType, true), true, Metadata.empty()))
@@ -434,8 +431,7 @@ public class TestConstants {
                   "big_numeric_nums",
                   new StructType()
                       .add(new StructField("min", BQ_BIGNUMERIC, true, Metadata.empty()))
-                      .add(new StructField("max", BQ_BIGNUMERIC, true, Metadata.empty()))
-                      .add(new StructField("pi", BQ_BIGNUMERIC, true, Metadata.empty())),
+                      .add(new StructField("max", BQ_BIGNUMERIC, true, Metadata.empty())),
                   true,
                   Metadata.empty()))
           .add(new StructField("int_arr", new ArrayType(LongType, true), true, Metadata.empty()))
@@ -490,16 +486,13 @@ public class TestConstants {
                     BQ_NUMERIC_SCALE)),
             RowFactory.create(
                 Decimal.apply(
-                    new BigDecimal(
-                        "-578960446186580977117854925043439539266.34992332820282019728792003956564819968"),
+                    new BigDecimal("-0.34992332820282019728792003956564819968"),
                     BQ_NUMERIC_PRECISION,
                     BQ_BIGNUMERIC_SCALE),
                 Decimal.apply(
-                    new BigDecimal(
-                        "578960446186580977117854925043439539266.34992332820282019728792003956564819967"),
+                    new BigDecimal("0.34992332820282019728792003956564819967"),
                     BQ_NUMERIC_PRECISION,
-                    BQ_BIGNUMERIC_SCALE),
-                Decimal.apply(new BigDecimal("3.14"), BQ_NUMERIC_PRECISION, BQ_BIGNUMERIC_SCALE)),
+                    BQ_BIGNUMERIC_SCALE)),
             new int[] {1, 2, 3, 4},
             new Row[] {RowFactory.create(1), RowFactory.create(1)})
       };
