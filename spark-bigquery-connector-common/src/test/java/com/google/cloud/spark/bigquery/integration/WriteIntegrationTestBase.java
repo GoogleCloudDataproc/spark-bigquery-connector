@@ -66,6 +66,7 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import scala.Some;
@@ -102,10 +103,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     this.testTable = "test_" + System.nanoTime();
   }
 
-  private String createDiffInSchemaDestTable() {
+  private String createDiffInSchemaDestTable(String schema) {
     String destTableName = TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_NAME + "_" + System.nanoTime();
-    IntegrationTestUtils.runQuery(
-        String.format(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE, testDataset, destTableName));
+    IntegrationTestUtils.runQuery(String.format(schema, testDataset, destTableName));
     return destTableName;
   }
 
@@ -139,7 +139,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   protected int testTableNumberOfRows() throws InterruptedException {
-    String query = String.format("select * from %s.%s", testDataset.toString(), testTable);
+    return testTableNumberOfRows(testTable);
+  }
+
+  protected int testTableNumberOfRows(String table) throws InterruptedException {
+    String query = String.format("select * from %s.%s", testDataset.toString(), table);
     return (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
   }
 
@@ -308,9 +312,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testDirectWriteToBigQueryWithDiffInSchema() {
+  public void testDirectWriteToBigQueryWithDiffInSchema() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
-    String destTableName = createDiffInSchemaDestTable();
+    String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
+    int numOfRows = testTableNumberOfRows(destTableName);
+    assertThat(numOfRows).isEqualTo(0);
     Dataset<Row> df =
         spark
             .read()
@@ -318,20 +324,19 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .option("table", testDataset + "." + TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME)
             .load();
 
-    assertThrows(
-        ProvisionException.class,
-        () ->
-            df.write()
-                .format("bigquery")
-                .mode(SaveMode.Append)
-                .option("writeMethod", writeMethod.toString())
-                .save(testDataset + "." + destTableName));
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("writeMethod", writeMethod.toString())
+        .save(testDataset + "." + destTableName);
+    numOfRows = testTableNumberOfRows(destTableName);
+    assertThat(numOfRows).isEqualTo(1);
   }
 
   @Test
   public void testDirectWriteToBigQueryWithDiffInSchemaAndDisableModeCheck() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
-    String destTableName = createDiffInSchemaDestTable();
+    String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
         spark
             .read()
@@ -345,15 +350,16 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("writeMethod", writeMethod.toString())
         .option("enableModeCheckForSchemaFields", false)
         .save(testDataset + "." + destTableName);
-    String query = String.format("select * from %s.%s", testDataset.toString(), destTableName);
-    int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
+    int numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(1);
   }
 
   @Test
   public void testDirectWriteToBigQueryWithDiffInDescription() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
-    String destTableName = createDiffInSchemaDestTable();
+    String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
+    int numOfRows = testTableNumberOfRows(destTableName);
+    assertThat(numOfRows).isEqualTo(0);
     Dataset<Row> df =
         spark
             .read()
@@ -363,20 +369,19 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 testDataset + "." + TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME_WITH_DESCRIPTION)
             .load();
 
-    assertThrows(
-        ProvisionException.class,
-        () ->
-            df.write()
-                .format("bigquery")
-                .mode(SaveMode.Append)
-                .option("writeMethod", writeMethod.toString())
-                .save(testDataset + "." + destTableName));
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("writeMethod", writeMethod.toString())
+        .save(testDataset + "." + destTableName);
+    numOfRows = testTableNumberOfRows(destTableName);
+    assertThat(numOfRows).isEqualTo(1);
   }
 
   @Test
   public void testInDirectWriteToBigQueryWithDiffInSchemaAndModeCheck() throws Exception {
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
-    String destTableName = createDiffInSchemaDestTable();
+    String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
         spark
             .read()
@@ -391,8 +396,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("enableModeCheckForSchemaFields", true)
         .save(testDataset + "." + destTableName);
-    String query = String.format("select * from %s.%s", testDataset.toString(), destTableName);
-    int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
+    int numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(1);
   }
 
@@ -400,7 +404,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testIndirectWriteToBigQueryWithDiffInSchemaNullableFieldAndDisableModeCheck()
       throws Exception {
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
-    String destTableName = createDiffInSchemaDestTable();
+    String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
         spark
             .read()
@@ -415,15 +419,14 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("enableModeCheckForSchemaFields", false)
         .save(testDataset + "." + destTableName);
-    String query = String.format("select * from %s.%s", testDataset.toString(), destTableName);
-    int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
+    int numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(1);
   }
 
   @Test
   public void testInDirectWriteToBigQueryWithDiffInDescription() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
-    String destTableName = createDiffInSchemaDestTable();
+    String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
         spark
             .read()
@@ -439,9 +442,221 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("writeMethod", writeMethod.toString())
         .save(testDataset + "." + destTableName);
-    String query = String.format("select * from %s.%s", testDataset.toString(), destTableName);
-    int numOfRows = (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
+    int numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(1);
+  }
+
+  @Test
+  public void testWriteToBigQueryNullableToNullable() throws Exception {
+    String destTableName =
+        createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_NULLABLE_FIELD);
+    StructType srcSchema =
+        structType(StructField.apply("int_null", DataTypes.IntegerType, true, Metadata.empty()));
+    List<Row> rows = Arrays.asList(RowFactory.create(25), RowFactory.create((Object) null));
+    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .save(testDataset + "." + destTableName);
+    int numOfRows = testTableNumberOfRows(destTableName);
+    assertThat(numOfRows).isEqualTo(2);
+  }
+
+  @Test
+  public void testWriteToBigQueryNullableToRequiredWithNonNullData() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String destTableName =
+        createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REQUIRED_FIELD);
+    StructType srcSchema =
+        structType(StructField.apply("int_req", DataTypes.IntegerType, true, Metadata.empty()));
+    List<Row> rows = Arrays.asList(RowFactory.create(25));
+    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .save(testDataset + "." + destTableName);
+    int numOfRows = testTableNumberOfRows(destTableName);
+    assertThat(numOfRows).isEqualTo(1);
+  }
+
+  @Test
+  public void testWriteToBigQueryNullableToRequiredWithNullData() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String destTableName =
+        createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REQUIRED_FIELD);
+    StructType srcSchema =
+        structType(StructField.apply("int_req", DataTypes.IntegerType, true, Metadata.empty()));
+    List<Row> rows = Arrays.asList(RowFactory.create((Object) null));
+    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+
+    Assert.assertThrows(
+        "INVALID_ARGUMENT: Errors found while processing rows.",
+        Exception.class,
+        () ->
+            df.write()
+                .format("bigquery")
+                .mode(SaveMode.Append)
+                .option("writeMethod", writeMethod.toString())
+                .save(testDataset + "." + destTableName));
+  }
+
+  @Test
+  public void testWriteToBigQueryNullableToRepeated() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String destTableName =
+        createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REPEATED_FIELD);
+    StructType srcSchema =
+        structType(StructField.apply("int_rep", DataTypes.IntegerType, true, Metadata.empty()));
+    List<Row> rows = Arrays.asList(RowFactory.create(10));
+    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+
+    Assert.assertThrows(
+        ProvisionException.class,
+        () ->
+            df.write()
+                .format("bigquery")
+                .mode(SaveMode.Append)
+                .option("writeMethod", writeMethod.toString())
+                .save(testDataset + "." + destTableName));
+  }
+
+  @Test
+  public void testWriteToBigQueryRequiredToNullable() throws Exception {
+    String destTableName =
+        createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_NULLABLE_FIELD);
+    StructType srcSchema =
+        structType(StructField.apply("int_null", DataTypes.IntegerType, false, Metadata.empty()));
+    List<Row> rows = Arrays.asList(RowFactory.create(25));
+    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .save(testDataset + "." + destTableName);
+    int numOfRows = testTableNumberOfRows(destTableName);
+    assertThat(numOfRows).isEqualTo(1);
+  }
+
+  @Test
+  public void testWriteToBigQueryRequiredToRequired() throws Exception {
+    String destTableName =
+        createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REQUIRED_FIELD);
+    StructType srcSchema =
+        structType(StructField.apply("int_req", DataTypes.IntegerType, false, Metadata.empty()));
+    List<Row> rows = Arrays.asList(RowFactory.create(25));
+    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .save(testDataset + "." + destTableName);
+    int numOfRows = testTableNumberOfRows(destTableName);
+    assertThat(numOfRows).isEqualTo(1);
+  }
+
+  @Test
+  public void testWriteToBigQueryRequiredToRepeated() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String destTableName =
+        createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REPEATED_FIELD);
+    StructType srcSchema =
+        structType(StructField.apply("int_rep", DataTypes.IntegerType, false, Metadata.empty()));
+    List<Row> rows = Arrays.asList(RowFactory.create(10));
+    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+
+    Assert.assertThrows(
+        ProvisionException.class,
+        () ->
+            df.write()
+                .format("bigquery")
+                .mode(SaveMode.Append)
+                .option("writeMethod", writeMethod.toString())
+                .save(testDataset + "." + destTableName));
+  }
+
+  @Test
+  public void testWriteToBigQueryRepeatedToNullable() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String destTableName =
+        createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_NULLABLE_FIELD);
+    StructType srcSchema =
+        structType(
+            StructField.apply(
+                "int_null",
+                DataTypes.createArrayType(DataTypes.IntegerType),
+                true,
+                Metadata.empty()));
+    List<Row> rows =
+        Arrays.asList(RowFactory.create(Arrays.asList(1, 2)), RowFactory.create((Object) null));
+    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+
+    Assert.assertThrows(
+        ProvisionException.class,
+        () ->
+            df.write()
+                .format("bigquery")
+                .mode(SaveMode.Append)
+                .option("writeMethod", writeMethod.toString())
+                .save(testDataset + "." + destTableName));
+  }
+
+  @Test
+  public void testWriteToBigQueryRepeatedToRequired() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String destTableName =
+        createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REQUIRED_FIELD);
+    StructType srcSchema =
+        structType(
+            StructField.apply(
+                "int_req",
+                DataTypes.createArrayType(DataTypes.IntegerType),
+                true,
+                Metadata.empty()));
+    List<Row> rows = Arrays.asList(RowFactory.create(Arrays.asList(1, 2)));
+    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+
+    Assert.assertThrows(
+        ProvisionException.class,
+        () ->
+            df.write()
+                .format("bigquery")
+                .mode(SaveMode.Append)
+                .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+                .option("writeMethod", writeMethod.toString())
+                .save(testDataset + "." + destTableName));
+  }
+
+  @Test
+  public void testWriteToBigQueryRepeatedToRepeated() {
+    String destTableName =
+        createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REPEATED_FIELD);
+    StructType srcSchema =
+        structType(
+            StructField.apply(
+                "int_rep",
+                DataTypes.createArrayType(DataTypes.IntegerType),
+                true,
+                Metadata.empty()));
+    List<Row> rows =
+        Arrays.asList(RowFactory.create(Arrays.asList(1, 2)), RowFactory.create((Object) null));
+    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .save(testDataset + "." + destTableName);
   }
 
   @Test
@@ -506,7 +721,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     StructType newDataSchema =
         new StructType(
             new StructField[] {
-              dateField, new StructField("some_text", DataTypes.StringType, true, Metadata.empty())
+                dateField, new StructField("some_text", DataTypes.StringType, true, Metadata.empty())
             });
     Dataset<Row> newDataDF = spark.createDataFrame(rows, newDataSchema);
 
@@ -555,14 +770,14 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     StructType[] schemas =
         new StructType[] {
-          structType(new StructField("c1", DataTypes.IntegerType, true, metadata)),
-          structType(
-              new StructField("c1", DataTypes.IntegerType, true, Metadata.empty())
-                  .withComment(testComment)),
-          structType(
-              new StructField("c1", DataTypes.IntegerType, true, metadata)
-                  .withComment(testComment)),
-          structType(new StructField("c1", DataTypes.IntegerType, true, Metadata.empty()))
+            structType(new StructField("c1", DataTypes.IntegerType, true, metadata)),
+            structType(
+                new StructField("c1", DataTypes.IntegerType, true, Metadata.empty())
+                    .withComment(testComment)),
+            structType(
+                new StructField("c1", DataTypes.IntegerType, true, metadata)
+                    .withComment(testComment)),
+            structType(new StructField("c1", DataTypes.IntegerType, true, Metadata.empty()))
         };
 
     String[] readValues = new String[] {testDescription, testComment, testComment, null};
@@ -816,9 +1031,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     String sql =
         ("SELECT\n"
-                + "  (SELECT COUNT(f.key) FROM TABLE, UNNEST(mf) AS f) AS total_keys,\n"
-                + "  (SELECT COUNT(*) FROM TABLE) AS total_rows,\n"
-                + "  (SELECT f.value FROM TABLE, UNNEST(mf) AS f WHERE f.key='b') AS b_value;")
+            + "  (SELECT COUNT(f.key) FROM TABLE, UNNEST(mf) AS f) AS total_keys,\n"
+            + "  (SELECT COUNT(*) FROM TABLE) AS total_rows,\n"
+            + "  (SELECT f.value FROM TABLE, UNNEST(mf) AS f WHERE f.key='b') AS b_value;")
             .replaceAll("TABLE", testDataset.toString() + "." + testTable);
 
     // validating by querying a sub-field of the json
@@ -893,9 +1108,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(result).hasSize(3);
     assertThat(result.stream().filter(row -> row.getString(2) == null).count()).isEqualTo(2);
     assertThat(
-            result.stream()
-                .filter(row -> row.getString(2) != null && row.getString(2).equals("newVal1"))
-                .count())
+        result.stream()
+            .filter(row -> row.getString(2) != null && row.getString(2).equals("newVal1"))
+            .count())
         .isEqualTo(1);
   }
 
@@ -960,6 +1175,47 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(head.getDecimal(head.fieldIndex("num"))).isEqualTo(new BigDecimal("12345.60"));
     assertThat(head.getDecimal(head.fieldIndex("bignum")))
         .isEqualTo(new BigDecimal("12345.123450000000000"));
+  }
+
+  public void testWriteSchemaSubset() throws Exception {
+    StructType initialSchema =
+        structType(
+            StructField.apply("key", DataTypes.StringType, true, Metadata.empty()),
+            StructField.apply("value", DataTypes.StringType, true, Metadata.empty()),
+            StructField.apply("ds", DataTypes.DateType, true, Metadata.empty()));
+    List<Row> rows =
+        Arrays.asList(
+            RowFactory.create("key1", "val1", Date.valueOf("2023-04-13")),
+            RowFactory.create("key2", "val2", Date.valueOf("2023-04-14")));
+    Dataset<Row> initialDF = spark.createDataFrame(rows, initialSchema);
+    // initial write
+    initialDF
+        .write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .save();
+    assertThat(testTableNumberOfRows()).isEqualTo(2);
+
+    StructType finalSchema =
+        structType(
+            StructField.apply("key", DataTypes.StringType, true, Metadata.empty()),
+            StructField.apply("value", DataTypes.StringType, true, Metadata.empty()));
+    List<Row> finalRows = Arrays.asList(RowFactory.create("key3", "val3"));
+    Dataset<Row> finalDF = spark.createDataFrame(finalRows, finalSchema);
+    finalDF
+        .write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .save();
+    assertThat(testTableNumberOfRows()).isEqualTo(3);
   }
 
   protected long numberOfRowsWith(String name) {

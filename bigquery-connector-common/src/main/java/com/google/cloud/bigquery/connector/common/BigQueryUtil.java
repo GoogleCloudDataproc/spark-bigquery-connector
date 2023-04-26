@@ -26,6 +26,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.HivePartitioningOptions;
 import com.google.cloud.bigquery.LegacySQLTypeName;
@@ -301,6 +302,11 @@ public class BigQueryUtil {
     if (sourceField == destinationField) {
       return true;
     }
+
+    if (sourceField == null && destinationField.getMode() == Mode.NULLABLE) {
+      return true;
+    }
+
     // if both are null we would have caught it earlier
     if (sourceField == null || destinationField == null) {
       return false;
