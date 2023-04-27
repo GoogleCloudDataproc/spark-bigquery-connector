@@ -2,6 +2,8 @@
 
 ## Next
 
+* Issue #945: Fixing unable to add new column even with option `allowFieldAddition`
+
 ## 0.30.0 - 2023-04-11
 
 * New connectors are out of preview and are now generally available! This includes all the new
