@@ -835,6 +835,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testAllowFieldAddition() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
     StructType initialSchema =
         structType(
             StructField.apply("value", DataTypes.StringType, true, Metadata.empty()),

@@ -645,6 +645,7 @@ The API Supports a number of options to configure the read
         <td>Adds the <a href="https://googleapis.dev/java/google-cloud-clients/latest/com/google/cloud/bigquery/JobInfo.SchemaUpdateOption.html#ALLOW_FIELD_ADDITION" target="_blank">ALLOW_FIELD_ADDITION</a>
             SchemaUpdateOption to the BigQuery LoadJob. Allowed values are <code>true</code> and <code>false</code>.
            <br/>(Optional. Default to <code>false</code>).
+           <br/><i>Not supported by the `DIRECT` write method.</i>
         </td>
         <td>Write</td>
      </tr>
@@ -654,6 +655,7 @@ The API Supports a number of options to configure the read
         <td>Adds the <a href="https://googleapis.dev/java/google-cloud-clients/latest/com/google/cloud/bigquery/JobInfo.SchemaUpdateOption.html#ALLOW_FIELD_RELAXATION" target="_blank">ALLOW_FIELD_RELAXATION</a>
             SchemaUpdateOption to the BigQuery LoadJob. Allowed values are <code>true</code> and <code>false</code>.
            <br/>(Optional. Default to <code>false</code>).
+           <br/><i>Not supported by the `DIRECT` write method.</i>
         </td>
         <td>Write</td>
      </tr>
