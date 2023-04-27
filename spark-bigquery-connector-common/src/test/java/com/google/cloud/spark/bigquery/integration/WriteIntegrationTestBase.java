@@ -742,7 +742,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             Arrays.asList(
                 RowFactory.create("{\"key\":\"foo\",\"value\":1}"),
                 RowFactory.create("{\"key\":\"bar\",\"value\":2}")),
-            structType(StructField.apply("jf", DataTypes.StringType, true, Metadata.empty())));
+            structType(
+                StructField.apply(
+                    "jf",
+                    DataTypes.StringType,
+                    true,
+                    Metadata.fromJson("{\"sqlType\":\"JSON\"}"))));
     df.write()
         .format("bigquery")
         .mode(SaveMode.Append)
@@ -851,7 +856,6 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("writeMethod", writeMethod.toString())
         .save();
     assertThat(testTableNumberOfRows()).isEqualTo(2);
-    // assertThat(initialDataValuesExist()).isTrue();
 
     StructType finalSchema =
         structType(
@@ -872,8 +876,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("allowFieldAddition", "true")
         .option("allowFieldRelaxation", "true")
         .save();
-
     assertThat(testTableNumberOfRows()).isEqualTo(3);
+
     Dataset<Row> resultDF =
         spark
             .read()
@@ -884,7 +888,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     List<Row> result = resultDF.collectAsList();
     assertThat(result).hasSize(3);
     assertThat(result.stream().filter(row -> row.getString(2) == null).count()).isEqualTo(2);
-    assertThat(result.stream().filter(row -> row.getString(2).equals("newVal1")).count())
+    assertThat(
+            result.stream()
+                .filter(row -> row.getString(2) != null && row.getString(2).equals("newVal1"))
+                .count())
         .isEqualTo(1);
   }
 
