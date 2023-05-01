@@ -742,7 +742,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             Arrays.asList(
                 RowFactory.create("{\"key\":\"foo\",\"value\":1}"),
                 RowFactory.create("{\"key\":\"bar\",\"value\":2}")),
-            structType(StructField.apply("jf", DataTypes.StringType, true, Metadata.empty())));
+            structType(
+                StructField.apply(
+                    "jf",
+                    DataTypes.StringType,
+                    true,
+                    Metadata.fromJson("{\"sqlType\":\"JSON\"}"))));
     df.write()
         .format("bigquery")
         .mode(SaveMode.Append)
@@ -826,6 +831,69 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(result.getLong(0)).isEqualTo(3L);
     assertThat(result.getLong(1)).isEqualTo(2L);
     assertThat(result.getLong(2)).isEqualTo(2L);
+  }
+
+  @Test
+  public void testAllowFieldAddition() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    StructType initialSchema =
+        structType(
+            StructField.apply("value", DataTypes.StringType, true, Metadata.empty()),
+            StructField.apply("ds", DataTypes.DateType, true, Metadata.empty()));
+    List<Row> rows =
+        Arrays.asList(
+            RowFactory.create("val1", Date.valueOf("2023-04-13")),
+            RowFactory.create("val2", Date.valueOf("2023-04-14")));
+    Dataset<Row> initialDF = spark.createDataFrame(rows, initialSchema);
+    // initial write
+    initialDF
+        .write()
+        .format("bigquery")
+        .mode(SaveMode.Overwrite)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("intermediateFormat", "avro")
+        .option("writeMethod", writeMethod.toString())
+        .save();
+    assertThat(testTableNumberOfRows()).isEqualTo(2);
+
+    StructType finalSchema =
+        structType(
+            StructField.apply("value", DataTypes.StringType, true, Metadata.empty()),
+            StructField.apply("ds", DataTypes.DateType, true, Metadata.empty()),
+            StructField.apply("new_field", DataTypes.StringType, true, Metadata.empty()));
+    List<Row> finalRows =
+        Arrays.asList(RowFactory.create("val3", Date.valueOf("2023-04-15"), "newVal1"));
+    Dataset<Row> finalDF = spark.createDataFrame(finalRows, finalSchema);
+    finalDF
+        .write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .option("allowFieldAddition", "true")
+        .option("allowFieldRelaxation", "true")
+        .save();
+    assertThat(testTableNumberOfRows()).isEqualTo(3);
+
+    Dataset<Row> resultDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    List<Row> result = resultDF.collectAsList();
+    assertThat(result).hasSize(3);
+    assertThat(result.stream().filter(row -> row.getString(2) == null).count()).isEqualTo(2);
+    assertThat(
+            result.stream()
+                .filter(row -> row.getString(2) != null && row.getString(2).equals("newVal1"))
+                .count())
+        .isEqualTo(1);
   }
 
   protected long numberOfRowsWith(String name) {

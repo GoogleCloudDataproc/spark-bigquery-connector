@@ -129,12 +129,8 @@ public class BigQueryWriteHelper {
     JobInfo.WriteDisposition writeDisposition =
         SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
     Schema schema =
-        tableInfo
-            .map(info -> info.getDefinition().getSchema())
-            .orElseGet(
-                () ->
-                    SchemaConverters.from(SchemaConvertersConfiguration.from(config))
-                        .toBigQuerySchema(data.schema()));
+        SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+            .toBigQuerySchema(data.schema());
     bigQueryClient.loadDataIntoTable(
         config, optimizedSourceUris, formatOptions, writeDisposition, Optional.of(schema));
   }
