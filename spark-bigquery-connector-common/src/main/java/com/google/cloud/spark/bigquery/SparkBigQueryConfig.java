@@ -195,6 +195,8 @@ public class SparkBigQueryConfig
   private int numBackgroundThreadsPerStream = 0;
   private int numPrebufferReadRowsResponses = MIN_BUFFERED_RESPONSES_PER_STREAM;
   private int numStreamsPerPartition = MIN_STREAMS_PER_PARTITION;
+  private com.google.common.base.Optional<Integer> channelPoolSize =
+      com.google.common.base.Optional.absent();
   private com.google.common.base.Optional<Integer> flowControlWindowBytes =
       com.google.common.base.Optional.absent();
   private boolean enableReadSessionCaching = false;
@@ -450,6 +452,8 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, "bqPrebufferResponsesPerStream")
             .transform(Integer::parseInt)
             .or(MIN_BUFFERED_RESPONSES_PER_STREAM);
+    config.channelPoolSize =
+        getAnyOption(globalOptions, options, "bqChannelPoolSize").transform(Integer::parseInt);
     config.flowControlWindowBytes =
         getAnyOption(globalOptions, options, "bqFlowControlWindowBytes")
             .transform(Integer::parseInt);
@@ -883,6 +887,11 @@ public class SparkBigQueryConfig
 
   public ZoneId getDatetimeZoneId() {
     return datetimeZoneId;
+  }
+
+  @Override
+  public Optional<Integer> getChannelPoolSize() {
+    return channelPoolSize.toJavaUtil();
   }
 
   @Override

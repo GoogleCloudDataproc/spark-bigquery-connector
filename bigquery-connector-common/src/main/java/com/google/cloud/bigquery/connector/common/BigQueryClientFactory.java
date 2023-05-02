@@ -17,6 +17,8 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.core.ApiFunction;
 import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.api.gax.core.FixedExecutorProvider;
+import com.google.api.gax.grpc.ChannelPoolSettings;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.api.gax.rpc.HeaderProvider;
 import com.google.api.gax.rpc.UnaryCallSettings;
@@ -76,6 +78,7 @@ public class BigQueryClientFactory implements Serializable {
         BigQueryReadClient bigQueryReadClient =
             createBigQueryReadClient(
                 this.bqConfig.getBigQueryStorageGrpcEndpoint(),
+                this.bqConfig.getChannelPoolSize(),
                 this.bqConfig.getFlowControlWindowBytes());
         Runtime.getRuntime()
             .addShutdownHook(new Thread(() -> shutdownBigQueryReadClient(bigQueryReadClient)));
@@ -145,9 +148,15 @@ public class BigQueryClientFactory implements Serializable {
   }
 
   private BigQueryReadClient createBigQueryReadClient(
-      Optional<String> endpoint, Optional<Integer> flowControlWindow) {
+      Optional<String> endpoint,
+      Optional<Integer> channelPoolSize,
+      Optional<Integer> flowControlWindow) {
     try {
       InstantiatingGrpcChannelProvider.Builder transportBuilder = createTransportBuilder(endpoint);
+      if (channelPoolSize.isPresent()) {
+        transportBuilder.setChannelPoolSettings(
+            ChannelPoolSettings.staticallySized(channelPoolSize.get()));
+      }
       if (flowControlWindow.isPresent()) {
         ApiFunction<ManagedChannelBuilder, ManagedChannelBuilder> channelConfigurator =
             (ManagedChannelBuilder channelBuilder) -> {

@@ -554,6 +554,11 @@ public class BigQueryClientFactoryTest {
     }
 
     @Override
+    public Optional<Integer> getChannelPoolSize() {
+      return Optional.empty();
+    }
+
+    @Override
     public Optional<Integer> getFlowControlWindowBytes() {
       return Optional.of(2 << 20);
     }

@@ -961,6 +961,22 @@ public class SparkBigQueryConfigTest {
   }
 
   @Test
+  public void testBqChannelPoolSize() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("bqChannelPoolSize", "4")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults,
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getChannelPoolSize()).isEqualTo(Optional.of(4));
+  }
+
+  @Test
   public void testBqFlowControWindow() {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
