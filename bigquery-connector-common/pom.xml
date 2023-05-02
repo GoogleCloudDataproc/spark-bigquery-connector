@@ -155,6 +155,7 @@
         <version>3.0.0</version>
         <executions>
           <execution>
+            <id>source-code</id>
             <phase>generate-sources</phase>
             <goals>
               <goal>add-source</goal>
@@ -162,6 +163,18 @@
             <configuration>
               <sources>
                 <source>third_party/apache-beam/src/main/java</source>
+              </sources>
+            </configuration>
+          </execution>
+          <execution>
+            <id>test-code</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-test-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>third_party/apache-beam/src/test/java</source>
               </sources>
             </configuration>
           </execution>
