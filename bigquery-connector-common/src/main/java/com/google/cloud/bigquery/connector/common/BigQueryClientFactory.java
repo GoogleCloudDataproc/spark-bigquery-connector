@@ -17,6 +17,7 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.core.ApiFunction;
 import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.api.gax.core.FixedExecutorProvider;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.api.gax.rpc.HeaderProvider;
 import com.google.api.gax.rpc.UnaryCallSettings;
@@ -166,7 +167,9 @@ public class BigQueryClientFactory implements Serializable {
       BigQueryReadSettings.Builder clientSettings =
           BigQueryReadSettings.newBuilder()
               .setTransportChannelProvider(transportBuilder.build())
-              .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
+              .setCredentialsProvider(FixedCredentialsProvider.create(credentials))
+              .setBackgroundExecutorProvider(
+                  FixedExecutorProvider.create(new UnboundedScheduledExecutorService()));
 
       bqConfig
           .getCreateReadSessionTimeoutInSeconds()
