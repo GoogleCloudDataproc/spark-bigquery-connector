@@ -1,5 +1,6 @@
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.common.truth.Truth.assertThat;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -25,8 +26,6 @@ import org.junit.runners.JUnit4;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.truth.Truth.assertThat;
 
 /** Tests for {@link UnboundedScheduledExecutorService}. */
 @RunWith(JUnit4.class)
