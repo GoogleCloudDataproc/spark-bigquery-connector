@@ -154,6 +154,7 @@ public class BigQueryClientFactory implements Serializable {
     try {
       InstantiatingGrpcChannelProvider.Builder transportBuilder = createTransportBuilder(endpoint);
       if (channelPoolSize.isPresent()) {
+        log.info("Channel pool size set to {}", channelPoolSize.get());
         transportBuilder.setChannelPoolSettings(
             ChannelPoolSettings.staticallySized(channelPoolSize.get()));
       }
