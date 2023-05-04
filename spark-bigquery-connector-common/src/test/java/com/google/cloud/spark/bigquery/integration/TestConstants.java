@@ -212,7 +212,7 @@ public class TestConstants {
               "float float64,",
               "json_f json,",
               "nums struct<min numeric, max numeric, pi numeric, big_pi numeric>,",
-              "big_numeric_nums struct<min bignumeric, max bignumeric>,",
+              "big_numeric_nums struct<min bignumeric(38,38), max bignumeric(38,38)>,",
               "int_arr array<int64>,",
               "int_struct_arr array<struct<i int64>>,",
               "nested_struct struct<int_null int64, str string, inner_struct struct<bl bool, str string, int_null int64>>",
@@ -323,8 +323,8 @@ public class TestConstants {
               lit(3.14).cast(BQ_NUMERIC),
               lit("31415926535897932384626433832.795028841").cast(BQ_NUMERIC)),
           struct(
-              lit("-0.34992332820282019728792003956564819968"),
-              lit("0.34992332820282019728792003956564819967")),
+              lit("-0.34992332820282019728792003956564819968").cast(BQ_BIGNUMERIC),
+              lit("0.34992332820282019728792003956564819967").cast(BQ_BIGNUMERIC)),
           array(lit(1), lit(2), lit(3)),
           array(struct(lit(1))),
           struct(lit(1), lit("stringa"), struct(lit(true), lit("stringaa"), lit(11))));

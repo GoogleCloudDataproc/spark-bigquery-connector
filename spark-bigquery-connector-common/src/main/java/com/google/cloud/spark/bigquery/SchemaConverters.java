@@ -42,6 +42,7 @@ import org.apache.spark.unsafe.types.UTF8String;
 import scala.annotation.meta.field;
 
 public class SchemaConverters {
+
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
   static final int BQ_NUMERIC_PRECISION = 38;
@@ -51,6 +52,10 @@ public class SchemaConverters {
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   // The maximum nesting depth of a BigQuery RECORD:
   static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
+  public static final int DEFAULT_NUMERIC_PRECISION = 38;
+  public static final int DEFAULT_NUMERIC_SCALE = 9;
+  public static final int DEFAULT_BIG_NUMERIC_PRECISION = 76;
+  public static final int DEFAULT_BIG_NUMERIC_SCALE = 38;
 
   private final SchemaConvertersConfiguration configuration;
 
@@ -332,16 +337,28 @@ public class SchemaConverters {
     } else if (LegacySQLTypeName.FLOAT.equals(field.getType())) {
       return DataTypes.DoubleType;
     } else if (LegacySQLTypeName.NUMERIC.equals(field.getType())) {
-      return DataTypes.createDecimalType(
-          field.getPrecision().intValue(), field.getScale().intValue());
+      int precision =
+          Optional.ofNullable(field.getPrecision())
+              .map(Long::intValue)
+              .orElse(DEFAULT_NUMERIC_PRECISION);
+      int scale =
+          Optional.ofNullable(field.getScale()).map(Long::intValue).orElse(DEFAULT_NUMERIC_SCALE);
+      return DataTypes.createDecimalType(precision, scale);
     } else if (LegacySQLTypeName.BIGNUMERIC.equals(field.getType())) {
-      int precision = field.getPrecision().intValue();
+      int precision =
+          Optional.ofNullable(field.getPrecision())
+              .map(Long::intValue)
+              .orElse(DEFAULT_BIG_NUMERIC_PRECISION);
       if (precision > DecimalType.MAX_PRECISION()) {
         throw new IllegalArgumentException(
             String.format(
                 "BigNumeric precision is too wide (%d), Spark can only handle decimal types with max precision of %d",
                 precision, DecimalType.MAX_PRECISION()));
       }
+      int scale =
+          Optional.ofNullable(field.getScale())
+              .map(Long::intValue)
+              .orElse(DEFAULT_BIG_NUMERIC_SCALE);
       return DataTypes.createDecimalType(precision, field.getScale().intValue());
     } else if (LegacySQLTypeName.STRING.equals(field.getType())) {
       return DataTypes.StringType;
