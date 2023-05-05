@@ -114,9 +114,9 @@ public class IntegrationTestUtils {
     return SparkSession.builder().appName(applicationName).master("local").getOrCreate();
   }
 
-  static void createView(String dataset, String table, String view) {
+  static void createView(String dataset, String view) {
     BigQuery bq = getBigquery();
-    String query = String.format("SELECT * FROM %s.%s", dataset, table);
+    String query = "SELECT * FROM `bigquery-public-data.samples.shakespeare`";
     TableId tableId = TableId.of(dataset, view);
     ViewDefinition viewDefinition = ViewDefinition.newBuilder(query).setUseLegacySql(false).build();
     bq.create(TableInfo.of(tableId, viewDefinition));

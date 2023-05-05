@@ -359,7 +359,7 @@ public class SchemaConverters {
           Optional.ofNullable(field.getScale())
               .map(Long::intValue)
               .orElse(DEFAULT_BIG_NUMERIC_SCALE);
-      return DataTypes.createDecimalType(precision, field.getScale().intValue());
+      return DataTypes.createDecimalType(precision, scale);
     } else if (LegacySQLTypeName.STRING.equals(field.getType())) {
       return DataTypes.StringType;
     } else if (LegacySQLTypeName.BOOLEAN.equals(field.getType())) {
