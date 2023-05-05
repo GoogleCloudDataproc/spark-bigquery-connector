@@ -111,7 +111,9 @@ public class BigQueryClientFactory implements Serializable {
     // ExternalAccountCredentials first and then compare their hashCodes.
     if (credentials instanceof ExternalAccountCredentials) {
       return Objects.hashCode(
-          BigQueryUtil.getCredentialsByteArray(credentials), headerProvider, new BigQueryClientFactoryConfig(bqConfig));
+          BigQueryUtil.getCredentialsByteArray(credentials),
+          headerProvider,
+          new BigQueryClientFactoryConfig(bqConfig));
     }
 
     return Objects.hashCode(credentials, headerProvider, new BigQueryClientFactoryConfig(bqConfig));
