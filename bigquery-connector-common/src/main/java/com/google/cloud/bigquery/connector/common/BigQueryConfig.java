@@ -67,7 +67,7 @@ public interface BigQueryConfig {
 
   Priority getQueryJobPriority();
 
-  default int clientCreationHashCode() {
+  default int getClientCreationHashCode() {
     return Objects.hashCode(
         getAccessTokenProviderFQCN(),
         getAccessTokenProviderConfig(),
@@ -83,7 +83,7 @@ public interface BigQueryConfig {
         useParentProjectForMetadataOperations());
   }
 
-  default boolean clientCreationEquals(BigQueryConfig b) {
+  default boolean areClientCreationConfigsEqual(BigQueryConfig b) {
     if (this == b) {
       return true;
     }
