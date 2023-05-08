@@ -303,12 +303,15 @@ public class BigQueryUtil {
       return true;
     }
 
-    if (sourceField == null && destinationField.getMode() == Mode.NULLABLE) {
-      return true;
+    // if the destination field is nullable and there is no matching field in the source then it is
+    // supported
+    // if the destination field is REQUIRED or REPEATED then we do need to have the field in source.
+    if (sourceField == null) {
+      return destinationField.getMode() == Mode.NULLABLE;
     }
 
-    // if both are null we would have caught it earlier
-    if (sourceField == null || destinationField == null) {
+    // cannot write if the destination table doesn't have the field
+    if (destinationField == null) {
       return false;
     }
 
@@ -380,10 +383,9 @@ public class BigQueryUtil {
     if (sourceFieldList == destinationFieldList) {
       return true;
     }
-    // if both are null we would have caught it earlier
-    if (sourceFieldList == null || destinationFieldList == null) {
-      return false;
-    }
+
+    // cannot write of the source has more fields than the destination table.
+    if (sourceFieldList.size() > destinationFieldList.size()) return false;
 
     Map<String, Field> sourceFieldsMap =
         sourceFieldList.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
@@ -391,9 +393,9 @@ public class BigQueryUtil {
         destinationFieldList.stream()
             .collect(Collectors.toMap(Field::getName, Function.identity()));
 
-    for (Map.Entry<String, Field> e : sourceFieldsMap.entrySet()) {
-      Field f1 = e.getValue();
-      Field f2 = destinationFieldsMap.get(e.getKey());
+    for (Map.Entry<String, Field> e : destinationFieldsMap.entrySet()) {
+      Field f1 = sourceFieldsMap.get(e.getKey());
+      Field f2 = e.getValue();
       if (!fieldWritable(f1, f2, enableModeCheckForSchemaFields)) {
         return false;
       }

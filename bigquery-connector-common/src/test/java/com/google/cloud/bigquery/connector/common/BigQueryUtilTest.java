@@ -286,6 +286,26 @@ public class BigQueryUtilTest {
   }
 
   @Test
+  public void testSchemaWritableWithMoreUnEqualNumberOfFields() {
+    Schema s1 =
+        Schema.of(
+            Field.newBuilder("foo1", StandardSQLTypeName.STRING).setMode(Mode.NULLABLE).build(),
+            Field.newBuilder("foo2", StandardSQLTypeName.STRING).setMode(Mode.NULLABLE).build());
+    Schema s2 =
+        Schema.of(
+            Field.newBuilder("foo1", StandardSQLTypeName.STRING).setMode(Mode.NULLABLE).build(),
+            Field.newBuilder("foo2", StandardSQLTypeName.STRING).setMode(Mode.NULLABLE).build(),
+            Field.newBuilder("foo3", StandardSQLTypeName.STRING).setMode(Mode.NULLABLE).build());
+    Schema s3 =
+        Schema.of(
+            Field.newBuilder("foo1", StandardSQLTypeName.STRING).setMode(Mode.NULLABLE).build());
+
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s1, s3, false, true)).isFalse();
+    assertThat(BigQueryUtil.schemaWritable(s3, s2, false, true)).isTrue();
+  }
+
+  @Test
   public void testCreateVerifiedInstanceNoClass() {
     assertThrows(
         IllegalArgumentException.class,
