@@ -4,6 +4,7 @@
 
 * Issue #945: Fixing unable to add new column even with option `allowFieldAddition`
 * PR #951: Adding support to create BigQueryReadClient with UnboundedScheduledExecutorService
+* PR #965: Fix to reuse the same BigQueryClient for the same BigQueryConfig, rather than creating a new one.
 
 ## 0.30.0 - 2023-04-11
 
