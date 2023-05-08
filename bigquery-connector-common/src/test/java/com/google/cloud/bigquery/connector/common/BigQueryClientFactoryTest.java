@@ -107,6 +107,8 @@ public class BigQueryClientFactoryTest {
         new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
+    when(bigQueryConfig.areClientCreationConfigsEqual(bigQueryConfig)).thenReturn(true);
 
     BigQueryReadClient readClient = clientFactory.getBigQueryReadClient();
     assertNotNull(readClient);
@@ -115,6 +117,8 @@ public class BigQueryClientFactoryTest {
         new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
+    when(bigQueryConfig.areClientCreationConfigsEqual(bigQueryConfig)).thenReturn(true);
 
     BigQueryReadClient readClient2 = clientFactory2.getBigQueryReadClient();
     assertNotNull(readClient2);
@@ -128,6 +132,8 @@ public class BigQueryClientFactoryTest {
             bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
+    when(bigQueryConfig.areClientCreationConfigsEqual(bigQueryConfig)).thenReturn(true);
 
     BigQueryReadClient readClient3 = clientFactory3.getBigQueryReadClient();
     assertNotNull(readClient3);
@@ -179,6 +185,8 @@ public class BigQueryClientFactoryTest {
         new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
+    when(bigQueryConfig.areClientCreationConfigsEqual(bigQueryConfig)).thenReturn(true);
 
     BigQueryReadClient readClient = clientFactory.getBigQueryReadClient();
     assertNotNull(readClient);
@@ -189,6 +197,8 @@ public class BigQueryClientFactoryTest {
         new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
+    when(bigQueryConfig.areClientCreationConfigsEqual(bigQueryConfig)).thenReturn(true);
 
     BigQueryReadClient readClient2 = clientFactory2.getBigQueryReadClient();
     assertNotNull(readClient2);
@@ -201,6 +211,8 @@ public class BigQueryClientFactoryTest {
         new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
+    when(bigQueryConfig.areClientCreationConfigsEqual(bigQueryConfig)).thenReturn(true);
 
     BigQueryReadClient readClient3 = clientFactory3.getBigQueryReadClient();
     assertNotNull(readClient3);
@@ -231,6 +243,8 @@ public class BigQueryClientFactoryTest {
         new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
+    when(bigQueryConfig.areClientCreationConfigsEqual(bigQueryConfig)).thenReturn(true);
 
     BigQueryWriteClient writeClient = clientFactory.getBigQueryWriteClient();
     assertNotNull(writeClient);
@@ -239,6 +253,8 @@ public class BigQueryClientFactoryTest {
         new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
+    when(bigQueryConfig.areClientCreationConfigsEqual(bigQueryConfig)).thenReturn(true);
 
     BigQueryWriteClient writeClient2 = clientFactory2.getBigQueryWriteClient();
     assertNotNull(writeClient2);
@@ -252,6 +268,8 @@ public class BigQueryClientFactoryTest {
             bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
+    when(bigQueryConfig.areClientCreationConfigsEqual(bigQueryConfig)).thenReturn(true);
 
     BigQueryWriteClient writeClient3 = clientFactory3.getBigQueryWriteClient();
     assertNotNull(writeClient3);
@@ -303,6 +321,8 @@ public class BigQueryClientFactoryTest {
         new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
+    when(bigQueryConfig.areClientCreationConfigsEqual(bigQueryConfig)).thenReturn(true);
 
     BigQueryWriteClient writeClient = clientFactory.getBigQueryWriteClient();
     assertNotNull(writeClient);
@@ -313,6 +333,8 @@ public class BigQueryClientFactoryTest {
         new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
+    when(bigQueryConfig.areClientCreationConfigsEqual(bigQueryConfig)).thenReturn(true);
 
     BigQueryWriteClient writeClient2 = clientFactory2.getBigQueryWriteClient();
     assertNotNull(writeClient2);
@@ -325,6 +347,8 @@ public class BigQueryClientFactoryTest {
         new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
+    when(bigQueryConfig.areClientCreationConfigsEqual(bigQueryConfig)).thenReturn(true);
 
     BigQueryWriteClient writeClient3 = clientFactory3.getBigQueryWriteClient();
     assertNotNull(writeClient3);
@@ -511,7 +535,7 @@ public class BigQueryClientFactoryTest {
 
     @Override
     public Optional<Long> getCreateReadSessionTimeoutInSeconds() {
-      return Optional.of(500L);
+      return Optional.empty();
     }
 
     @Override
