@@ -111,10 +111,12 @@ public class BigQueryClientFactory implements Serializable {
     // ExternalAccountCredentials first and then compare their hashCodes.
     if (credentials instanceof ExternalAccountCredentials) {
       return Objects.hashCode(
-          BigQueryUtil.getCredentialsByteArray(credentials), headerProvider, bqConfig);
+          BigQueryUtil.getCredentialsByteArray(credentials),
+          headerProvider,
+          bqConfig.getClientCreationHashCode());
     }
 
-    return Objects.hashCode(credentials, headerProvider, bqConfig);
+    return Objects.hashCode(credentials, headerProvider, bqConfig.getClientCreationHashCode());
   }
 
   @Override
@@ -129,9 +131,7 @@ public class BigQueryClientFactory implements Serializable {
     BigQueryClientFactory that = (BigQueryClientFactory) o;
 
     if (Objects.equal(headerProvider, that.headerProvider)
-        && Objects.equal(
-            new BigQueryClientFactoryConfig(bqConfig),
-            new BigQueryClientFactoryConfig(that.bqConfig))) {
+        && bqConfig.areClientCreationConfigsEqual(that.bqConfig)) {
       // Here, credentials and that.credentials are instances of GoogleCredentials which can be one
       // of GoogleCredentials, UserCredentials, ServiceAccountCredentials,
       // ExternalAccountCredentials or ImpersonatedCredentials (See the class
