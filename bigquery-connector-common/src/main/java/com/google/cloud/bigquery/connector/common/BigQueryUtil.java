@@ -384,6 +384,11 @@ public class BigQueryUtil {
       return true;
     }
 
+    // if both are null we would have caught it earlier
+    if (sourceFieldList == null || destinationFieldList == null) {
+      return false;
+    }
+
     // cannot write of the source has more fields than the destination table.
     if (sourceFieldList.size() > destinationFieldList.size()) {
       return false;
