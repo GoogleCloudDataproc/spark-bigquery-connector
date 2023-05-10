@@ -407,7 +407,7 @@ public class BigQueryDataSourceReaderContext {
 
   public void pruneColumns(StructType requiredSchema) {
     // requiredSchema may be nested column pruned, which is not supported yet.
-    this.schema.map(
+    this.schema = this.schema.map(
         prevSchema -> {
           Set<String> requiredCols = new HashSet<>(Arrays.asList(requiredSchema.fieldNames()));
           StructType prunedSchema = new StructType();
