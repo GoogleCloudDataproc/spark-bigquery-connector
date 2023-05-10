@@ -407,17 +407,18 @@ public class BigQueryDataSourceReaderContext {
 
   public void pruneColumns(StructType requiredSchema) {
     // requiredSchema may be nested column pruned, which is not supported yet.
-    this.schema = this.schema.map(
-        prevSchema -> {
-          Set<String> requiredCols = new HashSet<>(Arrays.asList(requiredSchema.fieldNames()));
-          StructType prunedSchema = new StructType();
-          for (StructField field : prevSchema.fields()) {
-            if (requiredCols.contains(field.name())) {
-              prunedSchema = prunedSchema.add(field);
-            }
-          }
-          return prunedSchema;
-        });
+    this.schema =
+        this.schema.map(
+            prevSchema -> {
+              Set<String> requiredCols = new HashSet<>(Arrays.asList(requiredSchema.fieldNames()));
+              StructType prunedSchema = new StructType();
+              for (StructField field : prevSchema.fields()) {
+                if (requiredCols.contains(field.name())) {
+                  prunedSchema = prunedSchema.add(field);
+                }
+              }
+              return prunedSchema;
+            });
   }
 
   public StatisticsContext estimateStatistics() {
