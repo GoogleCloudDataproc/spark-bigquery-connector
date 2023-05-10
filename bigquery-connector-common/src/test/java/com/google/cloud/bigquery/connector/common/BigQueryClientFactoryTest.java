@@ -34,7 +34,9 @@ import java.net.URI;
 import java.security.PrivateKey;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.Test;
 
 public class BigQueryClientFactoryTest {
@@ -460,6 +462,31 @@ public class BigQueryClientFactoryTest {
 
     @Override
     public Optional<String> getCredentialsFile() {
+      return Optional.empty();
+    }
+
+    @Override
+    public String getLoggedInUserName() {
+      return null;
+    }
+
+    @Override
+    public Set<String> getLoggedInUserGroups() {
+      return null;
+    }
+
+    @Override
+    public Optional<Map<String, String>> getImpersonationServiceAccountsForUsers() {
+      return Optional.empty();
+    }
+
+    @Override
+    public Optional<Map<String, String>> getImpersonationServiceAccountsForGroups() {
+      return Optional.empty();
+    }
+
+    @Override
+    public Optional<String> getImpersonationServiceAccount() {
       return Optional.empty();
     }
 

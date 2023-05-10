@@ -63,6 +63,11 @@ public class BigQueryClientModule implements com.google.inject.Module {
         config.getAccessToken(),
         config.getCredentialsKey(),
         config.getCredentialsFile(),
+        config.getLoggedInUserName(),
+        config.getLoggedInUserGroups(),
+        config.getImpersonationServiceAccountsForUsers(),
+        config.getImpersonationServiceAccountsForGroups(),
+        config.getImpersonationServiceAccount(),
         proxyConfig.getProxyUri(),
         proxyConfig.getProxyUsername(),
         proxyConfig.getProxyPassword());

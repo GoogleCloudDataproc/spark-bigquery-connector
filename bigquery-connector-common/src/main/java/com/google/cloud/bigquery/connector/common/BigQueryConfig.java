@@ -19,7 +19,9 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public interface BigQueryConfig {
 
@@ -32,6 +34,16 @@ public interface BigQueryConfig {
   Optional<String> getCredentialsFile();
 
   Optional<String> getAccessToken();
+
+  String getLoggedInUserName();
+
+  Set<String> getLoggedInUserGroups();
+
+  Optional<Map<String, String>> getImpersonationServiceAccountsForUsers();
+
+  Optional<Map<String, String>> getImpersonationServiceAccountsForGroups();
+
+  Optional<String> getImpersonationServiceAccount();
 
   String getParentProjectId();
 

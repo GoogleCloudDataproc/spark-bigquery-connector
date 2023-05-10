@@ -21,9 +21,11 @@ import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUt
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.fromJavaUtil;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getAnyBooleanOption;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getAnyOption;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getAnyOptionsWithPrefix;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getOption;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getOptionFromMultipleParams;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getRequiredOption;
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.removePrefixFromMapKeys;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
 import static com.google.cloud.spark.bigquery.SparkBigQueryUtil.scalaMapToJavaMap;
@@ -40,6 +42,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
 import com.google.cloud.bigquery.connector.common.MaterializationConfiguration;
@@ -51,6 +54,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
+import java.io.IOException;
 import java.io.Serializable;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -67,6 +72,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.execution.datasources.DataSource;
 import org.apache.spark.sql.internal.SQLConf;
@@ -93,6 +99,12 @@ public class SparkBigQueryConfig
       }
     }
   }
+
+  public static final String IMPERSONATION_GLOBAL = "gcpImpersonationServiceAccount";
+  public static final String IMPERSONATION_FOR_USER_PREFIX =
+      "gcpImpersonationServiceAccountForUser.";
+  public static final String IMPERSONATION_FOR_GROUP_PREFIX =
+      "gcpImpersonationServiceAccountForGroup.";
 
   public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
   public static final String USE_AVRO_LOGICAL_TYPES_OPTION = "useAvroLogicalTypes";
@@ -140,6 +152,11 @@ public class SparkBigQueryConfig
   boolean useParentProjectForMetadataOperations;
   com.google.common.base.Optional<String> accessTokenProviderFQCN;
   com.google.common.base.Optional<String> accessTokenProviderConfig;
+  String loggedInUserName;
+  Set<String> loggedInUserGroups;
+  com.google.common.base.Optional<String> impersonationServiceAccount;
+  com.google.common.base.Optional<Map<String, String>> impersonationServiceAccountsForUsers;
+  com.google.common.base.Optional<Map<String, String>> impersonationServiceAccountsForGroups;
   com.google.common.base.Optional<String> credentialsKey;
   com.google.common.base.Optional<String> credentialsFile;
   com.google.common.base.Optional<String> accessToken;
@@ -296,6 +313,25 @@ public class SparkBigQueryConfig
     config.accessTokenProviderFQCN = getAnyOption(globalOptions, options, "gcpAccessTokenProvider");
     config.accessTokenProviderConfig =
         getAnyOption(globalOptions, options, "gcpAccessTokenProviderConfig");
+    try {
+      UserGroupInformation ugiCurrentUser = UserGroupInformation.getCurrentUser();
+      config.loggedInUserName = ugiCurrentUser.getShortUserName();
+      config.loggedInUserGroups = Sets.newHashSet(ugiCurrentUser.getGroupNames());
+    } catch (IOException e) {
+      throw new BigQueryConnectorException(
+          "Failed to get the UserGroupInformation current user", e);
+    }
+    config.impersonationServiceAccount = getAnyOption(globalOptions, options, IMPERSONATION_GLOBAL);
+    config.impersonationServiceAccountsForUsers =
+        removePrefixFromMapKeys(
+            getAnyOptionsWithPrefix(
+                globalOptions, options, IMPERSONATION_FOR_USER_PREFIX.toLowerCase()),
+            IMPERSONATION_FOR_USER_PREFIX.toLowerCase());
+    config.impersonationServiceAccountsForGroups =
+        removePrefixFromMapKeys(
+            getAnyOptionsWithPrefix(
+                globalOptions, options, IMPERSONATION_FOR_GROUP_PREFIX.toLowerCase()),
+            IMPERSONATION_FOR_GROUP_PREFIX.toLowerCase());
     config.accessToken = getAnyOption(globalOptions, options, "gcpAccessToken");
     config.credentialsKey = getAnyOption(globalOptions, options, "credentials");
     config.credentialsFile =
@@ -564,6 +600,11 @@ public class SparkBigQueryConfig
             accessToken.toJavaUtil(),
             credentialsKey.toJavaUtil(),
             credentialsFile.toJavaUtil(),
+            loggedInUserName,
+            loggedInUserGroups,
+            impersonationServiceAccountsForUsers.toJavaUtil(),
+            impersonationServiceAccountsForGroups.toJavaUtil(),
+            impersonationServiceAccount.toJavaUtil(),
             sparkBigQueryProxyAndHttpConfig.getProxyUri(),
             sparkBigQueryProxyAndHttpConfig.getProxyUsername(),
             sparkBigQueryProxyAndHttpConfig.getProxyPassword())
@@ -609,6 +650,31 @@ public class SparkBigQueryConfig
   @Override
   public Optional<String> getAccessTokenProviderConfig() {
     return accessTokenProviderConfig.toJavaUtil();
+  }
+
+  @Override
+  public String getLoggedInUserName() {
+    return loggedInUserName;
+  }
+
+  @Override
+  public Set<String> getLoggedInUserGroups() {
+    return loggedInUserGroups;
+  }
+
+  @Override
+  public Optional<Map<String, String>> getImpersonationServiceAccountsForUsers() {
+    return impersonationServiceAccountsForUsers.toJavaUtil();
+  }
+
+  @Override
+  public Optional<Map<String, String>> getImpersonationServiceAccountsForGroups() {
+    return impersonationServiceAccountsForGroups.toJavaUtil();
+  }
+
+  @Override
+  public Optional<String> getImpersonationServiceAccount() {
+    return impersonationServiceAccount.toJavaUtil();
   }
 
   @Override

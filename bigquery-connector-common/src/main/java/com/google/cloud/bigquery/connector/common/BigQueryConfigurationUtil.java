@@ -25,6 +25,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -73,6 +74,39 @@ public class BigQueryConfigurationUtil {
         .filter(com.google.common.base.Optional::isPresent)
         .findFirst()
         .orElseGet(fallback);
+  }
+
+  public static Map<String, String> getMapEntriesWithPrefix(
+      Map<String, String> map, String prefix) {
+    Map<String, String> result = new HashMap();
+    for (Map.Entry<String, String> entry : map.entrySet()) {
+      if (entry.getKey().startsWith(prefix)) {
+        result.put(entry.getKey(), entry.getValue());
+      }
+    }
+    return result;
+  }
+
+  public static com.google.common.base.Optional<Map<String, String>> removePrefixFromMapKeys(
+      com.google.common.base.Optional<Map<String, String>> map, String prefix) {
+    Map<String, String> modifiedMap = new HashMap<>();
+    if (map.isPresent()) {
+      for (Map.Entry<String, String> entry : map.get().entrySet()) {
+        String originalKey = entry.getKey();
+        String modifiedKey =
+            originalKey.startsWith(prefix) ? originalKey.substring(prefix.length()) : originalKey;
+        modifiedMap.put(modifiedKey, entry.getValue());
+      }
+    }
+    return com.google.common.base.Optional.of(modifiedMap);
+  }
+
+  public static com.google.common.base.Optional<Map<String, String>> getAnyOptionsWithPrefix(
+      ImmutableMap<String, String> globalOptions, Map<String, String> options, String prefix) {
+    Map<String, String> result = getMapEntriesWithPrefix(globalOptions, prefix);
+    Map<String, String> prefixOptions = getMapEntriesWithPrefix(options, prefix);
+    result.putAll(prefixOptions);
+    return com.google.common.base.Optional.of(result);
   }
 
   public static com.google.common.base.Optional<String> getAnyOption(
