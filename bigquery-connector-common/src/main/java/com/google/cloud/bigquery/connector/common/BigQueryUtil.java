@@ -385,7 +385,9 @@ public class BigQueryUtil {
     }
 
     // cannot write of the source has more fields than the destination table.
-    if (sourceFieldList.size() > destinationFieldList.size()) return false;
+    if (sourceFieldList.size() > destinationFieldList.size()) {
+      return false;
+    }
 
     Map<String, Field> sourceFieldsMap =
         sourceFieldList.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
