@@ -44,6 +44,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -405,7 +406,18 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public void pruneColumns(StructType requiredSchema) {
-    this.schema = Optional.ofNullable(requiredSchema);
+    // requiredSchema may be nested column pruned, which is not supported yet.
+    this.schema.map(
+        prevSchema -> {
+          Set<String> requiredCols = new HashSet<>(Arrays.asList(requiredSchema.fieldNames()));
+          StructType prunedSchema = new StructType();
+          for (StructField field : prevSchema.fields()) {
+            if (requiredCols.contains(field.name())) {
+              prunedSchema = prunedSchema.add(field);
+            }
+          }
+          return prunedSchema;
+        });
   }
 
   public StatisticsContext estimateStatistics() {
