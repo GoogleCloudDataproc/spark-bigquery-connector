@@ -15,8 +15,8 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -173,7 +173,7 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
     super(fromArrowField(vector.getField()));
   }
 
-  public static ArrowSchemaConverter newArrowSchemaConverter(ValueVector vector, StructField userProvidedField) {
+  public static ArrowSchemaConverter newArrowSchemaConverter(ValueVector vector, StructField userProvidedField, SchemaConvertersConfiguration schemaConvertersConfiguration) {
     if (vector instanceof BitVector) {
       return new ArrowSchemaConverter.BooleanAccessor((BitVector) vector);
     } else if (vector instanceof BigIntVector) {
@@ -193,15 +193,17 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
     } else if (vector instanceof TimeMicroVector) {
       return new ArrowSchemaConverter.TimeMicroVectorAccessor((TimeMicroVector) vector);
     } else if (vector instanceof TimeStampMicroVector) {
-      return new ArrowSchemaConverter.TimestampMicroVectorAccessor((TimeStampMicroVector) vector);
+      return new ArrowSchemaConverter.TimestampMicroVectorAccessor((TimeStampMicroVector) vector, schemaConvertersConfiguration);
     } else if (vector instanceof TimeStampMicroTZVector) {
       return new ArrowSchemaConverter.TimestampMicroTZVectorAccessor((TimeStampMicroTZVector) vector);
     } else if (vector instanceof ListVector) {
       ListVector listVector = (ListVector) vector;
-      return new ArrowSchemaConverter.ArrayAccessor(listVector, userProvidedField);
+      return new ArrowSchemaConverter.ArrayAccessor(listVector, userProvidedField,
+          schemaConvertersConfiguration);
     } else if (vector instanceof StructVector) {
       StructVector structVector = (StructVector) vector;
-      return new ArrowSchemaConverter.StructAccessor(structVector, userProvidedField);
+      return new ArrowSchemaConverter.StructAccessor(structVector, userProvidedField,
+          schemaConvertersConfiguration);
     } else {
       throw new UnsupportedOperationException();
     }
@@ -486,15 +488,19 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
     private static final int ONE_BILLION = 1_000_000_000;
 
     private final TimeStampMicroVector vector;
+    private final SchemaConvertersConfiguration schemaConvertersConfiguration;
 
-    TimestampMicroVectorAccessor(TimeStampMicroVector vector) {
+    TimestampMicroVectorAccessor(TimeStampMicroVector vector,
+        SchemaConvertersConfiguration schemaConvertersConfiguration) {
       super(vector);
       this.vector = vector;
+      this.schemaConvertersConfiguration = schemaConvertersConfiguration;
     }
 
     @Override
     public final long getLong(int rowId) {
-      return vector.get(rowId);
+      long utcLong = vector.get(rowId);
+      return utcLong;
     }
 
     @Override
@@ -564,9 +570,14 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
 
     private final ArrowSchemaConverter arrayData;
 
-    ArrayAccessor(ListVector vector, StructField userProvidedField) {
+    private final SchemaConvertersConfiguration schemaConvertersConfiguration;
+
+
+    ArrayAccessor(ListVector vector, StructField userProvidedField,
+        SchemaConvertersConfiguration schemaConvertersConfiguration) {
       super(vector);
       this.vector = vector;
+      this.schemaConvertersConfiguration = schemaConvertersConfiguration;
       StructField structField = null;
 
       // this is to support Array of StructType/StructVector
@@ -581,7 +592,7 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
                 Metadata.empty());// safe to pass empty metadata as it is not used anywhere
       }
 
-      this.arrayData = newArrowSchemaConverter(vector.getDataVector(), structField);
+      this.arrayData = newArrowSchemaConverter(vector.getDataVector(), structField, schemaConvertersConfiguration);
     }
 
 
@@ -631,10 +642,13 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
   private static class StructAccessor extends ArrowSchemaConverter {
     private final StructVector vector;
     private ArrowSchemaConverter childColumns[];
+    private final SchemaConvertersConfiguration schemaConvertersConfiguration;
 
-    StructAccessor(StructVector structVector, StructField userProvidedField) {
+    StructAccessor(StructVector structVector, StructField userProvidedField,
+        SchemaConvertersConfiguration schemaConvertersConfiguration) {
       super(structVector);
       this.vector = structVector;
+      this.schemaConvertersConfiguration = schemaConvertersConfiguration;
       if(userProvidedField !=null) {
         List<StructField> structList =
               Arrays.stream(((StructType) userProvidedField.dataType()).fields())
@@ -651,12 +665,12 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
         for (int i = 0; i < childColumns.length; ++i) {
           StructField structField = structList.get(i);
           childColumns[i] =
-                  newArrowSchemaConverter(valueVectorMap.get(structField.name()), structField);
+                  newArrowSchemaConverter(valueVectorMap.get(structField.name()), structField, schemaConvertersConfiguration);
         }
       } else {
         childColumns = new ArrowSchemaConverter[structVector.size()];
         for (int i = 0; i < childColumns.length; ++i) {
-          childColumns[i] = newArrowSchemaConverter(structVector.getVectorById(i), /*userProvidedField=*/null);
+          childColumns[i] = newArrowSchemaConverter(structVector.getVectorById(i), /*userProvidedField=*/null, schemaConvertersConfiguration);
         }
       }
     }

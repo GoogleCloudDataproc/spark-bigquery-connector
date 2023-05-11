@@ -35,6 +35,7 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.collect.ImmutableList;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -456,5 +457,15 @@ public class BigQueryUtilTest {
     String tooLarge =
         IntStream.range(0, 2 + 2 << 20).mapToObj(i -> "a").collect(Collectors.joining());
     assertThat(BigQueryUtil.filterLengthInLimit(Optional.of(tooLarge))).isFalse();
+  }
+
+  @Test
+  public void testConvertUtcTimestampToTimeZone_withDST() {
+    long timestamp = 1585847723123456L; // 2020-04-02T17:15:23.123456
+    long convertedTimestamp =
+        BigQueryUtil.convertUtcTimestampToTimeZone(timestamp, ZoneId.of("Asia/Jerusalem"));
+    // Jerusalem in DST is GMT-3
+    long expectedTimestamp = timestamp + 3L * 60L * 60L * 1_000_000L;
+    assertThat(convertedTimestamp).isEqualTo(expectedTimestamp);
   }
 }

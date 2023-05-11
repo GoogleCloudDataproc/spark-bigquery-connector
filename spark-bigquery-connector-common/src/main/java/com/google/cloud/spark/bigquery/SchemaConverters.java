@@ -352,12 +352,8 @@ public class SchemaConverters {
       return DataTypes.TimestampType;
     } else if (LegacySQLTypeName.TIME.equals(field.getType())) {
       return DataTypes.LongType;
-      // TODO(#5): add a timezone to allow parsing to timestamp
-      // This can be safely cast to TimestampType, but doing so causes the date to be inferred
-      // as the current date. It's safer to leave as a stable string and give the user the
-      // option of casting themselves.
     } else if (LegacySQLTypeName.DATETIME.equals(field.getType())) {
-      return DataTypes.StringType;
+      return DataTypes.TimestampType;
     } else if (LegacySQLTypeName.RECORD.equals(field.getType())) {
       List<StructField> structFields =
           field.getSubFields().stream().map(this::convert).collect(Collectors.toList());

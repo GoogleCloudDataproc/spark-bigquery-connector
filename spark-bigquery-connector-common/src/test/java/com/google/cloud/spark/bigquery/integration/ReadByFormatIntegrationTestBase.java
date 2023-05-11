@@ -30,6 +30,7 @@ import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     super();
     this.dataFormat = dataFormat;
     this.userProvidedSchemaAllowed = userProvidedSchemaAllowed;
+    spark.conf().set("readDataFormat", dataFormat);
   }
 
   @Test
@@ -264,6 +266,42 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     assertThat(rowList).hasSize(2);
     List<Map<?, ?>> result =
         rowList.stream().map(row -> scalaMapToJavaMap(row.getMap(0))).collect(Collectors.toList());
+    assertThat(result).contains(ImmutableMap.of("a", Long.valueOf(1), "b", Long.valueOf(2)));
+    assertThat(result).contains(ImmutableMap.of("c", Long.valueOf(3)));
+  }
+
+  @Test
+  public void testConvertBigQueryDatetimeToSparkTimestamp() throws Exception {
+    BigQuery bigQuery = IntegrationTestUtils.getBigquery();
+    bigQuery.create(
+        TableInfo.newBuilder(
+                TableId.of(testDataset.toString(), testTable),
+                StandardTableDefinition.of(
+                    Schema.of(Field.of("datetime_field", LegacySQLTypeName.DATETIME))))
+            .build());
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "INSERT INTO %s.%s VALUES "
+                + "('2020-03-14 01:02:03.456789'),"
+                + "('2021-03-14 09:08:07.654321')",
+            testDataset, testTable));
+
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("datetimeZoneId", "Asia/Jerusalem")
+            .load(String.format("%s.%s", testDataset, testTable));
+    StructType schema = df.schema();
+    assertThat(schema.size()).isEqualTo(1);
+    StructField datetimeField = schema.apply("datetime_field");
+    assertThat(datetimeField).isNotNull();
+    assertThat(datetimeField.dataType()).isEqualTo(DataTypes.TimestampType);
+    List<Row> rowList = df.collectAsList();
+    assertThat(rowList).hasSize(2);
+    df.show();
+    List<Timestamp> result =
+        rowList.stream().map(row -> row.getTimestamp(0)).collect(Collectors.toList());
     assertThat(result).contains(ImmutableMap.of("a", Long.valueOf(1), "b", Long.valueOf(2)));
     assertThat(result).contains(ImmutableMap.of("c", Long.valueOf(3)));
   }

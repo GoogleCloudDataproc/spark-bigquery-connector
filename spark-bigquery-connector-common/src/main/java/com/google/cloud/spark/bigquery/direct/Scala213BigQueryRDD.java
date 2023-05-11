@@ -127,7 +127,8 @@ class Scala213BigQueryRDD extends RDD<InternalRow> {
               Arrays.asList(columnsInOrder),
               readSession.getArrowSchema().getSerializedSchema(),
               Optional.of(schema),
-              Optional.of(tracer));
+              Optional.of(tracer),
+              SchemaConvertersConfiguration.from(options));
     }
 
     return new InterruptibleIterator<InternalRow>(

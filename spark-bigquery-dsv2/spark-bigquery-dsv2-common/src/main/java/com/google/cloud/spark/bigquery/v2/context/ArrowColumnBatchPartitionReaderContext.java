@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.connector.common.ReadRowsResponseInputStreamEnumeration;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ArrowSchemaConverter;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.protobuf.ByteString;
@@ -154,6 +155,7 @@ public class ArrowColumnBatchPartitionReaderContext
   private boolean closed = false;
   private final Map<String, StructField> userProvidedFieldMap;
   private final List<AutoCloseable> closeables = new ArrayList<>();
+  private final SchemaConvertersConfiguration schemaConvertersConfiguration;
 
   ArrowColumnBatchPartitionReaderContext(
       Iterator<ReadRowsResponse> readRowsResponses,
@@ -162,13 +164,15 @@ public class ArrowColumnBatchPartitionReaderContext
       List<String> namesInOrder,
       BigQueryStorageReadRowsTracer tracer,
       Optional<StructType> userProvidedSchema,
-      int numBackgroundThreads) {
+      int numBackgroundThreads,
+      SchemaConvertersConfiguration schemaConvertersConfiguration) {
     this.allocator = ArrowUtil.newRootAllocator(maxAllocation);
     this.readRowsHelper = readRowsHelper;
     this.namesInOrder = namesInOrder;
     this.tracer = tracer;
     // place holder for reader.
     closeables.add(null);
+    this.schemaConvertersConfiguration = schemaConvertersConfiguration;
 
     List<StructField> userProvidedFieldList =
         Arrays.stream(userProvidedSchema.orElse(new StructType()).fields())
@@ -260,7 +264,9 @@ public class ArrowColumnBatchPartitionReaderContext
               .map(
                   vector ->
                       ArrowSchemaConverter.newArrowSchemaConverter(
-                          vector, userProvidedFieldMap.get(vector.getName())))
+                          vector,
+                          userProvidedFieldMap.get(vector.getName()),
+                          schemaConvertersConfiguration))
               .toArray(ColumnVector[]::new);
 
       currentBatch = new ColumnarBatch(columns);

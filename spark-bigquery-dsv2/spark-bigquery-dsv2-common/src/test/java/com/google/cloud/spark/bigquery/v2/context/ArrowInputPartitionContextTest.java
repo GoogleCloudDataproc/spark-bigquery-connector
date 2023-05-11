@@ -18,10 +18,12 @@ package com.google.cloud.spark.bigquery.v2.context;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
+import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.common.collect.Lists;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.time.ZoneId;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -41,6 +43,7 @@ public class ArrowInputPartitionContextTest {
                     /*prebufferResponses=*/ 1),
                 null,
                 new ReadSessionResponse(ReadSession.getDefaultInstance(), null),
-                null));
+                null,
+                SchemaConvertersConfiguration.of(ZoneId.of("UTC"))));
   }
 }

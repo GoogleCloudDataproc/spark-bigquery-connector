@@ -237,7 +237,8 @@ public class BigQueryDataSourceReaderContext {
                         readSessionCreatorConfig.toReadRowsHelperOptions(),
                         partitionSelectedFields,
                         readSessionResponse.get(),
-                        arrowSchema))
+                        arrowSchema,
+                        SchemaConvertersConfiguration.from(options)))
             .collect(Collectors.toList());
     return plannedInputPartitionContexts.stream()
         .map(ctx -> (InputPartitionContext<ColumnarBatch>) ctx);
@@ -342,7 +343,9 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public void filter(Filter[] filters) {
-    logger.info(String.format("Use Dynamic Partition Pruning runtime filters: %s", filters));
+    logger.info(
+        String.format(
+            "Use Dynamic Partition Pruning runtime filters: %s", Arrays.toString(filters)));
     if (plannedInputPartitionContexts == null) {
       logger.error("Should have planned partitions.");
       return;
