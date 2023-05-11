@@ -6,7 +6,7 @@
 * PR #951: Adding support to create BigQueryReadClient with UnboundedScheduledExecutorService
 * PR #965: Fix to reuse the same BigQueryClient for the same BigQueryConfig, rather than creating a new one
 * PR #950: Added support for service account impersonation
-* PR #973: Added support for writing to [CMEK managed tables](https://cloud.google.com/bigquery/docs/customer-managed-encryption) in INDIRECT writes
+* PR #973: Added support for writing to [CMEK managed tables](https://cloud.google.com/bigquery/docs/customer-managed-encryption).
 
 ## 0.30.0 - 2023-04-11
 

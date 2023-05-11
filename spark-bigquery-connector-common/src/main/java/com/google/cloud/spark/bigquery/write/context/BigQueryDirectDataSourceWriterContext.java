@@ -60,6 +60,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   private final BigQueryTable tableToWrite;
   private final String tablePathForBigQueryStorage;
   private final SchemaConvertersConfiguration schemaConvertersConfiguration;
+  private final Optional<String> kmsKeyName;
 
   private BigQueryWriteClient writeClient;
   private Optional<TableInfo> tableInfo = Optional.absent();
@@ -83,7 +84,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       Optional<String> traceId,
       boolean enableModeCheckForSchemaFields,
       ImmutableMap<String, String> tableLabels,
-      SchemaConvertersConfiguration schemaConvertersConfiguration)
+      SchemaConvertersConfiguration schemaConvertersConfiguration,
+      java.util.Optional<String> kmsKeyName)
       throws IllegalArgumentException {
     this.bigQueryClient = bigQueryClient;
     this.writeClientFactory = bigQueryWriteClientFactory;
@@ -95,6 +97,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     this.enableModeCheckForSchemaFields = enableModeCheckForSchemaFields;
     this.tableLabels = tableLabels;
     this.schemaConvertersConfiguration = schemaConvertersConfiguration;
+    this.kmsKeyName = Optional.fromJavaUtil(kmsKeyName);
     Schema bigQuerySchema =
         SchemaConverters.from(this.schemaConvertersConfiguration).toBigQuerySchema(sparkSchema);
     try {

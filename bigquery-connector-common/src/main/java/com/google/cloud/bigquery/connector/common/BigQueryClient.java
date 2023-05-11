@@ -142,8 +142,23 @@ public class BigQueryClient {
    * @return The {@code Table} object representing the table that was created.
    */
   public TableInfo createTable(TableId tableId, Schema schema) {
-    TableInfo tableInfo = TableInfo.newBuilder(tableId, StandardTableDefinition.of(schema)).build();
-    return bigQuery.create(tableInfo);
+    return createTable(tableId, schema, Optional.empty());
+  }
+
+  /**
+   * Creates an empty table in BigQuery.
+   *
+   * @param tableId The TableId of the table to be created.
+   * @param schema The Schema of the table to be created.
+   * @return The {@code Table} object representing the table that was created.
+   */
+  public TableInfo createTable(TableId tableId, Schema schema, Optional<String> kmsKeyName) {
+    TableInfo.Builder tableInfo = TableInfo.newBuilder(tableId, StandardTableDefinition.of(schema));
+    kmsKeyName.ifPresent(
+        keyName ->
+            tableInfo.setEncryptionConfiguration(
+                EncryptionConfiguration.newBuilder().setKmsKeyName(keyName).build()));
+    return bigQuery.create(tableInfo.build());
   }
 
   /**
