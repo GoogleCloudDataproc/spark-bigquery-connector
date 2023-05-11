@@ -790,6 +790,18 @@ The API Supports a number of options to configure the read
      </td>
      <td>Read/Write</td>
    </tr>
+  <tr>
+     <td><code>kmsKeyName</code>
+     </td>
+     <td>Describes the Cloud KMS encryption key that will be used to protect destination BigQuery
+         table. The BigQuery Service Account associated with your project requires access to this
+         encryption key. for further Information about using CMEK with BigQuery see
+         [here](https://cloud.google.com/bigquery/docs/customer-managed-encryption).
+         <br/>Supported by the  INDIRECT write method only.
+         <br/> (Optional)
+     </td>
+     <td>Write</td>
+   </tr>
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter

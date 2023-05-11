@@ -126,6 +126,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getEnableModeCheckForSchemaFields()).isTrue();
     assertThat(config.getDatetimeZoneId()).isEqualTo(ZoneId.of("UTC"));
     assertThat(config.getQueryJobPriority()).isEqualTo(SparkBigQueryConfig.DEFAULT_JOB_PRIORITY);
+    assertThat(config.getKmsKeyName()).isEqualTo(Optional.empty());
   }
 
   @Test
@@ -171,6 +172,7 @@ public class SparkBigQueryConfigTest {
                 .put("enableModeCheckForSchemaFields", "false")
                 .put("datetimeZoneId", "Asia/Jerusalem")
                 .put("queryJobPriority", "batch")
+                .put("kmsKeyName", "some/key/name")
                 .build());
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -222,6 +224,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getEnableModeCheckForSchemaFields()).isFalse();
     assertThat(config.getDatetimeZoneId()).isEqualTo(ZoneId.of("Asia/Jerusalem"));
     assertThat(config.getQueryJobPriority()).isEqualTo(Priority.valueOf("BATCH"));
+    assertThat(config.getKmsKeyName()).isEqualTo(Optional.of("some/key/name"));
   }
 
   @Test

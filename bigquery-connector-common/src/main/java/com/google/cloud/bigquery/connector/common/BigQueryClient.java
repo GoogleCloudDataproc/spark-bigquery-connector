@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
+import com.google.cloud.bigquery.EncryptionConfiguration;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobConfiguration;
@@ -566,6 +567,13 @@ public class BigQueryClient {
       jobConfiguration.setSchemaUpdateOptions(options.getLoadSchemaUpdateOptions());
     }
 
+    options
+        .getKmsKeyName()
+        .ifPresent(
+            kmsKeyName ->
+                jobConfiguration.setDestinationEncryptionConfiguration(
+                    EncryptionConfiguration.newBuilder().setKmsKeyName(kmsKeyName).build()));
+
     Job finishedJob = null;
     try {
       finishedJob = createAndWaitFor(jobConfiguration);
@@ -659,6 +667,8 @@ public class BigQueryClient {
     List<JobInfo.SchemaUpdateOption> getLoadSchemaUpdateOptions();
 
     boolean getEnableModeCheckForSchemaFields();
+
+    Optional<String> getKmsKeyName();
   }
 
   static class DestinationTableBuilder implements Callable<TableInfo> {

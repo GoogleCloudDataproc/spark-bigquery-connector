@@ -4,8 +4,9 @@
 
 * Issue #945: Fixing unable to add new column even with option `allowFieldAddition`
 * PR #951: Adding support to create BigQueryReadClient with UnboundedScheduledExecutorService
-* PR #965: Fix to reuse the same BigQueryClient for the same BigQueryConfig, rather than creating a new one.
+* PR #965: Fix to reuse the same BigQueryClient for the same BigQueryConfig, rather than creating a new one
 * PR #950: Added support for service account impersonation
+* PR #XXX: Added support for writing to [CMEK](https://cloud.google.com/bigquery/docs/customer-managed-encryption) tables in INDIRECT writes
 
 ## 0.30.0 - 2023-04-11
 

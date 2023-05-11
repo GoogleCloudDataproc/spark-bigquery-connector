@@ -33,6 +33,7 @@ import static java.lang.String.format;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
+import com.google.cloud.bigquery.EncryptionConfiguration;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.ParquetOptions;
@@ -212,6 +213,8 @@ public class SparkBigQueryConfig
   private com.google.common.base.Optional<Long> createReadSessionTimeoutInSeconds;
   private ZoneId datetimeZoneId;
   private QueryJobConfiguration.Priority queryJobPriority = DEFAULT_JOB_PRIORITY;
+
+  private com.google.common.base.Optional<String> kmsKeyName = empty();
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -518,6 +521,8 @@ public class SparkBigQueryConfig
             .transform(String::toUpperCase)
             .transform(Priority::valueOf)
             .or(DEFAULT_JOB_PRIORITY);
+
+    config.kmsKeyName = getAnyOption(globalOptions, options, "kmsKeyName");
 
     return config;
   }
@@ -873,6 +878,11 @@ public class SparkBigQueryConfig
   @Override
   public Priority getQueryJobPriority() {
     return queryJobPriority;
+  }
+
+  @Override
+  public Optional<String> getKmsKeyName() {
+    return kmsKeyName.toJavaUtil();
   }
 
   @Override
