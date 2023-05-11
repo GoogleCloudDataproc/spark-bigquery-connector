@@ -33,7 +33,6 @@ import static java.lang.String.format;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
-import com.google.cloud.bigquery.EncryptionConfiguration;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.ParquetOptions;
