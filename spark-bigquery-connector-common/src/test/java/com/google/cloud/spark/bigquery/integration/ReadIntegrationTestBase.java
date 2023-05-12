@@ -196,6 +196,14 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   @Test
+  // @Ignore("DSv2 only")
+  public void testReadSchemaPruned() {
+    Row res = readAllTypesTable().select("str", "nums.pi").collectAsList().get(0);
+    assertThat(res.get(0)).isEqualTo("string");
+    assertThat(res.get(1)).isEqualTo(3.14);
+  }
+
+  @Test
   public void testFilters() {
     Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
     assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);

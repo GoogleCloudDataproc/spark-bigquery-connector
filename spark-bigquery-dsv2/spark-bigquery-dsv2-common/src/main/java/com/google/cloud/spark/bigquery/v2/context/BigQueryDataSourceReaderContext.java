@@ -44,7 +44,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -410,7 +409,7 @@ public class BigQueryDataSourceReaderContext {
     this.schema =
         this.schema.map(
             prevSchema -> {
-              Set<String> requiredCols = new HashSet<>(Arrays.asList(requiredSchema.fieldNames()));
+              Set<String> requiredCols = ImmutableSet.copyOf(requiredSchema.fieldNames());
               StructType prunedSchema = new StructType();
               for (StructField field : prevSchema.fields()) {
                 if (requiredCols.contains(field.name())) {
