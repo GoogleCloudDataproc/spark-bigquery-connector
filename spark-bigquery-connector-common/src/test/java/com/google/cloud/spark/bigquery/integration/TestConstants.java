@@ -175,6 +175,26 @@ public class TestConstants {
                           copy(new StructField("i", DataTypes.LongType, true, Metadata.empty()))),
                       true),
                   true,
+                  Metadata.empty()),
+              new StructField(
+                  "nested_struct",
+                  new StructType(
+                      copy(
+                          new StructField("int_null", DataTypes.LongType, true, Metadata.empty()),
+                          new StructField("str", DataTypes.StringType, true, Metadata.empty()),
+                          new StructField(
+                              "inner_struct",
+                              new StructType(
+                                  copy(
+                                      new StructField(
+                                          "bl", DataTypes.BooleanType, true, Metadata.empty()),
+                                      new StructField(
+                                          "str", DataTypes.StringType, true, Metadata.empty()),
+                                      new StructField(
+                                          "int_null", DataTypes.LongType, true, Metadata.empty()))),
+                              true,
+                              Metadata.empty()))),
+                  true,
                   Metadata.empty())));
 
   public static String ALL_TYPES_TABLE_QUERY_TEMPLATE =
@@ -195,7 +215,8 @@ public class TestConstants {
               "nums struct<min numeric, max numeric, pi numeric, big_pi numeric>,",
               //          "big_numeric_nums struct<min bignumeric, max bignumeric>,",
               "int_arr array<int64>,",
-              "int_struct_arr array<struct<i int64>>",
+              "int_struct_arr array<struct<i int64>>,",
+              "nested_struct struct<int_null int64, str string, inner_struct struct<bl bool, str string, int_null int64>>",
               ") as",
               "",
               "select",
@@ -223,7 +244,12 @@ public class TestConstants {
               // cast(\"578960446186580977117854925043439539266.34992332820282019728792003956564819967\" as bignumeric) as max",
               // ") as big_numeric_nums,",
               "[1, 2, 3] as int_arr,",
-              "[(select as struct 1)] as int_struct_arr")
+              "[(select as struct 1)] as int_struct_arr",
+              "struct(",
+              "  1 as int_null,",
+              "  \"stringa\" as str,",
+              "  struct( true as bl, \"stringaa\" as str, 11 as int_null) ",
+              ") as nested_struct")
           .collect(Collectors.joining("\n"));
 
   public static int ALL_TYPES_TABLE_SIZE = 166;
@@ -306,7 +332,8 @@ public class TestConstants {
           // lit("578960446186580977117854925043439539266.34992332820282019728792003956564819967")
           // ),
           array(lit(1), lit(2), lit(3)),
-          array(struct(lit(1))));
+          array(struct(lit(1))),
+          struct(lit(1), lit("stringa"), struct(lit(true), lit("stringaa"), lit(11))));
 
   private static <T> T[] copy(T... elements) {
     return elements;

@@ -196,11 +196,15 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   @Test
-  // @Ignore("DSv2 only")
   public void testReadSchemaPruned() {
-    Row res = readAllTypesTable().select("str", "nums.pi").collectAsList().get(0);
+    Row res =
+        readAllTypesTable()
+            .select("str", "nested_struct.str", "nested_struct.inner_struct.str")
+            .collectAsList()
+            .get(0);
     assertThat(res.get(0)).isEqualTo("string");
-    assertThat(res.get(1)).isEqualTo(3.14);
+    assertThat(res.get(1)).isEqualTo("stringa");
+    assertThat(res.get(2)).isEqualTo("stringaa");
   }
 
   @Test
