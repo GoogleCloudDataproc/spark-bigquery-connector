@@ -41,6 +41,7 @@ import com.google.cloud.spark.bigquery.integration.model.Data;
 import com.google.cloud.spark.bigquery.integration.model.Friend;
 import com.google.cloud.spark.bigquery.integration.model.Link;
 import com.google.cloud.spark.bigquery.integration.model.Person;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.ProvisionException;
 import java.sql.Date;
@@ -894,6 +895,30 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 .filter(row -> row.getString(2) != null && row.getString(2).equals("newVal1"))
                 .count())
         .isEqualTo(1);
+  }
+
+  @Test
+  public void testWriteToCmekManagedTable() throws Exception {
+    String destinationTableKmsKeyName =
+        Preconditions.checkNotNull(
+            System.getenv("BIGQUERY_KMS_KEY_NAME"),
+            "Please set the BIGQUERY_KMS_KEY_NAME to point to a pre-generated and configured KMS key");
+    Dataset<Row> df = initialData();
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("table", fullTableName())
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .option("destinationTableKmsKeyName", destinationTableKmsKeyName)
+        .save();
+
+    Table table =
+        IntegrationTestUtils.getBigquery().getTable(TableId.of(testDataset.toString(), testTable));
+    assertThat(table).isNotNull();
+    assertThat(table.getEncryptionConfiguration()).isNotNull();
+    assertThat(table.getEncryptionConfiguration().getKmsKeyName())
+        .isEqualTo(destinationTableKmsKeyName);
   }
 
   protected long numberOfRowsWith(String name) {
