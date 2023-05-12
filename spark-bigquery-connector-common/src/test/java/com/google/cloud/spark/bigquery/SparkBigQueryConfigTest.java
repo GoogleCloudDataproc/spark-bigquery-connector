@@ -172,7 +172,7 @@ public class SparkBigQueryConfigTest {
                 .put("enableModeCheckForSchemaFields", "false")
                 .put("datetimeZoneId", "Asia/Jerusalem")
                 .put("queryJobPriority", "batch")
-                .put("kmsKeyName", "some/key/name")
+                .put("destinationTableKmsKeyName", "some/key/name")
                 .build());
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(

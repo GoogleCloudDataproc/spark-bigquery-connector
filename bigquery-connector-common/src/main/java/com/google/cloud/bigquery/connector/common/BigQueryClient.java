@@ -150,12 +150,13 @@ public class BigQueryClient {
    *
    * @param tableId The TableId of the table to be created.
    * @param schema The Schema of the table to be created.
-   * @param kmsKeyName The reference to the encryption key in KMS.
+   * @param destinationTableKmsKeyName The reference to the encryption key in KMS.
    * @return The {@code Table} object representing the table that was created.
    */
-  public TableInfo createTable(TableId tableId, Schema schema, Optional<String> kmsKeyName) {
+  public TableInfo createTable(
+      TableId tableId, Schema schema, Optional<String> destinationTableKmsKeyName) {
     TableInfo.Builder tableInfo = TableInfo.newBuilder(tableId, StandardTableDefinition.of(schema));
-    kmsKeyName.ifPresent(
+    destinationTableKmsKeyName.ifPresent(
         keyName ->
             tableInfo.setEncryptionConfiguration(
                 EncryptionConfiguration.newBuilder().setKmsKeyName(keyName).build()));
@@ -586,9 +587,11 @@ public class BigQueryClient {
     options
         .getKmsKeyName()
         .ifPresent(
-            kmsKeyName ->
+            destinationTableKmsKeyName ->
                 jobConfiguration.setDestinationEncryptionConfiguration(
-                    EncryptionConfiguration.newBuilder().setKmsKeyName(kmsKeyName).build()));
+                    EncryptionConfiguration.newBuilder()
+                        .setKmsKeyName(destinationTableKmsKeyName)
+                        .build()));
 
     Job finishedJob = null;
     try {

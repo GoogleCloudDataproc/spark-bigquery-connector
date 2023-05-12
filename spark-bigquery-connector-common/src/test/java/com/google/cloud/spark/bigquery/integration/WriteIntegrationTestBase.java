@@ -899,7 +899,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testWriteToCmekManagedTable() throws Exception {
-    String kmsKeyName =
+    String destinationTableKmsKeyName =
         Preconditions.checkNotNull(
             System.getenv("BIGQUERY_KMS_KEY_NAME"),
             "Please set the BIGQUERY_KMS_KEY_NAME to point to a pre-generated and configured KMS key");
@@ -910,14 +910,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("table", fullTableName())
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("writeMethod", writeMethod.toString())
-        .option("kmsKeyName", kmsKeyName)
+        .option("destinationTableKmsKeyName", destinationTableKmsKeyName)
         .save();
 
     Table table =
         IntegrationTestUtils.getBigquery().getTable(TableId.of(testDataset.toString(), testTable));
     assertThat(table).isNotNull();
     assertThat(table.getEncryptionConfiguration()).isNotNull();
-    assertThat(table.getEncryptionConfiguration().getKmsKeyName()).isEqualTo(kmsKeyName);
+    assertThat(table.getEncryptionConfiguration().getKmsKeyName())
+        .isEqualTo(destinationTableKmsKeyName);
   }
 
   protected long numberOfRowsWith(String name) {

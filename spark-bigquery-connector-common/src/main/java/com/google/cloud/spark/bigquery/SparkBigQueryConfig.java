@@ -213,7 +213,7 @@ public class SparkBigQueryConfig
   private ZoneId datetimeZoneId;
   private QueryJobConfiguration.Priority queryJobPriority = DEFAULT_JOB_PRIORITY;
 
-  private com.google.common.base.Optional<String> kmsKeyName = empty();
+  private com.google.common.base.Optional<String> destinationTableKmsKeyName = empty();
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -521,7 +521,8 @@ public class SparkBigQueryConfig
             .transform(Priority::valueOf)
             .or(DEFAULT_JOB_PRIORITY);
 
-    config.kmsKeyName = getAnyOption(globalOptions, options, "kmsKeyName");
+    config.destinationTableKmsKeyName =
+        getAnyOption(globalOptions, options, "destinationTableKmsKeyName");
 
     return config;
   }
@@ -881,7 +882,7 @@ public class SparkBigQueryConfig
 
   @Override
   public Optional<String> getKmsKeyName() {
-    return kmsKeyName.toJavaUtil();
+    return destinationTableKmsKeyName.toJavaUtil();
   }
 
   @Override
