@@ -157,7 +157,10 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       return new BigQueryTable(destinationTable.getTableId(), false);
     } else {
       return new BigQueryTable(
-          bigQueryClient.createTable(destinationTableId, bigQuerySchema).getTableId(), true);
+          bigQueryClient
+              .createTable(destinationTableId, bigQuerySchema, kmsKeyName.toJavaUtil())
+              .getTableId(),
+          true);
     }
   }
 
