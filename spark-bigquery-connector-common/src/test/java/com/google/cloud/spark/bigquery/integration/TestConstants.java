@@ -244,7 +244,7 @@ public class TestConstants {
               // cast(\"578960446186580977117854925043439539266.34992332820282019728792003956564819967\" as bignumeric) as max",
               // ") as big_numeric_nums,",
               "[1, 2, 3] as int_arr,",
-              "[(select as struct 1)] as int_struct_arr",
+              "[(select as struct 1)] as int_struct_arr,",
               "struct(",
               "  1 as int_null,",
               "  \"stringa\" as str,",
@@ -252,7 +252,7 @@ public class TestConstants {
               ") as nested_struct")
           .collect(Collectors.joining("\n"));
 
-  public static int ALL_TYPES_TABLE_SIZE = 166;
+  public static int ALL_TYPES_TABLE_SIZE = 202;
 
   static String STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE =
       Stream.of(
