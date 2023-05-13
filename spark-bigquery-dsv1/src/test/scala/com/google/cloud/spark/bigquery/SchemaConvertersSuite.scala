@@ -74,7 +74,7 @@ class SchemaConvertersSuite extends AnyFunSuite {
       StructField("times", StructType(Seq(
         StructField("time", LongType),
         StructField("timestamp", TimestampType),
-        StructField("datetime", StringType))))))
+        StructField("datetime", TimestampType))))))
 
     val result = schemaConverters.toSpark(bqSchema)
     assert(expected == result)
