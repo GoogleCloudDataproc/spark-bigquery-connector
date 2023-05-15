@@ -136,7 +136,7 @@ public class TestConstants {
               new StructField("str", DataTypes.StringType, true, Metadata.empty()),
               new StructField("day", DataTypes.DateType, true, Metadata.empty()),
               new StructField("ts", DataTypes.TimestampType, true, Metadata.empty()),
-              new StructField("dt", DataTypes.StringType, true, Metadata.empty()),
+              new StructField("dt", DataTypes.TimestampType, true, Metadata.empty()),
               new StructField("tm", DataTypes.LongType, true, Metadata.empty()),
               new StructField("binary", DataTypes.BinaryType, true, Metadata.empty()),
               new StructField("float", DataTypes.DoubleType, true, Metadata.empty()),
@@ -289,7 +289,8 @@ public class TestConstants {
           lit("string"),
           to_date(lit("2019-03-18")),
           from_utc_timestamp(lit("2019-03-18T01:23:45.678901"), TimeZone.getDefault().getID()),
-          lit("2019-03-18T01:23:45.678901"),
+          // lit("2019-03-18T01:23:45.678901"),
+          from_utc_timestamp(lit("2019-03-18T01:23:45.678901"), TimeZone.getDefault().getID()),
           lit(5025678901L),
           lit("bytes").cast("BINARY"),
           lit(4.2),
@@ -340,6 +341,7 @@ public class TestConstants {
           .add(new StructField("str", StringType, true, Metadata.empty()))
           .add(new StructField("date", DateType, true, Metadata.empty()))
           .add(new StructField("timestamp", TimestampType, true, Metadata.empty()))
+          .add(new StructField("datetime", TimestampType, true, Metadata.empty()))
           .add(new StructField("binary", BinaryType, true, Metadata.empty()))
           .add(new StructField("float", DoubleType, true, Metadata.empty()))
           .add(new StructField("json_f", StringType, true, Metadata.empty()))
@@ -399,6 +401,7 @@ public class TestConstants {
           .add(new StructField("str", StringType, true, Metadata.empty()))
           .add(new StructField("date", DateType, true, Metadata.empty()))
           .add(new StructField("timestamp", TimestampType, true, Metadata.empty()))
+          .add(new StructField("datetime", TimestampType, true, Metadata.empty()))
           .add(new StructField("binary", BinaryType, true, Metadata.empty()))
           .add(new StructField("float", DoubleType, true, Metadata.empty()))
           .add(new StructField("json_f", StringType, true, Metadata.empty()))

@@ -278,6 +278,16 @@ public class AvroSchemaConverter {
       };
     }
 
+    if (sparkType instanceof TimestampType && avroType.getType() == Schema.Type.STRING) {
+      return (getter, ordinal) -> {
+        Object sparkValue =
+                // UnsafeRow mandates Datatype
+                getter instanceof UnsafeRow || getter instanceof UnsafeArrayData
+                        ? getter.getLong(ordinal)
+                        : getter.get(ordinal, /* unused */ null);
+        return SparkBigQueryUtil.sparkTimestampToBigQuery(sparkValue);
+      };
+    }
     if (sparkType instanceof ArrayType && avroType.getType() == Schema.Type.ARRAY) {
       DataType et = ((ArrayType) sparkType).elementType();
       boolean containsNull = ((ArrayType) sparkType).containsNull();

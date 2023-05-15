@@ -52,7 +52,12 @@ public class AvroSchemaConverterTest {
         fields[5],
         "ts",
         nullable(LogicalTypes.timestampMicros().addToSchema(SchemaBuilder.builder().longType())));
-    checkField(fields[6], "dt", nullable(Schema.Type.STRING));
+    checkField(
+        fields[6],
+        "dt",
+        nullable(LogicalTypes.timestampMicros().addToSchema(SchemaBuilder.builder().longType())));
+
+    //  checkField(fields[6], "dt", nullable(Schema.Type.STRING));
     checkField(fields[7], "tm", nullable(Schema.Type.LONG));
     checkField(fields[8], "binary", nullable(Schema.Type.BYTES));
     checkField(fields[9], "float", nullable(Schema.Type.DOUBLE));
