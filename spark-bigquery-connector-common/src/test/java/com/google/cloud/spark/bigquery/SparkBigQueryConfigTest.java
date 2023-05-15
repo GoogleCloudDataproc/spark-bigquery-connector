@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
+import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.TableId;
@@ -43,6 +44,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.spark.sql.internal.SQLConf;
 import org.junit.Assert;
 import org.junit.Test;
@@ -124,6 +126,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getEnableModeCheckForSchemaFields()).isTrue();
     assertThat(config.getDatetimeZoneId()).isEqualTo(ZoneId.of("UTC"));
     assertThat(config.getQueryJobPriority()).isEqualTo(SparkBigQueryConfig.DEFAULT_JOB_PRIORITY);
+    assertThat(config.getKmsKeyName()).isEqualTo(Optional.empty());
   }
 
   @Test
@@ -169,6 +172,7 @@ public class SparkBigQueryConfigTest {
                 .put("enableModeCheckForSchemaFields", "false")
                 .put("datetimeZoneId", "Asia/Jerusalem")
                 .put("queryJobPriority", "batch")
+                .put("destinationTableKmsKeyName", "some/key/name")
                 .build());
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -220,6 +224,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getEnableModeCheckForSchemaFields()).isFalse();
     assertThat(config.getDatetimeZoneId()).isEqualTo(ZoneId.of("Asia/Jerusalem"));
     assertThat(config.getQueryJobPriority()).isEqualTo(Priority.valueOf("BATCH"));
+    assertThat(config.getKmsKeyName()).isEqualTo(Optional.of("some/key/name"));
   }
 
   @Test
@@ -943,6 +948,82 @@ public class SparkBigQueryConfigTest {
 
     Exception e = assertThrows(Exception.class, () -> config.createCredentials());
     assertThat(e.getMessage()).contains("Failed to create Credentials from key");
+  }
+
+  @Test
+  public void testImpersonationGlobal() {
+    String sa = "abc@example.iam.gserviceaccount.com";
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("gcpImpersonationServiceAccount", sa)),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+
+    ImpersonatedCredentials credentials = (ImpersonatedCredentials) config.createCredentials();
+    assertThat(credentials.getAccount()).isEqualTo(sa);
+  }
+
+  @Test
+  public void testImpersonationGlobalForUser() {
+    String user = "bob";
+    String sa = "bob@example.iam.gserviceaccount.com";
+    UserGroupInformation ugi = UserGroupInformation.createRemoteUser(user);
+    ugi.doAs(
+        (java.security.PrivilegedAction<Void>)
+            () -> {
+              SparkBigQueryConfig config =
+                  SparkBigQueryConfig.from(
+                      asDataSourceOptionsMap(
+                          withParameter("gcpImpersonationServiceAccountForUser." + user, sa)),
+                      emptyMap, // allConf
+                      new Configuration(),
+                      emptyMap, // customDefaults
+                      1,
+                      new SQLConf(),
+                      sparkVersion,
+                      /* schema */ Optional.empty(),
+                      /* tableIsMandatory */ true);
+
+              ImpersonatedCredentials credentials =
+                  (ImpersonatedCredentials) config.createCredentials();
+              assertThat(credentials.getAccount()).isEqualTo(sa);
+              return null;
+            });
+  }
+
+  @Test
+  public void testImpersonationGlobalForGroup() {
+    String user = "bob";
+    String[] groups = new String[] {"datascience"};
+    String sa = "datascience-team@example.iam.gserviceaccount.com";
+    UserGroupInformation ugi = UserGroupInformation.createUserForTesting(user, groups);
+    ugi.doAs(
+        (java.security.PrivilegedAction<Void>)
+            () -> {
+              SparkBigQueryConfig config =
+                  SparkBigQueryConfig.from(
+                      asDataSourceOptionsMap(
+                          withParameter("gcpImpersonationServiceAccountForGroup." + groups[0], sa)),
+                      emptyMap, // allConf
+                      new Configuration(),
+                      emptyMap, // customDefaults
+                      1,
+                      new SQLConf(),
+                      sparkVersion,
+                      /* schema */ Optional.empty(),
+                      /* tableIsMandatory */ true);
+
+              ImpersonatedCredentials credentials =
+                  (ImpersonatedCredentials) config.createCredentials();
+              assertThat(credentials.getAccount()).isEqualTo(sa);
+              return null;
+            });
   }
 
   @Test

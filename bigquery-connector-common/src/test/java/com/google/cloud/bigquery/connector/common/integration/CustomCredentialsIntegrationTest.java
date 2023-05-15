@@ -41,6 +41,11 @@ public class CustomCredentialsIntegrationTest {
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
+            null,
+            null,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
             Optional.empty(),
             Optional.empty(),
             Optional.empty());
@@ -68,6 +73,11 @@ public class CustomCredentialsIntegrationTest {
         new BigQueryCredentialsSupplier(
             Optional.of(DefaultCredentialsDelegateAccessTokenProvider.class.getCanonicalName()),
             Optional.of("some-configuration"),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            null,
+            null,
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),

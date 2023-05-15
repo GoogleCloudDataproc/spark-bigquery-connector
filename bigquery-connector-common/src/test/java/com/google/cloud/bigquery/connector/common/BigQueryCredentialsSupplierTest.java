@@ -22,6 +22,7 @@ import com.google.api.client.json.GenericJson;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.gson.stream.MalformedJsonException;
 import java.io.File;
@@ -65,6 +66,10 @@ public class BigQueryCredentialsSupplierTest {
       Optional.of(URI.create("http://bq-connector-host:1234"));
   private static final Optional<String> optionalProxyUserName = Optional.of("credential-user");
   private static final Optional<String> optionalProxyPassword = Optional.of("credential-password");
+  public static final String IMPERSONATED_GLOBAL =
+      "impersonated-global@developer.gserviceaccount.com";
+  public static final String IMPERSONATED_A = "impersonated-a@developer.gserviceaccount.com";
+  public static final String IMPERSONATED_B = "impersonated-b@developer.gserviceaccount.com";
 
   @Test
   public void testCredentialsFromAccessToken() {
@@ -73,6 +78,11 @@ public class BigQueryCredentialsSupplierTest {
                 Optional.empty(),
                 Optional.empty(),
                 Optional.of(ACCESS_TOKEN),
+                Optional.empty(),
+                Optional.empty(),
+                null,
+                null,
+                Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
@@ -85,6 +95,11 @@ public class BigQueryCredentialsSupplierTest {
                 Optional.empty(),
                 Optional.empty(),
                 Optional.of(ACCESS_TOKEN),
+                Optional.empty(),
+                Optional.empty(),
+                null,
+                null,
+                Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
                 optionalProxyURI,
@@ -116,6 +131,11 @@ public class BigQueryCredentialsSupplierTest {
                 Optional.empty(),
                 Optional.of(credentialsKey),
                 Optional.empty(),
+                null,
+                null,
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty())
@@ -127,6 +147,11 @@ public class BigQueryCredentialsSupplierTest {
                 Optional.empty(),
                 Optional.empty(),
                 Optional.of(credentialsKey),
+                Optional.empty(),
+                null,
+                null,
+                Optional.empty(),
+                Optional.empty(),
                 Optional.empty(),
                 optionalProxyURI,
                 optionalProxyUserName,
@@ -163,6 +188,11 @@ public class BigQueryCredentialsSupplierTest {
                         Optional.empty(),
                         Optional.of(credentialsKey),
                         Optional.empty(),
+                        null,
+                        null,
+                        Optional.empty(),
+                        Optional.empty(),
+                        Optional.empty(),
                         optionalProxyURI,
                         Optional.empty(),
                         optionalProxyPassword)
@@ -177,6 +207,11 @@ public class BigQueryCredentialsSupplierTest {
                         Optional.empty(),
                         Optional.empty(),
                         Optional.of(credentialsKey),
+                        Optional.empty(),
+                        null,
+                        null,
+                        Optional.empty(),
+                        Optional.empty(),
                         Optional.empty(),
                         optionalProxyURI,
                         optionalProxyUserName,
@@ -207,6 +242,11 @@ public class BigQueryCredentialsSupplierTest {
                 Optional.empty(),
                 Optional.empty(),
                 Optional.of(credentialsFile.getAbsolutePath()),
+                null,
+                null,
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty())
@@ -219,6 +259,11 @@ public class BigQueryCredentialsSupplierTest {
                 Optional.empty(),
                 Optional.empty(),
                 Optional.of(credentialsFile.getAbsolutePath()),
+                null,
+                null,
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
                 optionalProxyURI,
                 optionalProxyUserName,
                 optionalProxyPassword)
@@ -255,6 +300,11 @@ public class BigQueryCredentialsSupplierTest {
                         Optional.empty(),
                         Optional.empty(),
                         Optional.of(credentialsFile.getAbsolutePath()),
+                        null,
+                        null,
+                        Optional.empty(),
+                        Optional.empty(),
+                        Optional.empty(),
                         optionalProxyURI,
                         Optional.empty(),
                         optionalProxyPassword)
@@ -270,6 +320,11 @@ public class BigQueryCredentialsSupplierTest {
                         Optional.empty(),
                         Optional.empty(),
                         Optional.of(credentialsFile.getAbsolutePath()),
+                        null,
+                        null,
+                        Optional.empty(),
+                        Optional.empty(),
+                        Optional.empty(),
                         optionalProxyURI,
                         optionalProxyUserName,
                         Optional.empty())
@@ -298,12 +353,138 @@ public class BigQueryCredentialsSupplierTest {
     return json.toPrettyString();
   }
 
+  Credentials createImpersonatedCredentials(
+      String loggedInUserName,
+      Set<String> loggedInUserGroups,
+      Map<String, String> userMappings,
+      Map<String, String> groupMappings,
+      String globalImpersonated) {
+    return new BigQueryCredentialsSupplier(
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            loggedInUserName,
+            loggedInUserGroups,
+            Optional.ofNullable(userMappings),
+            Optional.ofNullable(groupMappings),
+            Optional.ofNullable(globalImpersonated),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty())
+        .getCredentials();
+  }
+
+  @Test
+  public void testSingleServiceAccountImpersonation() throws Exception {
+    ImpersonatedCredentials credentials =
+        (ImpersonatedCredentials)
+            createImpersonatedCredentials(null, null, null, null, IMPERSONATED_GLOBAL);
+    assertThat(credentials.getSourceCredentials())
+        .isEqualTo(GoogleCredentials.getApplicationDefault());
+    assertThat(credentials.getAccount()).isEqualTo(IMPERSONATED_GLOBAL);
+  }
+
+  @Test
+  public void testImpersonationForUsers() throws Exception {
+    Map<String, String> userMappings =
+        new HashMap<String, String>() {
+          {
+            put("alice", IMPERSONATED_A);
+            put("bob", IMPERSONATED_B);
+          }
+        };
+    Map<String, String> expected =
+        new HashMap<String, String>() {
+          {
+            put("alice", IMPERSONATED_A);
+            put("bob", IMPERSONATED_B);
+            put("charlie", IMPERSONATED_GLOBAL); // Fallback
+          }
+        };
+    for (Map.Entry<String, String> entry : expected.entrySet()) {
+      ImpersonatedCredentials credentials =
+          (ImpersonatedCredentials)
+              createImpersonatedCredentials(
+                  entry.getKey(), null, userMappings, null, IMPERSONATED_GLOBAL);
+      assertThat(credentials.getSourceCredentials())
+          .isEqualTo(GoogleCredentials.getApplicationDefault());
+      assertThat(credentials.getAccount()).isEqualTo(entry.getValue());
+    }
+  }
+
+  @Test
+  public void testImpersonationForGroups() throws Exception {
+    Map<String, String> groupMappings =
+        new HashMap<String, String>() {
+          {
+            put("group1", IMPERSONATED_A);
+            put("group2", IMPERSONATED_B);
+          }
+        };
+    Map<String, String> expected =
+        new HashMap<String, String>() {
+          {
+            put("group1", IMPERSONATED_A);
+            put("group2", IMPERSONATED_B);
+            put("group3", IMPERSONATED_GLOBAL); // Fallback
+          }
+        };
+    for (Map.Entry<String, String> entry : expected.entrySet()) {
+      ImpersonatedCredentials credentials =
+          (ImpersonatedCredentials)
+              createImpersonatedCredentials(
+                  null,
+                  new HashSet<>(Arrays.asList(entry.getKey())),
+                  null,
+                  groupMappings,
+                  IMPERSONATED_GLOBAL);
+      assertThat(credentials.getSourceCredentials())
+          .isEqualTo(GoogleCredentials.getApplicationDefault());
+      assertThat(credentials.getAccount()).isEqualTo(entry.getValue());
+    }
+  }
+
+  /** Check that the user mappings take precedence over the group mappings. */
+  @Test
+  public void testImpersonationForUsersAndGroups() throws Exception {
+    Map<String, String> userMappings =
+        new HashMap<String, String>() {
+          {
+            put("alice", IMPERSONATED_A);
+          }
+        };
+    Map<String, String> groupMappings =
+        new HashMap<String, String>() {
+          {
+            put("group1", IMPERSONATED_B);
+          }
+        };
+    ImpersonatedCredentials credentials =
+        (ImpersonatedCredentials)
+            createImpersonatedCredentials(
+                "alice",
+                new HashSet<>(Arrays.asList("group1")),
+                userMappings,
+                groupMappings,
+                IMPERSONATED_GLOBAL);
+    assertThat(credentials.getSourceCredentials())
+        .isEqualTo(GoogleCredentials.getApplicationDefault());
+    assertThat(credentials.getAccount()).isEqualTo(IMPERSONATED_A);
+  }
+
   @Test
   public void testFallbackToDefault() throws Exception {
     BigQueryCredentialsSupplier supplier =
         new BigQueryCredentialsSupplier(
             Optional.empty(),
             Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            null,
+            null,
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
@@ -326,6 +507,11 @@ public class BigQueryCredentialsSupplierTest {
                   Optional.empty(),
                   Optional.empty(),
                   Optional.of("/no/such/file"),
+                  null,
+                  null,
+                  Optional.empty(),
+                  Optional.empty(),
+                  Optional.empty(),
                   Optional.empty(),
                   Optional.empty(),
                   Optional.empty());
@@ -345,6 +531,11 @@ public class BigQueryCredentialsSupplierTest {
                   Optional.empty(),
                   Optional.empty(),
                   Optional.of("bm8ga2V5IGhlcmU="), // "no key here"
+                  Optional.empty(),
+                  null,
+                  null,
+                  Optional.empty(),
+                  Optional.empty(),
                   Optional.empty(),
                   Optional.empty(),
                   Optional.empty(),

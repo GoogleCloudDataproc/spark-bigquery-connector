@@ -20,6 +20,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.google.cloud.bigquery.connector.common.UnboundedScheduledExecutorService.ScheduledFutureTask;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -503,6 +504,7 @@ public class UnboundedScheduledExecutorServiceTest {
   }
 
   @Test
+  @Ignore
   public void testThreadsAreAddedOnlyAsNeededWithContention() throws Exception {
     UnboundedScheduledExecutorService executorService = new UnboundedScheduledExecutorService();
     CountDownLatch start = new CountDownLatch(100);

@@ -17,21 +17,32 @@ package com.google.cloud.bigquery.connector.common;
 
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.createVerifiedInstance;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.verifySerialization;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.api.client.util.Base64;
 import com.google.auth.Credentials;
 import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ImpersonatedCredentials;
+import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 public class BigQueryCredentialsSupplier {
   private final Credentials credentials;
+  public static final String CLOUD_PLATFORM_SCOPE =
+      "https://www.googleapis.com/auth/cloud-platform";
 
   public BigQueryCredentialsSupplier(
       Optional<String> accessTokenProviderFQCN,
@@ -39,9 +50,15 @@ public class BigQueryCredentialsSupplier {
       Optional<String> accessToken,
       Optional<String> credentialsKey,
       Optional<String> credentialsFile,
+      String loggedInUserName,
+      Set<String> loggedInUserGroups,
+      Optional<Map<String, String>> impersonationServiceAccountsForUsers,
+      Optional<Map<String, String>> impersonationServiceAccountsForGroups,
+      Optional<String> impersonationServiceAccount,
       Optional<URI> proxyUri,
       Optional<String> proxyUsername,
       Optional<String> proxyPassword) {
+    Credentials credentials;
     if (accessTokenProviderFQCN.isPresent()) {
       AccessTokenProvider accessTokenProvider =
           accessTokenProviderConfig
@@ -53,23 +70,87 @@ public class BigQueryCredentialsSupplier {
                   () ->
                       createVerifiedInstance(
                           accessTokenProviderFQCN.get(), AccessTokenProvider.class));
-      this.credentials =
-          new AccessTokenProviderCredentials(verifySerialization(accessTokenProvider));
+      credentials = new AccessTokenProviderCredentials(verifySerialization(accessTokenProvider));
     } else if (accessToken.isPresent()) {
-      this.credentials = createCredentialsFromAccessToken(accessToken.get());
+      credentials = createCredentialsFromAccessToken(accessToken.get());
     } else if (credentialsKey.isPresent()) {
-      this.credentials =
+      credentials =
           createCredentialsFromKey(credentialsKey.get(), proxyUri, proxyUsername, proxyPassword);
     } else if (credentialsFile.isPresent()) {
-      this.credentials =
+      credentials =
           createCredentialsFromFile(credentialsFile.get(), proxyUri, proxyUsername, proxyPassword);
     } else {
-      this.credentials = createDefaultCredentials();
+      credentials = createDefaultCredentials();
     }
+    Optional<Credentials> impersonatedCredentials =
+        createCredentialsFromImpersonation(
+            loggedInUserName,
+            loggedInUserGroups,
+            impersonationServiceAccountsForUsers,
+            impersonationServiceAccountsForGroups,
+            impersonationServiceAccount,
+            (GoogleCredentials) credentials,
+            proxyUri,
+            proxyUsername,
+            proxyPassword);
+    this.credentials = impersonatedCredentials.orElse(credentials);
   }
 
   private static Credentials createCredentialsFromAccessToken(String accessToken) {
     return GoogleCredentials.create(new AccessToken(accessToken, null));
+  }
+
+  private static Optional<Credentials> createCredentialsFromImpersonation(
+      String loggedInUserName,
+      Set<String> loggedInUserGroups,
+      Optional<Map<String, String>> impersonationServiceAccountsForUsers,
+      Optional<Map<String, String>> impersonationServiceAccountsForGroups,
+      Optional<String> impersonationServiceAccount,
+      GoogleCredentials sourceCredentials,
+      Optional<URI> proxyUri,
+      Optional<String> proxyUsername,
+      Optional<String> proxyPassword) {
+
+    Optional<String> serviceAccountToImpersonate =
+        Stream.of(
+                () ->
+                    getServiceAccountToImpersonateByKeys(
+                        impersonationServiceAccountsForUsers,
+                        Optional.ofNullable(loggedInUserName)
+                            .map(ImmutableList::of)
+                            .orElseGet(ImmutableList::of)),
+                () ->
+                    getServiceAccountToImpersonateByKeys(
+                        impersonationServiceAccountsForGroups,
+                        Optional.ofNullable(loggedInUserGroups).orElse(new HashSet<>())),
+                (Supplier<Optional<String>>) () -> impersonationServiceAccount)
+            .map(Supplier::get)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .filter(sa -> !isNullOrEmpty(sa))
+            .findFirst();
+
+    HttpTransportFactory httpTransportFactory =
+        BigQueryProxyTransporterBuilder.createHttpTransportFactory(
+            proxyUri, proxyUsername, proxyPassword);
+    return serviceAccountToImpersonate.map(
+        sa ->
+            ImpersonatedCredentials.newBuilder()
+                .setSourceCredentials(sourceCredentials)
+                .setTargetPrincipal(serviceAccountToImpersonate.get())
+                .setScopes(ImmutableList.of(CLOUD_PLATFORM_SCOPE))
+                .setHttpTransportFactory(httpTransportFactory)
+                .build());
+  }
+
+  private static Optional<String> getServiceAccountToImpersonateByKeys(
+      Optional<Map<String, String>> serviceAccountMapping, Collection<String> keys) {
+    return serviceAccountMapping.flatMap(
+        mapping ->
+            mapping.entrySet().stream()
+                .filter(e -> keys.contains(e.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst());
   }
 
   private static Credentials createCredentialsFromKey(

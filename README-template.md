@@ -790,6 +790,19 @@ The API Supports a number of options to configure the read
      </td>
      <td>Read/Write</td>
    </tr>
+  <tr>
+     <td><code>destinationTableKmsKeyName</code>
+     </td>
+     <td>Describes the Cloud KMS encryption key that will be used to protect destination BigQuery
+         table. The BigQuery Service Account associated with your project requires access to this
+         encryption key. for further Information about using CMEK with BigQuery see
+         [here](https://cloud.google.com/bigquery/docs/customer-managed-encryption#key_resource_id).
+         <br/><b>Notice:</b> The table will be encrypted by the key only if it created by the
+         connector. A pre-existing unencrypted table won't be encrypted just by setting this option.
+         <br/> (Optional)
+     </td>
+     <td>Write</td>
+   </tr>
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter
@@ -1239,6 +1252,28 @@ spark.conf.set("gcpAccessTokenProvider", "com.example.ExampleAccessTokenProvider
 // Per read/Write
 spark.read.format("bigquery").option("gcpAccessTokenProvider", "com.example.ExampleAccessTokenProvider")
 ```
+* Service account impersonation can be configured for a specific username and a group name, or
+  for all users by default using below properties:
+
+  - `gcpImpersonationServiceAccountForUser_<USER_NAME>` (not set by default)
+
+    The service account impersonation for a specific user.
+
+  - `gcpImpersonationServiceAccountForGroup_<GROUP_NAME>` (not set by default)
+
+    The service account impersonation for a specific group.
+
+  - `gcpImpersonationServiceAccount` (not set by default)
+
+    Default service account impersonation for all users.
+
+  If any of the above properties are set then the service account specified will be impersonated by
+  generating a short-lived credentials when accessing BigQuery.
+
+  If more than one property is set then the service account associated with the username will take
+  precedence over the service account associated with the group name for a matching user and group,
+  which in turn will take precedence over default service account impersonation.
+
 * For a simpler application, where access token refresh is not required, another alternative is to pass the access token
   as the `gcpAccessToken` configuration option. You can get the access token by running
   `gcloud auth application-default print-access-token`.
