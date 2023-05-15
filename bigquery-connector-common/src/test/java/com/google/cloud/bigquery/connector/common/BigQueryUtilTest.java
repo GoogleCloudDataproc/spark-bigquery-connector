@@ -24,7 +24,9 @@ import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Field.Mode;
+import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.HivePartitioningOptions;
+import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
@@ -420,7 +422,10 @@ public class BigQueryUtilTest {
     TableInfo info =
         TableInfo.of(
             TableId.of("foo", "bar"),
-            ExternalTableDefinition.newBuilder("", null, null)
+            ExternalTableDefinition.newBuilder(
+                    "gs://bucket/path",
+                    Schema.of(Field.newBuilder("foo", LegacySQLTypeName.STRING).build()),
+                    FormatOptions.csv())
                 .setHivePartitioningOptions(
                     HivePartitioningOptions.newBuilder()
                         .setFields(Arrays.asList("f1", "f2"))
