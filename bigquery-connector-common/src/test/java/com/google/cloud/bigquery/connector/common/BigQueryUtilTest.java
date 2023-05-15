@@ -21,8 +21,10 @@ import static org.junit.Assert.assertThrows;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Clustering;
+import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Field.Mode;
+import com.google.cloud.bigquery.HivePartitioningOptions;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
@@ -376,14 +378,14 @@ public class BigQueryUtilTest {
   @Test
   public void testGetPartitionField_not_standard_table() {
     TableInfo info = TableInfo.of(TableId.of("foo", "bar"), ViewDefinition.of("Select 1 as test"));
-    assertThat(BigQueryUtil.getPartitionField(info).isPresent()).isFalse();
+    assertThat(BigQueryUtil.getPartitionFields(info)).isEmpty();
   }
 
   @Test
   public void testGetPartitionField_no_partitioning() {
     TableInfo info =
         TableInfo.of(TableId.of("foo", "bar"), StandardTableDefinition.newBuilder().build());
-    assertThat(BigQueryUtil.getPartitionField(info).isPresent()).isFalse();
+    assertThat(BigQueryUtil.getPartitionFields(info)).isEmpty();
   }
 
   @Test
@@ -395,9 +397,9 @@ public class BigQueryUtilTest {
                 .setTimePartitioning(
                     TimePartitioning.newBuilder(TimePartitioning.Type.DAY).setField("test").build())
                 .build());
-    Optional<String> partitionField = BigQueryUtil.getPartitionField(info);
-    assertThat(partitionField.isPresent()).isTrue();
-    assertThat(partitionField.get()).isEqualTo("test");
+    List<String> partitionFields = BigQueryUtil.getPartitionFields(info);
+    assertThat(partitionFields).hasSize(1);
+    assertThat(partitionFields).contains("test");
   }
 
   @Test
@@ -408,9 +410,26 @@ public class BigQueryUtilTest {
             StandardTableDefinition.newBuilder()
                 .setRangePartitioning(RangePartitioning.newBuilder().setField("test").build())
                 .build());
-    Optional<String> partitionField = BigQueryUtil.getPartitionField(info);
-    assertThat(partitionField.isPresent()).isTrue();
-    assertThat(partitionField.get()).isEqualTo("test");
+    List<String> partitionFields = BigQueryUtil.getPartitionFields(info);
+    assertThat(partitionFields).hasSize(1);
+    assertThat(partitionFields).contains("test");
+  }
+
+  @Test
+  public void testGetPartitionField_hive_partitioning() {
+    TableInfo info =
+        TableInfo.of(
+            TableId.of("foo", "bar"),
+            ExternalTableDefinition.newBuilder("", null, null)
+                .setHivePartitioningOptions(
+                    HivePartitioningOptions.newBuilder()
+                        .setFields(Arrays.asList("f1", "f2"))
+                        .build())
+                .build());
+    List<String> partitionFields = BigQueryUtil.getPartitionFields(info);
+    assertThat(partitionFields).hasSize(2);
+    assertThat(partitionFields).contains("f1");
+    assertThat(partitionFields).contains("f2");
   }
 
   @Test
