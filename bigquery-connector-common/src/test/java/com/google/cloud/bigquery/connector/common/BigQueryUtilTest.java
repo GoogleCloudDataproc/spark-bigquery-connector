@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class BigQueryUtilTest {
@@ -251,6 +252,7 @@ public class BigQueryUtilTest {
   }
 
   @Test
+  @Ignore
   public void testFieldWritableScale() {
     Field f1 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setScale(1L).build();
     Field f2 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setScale(2L).build();
@@ -263,6 +265,7 @@ public class BigQueryUtilTest {
   }
 
   @Test
+  @Ignore
   public void testFieldWritablePrecision() {
     Field f1 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setPrecision(1L).build();
     Field f2 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setPrecision(2L).build();

@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -203,14 +204,14 @@ public class AvroSchemaConverterTest {
     InternalRow row =
         new GenericInternalRow(
             new Object[] {
-              Decimal.apply(BigDecimal.valueOf(123.456), SchemaConverters.BQ_NUMERIC_PRECISION, 3)
+              Decimal.apply(BigDecimal.valueOf(123.456), BigQueryUtil.DEFAULT_NUMERIC_PRECISION, 3)
             });
     StructType sparkSchema =
         DataTypes.createStructType(
             ImmutableList.of(
                 DataTypes.createStructField(
                     "decimal_f",
-                    DataTypes.createDecimalType(SchemaConverters.BQ_NUMERIC_PRECISION, 3),
+                    DataTypes.createDecimalType(BigQueryUtil.DEFAULT_NUMERIC_PRECISION, 3),
                     false)));
 
     Schema avroSchema =
@@ -228,7 +229,7 @@ public class AvroSchemaConverterTest {
             decimalConversion.fromBytes(
                 (ByteBuffer) result.get(0),
                 avroSchema.getField("decimal_f").schema(),
-                LogicalTypes.decimal(SchemaConverters.BQ_NUMERIC_PRECISION, 3)))
+                LogicalTypes.decimal(BigQueryUtil.DEFAULT_NUMERIC_PRECISION, 3)))
         .isEqualTo(BigDecimal.valueOf(123.456));
   }
 

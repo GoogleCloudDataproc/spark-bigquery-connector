@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import org.apache.avro.Conversions;
@@ -100,8 +101,8 @@ public class AvroSchemaConverter {
     }
     if (dataType instanceof DecimalType) {
       DecimalType decimalType = (DecimalType) dataType;
-      if (decimalType.precision() <= SchemaConverters.BQ_NUMERIC_PRECISION
-          && decimalType.scale() <= SchemaConverters.BQ_BIG_NUMERIC_SCALE) {
+      if (decimalType.precision() <= BigQueryUtil.DEFAULT_NUMERIC_PRECISION
+          && decimalType.scale() <= BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE) {
         return LogicalTypes.decimal(decimalType.precision(), decimalType.scale())
             .addToSchema(builder.bytesType());
       } else {
