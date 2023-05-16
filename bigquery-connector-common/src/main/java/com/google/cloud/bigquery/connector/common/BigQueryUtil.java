@@ -303,11 +303,12 @@ public class BigQueryUtil {
       return true;
     }
 
-    // if the destination field is nullable and there is no matching field in the source then it is
+    // if the destination field is NULLABLE or REPEATED and there is no matching field in the source
+    // then it is
     // supported
-    // if the destination field is REQUIRED or REPEATED then we do need to have the field in source.
+    // but if the destination field is REQUIRED then we do need source field to write into it..
     if (sourceField == null) {
-      return destinationField.getMode() == Mode.NULLABLE;
+      return destinationField.getMode() != Mode.REQUIRED;
     }
 
     // cannot write if the destination table doesn't have the field
@@ -325,7 +326,7 @@ public class BigQueryUtil {
     return Objects.equal(sourceField.getName(), destinationField.getName())
         && typeWriteable(sourceField.getType(), destinationField.getType())
         && (!enableModeCheckForSchemaFields
-            || Objects.equal(
+            || isModeWritable(
                 nullableIfNull(sourceField.getMode()), nullableIfNull(destinationField.getMode())))
         && ((sourceField.getMaxLength() == null && destinationField.getMaxLength() == null)
             || (sourceField.getMaxLength() != null
@@ -373,6 +374,18 @@ public class BigQueryUtil {
       return bigNumericValue;
     }
     return NO_VALUE;
+  }
+
+  @VisibleForTesting
+  static boolean isModeWritable(Field.Mode sourceMode, Field.Mode destinationMode) {
+    switch (destinationMode) {
+      case REPEATED:
+        return sourceMode == Mode.REPEATED;
+      case REQUIRED:
+      case NULLABLE:
+        return sourceMode != Mode.REPEATED;
+    }
+    return false;
   }
 
   @VisibleForTesting

@@ -263,9 +263,15 @@ public class BigQueryUtilTest {
         Schema.of(
             Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.REPEATED).build());
 
-    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true)).isFalse();
+    assertThat(BigQueryUtil.schemaWritable(s1, s1, false, true)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s2, s2, false, true)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s3, s3, false, true)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true)).isTrue();
     assertThat(BigQueryUtil.schemaWritable(s1, s3, false, true)).isFalse();
     assertThat(BigQueryUtil.schemaWritable(s2, s3, false, true)).isFalse();
+    assertThat(BigQueryUtil.schemaWritable(s2, s1, false, true)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s3, s1, false, true)).isFalse();
+    assertThat(BigQueryUtil.schemaWritable(s3, s2, false, true)).isFalse();
   }
 
   @Test
@@ -280,9 +286,15 @@ public class BigQueryUtilTest {
         Schema.of(
             Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.REPEATED).build());
 
+    assertThat(BigQueryUtil.schemaWritable(s1, s1, false, false)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s2, s2, false, false)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s3, s3, false, false)).isTrue();
     assertThat(BigQueryUtil.schemaWritable(s1, s2, false, false)).isTrue();
     assertThat(BigQueryUtil.schemaWritable(s1, s3, false, false)).isTrue();
     assertThat(BigQueryUtil.schemaWritable(s2, s3, false, false)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s2, s1, false, false)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s3, s1, false, false)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s3, s2, false, false)).isTrue();
   }
 
   @Test
@@ -303,6 +315,19 @@ public class BigQueryUtilTest {
     assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true)).isTrue();
     assertThat(BigQueryUtil.schemaWritable(s1, s3, false, true)).isFalse();
     assertThat(BigQueryUtil.schemaWritable(s3, s2, false, true)).isTrue();
+  }
+
+  @Test
+  public void testIsModeWritable() {
+    assertThat(BigQueryUtil.isModeWritable(Mode.NULLABLE, Mode.NULLABLE)).isTrue();
+    assertThat(BigQueryUtil.isModeWritable(Mode.NULLABLE, Mode.REQUIRED)).isTrue();
+    assertThat(BigQueryUtil.isModeWritable(Mode.NULLABLE, Mode.REPEATED)).isFalse();
+    assertThat(BigQueryUtil.isModeWritable(Mode.REQUIRED, Mode.NULLABLE)).isTrue();
+    assertThat(BigQueryUtil.isModeWritable(Mode.REQUIRED, Mode.REQUIRED)).isTrue();
+    assertThat(BigQueryUtil.isModeWritable(Mode.REQUIRED, Mode.REPEATED)).isFalse();
+    assertThat(BigQueryUtil.isModeWritable(Mode.REPEATED, Mode.NULLABLE)).isFalse();
+    assertThat(BigQueryUtil.isModeWritable(Mode.REPEATED, Mode.REQUIRED)).isFalse();
+    assertThat(BigQueryUtil.isModeWritable(Mode.REPEATED, Mode.REPEATED)).isTrue();
   }
 
   @Test
