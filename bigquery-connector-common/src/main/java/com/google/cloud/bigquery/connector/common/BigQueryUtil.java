@@ -24,8 +24,10 @@ import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Clustering;
+import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.HivePartitioningOptions;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
@@ -414,24 +416,33 @@ public class BigQueryUtil {
     }
   }
 
-  public static Optional<String> getPartitionField(TableInfo tableInfo) {
+  public static ImmutableList<String> getPartitionFields(TableInfo tableInfo) {
     TableDefinition definition = tableInfo.getDefinition();
-    if (!(definition instanceof StandardTableDefinition)) {
-      return Optional.empty();
+    if (definition instanceof StandardTableDefinition) {
+      @SuppressWarnings("Varifier")
+      StandardTableDefinition sdt = (StandardTableDefinition) definition;
+      TimePartitioning timePartitioning = sdt.getTimePartitioning();
+      if (timePartitioning != null) {
+        return ImmutableList.of(timePartitioning.getField());
+      }
+      RangePartitioning rangePartitioning = sdt.getRangePartitioning();
+      if (rangePartitioning != null) {
+        return ImmutableList.of(rangePartitioning.getField());
+      }
     }
-
-    @SuppressWarnings("Varifier")
-    StandardTableDefinition sdt = (StandardTableDefinition) definition;
-    TimePartitioning timePartitioning = sdt.getTimePartitioning();
-    if (timePartitioning != null) {
-      return Optional.of(timePartitioning.getField());
-    }
-    RangePartitioning rangePartitioning = sdt.getRangePartitioning();
-    if (rangePartitioning != null) {
-      return Optional.of(rangePartitioning.getField());
+    if (definition instanceof ExternalTableDefinition) {
+      @SuppressWarnings("Varifier")
+      ExternalTableDefinition edt = (ExternalTableDefinition) definition;
+      HivePartitioningOptions hivePartitioningOptions = edt.getHivePartitioningOptions();
+      if (hivePartitioningOptions != null) {
+        List<String> fields = hivePartitioningOptions.getFields();
+        if (fields != null && !fields.isEmpty()) {
+          return ImmutableList.copyOf(fields);
+        }
+      }
     }
     // no partitioning
-    return Optional.empty();
+    return ImmutableList.of();
   }
 
   public static ImmutableList<String> getClusteringFields(TableInfo tableInfo) {

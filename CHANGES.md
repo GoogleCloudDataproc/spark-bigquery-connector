@@ -7,6 +7,13 @@
 * PR #965: Fix to reuse the same BigQueryClient for the same BigQueryConfig, rather than creating a new one
 * PR #950: Added support for service account impersonation
 * PR #973: Added support for writing to [CMEK managed tables](https://cloud.google.com/bigquery/docs/customer-managed-encryption).
+* PR #974: Applying DPP to Hive partitioned BigLake tables (spark-3.2-bigquery and spark-3.3-bigquery only)
+* BigQuery API has been upgraded to version 2.26.0
+* BigQuery Storage API has been upgraded to version 2.36.1
+* GAX has been upgraded to version 2.26.0
+* gRPC has been upgraded to version 1.55.1
+* Netty has been upgraded to version 4.1.92.Final
+* Protocol Buffers has been upgraded to version 3.23.0
 
 ## 0.30.0 - 2023-04-11
 

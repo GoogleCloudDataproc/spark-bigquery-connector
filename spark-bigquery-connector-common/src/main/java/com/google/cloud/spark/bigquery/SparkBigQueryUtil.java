@@ -229,11 +229,11 @@ public class SparkBigQueryUtil {
   public static ImmutableList<Filter> extractPartitionAndClusteringFilters(
       TableInfo table, ImmutableList<Filter> filters) {
 
-    Optional<String> partitionField = BigQueryUtil.getPartitionField(table);
+    ImmutableList<String> partitionFields = BigQueryUtil.getPartitionFields(table);
     ImmutableList<String> clusteringFields = BigQueryUtil.getClusteringFields(table);
 
     ImmutableList.Builder<String> filterFields = ImmutableList.builder();
-    partitionField.ifPresent(filterFields::add);
+    filterFields.addAll(partitionFields);
     filterFields.addAll(clusteringFields);
 
     return filterFields.build().stream()
