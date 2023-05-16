@@ -481,4 +481,36 @@ public class BigQueryUtilTest {
         IntStream.range(0, 2 + 2 << 20).mapToObj(i -> "a").collect(Collectors.joining());
     assertThat(BigQueryUtil.filterLengthInLimit(Optional.of(tooLarge))).isFalse();
   }
+
+  @Test
+  public void testGetPrecision() throws Exception {
+    assertThat(
+            BigQueryUtil.getPrecision(
+                Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setPrecision(5L).build()))
+        .isEqualTo(5);
+    assertThat(
+            BigQueryUtil.getPrecision(Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).build()))
+        .isEqualTo(38);
+    assertThat(
+            BigQueryUtil.getPrecision(
+                Field.newBuilder("foo", StandardSQLTypeName.BIGNUMERIC).build()))
+        .isEqualTo(76);
+    assertThat(BigQueryUtil.getPrecision(Field.newBuilder("foo", StandardSQLTypeName.BOOL).build()))
+        .isEqualTo(-1);
+  }
+
+  @Test
+  public void testGetScale() throws Exception {
+    assertThat(
+            BigQueryUtil.getScale(
+                Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setScale(5L).build()))
+        .isEqualTo(5);
+    assertThat(BigQueryUtil.getScale(Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).build()))
+        .isEqualTo(9);
+    assertThat(
+            BigQueryUtil.getScale(Field.newBuilder("foo", StandardSQLTypeName.BIGNUMERIC).build()))
+        .isEqualTo(38);
+    assertThat(BigQueryUtil.getScale(Field.newBuilder("foo", StandardSQLTypeName.BOOL).build()))
+        .isEqualTo(-1);
+  }
 }

@@ -72,10 +72,6 @@ import scala.collection.mutable.IndexedSeq;
 public class ProtobufUtils {
 
   static final Logger logger = LoggerFactory.getLogger(ProtobufUtils.class);
-  private static final int BQ_NUMERIC_PRECISION = 38;
-  private static final int BQ_NUMERIC_SCALE = 9;
-  private static final DecimalType NUMERIC_SPARK_TYPE =
-      DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   // The maximum nesting depth of a BigQuery RECORD:
   private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
   // For every message, a nested type is name "STRUCT"+i, where i is the
@@ -141,7 +137,8 @@ public class ProtobufUtils {
                   DataTypes.DoubleType.json(),
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
               .put(
-                  NUMERIC_SPARK_TYPE.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
+                  SchemaConverters.NUMERIC_SPARK_TYPE.json(),
+                  DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(
                   DataTypes.StringType.json(),
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)

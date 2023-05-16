@@ -60,6 +60,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
@@ -919,6 +920,40 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(table.getEncryptionConfiguration()).isNotNull();
     assertThat(table.getEncryptionConfiguration().getKmsKeyName())
         .isEqualTo(destinationTableKmsKeyName);
+  }
+
+  @Test
+  public void testWriteNumericsToWiderFields() throws Exception {
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (num NUMERIC(10,2), bignum BIGNUMERIC(20,15))",
+            testDataset, testTable));
+    Decimal num = Decimal.apply("12345.6");
+    Decimal bignum = Decimal.apply("12345.12345");
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create(num, bignum)),
+            structType(
+                StructField.apply("num", DataTypes.createDecimalType(6, 1), true, Metadata.empty()),
+                StructField.apply(
+                    "bignum", DataTypes.createDecimalType(10, 5), true, Metadata.empty())));
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .save();
+
+    Dataset<Row> resultDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    System.out.println(resultDF.head(1));
   }
 
   protected long numberOfRowsWith(String name) {

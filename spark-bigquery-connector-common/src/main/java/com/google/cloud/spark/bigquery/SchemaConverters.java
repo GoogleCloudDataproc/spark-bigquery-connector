@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import java.math.BigDecimal;
@@ -39,23 +40,14 @@ import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
-import scala.annotation.meta.field;
 
 public class SchemaConverters {
 
-  // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
-  // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
-  static final int BQ_NUMERIC_PRECISION = 38;
-  static final int BQ_NUMERIC_SCALE = 9;
-  static final int BQ_BIG_NUMERIC_SCALE = 38;
-  private static final DecimalType NUMERIC_SPARK_TYPE =
-      DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
+  static final DecimalType NUMERIC_SPARK_TYPE =
+      DataTypes.createDecimalType(
+          BigQueryUtil.DEFAULT_NUMERIC_PRECISION, BigQueryUtil.DEFAULT_NUMERIC_SCALE);
   // The maximum nesting depth of a BigQuery RECORD:
   static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
-  public static final int DEFAULT_NUMERIC_PRECISION = 38;
-  public static final int DEFAULT_NUMERIC_SCALE = 9;
-  public static final int DEFAULT_BIG_NUMERIC_PRECISION = 76;
-  public static final int DEFAULT_BIG_NUMERIC_SCALE = 38;
 
   private final SchemaConvertersConfiguration configuration;
 
@@ -340,15 +332,17 @@ public class SchemaConverters {
       int precision =
           Optional.ofNullable(field.getPrecision())
               .map(Long::intValue)
-              .orElse(DEFAULT_NUMERIC_PRECISION);
+              .orElse(BigQueryUtil.DEFAULT_NUMERIC_PRECISION);
       int scale =
-          Optional.ofNullable(field.getScale()).map(Long::intValue).orElse(DEFAULT_NUMERIC_SCALE);
+          Optional.ofNullable(field.getScale())
+              .map(Long::intValue)
+              .orElse(BigQueryUtil.DEFAULT_NUMERIC_SCALE);
       return DataTypes.createDecimalType(precision, scale);
     } else if (LegacySQLTypeName.BIGNUMERIC.equals(field.getType())) {
       int precision =
           Optional.ofNullable(field.getPrecision())
               .map(Long::intValue)
-              .orElse(DEFAULT_BIG_NUMERIC_PRECISION);
+              .orElse(BigQueryUtil.DEFAULT_BIG_NUMERIC_PRECISION);
       if (precision > DecimalType.MAX_PRECISION()) {
         throw new IllegalArgumentException(
             String.format(
@@ -358,7 +352,7 @@ public class SchemaConverters {
       int scale =
           Optional.ofNullable(field.getScale())
               .map(Long::intValue)
-              .orElse(DEFAULT_BIG_NUMERIC_SCALE);
+              .orElse(BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
       return DataTypes.createDecimalType(precision, scale);
     } else if (LegacySQLTypeName.STRING.equals(field.getType())) {
       return DataTypes.StringType;
@@ -446,7 +440,7 @@ public class SchemaConverters {
     } else if (sparkType instanceof DecimalType) {
       DecimalType decimalType = (DecimalType) sparkType;
       fieldType =
-          (decimalType.scale() > BQ_NUMERIC_SCALE)
+          (decimalType.scale() > BigQueryUtil.DEFAULT_NUMERIC_SCALE)
               ? LegacySQLTypeName.BIGNUMERIC
               : LegacySQLTypeName.NUMERIC;
       scale = OptionalLong.of(decimalType.scale());
