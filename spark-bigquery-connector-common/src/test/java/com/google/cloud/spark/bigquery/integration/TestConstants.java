@@ -249,8 +249,7 @@ public class TestConstants {
               ") as nested_struct")
           .collect(Collectors.joining("\n"));
 
-  public static int ALL_TYPES_TABLE_SIZE = 202;
-
+  public static int ALL_TYPES_TABLE_SIZE = 230;
   static String STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE =
       Stream.of(
               "create table %s.%s (",
