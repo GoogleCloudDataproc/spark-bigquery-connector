@@ -196,6 +196,18 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   @Test
+  public void testReadSchemaPruned() {
+    Row res =
+        readAllTypesTable()
+            .select("str", "nested_struct.str", "nested_struct.inner_struct.str")
+            .collectAsList()
+            .get(0);
+    assertThat(res.get(0)).isEqualTo("string");
+    assertThat(res.get(1)).isEqualTo("stringa");
+    assertThat(res.get(2)).isEqualTo("stringaa");
+  }
+
+  @Test
   public void testFilters() {
     Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
     assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);
