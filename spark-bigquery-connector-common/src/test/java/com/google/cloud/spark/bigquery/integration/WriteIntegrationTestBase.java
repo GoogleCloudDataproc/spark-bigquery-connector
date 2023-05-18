@@ -1108,9 +1108,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(result).hasSize(3);
     assertThat(result.stream().filter(row -> row.getString(2) == null).count()).isEqualTo(2);
     assertThat(
-            result.stream()
-                .filter(row -> row.getString(2) != null && row.getString(2).equals("newVal1"))
-                .count())
+        result.stream()
+            .filter(row -> row.getString(2) != null && row.getString(2).equals("newVal1"))
+            .count())
         .isEqualTo(1);
   }
 
