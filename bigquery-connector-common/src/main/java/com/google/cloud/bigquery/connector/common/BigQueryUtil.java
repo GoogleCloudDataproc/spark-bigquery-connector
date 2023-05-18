@@ -64,6 +64,7 @@ import java.util.function.IntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 public class BigQueryUtil {
 
@@ -517,9 +518,11 @@ public class BigQueryUtil {
   public static Schema adjustSchemaIfNeeded(Schema wantedSchema, Schema existingTableSchema) {
     FieldList fields = wantedSchema.getFields();
     FieldList existingFields = existingTableSchema.getFields();
+    Map<String, Field> existingFieldsMap =
+        existingFields.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
     List<Field> adjustedFields =
         fields.stream()
-            .map(field -> adjustField(field, existingFields.get(field.getName())))
+            .map(field -> adjustField(field, existingFieldsMap.get(field.getName())))
             .collect(Collectors.toList());
     return Schema.of(adjustedFields);
   }
@@ -533,7 +536,7 @@ public class BigQueryUtil {
    * @return the adjusted field
    */
   @VisibleForTesting
-  static Field adjustField(Field field, Field existingField) {
+  static Field adjustField(Field field, @Nullable Field existingField) {
     if (field.getType().equals(LegacySQLTypeName.NUMERIC)
         && existingField.getType().equals(LegacySQLTypeName.BIGNUMERIC)) {
       // convert type

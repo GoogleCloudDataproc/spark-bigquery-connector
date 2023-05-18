@@ -545,6 +545,22 @@ public class BigQueryUtilTest {
   }
 
   @Test
+  public void testAdjustSchemaForNewField() {
+    Schema wantedSchema =
+        Schema.of(
+            Field.of("existing_field", LegacySQLTypeName.NUMERIC),
+            Field.of("new_field", LegacySQLTypeName.STRING));
+    Schema existingTableSchema =
+        Schema.of(Field.of("existing_field", LegacySQLTypeName.BIGNUMERIC));
+    Schema adjustedSchema = BigQueryUtil.adjustSchemaIfNeeded(wantedSchema, existingTableSchema);
+    assertThat(adjustedSchema.getFields()).hasSize(2);
+    FieldList adjustedFields = adjustedSchema.getFields();
+    assertThat(adjustedFields.get("existing_field").getType())
+        .isEqualTo(LegacySQLTypeName.BIGNUMERIC);
+    assertThat(adjustedFields.get("new_field").getType()).isEqualTo(LegacySQLTypeName.STRING);
+  }
+
+  @Test
   public void testAdjustField_no_op() {
     Field field = Field.of("f", LegacySQLTypeName.BOOLEAN);
     Field existingField = Field.of("f", LegacySQLTypeName.BIGNUMERIC);
