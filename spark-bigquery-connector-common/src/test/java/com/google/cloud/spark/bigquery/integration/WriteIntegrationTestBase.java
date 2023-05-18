@@ -44,6 +44,7 @@ import com.google.cloud.spark.bigquery.integration.model.Person;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.ProvisionException;
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.ZoneId;
@@ -953,7 +954,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .option("dataset", testDataset.toString())
             .option("table", testTable)
             .load();
-    System.out.println(resultDF.head(1));
+    List<Row> result = resultDF.collectAsList();
+    assertThat(result).hasSize(1);
+    Row head = result.get(0);
+    assertThat(head.getDecimal(head.fieldIndex("num"))).isEqualTo(new BigDecimal("12345.60"));
+    assertThat(head.getDecimal(head.fieldIndex("bignum")))
+        .isEqualTo(new BigDecimal("12345.123450000000000"));
   }
 
   protected long numberOfRowsWith(String name) {

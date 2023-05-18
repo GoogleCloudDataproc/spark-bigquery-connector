@@ -506,4 +506,52 @@ public class BigQueryUtil {
         .map(f -> f.getBytes(StandardCharsets.UTF_8).length < MAX_FILTER_LENGTH_IN_BYTES)
         .orElse(Boolean.TRUE);
   }
+
+  /**
+   * Adjusts the wanted schema to properly match the schema of an existing table.
+   *
+   * @param wantedSchema
+   * @param existingTableSchema
+   * @return the adjusted schema
+   */
+  public static Schema adjustSchemaIfNeeded(Schema wantedSchema, Schema existingTableSchema) {
+    FieldList fields = wantedSchema.getFields();
+    FieldList existingFields = existingTableSchema.getFields();
+    List<Field> adjustedFields =
+        fields.stream()
+            .map(field -> adjustField(field, existingFields.get(field.getName())))
+            .collect(Collectors.toList());
+    return Schema.of(adjustedFields);
+  }
+
+  /**
+   * At the moment converts numeric fields to bignumeric if the exisitng schema requires it. Can be
+   * used for other adjustments
+   *
+   * @param field
+   * @param existingField
+   * @return the adjusted field
+   */
+  @VisibleForTesting
+  static Field adjustField(Field field, Field existingField) {
+    if (field.getType().equals(LegacySQLTypeName.NUMERIC)
+        && existingField.getType().equals(LegacySQLTypeName.BIGNUMERIC)) {
+      // convert type
+      return field.toBuilder().setType(LegacySQLTypeName.BIGNUMERIC).build();
+    }
+    if (field.getType().equals(LegacySQLTypeName.RECORD)
+        && field.getType().equals(LegacySQLTypeName.RECORD)) {
+      // need to go recursively
+      FieldList subFields = field.getSubFields();
+      FieldList exitingSubFields = existingField.getSubFields();
+      FieldList adjustedSubFields =
+          FieldList.of(
+              subFields.stream()
+                  .map(subField -> adjustField(subField, exitingSubFields.get(subField.getName())))
+                  .collect(Collectors.toList()));
+      return field.toBuilder().setType(LegacySQLTypeName.RECORD, adjustedSubFields).build();
+    }
+    // no adjustment
+    return field;
+  }
 }

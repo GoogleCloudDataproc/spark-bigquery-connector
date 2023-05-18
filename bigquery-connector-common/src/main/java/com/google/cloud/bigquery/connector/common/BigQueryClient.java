@@ -348,17 +348,20 @@ public class BigQueryClient {
   public Job createAndWaitFor(JobConfiguration jobConfiguration) {
     JobInfo jobInfo = JobInfo.of(jobConfiguration);
     Job job = bigQuery.create(jobInfo);
+    Job returnedJob = null;
 
     log.info("Submitted job {}. jobId: {}", jobConfiguration, job.getJobId());
     // TODO(davidrab): add retry options
     try {
-      return job.waitFor();
+      returnedJob = job.waitFor();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new BigQueryException(
           BaseHttpServiceException.UNKNOWN_CODE,
-          String.format("Failed to run the job [%s]", job),
+          String.format("Failed to run the job [%s]", returnedJob),
           e);
+    } finally {
+      return returnedJob;
     }
   }
 
