@@ -303,6 +303,18 @@ public class TestConstants {
       Stream.of("create table %s.%s (", "int_req int64,", "int_null int64,", ")", "")
           .collect(Collectors.joining("\n"));
 
+  public static String DIFF_IN_SCHEMA_DEST_TABLE_WITH_NULLABLE_FIELD =
+      Stream.of("create table %s.%s (", "int_null int64,", ")", "")
+          .collect(Collectors.joining("\n"));
+
+  public static String DIFF_IN_SCHEMA_DEST_TABLE_WITH_REQUIRED_FIELD =
+      Stream.of("create table %s.%s (", "int_req int64 not null,", ")", "")
+          .collect(Collectors.joining("\n"));
+
+  public static String DIFF_IN_SCHEMA_DEST_TABLE_WITH_REPEATED_FIELD =
+      Stream.of("create table %s.%s (", "int_rep ARRAY<INT64>,", ")", "")
+          .collect(Collectors.joining("\n"));
+
   public static List<Column> ALL_TYPES_TABLE_COLS =
       Arrays.asList(
           lit(42L),
