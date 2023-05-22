@@ -179,10 +179,16 @@ public class SchemaConverterTest {
 
   @Test
   public void testFailureOnTooWideBigNumericConversion() throws Exception {
-    assertThrows(IllegalArgumentException.class, () -> {
-      SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
-          .convert(Field.newBuilder("foo", LegacySQLTypeName.BIGNUMERIC).setPrecision(60L).setScale(30L).build());
-    });
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+              .convert(
+                  Field.newBuilder("foo", LegacySQLTypeName.BIGNUMERIC)
+                      .setPrecision(60L)
+                      .setScale(30L)
+                      .build());
+        });
   }
 
   @Test

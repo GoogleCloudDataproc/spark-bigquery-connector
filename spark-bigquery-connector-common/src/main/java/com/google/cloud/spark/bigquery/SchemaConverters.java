@@ -445,7 +445,8 @@ public class SchemaConverters {
       DecimalType decimalType = (DecimalType) sparkType;
       int leftOfDotDigits = decimalType.precision() - decimalType.scale();
       fieldType =
-          (decimalType.scale() > BigQueryUtil.DEFAULT_NUMERIC_SCALE || leftOfDotDigits > NUMERIC_MAX_LEFT_OF_DOT_DIGITS)
+          (decimalType.scale() > BigQueryUtil.DEFAULT_NUMERIC_SCALE
+                  || leftOfDotDigits > NUMERIC_MAX_LEFT_OF_DOT_DIGITS)
               ? LegacySQLTypeName.BIGNUMERIC
               : LegacySQLTypeName.NUMERIC;
       scale = OptionalLong.of(decimalType.scale());

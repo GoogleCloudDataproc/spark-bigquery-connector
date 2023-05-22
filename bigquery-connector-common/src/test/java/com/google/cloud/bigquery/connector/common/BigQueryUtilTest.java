@@ -46,7 +46,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class BigQueryUtilTest {

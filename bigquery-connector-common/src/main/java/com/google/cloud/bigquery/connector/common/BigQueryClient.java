@@ -353,15 +353,16 @@ public class BigQueryClient {
     log.info("Submitted job {}. jobId: {}", jobConfiguration, job.getJobId());
     try {
       Job completedJob = job.waitFor();
-      if(completedJob == null) {
+      if (completedJob == null) {
         throw new BigQueryException(
             BaseHttpServiceException.UNKNOWN_CODE,
             String.format("Failed to run the job [%s], got null back", job));
       }
-      if( completedJob.getStatus().getError() != null) {
+      if (completedJob.getStatus().getError() != null) {
         throw new BigQueryException(
             BaseHttpServiceException.UNKNOWN_CODE,
-            String.format("Failed to run the job [%s], due to '%s'", completedJob.getStatus().getError()));
+            String.format(
+                "Failed to run the job [%s], due to '%s'", completedJob.getStatus().getError()));
       }
       return completedJob;
     } catch (InterruptedException e) {
@@ -370,7 +371,7 @@ public class BigQueryClient {
           BaseHttpServiceException.UNKNOWN_CODE,
           String.format("Failed to run the job [%s], task was interrupted", job),
           e);
-    } 
+    }
   }
 
   Job create(JobInfo jobInfo) {
