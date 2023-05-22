@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery;
 
 import static com.google.cloud.spark.bigquery.SchemaConverters.*;
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.google.cloud.bigquery.Field;
@@ -160,6 +161,7 @@ public class SchemaConverterTest {
     VerifyDecimalConversion(10, 0, LegacySQLTypeName.NUMERIC);
     VerifyDecimalConversion(20, 9, LegacySQLTypeName.NUMERIC);
     VerifyDecimalConversion(38, 9, LegacySQLTypeName.NUMERIC);
+    VerifyDecimalConversion(38, 4, LegacySQLTypeName.BIGNUMERIC);
     VerifyDecimalConversion(38, 10, LegacySQLTypeName.BIGNUMERIC);
     VerifyDecimalConversion(20, 15, LegacySQLTypeName.BIGNUMERIC);
     VerifyDecimalConversion(38, 38, LegacySQLTypeName.BIGNUMERIC);
@@ -173,6 +175,14 @@ public class SchemaConverterTest {
     assertThat(field.getType()).isEqualTo(expectedType);
     assertThat(field.getPrecision()).isEqualTo(precision);
     assertThat(field.getScale()).isEqualTo(scale);
+  }
+
+  @Test
+  public void testFailureOnTooWideBigNumericConversion() throws Exception {
+    assertThrows(IllegalArgumentException.class, () -> {
+      SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+          .convert(Field.newBuilder("foo", LegacySQLTypeName.BIGNUMERIC).setPrecision(60L).setScale(30L).build());
+    });
   }
 
   @Test

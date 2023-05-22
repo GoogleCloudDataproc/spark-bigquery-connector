@@ -48,6 +48,9 @@ public class SchemaConverters {
           BigQueryUtil.DEFAULT_NUMERIC_PRECISION, BigQueryUtil.DEFAULT_NUMERIC_SCALE);
   // The maximum nesting depth of a BigQuery RECORD:
   static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
+  // Numeric cannot have more than 29 digits left of the dot. For more details
+  // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#parameterized_decimal_type
+  private static final int NUMERIC_MAX_LEFT_OF_DOT_DIGITS = 29;
 
   private final SchemaConvertersConfiguration configuration;
 
@@ -255,7 +258,8 @@ public class SchemaConverters {
    *
    * <p>Not guaranteed to be stable across all versions of Spark.
    */
-  private StructField convert(Field field) {
+  @VisibleForTesting
+  StructField convert(Field field) {
     DataType dataType = getDataType(field);
     boolean nullable = true;
 
@@ -439,8 +443,9 @@ public class SchemaConverters {
                   .build());
     } else if (sparkType instanceof DecimalType) {
       DecimalType decimalType = (DecimalType) sparkType;
+      int leftOfDotDigits = decimalType.precision() - decimalType.scale();
       fieldType =
-          (decimalType.scale() > BigQueryUtil.DEFAULT_NUMERIC_SCALE)
+          (decimalType.scale() > BigQueryUtil.DEFAULT_NUMERIC_SCALE || leftOfDotDigits > NUMERIC_MAX_LEFT_OF_DOT_DIGITS)
               ? LegacySQLTypeName.BIGNUMERIC
               : LegacySQLTypeName.NUMERIC;
       scale = OptionalLong.of(decimalType.scale());

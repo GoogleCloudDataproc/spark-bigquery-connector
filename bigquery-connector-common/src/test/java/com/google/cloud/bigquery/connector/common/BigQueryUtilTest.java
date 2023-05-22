@@ -253,32 +253,6 @@ public class BigQueryUtilTest {
   }
 
   @Test
-  @Ignore
-  public void testFieldWritableScale() {
-    Field f1 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setScale(1L).build();
-    Field f2 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setScale(2L).build();
-    Field f3 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setScale(3L).build();
-    Field f4 = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
-    assertThat(BigQueryUtil.fieldWritable(f1, f2, true)).isTrue();
-    assertThat(BigQueryUtil.fieldWritable(f3, f2, true)).isFalse();
-    assertThat(BigQueryUtil.fieldWritable(f3, f4, true)).isFalse();
-    assertThat(BigQueryUtil.fieldWritable(f4, f2, true)).isFalse();
-  }
-
-  @Test
-  @Ignore
-  public void testFieldWritablePrecision() {
-    Field f1 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setPrecision(1L).build();
-    Field f2 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setPrecision(2L).build();
-    Field f3 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setPrecision(3L).build();
-    Field f4 = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
-    assertThat(BigQueryUtil.fieldWritable(f1, f2, true)).isTrue();
-    assertThat(BigQueryUtil.fieldWritable(f3, f2, true)).isFalse();
-    assertThat(BigQueryUtil.fieldWritable(f3, f4, true)).isFalse();
-    assertThat(BigQueryUtil.fieldWritable(f4, f2, true)).isFalse();
-  }
-
-  @Test
   public void testSchemaWritableWithEnableModeCheckForSchemaFields() {
     Schema s1 =
         Schema.of(
