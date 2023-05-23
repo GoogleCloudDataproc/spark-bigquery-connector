@@ -29,14 +29,13 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.DescriptorProtos.FieldDescriptorProto.Type;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import org.apache.spark.bigquery.BigNumericUDT;
-import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSqlUtils;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -73,10 +72,6 @@ import scala.collection.mutable.IndexedSeq;
 public class ProtobufUtils {
 
   static final Logger logger = LoggerFactory.getLogger(ProtobufUtils.class);
-  private static final int BQ_NUMERIC_PRECISION = 38;
-  private static final int BQ_NUMERIC_SCALE = 9;
-  private static final DecimalType NUMERIC_SPARK_TYPE =
-      DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
   // The maximum nesting depth of a BigQuery RECORD:
   private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
   // For every message, a nested type is name "STRUCT"+i, where i is the
@@ -142,9 +137,7 @@ public class ProtobufUtils {
                   DataTypes.DoubleType.json(),
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE)
               .put(
-                  NUMERIC_SPARK_TYPE.json(), DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
-              .put(
-                  BigQueryDataTypes.BigNumericType.json(),
+                  SchemaConverters.NUMERIC_SPARK_TYPE.json(),
                   DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
               .put(
                   DataTypes.StringType.json(),
@@ -423,10 +416,6 @@ public class ProtobufUtils {
       return convertDecimalToString(sparkValue);
     }
 
-    if (sparkType instanceof BigNumericUDT) {
-      return sparkValue.toString();
-    }
-
     if (sparkType instanceof BooleanType) {
       return sparkValue;
     }
@@ -572,6 +561,9 @@ public class ProtobufUtils {
 
   private static DescriptorProtos.FieldDescriptorProto.Type toProtoFieldType(DataType sparkType) {
     if (sparkType instanceof MapType) {;
+    }
+    if (sparkType instanceof DecimalType) {
+      return Type.TYPE_STRING;
     }
     return Preconditions.checkNotNull(
         SparkToProtoType.get(sparkType.json()),

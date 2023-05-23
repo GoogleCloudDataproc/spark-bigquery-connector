@@ -131,6 +131,11 @@ public class BigQueryWriteHelper {
     Schema schema =
         SchemaConverters.from(SchemaConvertersConfiguration.from(config))
             .toBigQuerySchema(data.schema());
+    if (tableInfo.isPresent()) {
+      schema =
+          BigQueryUtil.adjustSchemaIfNeeded(schema, tableInfo.get().getDefinition().getSchema());
+    }
+
     bigQueryClient.loadDataIntoTable(
         config, optimizedSourceUris, formatOptions, writeDisposition, Optional.of(schema));
   }

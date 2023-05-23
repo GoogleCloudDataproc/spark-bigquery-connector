@@ -2,6 +2,10 @@
 
 ## Next
 
+* :warning: **Breaking Change** BigNumeric conversion has changed, and it is now converted to Spark's
+  Decimal data type. Notice that BigNumeric can have a wider precision than Decimal, so additional
+  setting may be needed. See [here](https://github.com/GoogleCloudDataproc/spark-bigquery-connector#numeric-and-bignumeric-support)
+  for additional details.
 * Issue #945: Fixing unable to add new column even with option `allowFieldAddition`
 * PR #951: Adding support to create BigQueryReadClient with UnboundedScheduledExecutorService
 * PR #965: Fix to reuse the same BigQueryClient for the same BigQueryConfig, rather than creating a new one

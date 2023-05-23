@@ -35,7 +35,6 @@ import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
 import java.math.BigDecimal;
 import java.math.MathContext;
-import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
@@ -55,8 +54,11 @@ public class ProtobufUtilsTest {
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
   private static final int BQ_NUMERIC_PRECISION = 38;
   private static final int BQ_NUMERIC_SCALE = 9;
+  private static final int BQ_BIGNUMERIC_SCALE = 38;
   private static final DecimalType NUMERIC_SPARK_TYPE =
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
+  private static final DecimalType BIGNUMERIC_SPARK_TYPE =
+      DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_BIGNUMERIC_SCALE);
   // The maximum nesting depth of a BigQuery RECORD:
   private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
 
@@ -142,8 +144,7 @@ public class ProtobufUtilsTest {
                             new MathContext(BQ_NUMERIC_PRECISION)),
                         BQ_NUMERIC_PRECISION,
                         BQ_NUMERIC_SCALE),
-                    UTF8String.fromString(
-                        "-578960446186580977117854925043439539266.34992332820282019728792003956564819968")
+                    Decimal.apply(new BigDecimal("0.78960446186580977117854925043439539146"))
                   })
             });
 
@@ -204,7 +205,7 @@ public class ProtobufUtilsTest {
   public final StructField SPARK_NUMERIC_FIELD =
       new StructField("Numeric", NUMERIC_SPARK_TYPE, true, Metadata.empty());
   public final StructField SPARK_BIGNUMERIC_FIELD =
-      new StructField("BigNumeric", BigQueryDataTypes.BigNumericType, true, Metadata.empty());
+      new StructField("BigNumeric", BIGNUMERIC_SPARK_TYPE, true, Metadata.empty());
 
   public final StructType BIG_SPARK_SCHEMA =
       new StructType()
@@ -393,7 +394,7 @@ public class ProtobufUtilsTest {
                       "-99999999999999999999999999999.999999999")
                   .setField(
                       BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(11),
-                      "-578960446186580977117854925043439539266.34992332820282019728792003956564819968")
+                      "0.78960446186580977117854925043439539146")
                   .build()
                   .toByteString())
           .build();

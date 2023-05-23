@@ -144,6 +144,10 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     Schema schema =
         SchemaConverters.from(SchemaConvertersConfiguration.from(config))
             .toBigQuerySchema(sparkSchema);
+    if (tableInfo.isPresent()) {
+      schema =
+          BigQueryUtil.adjustSchemaIfNeeded(schema, tableInfo.get().getDefinition().getSchema());
+    }
 
     bigQueryClient.loadDataIntoTable(
         config, optimizedSourceUris, FormatOptions.avro(), writeDisposition, Optional.of(schema));

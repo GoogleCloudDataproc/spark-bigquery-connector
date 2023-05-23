@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.types.ArrayType;
 import org.apache.spark.sql.types.DataTypes;
@@ -120,6 +119,7 @@ public class TestConstants {
                   new StringStruct("1:str3", "1:str1", "1:str2"))),
           "outer_string");
   private static DecimalType BQ_NUMERIC = DataTypes.createDecimalType(38, 9);
+  private static DecimalType BQ_BIGNUMERIC = DataTypes.createDecimalType(38, 38);
   public static StructType ALL_TYPES_TABLE_SCHEMA =
       new StructType(
           copy(
@@ -147,10 +147,8 @@ public class TestConstants {
                   "big_numeric_nums",
                   new StructType(
                       copy(
-                          new StructField(
-                              "min", BigQueryDataTypes.BigNumericType, true, Metadata.empty()),
-                          new StructField(
-                              "max", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))),
+                          new StructField("min", BQ_BIGNUMERIC, true, Metadata.empty()),
+                          new StructField("max", BQ_BIGNUMERIC, true, Metadata.empty()))),
                   true,
                   Metadata.empty()),
               new StructField(
@@ -186,8 +184,8 @@ public class TestConstants {
             lit(3.14).cast(BQ_NUMERIC),
             lit("31415926535897932384626433832.795028841").cast(BQ_NUMERIC)),
         struct(
-            lit("-578960446186580977117854925043439539266.34992332820282019728792003956564819968"),
-            lit("578960446186580977117854925043439539266.34992332820282019728792003956564819967")),
+            lit("-0.34992332820282019728792003956564819968"),
+            lit("0.34992332820282019728792003956564819967")),
         array(lit(1), lit(2), lit(3)),
         array(struct(lit(1)))
       };

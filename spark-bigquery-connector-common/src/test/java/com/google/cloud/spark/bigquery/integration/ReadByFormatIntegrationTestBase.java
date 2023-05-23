@@ -65,11 +65,13 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     Dataset<Row> df = getViewDataFrame();
 
     // filer and select are pushed down to BQ
-    List<Row> result = df.select("int_req").filter("str = 'string'").collectAsList();
+    List<Row> result = df.select("corpus").filter("word = 'spark'").collectAsList();
 
-    assertThat(result).hasSize(1);
+    assertThat(result).hasSize(9);
     List<Row> filteredResult =
-        result.stream().filter(row -> row.getLong(0) == 42L).collect(Collectors.toList());
+        result.stream()
+            .filter(row -> "hamlet".equals(row.getString(0)))
+            .collect(Collectors.toList());
     assertThat(filteredResult).hasSize(1);
   }
 
@@ -80,11 +82,13 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     Dataset<Row> cachedDF = df.cache();
 
     // filter and select are run on the spark side as the view was cached
-    List<Row> result = cachedDF.select("int_req").filter("str = 'string'").collectAsList();
+    List<Row> result = cachedDF.select("corpus").filter("word = 'spark'").collectAsList();
 
-    assertThat(result).hasSize(1);
+    assertThat(result).hasSize(9);
     List<Row> filteredResult =
-        result.stream().filter(row -> row.getLong(0) == 42L).collect(Collectors.toList());
+        result.stream()
+            .filter(row -> "hamlet".equals(row.getString(0)))
+            .collect(Collectors.toList());
     assertThat(filteredResult).hasSize(1);
   }
 

@@ -44,6 +44,7 @@ import com.google.cloud.spark.bigquery.integration.model.Person;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.ProvisionException;
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.ZoneId;
@@ -60,6 +61,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
@@ -919,6 +921,45 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(table.getEncryptionConfiguration()).isNotNull();
     assertThat(table.getEncryptionConfiguration().getKmsKeyName())
         .isEqualTo(destinationTableKmsKeyName);
+  }
+
+  @Test
+  public void testWriteNumericsToWiderFields() throws Exception {
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (num NUMERIC(10,2), bignum BIGNUMERIC(20,15))",
+            testDataset, testTable));
+    Decimal num = Decimal.apply("12345.6");
+    Decimal bignum = Decimal.apply("12345.12345");
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create(num, bignum)),
+            structType(
+                StructField.apply("num", DataTypes.createDecimalType(6, 1), true, Metadata.empty()),
+                StructField.apply(
+                    "bignum", DataTypes.createDecimalType(10, 5), true, Metadata.empty())));
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .save();
+
+    Dataset<Row> resultDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    List<Row> result = resultDF.collectAsList();
+    assertThat(result).hasSize(1);
+    Row head = result.get(0);
+    assertThat(head.getDecimal(head.fieldIndex("num"))).isEqualTo(new BigDecimal("12345.60"));
+    assertThat(head.getDecimal(head.fieldIndex("bignum")))
+        .isEqualTo(new BigDecimal("12345.123450000000000"));
   }
 
   protected long numberOfRowsWith(String name) {

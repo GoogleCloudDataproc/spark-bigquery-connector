@@ -28,6 +28,7 @@ import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.HivePartitioningOptions;
+import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
@@ -63,8 +64,17 @@ import java.util.function.IntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 public class BigQueryUtil {
+
+  // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
+  // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
+  public static final int DEFAULT_NUMERIC_PRECISION = 38;
+  public static final int DEFAULT_NUMERIC_SCALE = 9;
+  public static final int DEFAULT_BIG_NUMERIC_PRECISION = 76;
+  public static final int DEFAULT_BIG_NUMERIC_SCALE = 38;
+  private static final int NO_VALUE = -1;
   static final ImmutableSet<String> INTERNAL_ERROR_MESSAGES =
       ImmutableSet.of(
           "HTTP/2 error code: INTERNAL_ERROR",
@@ -304,7 +314,7 @@ public class BigQueryUtil {
     }
 
     return Objects.equal(sourceField.getName(), destinationField.getName())
-        && Objects.equal(sourceField.getType(), destinationField.getType())
+        && typeWriteable(sourceField.getType(), destinationField.getType())
         && (!enableModeCheckForSchemaFields
             || Objects.equal(
                 nullableIfNull(sourceField.getMode()), nullableIfNull(destinationField.getMode())))
@@ -312,14 +322,48 @@ public class BigQueryUtil {
             || (sourceField.getMaxLength() != null
                 && destinationField.getMaxLength() != null
                 && sourceField.getMaxLength() <= destinationField.getMaxLength()))
-        && ((sourceField.getScale() == null && destinationField.getScale() == null)
-            || (sourceField.getScale() != null
-                && destinationField.getScale() != null
-                && sourceField.getScale() <= destinationField.getScale()))
-        && ((sourceField.getPrecision() == null && destinationField.getPrecision() == null)
-            || (sourceField.getPrecision() != null
-                && destinationField.getPrecision() != null
-                && sourceField.getPrecision() <= destinationField.getPrecision()));
+        && ((sourceField.getScale() == destinationField.getScale())
+            || (getScale(sourceField) <= getScale(destinationField)))
+        && ((sourceField.getPrecision() == destinationField.getPrecision())
+            || (getPrecision(sourceField) <= getPrecision(destinationField)));
+  }
+
+  // allowing widening narrow numeric into bignumeric
+  @VisibleForTesting
+  static boolean typeWriteable(LegacySQLTypeName sourceType, LegacySQLTypeName destinationType) {
+    return (sourceType.equals(LegacySQLTypeName.NUMERIC)
+            && destinationType.equals(LegacySQLTypeName.BIGNUMERIC))
+        || sourceType.equals(destinationType);
+  }
+
+  @VisibleForTesting
+  static int getPrecision(Field field) {
+    return getValueOrDefault(
+        field.getPrecision(),
+        field.getType(),
+        DEFAULT_NUMERIC_PRECISION,
+        DEFAULT_BIG_NUMERIC_PRECISION);
+  }
+
+  @VisibleForTesting
+  static int getScale(Field field) {
+    return getValueOrDefault(
+        field.getScale(), field.getType(), DEFAULT_NUMERIC_SCALE, DEFAULT_BIG_NUMERIC_SCALE);
+  }
+
+  private static int getValueOrDefault(
+      Long value, LegacySQLTypeName type, int numericValue, int bigNumericValue) {
+    if (value != null) {
+      return value.intValue();
+    }
+    // scale is null, so use defaults
+    if (LegacySQLTypeName.NUMERIC.equals(type)) {
+      return numericValue;
+    }
+    if (LegacySQLTypeName.BIGNUMERIC.equals(type)) {
+      return bigNumericValue;
+    }
+    return NO_VALUE;
   }
 
   @VisibleForTesting
@@ -462,5 +506,55 @@ public class BigQueryUtil {
     return filter
         .map(f -> f.getBytes(StandardCharsets.UTF_8).length < MAX_FILTER_LENGTH_IN_BYTES)
         .orElse(Boolean.TRUE);
+  }
+
+  /**
+   * Adjusts the wanted schema to properly match the schema of an existing table.
+   *
+   * @param wantedSchema
+   * @param existingTableSchema
+   * @return the adjusted schema
+   */
+  public static Schema adjustSchemaIfNeeded(Schema wantedSchema, Schema existingTableSchema) {
+    FieldList fields = wantedSchema.getFields();
+    FieldList existingFields = existingTableSchema.getFields();
+    Map<String, Field> existingFieldsMap =
+        existingFields.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
+    List<Field> adjustedFields =
+        fields.stream()
+            .map(field -> adjustField(field, existingFieldsMap.get(field.getName())))
+            .collect(Collectors.toList());
+    return Schema.of(adjustedFields);
+  }
+
+  /**
+   * At the moment converts numeric fields to bignumeric if the exisitng schema requires it. Can be
+   * used for other adjustments
+   *
+   * @param field
+   * @param existingField
+   * @return the adjusted field
+   */
+  @VisibleForTesting
+  static Field adjustField(Field field, @Nullable Field existingField) {
+    if (field.getType().equals(LegacySQLTypeName.NUMERIC)
+        && existingField.getType().equals(LegacySQLTypeName.BIGNUMERIC)) {
+      // convert type
+      return field.toBuilder().setType(LegacySQLTypeName.BIGNUMERIC).build();
+    }
+    if (field.getType().equals(LegacySQLTypeName.RECORD)
+        && field.getType().equals(LegacySQLTypeName.RECORD)) {
+      // need to go recursively
+      FieldList subFields = field.getSubFields();
+      FieldList exitingSubFields = existingField.getSubFields();
+      FieldList adjustedSubFields =
+          FieldList.of(
+              subFields.stream()
+                  .map(subField -> adjustField(subField, exitingSubFields.get(subField.getName())))
+                  .collect(Collectors.toList()));
+      return field.toBuilder().setType(LegacySQLTypeName.RECORD, adjustedSubFields).build();
+    }
+    // no adjustment
+    return field;
   }
 }

@@ -46,8 +46,6 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.spark.bigquery.BigNumeric;
-import org.apache.spark.bigquery.BigQueryDataTypes;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -65,8 +63,11 @@ public class TestConstants {
 
   static final int BQ_NUMERIC_PRECISION = 38;
   static final int BQ_NUMERIC_SCALE = 9;
+  static final int BQ_BIGNUMERIC_SCALE = 38;
   static final DecimalType NUMERIC_SPARK_TYPE =
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
+  static final DecimalType BIGNUMERIC_SPARK_TYPE =
+      DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_BIGNUMERIC_SCALE);
   static final String SHAKESPEARE_TABLE = "bigquery-public-data.samples.shakespeare";
   static final String PUBLIC_DATA_WIKIPEDIA_PAGEVIEWS_2021 =
       "bigquery-public-data.wikipedia.pageviews_2021";
@@ -120,11 +121,12 @@ public class TestConstants {
   static final String NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent";
   static final String STRUCT_COLUMN_ORDER_TEST_TABLE_NAME = "struct_column_order";
   static final String ALL_TYPES_TABLE_NAME = "all_types";
-  static final String ALL_TYPES_VIEW_NAME = "all_types_view";
+  static final String ALL_TYPES_VIEW_NAME = "shakespeare_view";
   static final String DIFF_IN_SCHEMA_SRC_TABLE_NAME = "src_table";
   static final String DIFF_IN_SCHEMA_SRC_TABLE_NAME_WITH_DESCRIPTION = "src_table_with_description";
   static final String DIFF_IN_SCHEMA_DEST_TABLE_NAME = "dest_table";
   static DataType BQ_NUMERIC = DataTypes.createDecimalType(38, 9);
+  static DataType BQ_BIGNUMERIC = DataTypes.createDecimalType(38, 38);
   public static int BIG_NUMERIC_COLUMN_POSITION = 11;
 
   public static StructType ALL_TYPES_TABLE_SCHEMA =
@@ -155,17 +157,14 @@ public class TestConstants {
                           new StructField("big_pi", BQ_NUMERIC, true, Metadata.empty()))),
                   true,
                   Metadata.empty()),
-              // TODO: Restore this code after
-              //  https://github.com/GoogleCloudDataproc/spark-bigquery-connector/issues/446
-              //  is fixed
-              //
-              // new StructField("big_numeric_nums",
-              //     new StructType(copy(
-              //         new StructField("min", BigQueryDataTypes.BigNumericType, true,
-              // Metadata.empty()),
-              //         new StructField("max", BigQueryDataTypes.BigNumericType, true,
-              // Metadata.empty()))),
-              //     true, Metadata.empty()),
+              new StructField(
+                  "big_numeric_nums",
+                  new StructType(
+                      copy(
+                          new StructField("min", BQ_BIGNUMERIC, true, Metadata.empty()),
+                          new StructField("max", BQ_BIGNUMERIC, true, Metadata.empty()))),
+                  true,
+                  Metadata.empty()),
               new StructField(
                   "int_arr", new ArrayType(DataTypes.LongType, true), true, Metadata.empty()),
               new StructField(
@@ -213,7 +212,7 @@ public class TestConstants {
               "float float64,",
               "json_f json,",
               "nums struct<min numeric, max numeric, pi numeric, big_pi numeric>,",
-              //          "big_numeric_nums struct<min bignumeric, max bignumeric>,",
+              "big_numeric_nums struct<min bignumeric(38,38), max bignumeric(38,38)>,",
               "int_arr array<int64>,",
               "int_struct_arr array<struct<i int64>>,",
               "nested_struct struct<int_null int64, str string, inner_struct struct<bl bool, str string, int_null int64>>",
@@ -237,12 +236,10 @@ public class TestConstants {
               "  cast(3.14 as numeric) as pi,",
               "  cast(\"31415926535897932384626433832.795028841\" as numeric) as big_pi",
               ") as nums,",
-              // "struct(",
-              // "
-              // cast(\"-578960446186580977117854925043439539266.34992332820282019728792003956564819968\" as bignumeric) as min,",
-              // "
-              // cast(\"578960446186580977117854925043439539266.34992332820282019728792003956564819967\" as bignumeric) as max",
-              // ") as big_numeric_nums,",
+              "struct(",
+              "cast(\"-0.34992332820282019728792003956564819968\" as bignumeric) as min,",
+              "cast(\"0.34992332820282019728792003956564819967\" as bignumeric) as max",
+              ") as big_numeric_nums,",
               "[1, 2, 3] as int_arr,",
               "[(select as struct 1)] as int_struct_arr,",
               "struct(",
@@ -252,8 +249,7 @@ public class TestConstants {
               ") as nested_struct")
           .collect(Collectors.joining("\n"));
 
-  public static int ALL_TYPES_TABLE_SIZE = 202;
-
+  public static int ALL_TYPES_TABLE_SIZE = 266;
   static String STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE =
       Stream.of(
               "create table %s.%s (",
@@ -325,12 +321,9 @@ public class TestConstants {
               lit("99999999999999999999999999999.999999999").cast(BQ_NUMERIC),
               lit(3.14).cast(BQ_NUMERIC),
               lit("31415926535897932384626433832.795028841").cast(BQ_NUMERIC)),
-          // struct(
-          //
-          // lit("-578960446186580977117854925043439539266.34992332820282019728792003956564819968"),
-          //
-          // lit("578960446186580977117854925043439539266.34992332820282019728792003956564819967")
-          // ),
+          struct(
+              lit("-0.34992332820282019728792003956564819968").cast(BQ_BIGNUMERIC),
+              lit("0.34992332820282019728792003956564819967").cast(BQ_BIGNUMERIC)),
           array(lit(1), lit(2), lit(3)),
           array(struct(lit(1))),
           struct(lit(1), lit("stringa"), struct(lit(true), lit("stringaa"), lit(11))));
@@ -384,15 +377,8 @@ public class TestConstants {
               new StructField(
                   "big_numeric_nums",
                   new StructType()
-                      .add(
-                          new StructField(
-                              "min", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))
-                      .add(
-                          new StructField(
-                              "max", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))
-                      .add(
-                          new StructField(
-                              "pi", BigQueryDataTypes.BigNumericType, true, Metadata.empty())),
+                      .add(new StructField("min", BQ_BIGNUMERIC, true, Metadata.empty()))
+                      .add(new StructField("max", BQ_BIGNUMERIC, true, Metadata.empty())),
                   true,
                   Metadata.empty()))
           .add(new StructField("int_arr", new ArrayType(IntegerType, true), true, Metadata.empty()))
@@ -443,15 +429,8 @@ public class TestConstants {
               new StructField(
                   "big_numeric_nums",
                   new StructType()
-                      .add(
-                          new StructField(
-                              "min", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))
-                      .add(
-                          new StructField(
-                              "max", BigQueryDataTypes.BigNumericType, true, Metadata.empty()))
-                      .add(
-                          new StructField(
-                              "pi", BigQueryDataTypes.BigNumericType, true, Metadata.empty())),
+                      .add(new StructField("min", BQ_BIGNUMERIC, true, Metadata.empty()))
+                      .add(new StructField("max", BQ_BIGNUMERIC, true, Metadata.empty())),
                   true,
                   Metadata.empty()))
           .add(new StructField("int_arr", new ArrayType(LongType, true), true, Metadata.empty()))
@@ -505,13 +484,14 @@ public class TestConstants {
                     BQ_NUMERIC_PRECISION,
                     BQ_NUMERIC_SCALE)),
             RowFactory.create(
-                new BigNumeric(
-                    new BigDecimal(
-                        "-578960446186580977117854925043439539266.34992332820282019728792003956564819968")),
-                new BigNumeric(
-                    new BigDecimal(
-                        "578960446186580977117854925043439539266.34992332820282019728792003956564819967")),
-                new BigNumeric(new BigDecimal("3.14"))),
+                Decimal.apply(
+                    new BigDecimal("-0.34992332820282019728792003956564819968"),
+                    BQ_NUMERIC_PRECISION,
+                    BQ_BIGNUMERIC_SCALE),
+                Decimal.apply(
+                    new BigDecimal("0.34992332820282019728792003956564819967"),
+                    BQ_NUMERIC_PRECISION,
+                    BQ_BIGNUMERIC_SCALE)),
             new int[] {1, 2, 3, 4},
             new Row[] {RowFactory.create(1), RowFactory.create(1)})
       };

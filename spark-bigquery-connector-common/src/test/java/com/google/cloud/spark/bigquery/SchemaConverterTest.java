@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery;
 
 import static com.google.cloud.spark.bigquery.SchemaConverters.*;
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.google.cloud.bigquery.Field;
@@ -39,8 +40,11 @@ public class SchemaConverterTest {
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
   private static final int BQ_NUMERIC_PRECISION = 38;
   private static final int BQ_NUMERIC_SCALE = 9;
+  private static final int BQ_BIGNUMERIC_SCALE = 38;
   private static final DecimalType NUMERIC_SPARK_TYPE =
       DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_NUMERIC_SCALE);
+  private static final DecimalType BIGNUMERIC_SPARK_TYPE =
+      DataTypes.createDecimalType(BQ_NUMERIC_PRECISION, BQ_BIGNUMERIC_SCALE);
   // The maximum nesting depth of a BigQuery RECORD:
   private static final int MAX_BIGQUERY_NESTED_DEPTH = 15;
 
@@ -153,19 +157,38 @@ public class SchemaConverterTest {
   }
 
   @Test
-  public void testDecimalTypeConversion() throws Exception {
-    assertThat(
-            SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
-                .toBigQueryType(NUMERIC_SPARK_TYPE, Metadata.empty()))
-        .isEqualTo(LegacySQLTypeName.NUMERIC);
+  public void testDecimalTypeConversionFromSparkToBigQuery() throws Exception {
+    VerifyDecimalConversion(10, 0, LegacySQLTypeName.NUMERIC);
+    VerifyDecimalConversion(20, 9, LegacySQLTypeName.NUMERIC);
+    VerifyDecimalConversion(38, 9, LegacySQLTypeName.NUMERIC);
+    VerifyDecimalConversion(38, 4, LegacySQLTypeName.BIGNUMERIC);
+    VerifyDecimalConversion(38, 10, LegacySQLTypeName.BIGNUMERIC);
+    VerifyDecimalConversion(20, 15, LegacySQLTypeName.BIGNUMERIC);
+    VerifyDecimalConversion(38, 38, LegacySQLTypeName.BIGNUMERIC);
+  }
 
-    try {
-      DecimalType wayTooBig = DataTypes.createDecimalType(38, 38);
-      SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
-          .toBigQueryType(wayTooBig, Metadata.empty());
-      fail("Did not throw an error for a decimal that's too wide for big-query");
-    } catch (IllegalArgumentException e) {
-    }
+  private void VerifyDecimalConversion(int precision, int scale, LegacySQLTypeName expectedType) {
+    Field field =
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .createBigQueryColumn(
+                simpleStructField("foo", DataTypes.createDecimalType(precision, scale)), 1);
+    assertThat(field.getType()).isEqualTo(expectedType);
+    assertThat(field.getPrecision()).isEqualTo(precision);
+    assertThat(field.getScale()).isEqualTo(scale);
+  }
+
+  @Test
+  public void testFailureOnTooWideBigNumericConversion() throws Exception {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+              .convert(
+                  Field.newBuilder("foo", LegacySQLTypeName.BIGNUMERIC)
+                      .setPrecision(60L)
+                      .setScale(30L)
+                      .build());
+        });
   }
 
   @Test
@@ -441,6 +464,9 @@ public class SchemaConverterTest {
           .add(
               new StructField(
                   "numeric", DataTypes.createDecimalType(38, 9), true, Metadata.empty()))
+          .add(
+              new StructField(
+                  "big_numeric", DataTypes.createDecimalType(38, 38), true, Metadata.empty()))
           .add(new StructField("date", DataTypes.DateType, true, Metadata.empty()))
           .add(
               new StructField(
@@ -469,7 +495,14 @@ public class SchemaConverterTest {
               .setMode(Field.Mode.REPEATED)
               .build(),
           Field.of("float", LegacySQLTypeName.FLOAT),
-          Field.of("numeric", LegacySQLTypeName.NUMERIC),
+          Field.newBuilder("numeric", LegacySQLTypeName.NUMERIC)
+              .setPrecision(new Long(BQ_NUMERIC_PRECISION))
+              .setScale(new Long(BQ_NUMERIC_SCALE))
+              .build(),
+          Field.newBuilder("big_numeric", LegacySQLTypeName.BIGNUMERIC)
+              .setPrecision(new Long(BQ_NUMERIC_PRECISION))
+              .setScale(new Long(BQ_BIGNUMERIC_SCALE))
+              .build(),
           Field.of("date", LegacySQLTypeName.DATE),
           Field.of(
               "times",
@@ -491,7 +524,14 @@ public class SchemaConverterTest {
               .setMode(Field.Mode.REPEATED)
               .build(),
           Field.of("float", LegacySQLTypeName.FLOAT),
-          Field.of("numeric", LegacySQLTypeName.NUMERIC),
+          Field.newBuilder("numeric", LegacySQLTypeName.NUMERIC)
+              .setPrecision(new Long(BQ_NUMERIC_PRECISION))
+              .setScale(new Long(BQ_NUMERIC_SCALE))
+              .build(),
+          Field.newBuilder("big_numeric", LegacySQLTypeName.BIGNUMERIC)
+              .setPrecision(new Long(BQ_NUMERIC_PRECISION))
+              .setScale(new Long(BQ_BIGNUMERIC_SCALE))
+              .build(),
           Field.of("date", LegacySQLTypeName.DATE),
           Field.of(
               "times",
@@ -508,6 +548,9 @@ public class SchemaConverterTest {
               .setMode(Field.Mode.NULLABLE)
               .build());
 
+  private StructField simpleStructField(String name, DataType dataType) {
+    return StructField.apply(name, dataType, /* nullable */ true, Metadata.empty());
+  }
   /* TODO: translate BigQuery to Spark row conversion tests, from SchemaIteratorSuite.scala
   private final List<String> BIG_SCHEMA_NAMES_INORDER = Arrays.asList(
           new String[]{"Number", "String", "Array", "Struct", "Float", "Boolean", "Numeric"});
