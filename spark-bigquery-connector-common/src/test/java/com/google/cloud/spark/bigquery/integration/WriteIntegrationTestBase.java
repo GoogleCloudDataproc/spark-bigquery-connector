@@ -447,7 +447,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQueryNullableToNullable() throws Exception {
+  public void testWriteDFNullableToBigQueryNullable() throws Exception {
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_NULLABLE_FIELD);
     StructType srcSchema =
@@ -466,7 +466,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQueryNullableToRequiredWithNonNullData() throws Exception {
+  public void testWriteDFNullableWithNonNullDataToBigQueryRequired() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REQUIRED_FIELD);
@@ -486,7 +486,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQueryNullableToRequiredWithNullData() {
+  public void testWriteNullableDFWithNullDataToBigQueryRequired() {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REQUIRED_FIELD);
@@ -507,7 +507,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQueryNullableToRepeated() {
+  public void testWriteNullableDFToBigQueryRepeated() {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REPEATED_FIELD);
@@ -527,7 +527,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQueryRequiredToNullable() throws Exception {
+  public void testWriteRequiredDFToBigQueryNullable() throws Exception {
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_NULLABLE_FIELD);
     StructType srcSchema =
@@ -546,7 +546,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQueryRequiredToRequired() throws Exception {
+  public void testWriteRequiredDFToBigQueryRequired() throws Exception {
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REQUIRED_FIELD);
     StructType srcSchema =
@@ -565,7 +565,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQueryRequiredToRepeated() {
+  public void testWriteRequiredDFToBigQueryRepeated() {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REPEATED_FIELD);
@@ -585,7 +585,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQueryRepeatedToNullable() {
+  public void testWriteRepeatedDFToBigQueryNullable() {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_NULLABLE_FIELD);
@@ -611,7 +611,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQueryRepeatedToRequired() {
+  public void testWriteRepeatedDFToBigQueryRequired() {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REQUIRED_FIELD);
@@ -637,7 +637,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQueryRepeatedToRepeated() {
+  public void testWriteRepeatedDFToBigQueryRepeated() {
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REPEATED_FIELD);
     StructType srcSchema =
@@ -721,7 +721,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     StructType newDataSchema =
         new StructType(
             new StructField[] {
-                dateField, new StructField("some_text", DataTypes.StringType, true, Metadata.empty())
+              dateField, new StructField("some_text", DataTypes.StringType, true, Metadata.empty())
             });
     Dataset<Row> newDataDF = spark.createDataFrame(rows, newDataSchema);
 
@@ -770,14 +770,14 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     StructType[] schemas =
         new StructType[] {
-            structType(new StructField("c1", DataTypes.IntegerType, true, metadata)),
-            structType(
-                new StructField("c1", DataTypes.IntegerType, true, Metadata.empty())
-                    .withComment(testComment)),
-            structType(
-                new StructField("c1", DataTypes.IntegerType, true, metadata)
-                    .withComment(testComment)),
-            structType(new StructField("c1", DataTypes.IntegerType, true, Metadata.empty()))
+          structType(new StructField("c1", DataTypes.IntegerType, true, metadata)),
+          structType(
+              new StructField("c1", DataTypes.IntegerType, true, Metadata.empty())
+                  .withComment(testComment)),
+          structType(
+              new StructField("c1", DataTypes.IntegerType, true, metadata)
+                  .withComment(testComment)),
+          structType(new StructField("c1", DataTypes.IntegerType, true, Metadata.empty()))
         };
 
     String[] readValues = new String[] {testDescription, testComment, testComment, null};
@@ -1031,9 +1031,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     String sql =
         ("SELECT\n"
-            + "  (SELECT COUNT(f.key) FROM TABLE, UNNEST(mf) AS f) AS total_keys,\n"
-            + "  (SELECT COUNT(*) FROM TABLE) AS total_rows,\n"
-            + "  (SELECT f.value FROM TABLE, UNNEST(mf) AS f WHERE f.key='b') AS b_value;")
+                + "  (SELECT COUNT(f.key) FROM TABLE, UNNEST(mf) AS f) AS total_keys,\n"
+                + "  (SELECT COUNT(*) FROM TABLE) AS total_rows,\n"
+                + "  (SELECT f.value FROM TABLE, UNNEST(mf) AS f WHERE f.key='b') AS b_value;")
             .replaceAll("TABLE", testDataset.toString() + "." + testTable);
 
     // validating by querying a sub-field of the json
@@ -1108,9 +1108,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(result).hasSize(3);
     assertThat(result.stream().filter(row -> row.getString(2) == null).count()).isEqualTo(2);
     assertThat(
-        result.stream()
-            .filter(row -> row.getString(2) != null && row.getString(2).equals("newVal1"))
-            .count())
+            result.stream()
+                .filter(row -> row.getString(2) != null && row.getString(2).equals("newVal1"))
+                .count())
         .isEqualTo(1);
   }
 
