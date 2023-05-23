@@ -7,7 +7,6 @@
   setting may be needed. See [here](https://github.com/GoogleCloudDataproc/spark-bigquery-connector#numeric-and-bignumeric-support)
   for additional details.
 * Issue #945: Fixing unable to add new column even with option `allowFieldAddition`
-* PR #951: Adding support to create BigQueryReadClient with UnboundedScheduledExecutorService
 * PR #965: Fix to reuse the same BigQueryClient for the same BigQueryConfig, rather than creating a new one
 * PR #950: Added support for service account impersonation
 * PR #973: Added support for writing to [CMEK managed tables](https://cloud.google.com/bigquery/docs/customer-managed-encryption).

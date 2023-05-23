@@ -128,12 +128,6 @@
       <artifactId>gson</artifactId>
       <version>2.9.1</version>
     </dependency>
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>annotations</artifactId>
-      <version>3.0.1</version>
-      <scope>provided</scope>
-    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -146,37 +140,6 @@
             <goals>
               <goal>test-jar</goal>
             </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.0.0</version>
-        <executions>
-          <execution>
-            <id>source-code</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>third_party/apache-beam/src/main/java</source>
-              </sources>
-            </configuration>
-          </execution>
-          <execution>
-            <id>test-code</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>add-test-source</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>third_party/apache-beam/src/test/java</source>
-              </sources>
-            </configuration>
           </execution>
         </executions>
       </plugin>
