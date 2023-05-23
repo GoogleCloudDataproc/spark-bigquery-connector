@@ -23,6 +23,7 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig.WriteMethod;
 import com.google.cloud.spark.bigquery.integration.model.NumStruct;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.IsoFields;
 import java.util.List;
 import org.apache.spark.sql.Dataset;
@@ -126,7 +127,8 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
     // Parsing the date rather than setting date to LocalDate.now() because the test will fail
     // in the edge case that the BigQuery read happens on an earlier date
-    LocalDate date = LocalDateTime.parse(r1.get(0).toString()).toLocalDate();
+    DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("YYYY-mm-dd HH:mm:ss:x");
+    LocalDate date = LocalDateTime.from(dateFormat.parse(r1.get(0).toString())).toLocalDate();
 
     assertThat(r1.get(1).toString()).isEqualTo(date.plusDays(1L).toString()); // DATE_ADD
     assertThat(r1.get(2).toString()).isEqualTo(date.minusDays(5L).toString()); // DATE_SUB

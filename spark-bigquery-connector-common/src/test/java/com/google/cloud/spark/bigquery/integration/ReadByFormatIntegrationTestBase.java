@@ -302,8 +302,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     df.show();
     List<Timestamp> result =
         rowList.stream().map(row -> row.getTimestamp(0)).collect(Collectors.toList());
-    assertThat(result).contains(ImmutableMap.of("a", Long.valueOf(1), "b", Long.valueOf(2)));
-    assertThat(result).contains(ImmutableMap.of("c", Long.valueOf(3)));
+    assertThat(result.get(0)).isEqualTo("2020-03-14 01:02:03.456789");
+    assertThat(result.get(1)).isEqualTo("2021-03-14 14:38:07.654321");
   }
 
   static <K, V> Map<K, V> scalaMapToJavaMap(scala.collection.Map<K, V> map) {

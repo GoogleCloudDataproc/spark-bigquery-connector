@@ -21,18 +21,7 @@ import static java.lang.String.format;
 
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.ExternalAccountCredentials;
-import com.google.cloud.bigquery.BigQueryError;
-import com.google.cloud.bigquery.BigQueryException;
-import com.google.cloud.bigquery.Clustering;
-import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.FieldList;
-import com.google.cloud.bigquery.RangePartitioning;
-import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.StandardTableDefinition;
-import com.google.cloud.bigquery.TableDefinition;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.annotations.VisibleForTesting;
@@ -296,6 +285,10 @@ public class BigQueryUtil {
     // if both are null we would have caught it earlier
     if (sourceField == null || destinationField == null) {
       return false;
+    }
+    if (sourceField.getType() == LegacySQLTypeName.TIMESTAMP
+        && destinationField.getType() == LegacySQLTypeName.DATETIME) {
+      return true;
     }
 
     if (!fieldListWritable(
