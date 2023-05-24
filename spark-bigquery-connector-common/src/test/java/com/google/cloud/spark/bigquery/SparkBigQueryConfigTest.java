@@ -900,8 +900,7 @@ public class SparkBigQueryConfigTest {
   public void testSetPersistentGcsBucket() {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
-            asDataSourceOptionsMap(
-                withParameter("persistentGcsBucket", "gs://persistentGcsBucket")),
+            asDataSourceOptionsMap(withParameter("persistentGcsBucket", "foo")),
             emptyMap, // allConf
             new Configuration(),
             emptyMap, // customDefaults
@@ -910,7 +909,55 @@ public class SparkBigQueryConfigTest {
             sparkVersion,
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
-    assertThat(config.getPersistentGcsBucket()).isEqualTo(Optional.of("gs://persistentGcsBucket"));
+    assertThat(config.getPersistentGcsBucket()).isEqualTo(Optional.of("foo"));
+  }
+
+  @Test
+  public void testSetPersistentGcsBucketWithPrefix() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("persistentGcsBucket", "gs://foo")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getPersistentGcsBucket()).isEqualTo(Optional.of("foo"));
+  }
+
+  @Test
+  public void testSetTemporaryGcsBucket() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("temporaryGcsBucket", "foo")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("foo"));
+  }
+
+  @Test
+  public void testSetTemporaryGcsBucketWithPrefix() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("temporaryGcsBucket", "gs://foo")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("foo"));
   }
 
   @Test
