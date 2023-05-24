@@ -17,6 +17,8 @@ package com.google.cloud.spark.bigquery.write;
 
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.common.base.Suppliers;
+import java.util.Optional;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
@@ -39,7 +41,9 @@ public class BigQueryDeprecatedIndirectInsertableRelation extends BigQueryInsert
     // the helper also supports the v2 api
     SaveMode saveMode = overwrite ? SaveMode.Overwrite : SaveMode.Append;
     BigQueryWriteHelper helper =
-        new BigQueryWriteHelper(bigQueryClient, sqlContext, saveMode, config, data, table);
+        new BigQueryWriteHelper(
+            bigQueryClient, sqlContext, saveMode, config, data, Optional.ofNullable(table.get()));
     helper.writeDataFrameToBigQuery();
+    table = Suppliers.memoize(() -> bigQueryClient.getTable(config.getTableId()));
   }
 }

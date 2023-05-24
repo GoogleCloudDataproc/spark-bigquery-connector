@@ -21,8 +21,10 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.common.base.Suppliers;
 import java.math.BigInteger;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.sources.BaseRelation;
 import org.apache.spark.sql.sources.InsertableRelation;
@@ -38,14 +40,14 @@ public abstract class BigQueryInsertableRelationBase extends BaseRelation
   protected final BigQueryClient bigQueryClient;
   protected final SQLContext sqlContext;
   protected final SparkBigQueryConfig config;
-  protected final Optional<TableInfo> table;
+  protected Supplier<TableInfo> table;
 
   protected BigQueryInsertableRelationBase(
       BigQueryClient bigQueryClient, SQLContext sqlContext, SparkBigQueryConfig config) {
     this.bigQueryClient = bigQueryClient;
     this.sqlContext = sqlContext;
     this.config = config;
-    this.table = Optional.ofNullable(bigQueryClient.getTable(config.getTableId()));
+    this.table = Suppliers.memoize(() -> bigQueryClient.getTable(config.getTableId()));
   }
 
   @Override
@@ -61,7 +63,7 @@ public abstract class BigQueryInsertableRelationBase extends BaseRelation
 
   /** Does this table exist? */
   public boolean exists() {
-    return table.isPresent();
+    return table.get() != null;
   }
 
   /** Is this table empty? A none-existing table is considered to be empty */
@@ -71,7 +73,7 @@ public abstract class BigQueryInsertableRelationBase extends BaseRelation
 
   /** Returns the number of rows in the table. If the table does not exist return None */
   private Optional<BigInteger> numberOfRows() {
-    return table.map(TableInfo::getNumRows);
+    return Optional.of(table.get().getNumRows());
   }
 
   public TableId getTableId() {

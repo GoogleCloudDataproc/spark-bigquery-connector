@@ -137,6 +137,33 @@ public class DataSourceV1WriteIntegrationTestBase extends WriteIntegrationTestBa
     assertThat(additionalDataValuesExist()).isTrue();
   }
 
+  @Test
+  public void testWriteToSparkTableFromBigQueryTable() {
+    spark.sql("DROP TABLE if exists default." + testTable);
+
+    String query =
+        "create table default."
+            + testTable
+            + " "
+            + "using bigquery OPTIONS ("
+            + "'table'='"
+            + testDataset.toString()
+            + "."
+            + testTable
+            + "', "
+            + "'project'= '"
+            + TestConstants.GOOGLE_CLOUD_PROJECT_ID
+            + "', "
+            + "'temporaryGcsBucket'= '"
+            + TestConstants.TEMPORARY_GCS_BUCKET
+            + "') "
+            + "AS SELECT 'str1' AS col1 UNION SELECT 'str2' AS col1";
+
+    spark.sql(query);
+    List<Row> result = spark.sql("select * from default." + testTable).collectAsList();
+    assertThat(result.size()).isEqualTo(2);
+  }
+
   private static <T> Seq<T> toSeq(List<T> list) {
     return JavaConverters.asScalaIteratorConverter(list.iterator()).asScala().toSeq();
   }
