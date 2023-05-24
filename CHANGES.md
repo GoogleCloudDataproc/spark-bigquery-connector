@@ -18,6 +18,7 @@
 * gRPC has been upgraded to version 1.55.1
 * Netty has been upgraded to version 4.1.92.Final
 * Protocol Buffers has been upgraded to version 3.23.0
+* PR #957: support direct write with subset field list.
 
 ## 0.30.0 - 2023-04-11
 
