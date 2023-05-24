@@ -355,8 +355,10 @@ public class SparkBigQueryConfig
             .transform(Integer::valueOf)
             .orNull();
     config.defaultParallelism = defaultParallelism;
-    config.temporaryGcsBucket = getAnyOption(globalOptions, options, "temporaryGcsBucket");
-    config.persistentGcsBucket = getAnyOption(globalOptions, options, "persistentGcsBucket");
+    config.temporaryGcsBucket =
+        stripPrefix(getAnyOption(globalOptions, options, "temporaryGcsBucket"));
+    config.persistentGcsBucket =
+        stripPrefix(getAnyOption(globalOptions, options, "persistentGcsBucket"));
     config.persistentGcsPath = getOption(options, "persistentGcsPath");
     WriteMethod writeMethodDefault =
         Optional.ofNullable(customDefaults.get(WRITE_METHOD_PARAM))
@@ -525,6 +527,19 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, "destinationTableKmsKeyName");
 
     return config;
+  }
+
+  // strip gs:// prefix if exists
+  private static com.google.common.base.Optional<String> stripPrefix(
+      com.google.common.base.Optional<String> bucket) {
+    return bucket.transform(
+        path -> {
+          if (path.startsWith("gs://")) {
+            return path.substring(5);
+          } else {
+            return path;
+          }
+        });
   }
 
   @VisibleForTesting
