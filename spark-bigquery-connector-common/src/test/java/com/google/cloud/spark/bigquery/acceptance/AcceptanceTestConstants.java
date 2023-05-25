@@ -31,16 +31,14 @@ public class AcceptanceTestConstants {
           "Please set the 'SERVERLESS_NETWORK_URI' environment variable");
   public static final String CONNECTOR_JAR_DIRECTORY = "target";
 
-  public static final String MIN_BIG_NUMERIC =
-      "-578960446186580977117854925043439539266.34992332820282019728792003956564819968";
+  public static final String MIN_BIG_NUMERIC = "-0.34992332820282019728792003956564819968";
 
-  public static final String MAX_BIG_NUMERIC =
-      "578960446186580977117854925043439539266.34992332820282019728792003956564819967";
+  public static final String MAX_BIG_NUMERIC = "0.34992332820282019728792003956564819967";
 
   public static final String BIGNUMERIC_TABLE_QUERY_TEMPLATE =
       "create table %s.%s (\n"
-          + "    min bignumeric,\n"
-          + "    max bignumeric\n"
+          + "    min bignumeric(38,38),\n"
+          + "    max bignumeric(38,38)\n"
           + "    ) \n"
           + "    as \n"
           + "    select \n"
