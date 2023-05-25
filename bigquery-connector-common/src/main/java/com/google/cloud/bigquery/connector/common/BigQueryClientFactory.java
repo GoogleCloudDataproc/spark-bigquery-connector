@@ -17,7 +17,6 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.core.ApiFunction;
 import com.google.api.gax.core.FixedCredentialsProvider;
-import com.google.api.gax.core.FixedExecutorProvider;
 import com.google.api.gax.grpc.ChannelPoolSettings;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.api.gax.rpc.HeaderProvider;
