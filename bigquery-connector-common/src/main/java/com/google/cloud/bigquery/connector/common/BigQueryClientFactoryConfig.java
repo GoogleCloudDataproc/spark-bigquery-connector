@@ -50,7 +50,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final int cacheExpirationTimeInMinutes;
   private final ImmutableMap<String, String> bigQueryJobLabels;
   private final Optional<Long> createReadSessionTimeoutInSeconds;
-  private final Optional<Integer> channelPoolSize;
+  private final int channelPoolSize;
   private final Optional<Integer> flowControlWindowBytes;
   private final QueryJobConfiguration.Priority queryJobPriority;
 
@@ -208,7 +208,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   }
 
   @Override
-  public Optional<Integer> getChannelPoolSize() {
+  public int getChannelPoolSize() {
     return channelPoolSize;
   }
 

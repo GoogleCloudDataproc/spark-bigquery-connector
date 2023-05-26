@@ -73,7 +73,7 @@ public interface BigQueryConfig {
 
   Optional<Long> getCreateReadSessionTimeoutInSeconds();
 
-  Optional<Integer> getChannelPoolSize();
+  int getChannelPoolSize();
 
   // Get a static flow control window per RPC. When not set
   // auto flow control is determined by Bandwidth Delay Product.

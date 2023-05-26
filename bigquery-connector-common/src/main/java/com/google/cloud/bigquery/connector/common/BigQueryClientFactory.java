@@ -147,16 +147,11 @@ public class BigQueryClientFactory implements Serializable {
   }
 
   private BigQueryReadClient createBigQueryReadClient(
-      Optional<String> endpoint,
-      Optional<Integer> channelPoolSize,
-      Optional<Integer> flowControlWindow) {
+      Optional<String> endpoint, int channelPoolSize, Optional<Integer> flowControlWindow) {
     try {
       InstantiatingGrpcChannelProvider.Builder transportBuilder = createTransportBuilder(endpoint);
-      if (channelPoolSize.isPresent()) {
-        log.info("Channel pool size set to {}", channelPoolSize.get());
-        transportBuilder.setChannelPoolSettings(
-            ChannelPoolSettings.staticallySized(channelPoolSize.get()));
-      }
+      log.info("Channel pool size set to {}", channelPoolSize);
+      transportBuilder.setChannelPoolSettings(ChannelPoolSettings.staticallySized(channelPoolSize));
       if (flowControlWindow.isPresent()) {
         ApiFunction<ManagedChannelBuilder, ManagedChannelBuilder> channelConfigurator =
             (ManagedChannelBuilder channelBuilder) -> {
