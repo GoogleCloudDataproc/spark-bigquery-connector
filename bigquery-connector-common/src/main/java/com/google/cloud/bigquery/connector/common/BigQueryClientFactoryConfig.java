@@ -50,6 +50,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final int cacheExpirationTimeInMinutes;
   private final ImmutableMap<String, String> bigQueryJobLabels;
   private final Optional<Long> createReadSessionTimeoutInSeconds;
+  private final int channelPoolSize;
   private final Optional<Integer> flowControlWindowBytes;
   private final QueryJobConfiguration.Priority queryJobPriority;
 
@@ -81,6 +82,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.cacheExpirationTimeInMinutes = bigQueryConfig.getCacheExpirationTimeInMinutes();
     this.bigQueryJobLabels = bigQueryConfig.getBigQueryJobLabels();
     this.createReadSessionTimeoutInSeconds = bigQueryConfig.getCreateReadSessionTimeoutInSeconds();
+    this.channelPoolSize = bigQueryConfig.getChannelPoolSize();
     this.flowControlWindowBytes = bigQueryConfig.getFlowControlWindowBytes();
     this.queryJobPriority = bigQueryConfig.getQueryJobPriority();
   }
@@ -206,6 +208,11 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   }
 
   @Override
+  public int getChannelPoolSize() {
+    return channelPoolSize;
+  }
+
+  @Override
   public Optional<Integer> getFlowControlWindowBytes() {
     return flowControlWindowBytes;
   }
@@ -241,6 +248,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
         && Objects.equal(bigQueryHttpEndpoint, that.bigQueryHttpEndpoint)
         && Objects.equal(cacheExpirationTimeInMinutes, that.cacheExpirationTimeInMinutes)
         && Objects.equal(createReadSessionTimeoutInSeconds, that.createReadSessionTimeoutInSeconds)
+        && Objects.equal(channelPoolSize, that.channelPoolSize)
         && Objects.equal(flowControlWindowBytes, that.flowControlWindowBytes);
   }
 
@@ -262,6 +270,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
         bigQueryStorageGrpcEndpoint,
         bigQueryHttpEndpoint,
         cacheExpirationTimeInMinutes,
+        channelPoolSize,
         flowControlWindowBytes);
   }
 }

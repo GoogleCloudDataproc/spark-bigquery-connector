@@ -9,6 +9,7 @@
 * Issue #945: Fixing unable to add new column even with option `allowFieldAddition`
 * PR #965: Fix to reuse the same BigQueryClient for the same BigQueryConfig, rather than creating a new one
 * PR #950: Added support for service account impersonation
+* PR #960: Added support for basic configuration of the gRPC channel pool size in the BigQueryReadClient.
 * PR #973: Added support for writing to [CMEK managed tables](https://cloud.google.com/bigquery/docs/customer-managed-encryption).
 * PR #971: Fixing wrong results or schema error when Spark nested schema pruning is on for datasource v2
 * PR #974: Applying DPP to Hive partitioned BigLake tables (spark-3.2-bigquery and spark-3.3-bigquery only)

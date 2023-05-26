@@ -56,6 +56,7 @@ public class SparkBigQueryConfigTest {
   private static ImmutableMap<String, String> build;
   ImmutableMap<String, String> defaultOptions = ImmutableMap.of("table", "dataset.table");
   // "project", "test_project"); // to remove the need for default project
+  ImmutableMap<String, String> defaultGlobalOptions = ImmutableMap.of("spark.executor.cores", "1");
 
   @Test
   public void testSerializability() throws IOException {
@@ -83,7 +84,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             options.asMap(),
-            ImmutableMap.of(),
+            defaultGlobalOptions,
             hadoopConfiguration,
             ImmutableMap.of(),
             DEFAULT_PARALLELISM,
@@ -177,7 +178,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             options.asMap(),
-            ImmutableMap.of(),
+            defaultGlobalOptions,
             hadoopConfiguration,
             ImmutableMap.of(),
             DEFAULT_PARALLELISM,
@@ -241,7 +242,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             options.asMap(),
-            ImmutableMap.of(),
+            defaultGlobalOptions,
             hadoopConfiguration,
             ImmutableMap.of(),
             DEFAULT_PARALLELISM,
@@ -270,7 +271,7 @@ public class SparkBigQueryConfigTest {
             () ->
                 SparkBigQueryConfig.from(
                     options.asMap(),
-                    ImmutableMap.of(),
+                    defaultGlobalOptions,
                     hadoopConfiguration,
                     ImmutableMap.of(),
                     DEFAULT_PARALLELISM,
@@ -303,7 +304,7 @@ public class SparkBigQueryConfigTest {
             () ->
                 SparkBigQueryConfig.from(
                     options.asMap(),
-                    ImmutableMap.of(),
+                    defaultGlobalOptions,
                     hadoopConfiguration,
                     ImmutableMap.of(),
                     DEFAULT_PARALLELISM,
@@ -334,6 +335,7 @@ public class SparkBigQueryConfigTest {
             .put("bigQueryHttpEndpoint", "bqhe")
             .put("bqEncodedCreateReadSessionRequest", "ec")
             .put("writeMethod", "direct")
+            .putAll(defaultGlobalOptions)
             .build();
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -366,7 +368,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             options.asMap(),
-            ImmutableMap.of(),
+            defaultGlobalOptions,
             hadoopConfiguration,
             ImmutableMap.of(),
             DEFAULT_PARALLELISM,
@@ -390,7 +392,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             options.asMap(),
-            ImmutableMap.of(),
+            defaultGlobalOptions,
             hadoopConfiguration,
             ImmutableMap.of(),
             DEFAULT_PARALLELISM,
@@ -426,6 +428,7 @@ public class SparkBigQueryConfigTest {
         ImmutableMap.<String, String>builder()
             .put("bigQueryJobLabel.foo", "1")
             .put("bigQueryJobLabel.bar", "1")
+            .putAll(defaultGlobalOptions)
             .build();
     ImmutableMap<String, String> options =
         ImmutableMap.<String, String>builder()
@@ -446,6 +449,7 @@ public class SparkBigQueryConfigTest {
         ImmutableMap.<String, String>builder()
             .put("bigQueryTableLabel.foo", "1")
             .put("bigQueryTableLabel.bar", "1")
+            .putAll(defaultGlobalOptions)
             .build();
     ImmutableMap<String, String> options =
         ImmutableMap.<String, String>builder()
@@ -468,7 +472,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             options.asMap(),
-            ImmutableMap.of(),
+            defaultGlobalOptions,
             hadoopConfiguration,
             ImmutableMap.of("writeMethod", "INDIRECT"),
             DEFAULT_PARALLELISM,
@@ -521,7 +525,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(parameters),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             hadoopConfiguration,
             emptyMap, // customDefaults
             1,
@@ -537,7 +541,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(withParameter("credentialsFile", "cfile")),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
             1,
@@ -553,7 +557,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(parameters),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
             1,
@@ -569,7 +573,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(parameters),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             hadoopConfiguration,
             emptyMap, // customDefaults
             1,
@@ -585,7 +589,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(withParameter("project", "pid")),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             hadoopConfiguration,
             emptyMap, // customDefaults
             1,
@@ -601,7 +605,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(parameters),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
             1,
@@ -617,7 +621,7 @@ public class SparkBigQueryConfigTest {
     try {
       SparkBigQueryConfig.from(
           asDataSourceOptionsMap(withParameter("readDataFormat", "abc")),
-          emptyMap, // allConf
+          defaultGlobalOptions, // allConf
           new Configuration(),
           emptyMap, // customDefaults
           1,
@@ -637,7 +641,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(parameters),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
             1,
@@ -653,7 +657,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(withParameter("readDataFormat", "Avro")),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
             1,
@@ -670,7 +674,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(withParameter("materializationProject", "foo")),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
             1,
@@ -688,7 +692,7 @@ public class SparkBigQueryConfigTest {
             asDataSourceOptionsMap(
                 withParameters(
                     "materializationProject", "foo", "viewMaterializationProject", "bar")),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
             1,
@@ -704,7 +708,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(withParameter("viewMaterializationProject", "bar")),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
             1,
@@ -720,7 +724,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(parameters),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
             1,
@@ -736,7 +740,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(withParameter("maxParallelism", "3")),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
             1,
@@ -752,7 +756,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(withParameters("maxParallelism", "3", "parallelism", "10")),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
             1,
@@ -768,7 +772,7 @@ public class SparkBigQueryConfigTest {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
             asDataSourceOptionsMap(withParameter("parallelism", "10")),
-            emptyMap, // allConf
+            defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
             1,
@@ -958,6 +962,22 @@ public class SparkBigQueryConfigTest {
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
     assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("foo"));
+  }
+
+  @Test
+  public void testBqChannelPoolSize() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(withParameter("bqChannelPoolSize", "4")),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults,
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getChannelPoolSize()).isEqualTo(4);
   }
 
   @Test

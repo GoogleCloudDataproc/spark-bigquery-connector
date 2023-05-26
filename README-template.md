@@ -754,6 +754,13 @@ The API Supports a number of options to configure the read
      </td>
      <td>Write</td>
    </tr>
+  <tr>
+    <td><code>bqChannelPoolSize</code></td>
+    <td>  The (fixed) size of the gRPC channel pool created by the BigQueryReadClient.
+        <br/>For optimal performance, this should be set to at least the number of cores on the cluster executors.
+    </td>
+    <td>Read</td>
+  </tr>
    <tr>
      <td><code>createReadSessionTimeoutInSeconds</code>
      </td>
