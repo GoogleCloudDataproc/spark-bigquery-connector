@@ -462,7 +462,7 @@ public class SparkBigQueryConfig
     // Calculating the default channel pool size
     int sparkExecutorCores =
         Integer.parseInt(globalOptions.getOrDefault("spark.executor.cores", "1"));
-    int defaultChannelPoolSize = sparkExecutorCores * config.numBackgroundThreadsPerStream;
+    int defaultChannelPoolSize = sparkExecutorCores * config.numStreamsPerPartition;
 
     config.channelPoolSize =
         getAnyOption(globalOptions, options, "bqChannelPoolSize")
