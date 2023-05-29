@@ -21,6 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import org.apache.arrow.memory.ArrowBuf;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -500,7 +502,8 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
     @Override
     public final long getLong(int rowId) {
       long utcLong = vector.get(rowId);
-      return utcLong;
+      long convertedUtcLong=BigQueryUtil.convertUtcTimestampToTimeZone(utcLong,schemaConvertersConfiguration.getDatetimeZoneId());
+      return convertedUtcLong;
     }
 
     @Override

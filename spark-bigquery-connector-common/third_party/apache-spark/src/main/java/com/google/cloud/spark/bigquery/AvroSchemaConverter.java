@@ -117,6 +117,8 @@ public class AvroSchemaConverter {
       } else {
         return builder.stringType();
       }
+
+
     }
     if (dataType instanceof TimestampType) {
       // return builder.TIMESTAMP; FIXME: Restore this correct conversion when the Vortex

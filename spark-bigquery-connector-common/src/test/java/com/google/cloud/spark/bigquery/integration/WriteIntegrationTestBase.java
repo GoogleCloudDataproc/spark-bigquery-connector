@@ -16,6 +16,8 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.apache.spark.sql.functions.col;
+import static org.apache.spark.sql.functions.to_timestamp;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -123,6 +125,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .toDF();
   }
 
+  protected Dataset<Row> initialDataDatetime() {
+    Dataset<Row> df =
+        spark.createDataset(Arrays.asList("2014/01/01 23:00:01"), Encoders.STRING()).toDF();
+    return df.withColumn("value", to_timestamp(col("value"), "yyyy/MM/dd HH:mm:ss")).toDF();
+  }
+
   protected Dataset<Row> additonalData() {
     return spark
         .createDataset(
@@ -137,6 +145,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   protected int testTableNumberOfRows() throws InterruptedException {
     String query = String.format("select * from %s.%s", testDataset.toString(), testTable);
+    return (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
+  }
+
+  protected int testTableNumberOfRows(String tableName) throws InterruptedException {
+    String query = String.format("select * from %s.%s", testDataset.toString(), tableName);
     return (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
   }
 
@@ -289,6 +302,21 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .save(fullTableName());
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
+  }
+
+  @Test
+  public void testWriteToBigQuerySimplifiedApiDatetime() throws InterruptedException {
+
+    initialDataDatetime()
+        .write()
+        .mode(SaveMode.Overwrite)
+        .format("bigquery")
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .save(fullTableName());
+
+    assertThat(testTableNumberOfRows(fullTableName())).isEqualTo(2);
+    // assertThat(initialDataValuesExist()).isTrue();
   }
 
   @Test

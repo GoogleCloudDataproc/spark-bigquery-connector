@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import java.math.BigDecimal;
@@ -171,10 +172,16 @@ public class SchemaConverters {
     }
 
     if (LegacySQLTypeName.STRING.equals(bqField.getType())
-        || LegacySQLTypeName.DATETIME.equals(bqField.getType())
         || LegacySQLTypeName.GEOGRAPHY.equals(bqField.getType())
         || LegacySQLTypeName.JSON.equals(bqField.getType())) {
       return UTF8String.fromBytes(((Utf8) value).getBytes());
+    }
+
+    if (LegacySQLTypeName.DATETIME.equals(bqField.getType())) {
+      // should return converted value on zoneID specified
+      UTF8String datetime_val = UTF8String.fromBytes(((Utf8) value).getBytes());
+      return BigQueryUtil.convertUtcTimestampToTimeZone(
+          datetime_val.toString(), configuration.getDatetimeZoneId());
     }
 
     if (LegacySQLTypeName.BYTES.equals(bqField.getType())) {

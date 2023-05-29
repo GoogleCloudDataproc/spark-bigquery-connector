@@ -69,6 +69,32 @@ public class DataSourceV1WriteIntegrationTestBase extends WriteIntegrationTestBa
     IntegrationTestUtils.compareBigNumericDataSetSchema(df.schema(), allTypesTable.schema());
   }
 
+  // DSv2 does not support BigNumeric yet
+  @Test
+  public void testWriteAllDataTypesAvro() {
+
+    // temporarily skipping for v1, as "AVRO" write format is throwing error
+    // while writing to GCS
+    Dataset<Row> allTypesTable = readAllTypesTable();
+    writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro");
+
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .option("readDataFormat", "avro")
+            .load()
+            .cache();
+
+    IntegrationTestUtils.compareRows(df.head(), allTypesTable.head());
+
+    // read from cache
+    IntegrationTestUtils.compareRows(df.head(), allTypesTable.head());
+    IntegrationTestUtils.compareBigNumericDataSetSchema(df.schema(), allTypesTable.schema());
+  }
+
   // v2 does not support ORC
   @Test
   public void testWriteToBigQuery_OrcFormat() throws InterruptedException {

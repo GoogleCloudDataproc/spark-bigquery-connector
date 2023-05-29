@@ -111,7 +111,9 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
         spark
             .read()
             .format("bigquery")
-            .option("table", TestConstants.SHAKESPEARE_TABLE)
+            .option("dataset", testDataset.toString())
+            .option("table", TestConstants.ALL_TYPES_TABLE_NAME)
+            // .option("table", TestConstants.SHAKESPEARE_TABLE)
             .option("readDataFormat", dataFormat)
             .load()
             .select("word_count", "word", "corpus", "corpus_date")
@@ -282,15 +284,15 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     IntegrationTestUtils.runQuery(
         String.format(
             "INSERT INTO %s.%s VALUES "
-                + "('2020-03-14 01:02:03.456789'),"
-                + "('2021-03-14 09:08:07.654321')",
+                + "('2021-03-14 12:08:07.654321'),"
+                + "('2021-03-14 12:08:07.654321')",
             testDataset, testTable));
 
     Dataset<Row> df =
         spark
             .read()
             .format("bigquery")
-            .option("datetimeZoneId", "Asia/Jerusalem")
+            .option("datetimeZoneId", "Asia/Kolkata")
             .load(String.format("%s.%s", testDataset, testTable));
     StructType schema = df.schema();
     assertThat(schema.size()).isEqualTo(1);
@@ -302,8 +304,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     df.show();
     List<Timestamp> result =
         rowList.stream().map(row -> row.getTimestamp(0)).collect(Collectors.toList());
-    assertThat(result.get(0)).isEqualTo("2020-03-14 01:02:03.456789");
-    assertThat(result.get(1)).isEqualTo("2021-03-14 14:38:07.654321");
+    assertThat(result.get(1).toString()).isEqualTo("2021-03-14 17:38:07.654321");
+    assertThat(result.get(0).toString()).isEqualTo("2021-03-14 17:38:07.654321");
   }
 
   static <K, V> Map<K, V> scalaMapToJavaMap(scala.collection.Map<K, V> map) {

@@ -39,10 +39,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -459,6 +456,18 @@ public class BigQueryUtil {
     long epochMicros = timestamp % 1_000_000;
     Instant i = Instant.ofEpochSecond(epochSeconds, epochMicros * 1000);
     ZonedDateTime zonedDateTime = i.atZone(zone);
+    ZoneOffset offset = zonedDateTime.getOffset();
+    long timestampNew=zonedDateTime.toInstant().toEpochMilli();
+    long zoneSeconds=zonedDateTime.toEpochSecond();
+    return (epochSeconds + offset.getTotalSeconds()) * 1_000_000 + epochMicros;
+    // return (zonedDateTime.toEpochSecond()) * 1_000_000 + epochMicros;
+  }
+
+  public static long convertUtcTimestampToTimeZone(String dateTimeString, ZoneId zone) {
+    ZonedDateTime zonedDateTime = LocalDateTime.parse(dateTimeString).atZone(zone);
+    Instant instant = zonedDateTime.toInstant(); // Extracting the same moment but in UTC.
+    long epochSeconds = instant.getEpochSecond();
+    long epochMicros = instant.getEpochSecond() % 1_000_000;
     ZoneOffset offset = zonedDateTime.getOffset();
     return (epochSeconds + offset.getTotalSeconds()) * 1_000_000 + epochMicros;
   }
