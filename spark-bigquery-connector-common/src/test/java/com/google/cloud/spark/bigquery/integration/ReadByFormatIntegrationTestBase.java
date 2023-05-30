@@ -112,7 +112,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
             .read()
             .format("bigquery")
             .option("dataset", testDataset.toString())
-            .option("table", TestConstants.ALL_TYPES_TABLE_NAME)
+            .option("table", TestConstants.SHAKESPEARE_TABLE)
             // .option("table", TestConstants.SHAKESPEARE_TABLE)
             .option("readDataFormat", dataFormat)
             .load()
