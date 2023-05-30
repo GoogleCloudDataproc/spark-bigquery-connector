@@ -292,7 +292,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
         spark
             .read()
             .format("bigquery")
-            //   .option("datetimeZoneId", "UTC-05:30")
+            .option("datetimeZoneId", "UTC")
             .load(String.format("%s.%s", testDataset, testTable));
     StructType schema = df.schema();
     assertThat(schema.size()).isEqualTo(1);
