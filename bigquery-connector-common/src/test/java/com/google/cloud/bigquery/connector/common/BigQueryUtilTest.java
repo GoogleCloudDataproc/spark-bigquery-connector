@@ -36,10 +36,7 @@ import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.collect.ImmutableList;
 import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
@@ -501,10 +498,10 @@ public class BigQueryUtilTest {
   @Test
   public void testAdjustUTCTimeToLocalZoneTime() {
     String timestamp = "2020-04-02T17:15:23.123456"; // 1585847723123456L
+    TimeZone.setDefault(TimeZone.getTimeZone("Asia/Jerusalem")); // +03:00 offset
     long convertedTimestamp = BigQueryUtil.adjustUTCTimeToLocalZoneTime(timestamp);
     // Jerusalem in DST is GMT-3
-    long expectedTimestamp =
-        1585847723123456L - (5L * 60L * 60L + 30L * 60L) * 1_000_000L; // IST adjusted
+    long expectedTimestamp = 1585847723123456L - (3L * 60L * 60L) * 1_000_000L; // IST adjusted
     assertThat(convertedTimestamp).isEqualTo(expectedTimestamp);
   }
 
@@ -512,10 +509,10 @@ public class BigQueryUtilTest {
   public void testAdjustUTCTimeToLocalZoneTimeLong() {
     // String timestamp = "2020-04-02T17:15:23.123456"; // 1585847723123456L
     long timestamp = 1585847723123456L;
+    TimeZone.setDefault(TimeZone.getTimeZone("Asia/Jerusalem")); // +03:00 offset
     long convertedTimestamp = BigQueryUtil.adjustUTCTimeToLocalZoneTime(timestamp);
     // Jerusalem in DST is GMT-3
-    long expectedTimestamp =
-        1585847723123456L - (5L * 60L * 60L + 30L * 60L) * 1_000_000L; // IST adjusted
+    long expectedTimestamp = 1585847723123456L - (3L * 60L * 60L) * 1_000_000L; // IST adjusted
     assertThat(convertedTimestamp).isEqualTo(expectedTimestamp);
   }
 }
