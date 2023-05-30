@@ -180,8 +180,10 @@ public class SchemaConverters {
     if (LegacySQLTypeName.DATETIME.equals(bqField.getType())) {
       // should return converted value on zoneID specified
       UTF8String datetime_val = UTF8String.fromBytes(((Utf8) value).getBytes());
-      return BigQueryUtil.convertUtcTimestampToTimeZone(
-          datetime_val.toString(), configuration.getDatetimeZoneId());
+      // return datetime_val;
+      return BigQueryUtil.adjustUTCTimeToLocalZoneTime(
+          BigQueryUtil.convertUtcTimestampToTimeZone(
+              datetime_val.toString(), configuration.getDatetimeZoneId()));
     }
 
     if (LegacySQLTypeName.BYTES.equals(bqField.getType())) {

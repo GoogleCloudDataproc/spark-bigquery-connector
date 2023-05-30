@@ -473,10 +473,49 @@ public class BigQueryUtilTest {
   public void testConvertUtcTZTimestampToTimeZone_withDST() {
     String timestamp = "2020-04-02T17:15:23.123456"; // 1585847723123456L
     long convertedTimestamp =
-            BigQueryUtil.convertUtcTimestampToTimeZone(timestamp, ZoneId.of("Asia/Jerusalem"));
+        BigQueryUtil.convertUtcTimestampToTimeZone(timestamp, ZoneId.of("Asia/Jerusalem"));
     // Jerusalem in DST is GMT-3
     long expectedTimestamp = 1585847723123456L + 3L * 60L * 60L * 1_000_000L;
     assertThat(convertedTimestamp).isEqualTo(expectedTimestamp);
   }
 
+  @Test
+  public void testDoNotConvertUtcTZTimestampToTimeZone_withUTC() {
+    String timestamp = "2020-04-02T17:15:23.123456"; // 1585847723123456L
+    long convertedTimestamp =
+        BigQueryUtil.convertUtcTimestampToTimeZone(timestamp, ZoneId.of("UTC"));
+    long expectedTimestamp = 1585847723123456L;
+    assertThat(convertedTimestamp).isEqualTo(expectedTimestamp);
+  }
+
+  @Test
+  public void testConvertDoNotUtcTimestampToTimeZone_withUTC() {
+    long timestamp = 1585847723123456L; // 2020-04-02T17:15:23.123456
+    long convertedTimestamp =
+        BigQueryUtil.convertUtcTimestampToTimeZone(timestamp, ZoneId.of("UTC"));
+    // Jerusalem in DST is GMT-3
+    long expectedTimestamp = timestamp;
+    assertThat(convertedTimestamp).isEqualTo(expectedTimestamp);
+  }
+
+  @Test
+  public void testAdjustUTCTimeToLocalZoneTime() {
+    String timestamp = "2020-04-02T17:15:23.123456"; // 1585847723123456L
+    long convertedTimestamp = BigQueryUtil.adjustUTCTimeToLocalZoneTime(timestamp);
+    // Jerusalem in DST is GMT-3
+    long expectedTimestamp =
+        1585847723123456L - (5L * 60L * 60L + 30L * 60L) * 1_000_000L; // IST adjusted
+    assertThat(convertedTimestamp).isEqualTo(expectedTimestamp);
+  }
+
+  @Test
+  public void testAdjustUTCTimeToLocalZoneTimeLong() {
+    // String timestamp = "2020-04-02T17:15:23.123456"; // 1585847723123456L
+    long timestamp = 1585847723123456L;
+    long convertedTimestamp = BigQueryUtil.adjustUTCTimeToLocalZoneTime(timestamp);
+    // Jerusalem in DST is GMT-3
+    long expectedTimestamp =
+        1585847723123456L - (5L * 60L * 60L + 30L * 60L) * 1_000_000L; // IST adjusted
+    assertThat(convertedTimestamp).isEqualTo(expectedTimestamp);
+  }
 }

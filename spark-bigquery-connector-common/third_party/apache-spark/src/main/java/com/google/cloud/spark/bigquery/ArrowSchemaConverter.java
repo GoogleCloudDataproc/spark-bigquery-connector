@@ -502,7 +502,7 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
     @Override
     public final long getLong(int rowId) {
       long utcLong = vector.get(rowId);
-      long convertedUtcLong=BigQueryUtil.convertUtcTimestampToTimeZone(utcLong,schemaConvertersConfiguration.getDatetimeZoneId());
+      long convertedUtcLong=BigQueryUtil.adjustUTCTimeToLocalZoneTime(BigQueryUtil.convertUtcTimestampToTimeZone(utcLong,schemaConvertersConfiguration.getDatetimeZoneId()));
       return convertedUtcLong;
     }
 

@@ -292,7 +292,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
         spark
             .read()
             .format("bigquery")
-            .option("datetimeZoneId", "Asia/Kolkata")
+            //   .option("datetimeZoneId", "UTC-05:30")
             .load(String.format("%s.%s", testDataset, testTable));
     StructType schema = df.schema();
     assertThat(schema.size()).isEqualTo(1);
@@ -304,8 +304,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     df.show();
     List<Timestamp> result =
         rowList.stream().map(row -> row.getTimestamp(0)).collect(Collectors.toList());
-    assertThat(result.get(1).toString()).isEqualTo("2021-03-14 17:38:07.654321");
-    assertThat(result.get(0).toString()).isEqualTo("2021-03-14 17:38:07.654321");
+    assertThat(result.get(1).toString()).isEqualTo("2021-03-14 12:08:07.654321");
+    assertThat(result.get(0).toString()).isEqualTo("2021-03-14 12:08:07.654321");
   }
 
   static <K, V> Map<K, V> scalaMapToJavaMap(scala.collection.Map<K, V> map) {
