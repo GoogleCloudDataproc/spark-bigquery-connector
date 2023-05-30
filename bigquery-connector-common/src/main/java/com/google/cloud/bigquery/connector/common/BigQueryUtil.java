@@ -460,14 +460,13 @@ public class BigQueryUtil {
     long timestampNew=zonedDateTime.toInstant().toEpochMilli();
     long zoneSeconds=zonedDateTime.toEpochSecond();
     return (epochSeconds + offset.getTotalSeconds()) * 1_000_000 + epochMicros;
-    // return (zonedDateTime.toEpochSecond()) * 1_000_000 + epochMicros;
   }
 
   public static long convertUtcTimestampToTimeZone(String dateTimeString, ZoneId zone) {
-    ZonedDateTime zonedDateTime = LocalDateTime.parse(dateTimeString).atZone(zone);
-    Instant instant = zonedDateTime.toInstant(); // Extracting the same moment but in UTC.
-    long epochSeconds = instant.getEpochSecond();
-    long epochMicros = instant.getEpochSecond() % 1_000_000;
+    ZonedDateTime zonedDateTimeUTC = LocalDateTime.parse(dateTimeString).atZone(ZoneId.of("UTC"));
+    ZonedDateTime zonedDateTime = zonedDateTimeUTC.withZoneSameInstant(zone); // Extracting the same moment but in UTC.
+    long epochMicros=zonedDateTime.getNano()/1000;
+    long epochSeconds= zonedDateTime.toEpochSecond();
     ZoneOffset offset = zonedDateTime.getOffset();
     return (epochSeconds + offset.getTotalSeconds()) * 1_000_000 + epochMicros;
   }

@@ -468,4 +468,15 @@ public class BigQueryUtilTest {
     long expectedTimestamp = timestamp + 3L * 60L * 60L * 1_000_000L;
     assertThat(convertedTimestamp).isEqualTo(expectedTimestamp);
   }
+
+  @Test
+  public void testConvertUtcTZTimestampToTimeZone_withDST() {
+    String timestamp = "2020-04-02T17:15:23.123456"; // 1585847723123456L
+    long convertedTimestamp =
+            BigQueryUtil.convertUtcTimestampToTimeZone(timestamp, ZoneId.of("Asia/Jerusalem"));
+    // Jerusalem in DST is GMT-3
+    long expectedTimestamp = 1585847723123456L + 3L * 60L * 60L * 1_000_000L;
+    assertThat(convertedTimestamp).isEqualTo(expectedTimestamp);
+  }
+
 }
