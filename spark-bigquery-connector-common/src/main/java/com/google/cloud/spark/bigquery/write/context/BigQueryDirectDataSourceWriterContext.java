@@ -159,7 +159,10 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       return new BigQueryTable(
           bigQueryClient
               .createTable(
-                  destinationTableId, bigQuerySchema, destinationTableKmsKeyName.toJavaUtil())
+                  destinationTableId,
+                  bigQuerySchema,
+                  BigQueryClient.CreateTableOptions.of(
+                      destinationTableKmsKeyName.toJavaUtil(), tableLabels))
               .getTableId(),
           true);
     }

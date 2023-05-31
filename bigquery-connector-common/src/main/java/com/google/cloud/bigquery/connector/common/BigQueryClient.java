@@ -140,26 +140,29 @@ public class BigQueryClient {
    * @param tableId The TableId of the table to be created.
    * @param schema The Schema of the table to be created.
    * @return The {@code Table} object representing the table that was created.
+   *     <p>public TableInfo createTable(TableId tableId, Schema schema) { return
+   *     createTable(tableId, schema, Optional.empty()); }
    */
-  public TableInfo createTable(TableId tableId, Schema schema) {
-    return createTable(tableId, schema, Optional.empty());
-  }
 
   /**
    * Creates an empty table in BigQuery.
    *
    * @param tableId The TableId of the table to be created.
    * @param schema The Schema of the table to be created.
-   * @param destinationTableKmsKeyName The reference to the encryption key in KMS.
+   * @param options Allows configuring the created table
    * @return The {@code Table} object representing the table that was created.
    */
-  public TableInfo createTable(
-      TableId tableId, Schema schema, Optional<String> destinationTableKmsKeyName) {
+  public TableInfo createTable(TableId tableId, Schema schema, CreateTableOptions options) {
     TableInfo.Builder tableInfo = TableInfo.newBuilder(tableId, StandardTableDefinition.of(schema));
-    destinationTableKmsKeyName.ifPresent(
-        keyName ->
-            tableInfo.setEncryptionConfiguration(
-                EncryptionConfiguration.newBuilder().setKmsKeyName(keyName).build()));
+    options
+        .getKmsKeyName()
+        .ifPresent(
+            keyName ->
+                tableInfo.setEncryptionConfiguration(
+                    EncryptionConfiguration.newBuilder().setKmsKeyName(keyName).build()));
+    if (!options.getBigQueryTableLabels().isEmpty()) {
+      tableInfo.setLabels(options.getBigQueryTableLabels());
+    }
     return bigQuery.create(tableInfo.build());
   }
 
@@ -656,9 +659,10 @@ public class BigQueryClient {
   }
 
   /** Creates the table with the given schema, only if it does not exist yet. */
-  public void createTableIfNeeded(TableId tableId, Schema bigQuerySchema) {
+  public void createTableIfNeeded(
+      TableId tableId, Schema bigQuerySchema, CreateTableOptions options) {
     if (!tableExists(tableId)) {
-      createTable(tableId, bigQuerySchema);
+      createTable(tableId, bigQuerySchema, options);
     }
   }
 
@@ -700,6 +704,32 @@ public class BigQueryClient {
     boolean getEnableModeCheckForSchemaFields();
 
     Optional<String> getKmsKeyName();
+  }
+
+  public interface CreateTableOptions {
+
+    default Optional<String> getKmsKeyName() {
+      return Optional.empty();
+    }
+
+    default Map<String, String> getBigQueryTableLabels() {
+      return Collections.emptyMap();
+    }
+
+    static CreateTableOptions of(
+        final Optional<String> kmsKeyName, final Map<String, String> bigQueryTableLabels) {
+      return new CreateTableOptions() {
+        @Override
+        public Optional<String> getKmsKeyName() {
+          return kmsKeyName;
+        }
+
+        @Override
+        public Map<String, String> getBigQueryTableLabels() {
+          return bigQueryTableLabels;
+        }
+      };
+    }
   }
 
   static class DestinationTableBuilder implements Callable<TableInfo> {
