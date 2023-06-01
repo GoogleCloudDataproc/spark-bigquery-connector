@@ -57,12 +57,12 @@ The latest version of the connector is publicly available in the following links
 
 | version    | Link                                                                                                                                                                                                                   |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Spark 3.3  | `gs://spark-lib/bigquery/spark-3.3-bigquery-0.30.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.3-bigquery-0.30.0.jar))                                        |
-| Spark 3.2  | `gs://spark-lib/bigquery/spark-3.2-bigquery-0.30.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.2-bigquery-0.30.0.jar))                                        |
-| Spark 3.1  | `gs://spark-lib/bigquery/spark-3.1-bigquery-0.30.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.1-bigquery-0.30.0.jar))                                        |
-| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-0.30.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-0.30.0.jar))                                        |
-| Scala 2.13 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-0.30.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-0.30.0.jar)) |
-| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.30.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.30.0.jar)) |
+| Spark 3.3  | `gs://spark-lib/bigquery/spark-3.3-bigquery-0.31.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.3-bigquery-0.31.0.jar))                                        |
+| Spark 3.2  | `gs://spark-lib/bigquery/spark-3.2-bigquery-0.31.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.2-bigquery-0.31.0.jar))                                        |
+| Spark 3.1  | `gs://spark-lib/bigquery/spark-3.1-bigquery-0.31.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.1-bigquery-0.31.0.jar))                                        |
+| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-0.31.0.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-0.31.0.jar))                                        |
+| Scala 2.13 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-0.31.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-0.31.0.jar)) |
+| Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.31.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.31.0.jar)) |
 | Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar))                           |
 
 The first four versions are Java based connectors targeting Spark 2.4/3.1/3.2/3.3 of all Scala versions built on the new
@@ -101,12 +101,12 @@ repository. It can be used using the `--packages` option or the
 
 | version    | Connector Artifact                                                                 |
 |------------|------------------------------------------------------------------------------------|
-| Spark 3.3  | `com.google.cloud.spark:spark-3.3-bigquery:0.30.0`                    |
-| Spark 3.2  | `com.google.cloud.spark:spark-3.2-bigquery:0.30.0`                    |
-| Spark 3.1  | `com.google.cloud.spark:spark-3.1-bigquery:0.30.0`                    |
-| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:0.30.0`                    |
-| Scala 2.13 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:0.30.0` |
-| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.30.0` |
+| Spark 3.3  | `com.google.cloud.spark:spark-3.3-bigquery:0.31.0`                    |
+| Spark 3.2  | `com.google.cloud.spark:spark-3.2-bigquery:0.31.0`                    |
+| Spark 3.1  | `com.google.cloud.spark:spark-3.1-bigquery:0.31.0`                    |
+| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:0.31.0`                    |
+| Scala 2.13 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:0.31.0` |
+| Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.31.0` |
 | Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0`              |
 
 ## Hello World Example
@@ -117,7 +117,7 @@ You can run a simple PySpark wordcount against the API without compilation by ru
 
 ```
 gcloud dataproc jobs submit pyspark --cluster "$MY_CLUSTER" \
-  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.30.0.jar \
+  --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.31.0.jar \
   examples/python/shakespeare.py
 ```
 
@@ -639,6 +639,7 @@ The API Supports a number of options to configure the read
         <td>Adds the <a href="https://googleapis.dev/java/google-cloud-clients/latest/com/google/cloud/bigquery/JobInfo.SchemaUpdateOption.html#ALLOW_FIELD_ADDITION" target="_blank">ALLOW_FIELD_ADDITION</a>
             SchemaUpdateOption to the BigQuery LoadJob. Allowed values are <code>true</code> and <code>false</code>.
            <br/>(Optional. Default to <code>false</code>).
+           <br/><i>Supported only by the `INDIRECT` write method.</i>
         </td>
         <td>Write</td>
      </tr>
@@ -648,6 +649,7 @@ The API Supports a number of options to configure the read
         <td>Adds the <a href="https://googleapis.dev/java/google-cloud-clients/latest/com/google/cloud/bigquery/JobInfo.SchemaUpdateOption.html#ALLOW_FIELD_RELAXATION" target="_blank">ALLOW_FIELD_RELAXATION</a>
             SchemaUpdateOption to the BigQuery LoadJob. Allowed values are <code>true</code> and <code>false</code>.
            <br/>(Optional. Default to <code>false</code>).
+           <br/><i>Supported only by the `INDIRECT` write method.</i>
         </td>
         <td>Write</td>
      </tr>
@@ -746,6 +748,13 @@ The API Supports a number of options to configure the read
      </td>
      <td>Write</td>
    </tr>
+  <tr>
+    <td><code>bqChannelPoolSize</code></td>
+    <td>  The (fixed) size of the gRPC channel pool created by the BigQueryReadClient.
+        <br/>For optimal performance, this should be set to at least the number of cores on the cluster executors.
+    </td>
+    <td>Read</td>
+  </tr>
    <tr>
      <td><code>createReadSessionTimeoutInSeconds</code>
      </td>
@@ -781,6 +790,19 @@ The API Supports a number of options to configure the read
           <br/> (Optional. Defaults to <code>INTERACTIVE</code>)
      </td>
      <td>Read/Write</td>
+   </tr>
+  <tr>
+     <td><code>destinationTableKmsKeyName</code>
+     </td>
+     <td>Describes the Cloud KMS encryption key that will be used to protect destination BigQuery
+         table. The BigQuery Service Account associated with your project requires access to this
+         encryption key. for further Information about using CMEK with BigQuery see
+         [here](https://cloud.google.com/bigquery/docs/customer-managed-encryption#key_resource_id).
+         <br/><b>Notice:</b> The table will be encrypted by the key only if it created by the
+         connector. A pre-existing unencrypted table won't be encrypted just by setting this option.
+         <br/> (Optional)
+     </td>
+     <td>Write</td>
    </tr>
 </table>
 
@@ -835,17 +857,16 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    <td><strong><code>DecimalType</code></strong>
    </td>
    <td>
-     This preserves <code>NUMERIC</code>'s full 38 digits of precision and 9 digits of scope.
+     Please refer to <a href="#numeric-and-bignumeric-support">Numeric and BigNumeric support</a>
    </td>
   </tr>
   <tr valign="top">
      <td><strong><code>BIGNUMERIC</code></strong>
      </td>
-     <td><strong><code>BigNumericUDT (UserDefinedType)</code></strong>
+     <td><strong><code>DecimalType</code></strong>
      </td>
      <td>
-       Scala/Java: BigNumericUDT DataType internally uses java.math.BigDecimal to hold the BigNumeric data.
-       <p> Python: BigNumericUDT DataType internally used python's Decimal class to hold the BigNumeric data.
+       Please refer to <a href="#numeric-and-bignumeric-support">Numeric and BigNumeric support</a>
      </td>
     </tr>
   <tr valign="top">
@@ -955,100 +976,18 @@ the field's description which includes the spark type of the field.
 In order to write those types to BigQuery, use the ORC or Avro intermediate format, and have them as column of the
 Row (i.e. not a field in a struct).
 
-#### BigNumeric support
-BigQuery's BigNumeric has a precision of 76.76 (the 77th digit is partial) and scale of 38. Since this precision and
-scale is beyond spark's DecimalType (38 scale and 38 precision) support, the BigNumeric DataType is converted
-into spark's [UserDefinedType](https://spark.apache.org/docs/1.4.0/api/java/org/apache/spark/sql/types/UserDefinedType.html).
-The BigNumeric data can be accessed via BigNumericUDT DataType which internally uses
-[java.math.BigDecimal](https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html)
-to hold the BigNumeric data. The data can be read in either AVRO or ARROW formats.
+#### Numeric and BigNumeric support
+BigQuery's BigNumeric has a precision of 76.76 (the 77th digit is partial) and scale of 38. Since
+this precision and scale is beyond spark's DecimalType (38 scale and 38 precision) support, it means
+that BigNumeric fields with precision larger than 38 cannot be used. Once this Spark limitation will
+be updated the connector will be updated accordingly.
 
-In order to write BigNumericUDT to BigQuery, use either ORC or PARQUET intermediate formats (currently we do not support
-AVRO). Notice that the data gets written to BigQuery as String.
-
-Code examples:
-
-**Scala:**
-
-```
-import org.apache.spark.bigquery.BigNumeric
-
-val df = spark.read
-  .format("bigquery")
-  .load("PROJECT.DATASET.TABLE")
-
-val rows: Array[java.math.BigDecimal] = df
-  .collect()
-  .map(row => row.get("BIG_NUMERIC_COLUMN").asInstanceOf[BigNumeric].getNumber)
-
-rows.foreach(value => System.out.println("BigNumeric value  " + value.toPlainString))
-```
-
-**Python:** Spark's [UserDefinedType](https://spark.apache.org/docs/1.4.0/api/java/org/apache/spark/sql/types/UserDefinedType.html)
-needs a separate implementation for Python. Corresponding python class(s) should be provided as config params while
-creating the job or added during runtime. See examples below:
-
-1) Adding python files while launching pyspark
-```
-# use appropriate version for jar depending on the scala version
-pyspark --jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.30.0.jar
-  --py-files gs://spark-lib/bigquery/spark-bigquery-support-0.30.0.zip
-  --files gs://spark-lib/bigquery/spark-bigquery-support-0.30.0.zip
-```
-
-2) Adding python files in Jupyter Notebook
-```
-from pyspark.sql import SparkSession
-from pyspark import SparkFiles
-# use appropriate version for jar depending on the scala version
-spark = SparkSession.builder\
-  .appName('BigNumeric')\
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.30.0.jar')\
-  .config('spark.submit.pyFiles', 'gs://spark-lib/bigquery/spark-bigquery-support-0.30.0.zip')\
-  .config('spark.files', 'gs://spark-lib/bigquery/spark-bigquery-support-0.30.0.zip')\
-  .getOrCreate()
-
-# extract the spark-bigquery-support zip file
-import zipfile
-with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.30.0.zip")) as zf:
-  zf.extractall()
-```
-
-3) Adding Python files during runtime
-```
-# use appropriate version for jar depending on the scala version
-spark = SparkSession.builder\
-  .appName('BigNumeric')\
-  .config('spark.jars', 'gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.30.0.jar')\
-  .getOrCreate()
-
-spark.sparkContext.addPyFile("gs://spark-lib/bigquery/spark-bigquery-support-0.30.0.zip")
-```
-
-Usage Example:
-```
-df = spark.read.format("bigquery").load({project}.{dataset}.{table_name})
-data = df.select({big_numeric_column_name}).collect()
-
-for row in data:
-  bigNumeric = row[{big_numeric_column_name}]
-  # bigNumeric.number is instance of python's Decimal class
-  print(str(bigNumeric.number))
-```
-
-In case the above code throws ModuleNotFoundError, please add the following code
-before reading the BigNumeric data.
-
-```
-try:
-    import pkg_resources
-
-    pkg_resources.declare_namespace(__name__)
-except ImportError:
-    import pkgutil
-
-    __path__ = pkgutil.extend_path(__path__, __name__)
-```
+The Spark Decimal/BigQuery Numeric conversion tries to preserve the parameterization of the type, i.e
+`NUMERIC(10,2)` will be converted to `Decimal(10,2)` and vice versa. Notice however that there are
+cases where [the parameters are lost](https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#parameterized_data_types).
+This means that the parameters will be reverted to the defaults - NUMERIC (38,9) and BIGNUMERIC(76,38).
+This means that at the moment, BigNumeric read is supported only from a standard table, but not from
+BigQuery view or when [reading data from a BigQuery query](#reading-data-from-a-bigquery-query).
 
 ### Filtering
 
@@ -1130,7 +1069,7 @@ using the following code:
 ```python
 from pyspark.sql import SparkSession
 spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.30.0")
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.31.0")
   .getOrCreate()
 df = spark.read.format("bigquery")
   .load("dataset.table")
@@ -1139,7 +1078,7 @@ df = spark.read.format("bigquery")
 **Scala:**
 ```python
 val spark = SparkSession.builder
-.config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.30.0")
+.config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.31.0")
 .getOrCreate()
 val df = spark.read.format("bigquery")
 .load("dataset.table")
@@ -1147,7 +1086,7 @@ val df = spark.read.format("bigquery")
 
 In case Spark cluster is using Scala 2.12 (it's optional for Spark 2.4.x,
 mandatory in 3.0.x), then the relevant package is
-com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.30.0. In
+com.google.cloud.spark:spark-bigquery-with-dependencies_**2.12**:0.31.0. In
 order to know which Scala version is used, please run the following code:
 
 **Python:**
@@ -1171,14 +1110,14 @@ To include the connector in your project:
 <dependency>
   <groupId>com.google.cloud.spark</groupId>
   <artifactId>spark-bigquery-with-dependencies_${scala.version}</artifactId>
-  <version>0.30.0</version>
+  <version>0.31.0</version>
 </dependency>
 ```
 
 ### SBT
 
 ```sbt
-libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.30.0"
+libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "0.31.0"
 ```
 
 ## FAQ
@@ -1231,6 +1170,28 @@ spark.conf.set("gcpAccessTokenProvider", "com.example.ExampleAccessTokenProvider
 // Per read/Write
 spark.read.format("bigquery").option("gcpAccessTokenProvider", "com.example.ExampleAccessTokenProvider")
 ```
+* Service account impersonation can be configured for a specific username and a group name, or
+  for all users by default using below properties:
+
+  - `gcpImpersonationServiceAccountForUser_<USER_NAME>` (not set by default)
+
+    The service account impersonation for a specific user.
+
+  - `gcpImpersonationServiceAccountForGroup_<GROUP_NAME>` (not set by default)
+
+    The service account impersonation for a specific group.
+
+  - `gcpImpersonationServiceAccount` (not set by default)
+
+    Default service account impersonation for all users.
+
+  If any of the above properties are set then the service account specified will be impersonated by
+  generating a short-lived credentials when accessing BigQuery.
+
+  If more than one property is set then the service account associated with the username will take
+  precedence over the service account associated with the group name for a matching user and group,
+  which in turn will take precedence over default service account impersonation.
+
 * For a simpler application, where access token refresh is not required, another alternative is to pass the access token
   as the `gcpAccessToken` configuration option. You can get the access token by running
   `gcloud auth application-default print-access-token`.
