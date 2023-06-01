@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.31.0 - 2023-06-01
 
 * :warning: **Breaking Change** BigNumeric conversion has changed, and it is now converted to Spark's
