@@ -687,6 +687,27 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(tableDefinition.getClustering().getFields()).contains("platform");
   }
 
+  @Test
+  public void testWriteWithTableLabels() throws Exception {
+    Dataset<Row> df = initialData();
+    spark.conf().set("bigQueryTableLabel.foo", "bar");
+    df.write()
+        .format("bigquery")
+        .option("writeMethod", writeMethod.toString())
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .save();
+    spark.conf().unset("bigQueryTableLabel.foo");
+
+    Table table =
+        IntegrationTestUtils.getBigquery().getTable(TableId.of(testDataset.toString(), testTable));
+    assertThat(table).isNotNull();
+    Map<String, String> labels = table.getLabels();
+    assertThat(labels).isNotNull();
+    assertThat(labels).containsEntry("foo", "bar");
+  }
+
   protected Dataset<Row> overwriteSinglePartition(StructField dateField) {
     // create partitioned table
     String tableName = fullTableNamePartitioned() + "_" + id.getAndIncrement();

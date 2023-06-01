@@ -81,7 +81,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.threeten.bp.Duration;
 
 public class SparkBigQueryConfig
-    implements BigQueryConfig, BigQueryClient.LoadDataOptions, Serializable {
+    implements BigQueryConfig,
+        BigQueryClient.CreateTableOptions,
+        BigQueryClient.LoadDataOptions,
+        Serializable {
 
   public static final int MAX_TRACE_ID_LENGTH = 256;
   private static final ZoneId DEFAULT_DATETIME_ZONE_ID = ZoneId.of("UTC");
