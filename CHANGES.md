@@ -2,6 +2,8 @@
 
 ## Next
 
+* Issue #988: Read statistics are logged at TRACE level. Update the log4j configuration accordingly in order to log them.
+
 ## 0.31.0 - 2023-06-01
 
 * :warning: **Breaking Change** BigNumeric conversion has changed, and it is now converted to Spark's
