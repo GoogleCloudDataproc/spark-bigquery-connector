@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.31.1 - 2023-06-06
 
 * Issue #988: Read statistics are logged at TRACE level. Update the log4j configuration accordingly in order to log them.
 
