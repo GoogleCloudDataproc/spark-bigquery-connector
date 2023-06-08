@@ -1239,6 +1239,108 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(testTableNumberOfRows()).isEqualTo(3);
   }
 
+  @Test
+  public void allowFieldAdditionWithNestedColumns() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    StructType initialSchema =
+        structType(
+            StructField.apply("value", DataTypes.StringType, true, Metadata.empty()),
+            StructField.apply("ds", DataTypes.DateType, true, Metadata.empty()));
+    List<Row> rows =
+        Arrays.asList(
+            RowFactory.create("val1", Date.valueOf("2023-04-13")),
+            RowFactory.create("val2", Date.valueOf("2023-04-14")));
+    Dataset<Row> initialDF = spark.createDataFrame(rows, initialSchema);
+    // initial write
+    initialDF
+        .write()
+        .format("bigquery")
+        .mode(SaveMode.Overwrite)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("intermediateFormat", "avro")
+        .option("writeMethod", writeMethod.toString())
+        .save();
+    assertThat(testTableNumberOfRows()).isEqualTo(2);
+
+    StructType finalSchema =
+        structType(
+            StructField.apply("value", DataTypes.StringType, true, Metadata.empty()),
+            StructField.apply("ds", DataTypes.DateType, true, Metadata.empty()),
+            StructField.apply("bool_type", DataTypes.BooleanType, true, Metadata.empty()));
+    List<Row> finalRows =
+        Arrays.asList(
+            RowFactory.create("val3", Date.valueOf("2023-04-15"), true),
+            RowFactory.create("val4", Date.valueOf("2023-04-16"), false));
+    Dataset<Row> finalDF = spark.createDataFrame(finalRows, finalSchema);
+    finalDF
+        .write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .option("allowFieldAddition", "true")
+        .option("allowFieldRelaxation", "true")
+        .save();
+    assertThat(testTableNumberOfRows()).isEqualTo(4);
+
+    StructType schema3 =
+        structType(
+            StructField.apply("value", DataTypes.StringType, true, Metadata.empty()),
+            StructField.apply("ds", DataTypes.DateType, true, Metadata.empty()),
+            StructField.apply(
+                "nested_col",
+                structType(
+                    StructField.apply("sub_field1", DataTypes.StringType, true, Metadata.empty()),
+                    StructField.apply("sub_field2", DataTypes.StringType, true, Metadata.empty())),
+                true,
+                Metadata.empty()));
+    List<Row> data =
+        Arrays.asList(
+            RowFactory.create(
+                "val5", Date.valueOf("2023-04-15"), RowFactory.create("str1", "str2")),
+            RowFactory.create(
+                "val6", Date.valueOf("2023-04-16"), RowFactory.create("str1", "str2")));
+    Dataset<Row> dataframe3 = spark.createDataFrame(data, schema3);
+
+    dataframe3
+        .write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .option("allowFieldAddition", "true")
+        .option("allowFieldRelaxation", "true")
+        .save();
+
+    Dataset<Row> resultDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    List<Row> result = resultDF.collectAsList();
+    assertThat(result).hasSize(6);
+    assertThat(result.stream().filter(row -> row.getAs("nested_col") == null).count()).isEqualTo(4);
+    assertThat(result.stream().filter(row -> row.getAs("bool_type") == null).count()).isEqualTo(4);
+    assertThat(
+            result.stream()
+                .filter(row -> row.getAs("bool_type") != null && row.getAs("nested_col") == null)
+                .count())
+        .isEqualTo(2);
+    assertThat(
+            result.stream()
+                .filter(row -> row.getAs("bool_type") == null && row.getAs("nested_col") != null)
+                .count())
+        .isEqualTo(2);
+  }
+
   protected long numberOfRowsWith(String name) {
     try {
       return bq.query(

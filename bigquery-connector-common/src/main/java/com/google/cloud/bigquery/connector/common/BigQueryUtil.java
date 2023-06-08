@@ -566,12 +566,14 @@ public class BigQueryUtil {
   @VisibleForTesting
   static Field adjustField(Field field, @Nullable Field existingField) {
     if (field.getType().equals(LegacySQLTypeName.NUMERIC)
+        && existingField != null
         && existingField.getType().equals(LegacySQLTypeName.BIGNUMERIC)) {
       // convert type
       return field.toBuilder().setType(LegacySQLTypeName.BIGNUMERIC).build();
     }
     if (field.getType().equals(LegacySQLTypeName.RECORD)
-        && field.getType().equals(LegacySQLTypeName.RECORD)) {
+        && existingField != null
+        && existingField.getType().equals(LegacySQLTypeName.RECORD)) {
       // need to go recursively
       FieldList subFields = field.getSubFields();
       FieldList exitingSubFields = existingField.getSubFields();

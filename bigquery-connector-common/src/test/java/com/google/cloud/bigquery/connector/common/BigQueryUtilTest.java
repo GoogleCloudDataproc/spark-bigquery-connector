@@ -622,4 +622,20 @@ public class BigQueryUtilTest {
     assertThat(adjustedField.getSubFields().get(0).getType())
         .isEqualTo(LegacySQLTypeName.BIGNUMERIC);
   }
+
+  @Test
+  public void testAdjustField_nullExistingField() {
+    Field field = Field.of("f", LegacySQLTypeName.BOOLEAN);
+    Field adjustedField = BigQueryUtil.adjustField(field, null);
+    assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.BOOLEAN);
+  }
+
+  @Test
+  public void testAdjustField_nullExistingFieldWithRecordType() {
+    Field field =
+        Field.of(
+            "record", LegacySQLTypeName.RECORD, Field.of("subfield", LegacySQLTypeName.NUMERIC));
+    Field adjustedField = BigQueryUtil.adjustField(field, null);
+    assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.RECORD);
+  }
 }
