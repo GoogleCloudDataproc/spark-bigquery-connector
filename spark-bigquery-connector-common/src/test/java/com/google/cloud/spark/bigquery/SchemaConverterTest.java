@@ -130,6 +130,21 @@ public class SchemaConverterTest {
     assertThat(result).isEqualTo(BIG_BIGQUERY_SCHEMA2_WITH_PSEUDO_COLUMNS);
   }
 
+  @Test
+  public void testGetSchemaWithPseudoColumnsOfNoneDailyPartitioning() throws Exception {
+    Schema result =
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .getSchemaWithPseudoColumns(
+                buildTableInfo(
+                    BIG_BIGQUERY_SCHEMA2, TimePartitioning.of(TimePartitioning.Type.HOUR)));
+    Schema bigSchema2withJustPartitionTimePseudoColumn =
+        Schema.of(
+            BIG_BIGQUERY_SCHEMA2_WITH_PSEUDO_COLUMNS.getFields().stream()
+                .filter(field -> !field.getName().equals("_PARTITIONDATE"))
+                .toArray(Field[]::new));
+    assertThat(result).isEqualTo(bigSchema2withJustPartitionTimePseudoColumn);
+  }
+
   public TableInfo buildTableInfo(Schema schema, TimePartitioning timePartitioning) {
     return TableInfo.of(
         TableId.of("project", "dataset", "table"),
