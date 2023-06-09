@@ -230,7 +230,19 @@ public class SchemaConverterTest {
                     new MetadataBuilder().putString("description", description).build()),
                 0);
 
-    assertThat(result.getDescription().equals(description));
+    assertThat(result.getDescription()).isEqualTo(description);
+  }
+
+  @Test
+  public void testCommentConversion() throws Exception {
+    StructField field =
+        StructField.apply(
+            "foo",
+            DataTypes.StringType,
+            true,
+            new MetadataBuilder().putString("comment", "bar").build());
+    Optional<String> convertedComment = SchemaConverters.getDescriptionOrCommentOfField(field);
+    assertThat(convertedComment).isEqualTo(Optional.of("bar"));
   }
 
   @Test
