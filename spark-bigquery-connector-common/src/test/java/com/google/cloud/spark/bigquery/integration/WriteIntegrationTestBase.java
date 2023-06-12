@@ -1306,7 +1306,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(result.stream().filter(row -> row.getAs("nested_col") == null).count()).isEqualTo(2);
     assertThat(
             result.stream()
-                .filter(row -> row.getAs("nested_col") != null && row.getAs("nested_col").equals(RowFactory.create("str1", "str2")))
+                .filter(
+                    row ->
+                        row.getAs("nested_col") != null
+                            && row.getAs("nested_col").equals(RowFactory.create("str1", "str2")))
                 .count())
         .isEqualTo(2);
   }
