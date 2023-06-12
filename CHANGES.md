@@ -4,6 +4,7 @@
 
 ## 0.31.1 - 2023-06-06
 
+* Issue #748: `_PARTITIONDATE` pseudo column is provided only for ingestion time **daily** partitioned tables
 * Issue #988: Read statistics are logged at TRACE level. Update the log4j configuration accordingly in order to log them.
 
 ## 0.31.0 - 2023-06-01

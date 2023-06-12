@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.TimePartitioning.Type;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -40,6 +41,7 @@ import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
+import scala.annotation.meta.field;
 
 public class SchemaConverters {
 
@@ -93,10 +95,13 @@ public class SchemaConverters {
           createBigQueryFieldBuilder(
                   "_PARTITIONTIME", LegacySQLTypeName.TIMESTAMP, Field.Mode.NULLABLE, null)
               .build());
-      fields.add(
-          createBigQueryFieldBuilder(
-                  "_PARTITIONDATE", LegacySQLTypeName.DATE, Field.Mode.NULLABLE, null)
-              .build());
+      // Issue #748: _PARTITIONDATE exists only when partition type is day (not hour/month/year)
+      if (timePartitioning.getType().equals(Type.DAY)) {
+        fields.add(
+            createBigQueryFieldBuilder(
+                    "_PARTITIONDATE", LegacySQLTypeName.DATE, Field.Mode.NULLABLE, null)
+                .build());
+      }
       schema = Schema.of(fields);
     }
     return schema;
