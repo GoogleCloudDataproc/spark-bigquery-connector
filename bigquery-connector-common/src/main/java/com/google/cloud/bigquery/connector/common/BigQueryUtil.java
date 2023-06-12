@@ -577,10 +577,14 @@ public class BigQueryUtil {
       // need to go recursively
       FieldList subFields = field.getSubFields();
       FieldList exitingSubFields = existingField.getSubFields();
+      Map<String, Field> existingSubFieldsMap =
+          exitingSubFields.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
       FieldList adjustedSubFields =
           FieldList.of(
               subFields.stream()
-                  .map(subField -> adjustField(subField, exitingSubFields.get(subField.getName())))
+                  .map(
+                      subField ->
+                          adjustField(subField, existingSubFieldsMap.get(subField.getName())))
                   .collect(Collectors.toList()));
       return field.toBuilder().setType(LegacySQLTypeName.RECORD, adjustedSubFields).build();
     }

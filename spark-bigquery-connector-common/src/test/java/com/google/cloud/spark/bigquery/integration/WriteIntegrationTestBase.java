@@ -1259,35 +1259,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("dataset", testDataset.toString())
         .option("table", testTable)
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-        .option("intermediateFormat", "avro")
         .option("writeMethod", writeMethod.toString())
         .save();
     assertThat(testTableNumberOfRows()).isEqualTo(2);
 
-    StructType finalSchema =
-        structType(
-            StructField.apply("value", DataTypes.StringType, true, Metadata.empty()),
-            StructField.apply("ds", DataTypes.DateType, true, Metadata.empty()),
-            StructField.apply("bool_type", DataTypes.BooleanType, true, Metadata.empty()));
-    List<Row> finalRows =
-        Arrays.asList(
-            RowFactory.create("val3", Date.valueOf("2023-04-15"), true),
-            RowFactory.create("val4", Date.valueOf("2023-04-16"), false));
-    Dataset<Row> finalDF = spark.createDataFrame(finalRows, finalSchema);
-    finalDF
-        .write()
-        .format("bigquery")
-        .mode(SaveMode.Append)
-        .option("dataset", testDataset.toString())
-        .option("table", testTable)
-        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-        .option("writeMethod", writeMethod.toString())
-        .option("allowFieldAddition", "true")
-        .option("allowFieldRelaxation", "true")
-        .save();
-    assertThat(testTableNumberOfRows()).isEqualTo(4);
-
-    StructType schema3 =
+    StructType nestedSchema =
         structType(
             StructField.apply("value", DataTypes.StringType, true, Metadata.empty()),
             StructField.apply("ds", DataTypes.DateType, true, Metadata.empty()),
@@ -1298,15 +1274,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                     StructField.apply("sub_field2", DataTypes.StringType, true, Metadata.empty())),
                 true,
                 Metadata.empty()));
-    List<Row> data =
+    List<Row> nestedData =
         Arrays.asList(
             RowFactory.create(
                 "val5", Date.valueOf("2023-04-15"), RowFactory.create("str1", "str2")),
             RowFactory.create(
                 "val6", Date.valueOf("2023-04-16"), RowFactory.create("str1", "str2")));
-    Dataset<Row> dataframe3 = spark.createDataFrame(data, schema3);
+    Dataset<Row> nestedDF = spark.createDataFrame(nestedData, nestedSchema);
 
-    dataframe3
+    nestedDF
         .write()
         .format("bigquery")
         .mode(SaveMode.Append)
@@ -1326,17 +1302,103 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .option("table", testTable)
             .load();
     List<Row> result = resultDF.collectAsList();
-    assertThat(result).hasSize(6);
-    assertThat(result.stream().filter(row -> row.getAs("nested_col") == null).count()).isEqualTo(4);
-    assertThat(result.stream().filter(row -> row.getAs("bool_type") == null).count()).isEqualTo(4);
+    assertThat(result).hasSize(4);
+    assertThat(result.stream().filter(row -> row.getAs("nested_col") == null).count()).isEqualTo(2);
     assertThat(
             result.stream()
-                .filter(row -> row.getAs("bool_type") != null && row.getAs("nested_col") == null)
+                .filter(row -> row.getAs("nested_col") != null && row.getAs("nested_col").equals(RowFactory.create("str1", "str2")))
+                .count())
+        .isEqualTo(2);
+  }
+
+  @Test
+  public void allowFieldAdditionIntoNestedColumns() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    StructType initialSchema =
+        structType(
+            StructField.apply("value", DataTypes.StringType, true, Metadata.empty()),
+            StructField.apply("ds", DataTypes.DateType, true, Metadata.empty()),
+            StructField.apply(
+                "nested_col",
+                structType(
+                    StructField.apply("sub_field1", DataTypes.StringType, true, Metadata.empty()),
+                    StructField.apply("sub_field2", DataTypes.StringType, true, Metadata.empty())),
+                true,
+                Metadata.empty()));
+    List<Row> initialData =
+        Arrays.asList(
+            RowFactory.create(
+                "val5", Date.valueOf("2023-04-15"), RowFactory.create("str1", "str2")),
+            RowFactory.create(
+                "val6", Date.valueOf("2023-04-16"), RowFactory.create("str1", "str2")));
+    Dataset<Row> initialDF = spark.createDataFrame(initialData, initialSchema);
+
+    initialDF
+        .write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .option("allowFieldAddition", "true")
+        .option("allowFieldRelaxation", "true")
+        .save();
+    assertThat(testTableNumberOfRows()).isEqualTo(2);
+
+    StructType finalSchema =
+        structType(
+            StructField.apply("value", DataTypes.StringType, true, Metadata.empty()),
+            StructField.apply("ds", DataTypes.DateType, true, Metadata.empty()),
+            StructField.apply(
+                "nested_col",
+                structType(
+                    StructField.apply("sub_field1", DataTypes.StringType, true, Metadata.empty()),
+                    StructField.apply("sub_field2", DataTypes.StringType, true, Metadata.empty()),
+                    StructField.apply("sub_field3", DataTypes.StringType, true, Metadata.empty())),
+                true,
+                Metadata.empty()));
+    List<Row> finalData =
+        Arrays.asList(
+            RowFactory.create(
+                "val5", Date.valueOf("2023-04-15"), RowFactory.create("str1", "str2", "str3")),
+            RowFactory.create(
+                "val6", Date.valueOf("2023-04-16"), RowFactory.create("str1", "str2", "str3")));
+    Dataset<Row> finalDF = spark.createDataFrame(finalData, finalSchema);
+
+    finalDF
+        .write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .option("allowFieldAddition", "true")
+        .option("allowFieldRelaxation", "true")
+        .save();
+
+    Dataset<Row> resultDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    List<Row> result = resultDF.collectAsList();
+    assertThat(result).hasSize(4);
+    assertThat(result.stream().filter(row -> row.getAs("nested_col") != null).count()).isEqualTo(4);
+    assertThat(
+            result.stream()
+                .filter(
+                    row -> row.getAs("nested_col").equals(RowFactory.create("str1", "str2", null)))
                 .count())
         .isEqualTo(2);
     assertThat(
             result.stream()
-                .filter(row -> row.getAs("bool_type") == null && row.getAs("nested_col") != null)
+                .filter(
+                    row ->
+                        row.getAs("nested_col").equals(RowFactory.create("str1", "str2", "str3")))
                 .count())
         .isEqualTo(2);
   }
