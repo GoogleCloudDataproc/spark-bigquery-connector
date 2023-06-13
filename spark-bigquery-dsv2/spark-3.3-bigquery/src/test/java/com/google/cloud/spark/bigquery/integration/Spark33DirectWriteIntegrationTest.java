@@ -15,7 +15,18 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import java.util.Arrays;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+import org.junit.Test;
 
 public class Spark33DirectWriteIntegrationTest extends WriteIntegrationTestBase {
 
@@ -24,4 +35,27 @@ public class Spark33DirectWriteIntegrationTest extends WriteIntegrationTestBase 
   }
 
   // tests from superclass
+  @Test
+  public void testPartitionBy() throws Exception {
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create(java.sql.Date.valueOf("2020-01-01"), 1),
+                RowFactory.create(java.sql.Date.valueOf("2020-01-02"), 2),
+                RowFactory.create(java.sql.Date.valueOf("2020-01-03"), 3)),
+            new StructType(
+                new StructField[] {
+                  StructField.apply("d", DataTypes.DateType, true, Metadata.empty()),
+                  StructField.apply("n", DataTypes.IntegerType, true, Metadata.empty())
+                }));
+
+    df.write()
+        .format("bigquery")
+        .option("table", fullTableName())
+        .option("writeMethod", writeMethod.toString())
+        .partitionBy("d")
+        .save();
+    Dataset<Row> resultDF = spark.read().format("bigquery").load(fullTableName());
+    assertThat(resultDF.count()).isEqualTo(3);
+  }
 }

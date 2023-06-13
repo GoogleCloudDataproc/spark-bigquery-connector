@@ -21,14 +21,20 @@ import java.util.Optional;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.connector.write.BatchWrite;
 import org.apache.spark.sql.connector.write.LogicalWriteInfo;
+import org.apache.spark.sql.connector.write.SupportsDynamicOverwrite;
 import org.apache.spark.sql.connector.write.SupportsOverwrite;
+import org.apache.spark.sql.connector.write.V1WriteBuilder;
 import org.apache.spark.sql.connector.write.WriteBuilder;
 import org.apache.spark.sql.sources.Filter;
+import org.apache.spark.sql.sources.InsertableRelation;
 
-public class BigQueryWriteBuilder implements WriteBuilder, SupportsOverwrite {
+public class BigQueryWriteBuilder implements WriteBuilder, SupportsOverwrite,
+    SupportsDynamicOverwrite, V1WriteBuilder {
   private Injector injector;
   private LogicalWriteInfo info;
   private SaveMode mode;
+
+  private boolean overwriteDynamicPartitions = false;
 
   public BigQueryWriteBuilder(Injector injector, LogicalWriteInfo info, SaveMode mode) {
     this.injector = injector;
@@ -52,5 +58,16 @@ public class BigQueryWriteBuilder implements WriteBuilder, SupportsOverwrite {
   @Override
   public WriteBuilder truncate() {
     return new BigQueryWriteBuilder(injector, info, SaveMode.Overwrite);
+  }
+
+  @Override
+  public WriteBuilder overwriteDynamicPartitions() {
+    this.overwriteDynamicPartitions = true;
+    return this;
+  }
+
+  @Override
+  public InsertableRelation buildForV1Write() {
+    return null;
   }
 }

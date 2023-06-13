@@ -32,6 +32,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.sources.BaseRelation;
+import org.apache.spark.sql.types.StructType;
 
 public class CreatableRelationProviderHelper {
 
@@ -92,7 +93,7 @@ public class CreatableRelationProviderHelper {
             .withTableIsMandatory(true)
             .build();
 
-    return createBigQueryInsertableRelationInternal(sqlContext, data, saveMode, injector);
+    return createBigQueryInsertableRelationInternal(sqlContext, data.schema(), saveMode, injector);
   }
 
   public BigQueryInsertableRelationBase createBigQueryInsertableRelation(
@@ -106,11 +107,11 @@ public class CreatableRelationProviderHelper {
             .withTableIsMandatory(true)
             .build();
 
-    return createBigQueryInsertableRelationInternal(sqlContext, data, saveMode, injector);
+    return createBigQueryInsertableRelationInternal(sqlContext, data.schema(), saveMode, injector);
   }
 
   private BigQueryInsertableRelationBase createBigQueryInsertableRelationInternal(
-      SQLContext sqlContext, Dataset<Row> data, SaveMode saveMode, Injector injector) {
+      SQLContext sqlContext, StructType schema, SaveMode saveMode, Injector injector) {
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
 
@@ -122,7 +123,7 @@ public class CreatableRelationProviderHelper {
     Injector writerInjector =
         injector.createChildInjector(
             new BigQueryDataSourceWriterModule(
-                config, UUID.randomUUID().toString(), data.schema(), saveMode));
+                config, UUID.randomUUID().toString(), schema, saveMode));
     return new BigQueryDataSourceWriterInsertableRelation(
         bigQueryClient, sqlContext, config, writerInjector);
   }
