@@ -153,7 +153,7 @@ public class ParallelArrowReaderTest {
               ImmutableList.of(r1),
               executor,
               new VectorLoader(root),
-              new LoggingBigQueryStorageReadRowsTracer("stream_name", 2));
+              new LoggingBigQueryStorageReadRowsTracer("stream_name", 2, null));
       IOException e = Assert.assertThrows(IOException.class, reader::next);
       assertThat(e).isSameInstanceAs(exception);
     }
@@ -183,7 +183,7 @@ public class ParallelArrowReaderTest {
               ImmutableList.of(r1, r2),
               executor,
               loader,
-              new LoggingBigQueryStorageReadRowsTracer("stream_name", 2));
+              new LoggingBigQueryStorageReadRowsTracer("stream_name", 2, null));
 
       ExecutorService oneOff = Executors.newSingleThreadExecutor();
       Instant start = Instant.now();
