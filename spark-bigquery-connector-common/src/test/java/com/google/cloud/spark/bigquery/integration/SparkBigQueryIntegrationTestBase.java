@@ -47,9 +47,6 @@ public class SparkBigQueryIntegrationTestBase {
               .master("local")
               .config("spark.ui.enabled", "false")
               .config("spark.default.parallelism", 20)
-              .config(
-                  "spark.metrics.conf.*.sink.console.class",
-                  "org.apache.spark.metrics.sink.ConsoleSink")
               .getOrCreate();
       // reducing test's logs
       spark.sparkContext().setLogLevel("WARN");
