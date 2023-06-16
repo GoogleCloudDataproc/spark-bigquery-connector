@@ -183,7 +183,8 @@ public class ParallelArrowReaderTest {
               ImmutableList.of(r1, r2),
               executor,
               loader,
-              new LoggingBigQueryStorageReadRowsTracer("stream_name", 2, null));
+              new LoggingBigQueryStorageReadRowsTracer(
+                  "stream_name", 2, mock(BigQueryMetrics.class)));
 
       ExecutorService oneOff = Executors.newSingleThreadExecutor();
       Instant start = Instant.now();

@@ -134,7 +134,9 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
     jsonObject.addProperty("Rows", rows);
     jsonObject.addProperty("I/O time", serviceTime.getAccumulatedTime().toMillis());
     log.info("Tracer Logs:{}", new Gson().toJson(jsonObject));
-    bigQueryMetrics.setBytesRead(bytes);
+    bigQueryMetrics.incrementBytesReadCounter(bytes);
+    bigQueryMetrics.incrementRowsReadCounter(rows);
+    bigQueryMetrics.incrementScanTimeCounter(serviceTime.getAccumulatedTime().toMillis());
     linesLogged++;
   }
 

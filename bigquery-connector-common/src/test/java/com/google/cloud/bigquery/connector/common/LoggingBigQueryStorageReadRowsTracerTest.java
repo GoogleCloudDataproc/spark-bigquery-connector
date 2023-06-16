@@ -16,6 +16,7 @@
 package com.google.cloud.bigquery.connector.common;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.time.Instant;
 import org.junit.Before;
@@ -28,7 +29,8 @@ public class LoggingBigQueryStorageReadRowsTracerTest {
   @Before
   public void setup() {
     loggingTracer =
-        new LoggingBigQueryStorageReadRowsTracer("streamName", /*powerOfTwoLogging*/ 3, null);
+        new LoggingBigQueryStorageReadRowsTracer(
+            "streamName", /*powerOfTwoLogging*/ 3, mock(BigQueryMetrics.class));
     tracer = loggingTracer;
   }
 
