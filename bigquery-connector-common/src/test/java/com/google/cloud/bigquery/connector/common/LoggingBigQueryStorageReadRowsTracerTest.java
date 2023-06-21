@@ -16,6 +16,7 @@
 package com.google.cloud.bigquery.connector.common;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.time.Instant;
 import org.junit.Before;
@@ -27,7 +28,9 @@ public class LoggingBigQueryStorageReadRowsTracerTest {
 
   @Before
   public void setup() {
-    loggingTracer = new LoggingBigQueryStorageReadRowsTracer("streamName", /*powerOfTwoLogging*/ 3);
+    loggingTracer =
+        new LoggingBigQueryStorageReadRowsTracer(
+            "streamName", /*powerOfTwoLogging*/ 3, mock(BigQueryMetrics.class));
     tracer = loggingTracer;
   }
 
@@ -107,7 +110,8 @@ public class LoggingBigQueryStorageReadRowsTracerTest {
 
   @Test
   public void testForkWithPrefix() {
-    loggingTracer = new LoggingBigQueryStorageReadRowsTracer("streamName", /*powerOfTwoLogging*/ 3);
+    loggingTracer =
+        new LoggingBigQueryStorageReadRowsTracer("streamName", /*powerOfTwoLogging*/ 3, null);
     LoggingBigQueryStorageReadRowsTracer newTracer =
         (LoggingBigQueryStorageReadRowsTracer) tracer.forkWithPrefix("newPrefix");
     assertThat(newTracer.getStreamName()).isEqualTo("id-newPrefix-streamName");

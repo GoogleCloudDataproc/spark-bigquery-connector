@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.spark.bigquery.metrics.SparkMetricsSource;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
@@ -32,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.spark.SparkEnv;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 
@@ -64,8 +66,10 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
   }
 
   public InputPartitionReaderContext<ColumnarBatch> createPartitionReaderContext() {
+    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource();
+    SparkEnv.get().metricsSystem().registerSource(sparkMetricsSource);
     BigQueryStorageReadRowsTracer tracer =
-        tracerFactory.newReadRowsTracer(Joiner.on(",").join(streamNames));
+        tracerFactory.newReadRowsTracer(Joiner.on(",").join(streamNames), sparkMetricsSource);
     List<ReadRowsRequest.Builder> readRowsRequests =
         streamNames.stream()
             .map(name -> ReadRowsRequest.newBuilder().setReadStream(name))
