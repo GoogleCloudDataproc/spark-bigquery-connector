@@ -4,21 +4,27 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.cloud.bigquery.connector.common.BigQueryMetrics;
-import java.io.*;
+import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 import org.apache.spark.metrics.source.Source;
 
-public class SparkMetricsSource implements Source, Externalizable, BigQueryMetrics {
+public class SparkMetricsSource implements Source, Serializable, BigQueryMetrics {
   private transient MetricRegistry registry;
+  private transient Timer parseTime;
+  private transient Timer timeInSpark;
   private transient Counter bytesRead;
   private transient Counter rowsRead;
   private transient Timer scanTime;
 
   public SparkMetricsSource() {
     registry = new MetricRegistry();
+    parseTime = new Timer();
+    timeInSpark = new Timer();
     bytesRead = new Counter();
     rowsRead = new Counter();
     scanTime = new Timer();
+    registry.register("parseTime", parseTime);
+    registry.register("timeInSpark", timeInSpark);
     registry.register("bytesRead", bytesRead);
     registry.register("rowsRead", rowsRead);
     registry.register("scanTime", scanTime);
@@ -35,6 +41,16 @@ public class SparkMetricsSource implements Source, Externalizable, BigQueryMetri
   }
 
   @Override
+  public void updateParseTime(long val) {
+    parseTime.update(val, TimeUnit.MILLISECONDS);
+  }
+
+  @Override
+  public void updateTimeInSpark(long val) {
+    timeInSpark.update(val, TimeUnit.MILLISECONDS);
+  }
+
+  @Override
   public void incrementBytesReadCounter(long val) {
     bytesRead.inc(val);
   }
@@ -45,13 +61,27 @@ public class SparkMetricsSource implements Source, Externalizable, BigQueryMetri
   }
 
   @Override
-  public void incrementScanTimeCounter(long val) {
+  public void updateScanTime(long val) {
     scanTime.update(val, TimeUnit.MILLISECONDS);
   }
 
-  @Override
-  public void writeExternal(ObjectOutput out) throws IOException {}
+  public Timer getParseTime() {
+    return this.parseTime;
+  }
 
-  @Override
-  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {}
+  public Timer getTimeInSpark() {
+    return this.timeInSpark;
+  }
+
+  public Timer getScanTime() {
+    return this.scanTime;
+  }
+
+  public Counter getBytesRead() {
+    return this.bytesRead;
+  }
+
+  public Counter getRowsRead() {
+    return this.rowsRead;
+  }
 }

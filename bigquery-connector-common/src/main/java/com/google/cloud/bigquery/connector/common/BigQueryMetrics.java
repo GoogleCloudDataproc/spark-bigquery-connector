@@ -5,5 +5,9 @@ public interface BigQueryMetrics {
 
   void incrementRowsReadCounter(long val);
 
-  void incrementScanTimeCounter(long val);
+  void updateScanTime(long val);
+
+  void updateParseTime(long val);
+
+  void updateTimeInSpark(long val);
 }
