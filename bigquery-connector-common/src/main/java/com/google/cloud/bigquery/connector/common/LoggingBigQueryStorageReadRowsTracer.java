@@ -42,10 +42,13 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
   long bytes = 0;
   // For confirming data is logged.
   long linesLogged = 0;
+  BigQueryMetrics bigQueryMetrics;
 
-  LoggingBigQueryStorageReadRowsTracer(String streamName, int logIntervalPowerOf2) {
+  LoggingBigQueryStorageReadRowsTracer(
+      String streamName, int logIntervalPowerOf2, BigQueryMetrics bigQueryMetrics) {
     this.streamName = streamName;
     this.logIntervalPowerOf2 = logIntervalPowerOf2;
+    this.bigQueryMetrics = bigQueryMetrics;
   }
 
   @Override
@@ -131,6 +134,12 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
     jsonObject.addProperty("Rows", rows);
     jsonObject.addProperty("I/O time", serviceTime.getAccumulatedTime().toMillis());
     log.trace("Tracer Logs:{}", new Gson().toJson(jsonObject));
+    bigQueryMetrics.incrementBytesReadCounter(bytes);
+    bigQueryMetrics.incrementRowsReadCounter(rows);
+    bigQueryMetrics.updateScanTime(serviceTime.getAccumulatedTime().toMillis());
+    bigQueryMetrics.updateParseTime(parseTime.getAccumulatedTime().toMillis());
+    bigQueryMetrics.updateTimeInSpark(
+        sparkTime.getAccumulatedTime().minus(parseTime.getAccumulatedTime()).toMillis());
     linesLogged++;
   }
 
@@ -145,7 +154,7 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
   @Override
   public BigQueryStorageReadRowsTracer forkWithPrefix(String id) {
     return new LoggingBigQueryStorageReadRowsTracer(
-        "id-" + id + "-" + streamName, logIntervalPowerOf2);
+        "id-" + id + "-" + streamName, logIntervalPowerOf2, bigQueryMetrics);
   }
 
   String getStreamName() {

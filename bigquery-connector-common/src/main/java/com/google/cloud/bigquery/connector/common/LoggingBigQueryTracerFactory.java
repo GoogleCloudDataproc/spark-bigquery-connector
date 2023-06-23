@@ -30,7 +30,9 @@ public class LoggingBigQueryTracerFactory implements BigQueryTracerFactory {
   }
 
   @Override
-  public BigQueryStorageReadRowsTracer newReadRowsTracer(String streamName) {
-    return new LoggingBigQueryStorageReadRowsTracer(streamName, logIntervalPowerOf2);
+  public BigQueryStorageReadRowsTracer newReadRowsTracer(
+      String streamName, BigQueryMetrics bigQueryMetrics) {
+    return new LoggingBigQueryStorageReadRowsTracer(
+        streamName, logIntervalPowerOf2, bigQueryMetrics);
   }
 }

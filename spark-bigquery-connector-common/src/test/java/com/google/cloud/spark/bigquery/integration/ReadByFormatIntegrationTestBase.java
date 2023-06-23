@@ -180,9 +180,9 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     // server-side in
     // indivisible units of many rows.
 
-    long numRowsLowerBound = TestConstants.LARGE_TABLE_NUM_ROWS / df.rdd().getNumPartitions();
-    assertThat(numRowsLowerBound <= sizeOfFirstPartition).isTrue();
-    assertThat(sizeOfFirstPartition < numRowsLowerBound * 1.1).isTrue();
+    long idealPartitionSize = TestConstants.LARGE_TABLE_NUM_ROWS / df.rdd().getNumPartitions();
+    assertThat(sizeOfFirstPartition).isAtLeast((int) (idealPartitionSize * 0.9));
+    assertThat(sizeOfFirstPartition).isAtMost((int) (idealPartitionSize * 1.1));
   }
 
   @Test
