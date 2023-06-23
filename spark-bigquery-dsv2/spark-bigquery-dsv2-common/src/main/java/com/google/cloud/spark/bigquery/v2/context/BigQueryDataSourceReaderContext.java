@@ -422,7 +422,7 @@ public class BigQueryDataSourceReaderContext {
 
   public StatisticsContext estimateStatistics() {
     if (table.getDefinition().getType() == TableDefinition.Type.TABLE) {
-      // Create StatisticsContext with infromation from read session response
+      // Create StatisticsContext with information from read session response.
       final long tableSizeInBytes =
           readSessionResponse.get().getReadSession().getEstimatedTotalBytesScanned();
       final long numRowsInTable = readSessionResponse.get().getReadSession().getEstimatedRowCount();
@@ -440,6 +440,30 @@ public class BigQueryDataSourceReaderContext {
             }
           };
 
+      return tableStatisticsContext;
+    } else if (table.getDefinition().getType() == TableDefinition.Type.EXTERNAL) {
+      ReadSession readSession = readSessionResponse.get().getReadSession();
+      // Physical file size for BigLake tables is the size of the files post file pruning and
+      // includes all fields.
+      // TODO: Improve this estimate by taking projections into account.
+      long tablePhysicalSizeInBytes = readSession.getEstimatedTotalPhysicalFileSize();
+      final OptionalLong sizeInBytes =
+          (tablePhysicalSizeInBytes == 0)
+              ? OptionalLong.empty()
+              : OptionalLong.of(tablePhysicalSizeInBytes);
+
+      StatisticsContext tableStatisticsContext =
+          new StatisticsContext() {
+            @Override
+            public OptionalLong sizeInBytes() {
+              return sizeInBytes;
+            }
+
+            @Override
+            public OptionalLong numRows() {
+              return OptionalLong.empty();
+            }
+          };
       return tableStatisticsContext;
     } else {
       return UNKNOWN_STATISTICS;
