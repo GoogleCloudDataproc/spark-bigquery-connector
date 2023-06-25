@@ -116,6 +116,7 @@ public class SparkBigQueryConfig
   public static final String ENABLE_LIST_INFERENCE = "enableListInference";
   public static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
   public static final String WRITE_METHOD_PARAM = "writeMethod";
+  public static final String WRITE_AT_LEAST_ONCE_OPTION = "writeAtLeastOnce";
   @VisibleForTesting static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.ARROW;
 
   @VisibleForTesting
@@ -205,6 +206,7 @@ public class SparkBigQueryConfig
   private SparkBigQueryProxyAndHttpConfig sparkBigQueryProxyAndHttpConfig;
   private CompressionCodec arrowCompressionCodec = DEFAULT_ARROW_COMPRESSION_CODEC;
   private WriteMethod writeMethod = DEFAULT_WRITE_METHOD;
+  boolean writeAtLeastOnce = false;
   // for V2 write with BigQuery Storage Write API
   RetrySettings bigqueryDataWriteHelperRetrySettings =
       RetrySettings.newBuilder().setMaxAttempts(5).build();
@@ -372,6 +374,8 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, WRITE_METHOD_PARAM)
             .transform(WriteMethod::from)
             .or(writeMethodDefault);
+    config.writeAtLeastOnce =
+        getAnyBooleanOption(globalOptions, options, WRITE_AT_LEAST_ONCE_OPTION, false);
 
     boolean validateSparkAvro =
         config.writeMethod == WriteMethod.INDIRECT
@@ -941,6 +945,10 @@ public class SparkBigQueryConfig
 
   public WriteMethod getWriteMethod() {
     return writeMethod;
+  }
+
+  public boolean isWriteAtLeastOnce() {
+    return writeAtLeastOnce;
   }
 
   public Optional<String> getTraceId() {

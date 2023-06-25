@@ -208,6 +208,23 @@ public class BigQueryClient {
     return bigQuery.delete(tableId);
   }
 
+  private Job copyData(
+      TableId sourceTableId,
+      TableId destinationTableId,
+      JobInfo.WriteDisposition writeDisposition) {
+    String queryFormat = "SELECT * FROM `%s`";
+    QueryJobConfiguration queryConfig =
+        jobConfigurationFactory
+            .createQueryJobConfigurationBuilder(
+                sqlFromFormat(queryFormat, sourceTableId), Collections.emptyMap())
+            .setUseLegacySql(false)
+            .setDestinationTable(destinationTableId)
+            .setWriteDisposition(writeDisposition)
+            .build();
+
+    return create(JobInfo.newBuilder(queryConfig).build());
+  }
+
   /**
    * Overwrites the given destination table, with all the data from the given temporary table,
    * transactionally.
@@ -219,28 +236,25 @@ public class BigQueryClient {
    */
   public Job overwriteDestinationWithTemporary(
       TableId temporaryTableId, TableId destinationTableId) {
-    String queryFormat =
-        "MERGE `%s`\n"
-            + "USING (SELECT * FROM `%s`)\n"
-            + "ON FALSE\n"
-            + "WHEN NOT MATCHED THEN INSERT ROW\n"
-            + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
-
-    QueryJobConfiguration queryConfig =
-        jobConfigurationFactory
-            .createQueryJobConfigurationBuilder(
-                sqlFromFormat(queryFormat, destinationTableId, temporaryTableId),
-                Collections.emptyMap())
-            .setUseLegacySql(false)
-            .build();
-
-    return create(JobInfo.newBuilder(queryConfig).build());
+    return copyData(temporaryTableId, destinationTableId, JobInfo.WriteDisposition.WRITE_TRUNCATE);
   }
 
-  String sqlFromFormat(String queryFormat, TableId destinationTableId, TableId temporaryTableId) {
-    String destinationTableName = fullTableName(destinationTableId);
+  /**
+   * Appends all the data from the given temporary table, to the given destination table,
+   * transactionally.
+   *
+   * @param temporaryTableId The {@code TableId} representing the temporary-table.
+   * @param destinationTableId The {@code TableId} representing the destination table.
+   * @return The {@code Job} object representing this operation (which can be tracked to wait until
+   *     it has finished successfully).
+   */
+  public Job appendDestinationWithTemporary(TableId temporaryTableId, TableId destinationTableId) {
+    return copyData(temporaryTableId, destinationTableId, JobInfo.WriteDisposition.WRITE_APPEND);
+  }
+
+  String sqlFromFormat(String queryFormat, TableId temporaryTableId) {
     String temporaryTableName = fullTableName(temporaryTableId);
-    return String.format(queryFormat, destinationTableName, temporaryTableName);
+    return String.format(queryFormat, temporaryTableName);
   }
 
   /**

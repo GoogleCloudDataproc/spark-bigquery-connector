@@ -61,12 +61,14 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   private final String tablePathForBigQueryStorage;
   private final SchemaConvertersConfiguration schemaConvertersConfiguration;
   private final Optional<String> destinationTableKmsKeyName;
+  private final boolean writeAtLeastOnce;
 
   private BigQueryWriteClient writeClient;
   private Optional<TableInfo> tableInfo = Optional.absent();
 
   enum WritingMode {
     IGNORE_INPUTS,
+    APPEND_AT_LEAST_ONCE,
     OVERWRITE,
     ALL_ELSE
   }
@@ -85,7 +87,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       boolean enableModeCheckForSchemaFields,
       ImmutableMap<String, String> tableLabels,
       SchemaConvertersConfiguration schemaConvertersConfiguration,
-      java.util.Optional<String> destinationTableKmsKeyName)
+      java.util.Optional<String> destinationTableKmsKeyName,
+      boolean writeAtLeastOnce)
       throws IllegalArgumentException {
     this.bigQueryClient = bigQueryClient;
     this.writeClientFactory = bigQueryWriteClientFactory;
@@ -98,6 +101,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     this.tableLabels = tableLabels;
     this.schemaConvertersConfiguration = schemaConvertersConfiguration;
     this.destinationTableKmsKeyName = Optional.fromJavaUtil(destinationTableKmsKeyName);
+    this.writeAtLeastOnce = writeAtLeastOnce;
     Schema bigQuerySchema =
         SchemaConverters.from(this.schemaConvertersConfiguration).toBigQuerySchema(sparkSchema);
     try {
@@ -142,6 +146,12 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
               "Destination table's schema is not compatible with dataframe's schema"));
       switch (saveMode) {
         case Append:
+          if (writeAtLeastOnce) {
+            writingMode = WritingMode.APPEND_AT_LEAST_ONCE;
+            return new BigQueryTable(
+                bigQueryClient.createTempTable(destinationTableId, bigQuerySchema).getTableId(),
+                true);
+          }
           break;
         case Overwrite:
           writingMode = WritingMode.OVERWRITE;
@@ -177,7 +187,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
         protoSchema,
         writingMode.equals(WritingMode.IGNORE_INPUTS),
         bigqueryDataWriterHelperRetrySettings,
-        traceId);
+        traceId,
+        writeAtLeastOnce);
   }
 
   @Override
@@ -203,29 +214,35 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
         writeUUID,
         Arrays.toString(messages));
 
-    BatchCommitWriteStreamsRequest.Builder batchCommitWriteStreamsRequest =
-        BatchCommitWriteStreamsRequest.newBuilder().setParent(tablePathForBigQueryStorage);
-    for (WriterCommitMessageContext message : messages) {
-      batchCommitWriteStreamsRequest.addWriteStreams(
-          ((BigQueryDirectWriterCommitMessageContext) message).getWriteStreamName());
+    if (!writeAtLeastOnce) {
+      BatchCommitWriteStreamsRequest.Builder batchCommitWriteStreamsRequest =
+          BatchCommitWriteStreamsRequest.newBuilder().setParent(tablePathForBigQueryStorage);
+      for (WriterCommitMessageContext message : messages) {
+        batchCommitWriteStreamsRequest.addWriteStreams(
+            ((BigQueryDirectWriterCommitMessageContext) message).getWriteStreamName());
+      }
+      BatchCommitWriteStreamsResponse batchCommitWriteStreamsResponse =
+          writeClient.batchCommitWriteStreams(batchCommitWriteStreamsRequest.build());
+
+      if (!batchCommitWriteStreamsResponse.hasCommitTime()) {
+        throw new BigQueryConnectorException(
+            "DataSource writer failed to batch commit its BigQuery write-streams");
+      }
+
+      logger.info(
+          "BigQuery DataSource writer has committed at time: {}",
+          batchCommitWriteStreamsResponse.getCommitTime());
     }
-    BatchCommitWriteStreamsResponse batchCommitWriteStreamsResponse =
-        writeClient.batchCommitWriteStreams(batchCommitWriteStreamsRequest.build());
 
-    if (!batchCommitWriteStreamsResponse.hasCommitTime()) {
-      throw new BigQueryConnectorException(
-          "DataSource writer failed to batch commit its BigQuery write-streams");
-    }
-
-    logger.info(
-        "BigQuery DataSource writer has committed at time: {}",
-        batchCommitWriteStreamsResponse.getCommitTime());
-
-    if (writingMode.equals(WritingMode.OVERWRITE)) {
-      Job overwriteJob =
-          bigQueryClient.overwriteDestinationWithTemporary(
-              tableToWrite.getTableId(), destinationTableId);
-      BigQueryClient.waitForJob(overwriteJob);
+    if (writingMode.equals(WritingMode.APPEND_AT_LEAST_ONCE)
+        || writingMode.equals(WritingMode.OVERWRITE)) {
+      Job queryJob =
+          (writingMode.equals(WritingMode.OVERWRITE))
+              ? bigQueryClient.overwriteDestinationWithTemporary(
+                  tableToWrite.getTableId(), destinationTableId)
+              : bigQueryClient.appendDestinationWithTemporary(
+                  tableToWrite.getTableId(), destinationTableId);
+      BigQueryClient.waitForJob(queryJob);
       Preconditions.checkState(
           bigQueryClient.deleteTable(tableToWrite.getTableId()),
           new BigQueryConnectorException(

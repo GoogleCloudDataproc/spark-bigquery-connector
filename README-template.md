@@ -325,11 +325,17 @@ df.writeStream \
 The API Supports a number of options to configure the read
 
 <!--- TODO(#2): Convert to markdown -->
-<table>
+<table id="propertytable">
+<style>
+table#propertytable td, table th
+{
+word-break:break-word
+}
+</style>
   <tr valign="top">
-   <th>Property</th>
+   <th style="min-width:240px">Property</th>
    <th>Meaning</th>
-   <th>Usage</th>
+   <th style="min-width:80px">Usage</th>
   </tr>
   <tr valign="top">
    <td><code>table</code>
@@ -530,6 +536,17 @@ The API Supports a number of options to configure the read
        <a href="#writing-data-to-bigquery">here</a>
        <br/>(Optional, defaults to <code>indirect</code>)
      </td>
+   <td>Write</td>
+  </tr>
+  <tr valign="top">
+   <td><code>writeAtLeastOnce</code>
+   </td>
+   <td>Guarantees that data is written to BigQuery at least once. This is a lesser
+    guarantee than exactly once. This is suitable for streaming scenarios
+    in which data is continuously being written in small batches.
+       <br/>(Optional. Defaults to <code>false</code>)
+       <br/><i>Supported only by the `DIRECT` write method.</i>
+   </td>
    <td>Write</td>
   </tr>
   <tr valign="top">
@@ -1138,6 +1155,25 @@ See the [BigQuery pricing documentation](https://cloud.google.com/bigquery/prici
 You can manually set the number of partitions with the `maxParallelism` property. BigQuery may provide fewer partitions than you ask for. See [Configuring Partitioning](#configuring-partitioning).
 
 You can also always repartition after reading in Spark.
+
+### I get quota exceeded errors while writing
+
+If there are too many partitions the CreateWriteStream or Throughput [quotas](https://cloud.google.com/bigquery/quotas#write-api-limits)
+may be exceeded. This occurs because while the data within each partition is processed serially, independent
+partitions may be processed in parallel on different nodes within the spark cluster. Generally, to ensure maximum
+sustained throughput you should file a quota increase request. However, you can also manually reduce the number of
+partitions being written by calling <code>coalesce</code> on the DataFrame to mitigate this problem.
+
+```
+desiredPartitionCount = 5
+dfNew = df.coalesce(desiredPartitionCount)
+dfNew.write
+```
+
+A rule of thumb is to have a single partition handle at least 1GB of data.
+
+Also note that a job running with the `writeAtLeastOnce` property turned on will not encounter CreateWriteStream
+quota errors.
 
 ### How do I authenticate outside GCE / Dataproc?
 

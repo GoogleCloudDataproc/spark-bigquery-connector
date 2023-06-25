@@ -152,6 +152,7 @@ public class BigQueryDirectDataSourceWriterContextTest {
         true,
         ImmutableMap.<String, String>builder().build(),
         SchemaConvertersConfiguration.of(ZoneId.of("UTC")),
-        java.util.Optional.empty());
+        java.util.Optional.empty(),
+        false);
   }
 }

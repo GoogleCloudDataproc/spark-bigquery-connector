@@ -92,7 +92,7 @@ public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertab
           throw new BigQueryConnectorException(
               String.format(
                   "It seems that %s out of %s partitions have failed, aborting",
-                  numPartitions - writerCommitMessages.length, writerCommitMessages.length));
+                  numPartitions - writerCommitMessages.length, numPartitions));
         }
       }
     } catch (Exception e) {

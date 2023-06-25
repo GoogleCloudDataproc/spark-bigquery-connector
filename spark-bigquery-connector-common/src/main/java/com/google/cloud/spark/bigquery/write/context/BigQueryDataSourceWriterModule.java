@@ -73,7 +73,8 @@ public class BigQueryDataSourceWriterModule implements Module {
         tableConfig.getEnableModeCheckForSchemaFields(),
         tableConfig.getBigQueryTableLabels(),
         SchemaConvertersConfiguration.from(tableConfig),
-        tableConfig.getKmsKeyName()); // needs to be serializable
+        tableConfig.getKmsKeyName(), // needs to be serializable
+        tableConfig.isWriteAtLeastOnce());
   }
 
   @Singleton
