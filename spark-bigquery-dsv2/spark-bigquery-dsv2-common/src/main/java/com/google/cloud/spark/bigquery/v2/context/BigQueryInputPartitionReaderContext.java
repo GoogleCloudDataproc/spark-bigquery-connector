@@ -15,12 +15,14 @@
  */
 package com.google.cloud.spark.bigquery.v2.context;
 
+import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Optional;
 import org.apache.spark.sql.catalyst.InternalRow;
 
 class BigQueryInputPartitionReaderContext implements InputPartitionReaderContext<InternalRow> {
@@ -56,6 +58,11 @@ class BigQueryInputPartitionReaderContext implements InputPartitionReaderContext
   @Override
   public InternalRow get() {
     return currentRow;
+  }
+
+  @Override
+  public Optional<BigQueryStorageReadRowsTracer> getBigQueryStorageReadRowsTracer() {
+    return Optional.empty();
   }
 
   @Override

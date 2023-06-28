@@ -17,11 +17,15 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
+import com.google.cloud.spark.bigquery.v2.customMetrics.Spark32CustomBytesReadMetric;
+import com.google.cloud.spark.bigquery.v2.customMetrics.Spark32CustomRowsReadMetric;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import org.apache.spark.sql.connector.expressions.Expressions;
 import org.apache.spark.sql.connector.expressions.NamedReference;
+import org.apache.spark.sql.connector.metric.CustomMetric;
+import org.apache.spark.sql.connector.read.PartitionReaderFactory;
 import org.apache.spark.sql.connector.read.SupportsRuntimeFiltering;
 import org.apache.spark.sql.sources.Filter;
 
@@ -50,5 +54,17 @@ public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
   @Override
   public void filter(Filter[] filters) {
     ctx.filter(filters);
+  }
+
+  @Override
+  public CustomMetric[] supportedCustomMetrics() {
+    return new CustomMetric[] {
+      new Spark32CustomBytesReadMetric(), new Spark32CustomRowsReadMetric()
+    };
+  }
+
+  @Override
+  public PartitionReaderFactory createReaderFactory() {
+    return new Spark32BigQueryPartitionReaderFactory();
   }
 }

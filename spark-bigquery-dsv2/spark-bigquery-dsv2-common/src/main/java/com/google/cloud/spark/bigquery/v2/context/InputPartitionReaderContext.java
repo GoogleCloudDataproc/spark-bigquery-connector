@@ -15,12 +15,16 @@
  */
 package com.google.cloud.spark.bigquery.v2.context;
 
+import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Optional;
 
 public interface InputPartitionReaderContext<T> extends Closeable {
 
   boolean next() throws IOException;
 
   T get();
+
+  Optional<BigQueryStorageReadRowsTracer> getBigQueryStorageReadRowsTracer();
 }

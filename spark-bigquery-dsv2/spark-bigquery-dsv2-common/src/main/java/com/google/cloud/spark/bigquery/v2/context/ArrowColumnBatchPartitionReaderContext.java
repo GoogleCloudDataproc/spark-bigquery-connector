@@ -274,6 +274,11 @@ public class ArrowColumnBatchPartitionReaderContext
     return currentBatch;
   }
 
+  @Override
+  public Optional<BigQueryStorageReadRowsTracer> getBigQueryStorageReadRowsTracer() {
+    return Optional.of(tracer);
+  }
+
   public void close() throws IOException {
     closed = true;
     try {
