@@ -234,6 +234,44 @@ public class SchemaConverterTest {
   }
 
   @Test
+  public void testDescriptionConversionForSparkML() throws Exception {
+    String description = "I love bananas";
+    Field result =
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .createBigQueryColumn(
+                new StructField(
+                    "Field",
+                    SQLDataTypes.MatrixType(),
+                    true,
+                    new MetadataBuilder().putString("description", description).build()),
+                0);
+
+    assertThat(result.getDescription())
+        .isEqualTo(description + " " + SupportedCustomDataType.SPARK_ML_MATRIX.getTypeMarker());
+  }
+
+  @Test
+  public void testSparkMLConversionNoDescription() throws Exception {
+    Field result =
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .createBigQueryColumn(
+                new StructField("Field", SQLDataTypes.MatrixType(), true, Metadata.empty()), 0);
+
+    assertThat(result.getDescription())
+        .isEqualTo(SupportedCustomDataType.SPARK_ML_MATRIX.getTypeMarker());
+  }
+
+  @Test
+  public void testNoDescriptionConversion() throws Exception {
+    Field result =
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .createBigQueryColumn(
+                new StructField("Field", DataTypes.IntegerType, true, Metadata.empty()), 0);
+
+    assertThat(result.getDescription()).isNull();
+  }
+
+  @Test
   public void testCommentConversion() throws Exception {
     StructField field =
         StructField.apply(

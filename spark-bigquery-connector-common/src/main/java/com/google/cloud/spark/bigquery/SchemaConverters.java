@@ -495,29 +495,17 @@ public class SchemaConverters {
       description = Optional.of(field.metadata().getString("description"));
     }
 
-    // skipping lambdas for readability
-    if (!description.isPresent() && !supportedCustomDataTypeOptional.isPresent()) {
-      // both missing
-      return Optional.empty();
-    }
+    Optional<String> marker =
+        supportedCustomDataTypeOptional.map(SupportedCustomDataType::getTypeMarker);
+
+    // skipping some lambdas for readability
     if (description.isPresent()) {
-      // no marker
-      return description;
+      String descriptionString = description.get();
+      return Optional.of(
+          marker.map(value -> descriptionString + " " + value).orElse(descriptionString));
     }
-    if (supportedCustomDataTypeOptional.isPresent()) {
-      // no other description
-      return supportedCustomDataTypeOptional.map(SupportedCustomDataType::getTypeMarker);
-    }
-    // both exist
-    String descriptionString = description.get();
-    String marker =
-        supportedCustomDataTypeOptional.map(SupportedCustomDataType::getTypeMarker).get();
-    if (descriptionString.contains(marker)) {
-      // nothing else to do
-      return description;
-    }
-    // append marker to field description
-    return Optional.of(descriptionString + " " + marker);
+    // no description, so the field marker determines the result
+    return marker;
   }
 
   @VisibleForTesting
