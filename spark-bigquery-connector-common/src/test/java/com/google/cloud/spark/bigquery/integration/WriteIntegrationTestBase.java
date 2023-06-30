@@ -37,6 +37,7 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig.WriteMethod;
+import com.google.cloud.spark.bigquery.SupportedCustomDataType;
 import com.google.cloud.spark.bigquery.integration.model.Data;
 import com.google.cloud.spark.bigquery.integration.model.Friend;
 import com.google.cloud.spark.bigquery.integration.model.Link;
@@ -48,6 +49,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -55,6 +57,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import org.apache.spark.ml.PipelineModel;
+import org.apache.spark.ml.Transformer;
+import org.apache.spark.ml.feature.MinMaxScaler;
+import org.apache.spark.ml.feature.MinMaxScalerModel;
+import org.apache.spark.ml.feature.VectorAssembler;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -827,7 +834,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
               .load();
 
       Optional<String> description =
-          SchemaConverters.getDescriptionOrCommentOfField(readDF.schema().fields()[0]);
+          SchemaConverters.getDescriptionOrCommentOfField(
+              readDF.schema().fields()[0], Optional.empty());
 
       if (readValues[i] != null) {
         assertThat(description.isPresent()).isTrue();
@@ -1404,6 +1412,57 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                         row.getAs("nested_col").equals(RowFactory.create("str1", "str2", "str3")))
                 .count())
         .isEqualTo(2);
+  }
+
+  @Test
+  public void testWriteSparkMlTypes() {
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create("1", "20230515", 12345, 5678, 1234.12345),
+                RowFactory.create("2", "20230515", 14789, 25836, 1234.12345),
+                RowFactory.create("3", "20230515", 54321, 98765, 1234.12345)),
+            new StructType(
+                new StructField[] {
+                  StructField.apply("Seqno", DataTypes.StringType, true, Metadata.empty()),
+                  StructField.apply("date1", DataTypes.StringType, true, Metadata.empty()),
+                  StructField.apply("num1", DataTypes.IntegerType, true, Metadata.empty()),
+                  StructField.apply("num2", DataTypes.IntegerType, true, Metadata.empty()),
+                  StructField.apply("amt1", DataTypes.DoubleType, true, Metadata.empty())
+                }));
+
+    List<Transformer> stages = new ArrayList<>();
+
+    VectorAssembler va = new VectorAssembler();
+    va.setInputCols(new String[] {"num1", "num2"});
+    va.setOutputCol("features_vector");
+    df = va.transform(df);
+    stages.add(va);
+
+    MinMaxScaler minMaxScaler = new MinMaxScaler();
+    minMaxScaler.setInputCol("features_vector");
+    minMaxScaler.setOutputCol("features");
+    MinMaxScalerModel minMaxScalerModel = minMaxScaler.fit(df);
+    df = minMaxScalerModel.transform(df);
+    stages.add(minMaxScalerModel);
+
+    PipelineModel pipelineModel = new PipelineModel("pipeline", stages);
+    df.show(false);
+    df.write()
+        .format("bigquery")
+        .option("writeMethod", writeMethod.toString())
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .save();
+
+    Table table = bq.getTable(TableId.of(testDataset.toString(), testTable));
+    assertThat(table).isNotNull();
+    assertThat(table.getNumRows()).isEqualTo(3);
+    Field featuresField = table.getDefinition().getSchema().getFields().get("features");
+    assertThat(featuresField).isNotNull();
+    assertThat(featuresField.getDescription())
+        .isEqualTo(SupportedCustomDataType.SPARK_ML_VECTOR.getTypeMarker());
   }
 
   protected long numberOfRowsWith(String name) {

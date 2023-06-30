@@ -41,7 +41,6 @@ import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
-import scala.annotation.meta.field;
 
 public class SchemaConverters {
 
@@ -431,6 +430,13 @@ public class SchemaConverters {
       sparkType = arrayType.elementType();
     }
 
+    Optional<SupportedCustomDataType> supportedCustomDataTypeOptional =
+        SupportedCustomDataType.of(sparkType);
+    // not using lambda as we need to affect method level variables
+    if (supportedCustomDataTypeOptional.isPresent()) {
+      SupportedCustomDataType supportedCustomDataType = supportedCustomDataTypeOptional.get();
+      sparkType = supportedCustomDataType.getSqlType();
+    }
     if (sparkType instanceof StructType) {
       subFields = sparkToBigQueryFields((StructType) sparkType, depth + 1);
       fieldType = LegacySQLTypeName.RECORD;
@@ -462,7 +468,8 @@ public class SchemaConverters {
 
     Field.Builder fieldBuilder =
         createBigQueryFieldBuilder(fieldName, fieldType, fieldMode, subFields);
-    Optional<String> description = getDescriptionOrCommentOfField(sparkField);
+    Optional<String> description =
+        getDescriptionOrCommentOfField(sparkField, supportedCustomDataTypeOptional);
 
     if (description.isPresent()) {
       fieldBuilder.setDescription(description.get());
@@ -477,15 +484,40 @@ public class SchemaConverters {
     return fieldBuilder.build();
   }
 
-  public static Optional<String> getDescriptionOrCommentOfField(StructField field) {
+  public static Optional<String> getDescriptionOrCommentOfField(
+      StructField field, Optional<SupportedCustomDataType> supportedCustomDataTypeOptional) {
+    Optional<String> description = Optional.empty();
+
     if (!field.getComment().isEmpty()) {
-      return Optional.of(field.getComment().get());
-    }
-    if (field.metadata().contains("description")
+      description = Optional.of(field.getComment().get());
+    } else if (field.metadata().contains("description")
         && field.metadata().getString("description") != null) {
-      return Optional.of(field.metadata().getString("description"));
+      description = Optional.of(field.metadata().getString("description"));
     }
-    return Optional.empty();
+
+    // skipping lambdas for readability
+    if (!description.isPresent() && !supportedCustomDataTypeOptional.isPresent()) {
+      // both missing
+      return Optional.empty();
+    }
+    if (description.isPresent()) {
+      // no marker
+      return description;
+    }
+    if (supportedCustomDataTypeOptional.isPresent()) {
+      // no other description
+      return supportedCustomDataTypeOptional.map(SupportedCustomDataType::getTypeMarker);
+    }
+    // both exist
+    String descriptionString = description.get();
+    String marker =
+        supportedCustomDataTypeOptional.map(SupportedCustomDataType::getTypeMarker).get();
+    if (descriptionString.contains(marker)) {
+      // nothing else to do
+      return description;
+    }
+    // append marker to field description
+    return Optional.of(descriptionString + " " + marker);
   }
 
   @VisibleForTesting

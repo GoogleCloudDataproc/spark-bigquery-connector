@@ -157,9 +157,14 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     Map<String, StructField> fieldsToUpdate =
         Stream.of(sparkSchema.fields())
             .filter(
-                field ->
-                    SupportedCustomDataType.of(field.dataType()).isPresent()
-                        || SchemaConverters.getDescriptionOrCommentOfField(field).isPresent())
+                field -> {
+                  Optional<SupportedCustomDataType> supportedCustomDataType =
+                      SupportedCustomDataType.of(field.dataType());
+                  return supportedCustomDataType.isPresent()
+                      || SchemaConverters.getDescriptionOrCommentOfField(
+                              field, supportedCustomDataType)
+                          .isPresent();
+                })
             .collect(Collectors.toMap(StructField::name, Function.identity()));
 
     if (!fieldsToUpdate.isEmpty() || !config.getBigQueryTableLabels().isEmpty()) {
@@ -194,20 +199,9 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   Field updatedField(Field field, StructField sparkSchemaField) {
     Field.Builder newField = field.toBuilder();
     Optional<String> bqDescription =
-        SchemaConverters.getDescriptionOrCommentOfField(sparkSchemaField);
-
-    if (bqDescription.isPresent()) {
-      newField.setDescription(bqDescription.get());
-    } else {
-      String description = field.getDescription();
-      String marker = SupportedCustomDataType.of(sparkSchemaField.dataType()).get().getTypeMarker();
-
-      if (description == null) {
-        newField.setDescription(marker);
-      } else if (!description.endsWith(marker)) {
-        newField.setDescription(description + " " + marker);
-      }
-    }
+        SchemaConverters.getDescriptionOrCommentOfField(
+            sparkSchemaField, SupportedCustomDataType.of(sparkSchemaField.dataType()));
+    bqDescription.ifPresent(newField::setDescription);
     return newField.build();
   }
 

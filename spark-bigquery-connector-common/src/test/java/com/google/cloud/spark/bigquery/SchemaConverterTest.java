@@ -241,7 +241,8 @@ public class SchemaConverterTest {
             DataTypes.StringType,
             true,
             new MetadataBuilder().putString("comment", "bar").build());
-    Optional<String> convertedComment = SchemaConverters.getDescriptionOrCommentOfField(field);
+    Optional<String> convertedComment =
+        SchemaConverters.getDescriptionOrCommentOfField(field, Optional.empty());
     assertThat(convertedComment).isEqualTo(Optional.of("bar"));
   }
 
