@@ -1458,7 +1458,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     Table table = bq.getTable(TableId.of(testDataset.toString(), testTable));
     assertThat(table).isNotNull();
-    assertThat(table.getNumRows()).isEqualTo(3);
+    assertThat(table.getNumRows().intValue()).isEqualTo(3);
     Field featuresField = table.getDefinition().getSchema().getFields().get("features");
     assertThat(featuresField).isNotNull();
     assertThat(featuresField.getDescription())
