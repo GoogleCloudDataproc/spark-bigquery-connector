@@ -162,17 +162,18 @@ public class SchemaConverters {
   }
 
   Object convertByBigQueryType(Field bqField, Object value, StructField userProvidedField) {
-    DataType userProvidedType = userProvidedField.dataType();
-
     if (LegacySQLTypeName.INTEGER.equals(bqField.getType())) {
-      if (userProvidedType.equals(DataTypes.IntegerType)) {
-        return Integer.valueOf(((Number) value).intValue());
-      }
-      if (userProvidedType.equals(DataTypes.ShortType)) {
-        return Short.valueOf(((Number) value).shortValue());
-      }
-      if (userProvidedType.equals(DataTypes.ByteType)) {
-        return Byte.valueOf(((Number) value).byteValue());
+      if (userProvidedField != null) {
+        DataType userProvidedType = userProvidedField.dataType();
+        if (userProvidedType.equals(DataTypes.IntegerType)) {
+          return Integer.valueOf(((Number) value).intValue());
+        }
+        if (userProvidedType.equals(DataTypes.ShortType)) {
+          return Short.valueOf(((Number) value).shortValue());
+        }
+        if (userProvidedType.equals(DataTypes.ByteType)) {
+          return Byte.valueOf(((Number) value).byteValue());
+        }
       }
       // regular long value
       return value;
