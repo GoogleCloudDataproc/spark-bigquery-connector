@@ -165,14 +165,14 @@ public class SchemaConverters {
     DataType userProvidedType = userProvidedField.dataType();
 
     if (LegacySQLTypeName.INTEGER.equals(bqField.getType())) {
-      if(userProvidedType.equals(DataTypes.IntegerType)) {
-        return Integer.valueOf(((Number)value).intValue());
+      if (userProvidedType.equals(DataTypes.IntegerType)) {
+        return Integer.valueOf(((Number) value).intValue());
       }
-      if(userProvidedType.equals(DataTypes.ShortType)) {
-        return Short.valueOf(((Number)value).shortValue());
+      if (userProvidedType.equals(DataTypes.ShortType)) {
+        return Short.valueOf(((Number) value).shortValue());
       }
-      if(userProvidedType.equals(DataTypes.ByteType)) {
-        return Byte.valueOf(((Number)value).byteValue());
+      if (userProvidedType.equals(DataTypes.ByteType)) {
+        return Byte.valueOf(((Number) value).byteValue());
       }
       // regular long value
       return value;
@@ -211,12 +211,9 @@ public class SchemaConverters {
       List<StructField> structList = null;
 
       if (userProvidedField != null) {
-        StructType userStructType = (StructType)SupportedCustomDataType.of(userProvidedField.dataType())
-            .map(SupportedCustomDataType::getSqlType)
-            .orElse(userProvidedField.dataType());
-        structList =
-            Arrays.stream(userStructType.fields())
-                .collect(Collectors.toList());
+        StructType userStructType =
+            (StructType) SupportedCustomDataType.toSqlType(userProvidedField.dataType());
+        structList = Arrays.stream(userStructType.fields()).collect(Collectors.toList());
 
         namesInOrder = structList.stream().map(StructField::name).collect(Collectors.toList());
       } else {

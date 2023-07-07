@@ -64,4 +64,10 @@ public enum SupportedCustomDataType {
         .filter(dataType -> description.endsWith(dataType.typeMarker))
         .findFirst();
   }
+
+  public static DataType toSqlType(DataType dataType) {
+    return SupportedCustomDataType.of(dataType)
+        .map(SupportedCustomDataType::getSqlType)
+        .orElse(dataType);
+  }
 }

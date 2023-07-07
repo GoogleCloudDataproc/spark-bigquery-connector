@@ -37,15 +37,12 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig.WriteMethod;
-import com.google.cloud.spark.bigquery.SupportedCustomDataType;
 import com.google.cloud.spark.bigquery.integration.model.Data;
 import com.google.cloud.spark.bigquery.integration.model.Friend;
 import com.google.cloud.spark.bigquery.integration.model.Link;
 import com.google.cloud.spark.bigquery.integration.model.Person;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.inject.ProvisionException;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -57,7 +54,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.spark.ml.PipelineModel;
@@ -1473,7 +1469,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     List<Row> values = result.collectAsList();
     assertThat(values).hasSize(3);
     Row row = values.get(0);
-    assertThat(row.get(row.fieldIndex("features"))).isInstanceOf(org.apache.spark.ml.linalg.Vector.class);
+    assertThat(row.get(row.fieldIndex("features")))
+        .isInstanceOf(org.apache.spark.ml.linalg.Vector.class);
   }
 
   protected long numberOfRowsWith(String name) {
