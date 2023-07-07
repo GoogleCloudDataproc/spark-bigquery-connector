@@ -41,6 +41,7 @@ import com.google.cloud.spark.bigquery.integration.model.Data;
 import com.google.cloud.spark.bigquery.integration.model.Friend;
 import com.google.cloud.spark.bigquery.integration.model.Link;
 import com.google.cloud.spark.bigquery.integration.model.Person;
+import com.google.cloud.spark.bigquery.integration.model.RangeData;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.ProvisionException;
@@ -885,6 +886,31 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("partitionField", "ts")
         .option("partitionType", partitionType)
+        .option("partitionRequireFilter", "true")
+        .option("table", table)
+        .option("writeMethod", writeMethod.toString())
+        .save();
+
+    Dataset<Row> readDF = spark.read().format("bigquery").load(table);
+    assertThat(readDF.count()).isEqualTo(3);
+  }
+
+  @Test
+  public void testPartitionRange() {
+    // partition write not supported in BQ Storage Write API
+    assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
+
+    List<RangeData> data =
+        Arrays.asList(new RangeData("a", 1L), new RangeData("b", 5L), new RangeData("c", 11L));
+    Dataset<Row> df = spark.createDataset(data, Encoders.bean(RangeData.class)).toDF();
+    String table = testDataset.toString() + "." + testTable + "_range";
+    df.write()
+        .format("bigquery")
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("partitionField", "rng")
+        .option("partitionRangeStart", "1")
+        .option("partitionRangeEnd", "21")
+        .option("partitionRangeInterval", "2")
         .option("partitionRequireFilter", "true")
         .option("table", table)
         .option("writeMethod", writeMethod.toString())

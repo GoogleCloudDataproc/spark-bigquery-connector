@@ -31,6 +31,7 @@ import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
+import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
@@ -578,6 +579,12 @@ public class BigQueryClient {
       options.getPartitionField().ifPresent(timePartitionBuilder::setField);
       jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
     }
+    if (options.getPartitionField().isPresent() || options.getPartitionRange().isPresent()) {
+      RangePartitioning.Builder rangePartitionBuilder = RangePartitioning.newBuilder();
+      options.getPartitionField().ifPresent(rangePartitionBuilder::setField);
+      options.getPartitionRange().ifPresent(rangePartitionBuilder::setRange);
+      jobConfiguration.setRangePartitioning(rangePartitionBuilder.build());
+    }
 
     options
         .getClusteredFields()
@@ -686,6 +693,8 @@ public class BigQueryClient {
     Optional<String> getPartitionField();
 
     Optional<TimePartitioning.Type> getPartitionType();
+
+    Optional<RangePartitioning.Range> getPartitionRange();
 
     TimePartitioning.Type getPartitionTypeOrDefault();
 
