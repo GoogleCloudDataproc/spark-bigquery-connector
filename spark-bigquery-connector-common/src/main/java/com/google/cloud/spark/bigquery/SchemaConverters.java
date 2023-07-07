@@ -143,25 +143,7 @@ public class SchemaConverters {
               .collect(Collectors.toList()));
     }
 
-    //    Optional<Object> customDatum =
-    //        getCustomDataType(field).map(dt -> ((UserDefinedType) dt).deserialize(value));
-    //    return customDatum.orElseGet(() -> convertByBigQueryType(field, value,
-    // userProvidedField));
-    //    Object datum = convertByBigQueryType(field, value, userProvidedField);
-    Optional<UserDefinedType> customDataType = getCustomDataType(field);
-    return customDataType
-        .map(
-            udt -> {
-              StructField modifiedProvidedField =
-                  StructField.apply(
-                      userProvidedField.name(),
-                      udt.sqlType(),
-                      userProvidedField.nullable(),
-                      userProvidedField.metadata());
-              Object datum = convertByBigQueryType(field, value, modifiedProvidedField);
-              return udt.deserialize(datum);
-            })
-        .orElseGet(() -> convertByBigQueryType(field, value, userProvidedField));
+    return convertByBigQueryType(field, value, userProvidedField);
   }
 
   private StructField getStructFieldForRepeatedMode(StructField field) {
@@ -229,8 +211,11 @@ public class SchemaConverters {
       List<StructField> structList = null;
 
       if (userProvidedField != null) {
+        StructType userStructType = (StructType)SupportedCustomDataType.of(userProvidedField.dataType())
+            .map(SupportedCustomDataType::getSqlType)
+            .orElse(userProvidedField.dataType());
         structList =
-            Arrays.stream(((StructType) userProvidedField.dataType()).fields())
+            Arrays.stream(userStructType.fields())
                 .collect(Collectors.toList());
 
         namesInOrder = structList.stream().map(StructField::name).collect(Collectors.toList());

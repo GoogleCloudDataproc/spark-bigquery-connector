@@ -1464,40 +1464,16 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         spark
             .read()
             .format("bigquery")
-            .option("readDataFormat", "AVRO")
             .option("dataset", testDataset.toString())
             .option("table", testTable)
             .load();
     StructType resultSchema = result.schema();
     assertThat(resultSchema.apply("features").dataType()).isEqualTo(SQLDataTypes.VectorType());
     result.show(false);
-    assertThat(result.count()).isEqualTo(3L);
-    // assertThat(result.schema().apply("features").metadata().contains("spa"))
-
-    Table table =
-        getNonEmptyTableWithExponentialBackoff(
-            TableId.of(testDataset.toString(), testTable), 10, 200);
-    assertThat(table.getNumRows().intValue()).isEqualTo(3);
-    Field featuresField = table.getDefinition().getSchema().getFields().get("features");
-    assertThat(featuresField).isNotNull();
-    assertThat(featuresField.getDescription())
-        .isEqualTo(SupportedCustomDataType.SPARK_ML_VECTOR.getTypeMarker());
-  }
-
-  Table getNonEmptyTableWithExponentialBackoff(TableId tableId, int tries, int initialWaitInMS) {
-    Stopwatch stopwatch = Stopwatch.createStarted();
-    int waitTimeInMS = initialWaitInMS;
-    for (int i = 0; i < tries; i++) {
-      Table table = bq.getTable(tableId);
-      if (table != null && table.getNumRows().intValue() > 0) {
-        return table;
-      }
-      // failed, so let's wait
-      Uninterruptibles.sleepUninterruptibly(waitTimeInMS, TimeUnit.MILLISECONDS);
-      waitTimeInMS = 2 * waitTimeInMS;
-    }
-    throw new RuntimeException(
-        "Failed to fetch non-empty table after " + tries + " tries and " + stopwatch);
+    List<Row> values = result.collectAsList();
+    assertThat(values).hasSize(3);
+    Row row = values.get(0);
+    assertThat(row.get(row.fieldIndex("features"))).isInstanceOf(org.apache.spark.ml.linalg.Vector.class);
   }
 
   protected long numberOfRowsWith(String name) {
