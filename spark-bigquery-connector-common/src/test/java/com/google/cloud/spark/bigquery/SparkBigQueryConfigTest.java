@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
+import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
@@ -107,6 +108,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getPartitionExpirationMs()).isEqualTo(OptionalLong.empty());
     assertThat(config.getPartitionRequireFilter()).isEqualTo(Optional.empty());
     assertThat(config.getPartitionType()).isEqualTo(Optional.empty());
+    assertThat(config.getPartitionRange()).isEqualTo(Optional.empty());
     assertThat(config.getClusteredFields()).isEqualTo(Optional.empty());
     assertThat(config.getCreateDisposition()).isEqualTo(Optional.empty());
     assertThat(config.getLoadSchemaUpdateOptions()).isEqualTo(ImmutableList.of());
@@ -226,6 +228,38 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getDatetimeZoneId()).isEqualTo(ZoneId.of("Asia/Jerusalem"));
     assertThat(config.getQueryJobPriority()).isEqualTo(Priority.valueOf("BATCH"));
     assertThat(config.getKmsKeyName()).isEqualTo(Optional.of("some/key/name"));
+  }
+
+  @Test
+  public void testConfigFromOptions_rangePartitioning() {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options =
+        new DataSourceOptions(
+            ImmutableMap.<String, String>builder()
+                .put("table", "test_t")
+                .put("dataset", "test_d")
+                .put("project", "test_p")
+                .put("partitionRangeStart", "1")
+                .put("partitionRangeEnd", "20")
+                .put("partitionRangeInterval", "2")
+                .put("partitionField", "some_field")
+                .build());
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            options.asMap(),
+            defaultGlobalOptions,
+            hadoopConfiguration,
+            ImmutableMap.of(),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(), /* tableIsMandatory */
+            true);
+    RangePartitioning.Range expectedRange =
+        RangePartitioning.Range.newBuilder().setStart(1L).setEnd(20L).setInterval(2L).build();
+    assertThat(config.getTableId()).isEqualTo(TableId.of("test_p", "test_d", "test_t"));
+    assertThat(config.getPartitionRange()).isEqualTo(Optional.of(expectedRange));
+    assertThat(config.getPartitionField()).isEqualTo(Optional.of("some_field"));
   }
 
   @Test

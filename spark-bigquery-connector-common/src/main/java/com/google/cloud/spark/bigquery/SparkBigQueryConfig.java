@@ -38,6 +38,7 @@ import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.ParquetOptions;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
+import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
@@ -183,6 +184,9 @@ public class SparkBigQueryConfig
   Long partitionExpirationMs = null;
   com.google.common.base.Optional<Boolean> partitionRequireFilter = empty();
   com.google.common.base.Optional<TimePartitioning.Type> partitionType = empty();
+  com.google.common.base.Optional<Long> partitionRangeStart = empty();
+  com.google.common.base.Optional<Long> partitionRangeEnd = empty();
+  com.google.common.base.Optional<Long> partitionRangeInterval = empty();
   com.google.common.base.Optional<String[]> clusteredFields = empty();
   com.google.common.base.Optional<JobInfo.CreateDisposition> createDisposition = empty();
   boolean optimizedEmptyProjection = true;
@@ -289,6 +293,11 @@ public class SparkBigQueryConfig
         firstPresent(getOption(options, "project").toJavaUtil(), fallbackProject);
     config.partitionType =
         getOption(options, "partitionType").transform(TimePartitioning.Type::valueOf);
+    config.partitionRangeStart =
+        getOption(options, "partitionRangeStart").transform(Long::parseLong);
+    config.partitionRangeEnd = getOption(options, "partitionRangeEnd").transform(Long::parseLong);
+    config.partitionRangeInterval =
+        getOption(options, "partitionRangeInterval").transform(Long::parseLong);
     Optional<String> datePartitionParam = getOption(options, DATE_PARTITION_PARAM).toJavaUtil();
     datePartitionParam.ifPresent(
         date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
@@ -818,6 +827,20 @@ public class SparkBigQueryConfig
 
   public Optional<TimePartitioning.Type> getPartitionType() {
     return partitionType.toJavaUtil();
+  }
+
+  public Optional<RangePartitioning.Range> getPartitionRange() {
+    if (partitionRangeStart.isPresent()
+        && partitionRangeEnd.isPresent()
+        && partitionRangeInterval.isPresent()) {
+      return Optional.of(
+          RangePartitioning.Range.newBuilder()
+              .setStart(partitionRangeStart.get())
+              .setEnd(partitionRangeEnd.get())
+              .setInterval(partitionRangeInterval.get())
+              .build());
+    }
+    return Optional.empty();
   }
 
   public TimePartitioning.Type getPartitionTypeOrDefault() {
