@@ -356,7 +356,14 @@ public class ProtobufUtils {
     Optional<SupportedCustomDataType> customDataType = SupportedCustomDataType.of(sparkType);
     sparkType = customDataType.map(SupportedCustomDataType::getSqlType).orElse(sparkType);
     if (customDataType.isPresent()) {
-      InternalRow internalRow = customDataType.get().serialize(sparkValue);
+      InternalRow internalRow;
+      if (sparkValue instanceof InternalRow) {
+        // Spark 2.4
+        internalRow = (InternalRow) sparkValue;
+      } else {
+        // spark 3.x
+        internalRow = customDataType.get().serialize(sparkValue);
+      }
       return buildSingleRowMessage((StructType) sparkType, nestedTypeDescriptor, internalRow);
     }
 

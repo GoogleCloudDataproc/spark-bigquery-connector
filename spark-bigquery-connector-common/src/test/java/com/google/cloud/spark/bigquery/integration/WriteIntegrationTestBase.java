@@ -62,6 +62,7 @@ import org.apache.spark.ml.feature.MinMaxScaler;
 import org.apache.spark.ml.feature.MinMaxScalerModel;
 import org.apache.spark.ml.feature.VectorAssembler;
 import org.apache.spark.ml.linalg.SQLDataTypes;
+import org.apache.spark.package$;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -73,7 +74,9 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import scala.Some;
@@ -1416,6 +1419,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testWriteSparkMlTypes() {
+    // Spark ML types have issues on Spark 2.4
+    String sparkVersion = package$.MODULE$.SPARK_VERSION();
+    Assume.assumeThat(sparkVersion, CoreMatchers.startsWith("3."));
+
     Dataset<Row> df =
         spark.createDataFrame(
             Arrays.asList(
