@@ -638,7 +638,7 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
       if(userProvidedField !=null) {
 
 
-        StructType schema = (StructType) SupportedCustomDataType.toSqlType(userProvidedField.dataType())
+        StructType schema = (StructType) SupportedCustomDataType.toSqlType(userProvidedField.dataType());
         List<StructField> structList = Arrays.asList(schema.fields());
 
         this.childColumns = new ArrowSchemaConverter[structList.size()];
