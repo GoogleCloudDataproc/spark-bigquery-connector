@@ -41,6 +41,7 @@ import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
+import scala.annotation.meta.field;
 
 public class SchemaConverters {
 
@@ -142,10 +143,25 @@ public class SchemaConverters {
               .collect(Collectors.toList()));
     }
 
-    Object datum = convertByBigQueryType(field, value, userProvidedField);
-    Optional<Object> customDatum =
-        getCustomDataType(field).map(dt -> ((UserDefinedType) dt).deserialize(datum));
-    return customDatum.orElse(datum);
+    //    Optional<Object> customDatum =
+    //        getCustomDataType(field).map(dt -> ((UserDefinedType) dt).deserialize(value));
+    //    return customDatum.orElseGet(() -> convertByBigQueryType(field, value,
+    // userProvidedField));
+    //    Object datum = convertByBigQueryType(field, value, userProvidedField);
+    Optional<UserDefinedType> customDataType = getCustomDataType(field);
+    return customDataType
+        .map(
+            udt -> {
+              StructField modifiedProvidedField =
+                  StructField.apply(
+                      userProvidedField.name(),
+                      udt.sqlType(),
+                      userProvidedField.nullable(),
+                      userProvidedField.metadata());
+              Object datum = convertByBigQueryType(field, value, modifiedProvidedField);
+              return udt.deserialize(datum);
+            })
+        .orElseGet(() -> convertByBigQueryType(field, value, userProvidedField));
   }
 
   private StructField getStructFieldForRepeatedMode(StructField field) {
@@ -164,8 +180,22 @@ public class SchemaConverters {
   }
 
   Object convertByBigQueryType(Field bqField, Object value, StructField userProvidedField) {
-    if (LegacySQLTypeName.INTEGER.equals(bqField.getType())
-        || LegacySQLTypeName.FLOAT.equals(bqField.getType())
+    DataType userProvidedType = userProvidedField.dataType();
+
+    if (LegacySQLTypeName.INTEGER.equals(bqField.getType())) {
+      if(userProvidedType.equals(DataTypes.IntegerType)) {
+        return Integer.valueOf(((Number)value).intValue());
+      }
+      if(userProvidedType.equals(DataTypes.ShortType)) {
+        return Short.valueOf(((Number)value).shortValue());
+      }
+      if(userProvidedType.equals(DataTypes.ByteType)) {
+        return Byte.valueOf(((Number)value).byteValue());
+      }
+      // regular long value
+      return value;
+    }
+    if (LegacySQLTypeName.FLOAT.equals(bqField.getType())
         || LegacySQLTypeName.BOOLEAN.equals(bqField.getType())
         || LegacySQLTypeName.DATE.equals(bqField.getType())
         || LegacySQLTypeName.TIME.equals(bqField.getType())
@@ -313,11 +343,13 @@ public class SchemaConverters {
   }
 
   private DataType getDataType(Field field) {
-    return getCustomDataType(field).orElseGet(() -> getStandardDataType(field));
+    return getCustomDataType(field)
+        .map(udt -> (DataType) udt)
+        .orElseGet(() -> getStandardDataType(field));
   }
 
   @VisibleForTesting
-  Optional<DataType> getCustomDataType(Field field) {
+  Optional<UserDefinedType> getCustomDataType(Field field) {
     // metadata is kept in the description
     String description = field.getDescription();
     if (description != null) {

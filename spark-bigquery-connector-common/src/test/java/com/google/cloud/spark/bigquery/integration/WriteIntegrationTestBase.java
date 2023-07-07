@@ -43,7 +43,9 @@ import com.google.cloud.spark.bigquery.integration.model.Friend;
 import com.google.cloud.spark.bigquery.integration.model.Link;
 import com.google.cloud.spark.bigquery.integration.model.Person;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.inject.ProvisionException;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -55,6 +57,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.spark.ml.PipelineModel;
@@ -62,6 +65,7 @@ import org.apache.spark.ml.Transformer;
 import org.apache.spark.ml.feature.MinMaxScaler;
 import org.apache.spark.ml.feature.MinMaxScalerModel;
 import org.apache.spark.ml.feature.VectorAssembler;
+import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -1456,13 +1460,44 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("table", testTable)
         .save();
 
-    Table table = bq.getTable(TableId.of(testDataset.toString(), testTable));
-    assertThat(table).isNotNull();
+    Dataset<Row> result =
+        spark
+            .read()
+            .format("bigquery")
+            .option("readDataFormat", "AVRO")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    StructType resultSchema = result.schema();
+    assertThat(resultSchema.apply("features").dataType()).isEqualTo(SQLDataTypes.VectorType());
+    result.show(false);
+    assertThat(result.count()).isEqualTo(3L);
+    // assertThat(result.schema().apply("features").metadata().contains("spa"))
+
+    Table table =
+        getNonEmptyTableWithExponentialBackoff(
+            TableId.of(testDataset.toString(), testTable), 10, 200);
     assertThat(table.getNumRows().intValue()).isEqualTo(3);
     Field featuresField = table.getDefinition().getSchema().getFields().get("features");
     assertThat(featuresField).isNotNull();
     assertThat(featuresField.getDescription())
         .isEqualTo(SupportedCustomDataType.SPARK_ML_VECTOR.getTypeMarker());
+  }
+
+  Table getNonEmptyTableWithExponentialBackoff(TableId tableId, int tries, int initialWaitInMS) {
+    Stopwatch stopwatch = Stopwatch.createStarted();
+    int waitTimeInMS = initialWaitInMS;
+    for (int i = 0; i < tries; i++) {
+      Table table = bq.getTable(tableId);
+      if (table != null && table.getNumRows().intValue() > 0) {
+        return table;
+      }
+      // failed, so let's wait
+      Uninterruptibles.sleepUninterruptibly(waitTimeInMS, TimeUnit.MILLISECONDS);
+      waitTimeInMS = 2 * waitTimeInMS;
+    }
+    throw new RuntimeException(
+        "Failed to fetch non-empty table after " + tries + " tries and " + stopwatch);
   }
 
   protected long numberOfRowsWith(String name) {

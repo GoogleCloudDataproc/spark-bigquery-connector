@@ -19,6 +19,7 @@ import com.google.common.base.Preconditions;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.spark.ml.linalg.SQLDataTypes;
+import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.UserDefinedType;
 
@@ -44,6 +45,10 @@ public enum SupportedCustomDataType {
 
   public DataType getSqlType() {
     return sparkDataType.sqlType();
+  }
+
+  public InternalRow serialize(Object obj) {
+    return (InternalRow) this.sparkDataType.serialize(obj);
   }
 
   public static Optional<SupportedCustomDataType> of(DataType dataType) {

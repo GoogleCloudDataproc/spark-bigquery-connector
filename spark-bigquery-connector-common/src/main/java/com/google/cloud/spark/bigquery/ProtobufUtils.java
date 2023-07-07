@@ -35,6 +35,7 @@ import com.google.protobuf.DynamicMessage;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSqlUtils;
@@ -351,6 +352,14 @@ public class ProtobufUtils {
       }
     }
 
+    // UDT support
+    Optional<SupportedCustomDataType> customDataType = SupportedCustomDataType.of(sparkType);
+    sparkType = customDataType.map(SupportedCustomDataType::getSqlType).orElse(sparkType);
+    if (customDataType.isPresent()) {
+      InternalRow internalRow = customDataType.get().serialize(sparkValue);
+      return buildSingleRowMessage((StructType) sparkType, nestedTypeDescriptor, internalRow);
+    }
+
     if (sparkType instanceof ArrayType) {
       ArrayType arrayType = (ArrayType) sparkType;
       DataType elementType = arrayType.elementType();
@@ -495,6 +504,11 @@ public class ProtobufUtils {
               : DescriptorProtos.FieldDescriptorProto.Label.LABEL_REQUIRED;
 
       DataType sparkType = field.dataType();
+      // UDT support
+      sparkType =
+          SupportedCustomDataType.of(sparkType)
+              .map(SupportedCustomDataType::getSqlType)
+              .orElse(sparkType);
 
       if (sparkType instanceof ArrayType) {
         ArrayType arrayType = (ArrayType) sparkType;
