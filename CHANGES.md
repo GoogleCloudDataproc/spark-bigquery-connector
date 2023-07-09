@@ -2,6 +2,8 @@
 
 ## Next
 
+* Issue #993: Spark ML vector read and write fails
+
 ## 0.31.1 - 2023-06-06
 
 * Issue #748: `_PARTITIONDATE` pseudo column is provided only for ingestion time **daily** partitioned tables

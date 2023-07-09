@@ -48,6 +48,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -55,6 +56,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import org.apache.spark.ml.PipelineModel;
+import org.apache.spark.ml.Transformer;
+import org.apache.spark.ml.feature.MinMaxScaler;
+import org.apache.spark.ml.feature.MinMaxScalerModel;
+import org.apache.spark.ml.feature.VectorAssembler;
+import org.apache.spark.ml.linalg.SQLDataTypes;
+import org.apache.spark.package$;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -66,7 +74,9 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import scala.Some;
@@ -827,7 +837,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
               .load();
 
       Optional<String> description =
-          SchemaConverters.getDescriptionOrCommentOfField(readDF.schema().fields()[0]);
+          SchemaConverters.getDescriptionOrCommentOfField(
+              readDF.schema().fields()[0], Optional.empty());
 
       if (readValues[i] != null) {
         assertThat(description.isPresent()).isTrue();
@@ -1404,6 +1415,69 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                         row.getAs("nested_col").equals(RowFactory.create("str1", "str2", "str3")))
                 .count())
         .isEqualTo(2);
+  }
+
+  @Test
+  public void testWriteSparkMlTypes() {
+    // Spark ML types have issues on Spark 2.4
+    String sparkVersion = package$.MODULE$.SPARK_VERSION();
+    Assume.assumeThat(sparkVersion, CoreMatchers.startsWith("3."));
+
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create("1", "20230515", 12345, 5678, 1234.12345),
+                RowFactory.create("2", "20230515", 14789, 25836, 1234.12345),
+                RowFactory.create("3", "20230515", 54321, 98765, 1234.12345)),
+            new StructType(
+                new StructField[] {
+                  StructField.apply("Seqno", DataTypes.StringType, true, Metadata.empty()),
+                  StructField.apply("date1", DataTypes.StringType, true, Metadata.empty()),
+                  StructField.apply("num1", DataTypes.IntegerType, true, Metadata.empty()),
+                  StructField.apply("num2", DataTypes.IntegerType, true, Metadata.empty()),
+                  StructField.apply("amt1", DataTypes.DoubleType, true, Metadata.empty())
+                }));
+
+    List<Transformer> stages = new ArrayList<>();
+
+    VectorAssembler va = new VectorAssembler();
+    va.setInputCols(new String[] {"num1", "num2"});
+    va.setOutputCol("features_vector");
+    df = va.transform(df);
+    stages.add(va);
+
+    MinMaxScaler minMaxScaler = new MinMaxScaler();
+    minMaxScaler.setInputCol("features_vector");
+    minMaxScaler.setOutputCol("features");
+    MinMaxScalerModel minMaxScalerModel = minMaxScaler.fit(df);
+    df = minMaxScalerModel.transform(df);
+    stages.add(minMaxScalerModel);
+
+    PipelineModel pipelineModel = new PipelineModel("pipeline", stages);
+    df.show(false);
+    df.write()
+        .format("bigquery")
+        .option("writeMethod", writeMethod.toString())
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .save();
+
+    Dataset<Row> result =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    StructType resultSchema = result.schema();
+    assertThat(resultSchema.apply("features").dataType()).isEqualTo(SQLDataTypes.VectorType());
+    result.show(false);
+    List<Row> values = result.collectAsList();
+    assertThat(values).hasSize(3);
+    Row row = values.get(0);
+    assertThat(row.get(row.fieldIndex("features")))
+        .isInstanceOf(org.apache.spark.ml.linalg.Vector.class);
   }
 
   protected long numberOfRowsWith(String name) {

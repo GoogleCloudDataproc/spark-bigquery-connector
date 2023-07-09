@@ -19,26 +19,36 @@ import com.google.common.base.Preconditions;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.spark.ml.linalg.SQLDataTypes;
+import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.UserDefinedType;
 
 public enum SupportedCustomDataType {
   SPARK_ML_VECTOR("vector", SQLDataTypes.VectorType()),
   SPARK_ML_MATRIX("matrix", SQLDataTypes.MatrixType());
 
   private final String typeMarker;
-  private final DataType sparkDataType;
+  private final UserDefinedType sparkDataType;
 
   SupportedCustomDataType(String typeMarker, DataType sparkDataType) {
     this.typeMarker = "{spark.type=" + typeMarker + "}";
-    this.sparkDataType = sparkDataType;
+    this.sparkDataType = (UserDefinedType) sparkDataType;
   }
 
-  public DataType getSparkDataType() {
+  public UserDefinedType getSparkDataType() {
     return sparkDataType;
   }
 
   public String getTypeMarker() {
     return typeMarker;
+  }
+
+  public DataType getSqlType() {
+    return sparkDataType.sqlType();
+  }
+
+  public InternalRow serialize(Object obj) {
+    return (InternalRow) this.sparkDataType.serialize(obj);
   }
 
   public static Optional<SupportedCustomDataType> of(DataType dataType) {
@@ -53,5 +63,11 @@ public enum SupportedCustomDataType {
     return Stream.of(values())
         .filter(dataType -> description.endsWith(dataType.typeMarker))
         .findFirst();
+  }
+
+  public static DataType toSqlType(DataType dataType) {
+    return SupportedCustomDataType.of(dataType)
+        .map(SupportedCustomDataType::getSqlType)
+        .orElse(dataType);
   }
 }

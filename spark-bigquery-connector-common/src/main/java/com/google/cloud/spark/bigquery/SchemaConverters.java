@@ -143,10 +143,7 @@ public class SchemaConverters {
               .collect(Collectors.toList()));
     }
 
-    Object datum = convertByBigQueryType(field, value, userProvidedField);
-    Optional<Object> customDatum =
-        getCustomDataType(field).map(dt -> ((UserDefinedType) dt).deserialize(datum));
-    return customDatum.orElse(datum);
+    return convertByBigQueryType(field, value, userProvidedField);
   }
 
   private StructField getStructFieldForRepeatedMode(StructField field) {
@@ -165,8 +162,23 @@ public class SchemaConverters {
   }
 
   Object convertByBigQueryType(Field bqField, Object value, StructField userProvidedField) {
-    if (LegacySQLTypeName.INTEGER.equals(bqField.getType())
-        || LegacySQLTypeName.FLOAT.equals(bqField.getType())
+    if (LegacySQLTypeName.INTEGER.equals(bqField.getType())) {
+      if (userProvidedField != null) {
+        DataType userProvidedType = userProvidedField.dataType();
+        if (userProvidedType.equals(DataTypes.IntegerType)) {
+          return Integer.valueOf(((Number) value).intValue());
+        }
+        if (userProvidedType.equals(DataTypes.ShortType)) {
+          return Short.valueOf(((Number) value).shortValue());
+        }
+        if (userProvidedType.equals(DataTypes.ByteType)) {
+          return Byte.valueOf(((Number) value).byteValue());
+        }
+      }
+      // regular long value
+      return value;
+    }
+    if (LegacySQLTypeName.FLOAT.equals(bqField.getType())
         || LegacySQLTypeName.BOOLEAN.equals(bqField.getType())
         || LegacySQLTypeName.DATE.equals(bqField.getType())
         || LegacySQLTypeName.TIME.equals(bqField.getType())
@@ -200,9 +212,9 @@ public class SchemaConverters {
       List<StructField> structList = null;
 
       if (userProvidedField != null) {
-        structList =
-            Arrays.stream(((StructType) userProvidedField.dataType()).fields())
-                .collect(Collectors.toList());
+        StructType userStructType =
+            (StructType) SupportedCustomDataType.toSqlType(userProvidedField.dataType());
+        structList = Arrays.stream(userStructType.fields()).collect(Collectors.toList());
 
         namesInOrder = structList.stream().map(StructField::name).collect(Collectors.toList());
       } else {
@@ -314,11 +326,13 @@ public class SchemaConverters {
   }
 
   private DataType getDataType(Field field) {
-    return getCustomDataType(field).orElseGet(() -> getStandardDataType(field));
+    return getCustomDataType(field)
+        .map(udt -> (DataType) udt)
+        .orElseGet(() -> getStandardDataType(field));
   }
 
   @VisibleForTesting
-  Optional<DataType> getCustomDataType(Field field) {
+  Optional<UserDefinedType> getCustomDataType(Field field) {
     // metadata is kept in the description
     String description = field.getDescription();
     if (description != null) {
@@ -431,6 +445,13 @@ public class SchemaConverters {
       sparkType = arrayType.elementType();
     }
 
+    Optional<SupportedCustomDataType> supportedCustomDataTypeOptional =
+        SupportedCustomDataType.of(sparkType);
+    // not using lambda as we need to affect method level variables
+    if (supportedCustomDataTypeOptional.isPresent()) {
+      SupportedCustomDataType supportedCustomDataType = supportedCustomDataTypeOptional.get();
+      sparkType = supportedCustomDataType.getSqlType();
+    }
     if (sparkType instanceof StructType) {
       subFields = sparkToBigQueryFields((StructType) sparkType, depth + 1);
       fieldType = LegacySQLTypeName.RECORD;
@@ -462,7 +483,8 @@ public class SchemaConverters {
 
     Field.Builder fieldBuilder =
         createBigQueryFieldBuilder(fieldName, fieldType, fieldMode, subFields);
-    Optional<String> description = getDescriptionOrCommentOfField(sparkField);
+    Optional<String> description =
+        getDescriptionOrCommentOfField(sparkField, supportedCustomDataTypeOptional);
 
     if (description.isPresent()) {
       fieldBuilder.setDescription(description.get());
@@ -477,15 +499,28 @@ public class SchemaConverters {
     return fieldBuilder.build();
   }
 
-  public static Optional<String> getDescriptionOrCommentOfField(StructField field) {
+  public static Optional<String> getDescriptionOrCommentOfField(
+      StructField field, Optional<SupportedCustomDataType> supportedCustomDataTypeOptional) {
+    Optional<String> description = Optional.empty();
+
     if (!field.getComment().isEmpty()) {
-      return Optional.of(field.getComment().get());
-    }
-    if (field.metadata().contains("description")
+      description = Optional.of(field.getComment().get());
+    } else if (field.metadata().contains("description")
         && field.metadata().getString("description") != null) {
-      return Optional.of(field.metadata().getString("description"));
+      description = Optional.of(field.metadata().getString("description"));
     }
-    return Optional.empty();
+
+    Optional<String> marker =
+        supportedCustomDataTypeOptional.map(SupportedCustomDataType::getTypeMarker);
+
+    // skipping some lambdas for readability
+    if (description.isPresent()) {
+      String descriptionString = description.get();
+      return Optional.of(
+          marker.map(value -> descriptionString + " " + value).orElse(descriptionString));
+    }
+    // no description, so the field marker determines the result
+    return marker;
   }
 
   @VisibleForTesting
