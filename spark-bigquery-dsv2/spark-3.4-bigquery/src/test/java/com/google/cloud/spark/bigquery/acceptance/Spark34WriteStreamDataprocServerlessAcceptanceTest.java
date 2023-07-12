@@ -17,7 +17,7 @@ package com.google.cloud.spark.bigquery.acceptance;
 
 import org.junit.Ignore;
 
-@Ignore // spark-3.3-bigquery does not support streaming yet
+@Ignore // spark-3.4-bigquery does not support streaming yet
 public class Spark34WriteStreamDataprocServerlessAcceptanceTest
     extends WriteStreamDataprocServerlessAcceptanceTestBase {
 
