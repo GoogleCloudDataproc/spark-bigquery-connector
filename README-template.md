@@ -389,7 +389,8 @@ The API Supports a number of options to configure the read
        may be less if BigQuery deems the data small enough. If there are not
        enough executors to schedule a reader per partition, some partitions may
        be empty.
-       <br/>(Optional. Defaults to 3 times the application's default parallelism)</a>.)
+       <br/>(Optional. Defaults to the smallest of 3 times the application's default parallelism 
+       and maxParallelism</a>.)
    </td>
    <td>Read</td>
   </tr>
