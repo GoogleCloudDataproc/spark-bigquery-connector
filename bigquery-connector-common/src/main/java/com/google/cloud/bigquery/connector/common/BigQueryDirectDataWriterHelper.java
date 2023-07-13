@@ -52,6 +52,8 @@ public class BigQueryDirectDataWriterHelper {
   private final ProtoSchema protoSchema;
   private final RetrySettings retrySettings;
   private final Optional<String> traceId;
+  private final int partitionId;
+  private final boolean writeAtLeastOnce;
 
   private String writeStreamName;
   private StreamWriter streamWriter;
@@ -66,18 +68,26 @@ public class BigQueryDirectDataWriterHelper {
       String tablePath,
       ProtoSchema protoSchema,
       RetrySettings bigqueryDataWriterHelperRetrySettings,
-      Optional<String> traceId) {
+      Optional<String> traceId,
+      int partitionId,
+      boolean writeAtLeastOnce) {
     this.writeClient = writeClientFactory.getBigQueryWriteClient();
     this.tablePath = tablePath;
     this.protoSchema = protoSchema;
     this.retrySettings = bigqueryDataWriterHelperRetrySettings;
     this.traceId = traceId;
+    this.partitionId = partitionId;
+    this.writeAtLeastOnce = writeAtLeastOnce;
 
-    try {
-      this.writeStreamName = retryCreateWriteStream();
-    } catch (ExecutionException | InterruptedException e) {
-      throw new BigQueryConnectorException(
-          "Could not create write-stream after multiple retries", e);
+    if (writeAtLeastOnce) {
+      this.writeStreamName = this.tablePath + "/_default";
+    } else {
+      try {
+        this.writeStreamName = retryCreateWriteStream();
+      } catch (ExecutionException | InterruptedException e) {
+        throw new BigQueryConnectorException(
+            "Could not create write-stream after multiple retries", e);
+      }
     }
     this.streamWriter = createStreamWriter(this.writeStreamName);
     this.protoRows = ProtoRows.newBuilder();
@@ -181,7 +191,7 @@ public class BigQueryDirectDataWriterHelper {
    *     (deduplication error) or if the response contains an error.
    */
   private void sendAppendRowsRequest() throws IOException {
-    long offset = writeStreamRowCount;
+    long offset = this.writeAtLeastOnce ? -1 : writeStreamRowCount;
 
     ApiFuture<AppendRowsResponse> appendRowsResponseApiFuture =
         streamWriter.append(protoRows.build(), offset);
@@ -216,14 +226,16 @@ public class BigQueryDirectDataWriterHelper {
           "Append request failed with error: " + appendRowsResponse.getError().getMessage());
     }
 
-    AppendRowsResponse.AppendResult appendResult = appendRowsResponse.getAppendResult();
-    long responseOffset = appendResult.getOffset().getValue();
+    if (!this.writeAtLeastOnce) {
+      AppendRowsResponse.AppendResult appendResult = appendRowsResponse.getAppendResult();
+      long responseOffset = appendResult.getOffset().getValue();
 
-    if (expectedOffset != responseOffset) {
-      throw new IOException(
-          String.format(
-              "On stream %s append-rows response, offset %d did not match expected offset %d",
-              writeStreamName, responseOffset, expectedOffset));
+      if (expectedOffset != responseOffset) {
+        throw new IOException(
+            String.format(
+                "On stream %s append-rows response, offset %d did not match expected offset %d",
+                writeStreamName, responseOffset, expectedOffset));
+      }
     }
   }
 
@@ -241,25 +253,31 @@ public class BigQueryDirectDataWriterHelper {
     if (this.protoRows.getSerializedRowsCount() != 0) {
       sendAppendRowsRequest();
     }
+    long responseFinalizedRowCount = writeStreamRowCount;
 
-    waitBeforeFinalization();
+    if (!this.writeAtLeastOnce) {
+      waitBeforeFinalization();
 
-    FinalizeWriteStreamRequest finalizeWriteStreamRequest =
-        FinalizeWriteStreamRequest.newBuilder().setName(writeStreamName).build();
-    FinalizeWriteStreamResponse finalizeResponse =
-        retryFinalizeWriteStream(finalizeWriteStreamRequest);
+      FinalizeWriteStreamRequest finalizeWriteStreamRequest =
+          FinalizeWriteStreamRequest.newBuilder().setName(writeStreamName).build();
+      FinalizeWriteStreamResponse finalizeResponse =
+          retryFinalizeWriteStream(finalizeWriteStreamRequest);
 
-    long expectedFinalizedRowCount = writeStreamRowCount;
-    long responseFinalizedRowCount = finalizeResponse.getRowCount();
-    if (responseFinalizedRowCount != expectedFinalizedRowCount) {
-      throw new IOException(
-          String.format(
-              "On stream %s finalization, expected finalized row count %d but received %d",
-              writeStreamName, expectedFinalizedRowCount, responseFinalizedRowCount));
+      long expectedFinalizedRowCount = writeStreamRowCount;
+      responseFinalizedRowCount = finalizeResponse.getRowCount();
+      if (responseFinalizedRowCount != expectedFinalizedRowCount) {
+        throw new IOException(
+            String.format(
+                "On stream %s finalization, expected finalized row count %d but received %d",
+                writeStreamName, expectedFinalizedRowCount, responseFinalizedRowCount));
+      }
     }
 
     logger.debug(
-        "Write-stream {} finalized with row-count {}", writeStreamName, responseFinalizedRowCount);
+        "Write-stream {} with name {} finalized with row-count {}",
+        partitionId,
+        writeStreamName,
+        responseFinalizedRowCount);
 
     clean();
 

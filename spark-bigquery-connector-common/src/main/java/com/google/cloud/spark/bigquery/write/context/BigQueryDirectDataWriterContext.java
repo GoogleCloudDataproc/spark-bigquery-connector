@@ -57,7 +57,8 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
       StructType sparkSchema,
       ProtoSchema protoSchema,
       RetrySettings bigqueryDataWriterHelperRetrySettings,
-      Optional<String> traceId) {
+      Optional<String> traceId,
+      boolean writeAtLeastOnce) {
     this.partitionId = partitionId;
     this.taskId = taskId;
     this.epochId = epochId;
@@ -76,7 +77,9 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
             tablePath,
             protoSchema,
             bigqueryDataWriterHelperRetrySettings,
-            traceId);
+            traceId,
+            partitionId,
+            writeAtLeastOnce);
   }
 
   @Override

@@ -161,11 +161,17 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     return bq.getTable(testDataset.toString(), testTable + "_partitioned").getDefinition();
   }
 
-  protected void writeToBigQuery(Dataset<Row> df, SaveMode mode) {
-    writeToBigQuery(df, mode, "avro");
+  protected void writeToBigQueryAvroFormat(
+      Dataset<Row> df, SaveMode mode, String writeAtLeastOnce) {
+    writeToBigQuery(df, mode, "avro", writeAtLeastOnce);
   }
 
   protected void writeToBigQuery(Dataset<Row> df, SaveMode mode, String format) {
+    writeToBigQuery(df, mode, format, "False");
+  }
+
+  protected void writeToBigQuery(
+      Dataset<Row> df, SaveMode mode, String format, String writeAtLeastOnce) {
     df.write()
         .format("bigquery")
         .mode(mode)
@@ -173,6 +179,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("intermediateFormat", format)
         .option("writeMethod", writeMethod.toString())
+        .option("writeAtLeastOnce", writeAtLeastOnce)
         .save();
   }
 
@@ -185,20 +192,30 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .load();
   }
 
-  @Test
-  public void testWriteToBigQuery_AppendSaveMode() throws InterruptedException {
+  private void writeToBigQuery_AppendSaveMode_Internal(String writeAtLeastOnce)
+      throws InterruptedException {
     // initial write
-    writeToBigQuery(initialData(), SaveMode.Append);
+    writeToBigQueryAvroFormat(initialData(), SaveMode.Append, writeAtLeastOnce);
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     // second write
-    writeToBigQuery(additonalData(), SaveMode.Append);
+    writeToBigQueryAvroFormat(additonalData(), SaveMode.Append, writeAtLeastOnce);
     assertThat(testTableNumberOfRows()).isEqualTo(4);
     assertThat(additionalDataValuesExist()).isTrue();
   }
 
   @Test
-  public void testWriteToBigQuery_WithTableLabels() {
+  public void testWriteToBigQuery_AppendSaveMode() throws InterruptedException {
+    writeToBigQuery_AppendSaveMode_Internal("False");
+  }
+
+  @Test
+  public void testWriteToBigQuery_AppendSaveMode_AtLeastOnce() throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    writeToBigQuery_AppendSaveMode_Internal("True");
+  }
+
+  private void writeToBigQuery_WithTableLabels_Internal(String writeAtLeastOnce) {
     Dataset<Row> df = initialData();
 
     df.write()
@@ -208,6 +225,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("intermediateFormat", "avro")
         .option("writeMethod", writeMethod.toString())
+        .option("writeAtLeastOnce", writeAtLeastOnce)
         .option("bigQueryTableLabel.alice", "bob")
         .option("bigQueryTableLabel.foo", "bar")
         .save();
@@ -220,7 +238,18 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQuery_EnableListInference() throws InterruptedException {
+  public void testWriteToBigQuery_WithTableLabels() {
+    writeToBigQuery_WithTableLabels_Internal("False");
+  }
+
+  @Test
+  public void testWriteToBigQuery_WithTableLabels_AtLeastOnce() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    writeToBigQuery_WithTableLabels_Internal("True");
+  }
+
+  private void writeToBigQuery_EnableListInference_Internal(String writeAtLeastOnce)
+      throws InterruptedException {
     Dataset<Row> df = initialData();
     df.write()
         .format("bigquery")
@@ -229,6 +258,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("intermediateFormat", "parquet")
         .option("writeMethod", writeMethod.toString())
+        .option("writeAtLeastOnce", writeAtLeastOnce)
         .option("enableListInference", true)
         .save();
 
@@ -246,47 +276,85 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQuery_ErrorIfExistsSaveMode() throws InterruptedException {
+  public void testWriteToBigQuery_EnableListInference() throws InterruptedException {
+    writeToBigQuery_EnableListInference_Internal("False");
+  }
+
+  @Test
+  public void testWriteToBigQuery_EnableListInference_AtLeastOnce() throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    writeToBigQuery_EnableListInference_Internal("True");
+  }
+
+  private void writeToBigQuery_ErrorIfExistsSaveMode_Internal(String writeAtLeastOnce)
+      throws InterruptedException {
     // initial write
-    writeToBigQuery(initialData(), SaveMode.ErrorIfExists);
+    writeToBigQueryAvroFormat(initialData(), SaveMode.ErrorIfExists, writeAtLeastOnce);
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     assertThrows(
         expectedExceptionOnExistingTable,
-        () -> writeToBigQuery(additonalData(), SaveMode.ErrorIfExists));
+        () -> writeToBigQueryAvroFormat(additonalData(), SaveMode.ErrorIfExists, writeAtLeastOnce));
   }
 
   @Test
-  public void testWriteToBigQuery_IgnoreSaveMode() throws InterruptedException {
+  public void testWriteToBigQuery_ErrorIfExistsSaveMode() throws InterruptedException {
+    writeToBigQuery_ErrorIfExistsSaveMode_Internal("False");
+  }
+
+  @Test
+  public void testWriteToBigQuery_ErrorIfExistsSaveMode_AtLeastOnce() throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    writeToBigQuery_ErrorIfExistsSaveMode_Internal("True");
+  }
+
+  private void writeToBigQuery_IgnoreSaveMode_Internal(String writeAtLeastOnce)
+      throws InterruptedException {
     // initial write
-    writeToBigQuery(initialData(), SaveMode.Ignore);
+    writeToBigQueryAvroFormat(initialData(), SaveMode.Ignore, writeAtLeastOnce);
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     // second write
-    writeToBigQuery(additonalData(), SaveMode.Ignore);
+    writeToBigQueryAvroFormat(additonalData(), SaveMode.Ignore, writeAtLeastOnce);
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     assertThat(additionalDataValuesExist()).isFalse();
   }
 
   @Test
-  public void testWriteToBigQuery_OverwriteSaveMode() throws InterruptedException {
+  public void testWriteToBigQuery_IgnoreSaveMode() throws InterruptedException {
+    writeToBigQuery_IgnoreSaveMode_Internal("False");
+  }
+
+  @Test
+  public void testWriteToBigQuery_IgnoreSaveMode_AtLeastOnce() throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    writeToBigQuery_IgnoreSaveMode_Internal("True");
+  }
+
+  private void writeToBigQuery_OverwriteSaveMode_Internal(String writeAtLeastOnce)
+      throws InterruptedException {
     // initial write
-    writeToBigQuery(initialData(), SaveMode.Overwrite);
+    writeToBigQueryAvroFormat(initialData(), SaveMode.Overwrite, writeAtLeastOnce);
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
 
-    // Adding a two minute cushion as the data takes some time to move from buffer to the actual
-    // table. Without this cushion, get the following error:
-    // "UPDATE or DELETE statement over {DestinationTable} would affect rows in the streaming
-    // buffer, which is not supported"
-    Thread.sleep(120 * 1000);
-
     // second write
-    writeToBigQuery(additonalData(), SaveMode.Overwrite);
+    writeToBigQueryAvroFormat(additonalData(), SaveMode.Overwrite, writeAtLeastOnce);
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isFalse();
     assertThat(additionalDataValuesExist()).isTrue();
+  }
+
+  @Test
+  public void testWriteToBigQuery_OverwriteSaveMode() throws InterruptedException {
+    writeToBigQuery_OverwriteSaveMode_Internal("False");
+  }
+
+  @Test
+  public void testWriteToBigQuery_OverwriteSaveMode_AtLeastOnce() throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    writeToBigQuery_OverwriteSaveMode_Internal("True");
   }
 
   @Test
@@ -296,16 +364,28 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(initialDataValuesExist()).isTrue();
   }
 
-  @Test
-  public void testWriteToBigQuerySimplifiedApi() throws InterruptedException {
+  private void writeToBigQuerySimplifiedApi_Internal(String writeAtLeastOnce)
+      throws InterruptedException {
     initialData()
         .write()
         .format("bigquery")
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("writeMethod", writeMethod.toString())
+        .option("writeAtLeastOnce", writeAtLeastOnce)
         .save(fullTableName());
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
+  }
+
+  @Test
+  public void testWriteToBigQuerySimplifiedApi() throws InterruptedException {
+    writeToBigQuerySimplifiedApi_Internal("False");
+  }
+
+  @Test
+  public void testWriteToBigQuerySimplifiedApi_AtLeastOnce() throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    writeToBigQuerySimplifiedApi_Internal("True");
   }
 
   @Test
@@ -321,8 +401,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(initialDataValuesExist()).isTrue();
   }
 
-  @Test
-  public void testDirectWriteToBigQueryWithDiffInSchema() throws Exception {
+  private void directWriteToBigQueryWithDiffInSchema_Internal(String writeAtLeastOnce)
+      throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     int numOfRows = testTableNumberOfRows(destTableName);
@@ -338,13 +418,25 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .format("bigquery")
         .mode(SaveMode.Append)
         .option("writeMethod", writeMethod.toString())
+        .option("writeAtLeastOnce", writeAtLeastOnce)
         .save(testDataset + "." + destTableName);
     numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(1);
   }
 
   @Test
-  public void testDirectWriteToBigQueryWithDiffInSchemaAndDisableModeCheck() throws Exception {
+  public void testDirectWriteToBigQueryWithDiffInSchema() throws Exception {
+    directWriteToBigQueryWithDiffInSchema_Internal("False");
+  }
+
+  @Test
+  public void testDirectWriteToBigQueryWithDiffInSchema_AtLeastOnce() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    directWriteToBigQueryWithDiffInSchema_Internal("True");
+  }
+
+  private void directWriteToBigQueryWithDiffInSchemaAndDisableModeCheck_Internal(
+      String writeAtLeastOnce) throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
@@ -358,6 +450,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .format("bigquery")
         .mode(SaveMode.Append)
         .option("writeMethod", writeMethod.toString())
+        .option("writeAtLeastOnce", writeAtLeastOnce)
         .option("enableModeCheckForSchemaFields", false)
         .save(testDataset + "." + destTableName);
     int numOfRows = testTableNumberOfRows(destTableName);
@@ -365,7 +458,19 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testDirectWriteToBigQueryWithDiffInDescription() throws Exception {
+  public void testDirectWriteToBigQueryWithDiffInSchemaAndDisableModeCheck() throws Exception {
+    directWriteToBigQueryWithDiffInSchemaAndDisableModeCheck_Internal("False");
+  }
+
+  @Test
+  public void testDirectWriteToBigQueryWithDiffInSchemaAndDisableModeCheck_AtLeastOnce()
+      throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    directWriteToBigQueryWithDiffInSchemaAndDisableModeCheck_Internal("True");
+  }
+
+  private void directWriteToBigQueryWithDiffInDescription_Internal(String writeAtLeastOnce)
+      throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     int numOfRows = testTableNumberOfRows(destTableName);
@@ -383,9 +488,21 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .format("bigquery")
         .mode(SaveMode.Append)
         .option("writeMethod", writeMethod.toString())
+        .option("writeAtLeastOnce", writeAtLeastOnce)
         .save(testDataset + "." + destTableName);
     numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(1);
+  }
+
+  @Test
+  public void testDirectWriteToBigQueryWithDiffInDescription() throws Exception {
+    directWriteToBigQueryWithDiffInDescription_Internal("False");
+  }
+
+  @Test
+  public void testDirectWriteToBigQueryWithDiffInDescription_AtLeastOnce() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    directWriteToBigQueryWithDiffInDescription_Internal("True");
   }
 
   @Test
@@ -456,8 +573,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(numOfRows).isEqualTo(1);
   }
 
-  @Test
-  public void testWriteDFNullableToBigQueryNullable() throws Exception {
+  private void writeDFNullableToBigQueryNullable_Internal(String writeAtLeastOnce)
+      throws Exception {
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_NULLABLE_FIELD);
     StructType srcSchema =
@@ -470,13 +587,25 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .mode(SaveMode.Append)
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("writeMethod", writeMethod.toString())
+        .option("writeAtLeastOnce", writeAtLeastOnce)
         .save(testDataset + "." + destTableName);
     int numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(2);
   }
 
   @Test
-  public void testWriteDFNullableWithNonNullDataToBigQueryRequired() throws Exception {
+  public void testWriteDFNullableToBigQueryNullable() throws Exception {
+    writeDFNullableToBigQueryNullable_Internal("False");
+  }
+
+  @Test
+  public void testWriteDFNullableToBigQueryNullable_AtLeastOnce() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    writeDFNullableToBigQueryNullable_Internal("True");
+  }
+
+  private void writeDFNullableWithNonNullDataToBigQueryRequired_Internal(String writeAtLeastOnce)
+      throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REQUIRED_FIELD);
@@ -490,9 +619,21 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .mode(SaveMode.Append)
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("writeMethod", writeMethod.toString())
+        .option("writeAtLeastOnce", writeAtLeastOnce)
         .save(testDataset + "." + destTableName);
     int numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(1);
+  }
+
+  @Test
+  public void testWriteDFNullableWithNonNullDataToBigQueryRequired() throws Exception {
+    writeDFNullableWithNonNullDataToBigQueryRequired_Internal("False");
+  }
+
+  @Test
+  public void testWriteDFNullableWithNonNullDataToBigQueryRequired_AtLeastOnce() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    writeDFNullableWithNonNullDataToBigQueryRequired_Internal("True");
   }
 
   @Test
@@ -852,7 +993,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   @Test
   public void testWriteEmptyDataFrame() throws Exception {
     Dataset<Row> df = spark.createDataFrame(Collections.emptyList(), Link.class);
-    writeToBigQuery(df, SaveMode.Append);
+    writeToBigQueryAvroFormat(df, SaveMode.Append, "False");
     assertThat(testTableNumberOfRows()).isEqualTo(0);
   }
 
@@ -914,7 +1055,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
 
     Dataset<Row> allTypesTable = readAllTypesTable();
-    writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro");
+    writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro", "False");
 
     Dataset<Row> df =
         spark

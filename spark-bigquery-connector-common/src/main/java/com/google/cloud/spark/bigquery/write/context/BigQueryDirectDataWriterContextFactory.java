@@ -31,6 +31,7 @@ public class BigQueryDirectDataWriterContextFactory
   private final boolean ignoreInputs;
   private final RetrySettings bigqueryDataWriterHelperRetrySettings;
   private final Optional<String> traceId;
+  private final boolean writeAtLeastOnce;
 
   public BigQueryDirectDataWriterContextFactory(
       BigQueryClientFactory writeClientFactory,
@@ -39,7 +40,8 @@ public class BigQueryDirectDataWriterContextFactory
       ProtoSchema protoSchema,
       boolean ignoreInputs,
       RetrySettings bigqueryDataWriterHelperRetrySettings,
-      Optional<String> traceId) {
+      Optional<String> traceId,
+      boolean writeAtLeastOnce) {
     this.writeClientFactory = writeClientFactory;
     this.tablePath = tablePath;
     this.sparkSchema = sparkSchema;
@@ -47,6 +49,7 @@ public class BigQueryDirectDataWriterContextFactory
     this.ignoreInputs = ignoreInputs;
     this.bigqueryDataWriterHelperRetrySettings = bigqueryDataWriterHelperRetrySettings;
     this.traceId = traceId;
+    this.writeAtLeastOnce = writeAtLeastOnce;
   }
 
   /**
@@ -75,6 +78,7 @@ public class BigQueryDirectDataWriterContextFactory
         sparkSchema,
         protoSchema,
         bigqueryDataWriterHelperRetrySettings,
-        traceId);
+        traceId,
+        writeAtLeastOnce);
   }
 }

@@ -3,6 +3,7 @@
 ## Next
 
 * Issue #993: Spark ML vector read and write fails
+* PR #1007: Implement at-least-once option that utilizes default stream
 
 ## 0.31.1 - 2023-06-06
 
