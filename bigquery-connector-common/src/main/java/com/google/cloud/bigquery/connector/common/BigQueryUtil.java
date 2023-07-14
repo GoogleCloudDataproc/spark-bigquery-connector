@@ -339,12 +339,12 @@ public class BigQueryUtil {
   }
 
   // allowing widening narrow numeric into bignumeric
-  // allowing writing long to time
+  // allowing writing string to time
   @VisibleForTesting
   static boolean typeWriteable(LegacySQLTypeName sourceType, LegacySQLTypeName destinationType) {
     return (sourceType.equals(LegacySQLTypeName.NUMERIC)
             && destinationType.equals(LegacySQLTypeName.BIGNUMERIC))
-        || (sourceType.equals(LegacySQLTypeName.INTEGER)
+        || (sourceType.equals(LegacySQLTypeName.STRING)
             && destinationType.equals(LegacySQLTypeName.TIME))
         || sourceType.equals(destinationType);
   }
