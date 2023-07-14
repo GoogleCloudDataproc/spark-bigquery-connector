@@ -1360,8 +1360,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testWriteLongToTimeField() throws Exception {
     IntegrationTestUtils.runQuery(
         String.format(
-            "CREATE TABLE `%s.%s` (name STRING, wake_up_time TIME)",
-            testDataset, testTable));
+            "CREATE TABLE `%s.%s` (name STRING, wake_up_time TIME)", testDataset, testTable));
     String name = "abc";
     Long wakeUpTime = 36000000000L;
     Dataset<Row> df =
