@@ -105,7 +105,7 @@ public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertab
               logger.error(
                   "Encountered errors in "
                       + errors
-                      + " partition(s), aborting the write. Errors listed below");
+                      + " partitions, aborting the write. Errors listed below");
               int i = 1;
               for (Exception e : errors) {
                 logger.error("Error #" + i, e);
