@@ -184,6 +184,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   Dataset<Row> readAllTypesTable() {
+    IntegrationTestUtils.runQuery(
+        String.format(
+            TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE,
+            testDataset,
+            TestConstants.ALL_TYPES_TABLE_NAME));
     return spark
         .read()
         .format("bigquery")
@@ -404,6 +409,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   private void directWriteToBigQueryWithDiffInSchema_Internal(String writeAtLeastOnce)
       throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE,
+            testDataset,
+            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME));
     String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     int numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(0);
@@ -438,6 +448,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   private void directWriteToBigQueryWithDiffInSchemaAndDisableModeCheck_Internal(
       String writeAtLeastOnce) throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE,
+            testDataset,
+            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME));
     String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
         spark
@@ -508,6 +523,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   @Test
   public void testInDirectWriteToBigQueryWithDiffInSchemaAndModeCheck() throws Exception {
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE,
+            testDataset,
+            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME));
     String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
         spark
@@ -531,6 +551,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testIndirectWriteToBigQueryWithDiffInSchemaNullableFieldAndDisableModeCheck()
       throws Exception {
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE,
+            testDataset,
+            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME));
     String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
         spark
@@ -553,6 +578,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   @Test
   public void testInDirectWriteToBigQueryWithDiffInDescription() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_WITH_DESCRIPTION,
+            testDataset,
+            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME_WITH_DESCRIPTION));
     String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
         spark

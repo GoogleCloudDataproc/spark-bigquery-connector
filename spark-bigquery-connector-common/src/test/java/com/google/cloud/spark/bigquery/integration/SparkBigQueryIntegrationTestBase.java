@@ -61,27 +61,27 @@ public class SparkBigQueryIntegrationTestBase {
     @Override
     protected void before() throws Throwable {
       IntegrationTestUtils.createDataset(testDataset);
-      IntegrationTestUtils.runQuery(
-          String.format(
-              TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE,
-              testDataset,
-              TestConstants.ALL_TYPES_TABLE_NAME));
-      IntegrationTestUtils.createView(testDataset, TestConstants.ALL_TYPES_VIEW_NAME);
-      IntegrationTestUtils.runQuery(
-          String.format(
-              TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE,
-              testDataset,
-              TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_NAME));
-      IntegrationTestUtils.runQuery(
-          String.format(
-              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE,
-              testDataset,
-              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME));
-      IntegrationTestUtils.runQuery(
-          String.format(
-              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_WITH_DESCRIPTION,
-              testDataset,
-              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME_WITH_DESCRIPTION));
+      //      IntegrationTestUtils.runQuery(
+      //          String.format(
+      //              TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE,
+      //              testDataset,
+      //              TestConstants.ALL_TYPES_TABLE_NAME));
+      //      IntegrationTestUtils.createView(testDataset, TestConstants.ALL_TYPES_VIEW_NAME);
+      //      IntegrationTestUtils.runQuery(
+      //          String.format(
+      //              TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE,
+      //              testDataset,
+      //              TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_NAME));
+      //      IntegrationTestUtils.runQuery(
+      //          String.format(
+      //              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE,
+      //              testDataset,
+      //              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME));
+      //      IntegrationTestUtils.runQuery(
+      //          String.format(
+      //              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_WITH_DESCRIPTION,
+      //              testDataset,
+      //              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME_WITH_DESCRIPTION));
     }
 
     @Override

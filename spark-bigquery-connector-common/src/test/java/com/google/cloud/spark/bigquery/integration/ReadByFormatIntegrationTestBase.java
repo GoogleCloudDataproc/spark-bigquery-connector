@@ -279,6 +279,12 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   }
 
   Dataset<Row> getViewDataFrame() {
+    IntegrationTestUtils.runQuery(
+        String.format(
+            TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE,
+            testDataset,
+            TestConstants.ALL_TYPES_TABLE_NAME));
+    IntegrationTestUtils.createView(testDataset.toString(), TestConstants.ALL_TYPES_VIEW_NAME);
     return spark
         .read()
         .format("bigquery")
@@ -291,6 +297,11 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   }
 
   Dataset<Row> readAllTypesTable() {
+    IntegrationTestUtils.runQuery(
+        String.format(
+            TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE,
+            testDataset,
+            TestConstants.ALL_TYPES_TABLE_NAME));
     return spark
         .read()
         .format("bigquery")
