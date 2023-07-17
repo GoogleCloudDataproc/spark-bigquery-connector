@@ -91,6 +91,7 @@ public class DataSourceWriterContextPartitionHandlerTest {
     verify(dataWriterContext).abort();
     List<WriterCommitMessageContext> result =
         Streams.stream(resultIterator).collect(Collectors.toList());
-    assertThat(resultIterator.hasNext()).isFalse();
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getError().isPresent()).isTrue();
   }
 }

@@ -26,6 +26,9 @@ import com.google.cloud.spark.bigquery.write.context.BigQueryIndirectDataSourceW
 import com.google.cloud.spark.bigquery.write.context.DataSourceWriterContext;
 import com.google.cloud.spark.bigquery.write.context.WriterCommitMessageContext;
 import com.google.inject.Injector;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -85,7 +88,32 @@ public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertab
         WriterCommitMessageContext[] writerCommitMessages =
             writerCommitMessagesRDD.collect().toArray(new WriterCommitMessageContext[0]);
         if (writerCommitMessages.length == numPartitions) {
-          ctx.commit(writerCommitMessages);
+          List<Exception> errors =
+              Arrays.stream(writerCommitMessages)
+                  .filter(msg -> msg.getError().isPresent())
+                  .map(msg -> msg.getError().get())
+                  .collect(Collectors.toList());
+          if (errors.isEmpty()) {
+            // All is well, let's commit
+            ctx.commit(writerCommitMessages);
+          } else {
+            // oops, has some errors
+            if (errors.size() == 1) {
+              logger.error(
+                  "Encountered errors in one partition, aborting the write", errors.get(0));
+            } else {
+              logger.error(
+                  "Encountered errors in "
+                      + errors.size()
+                      + " partitions, aborting the write. Errors listed below");
+              int i = 1;
+              for (Exception e : errors) {
+                logger.error("Error #" + i, e);
+                i++;
+              }
+            }
+            throw new BigQueryConnectorException("Write error in partitions.", errors.get(0));
+          }
         } else {
           // missing commit messages, so abort
           ctx.abort(writerCommitMessages);

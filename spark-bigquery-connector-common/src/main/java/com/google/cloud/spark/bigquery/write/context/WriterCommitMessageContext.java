@@ -16,5 +16,11 @@
 package com.google.cloud.spark.bigquery.write.context;
 
 import java.io.Serializable;
+import java.util.Optional;
 
-public interface WriterCommitMessageContext extends Serializable {}
+public interface WriterCommitMessageContext extends Serializable {
+
+  default Optional<Exception> getError() {
+    return Optional.empty();
+  }
+}
