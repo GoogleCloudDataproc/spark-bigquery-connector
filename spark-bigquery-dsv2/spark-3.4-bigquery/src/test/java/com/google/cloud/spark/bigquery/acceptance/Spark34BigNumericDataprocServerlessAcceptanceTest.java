@@ -15,6 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.acceptance;
 
+import org.junit.Ignore;
+
+@Ignore // Waiting for the serverless dataproc.sparkBqConnector.uri property
 public class Spark34BigNumericDataprocServerlessAcceptanceTest
     extends BigNumericDataprocServerlessAcceptanceTestBase {
 
