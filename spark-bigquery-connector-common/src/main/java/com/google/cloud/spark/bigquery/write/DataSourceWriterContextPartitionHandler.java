@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import java.io.Serializable;
 import java.util.Iterator;
+import java.util.Optional;
 import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.sql.Row;
@@ -69,7 +70,14 @@ public class DataSourceWriterContextPartitionHandler
             epoch,
             e);
         dataWriterContext.abort();
-        return ImmutableList.<WriterCommitMessageContext>of().iterator();
+        WriterCommitMessageContext writerCommitMessage =
+            new WriterCommitMessageContext() {
+              @Override
+              public Optional<Exception> getError() {
+                return Optional.of(e);
+              }
+            };
+        return ImmutableList.<WriterCommitMessageContext>of(writerCommitMessage).iterator();
       }
     }
   }
