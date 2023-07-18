@@ -1,11 +1,11 @@
 package com.google.cloud.spark.bigquery.v2.customMetrics;
 
-import static com.google.cloud.spark.bigquery.v2.customMetrics.Spark32CustomMetricUtils.BIG_QUERY_BYTES_READ_METRIC_DESCRIPTION;
-import static com.google.cloud.spark.bigquery.v2.customMetrics.Spark32CustomMetricUtils.BIG_QUERY_BYTES_READ_METRIC_NAME;
+import static com.google.cloud.spark.bigquery.v2.customMetrics.Spark32BigQueryCustomMetricConstants.BIG_QUERY_BYTES_READ_METRIC_DESCRIPTION;
+import static com.google.cloud.spark.bigquery.v2.customMetrics.Spark32BigQueryCustomMetricConstants.BIG_QUERY_BYTES_READ_METRIC_NAME;
 
 import org.apache.spark.sql.connector.metric.CustomMetric;
 
-public class Spark32CustomBytesReadMetric implements CustomMetric {
+public class Spark32BigQueryBytesReadMetric implements CustomMetric {
 
   @Override
   public String name() {

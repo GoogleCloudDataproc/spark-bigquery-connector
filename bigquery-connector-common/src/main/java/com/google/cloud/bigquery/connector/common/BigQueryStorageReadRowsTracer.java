@@ -61,4 +61,10 @@ public interface BigQueryStorageReadRowsTracer extends Serializable {
   long getBytesRead();
 
   long getRowsRead();
+
+  long getScanTimeInMilliSec();
+
+  long getParseTimeInMilliSec();
+
+  long getTimeInSparkInMilliSec();
 }

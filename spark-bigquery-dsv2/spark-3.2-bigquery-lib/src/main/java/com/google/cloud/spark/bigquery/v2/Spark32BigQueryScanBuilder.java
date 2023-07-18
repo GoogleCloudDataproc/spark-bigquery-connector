@@ -17,8 +17,7 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
-import com.google.cloud.spark.bigquery.v2.customMetrics.Spark32CustomBytesReadMetric;
-import com.google.cloud.spark.bigquery.v2.customMetrics.Spark32CustomRowsReadMetric;
+import com.google.cloud.spark.bigquery.v2.customMetrics.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
@@ -59,7 +58,11 @@ public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
   @Override
   public CustomMetric[] supportedCustomMetrics() {
     return new CustomMetric[] {
-      new Spark32CustomBytesReadMetric(), new Spark32CustomRowsReadMetric()
+      new Spark32BigQueryBytesReadMetric(),
+      new Spark32BigQueryRowsReadMetric(),
+      new Spark32BigQueryScanTimeMetric(),
+      new Spark32BigQueryParseTimeMetric(),
+      new Spark32BigQueryTimeInSparkMetric()
     };
   }
 
