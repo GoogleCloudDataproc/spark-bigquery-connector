@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.32.0 - 2023-07-17
 
 * Issue #748: `_PARTITIONDATE` pseudo column is provided only for ingestion time **daily** partitioned tables
 * Issue #990: Fix to support `allowFieldAddition` for columns with nested fields.
