@@ -208,10 +208,10 @@ public class SparkFilterUtilsTest {
   @Test
   public void testDateFilters_java8Time() {
     assertThat(
-        SparkFilterUtils.compileFilter(
-            In.apply(
-                "datefield",
-                new Object[] {LocalDate.of(2020, 9, 1), LocalDate.of(2020, 11, 3)})))
+            SparkFilterUtils.compileFilter(
+                In.apply(
+                    "datefield",
+                    new Object[] {LocalDate.of(2020, 9, 1), LocalDate.of(2020, 11, 3)})))
         .isEqualTo("`datefield` IN (DATE '2020-09-01', DATE '2020-11-03')");
   }
 
