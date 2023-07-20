@@ -230,7 +230,7 @@ public class SparkFilterUtilsTest {
     Instant ts2 = LocalDateTime.of(2020, 1, 25, 2, 10, 10).toInstant(ZoneOffset.UTC);
     assertThat(SparkFilterUtils.compileFilter(In.apply("tsfield", new Object[] {ts1, ts2})))
         .isEqualTo(
-            "`tsfield` IN (TIMESTAMP '2008-12-25 15:30:00Z', TIMESTAMP '2020-01-25 02:10:10Z')");
+            "`tsfield` IN (TIMESTAMP '2008-12-25T15:30:00Z', TIMESTAMP '2020-01-25T02:10:10Z')");
   }
 
   @Test
