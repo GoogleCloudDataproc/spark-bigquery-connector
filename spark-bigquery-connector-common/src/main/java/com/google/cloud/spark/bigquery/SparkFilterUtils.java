@@ -21,6 +21,8 @@ import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.common.collect.ImmutableList;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -315,10 +317,10 @@ public class SparkFilterUtils {
     if (value instanceof String) {
       return "'" + escape((String) value) + "'";
     }
-    if (value instanceof Date) {
+    if (value instanceof Date || value instanceof LocalDate) {
       return "DATE '" + value + "'";
     }
-    if (value instanceof Timestamp) {
+    if (value instanceof Timestamp || value instanceof Instant) {
       return "TIMESTAMP '" + value + "'";
     }
     if (value instanceof Object[]) {

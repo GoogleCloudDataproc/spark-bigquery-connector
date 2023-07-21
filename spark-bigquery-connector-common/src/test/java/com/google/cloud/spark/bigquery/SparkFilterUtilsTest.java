@@ -21,6 +21,10 @@ import com.google.cloud.bigquery.storage.v1.DataFormat;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.text.ParseException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
@@ -202,12 +206,31 @@ public class SparkFilterUtilsTest {
   }
 
   @Test
+  public void testDateFilters_java8Time() {
+    assertThat(
+            SparkFilterUtils.compileFilter(
+                In.apply(
+                    "datefield",
+                    new Object[] {LocalDate.of(2020, 9, 1), LocalDate.of(2020, 11, 3)})))
+        .isEqualTo("`datefield` IN (DATE '2020-09-01', DATE '2020-11-03')");
+  }
+
+  @Test
   public void testTimestampFilters() throws ParseException {
     Timestamp ts1 = Timestamp.valueOf("2008-12-25 15:30:00");
     Timestamp ts2 = Timestamp.valueOf("2020-01-25 02:10:10");
     assertThat(SparkFilterUtils.compileFilter(In.apply("tsfield", new Object[] {ts1, ts2})))
         .isEqualTo(
             "`tsfield` IN (TIMESTAMP '2008-12-25 15:30:00.0', TIMESTAMP '2020-01-25 02:10:10.0')");
+  }
+
+  @Test
+  public void testTimestampFilters_java8Time() {
+    Instant ts1 = LocalDateTime.of(2008, 12, 25, 15, 30, 0).toInstant(ZoneOffset.UTC);
+    Instant ts2 = LocalDateTime.of(2020, 1, 25, 2, 10, 10).toInstant(ZoneOffset.UTC);
+    assertThat(SparkFilterUtils.compileFilter(In.apply("tsfield", new Object[] {ts1, ts2})))
+        .isEqualTo(
+            "`tsfield` IN (TIMESTAMP '2008-12-25T15:30:00Z', TIMESTAMP '2020-01-25T02:10:10Z')");
   }
 
   @Test
