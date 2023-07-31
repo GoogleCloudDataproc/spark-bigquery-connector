@@ -41,7 +41,7 @@ import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
-import scala.annotation.meta.field;
+import org.jetbrains.annotations.NotNull;
 
 public class SchemaConverters {
 
@@ -352,15 +352,7 @@ public class SchemaConverters {
     } else if (LegacySQLTypeName.FLOAT.equals(field.getType())) {
       return DataTypes.DoubleType;
     } else if (LegacySQLTypeName.NUMERIC.equals(field.getType())) {
-      int precision =
-          Optional.ofNullable(field.getPrecision())
-              .map(Long::intValue)
-              .orElse(BigQueryUtil.DEFAULT_NUMERIC_PRECISION);
-      int scale =
-          Optional.ofNullable(field.getScale())
-              .map(Long::intValue)
-              .orElse(BigQueryUtil.DEFAULT_NUMERIC_SCALE);
-      return DataTypes.createDecimalType(precision, scale);
+      return createDecimalTypeFromNumericField(field);
     } else if (LegacySQLTypeName.BIGNUMERIC.equals(field.getType())) {
       int precision =
           Optional.ofNullable(field.getPrecision())
@@ -406,6 +398,36 @@ public class SchemaConverters {
     } else {
       throw new IllegalStateException("Unexpected type: " + field.getType());
     }
+  }
+
+  @NotNull
+  @VisibleForTesting
+  static DecimalType createDecimalTypeFromNumericField(Field field) {
+    Preconditions.checkArgument(
+        field.getType().equals(LegacySQLTypeName.NUMERIC),
+        "Field %s must be of type NUMERIC, instead it is of type %s",
+        field.getName(),
+        field.getType());
+    Optional<Integer> precisionOpt = Optional.ofNullable(field.getPrecision()).map(Long::intValue);
+    Optional<Integer> scaleOpt = Optional.ofNullable(field.getScale()).map(Long::intValue);
+    // Both exist
+    if (precisionOpt.isPresent() && scaleOpt.isPresent()) {
+      return DataTypes.createDecimalType(precisionOpt.get(), scaleOpt.get());
+    }
+    // Both missing
+    if (!precisionOpt.isPresent() && !scaleOpt.isPresent()) {
+      return DataTypes.createDecimalType(
+          BigQueryUtil.DEFAULT_NUMERIC_PRECISION, BigQueryUtil.DEFAULT_NUMERIC_SCALE);
+    }
+    // Either precision or scale exists, but not both
+    if (precisionOpt.isPresent()) {
+      Integer precision = precisionOpt.get().intValue();
+      return DataTypes.createDecimalType(
+          precision, Math.max(0, precision - NUMERIC_MAX_LEFT_OF_DOT_DIGITS));
+    }
+    // only scale exists
+    Integer scale = scaleOpt.get();
+    return DataTypes.createDecimalType(scale + NUMERIC_MAX_LEFT_OF_DOT_DIGITS, scale);
   }
 
   /** Spark ==> BigQuery Schema Converter utils: */
