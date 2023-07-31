@@ -41,7 +41,6 @@ import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
-import org.jetbrains.annotations.NotNull;
 
 public class SchemaConverters {
 
@@ -400,8 +399,7 @@ public class SchemaConverters {
     }
   }
 
-  @NotNull
-  @VisibleForTesting
+   @VisibleForTesting
   static DecimalType createDecimalTypeFromNumericField(Field field) {
     Preconditions.checkArgument(
         field.getType().equals(LegacySQLTypeName.NUMERIC),
