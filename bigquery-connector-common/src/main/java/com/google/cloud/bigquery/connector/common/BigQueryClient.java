@@ -236,7 +236,22 @@ public class BigQueryClient {
    */
   public Job overwriteDestinationWithTemporary(
       TableId temporaryTableId, TableId destinationTableId) {
-    return copyData(temporaryTableId, destinationTableId, JobInfo.WriteDisposition.WRITE_TRUNCATE);
+    String queryFormat =
+        "MERGE `%s`\n"
+            + "USING (SELECT * FROM `%s`)\n"
+            + "ON FALSE\n"
+            + "WHEN NOT MATCHED THEN INSERT ROW\n"
+            + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
+
+    QueryJobConfiguration queryConfig =
+        jobConfigurationFactory
+            .createQueryJobConfigurationBuilder(
+                sqlFromFormat(queryFormat, destinationTableId, temporaryTableId),
+                Collections.emptyMap())
+            .setUseLegacySql(false)
+            .build();
+
+    return create(JobInfo.newBuilder(queryConfig).build());
   }
 
   /**
@@ -250,6 +265,12 @@ public class BigQueryClient {
    */
   public Job appendDestinationWithTemporary(TableId temporaryTableId, TableId destinationTableId) {
     return copyData(temporaryTableId, destinationTableId, JobInfo.WriteDisposition.WRITE_APPEND);
+  }
+
+  String sqlFromFormat(String queryFormat, TableId destinationTableId, TableId temporaryTableId) {
+    String destinationTableName = fullTableName(destinationTableId);
+    String temporaryTableName = fullTableName(temporaryTableId);
+    return String.format(queryFormat, destinationTableName, temporaryTableName);
   }
 
   String sqlFromFormat(String queryFormat, TableId temporaryTableId) {
