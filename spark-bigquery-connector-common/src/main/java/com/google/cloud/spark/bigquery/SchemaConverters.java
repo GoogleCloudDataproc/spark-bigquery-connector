@@ -399,7 +399,7 @@ public class SchemaConverters {
     }
   }
 
-   @VisibleForTesting
+  @VisibleForTesting
   static DecimalType createDecimalTypeFromNumericField(Field field) {
     Preconditions.checkArgument(
         field.getType().equals(LegacySQLTypeName.NUMERIC),
