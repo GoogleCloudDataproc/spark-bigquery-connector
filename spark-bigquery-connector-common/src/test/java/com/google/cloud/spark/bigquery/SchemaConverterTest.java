@@ -29,6 +29,7 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import java.util.Optional;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.types.*;
@@ -388,6 +389,31 @@ public class SchemaConverterTest {
     StructField field = fieldOpt.get();
     assertThat(field.dataType()).isEqualTo(longToStringMapType);
     assertThat(field.name()).isEqualTo("foo");
+  }
+
+  @Test
+  public void testCreateDecimalTypeFromNumericField() throws Exception {
+    // new builder instance is needed for each test
+    assertDecimal(numeric(), 38, 9);
+    assertDecimal(numeric().setPrecision(20L), 20, 0);
+    assertDecimal(numeric().setPrecision(30L), 30, 1);
+    assertDecimal(numeric().setScale(5L), 34, 5);
+    assertDecimal(numeric().setPrecision(20L).setScale(5L), 20, 5);
+  }
+
+  private Field.Builder numeric() {
+    return Field.newBuilder("foo", LegacySQLTypeName.NUMERIC);
+  }
+
+  private void assertDecimal(Field.Builder numeric, int expectedPrecision, int expectedScale) {
+    DecimalType decimalType =
+        SchemaConverters.createDecimalTypeFromNumericField(
+            numeric.build(),
+            LegacySQLTypeName.NUMERIC,
+            BigQueryUtil.DEFAULT_NUMERIC_PRECISION,
+            BigQueryUtil.DEFAULT_NUMERIC_SCALE);
+    assertThat(decimalType.precision()).isEqualTo(expectedPrecision);
+    assertThat(decimalType.scale()).isEqualTo(expectedScale);
   }
 
   public final StructType MY_STRUCT =
