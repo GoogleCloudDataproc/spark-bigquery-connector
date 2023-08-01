@@ -339,6 +339,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
 
+    // Adding a two minute cushion as the data takes some time to move from buffer to the actual
+    // table. Without this cushion, get the following error:
+    // "UPDATE or DELETE statement over {DestinationTable} would affect rows in the streaming
+    // buffer, which is not supported"
+    Thread.sleep(120 * 1000);
+
     // second write
     writeToBigQueryAvroFormat(additonalData(), SaveMode.Overwrite, writeAtLeastOnce);
     assertThat(testTableNumberOfRows()).isEqualTo(2);

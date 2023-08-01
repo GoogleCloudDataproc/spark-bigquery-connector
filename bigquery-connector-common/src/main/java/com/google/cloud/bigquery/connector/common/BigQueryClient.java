@@ -213,10 +213,11 @@ public class BigQueryClient {
       TableId destinationTableId,
       JobInfo.WriteDisposition writeDisposition) {
     String queryFormat = "SELECT * FROM `%s`";
+    String temporaryTableName = fullTableName(sourceTableId);
+    String sqlQuery = String.format(queryFormat, temporaryTableName);
     QueryJobConfiguration queryConfig =
         jobConfigurationFactory
-            .createQueryJobConfigurationBuilder(
-                sqlFromFormat(queryFormat, sourceTableId), Collections.emptyMap())
+            .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
             .setUseLegacySql(false)
             .setDestinationTable(destinationTableId)
             .setWriteDisposition(writeDisposition)
@@ -243,11 +244,12 @@ public class BigQueryClient {
             + "WHEN NOT MATCHED THEN INSERT ROW\n"
             + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
 
+    String destinationTableName = fullTableName(destinationTableId);
+    String temporaryTableName = fullTableName(temporaryTableId);
+    String sqlQuery = String.format(queryFormat, destinationTableName, temporaryTableName);
     QueryJobConfiguration queryConfig =
         jobConfigurationFactory
-            .createQueryJobConfigurationBuilder(
-                sqlFromFormat(queryFormat, destinationTableId, temporaryTableId),
-                Collections.emptyMap())
+            .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
             .setUseLegacySql(false)
             .build();
 
@@ -265,17 +267,6 @@ public class BigQueryClient {
    */
   public Job appendDestinationWithTemporary(TableId temporaryTableId, TableId destinationTableId) {
     return copyData(temporaryTableId, destinationTableId, JobInfo.WriteDisposition.WRITE_APPEND);
-  }
-
-  String sqlFromFormat(String queryFormat, TableId destinationTableId, TableId temporaryTableId) {
-    String destinationTableName = fullTableName(destinationTableId);
-    String temporaryTableName = fullTableName(temporaryTableId);
-    return String.format(queryFormat, destinationTableName, temporaryTableName);
-  }
-
-  String sqlFromFormat(String queryFormat, TableId temporaryTableId) {
-    String temporaryTableName = fullTableName(temporaryTableId);
-    return String.format(queryFormat, temporaryTableName);
   }
 
   /**
