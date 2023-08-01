@@ -74,7 +74,11 @@ public class BigQueryDataSourceWriterModule implements Module {
         tableConfig.getBigQueryTableLabels(),
         SchemaConvertersConfiguration.from(tableConfig),
         tableConfig.getKmsKeyName(), // needs to be serializable
-        tableConfig.isWriteAtLeastOnce());
+        tableConfig.isWriteAtLeastOnce()
+            && !mode.equals(
+                SaveMode.Overwrite) // writeAtLeastOnce mode is currently not supported in OverWrite
+        // mode.
+        );
   }
 
   @Singleton

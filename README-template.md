@@ -545,7 +545,7 @@ word-break:break-word
     guarantee than exactly once. This is suitable for streaming scenarios
     in which data is continuously being written in small batches.
        <br/>(Optional. Defaults to <code>false</code>)
-       <br/><i>Supported only by the `DIRECT` write method.</i>
+       <br/><i>Supported only by the `DIRECT` write method and mode is <b>NOT</b> `Overwrite`.</i>
    </td>
    <td>Write</td>
   </tr>
