@@ -29,6 +29,7 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import java.util.Optional;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.types.*;
@@ -405,7 +406,12 @@ public class SchemaConverterTest {
   }
 
   private void assertDecimal(Field.Builder numeric, int expectedPrecision, int expectedScale) {
-    DecimalType decimalType = SchemaConverters.createDecimalTypeFromNumericField(numeric.build());
+    DecimalType decimalType =
+        SchemaConverters.createDecimalTypeFromNumericField(
+            numeric.build(),
+            LegacySQLTypeName.NUMERIC,
+            BigQueryUtil.DEFAULT_NUMERIC_PRECISION,
+            BigQueryUtil.DEFAULT_NUMERIC_SCALE);
     assertThat(decimalType.precision()).isEqualTo(expectedPrecision);
     assertThat(decimalType.scale()).isEqualTo(expectedScale);
   }
