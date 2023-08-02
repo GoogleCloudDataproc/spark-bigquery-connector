@@ -2,6 +2,8 @@
 
 ## Next
 
+# Issue #1028: Fixing PolicyTags removal on overwrite
+
 ## 0.32.0 - 2023-07-17
 
 * Issue #748: `_PARTITIONDATE` pseudo column is provided only for ingestion time **daily** partitioned tables
