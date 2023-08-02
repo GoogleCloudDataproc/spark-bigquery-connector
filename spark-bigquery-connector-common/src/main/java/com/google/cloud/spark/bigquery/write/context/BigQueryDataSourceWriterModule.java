@@ -16,9 +16,12 @@
 package com.google.cloud.spark.bigquery.write.context;
 
 import com.google.api.gax.retrying.RetrySettings;
+import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
@@ -61,6 +64,18 @@ public class BigQueryDataSourceWriterModule implements Module {
     TableId tableId = tableConfig.getTableId();
     RetrySettings bigqueryDataWriteHelperRetrySettings =
         tableConfig.getBigqueryDataWriteHelperRetrySettings();
+    boolean useWriteAtLeastOnce = tableConfig.isWriteAtLeastOnce();
+    if (useWriteAtLeastOnce && mode.equals(SaveMode.Overwrite)) {
+      if (bigQueryClient.tableExists(tableId)) {
+        TableInfo destinationTable = bigQueryClient.getTable(tableId);
+        Schema tableSchema = destinationTable.getDefinition().getSchema();
+        if (BigQueryUtil.schemaHasPolicyTags(tableSchema)) {
+          // writeAtLeastOnce mode is currently not supported in Overwrite mode if policy tags are
+          // present, to ensure these are preserved
+          useWriteAtLeastOnce = false;
+        }
+      }
+    }
     return new BigQueryDirectDataSourceWriterContext(
         bigQueryClient,
         bigQueryWriteClientFactory,
@@ -74,11 +89,7 @@ public class BigQueryDataSourceWriterModule implements Module {
         tableConfig.getBigQueryTableLabels(),
         SchemaConvertersConfiguration.from(tableConfig),
         tableConfig.getKmsKeyName(), // needs to be serializable
-        tableConfig.isWriteAtLeastOnce()
-            && !mode.equals(
-                SaveMode.Overwrite) // writeAtLeastOnce mode is currently not supported in OverWrite
-        // mode.
-        );
+        useWriteAtLeastOnce);
   }
 
   @Singleton

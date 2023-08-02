@@ -33,6 +33,7 @@ import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
@@ -40,6 +41,7 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig.WriteMethod;
 import com.google.cloud.spark.bigquery.integration.model.Data;
 import com.google.cloud.spark.bigquery.integration.model.Friend;
 import com.google.cloud.spark.bigquery.integration.model.Link;
+import com.google.cloud.spark.bigquery.integration.model.LinkPolicy;
 import com.google.cloud.spark.bigquery.integration.model.Person;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -83,6 +85,10 @@ import scala.Some;
 
 abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
+  protected final String PROJECT_ID =
+      Preconditions.checkNotNull(
+          System.getenv("GOOGLE_CLOUD_PROJECT"),
+          "Please set the GOOGLE_CLOUD_PROJECT env variable in order to run write tests");
   protected static AtomicInteger id = new AtomicInteger(0);
   protected final SparkBigQueryConfig.WriteMethod writeMethod;
   protected Class<? extends Exception> expectedExceptionOnExistingTable;
@@ -136,7 +142,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .toDF();
   }
 
-  protected Dataset<Row> additonalData() {
+  protected Dataset<Row> additionalData() {
     return spark
         .createDataset(
             Arrays.asList(
@@ -148,12 +154,37 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .toDF();
   }
 
+  protected Dataset<Row> initialDataWithPolicy() {
+    return spark
+        .createDataset(
+            Arrays.asList(new LinkPolicy("www.abc.com", null), new LinkPolicy("www.def.com", null)),
+            Encoders.bean(LinkPolicy.class))
+        .toDF();
+  }
+
+  protected Dataset<Row> additionalDataWithPolicy() {
+    return spark
+        .createDataset(
+            Arrays.asList(new LinkPolicy("www.xyz.com", null), new LinkPolicy("www.pqr.com", null)),
+            Encoders.bean(LinkPolicy.class))
+        .toDF();
+  }
+
   protected int testTableNumberOfRows() throws InterruptedException {
     return testTableNumberOfRows(testTable);
   }
 
   protected int testTableNumberOfRows(String table) throws InterruptedException {
     String query = String.format("select * from %s.%s", testDataset.toString(), table);
+    return (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
+  }
+
+  protected int testTableNumberOfRowsWithPolicy() throws InterruptedException {
+    return testTableNumberOfRowsWithPolicy(testTable);
+  }
+
+  protected int testTableNumberOfRowsWithPolicy(String table) throws InterruptedException {
+    String query = String.format("select uri from %s.%s", testDataset.toString(), table);
     return (int) bq.query(QueryJobConfiguration.of(query)).getTotalRows();
   }
 
@@ -199,7 +230,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     // second write
-    writeToBigQueryAvroFormat(additonalData(), SaveMode.Append, writeAtLeastOnce);
+    writeToBigQueryAvroFormat(additionalData(), SaveMode.Append, writeAtLeastOnce);
     assertThat(testTableNumberOfRows()).isEqualTo(4);
     assertThat(additionalDataValuesExist()).isTrue();
   }
@@ -294,7 +325,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(initialDataValuesExist()).isTrue();
     assertThrows(
         expectedExceptionOnExistingTable,
-        () -> writeToBigQueryAvroFormat(additonalData(), SaveMode.ErrorIfExists, writeAtLeastOnce));
+        () ->
+            writeToBigQueryAvroFormat(additionalData(), SaveMode.ErrorIfExists, writeAtLeastOnce));
   }
 
   @Test
@@ -315,7 +347,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     // second write
-    writeToBigQueryAvroFormat(additonalData(), SaveMode.Ignore, writeAtLeastOnce);
+    writeToBigQueryAvroFormat(additionalData(), SaveMode.Ignore, writeAtLeastOnce);
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     assertThat(additionalDataValuesExist()).isFalse();
@@ -339,14 +371,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
 
-    // Adding a two minute cushion as the data takes some time to move from buffer to the actual
-    // table. Without this cushion, get the following error:
-    // "UPDATE or DELETE statement over {DestinationTable} would affect rows in the streaming
-    // buffer, which is not supported"
-    Thread.sleep(120 * 1000);
-
     // second write
-    writeToBigQueryAvroFormat(additonalData(), SaveMode.Overwrite, writeAtLeastOnce);
+    writeToBigQueryAvroFormat(additionalData(), SaveMode.Overwrite, writeAtLeastOnce);
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isFalse();
     assertThat(additionalDataValuesExist()).isTrue();
@@ -361,6 +387,129 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testWriteToBigQuery_OverwriteSaveMode_AtLeastOnce() throws InterruptedException {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     writeToBigQuery_OverwriteSaveMode_Internal("True");
+  }
+
+  private void validatePolicyTagsPresent() {
+    Schema tableSchema = IntegrationTestUtils.getTableSchema(testDataset.toString(), testTable);
+    assertThat(BigQueryUtil.schemaHasPolicyTags(tableSchema));
+  }
+
+  private void writeToBigQuery_AppendSaveMode_WithPolicy_Internal(String writeAtLeastOnce)
+      throws InterruptedException {
+    validatePolicyTagsPresent();
+    // initial write
+    writeToBigQueryAvroFormat(initialDataWithPolicy(), SaveMode.Append, writeAtLeastOnce);
+    assertThat(testTableNumberOfRowsWithPolicy()).isEqualTo(2);
+    assertThat(initialDataValuesWithPolicyExist()).isTrue();
+    validatePolicyTagsPresent();
+    // second write
+    writeToBigQueryAvroFormat(additionalDataWithPolicy(), SaveMode.Append, writeAtLeastOnce);
+    assertThat(testTableNumberOfRowsWithPolicy()).isEqualTo(4);
+    assertThat(initialDataValuesWithPolicyExist()).isTrue();
+    assertThat(additionalDataValuesWithPolicyExist()).isTrue();
+    validatePolicyTagsPresent();
+  }
+
+  @Test
+  public void testWriteToBigQuery_AppendSaveMode_WithPolicy() throws InterruptedException {
+    IntegrationTestUtils.createTableWithPolicyTags(PROJECT_ID, testDataset.toString(), testTable);
+    writeToBigQuery_AppendSaveMode_WithPolicy_Internal("False");
+  }
+
+  /* FUTURE: enable this test. Currently it fails with "com.google.cloud.bigquery.BigQueryException: User does not have
+      permission to access policy tag
+      projects/347597154974/locations/us/taxonomies/95845830791050535/policyTags/9105995472615099246. on column
+      siddag-gcp-macaw:spark_bigquery_1691042522527_568208930377071.test_568447512835204.uriPolicy"
+  @Test
+  public void testWriteToBigQuery_AppendSaveMode_WithPolicy_AtLeastOnce()
+      throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    IntegrationTestUtils.createTableWithPolicyTags(PROJECT_ID, testDataset.toString(), testTable);
+    writeToBigQuery_AppendSaveMode_WithPolicy_Internal("True");
+  }
+   */
+
+  private void writeToBigQuery_OverwriteSaveMode_WithPolicy_Internal(String writeAtLeastOnce)
+      throws InterruptedException {
+    validatePolicyTagsPresent();
+    // initial write
+    writeToBigQueryAvroFormat(initialDataWithPolicy(), SaveMode.Overwrite, writeAtLeastOnce);
+    assertThat(testTableNumberOfRowsWithPolicy()).isEqualTo(2);
+    assertThat(initialDataValuesWithPolicyExist()).isTrue();
+    validatePolicyTagsPresent();
+
+    // second write
+    writeToBigQueryAvroFormat(additionalDataWithPolicy(), SaveMode.Overwrite, writeAtLeastOnce);
+    assertThat(testTableNumberOfRowsWithPolicy()).isEqualTo(2);
+    assertThat(additionalDataValuesWithPolicyExist()).isTrue();
+    validatePolicyTagsPresent();
+  }
+
+  @Test
+  public void testWriteToBigQuery_OverwriteSaveMode_WithPolicy() throws InterruptedException {
+    IntegrationTestUtils.createTableWithPolicyTags(PROJECT_ID, testDataset.toString(), testTable);
+    writeToBigQuery_OverwriteSaveMode_WithPolicy_Internal("False");
+  }
+
+  @Test
+  public void testWriteToBigQuery_OverwriteSaveMode_WithPolicy_AtLeastOnce()
+      throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    IntegrationTestUtils.createTableWithPolicyTags(PROJECT_ID, testDataset.toString(), testTable);
+    writeToBigQuery_OverwriteSaveMode_WithPolicy_Internal("True");
+  }
+
+  private void writeToBigQuery_ErrorIfExistsSaveMode_WithPolicy_Internal(String writeAtLeastOnce)
+      throws InterruptedException {
+    validatePolicyTagsPresent();
+    // initial write
+    assertThrows(
+        expectedExceptionOnExistingTable,
+        () ->
+            writeToBigQueryAvroFormat(
+                additionalDataWithPolicy(), SaveMode.ErrorIfExists, writeAtLeastOnce));
+    validatePolicyTagsPresent();
+  }
+
+  @Test
+  public void testWriteToBigQuery_ErrorIfExistsSaveMode_WithPolicy() throws InterruptedException {
+    IntegrationTestUtils.createTableWithPolicyTags(PROJECT_ID, testDataset.toString(), testTable);
+    writeToBigQuery_ErrorIfExistsSaveMode_WithPolicy_Internal("False");
+  }
+
+  @Test
+  public void testWriteToBigQuery_ErrorIfExistsSaveMode_WithPolicy_AtLeastOnce()
+      throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    IntegrationTestUtils.createTableWithPolicyTags(PROJECT_ID, testDataset.toString(), testTable);
+    writeToBigQuery_ErrorIfExistsSaveMode_WithPolicy_Internal("True");
+  }
+
+  private void writeToBigQuery_IgnoreSaveMode_WithPolicy_Internal(String writeAtLeastOnce)
+      throws InterruptedException {
+    validatePolicyTagsPresent();
+    // initial write
+    writeToBigQueryAvroFormat(initialDataWithPolicy(), SaveMode.Ignore, writeAtLeastOnce);
+    assertThat(testTableNumberOfRowsWithPolicy()).isEqualTo(0);
+    validatePolicyTagsPresent();
+    // second write
+    writeToBigQueryAvroFormat(additionalDataWithPolicy(), SaveMode.Ignore, writeAtLeastOnce);
+    assertThat(testTableNumberOfRowsWithPolicy()).isEqualTo(0);
+    validatePolicyTagsPresent();
+  }
+
+  @Test
+  public void testWriteToBigQuery_IgnoreSaveMode_WithPolicy() throws InterruptedException {
+    IntegrationTestUtils.createTableWithPolicyTags(PROJECT_ID, testDataset.toString(), testTable);
+    writeToBigQuery_IgnoreSaveMode_WithPolicy_Internal("False");
+  }
+
+  @Test
+  public void testWriteToBigQuery_IgnoreSaveMode_WithPolicy_AtLeastOnce()
+      throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    IntegrationTestUtils.createTableWithPolicyTags(PROJECT_ID, testDataset.toString(), testTable);
+    writeToBigQuery_IgnoreSaveMode_WithPolicy_Internal("True");
   }
 
   @Test
@@ -1638,6 +1787,17 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     }
   }
 
+  protected long numberOfRowsWithPolicyWith(String uri) {
+    try {
+      return bq.query(
+              QueryJobConfiguration.of(
+                  String.format("select uri from %s where uri='%s'", fullTableName(), uri)))
+          .getTotalRows();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   protected String fullTableName() {
     return testDataset.toString() + "." + testTable;
   }
@@ -1652,5 +1812,13 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   protected boolean initialDataValuesExist() {
     return numberOfRowsWith("Abc") == 1;
+  }
+
+  protected boolean additionalDataValuesWithPolicyExist() {
+    return numberOfRowsWithPolicyWith("www.xyz.com") == 1;
+  }
+
+  protected boolean initialDataValuesWithPolicyExist() {
+    return numberOfRowsWithPolicyWith("www.abc.com") == 1;
   }
 }

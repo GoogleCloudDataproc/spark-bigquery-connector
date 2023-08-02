@@ -128,7 +128,7 @@ public class DataSourceV1WriteIntegrationTestBase extends WriteIntegrationTestBa
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     // Write to stream
-    stream.addData(toSeq(additonalData().collectAsList()));
+    stream.addData(toSeq(additionalData().collectAsList()));
     while (writeStream.lastProgress().batchId() <= lastBatchId) {
       Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
     }

@@ -18,15 +18,7 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryOptions;
-import com.google.cloud.bigquery.DatasetId;
-import com.google.cloud.bigquery.DatasetInfo;
-import com.google.cloud.bigquery.ExternalTableDefinition;
-import com.google.cloud.bigquery.FormatOptions;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.ViewDefinition;
+import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
@@ -35,6 +27,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.spark.sql.Row;
@@ -171,5 +164,33 @@ public class IntegrationTestUtils {
       //   assertThat(actualField).isEqualTo(expectedField);
       // }
     }
+  }
+
+  public static void createTableWithPolicyTags(
+      String projectId, String existingDatasetName, String newTableName) {
+    Schema schema =
+        Schema.of(
+            com.google.cloud.bigquery.Field.newBuilder("uri", StandardSQLTypeName.STRING).build(),
+            com.google.cloud.bigquery.Field.newBuilder("uriPolicy", StandardSQLTypeName.STRING)
+                .setPolicyTags(
+                    com.google.cloud.bigquery.PolicyTags.newBuilder()
+                        .setNames(
+                            Arrays.asList(
+                                "projects/"
+                                    + projectId
+                                    + "/locations/us/taxonomies/95845830791050535/policyTags/9105995472615099246"))
+                        .build())
+                .setMode(Field.Mode.NULLABLE)
+                .build());
+    TableInfo tableInfo =
+        TableInfo.newBuilder(
+                TableId.of(existingDatasetName, newTableName), StandardTableDefinition.of(schema))
+            .build();
+    getBigquery().create(tableInfo);
+  }
+
+  public static Schema getTableSchema(String dataset, String table) {
+    TableInfo destinationTable = getBigquery().getTable(TableId.of(dataset, table));
+    return destinationTable.getDefinition().getSchema();
   }
 }

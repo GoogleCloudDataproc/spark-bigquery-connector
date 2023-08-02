@@ -30,6 +30,7 @@ import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.HivePartitioningOptions;
 import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.PolicyTags;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
@@ -269,6 +270,28 @@ public class BigQueryUtil {
     // compare field by field
     return fieldListWritable(
         sourceSchema.getFields(), destinationSchema.getFields(), enableModeCheckForSchemaFields);
+  }
+
+  /**
+   * Checks whether at least one policy tag is present.
+   *
+   * @param schema the schema to check
+   * @return true if at least one policy tag is present, false otherwise
+   */
+  public static boolean schemaHasPolicyTags(Schema schema) {
+    FieldList fieldList = schema.getFields();
+    if (fieldList != null) {
+      for (Field field : fieldList) {
+        PolicyTags policyTags = field.getPolicyTags();
+        if (policyTags != null) {
+          List<String> list = policyTags.getNames();
+          if ((list != null) && (list.size() > 0)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /**

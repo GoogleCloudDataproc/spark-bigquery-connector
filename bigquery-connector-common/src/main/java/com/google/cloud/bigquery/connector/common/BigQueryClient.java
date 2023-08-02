@@ -226,16 +226,7 @@ public class BigQueryClient {
     return create(JobInfo.newBuilder(queryConfig).build());
   }
 
-  /**
-   * Overwrites the given destination table, with all the data from the given temporary table,
-   * transactionally.
-   *
-   * @param temporaryTableId The {@code TableId} representing the temporary-table.
-   * @param destinationTableId The {@code TableId} representing the destination table.
-   * @return The {@code Job} object representing this operation (which can be tracked to wait until
-   *     it has finished successfully).
-   */
-  public Job overwriteDestinationWithTemporary(
+  public Job overwriteDestinationWithTemporaryUsingMerge(
       TableId temporaryTableId, TableId destinationTableId) {
     String queryFormat =
         "MERGE `%s`\n"
@@ -254,6 +245,24 @@ public class BigQueryClient {
             .build();
 
     return create(JobInfo.newBuilder(queryConfig).build());
+  }
+
+  /**
+   * Overwrites the given destination table, with all the data from the given temporary table,
+   * transactionally.
+   *
+   * @param temporaryTableId The {@code TableId} representing the temporary-table.
+   * @param destinationTableId The {@code TableId} representing the destination table.
+   * @return The {@code Job} object representing this operation (which can be tracked to wait until
+   *     it has finished successfully).
+   */
+  public Job overwriteDestinationWithTemporary(
+      TableId temporaryTableId, TableId destinationTableId) {
+    TableInfo destinationTable = getTable(destinationTableId);
+    Schema tableSchema = destinationTable.getDefinition().getSchema();
+    return BigQueryUtil.schemaHasPolicyTags(tableSchema)
+        ? overwriteDestinationWithTemporaryUsingMerge(temporaryTableId, destinationTableId)
+        : copyData(temporaryTableId, destinationTableId, JobInfo.WriteDisposition.WRITE_TRUNCATE);
   }
 
   /**
