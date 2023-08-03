@@ -1,3 +1,5 @@
+# Release Notes
+
 ## Next
 
 * PR #1025: Handle Java 8 types for dates and timestamps when compiling filters. Thanks @tom-s-powell !
