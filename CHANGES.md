@@ -1,12 +1,8 @@
-# Release Notes
+## Next
 
 * PR #1025: Handle Java 8 types for dates and timestamps when compiling filters. Thanks @tom-s-powell !
 * Issue #1026: Fixing Numeric conversion
-
-
-## Next
-
-# Issue #1028: Fixing PolicyTags removal on overwrite
+* Issue #1028: Fixing PolicyTags removal on overwrite
 
 ## 0.32.0 - 2023-07-17
 
