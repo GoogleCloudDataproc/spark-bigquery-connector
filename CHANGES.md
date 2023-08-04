@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.32.1 - 2023-08-03
 
 * PR #1025: Handle Java 8 types for dates and timestamps when compiling filters. Thanks @tom-s-powell !
