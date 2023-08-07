@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.32.2 - 2023-08-07
 
 * CVE-2023-34462: Upgrading netty to verision 4.1.96.Final
 
