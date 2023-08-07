@@ -2,6 +2,8 @@
 
 ## Next
 
+* PR #1038: Logical plan now shows the BigQuery table of DirectBigQueryRelation. Thanks @idc101 !
+
 ## 0.32.2 - 2023-08-07
 
 * CVE-2023-34462: Upgrading netty to verision 4.1.96.Final

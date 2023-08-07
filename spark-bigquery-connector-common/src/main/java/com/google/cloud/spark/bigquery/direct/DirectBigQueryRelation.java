@@ -242,4 +242,9 @@ public class DirectBigQueryRelation extends BigQueryRelation
   public int hashCode() {
     return Objects.hash(getTableId(), schema(), compiledFilter);
   }
+
+  @Override
+  public String toString() {
+    return "DirectBigQueryRelation[" + toSqlTableReference(getTableId()) + "]";
+  }
 }
