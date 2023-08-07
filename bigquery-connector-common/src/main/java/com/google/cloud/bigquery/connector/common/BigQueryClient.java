@@ -607,8 +607,8 @@ public class BigQueryClient {
     }
     if (options.getPartitionField().isPresent() && options.getPartitionRange().isPresent()) {
       RangePartitioning.Builder rangePartitionBuilder = RangePartitioning.newBuilder();
-      rangePartitionBuilder.setField(options.getPartitionField().get());
-      rangePartitionBuilder.setRange(options.getPartitionRange().get());
+      options.getPartitionField().ifPresent(rangePartitionBuilder::setField);
+      options.getPartitionRange().ifPresent(rangePartitionBuilder::setRange);
       jobConfiguration.setRangePartitioning(rangePartitionBuilder.build());
     }
 
