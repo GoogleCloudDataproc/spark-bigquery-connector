@@ -1,5 +1,6 @@
 ## Next
 
+* PR #1038: Logical plan now shows the BigQuery table of DirectBigQueryRelation. Thanks @idc101 !
 * PR #1025: Handle Java 8 types for dates and timestamps when compiling filters. Thanks @tom-s-powell !
 * Issue #1026: Fixing Numeric conversion
 * Issue #1028: Fixing PolicyTags removal on overwrite
