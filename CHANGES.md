@@ -2,6 +2,8 @@
 
 ## Next
 
+* CVE-2023-34462: Upgrading netty to verision 4.1.96.Final
+
 ## 0.32.1 - 2023-08-03
 
 * PR #1025: Handle Java 8 types for dates and timestamps when compiling filters. Thanks @tom-s-powell !
