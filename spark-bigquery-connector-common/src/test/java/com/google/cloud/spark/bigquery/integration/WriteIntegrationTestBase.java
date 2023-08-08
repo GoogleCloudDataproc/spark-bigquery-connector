@@ -1356,6 +1356,43 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .isEqualTo(new BigDecimal("12345.123450000000000"));
   }
 
+  @Test
+  public void testWriteStringToTimeField() throws Exception {
+    // not supported for indirect writes
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (name STRING, wake_up_time TIME)", testDataset, testTable));
+    String name = "abc";
+    String wakeUpTime = "10:00:00";
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create(name, wakeUpTime)),
+            structType(
+                StructField.apply("name", DataTypes.StringType, true, Metadata.empty()),
+                StructField.apply("wake_up_time", DataTypes.StringType, true, Metadata.empty())));
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("writeMethod", writeMethod.toString())
+        .save();
+
+    Dataset<Row> resultDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    List<Row> result = resultDF.collectAsList();
+    assertThat(result).hasSize(1);
+    Row head = result.get(0);
+    assertThat(head.getString(head.fieldIndex("name"))).isEqualTo("abc");
+    assertThat(head.getLong(head.fieldIndex("wake_up_time"))).isEqualTo(36000000000L);
+  }
+
   public void testWriteSchemaSubset() throws Exception {
     StructType initialSchema =
         structType(

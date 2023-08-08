@@ -2,6 +2,7 @@
 
 ## Next
 
+* Issue #144: allow writing Spark String to BQ TIME type
 * PR #1038: Logical plan now shows the BigQuery table of DirectBigQueryRelation. Thanks @idc101 !
 
 ## 0.32.2 - 2023-08-07

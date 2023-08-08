@@ -952,11 +952,13 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
   <tr valign="top">
    <td><strong><code>TIME</code></strong>
    </td>
-   <td><strong><code>LongType</code></strong>
+   <td><strong><code>LongType</code>, <strong><code>StringType</code>*</strong>
    </td>
    <td>Spark has no TIME type. The generated longs, which indicate <a href="https://avro.apache.org/docs/1.8.0/spec.html#Time+%2528microsecond+precision%2529">microseconds since midnight</a> can be safely cast to TimestampType, but this causes the date to be inferred as the current day. Thus times are left as longs and user can cast if they like.
 <p>
 When casting to Timestamp TIME have the same TimeZone issues as DATETIME
+<p>
+* Spark string can be written to an existing BQ TIME column provided it is in the <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#canonical_format_for_time_literals">format for BQ TIME literals</a>.
    </td>
   </tr>
   <tr valign="top">
