@@ -274,7 +274,7 @@ df.write \
 
 Writing to existing partitioned tables (date partitioned, ingestion time partitioned and range
 partitioned) in APPEND save mode is fully supported by the connector and the BigQuery Storage Write
-API. Partition overwrite and the use of `datePartition`, `partitionField` and `partitionType` as
+API. Partition overwrite and the use of `datePartition`, `partitionField`, `partitionType`, `partitionRangeStart`, `partitionRangeEnd`, `partitionRangeInterval` as
 described below is not supported at this moment by the direct write method.
 
 **Important:** Please refer to the [data ingestion pricing](https://cloud.google.com/bigquery/pricing#data_ingestion_pricing)
@@ -618,10 +618,12 @@ word-break:break-word
   <tr valign="top">
      <td><code>partitionField</code>
      </td>
-     <td>If field is specified together with `partitionType`, the table is partitioned by this field.
-         The field must be a top-level TIMESTAMP or DATE field. Its mode must be <strong>NULLABLE</strong>
+     <td>If this field is specified, the table is partitioned by this field.
+         <br/>For Time partitioning, specify together with the option `partitionType`.
+         <br/>For Integer-range partitioning, specify together with the 3 options: `partitionRangeStart`, `partitionRangeEnd, `partitionRangeInterval`.
+         <br/>The field must be a top-level TIMESTAMP or DATE field for Time partitioning, or INT64 for Integer-range partitioning. Its mode must be <strong>NULLABLE</strong>
          or <strong>REQUIRED</strong>.
-         If the option is not set for a partitioned table, then the table will be partitioned by pseudo
+         If the option is not set for a Time partitioned table, then the table will be partitioned by pseudo
          column, referenced via either<code>'_PARTITIONTIME' as TIMESTAMP</code> type, or
          <code>'_PARTITIONDATE' as DATE</code> type.
          <br/>(Optional).
@@ -642,13 +644,26 @@ word-break:break-word
    <tr valign="top">
        <td><code>partitionType</code>
         </td>
-        <td>Supported types are: <code>HOUR, DAY, MONTH, YEAR</code>
-            <br/> This option is <b>mandatory</b> for a target table to be partitioned.
+        <td>Used to specify Time partitioning.
+            <br/>Supported types are: <code>HOUR, DAY, MONTH, YEAR</code>
+            <br/> This option is <b>mandatory</b> for a target table to be Time partitioned.
             <br/>(Optional. Defaults to DAY if PartitionField is specified).
             <br/><i>Not supported by the `DIRECT` write method.</i>
        </td>
         <td>Write</td>
      </tr>
+   <tr valign="top">
+       <td><code>partitionRangeStart</code>,
+           <code>partitionRangeEnd</code>,
+           <code>partitionRangeInterval</code>
+        </td>
+        <td>Used to specify Integer-range partitioning.
+            <br/>These options are <b>mandatory</b> for a target table to be Integer-range partitioned.
+            <br/>All 3 options must be specified.
+            <br/><i>Not supported by the `DIRECT` write method.</i>
+       </td>
+        <td>Write</td>
+   </tr>
     <tr valign="top">
            <td><code>clusteredFields</code>
             </td>
