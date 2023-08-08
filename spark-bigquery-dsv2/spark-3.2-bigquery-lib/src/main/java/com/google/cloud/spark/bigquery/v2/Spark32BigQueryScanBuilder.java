@@ -58,11 +58,11 @@ public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
   @Override
   public CustomMetric[] supportedCustomMetrics() {
     return new CustomMetric[] {
-      new Spark32BigQueryBytesReadMetric(),
-      new Spark32BigQueryRowsReadMetric(),
-      new Spark32BigQueryScanTimeMetric(),
-      new Spark32BigQueryParseTimeMetric(),
-      new Spark32BigQueryTimeInSparkMetric()
+      new SparkBigQueryBytesReadMetric(),
+      new SparkBigQueryRowsReadMetric(),
+      new SparkBigQueryScanTimeMetric(),
+      new SparkBigQueryParseTimeMetric(),
+      new SparkBigQueryTimeInSparkMetric()
     };
   }
 
