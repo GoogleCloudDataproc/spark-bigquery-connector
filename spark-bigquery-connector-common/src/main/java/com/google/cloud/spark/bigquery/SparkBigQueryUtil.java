@@ -43,7 +43,6 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.Metadata;
-import scala.collection.Iterator;
 
 /** Spark related utilities */
 public class SparkBigQueryUtil {
@@ -203,7 +202,7 @@ public class SparkBigQueryUtil {
   public static <K, V> ImmutableMap<K, V> scalaMapToJavaMap(
       scala.collection.immutable.Map<K, V> map) {
     ImmutableMap.Builder<K, V> result = ImmutableMap.<K, V>builder();
-    map.foreach(entry -> result.put(entry._1(), entry._2());
+    map.foreach(entry -> result.put(entry._1(), entry._2()));
     return result.build();
   }
 
