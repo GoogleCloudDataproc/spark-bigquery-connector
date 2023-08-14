@@ -211,9 +211,6 @@ public class SparkBigQueryConfig
   private CompressionCodec arrowCompressionCodec = DEFAULT_ARROW_COMPRESSION_CODEC;
   private WriteMethod writeMethod = DEFAULT_WRITE_METHOD;
   boolean writeAtLeastOnce = false;
-  // for V2 write with BigQuery Storage Write API
-  RetrySettings bigqueryDataWriteHelperRetrySettings =
-      RetrySettings.newBuilder().setMaxAttempts(5).build();
   private int cacheExpirationTimeInMinutes = DEFAULT_CACHE_EXPIRATION_IN_MINUTES;
   // used to create BigQuery ReadSessions
   private com.google.common.base.Optional<String> traceId;
@@ -947,11 +944,14 @@ public class SparkBigQueryConfig
 
   @Override
   public RetrySettings getBigQueryClientRetrySettings() {
+    int maxAttempts =
+        sparkBigQueryProxyAndHttpConfig.getHttpMaxRetry().orElse(DEFAULT_BIGQUERY_CLIENT_RETRIES);
+    return getRetrySettings(maxAttempts);
+  }
+
+  private static RetrySettings getRetrySettings(int maxAttempts) {
     return RetrySettings.newBuilder()
-        .setMaxAttempts(
-            sparkBigQueryProxyAndHttpConfig
-                .getHttpMaxRetry()
-                .orElse(DEFAULT_BIGQUERY_CLIENT_RETRIES))
+        .setMaxAttempts(maxAttempts)
         .setTotalTimeout(Duration.ofMinutes(10))
         .setInitialRpcTimeout(Duration.ofSeconds(60))
         .setMaxRpcTimeout(Duration.ofMinutes(5))
@@ -962,8 +962,9 @@ public class SparkBigQueryConfig
         .build();
   }
 
+  // for V2 write with BigQuery Storage Write API
   public RetrySettings getBigqueryDataWriteHelperRetrySettings() {
-    return bigqueryDataWriteHelperRetrySettings;
+    return getRetrySettings(5);
   }
 
   public WriteMethod getWriteMethod() {
