@@ -26,6 +26,11 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>spark-bigquery-metrics</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>spark-3.1-bigquery-lib</artifactId>
       <version>${project.version}</version>
     </dependency>

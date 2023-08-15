@@ -57,4 +57,14 @@ public interface BigQueryStorageReadRowsTracer extends Serializable {
    * @return A new tracer with the ID>
    */
   BigQueryStorageReadRowsTracer forkWithPrefix(String id);
+
+  long getBytesRead();
+
+  long getRowsRead();
+
+  long getScanTimeInMilliSec();
+
+  long getParseTimeInMilliSec();
+
+  long getTimeInSparkInMilliSec();
 }

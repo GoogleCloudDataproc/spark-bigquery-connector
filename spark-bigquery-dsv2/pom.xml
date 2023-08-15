@@ -18,6 +18,7 @@
     <module>spark-2.4-bigquery</module>
     <module>spark-3.1-bigquery-lib</module>
     <module>spark-3.1-bigquery</module>
+    <module>spark-bigquery-metrics</module>
     <module>spark-3.2-bigquery-lib</module>
     <module>spark-3.2-bigquery</module>
     <module>spark-3.3-bigquery-lib</module>

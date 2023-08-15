@@ -1161,6 +1161,50 @@ To include the connector in your project:
 libraryDependencies += "com.google.cloud.spark" %% "spark-bigquery-with-dependencies" % "${next-release-tag}"
 ```
 
+### Connector metrics and how to view them
+
+Spark populates a lot of metrics which can be found by the end user in the spark history page. But all these metrics are spark related which are implicitly collected without any change from the connector.
+But there are few metrics which are populated from the BigQuery and currently are visible in the application logs which can be read in the driver/executor logs.
+
+From Spark 3.2 onwards, spark has provided the API to expose custom metrics in the spark UI page https://spark.apache.org/docs/3.2.0/api/java/org/apache/spark/sql/connector/metric/CustomMetric.html
+
+Currently, using this API, connector exposes the following bigquery metrics during read
+<table id="metricstable">
+<style>
+table#metricstable td, table th
+{
+word-break:break-word
+}
+</style>
+  <tr valign="top">
+   <th style="min-width:240px">Metric Name</th>
+   <th style="min-width:240px">Description</th>
+  </tr>
+  <tr valign="top">
+   <td><code>bytes read</code></td>
+   <td>number of BigQuery bytes read</td>
+  </tr>
+  <tr valign="top">
+   <td><code>rows read</code></td>
+   <td>number of BigQuery rows read</td>
+  </tr>
+  <tr valign="top">
+   <td><code>scan time</code></td>
+   <td>the amount of time spent between read rows response requested to obtained across all the executors, in milliseconds.</td>
+  </tr>
+  <tr valign="top">
+   <td><code>parse time</code></td>
+   <td>the amount of time spent for parsing the rows read across all the executors, in milliseconds.</td>
+  </tr>
+  <tr valign="top">
+   <td><code>spark time</code></td>
+   <td>the amount of time spent in spark to process the queries (i.e., apart from scanning and parsing), across all the executors, in milliseconds.</td>
+  </tr>
+</table>
+
+
+**Note:** To use the metrics in the Spark UI page, you need to make sure the `spark-bigquery-metrics-${next-release-tag}.jar` is the class path before starting the history-server and the connector version is `spark-3.2` or above.
+
 ## FAQ
 
 ### What is the Pricing for the Storage API?

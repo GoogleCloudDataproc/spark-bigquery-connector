@@ -15,7 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.v2.context;
 
+import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import java.io.IOException;
+import java.util.Optional;
 import org.apache.spark.sql.catalyst.InternalRow;
 
 class EmptyProjectionInputPartitionReaderContext
@@ -38,6 +40,11 @@ class EmptyProjectionInputPartitionReaderContext
   public InternalRow get() {
     currentIndex++;
     return InternalRow.empty();
+  }
+
+  @Override
+  public Optional<BigQueryStorageReadRowsTracer> getBigQueryStorageReadRowsTracer() {
+    return Optional.empty();
   }
 
   @Override

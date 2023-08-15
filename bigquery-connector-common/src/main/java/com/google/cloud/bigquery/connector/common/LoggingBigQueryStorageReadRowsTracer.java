@@ -128,18 +128,17 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
     jsonObject.addProperty("Parse Timings", format(parseTime));
     jsonObject.addProperty("Time in Spark", difference(sparkTime, parseTime));
     jsonObject.addProperty("Time waiting for service", format(serviceTime));
-    jsonObject.addProperty("Bytes/s", perSecond(serviceTime, bytes));
-    jsonObject.addProperty("Rows/s", perSecond(parseTime, rows));
-    jsonObject.addProperty("Bytes", bytes);
-    jsonObject.addProperty("Rows", rows);
-    jsonObject.addProperty("I/O time", serviceTime.getAccumulatedTime().toMillis());
+    jsonObject.addProperty("Bytes/s", perSecond(serviceTime, getBytesRead()));
+    jsonObject.addProperty("Rows/s", perSecond(parseTime, getRowsRead()));
+    jsonObject.addProperty("Bytes", getBytesRead());
+    jsonObject.addProperty("Rows", getRowsRead());
+    jsonObject.addProperty("I/O time", getScanTimeInMilliSec());
     log.trace("Tracer Logs:{}", new Gson().toJson(jsonObject));
-    bigQueryMetrics.incrementBytesReadCounter(bytes);
-    bigQueryMetrics.incrementRowsReadCounter(rows);
-    bigQueryMetrics.updateScanTime(serviceTime.getAccumulatedTime().toMillis());
-    bigQueryMetrics.updateParseTime(parseTime.getAccumulatedTime().toMillis());
-    bigQueryMetrics.updateTimeInSpark(
-        sparkTime.getAccumulatedTime().minus(parseTime.getAccumulatedTime()).toMillis());
+    bigQueryMetrics.incrementBytesReadCounter(getBytesRead());
+    bigQueryMetrics.incrementRowsReadCounter(getRowsRead());
+    bigQueryMetrics.updateScanTime(getScanTimeInMilliSec());
+    bigQueryMetrics.updateParseTime(getParseTimeInMilliSec());
+    bigQueryMetrics.updateTimeInSpark(getTimeInSparkInMilliSec());
     linesLogged++;
   }
 
@@ -155,6 +154,31 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
   public BigQueryStorageReadRowsTracer forkWithPrefix(String id) {
     return new LoggingBigQueryStorageReadRowsTracer(
         "id-" + id + "-" + streamName, logIntervalPowerOf2, bigQueryMetrics);
+  }
+
+  @Override
+  public long getBytesRead() {
+    return bytes;
+  }
+
+  @Override
+  public long getRowsRead() {
+    return rows;
+  }
+
+  @Override
+  public long getScanTimeInMilliSec() {
+    return serviceTime.getAccumulatedTime().toMillis();
+  }
+
+  @Override
+  public long getParseTimeInMilliSec() {
+    return parseTime.getAccumulatedTime().toMillis();
+  }
+
+  @Override
+  public long getTimeInSparkInMilliSec() {
+    return sparkTime.getAccumulatedTime().minus(parseTime.getAccumulatedTime()).toMillis();
   }
 
   String getStreamName() {
