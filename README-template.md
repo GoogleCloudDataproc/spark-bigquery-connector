@@ -961,7 +961,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    </td>
    <td><strong><code>StringType</code></strong>
    </td>
-   <td>Spark has no DATETIME type. Casting to TIMESTAMP uses a configured TimeZone, which defaults to the local timezone (UTC in GCE / Dataproc).
+   <td>Spark has no DATETIME type.
    </td>
   </tr>
   <tr valign="top">
