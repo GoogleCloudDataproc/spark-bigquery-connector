@@ -959,9 +959,9 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
   <tr valign="top">
    <td><strong><code>DATETIME</code></strong>
    </td>
-   <td><strong><code>TimestampType</code></strong>
+   <td><strong><code>StringType</code></strong>
    </td>
-   <td>Spark has no DATETIME type. The value is casted as a local time in the `datetimeZoneId` time zone.
+   <td>Spark has no DATETIME type.
    </td>
   </tr>
   <tr valign="top">
