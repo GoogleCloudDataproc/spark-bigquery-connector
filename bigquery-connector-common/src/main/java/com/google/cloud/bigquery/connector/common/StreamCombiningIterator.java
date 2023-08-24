@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Observer;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -57,6 +58,8 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
   Object last;
   volatile boolean cancelled = false;
   private final Collection<Observer> observers;
+
+  String lastStream = "unkown";
 
   StreamCombiningIterator(
       BigQueryReadClient client,
@@ -137,6 +140,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
    */
   @Override
   public boolean hasNext() {
+    Object previousLast = last;
     if (last == null) {
       try {
         last = responses.take();
@@ -160,7 +164,11 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       throw new UncheckedExecutionException(throwable);
     }
 
-    return last != EOS;
+    boolean hasNext = last != EOS;
+    if (!hasNext) {
+      log.debug("Finished reading stream {}", lastStream);
+    }
+    return hasNext;
   }
 
   public void cancel() {
@@ -204,7 +212,9 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
   private void newConnection(Observer observer, ReadRowsRequest.Builder request) {
     synchronized (lock) {
       if (!cancelled) {
+        log.debug("Calling readRows for Stream {}", request.getReadStream());
         client.readRowsCallable().call(request.build(), observer);
+        lastStream = request.getReadStream();
       }
     }
   }
