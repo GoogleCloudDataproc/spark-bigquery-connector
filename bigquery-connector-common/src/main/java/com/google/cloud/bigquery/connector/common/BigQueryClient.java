@@ -796,7 +796,7 @@ public class BigQueryClient {
     }
 
     TableInfo createTableFromQuery() {
-      log.debug("destinationTable is %s", destinationTable);
+      log.debug("destinationTable is {}", destinationTable);
       JobInfo jobInfo =
           JobInfo.of(
               jobConfigurationFactory
@@ -804,9 +804,9 @@ public class BigQueryClient {
                   .setDestinationTable(destinationTable)
                   .build());
 
-      log.debug("running query %s", jobInfo);
+      log.debug("running query {}", jobInfo);
       Job job = waitForJob(bigQueryClient.create(jobInfo));
-      log.debug("job has finished. %s", job);
+      log.debug("job has finished. {}", job);
       if (job.getStatus().getError() != null) {
         throw BigQueryUtil.convertToBigQueryException(job.getStatus().getError());
       }

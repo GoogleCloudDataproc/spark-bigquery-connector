@@ -224,7 +224,7 @@ public class ReadSessionCreator {
     if (isInputTableAView(table)) {
       // get it from the view
       String querySql = bigQueryClient.createSql(table.getTableId(), requiredColumns, filters);
-      log.debug("querySql is %s", querySql);
+      log.debug("querySql is {}", querySql);
       return bigQueryClient.materializeViewToTable(
           querySql, table.getTableId(), config.getMaterializationExpirationTimeInMinutes());
     } else {
