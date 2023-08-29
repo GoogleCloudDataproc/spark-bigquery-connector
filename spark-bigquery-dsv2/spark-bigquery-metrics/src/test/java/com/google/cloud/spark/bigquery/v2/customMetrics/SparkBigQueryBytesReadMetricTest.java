@@ -23,7 +23,7 @@ public class SparkBigQueryBytesReadMetricTest {
 
   @Test
   public void testAggregateMetrics() {
-    assertThat(sparkBigQueryBytesReadMetric.aggregateTaskMetrics(new long[] {1000L, 2000L}))
-        .isEqualTo("3000");
+    assertThat(sparkBigQueryBytesReadMetric.aggregateTaskMetrics(new long[] {1024L, 2048L}))
+        .isEqualTo("3.0 KiB");
   }
 }

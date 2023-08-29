@@ -23,7 +23,8 @@ public class SparkBigQueryTimeInSparkMetricTest {
 
   @Test
   public void testAggregateMetrics() {
-    assertThat(sparkBigQueryTimeInSparkMetric.aggregateTaskMetrics(new long[] {1000L, 2000L}))
-        .isEqualTo("3000");
+    assertThat(
+            sparkBigQueryTimeInSparkMetric.aggregateTaskMetrics(new long[] {1020L, 2010L, 3030L}))
+        .isEqualTo("total (min, med, max)\n" + "6.1 s (1.0 s, 2.0 s, 3.0 s)");
   }
 }
