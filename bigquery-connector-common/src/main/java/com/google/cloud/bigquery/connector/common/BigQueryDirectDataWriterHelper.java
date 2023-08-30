@@ -17,6 +17,7 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.client.util.Sleeper;
 import com.google.api.core.ApiFuture;
+import com.google.api.core.ApiFutures;
 import com.google.api.core.NanoClock;
 import com.google.api.gax.retrying.*;
 import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
@@ -32,8 +33,12 @@ import com.google.cloud.bigquery.storage.v1.stub.readrows.ApiResultRetryAlgorith
 import com.google.common.base.Optional;
 import com.google.protobuf.ByteString;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +67,9 @@ public class BigQueryDirectDataWriterHelper {
   private long appendRequestRowCount = 0; // number of rows waiting for the next append request
   private long appendRequestSizeBytes = 0; // number of bytes waiting for the next append request
   private long writeStreamRowCount = 0; // total offset / rows of the current write-stream
+
+  private final ExecutorService appendRowsExecutor = Executors.newSingleThreadExecutor();
+  private final List<ApiFuture<AppendRowsResponse>> appendRowsFutures = new ArrayList<>();
 
   public BigQueryDirectDataWriterHelper(
       BigQueryClientFactory writeClientFactory,
@@ -195,8 +203,12 @@ public class BigQueryDirectDataWriterHelper {
 
     ApiFuture<AppendRowsResponse> appendRowsResponseApiFuture =
         streamWriter.append(protoRows.build(), offset);
-    validateAppendRowsResponse(appendRowsResponseApiFuture, offset);
-
+    ApiFuture<AppendRowsResponse> validatedAppendRowsFuture =
+        ApiFutures.transformAsync(
+            appendRowsResponseApiFuture,
+            appendRowsResponse -> validateAppendRowsResponse(appendRowsResponse, offset),
+            appendRowsExecutor);
+    appendRowsFutures.add(validatedAppendRowsFuture);
     clearProtoRows();
     this.writeStreamRowCount += appendRequestRowCount;
     this.appendRequestRowCount = 0;
@@ -207,20 +219,13 @@ public class BigQueryDirectDataWriterHelper {
    * Validates an AppendRowsResponse, after retrieving its future: makes sure the responses' future
    * matches the expectedOffset, and returned with no errors.
    *
-   * @param appendRowsResponseApiFuture The future of the AppendRowsResponse
+   * @param appendRowsResponse The AppendRowsResponse
    * @param expectedOffset The expected offset to be returned by the response.
    * @throws IOException If the response returned with error, or the offset did not match the
    *     expected offset.
    */
-  private void validateAppendRowsResponse(
-      ApiFuture<AppendRowsResponse> appendRowsResponseApiFuture, long expectedOffset)
-      throws IOException {
-    AppendRowsResponse appendRowsResponse = null;
-    try {
-      appendRowsResponse = appendRowsResponseApiFuture.get();
-    } catch (InterruptedException | ExecutionException e) {
-      throw new BigQueryConnectorException("Could not retrieve AppendRowsResponse", e);
-    }
+  private ApiFuture<AppendRowsResponse> validateAppendRowsResponse(
+      AppendRowsResponse appendRowsResponse, long expectedOffset) throws IOException {
     if (appendRowsResponse.hasError()) {
       throw new IOException(
           "Append request failed with error: " + appendRowsResponse.getError().getMessage());
@@ -237,6 +242,7 @@ public class BigQueryDirectDataWriterHelper {
                 writeStreamName, responseOffset, expectedOffset));
       }
     }
+    return ApiFutures.immediateFuture(appendRowsResponse);
   }
 
   /**
@@ -252,6 +258,13 @@ public class BigQueryDirectDataWriterHelper {
   public long finalizeStream() throws IOException {
     if (this.protoRows.getSerializedRowsCount() != 0) {
       sendAppendRowsRequest();
+    }
+    try {
+      ApiFutures.allAsList(appendRowsFutures).get();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new BigQueryConnectorException("Could not retrieve AppendRowsResponse", e);
+    } finally {
+      appendRowsExecutor.shutdown();
     }
     long responseFinalizedRowCount = writeStreamRowCount;
 
