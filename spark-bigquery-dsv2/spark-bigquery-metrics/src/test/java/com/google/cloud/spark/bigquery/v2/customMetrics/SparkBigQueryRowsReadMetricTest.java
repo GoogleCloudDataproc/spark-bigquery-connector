@@ -23,6 +23,6 @@ public class SparkBigQueryRowsReadMetricTest {
   @Test
   public void testAggregateMetrics() {
     assertThat(sparkBigQueryRowsReadMetric.aggregateTaskMetrics(new long[] {1000L, 2000L}))
-        .isEqualTo("3000");
+        .isEqualTo("3,000");
   }
 }
