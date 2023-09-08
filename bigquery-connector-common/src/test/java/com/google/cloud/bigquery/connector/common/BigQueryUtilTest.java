@@ -638,4 +638,22 @@ public class BigQueryUtilTest {
     Field adjustedField = BigQueryUtil.adjustField(field, null);
     assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.RECORD);
   }
+
+  @Test
+  public void testPrepareQueryForLog_withNewLine() {
+    assertThat(BigQueryUtil.prepareQueryForLog("SELECT a\nFROM table", 40))
+        .isEqualTo("SELECT aFROM table");
+  }
+
+  @Test
+  public void testPrepareQueryForLog_withoutNewLine() {
+    assertThat(BigQueryUtil.prepareQueryForLog("SELECT a FROM table", 40))
+        .isEqualTo("SELECT a FROM table");
+  }
+
+  @Test
+  public void testPrepareQueryForLog_withTruncating() {
+    assertThat(BigQueryUtil.prepareQueryForLog("SELECT a FROM table", 10))
+        .isEqualTo("SELECT a F\u2026");
+  }
 }
