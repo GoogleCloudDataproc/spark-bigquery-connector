@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
   <parent>
-    <artifactId>spark-bigquery-parent</artifactId>
     <groupId>com.google.cloud.spark</groupId>
+    <artifactId>spark-bigquery-parent</artifactId>
     <version>${revision}</version>
     <relativePath>../spark-bigquery-parent</relativePath>
   </parent>
-  <modelVersion>4.0.0</modelVersion>
 
   <artifactId>spark-bigquery-pushdown</artifactId>
-  <name>Spark BigQuery Predicate Pushdown Implementation</name>
   <packaging>pom</packaging>
+
+  <name>Spark BigQuery Predicate Pushdown Implementation</name>
 
   <modules>
     <module>spark-bigquery-pushdown-parent</module>
@@ -27,5 +27,4 @@
     <module>spark-bigquery-pushdown-common_2.12</module>
     <module>spark-bigquery-pushdown-common_2.13</module>
   </modules>
-
 </project>

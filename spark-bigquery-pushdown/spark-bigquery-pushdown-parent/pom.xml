@@ -1,23 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
   <parent>
-    <artifactId>spark-bigquery-parent</artifactId>
     <groupId>com.google.cloud.spark</groupId>
+    <artifactId>spark-bigquery-parent</artifactId>
     <version>${revision}</version>
     <relativePath>../../spark-bigquery-parent</relativePath>
   </parent>
-  <modelVersion>4.0.0</modelVersion>
 
   <artifactId>spark-bigquery-pushdown-parent</artifactId>
-  <name>Spark BigQuery Predicate Pushdown Implementation common settings</name>
-
   <packaging>pom</packaging>
-  <properties>
-    <scala.binary.version>2.11</scala.binary.version>
-    <spark.version>2.4.0</spark.version>
-  </properties>
+
+  <name>Spark BigQuery Predicate Pushdown Implementation common settings</name>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
@@ -25,6 +20,12 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
+
+  <properties>
+    <scala.binary.version>2.11</scala.binary.version>
+    <spark.version>2.4.0</spark.version>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -82,8 +83,8 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>spark-bigquery-connector-common</artifactId>
       <version>${project.version}</version>
-      <scope>test</scope>
       <classifier>tests</classifier>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -92,6 +93,7 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
   <build>
     <sourceDirectory>src/main/scala</sourceDirectory>
     <plugins>

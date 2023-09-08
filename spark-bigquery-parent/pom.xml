@@ -1,16 +1,16 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <groupId>com.google.cloud.spark</groupId>
     <artifactId>spark-bigquery-parent</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
+
     <name>Spark BigQuery Connector Build Parent</name>
     <description>Parent project for all the Spark BigQuery Connector artifacts
     </description>
     <url>https://github.com/GoogleCloudDataproc/spark-bigquery-connector</url>
-
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
@@ -35,7 +35,6 @@
         </developerConnection>
         <url>git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git</url>
     </scm>
-
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -73,6 +72,7 @@
         <checkstyle.header.file>${reactor.project.basedir}/java.header</checkstyle.header.file>
         -->
     </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -85,8 +85,8 @@
                 <groupId>com.fasterxml.jackson</groupId>
                 <artifactId>jackson-bom</artifactId>
                 <version>${jackson.version}</version>
-                <scope>import</scope>
                 <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -303,6 +303,7 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
     <build>
         <pluginManagement>
             <plugins>
@@ -662,6 +663,7 @@
             </plugin>
         </plugins>
     </build>
+
     <reporting>
         <plugins>
             <plugin>
