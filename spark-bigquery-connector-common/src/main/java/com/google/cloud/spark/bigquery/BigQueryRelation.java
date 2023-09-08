@@ -19,6 +19,7 @@ package com.google.cloud.spark.bigquery;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import org.apache.spark.package$;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.sources.BaseRelation;
 import org.apache.spark.sql.types.StructType;
@@ -66,7 +67,7 @@ public class BigQueryRelation extends BaseRelation {
             query ->
                 tableName
                     + " created from \""
-                    + BigQueryUtil.prepareQueryForLog(query, /* maxLength*/ 50)
+                    + BigQueryUtil.prepareQueryForLog(query, /* maxLength */ 50)
                     + "\"")
         .orElse(BigQueryUtil.friendlyTableName(options.getTableId()));
   }
