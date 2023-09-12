@@ -199,9 +199,16 @@ public class SchemaConverters {
     if (LegacySQLTypeName.NUMERIC.equals(bqField.getType())
         || LegacySQLTypeName.BIGNUMERIC.equals(bqField.getType())) {
       byte[] bytes = getBytes((ByteBuffer) value);
-      int scale = bqField.getScale().intValue();
+      int scale =
+              Optional.ofNullable(bqField.getScale())
+                      .map(Long::intValue)
+                      .orElse(BigQueryUtil.DEFAULT_NUMERIC_SCALE);
       BigDecimal b = new BigDecimal(new BigInteger(bytes), scale);
-      Decimal d = Decimal.apply(b, bqField.getPrecision().intValue(), scale);
+      int precision =
+              Optional.ofNullable(bqField.getPrecision())
+                      .map(Long::intValue)
+                      .orElse(BigQueryUtil.DEFAULT_NUMERIC_PRECISION);
+      Decimal d = Decimal.apply(b, precision, scale);
 
       return d;
     }
