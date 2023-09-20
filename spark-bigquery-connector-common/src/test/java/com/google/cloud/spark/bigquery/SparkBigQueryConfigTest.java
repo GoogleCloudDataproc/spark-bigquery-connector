@@ -454,6 +454,8 @@ public class SparkBigQueryConfigTest {
     assertThat(SparkBigQueryConfig.isQuery("SELECT\ta,b from table")).isTrue();
     assertThat(SparkBigQueryConfig.isQuery("WITH bar AS (SELECT * FROM foo)\nSELECT * FROM bar"))
         .isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("select--comment\n* from table")).isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("select col1 -- comment\nfrom table")).isTrue();
   }
 
   @Test
