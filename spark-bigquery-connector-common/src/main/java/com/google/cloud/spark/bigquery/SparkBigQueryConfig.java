@@ -300,12 +300,12 @@ public class SparkBigQueryConfig
         date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
     // checking for query
     if (tableParam.isPresent()) {
-      if (isQuery(tableParam.get())) {
+      String tableParamStr = tableParam.get().trim();
+      if (isQuery(tableParamStr)) {
         // it is a query in practice
-        config.query = com.google.common.base.Optional.of(tableParam.get());
+        config.query = com.google.common.base.Optional.of(tableParamStr);
         config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
       } else {
-        String tableParamStr = tableParam.get().trim().replaceAll("\\s+", " ");
         config.tableId =
             parseTableId(tableParamStr, datasetParam, projectParam, datePartitionParam);
       }
