@@ -200,14 +200,14 @@ public class SchemaConverters {
         || LegacySQLTypeName.BIGNUMERIC.equals(bqField.getType())) {
       byte[] bytes = getBytes((ByteBuffer) value);
       int scale =
-              Optional.ofNullable(bqField.getScale())
-                      .map(Long::intValue)
-                      .orElse(BigQueryUtil.DEFAULT_NUMERIC_SCALE);
+          Optional.ofNullable(bqField.getScale())
+              .map(Long::intValue)
+              .orElse(BigQueryUtil.DEFAULT_NUMERIC_SCALE);
       BigDecimal b = new BigDecimal(new BigInteger(bytes), scale);
       int precision =
-              Optional.ofNullable(bqField.getPrecision())
-                      .map(Long::intValue)
-                      .orElse(BigQueryUtil.DEFAULT_NUMERIC_PRECISION);
+          Optional.ofNullable(bqField.getPrecision())
+              .map(Long::intValue)
+              .orElse(BigQueryUtil.DEFAULT_NUMERIC_PRECISION);
       Decimal d = Decimal.apply(b, precision, scale);
 
       return d;
