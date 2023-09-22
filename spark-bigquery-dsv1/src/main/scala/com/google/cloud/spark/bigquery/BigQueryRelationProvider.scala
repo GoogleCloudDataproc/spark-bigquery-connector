@@ -17,9 +17,10 @@ package com.google.cloud.spark.bigquery
 
 import java.util.Optional
 import com.google.cloud.bigquery.TableDefinition
-import com.google.cloud.bigquery.TableDefinition.Type.{EXTERNAL, MATERIALIZED_VIEW, TABLE, VIEW, SNAPSHOT}
-import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryClientModule, LoggingBigQueryTracerFactory, BigQueryUtil}
+import com.google.cloud.bigquery.TableDefinition.Type.{EXTERNAL, MATERIALIZED_VIEW, SNAPSHOT, TABLE, VIEW}
+import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryClientModule, BigQueryUtil, LoggingBigQueryTracerFactory, UserAgentProvider}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
+import com.google.cloud.spark.bigquery.metrics.SparkTelemetryEvents
 import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper
 import com.google.common.collect.ImmutableMap
 import com.google.inject.{Guice, Injector}
@@ -73,6 +74,10 @@ class BigQueryRelationProvider(
                                         schema: Option[StructType] = None): BigQueryRelation = {
     val injector = getGuiceInjectorCreator().createGuiceInjector(sqlContext, parameters, schema)
     val opts = injector.getInstance(classOf[SparkBigQueryConfig])
+    val sparkTelemetryEvents = injector.getInstance(classOf[SparkTelemetryEvents])
+    sparkTelemetryEvents.updateInputFormatEvent()
+    val userAgentProvider = injector.getInstance(classOf[UserAgentProvider])
+    sparkTelemetryEvents.updateConnectorVersion(userAgentProvider.getUserAgent)
     val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
     val tableInfo = bigQueryClient.getReadTable(opts.toReadTableOptions)
     val tableName = BigQueryUtil.friendlyTableName(opts.getTableId)

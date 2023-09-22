@@ -80,6 +80,12 @@
             <artifactId>google-cloud-storage</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.google.cloud.dataproc</groupId>
+            <artifactId>spark-events</artifactId>
+            <version>1.0.0</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

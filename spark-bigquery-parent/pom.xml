@@ -73,6 +73,19 @@
         <checkstyle.header.file>${reactor.project.basedir}/java.header</checkstyle.header.file>
         -->
     </properties>
+    <repositories>
+        <repository>
+            <id>gcs-dataproc-repository</id>
+            <name>GCS Custom Spark Packages</name>
+            <url>artifactregistry://us-central1-maven.pkg.dev/cloud-dataproc-prod/dataproc</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+    </repositories>
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -553,6 +566,7 @@
                             <excludes>
                                 <exclude>com.google.cloud.bigquery.connector.common.**</exclude>
                                 <exclude>com.google.cloud.spark.bigquery.**</exclude>
+                                <exclude>com.google.cloud.spark.events.**</exclude>
                             </excludes>
                         </relocation>
                         <relocation>

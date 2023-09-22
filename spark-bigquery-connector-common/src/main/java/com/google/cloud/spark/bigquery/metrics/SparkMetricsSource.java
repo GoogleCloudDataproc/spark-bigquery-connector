@@ -4,6 +4,7 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.cloud.bigquery.connector.common.BigQueryMetrics;
+import com.google.cloud.spark.bigquery.plugins.SparkBigQueryPluginUtil;
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 import org.apache.spark.metrics.source.Source;
@@ -43,6 +44,7 @@ public class SparkMetricsSource implements Source, Serializable, BigQueryMetrics
   @Override
   public void updateParseTime(long val) {
     parseTime.update(val, TimeUnit.MILLISECONDS);
+    SparkBigQueryPluginUtil.parseTimeCounter.inc(val);
   }
 
   @Override
@@ -53,16 +55,19 @@ public class SparkMetricsSource implements Source, Serializable, BigQueryMetrics
   @Override
   public void incrementBytesReadCounter(long val) {
     bytesRead.inc(val);
+    SparkBigQueryPluginUtil.bytesReadCounter.inc(val);
   }
 
   @Override
   public void incrementRowsReadCounter(long val) {
     rowsRead.inc(val);
+    SparkBigQueryPluginUtil.rowsReadCounter.inc(val);
   }
 
   @Override
   public void updateScanTime(long val) {
     scanTime.update(val, TimeUnit.MILLISECONDS);
+    SparkBigQueryPluginUtil.scanTimeCounter.inc(val);
   }
 
   public Timer getParseTime() {

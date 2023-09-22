@@ -56,7 +56,7 @@ public class SparkBigQueryUtil {
 
   static final Properties BUILD_PROPERTIES = loadBuildProperties();
 
-  static final String CONNECTOR_VERSION = BUILD_PROPERTIES.getProperty("connector.version");
+  public static final String CONNECTOR_VERSION = BUILD_PROPERTIES.getProperty("connector.version");
 
   private static final ImmutableSet<TypeConverter> typeConverters;
 
