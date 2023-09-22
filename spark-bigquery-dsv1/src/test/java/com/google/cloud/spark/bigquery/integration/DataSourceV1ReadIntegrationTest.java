@@ -53,8 +53,4 @@ public class DataSourceV1ReadIntegrationTest extends ReadIntegrationTestBase {
   }
 
   // additional tests are from the super-class
-  @Test
-  public void testNew() {
-    testReadWithOption();
-  }
 }

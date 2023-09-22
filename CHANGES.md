@@ -2,11 +2,12 @@
 
 ## Next
 
-* Issue #867: Support writing with RangePartitioning
 * Issue #144: allow writing Spark String to BQ TIME type
-* PR #1038: Logical plan now shows the BigQuery table of DirectBigQueryRelation. Thanks @idc101 !
+* Issue #867: Support writing with RangePartitioning
 * PR #1008: Adding support to expose bigquery metrics using Spark custom metrics API.
-
+* PR #1038: Logical plan now shows the BigQuery table of DirectBigQueryRelation. Thanks @idc101 !
+* PR #1058: View names will appear in query plan instead of the materialized table
+*
 ## 0.32.2 - 2023-08-07
 
 * CVE-2023-34462: Upgrading netty to verision 4.1.96.Final
