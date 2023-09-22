@@ -642,7 +642,7 @@ public class BigQueryUtilTest {
   @Test
   public void testPrepareQueryForLog_withNewLine() {
     assertThat(BigQueryUtil.prepareQueryForLog("SELECT a\nFROM table", 40))
-        .isEqualTo("SELECT aFROM table");
+        .isEqualTo("SELECT aֿֿ\\nFROM table");
   }
 
   @Test
