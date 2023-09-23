@@ -57,4 +57,17 @@ public class BigQueryRelation extends BaseRelation {
   public String getTableName() {
     return tableName;
   }
+
+  // Should be used for logging purposes only, not for any internal use!
+  protected String getTableNameForLogging() {
+    return options
+        .getQuery()
+        .map(
+            query ->
+                tableName
+                    + " created from \""
+                    + BigQueryUtil.prepareQueryForLog(query, /* maxLength */ 50)
+                    + "\"")
+        .orElse(BigQueryUtil.friendlyTableName(options.getTableId()));
+  }
 }

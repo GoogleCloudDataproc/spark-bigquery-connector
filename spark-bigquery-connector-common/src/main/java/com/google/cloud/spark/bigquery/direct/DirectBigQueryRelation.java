@@ -115,7 +115,7 @@ public class DirectBigQueryRelation extends BigQueryRelation
         "|Querying table {}, parameters sent from Spark:"
             + "|requiredColumns=[{}],"
             + "|filters=[{}]",
-        getTableName(),
+        getTableNameForLogging(),
         String.join(",", requiredColumns),
         Arrays.stream(filters).map(f -> f.toString()).collect(Collectors.joining(",")));
     compiledFilter = getCompiledFilter(filters);
@@ -245,6 +245,6 @@ public class DirectBigQueryRelation extends BigQueryRelation
 
   @Override
   public String toString() {
-    return "DirectBigQueryRelation[" + toSqlTableReference(getTableId()) + "]";
+    return "DirectBigQueryRelation[" + getTableNameForLogging() + "]";
   }
 }

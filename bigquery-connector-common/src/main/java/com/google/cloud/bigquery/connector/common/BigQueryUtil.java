@@ -594,4 +594,11 @@ public class BigQueryUtil {
     // no adjustment
     return field;
   }
+
+  public static String prepareQueryForLog(String query, int maxLength) {
+    String noNewLinesQuery = query.replace("\n", "\\n");
+    return noNewLinesQuery.length() > maxLength
+        ? noNewLinesQuery.substring(0, maxLength) + /* ellipsis */ '\u2026'
+        : noNewLinesQuery;
+  }
 }
