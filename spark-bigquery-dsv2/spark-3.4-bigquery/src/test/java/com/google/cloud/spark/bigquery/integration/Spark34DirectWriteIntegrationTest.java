@@ -23,7 +23,6 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.spark.sql.Dataset;
@@ -68,6 +67,6 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
     assertThat(result.getSchema().getFields().get(0).getType())
         .isEqualTo(LegacySQLTypeName.DATETIME);
     assertThat(result.streamValues().findFirst().get().get(0).getValue().toString())
-        .isEqualTo(time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
+        .isEqualTo(time.toString());
   }
 }

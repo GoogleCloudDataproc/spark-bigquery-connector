@@ -23,7 +23,6 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.spark.sql.Dataset;
@@ -49,48 +48,42 @@ public class Spark34IndirectWriteIntegrationTest extends WriteIntegrationTestBas
     spark.conf().set("enableListInference", "true");
   }
 
+  private TableResult insertAndGetTimestampNTZToBigQuery(LocalDateTime time, String format)
+      throws InterruptedException {
+    List<Row> rows = Arrays.asList(RowFactory.create(time));
+    Dataset<Row> df =
+        spark.createDataFrame(
+            rows,
+            new StructType(
+                new StructField[] {
+                  StructField.apply("foo", DataTypes.TimestampNTZType, true, Metadata.empty())
+                }));
+    writeToBigQuery(df, SaveMode.Overwrite, format);
+    BigQuery bigQuery = IntegrationTestUtils.getBigquery();
+    TableResult result =
+        bigQuery.query(
+            QueryJobConfiguration.of(String.format("Select foo from %s", fullTableName())));
+    return result;
+  }
+
   // tests from superclass
   @Test
   public void testTimestampNTZWriteToBigQueryAvroFormat() throws InterruptedException {
     LocalDateTime time = LocalDateTime.of(2023, 9, 1, 12, 23, 34, 268543 * 1000);
-    List<Row> rows = Arrays.asList(RowFactory.create(time));
-    Dataset<Row> df =
-        spark.createDataFrame(
-            rows,
-            new StructType(
-                new StructField[] {
-                  StructField.apply("foo", DataTypes.TimestampNTZType, true, Metadata.empty())
-                }));
-    writeToBigQuery(df, SaveMode.Overwrite, "avro");
-    BigQuery bigQuery = IntegrationTestUtils.getBigquery();
-    TableResult result =
-        bigQuery.query(
-            QueryJobConfiguration.of(String.format("Select foo from %s", fullTableName())));
+    TableResult result = insertAndGetTimestampNTZToBigQuery(time, "avro");
     assertThat(result.getSchema().getFields().get(0).getType())
         .isEqualTo(LegacySQLTypeName.DATETIME);
     assertThat(result.streamValues().findFirst().get().get(0).getValue().toString())
-        .isEqualTo(time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
+        .isEqualTo(time.toString());
   }
 
   @Test
   public void testTimestampNTZWriteToBigQueryParquetFormat() throws InterruptedException {
-    LocalDateTime time = LocalDateTime.of(2023, 9, 1, 12, 23, 34, 268543 * 1000);
-    List<Row> rows = Arrays.asList(RowFactory.create(time));
-    Dataset<Row> df =
-        spark.createDataFrame(
-            rows,
-            new StructType(
-                new StructField[] {
-                  StructField.apply("foo", DataTypes.TimestampNTZType, true, Metadata.empty())
-                }));
-    writeToBigQuery(df, SaveMode.Overwrite, "parquet");
-    BigQuery bigQuery = IntegrationTestUtils.getBigquery();
-    TableResult result =
-        bigQuery.query(
-            QueryJobConfiguration.of(String.format("Select foo from %s", fullTableName())));
+    LocalDateTime time = LocalDateTime.of(2023, 9, 15, 12, 36, 34, 268543 * 1000);
+    TableResult result = insertAndGetTimestampNTZToBigQuery(time, "parquet");
     assertThat(result.getSchema().getFields().get(0).getType())
         .isEqualTo(LegacySQLTypeName.DATETIME);
     assertThat(result.streamValues().findFirst().get().get(0).getValue().toString())
-        .isEqualTo(time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
+        .isEqualTo(time.toString());
   }
 }

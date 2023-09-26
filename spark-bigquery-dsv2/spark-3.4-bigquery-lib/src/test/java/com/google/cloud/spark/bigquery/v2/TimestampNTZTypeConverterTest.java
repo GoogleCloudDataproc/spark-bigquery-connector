@@ -38,7 +38,7 @@ public class TimestampNTZTypeConverterTest {
   @Test
   public void testToSparkTypeThrowsException() {
     assertThrows(
-        UnsupportedOperationException.class,
+        IllegalArgumentException.class,
         () -> {
           timestampNTZTypeConverter.toSparkType(LegacySQLTypeName.FLOAT);
         });
@@ -53,7 +53,7 @@ public class TimestampNTZTypeConverterTest {
   @Test
   public void testToBigQueryTypeThrowsException() {
     assertThrows(
-        UnsupportedOperationException.class,
+        IllegalArgumentException.class,
         () -> {
           timestampNTZTypeConverter.toBigQueryType(DataTypes.TimestampType);
         });
@@ -68,7 +68,7 @@ public class TimestampNTZTypeConverterTest {
   @Test
   public void testToProtoFieldTypeThrowsException() {
     assertThrows(
-        UnsupportedOperationException.class,
+        IllegalArgumentException.class,
         () -> {
           timestampNTZTypeConverter.toProtoFieldType(DataTypes.TimestampType);
         });
