@@ -66,7 +66,7 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
             QueryJobConfiguration.of(String.format("Select foo from %s", fullTableName())));
     assertThat(result.getSchema().getFields().get(0).getType())
         .isEqualTo(LegacySQLTypeName.DATETIME);
-    assertThat(result.streamValues().findFirst().get().get(0).getValue().toString())
-        .isEqualTo(time.toString());
+    assertThat(result.streamValues().findFirst().get().get(0).getValue())
+        .isEqualTo("2023-09-01T12:23:34.268543");
   }
 }
