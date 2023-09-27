@@ -456,6 +456,7 @@ public class SparkBigQueryConfigTest {
         .isTrue();
     assertThat(SparkBigQueryConfig.isQuery("select--comment\n* from table")).isTrue();
     assertThat(SparkBigQueryConfig.isQuery("select col1 -- comment\nfrom table")).isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("select col1 from table -- comment")).isTrue();
   }
 
   @Test

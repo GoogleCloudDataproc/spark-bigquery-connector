@@ -603,7 +603,7 @@ public class SparkBigQueryConfig
   @VisibleForTesting
   static boolean isQuery(String tableParamStr) {
     String potentialQuery =
-        tableParamStr.toLowerCase().replaceAll("--.*\n", " ").replaceAll("\n", " ");
+        tableParamStr.toLowerCase().replaceAll("--.*(\n|$)", " ").replaceAll("\n", " ");
     return LOWERCASE_QUERY_PATTERN.matcher(potentialQuery).matches();
   }
 
