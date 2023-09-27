@@ -1,7 +1,7 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+
   <parent>
     <groupId>com.google.cloud.spark</groupId>
     <artifactId>spark-bigquery-parent</artifactId>
@@ -11,8 +11,8 @@
 
   <artifactId>spark-bigquery-reactor</artifactId>
   <packaging>pom</packaging>
-  <name>Spark BigQuery Connector Reactor</name>
 
+  <name>Spark BigQuery Connector Reactor</name>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
@@ -28,6 +28,15 @@
     </developer>
   </developers>
 
+  <modules>
+    <module>spark-bigquery-parent</module>
+    <module>bigquery-connector-common</module>
+    <module>spark-bigquery-tests</module>
+    <module>spark-bigquery-scala-212-support</module>
+    <module>spark-bigquery-connector-common</module>
+    <module>spark-bigquery-python-lib</module>
+  </modules>
+
   <scm>
     <connection>
       scm:git:git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git
@@ -37,22 +46,12 @@
     </developerConnection>
     <url>git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git</url>
   </scm>
-
   <issueManagement>
     <system>GitHub Issues</system>
     <url>
       https://github.com/GoogleCloudDataproc/spark-bigquery-connector/issues
     </url>
   </issueManagement>
-
-  <modules>
-    <module>spark-bigquery-parent</module>
-    <module>bigquery-connector-common</module>
-    <module>spark-bigquery-tests</module>
-    <module>spark-bigquery-scala-212-support</module>
-    <module>spark-bigquery-connector-common</module>
-    <module>spark-bigquery-python-lib</module>
-  </modules>
 
   <profiles>
     <profile>

@@ -1,7 +1,7 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+
   <parent>
     <groupId>com.google.cloud.spark</groupId>
     <artifactId>spark-bigquery-dsv2-parent</artifactId>
@@ -11,11 +11,8 @@
 
   <artifactId>spark-3.1-bigquery</artifactId>
   <version>${revision}</version>
+
   <name>BigQuery DataSource v2 for Spark 3.1</name>
-  <properties>
-    <spark.version>3.1.0</spark.version>
-    <shade.skip>false</shade.skip>
-  </properties>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
@@ -23,6 +20,12 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
+
+  <properties>
+    <spark.version>3.1.0</spark.version>
+    <shade.skip>false</shade.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
