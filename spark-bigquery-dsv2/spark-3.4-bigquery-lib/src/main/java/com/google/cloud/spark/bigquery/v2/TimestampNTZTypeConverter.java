@@ -29,7 +29,7 @@ public class TimestampNTZTypeConverter implements TypeConverter<Long> {
     if (supportsBigQueryType(bigQueryType)) {
       return DataTypes.TimestampNTZType;
     }
-    throw new IllegalArgumentException("Data type not supported : {}" + bigQueryType);
+    throw new IllegalArgumentException("Data type not supported : " + bigQueryType);
   }
 
   @Override
@@ -37,7 +37,7 @@ public class TimestampNTZTypeConverter implements TypeConverter<Long> {
     if (supportsSparkType(sparkType)) {
       return LegacySQLTypeName.DATETIME;
     }
-    throw new IllegalArgumentException("Data type not supported : {}" + sparkType);
+    throw new IllegalArgumentException("Data type not supported : " + sparkType);
   }
 
   @Override
@@ -45,7 +45,7 @@ public class TimestampNTZTypeConverter implements TypeConverter<Long> {
     if (supportsSparkType(sparkType)) {
       return DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64;
     }
-    throw new IllegalArgumentException("Data type not supported : {}" + sparkType);
+    throw new IllegalArgumentException("Data type not supported : " + sparkType);
   }
 
   @Override
