@@ -354,7 +354,7 @@ public class ProtobufUtils {
 
     DataType finalSparkType = sparkType;
     Optional<Object> protoValueFromConverter =
-        BigQueryConnectorUtils.getTypeConverterStream()
+        SparkBigQueryUtil.getTypeConverterStream()
             .filter(tc -> tc.supportsSparkType(finalSparkType))
             .map(tc -> tc.sparkToProtoValue(sparkValue))
             .findFirst();
@@ -592,7 +592,7 @@ public class ProtobufUtils {
 
   private static DescriptorProtos.FieldDescriptorProto.Type toProtoFieldType(DataType sparkType) {
     Optional<DescriptorProtos.FieldDescriptorProto.Type> protoFieldType =
-        BigQueryConnectorUtils.getTypeConverterStream()
+        SparkBigQueryUtil.getTypeConverterStream()
             .filter(tc -> tc.supportsSparkType(sparkType))
             .map(tc -> tc.toProtoFieldType(sparkType))
             .findFirst();

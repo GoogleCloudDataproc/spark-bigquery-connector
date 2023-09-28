@@ -354,7 +354,7 @@ public class SchemaConverters {
 
   private DataType getStandardDataType(Field field) {
     Optional<DataType> sparkType =
-        BigQueryConnectorUtils.getTypeConverterStream()
+        SparkBigQueryUtil.getTypeConverterStream()
             .filter(tc -> tc.supportsBigQueryType(field.getType()))
             .map(tc -> tc.toSparkType(field.getType()))
             .findFirst();
@@ -566,7 +566,7 @@ public class SchemaConverters {
   @VisibleForTesting
   protected LegacySQLTypeName toBigQueryType(DataType elementType, Metadata metadata) {
     Optional<LegacySQLTypeName> bigQueryType =
-        BigQueryConnectorUtils.getTypeConverterStream()
+        SparkBigQueryUtil.getTypeConverterStream()
             .filter(tc -> tc.supportsSparkType(elementType))
             .map(tc -> tc.toBigQueryType(elementType))
             .findFirst();
