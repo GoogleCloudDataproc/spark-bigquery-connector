@@ -109,6 +109,15 @@ repository. It can be used using the `--packages` option or the
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.32.2` |
 | Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0`              |
 
+### Specifying the  Spark BigQuery connector version in a Dataproc cluster
+
+The version can be specified using `--metadata SPARK_BQ_CONNECTOR_VERSION=${next-release-tag}` while creating the cluster.
+
+Note : Image 2.1 already comes with the spark-bigquery-connector and using `--jars` while running the job will not override the version.
+
+For spark serverless, the version can be specified using `dataproc.sparkBqConnector.version` property i.e.
+`--properties dataproc:dataproc.sparkBqConnector.version=${next-release-tag}`
+
 ## Hello World Example
 
 You can run a simple PySpark wordcount against the API without compilation by running
