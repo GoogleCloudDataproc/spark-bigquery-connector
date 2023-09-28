@@ -28,7 +28,6 @@ import com.google.cloud.bigquery.TimePartitioning.Type;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -53,13 +52,6 @@ public class SchemaConverters {
   // Numeric cannot have more than 29 digits left of the dot. For more details
   // https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#parameterized_decimal_type
   private static final int NUMERIC_MAX_LEFT_OF_DOT_DIGITS = 29;
-
-  private static final ImmutableSet<TypeConverter> typeConverters;
-
-  static {
-    ServiceLoader<TypeConverter> serviceLoader = ServiceLoader.load(TypeConverter.class);
-    typeConverters = ImmutableSet.copyOf(serviceLoader.iterator());
-  }
 
   private final SchemaConvertersConfiguration configuration;
 
@@ -362,7 +354,7 @@ public class SchemaConverters {
 
   private DataType getStandardDataType(Field field) {
     Optional<DataType> sparkType =
-        typeConverters.stream()
+        BigQueryConnectorUtils.getTypeConverterStream()
             .filter(tc -> tc.supportsBigQueryType(field.getType()))
             .map(tc -> tc.toSparkType(field.getType()))
             .findFirst();
@@ -574,7 +566,7 @@ public class SchemaConverters {
   @VisibleForTesting
   protected LegacySQLTypeName toBigQueryType(DataType elementType, Metadata metadata) {
     Optional<LegacySQLTypeName> bigQueryType =
-        typeConverters.stream()
+        BigQueryConnectorUtils.getTypeConverterStream()
             .filter(tc -> tc.supportsSparkType(elementType))
             .map(tc -> tc.toBigQueryType(elementType))
             .findFirst();

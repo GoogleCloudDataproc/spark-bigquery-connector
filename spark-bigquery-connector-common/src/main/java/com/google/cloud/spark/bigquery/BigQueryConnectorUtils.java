@@ -18,10 +18,19 @@ package com.google.cloud.spark.bigquery;
 import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdown;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
 import java.util.ServiceLoader;
+import java.util.stream.Stream;
 import org.apache.spark.sql.SparkSession;
 
 public class BigQueryConnectorUtils {
+
+  private static final ImmutableSet<TypeConverter> typeConverters;
+
+  static {
+    ServiceLoader<TypeConverter> serviceLoader = ServiceLoader.load(TypeConverter.class);
+    typeConverters = ImmutableSet.copyOf(serviceLoader.iterator());
+  }
 
   private BigQueryConnectorUtils() {}
 
@@ -51,5 +60,9 @@ public class BigQueryConnectorUtils {
         String.format(
             "Could not find an implementation of %s that supports Spark version %s",
             SparkBigQueryPushdown.class.getName(), sparkVersion));
+  }
+
+  public static Stream<TypeConverter> getTypeConverterStream() {
+    return typeConverters.stream();
   }
 }

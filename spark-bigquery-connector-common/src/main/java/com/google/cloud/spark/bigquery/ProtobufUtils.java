@@ -28,7 +28,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.DescriptorProtos.FieldDescriptorProto.Type;
 import com.google.protobuf.Descriptors;
@@ -37,7 +36,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSqlUtils;
@@ -157,13 +155,6 @@ public class ProtobufUtils {
               .put(Field.Mode.REPEATED, DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED)
               .put(Field.Mode.REQUIRED, DescriptorProtos.FieldDescriptorProto.Label.LABEL_REQUIRED)
               .build();
-
-  private static final ImmutableSet<TypeConverter> typeConverters;
-
-  static {
-    ServiceLoader<TypeConverter> serviceLoader = ServiceLoader.load(TypeConverter.class);
-    typeConverters = ImmutableSet.copyOf(serviceLoader.iterator());
-  }
 
   /** BigQuery Schema ==> ProtoSchema converter utils: */
   public static ProtoSchema toProtoSchema(Schema schema) throws IllegalArgumentException {
@@ -363,7 +354,7 @@ public class ProtobufUtils {
 
     DataType finalSparkType = sparkType;
     Optional<Object> protoValueFromConverter =
-        typeConverters.stream()
+        BigQueryConnectorUtils.getTypeConverterStream()
             .filter(tc -> tc.supportsSparkType(finalSparkType))
             .map(tc -> tc.sparkToProtoValue(sparkValue))
             .findFirst();
@@ -601,7 +592,7 @@ public class ProtobufUtils {
 
   private static DescriptorProtos.FieldDescriptorProto.Type toProtoFieldType(DataType sparkType) {
     Optional<DescriptorProtos.FieldDescriptorProto.Type> protoFieldType =
-        typeConverters.stream()
+        BigQueryConnectorUtils.getTypeConverterStream()
             .filter(tc -> tc.supportsSparkType(sparkType))
             .map(tc -> tc.toProtoFieldType(sparkType))
             .findFirst();
