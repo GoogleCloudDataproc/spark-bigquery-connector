@@ -27,12 +27,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.ServiceLoader;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
@@ -51,6 +53,13 @@ public class SparkBigQueryUtil {
 
   static final String CONNECTOR_VERSION = BUILD_PROPERTIES.getProperty("connector.version");
 
+  private static final ImmutableSet<TypeConverter> typeConverters;
+
+  static {
+    ServiceLoader<TypeConverter> serviceLoader = ServiceLoader.load(TypeConverter.class);
+    typeConverters = ImmutableSet.copyOf(serviceLoader.iterator());
+  }
+
   private static Properties loadBuildProperties() {
     try {
       Properties buildProperties = new Properties();
@@ -61,6 +70,7 @@ public class SparkBigQueryUtil {
       throw new UncheckedIOException(e);
     }
   }
+
   /**
    * Optimizing the URI list for BigQuery load, using the Spark specific file prefix and suffix
    * patterns, based on <code>BigQueryUtil.optimizeLoadUriList()</code>
@@ -242,5 +252,9 @@ public class SparkBigQueryUtil {
         .filter(
             filter ->
                 Stream.of(filter.references()).anyMatch(reference -> reference.equals(field)));
+  }
+
+  public static Stream<TypeConverter> getTypeConverterStream() {
+    return typeConverters.stream();
   }
 }

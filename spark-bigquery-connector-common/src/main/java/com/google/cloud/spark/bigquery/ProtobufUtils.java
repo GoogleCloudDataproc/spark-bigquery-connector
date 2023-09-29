@@ -352,6 +352,16 @@ public class ProtobufUtils {
       }
     }
 
+    DataType finalSparkType = sparkType;
+    Optional<Object> protoValueFromConverter =
+        SparkBigQueryUtil.getTypeConverterStream()
+            .filter(tc -> tc.supportsSparkType(finalSparkType))
+            .map(tc -> tc.sparkToProtoValue(sparkValue))
+            .findFirst();
+    if (protoValueFromConverter.isPresent()) {
+      return protoValueFromConverter.get();
+    }
+
     // UDT support
     Optional<SupportedCustomDataType> customDataType = SupportedCustomDataType.of(sparkType);
     sparkType = customDataType.map(SupportedCustomDataType::getSqlType).orElse(sparkType);
@@ -581,6 +591,15 @@ public class ProtobufUtils {
   }
 
   private static DescriptorProtos.FieldDescriptorProto.Type toProtoFieldType(DataType sparkType) {
+    Optional<DescriptorProtos.FieldDescriptorProto.Type> protoFieldType =
+        SparkBigQueryUtil.getTypeConverterStream()
+            .filter(tc -> tc.supportsSparkType(sparkType))
+            .map(tc -> tc.toProtoFieldType(sparkType))
+            .findFirst();
+    if (protoFieldType.isPresent()) {
+      return protoFieldType.get();
+    }
+
     if (sparkType instanceof MapType) {;
     }
     if (sparkType instanceof DecimalType) {

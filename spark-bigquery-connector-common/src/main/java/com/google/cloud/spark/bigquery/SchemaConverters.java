@@ -353,6 +353,15 @@ public class SchemaConverters {
   }
 
   private DataType getStandardDataType(Field field) {
+    Optional<DataType> sparkType =
+        SparkBigQueryUtil.getTypeConverterStream()
+            .filter(tc -> tc.supportsBigQueryType(field.getType()))
+            .map(tc -> tc.toSparkType(field.getType()))
+            .findFirst();
+    if (sparkType.isPresent()) {
+      return sparkType.get();
+    }
+
     if (LegacySQLTypeName.INTEGER.equals(field.getType())) {
       return DataTypes.LongType;
     } else if (LegacySQLTypeName.FLOAT.equals(field.getType())) {
@@ -556,6 +565,15 @@ public class SchemaConverters {
 
   @VisibleForTesting
   protected LegacySQLTypeName toBigQueryType(DataType elementType, Metadata metadata) {
+    Optional<LegacySQLTypeName> bigQueryType =
+        SparkBigQueryUtil.getTypeConverterStream()
+            .filter(tc -> tc.supportsSparkType(elementType))
+            .map(tc -> tc.toBigQueryType(elementType))
+            .findFirst();
+    if (bigQueryType.isPresent()) {
+      return bigQueryType.get();
+    }
+
     if (elementType instanceof BinaryType) {
       return LegacySQLTypeName.BYTES;
     }

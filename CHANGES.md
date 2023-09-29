@@ -8,6 +8,7 @@
 * PR #1008: Adding support to expose bigquery metrics using Spark custom metrics API.
 * PR #1038: Logical plan now shows the BigQuery table of DirectBigQueryRelation. Thanks @idc101 !
 * PR #1058: View names will appear in query plan instead of the materialized table
+* PR #1069: Support TimestampNTZ datatype in spark 3.4
 
 ## 0.32.2 - 2023-08-07
 

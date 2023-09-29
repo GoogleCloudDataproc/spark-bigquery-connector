@@ -11,9 +11,10 @@
 
   <artifactId>spark-3.4-bigquery-lib</artifactId>
   <version>${revision}</version>
-  <name>Connector code for BigQuery DataSource v2 for Spark 3.3</name>
+  <name>Connector code for BigQuery DataSource v2 for Spark 3.4</name>
   <properties>
     <spark.version>3.4.0</spark.version>
+    <scala.binary.version>2.13</scala.binary.version>
     <shade.skip>true</shade.skip>
   </properties>
   <licenses>
