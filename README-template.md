@@ -124,7 +124,6 @@ Note : Image 2.1 and above already comes with the spark-bigquery-connector and u
 For spark serverless, the version can be specified using `dataproc.sparkBqConnector.version` property i.e.
 `--properties dataproc:dataproc.sparkBqConnector.version=${next-release-tag}`
 
-
 ## Hello World Example
 
 You can run a simple PySpark wordcount against the API without compilation by running
