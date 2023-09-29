@@ -111,12 +111,12 @@ repository. It can be used using the `--packages` option or the
 
 ### Specifying the  Spark BigQuery connector version in a Dataproc cluster
 
-The version can be specified using `--metadata SPARK_BQ_CONNECTOR_VERSION=${next-release-tag}` while creating the cluster.
+The version can be specified using `--metadata SPARK_BQ_CONNECTOR_VERSION=0.32.2` while creating the cluster.
 
-Note : Image 2.1 already comes with the spark-bigquery-connector and using `--jars` while running the job will not override the version.
+Note : Image 2.1 and above already comes with the spark-bigquery-connector and using `--jars` while running the job will not override the version.
 
 For spark serverless, the version can be specified using `dataproc.sparkBqConnector.version` property i.e.
-`--properties dataproc:dataproc.sparkBqConnector.version=${next-release-tag}`
+`--properties dataproc:dataproc.sparkBqConnector.version=0.32.2`
 
 ## Hello World Example
 
