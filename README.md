@@ -111,7 +111,7 @@ repository. It can be used using the `--packages` option or the
 
 ### Specifying the  Spark BigQuery connector version in a Dataproc cluster
 
-Dataproc clusters created using image 2.1 and above, or batches using the Dataproc serverless service come with built-in Spark BigQuery connector. 
+Dataproc clusters created using image 2.1 and above, or batches using the Dataproc serverless service come with built-in Spark BigQuery connector.
 Using the standard `--jars` or `--packages` (or alternatively, the `spark.jars`/`spark.jars.packages` configuration) won't help in this case as the built-in connector takes precedence.
 
 To use another version than the built-in one, please do one of the following:
