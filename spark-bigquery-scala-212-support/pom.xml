@@ -17,6 +17,10 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+    <properties>
+        <!-- some of the code is identical to code in spark-bigquery-common, but refers to different classes -->
+        <cpd.skip>true</cpd.skip>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
