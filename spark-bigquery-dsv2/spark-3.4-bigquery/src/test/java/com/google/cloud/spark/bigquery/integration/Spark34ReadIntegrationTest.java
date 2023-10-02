@@ -15,9 +15,32 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.cloud.spark.bigquery.integration.TestConstants.ALL_TYPES_TABLE_SCHEMA;
+
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+import org.junit.BeforeClass;
+
 public class Spark34ReadIntegrationTest extends ReadIntegrationTestBase {
+  private static StructType allTypesSchemaWithTimestampNTZ;
+
+  @BeforeClass
+  public static void intializeSchema() {
+    allTypesSchemaWithTimestampNTZ = new StructType();
+    for (StructField field : ALL_TYPES_TABLE_SCHEMA.fields()) {
+      DataType dateTimeType =
+          field.name().equals("dt") ? DataTypes.TimestampNTZType : field.dataType();
+      allTypesSchemaWithTimestampNTZ =
+          allTypesSchemaWithTimestampNTZ.add(
+              field.name(), dateTimeType, field.nullable(), field.metadata());
+    }
+  }
+
   public Spark34ReadIntegrationTest() {
-    super(/* userProvidedSchemaAllowed */ false);
+
+    super(/* userProvidedSchemaAllowed */ false, allTypesSchemaWithTimestampNTZ);
   }
 
   // tests are from the super-class

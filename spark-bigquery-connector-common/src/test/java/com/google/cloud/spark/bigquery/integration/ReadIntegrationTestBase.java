@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.cloud.spark.bigquery.integration.TestConstants.ALL_TYPES_TABLE_SCHEMA;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
@@ -93,6 +94,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   private static final String NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent";
   private static final String ALL_TYPES_TABLE_NAME = "all_types";
 
+  protected StructType allTypesTableSchema;
+
   protected final boolean userProvidedSchemaAllowed;
 
   protected List<String> gcsObjectsToClean = new ArrayList<>();
@@ -102,8 +105,14 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   public ReadIntegrationTestBase(boolean userProvidedSchemaAllowed) {
+    this(userProvidedSchemaAllowed, ALL_TYPES_TABLE_SCHEMA);
+  }
+
+  public ReadIntegrationTestBase(
+      boolean userProvidedSchemaAllowed, StructType allTypesTableSchema) {
     super();
     this.userProvidedSchemaAllowed = userProvidedSchemaAllowed;
+    this.allTypesTableSchema = allTypesTableSchema;
   }
 
   @Before
@@ -273,7 +282,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   @Test
   public void testKnownSchema() {
     Dataset<Row> allTypesTable = readAllTypesTable();
-    assertThat(allTypesTable.schema()).isEqualTo(TestConstants.ALL_TYPES_TABLE_SCHEMA);
+    assertThat(allTypesTable.schema()).isEqualTo(allTypesTableSchema);
   }
 
   @Test
