@@ -149,6 +149,10 @@ public class SparkBigQueryConfig
   static final String BIGQUERY_TABLE_LABEL_PREFIX = "bigQueryTableLabel.";
   public static final Priority DEFAULT_JOB_PRIORITY = Priority.INTERACTIVE;
 
+  static final String ALLOW_MAP_TYPE_CONVERSION = "allowMapTypeConversion";
+
+  private static final Boolean ALLOW_MAP_TYPE_CONVERSION_DEFAULT = true;
+
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
   // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
@@ -221,6 +225,8 @@ public class SparkBigQueryConfig
   private QueryJobConfiguration.Priority queryJobPriority = DEFAULT_JOB_PRIORITY;
 
   private com.google.common.base.Optional<String> destinationTableKmsKeyName = empty();
+
+  private boolean allowMapTYpeConversion;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -548,6 +554,11 @@ public class SparkBigQueryConfig
 
     config.destinationTableKmsKeyName =
         getAnyOption(globalOptions, options, "destinationTableKmsKeyName");
+
+    config.allowMapTYpeConversion =
+        getAnyOption(globalOptions, options, ALLOW_MAP_TYPE_CONVERSION)
+            .transform(Boolean::valueOf)
+            .or(ALLOW_MAP_TYPE_CONVERSION_DEFAULT);
 
     return config;
   }
@@ -983,6 +994,10 @@ public class SparkBigQueryConfig
   @Override
   public ImmutableMap<String, String> getBigQueryJobLabels() {
     return bigQueryJobLabels;
+  }
+
+  public boolean getAllowMapTypeConversion() {
+    return allowMapTYpeConversion;
   }
 
   public ImmutableMap<String, String> getBigQueryTableLabels() {

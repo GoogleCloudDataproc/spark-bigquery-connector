@@ -308,6 +308,9 @@ public class SchemaConverters {
   }
 
   Optional<StructField> convertMap(Field field, Metadata metadata) {
+    if (!configuration.getAllowMapTypeConversion()) {
+      return Optional.empty();
+    }
     if (field.getMode() != Field.Mode.REPEATED) {
       return Optional.empty();
     }
