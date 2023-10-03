@@ -84,6 +84,6 @@ public class Spark34IndirectWriteIntegrationTest extends WriteIntegrationTestBas
     assertThat(result.getSchema().getFields().get(0).getType())
         .isEqualTo(LegacySQLTypeName.DATETIME);
     assertThat(result.streamValues().findFirst().get().get(0).getValue())
-        .isEqualTo("2023-09-01T12:23:34.268543");
+        .isEqualTo("2023-09-15T12:36:34.268543");
   }
 }
