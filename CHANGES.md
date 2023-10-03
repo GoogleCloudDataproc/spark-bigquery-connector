@@ -2,6 +2,7 @@
 
 ## Next
 
+* Issue #453: fix comment handling in query
 * PR #1061: Handle NPE case when reading BQ table with NUMERIC fields. Thanks @hayssams !
 * Issue #144: allow writing Spark String to BQ TIME type
 * Issue #867: Support writing with RangePartitioning

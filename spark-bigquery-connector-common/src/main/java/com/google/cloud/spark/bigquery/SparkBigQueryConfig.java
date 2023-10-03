@@ -300,7 +300,7 @@ public class SparkBigQueryConfig
         date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
     // checking for query
     if (tableParam.isPresent()) {
-      String tableParamStr = tableParam.get().trim().replaceAll("\\s+", " ");
+      String tableParamStr = tableParam.get().trim();
       if (isQuery(tableParamStr)) {
         // it is a query in practice
         config.query = com.google.common.base.Optional.of(tableParamStr);
@@ -602,7 +602,8 @@ public class SparkBigQueryConfig
 
   @VisibleForTesting
   static boolean isQuery(String tableParamStr) {
-    String potentialQuery = tableParamStr.toLowerCase().replace('\n', ' ');
+    String potentialQuery =
+        tableParamStr.toLowerCase().replaceAll("--.*(\n|$)", " ").replaceAll("\n", " ");
     return LOWERCASE_QUERY_PATTERN.matcher(potentialQuery).matches();
   }
 
