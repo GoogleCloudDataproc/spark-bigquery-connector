@@ -16,14 +16,17 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.spark.bigquery.v2.context.ArrowInputPartitionContext;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import com.google.cloud.spark.bigquery.v2.customMetrics.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
+import java.util.List;
 import org.apache.spark.sql.connector.expressions.Expressions;
 import org.apache.spark.sql.connector.expressions.NamedReference;
 import org.apache.spark.sql.connector.metric.CustomMetric;
+import org.apache.spark.sql.connector.read.InputPartition;
 import org.apache.spark.sql.connector.read.PartitionReaderFactory;
 import org.apache.spark.sql.connector.read.SupportsRuntimeFiltering;
 import org.apache.spark.sql.sources.Filter;
@@ -52,9 +55,14 @@ public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
 
   @Override
   public void filter(Filter[] filters) {
-    ctx.filter(filters);
-    // force partitions re-assignment
-    super.partitions = null;
+    List<ArrowInputPartitionContext> newInputPartitionContexts = ctx.filter(filters);
+    // re-assign partitions
+    if (newInputPartitionContexts != null) {
+      super.partitions =
+          newInputPartitionContexts.stream()
+              .map(inputPartitionContext -> new BigQueryInputPartition(inputPartitionContext))
+              .toArray(InputPartition[]::new);
+    }
   }
 
   @Override
