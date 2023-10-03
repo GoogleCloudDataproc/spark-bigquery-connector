@@ -21,6 +21,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.http.HttpTransportOptions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
 import com.google.inject.Provides;
 import com.google.inject.Scopes;
@@ -97,7 +98,8 @@ public class BigQueryClientModule implements com.google.inject.Module {
       BigQueryConfig config,
       HeaderProvider headerProvider,
       BigQueryCredentialsSupplier bigQueryCredentialsSupplier,
-      Cache<String, TableInfo> destinationTableCache) {
+      Cache<String, TableInfo> destinationTableCache,
+      EnvironmentContext environmentContext) {
     BigQueryOptions.Builder options =
         BigQueryOptions.newBuilder()
             .setHeaderProvider(headerProvider)
@@ -121,12 +123,17 @@ public class BigQueryClientModule implements com.google.inject.Module {
     config.getBigQueryHttpEndpoint().ifPresent(options::setHost);
 
     options.setTransportOptions(httpTransportOptionsBuilder.build());
+    ImmutableMap<String, String> bigQueryJobLabels =
+        ImmutableMap.<String, String>builder()
+            .putAll(environmentContext.getBigQueryJobLabels())
+            .putAll(config.getBigQueryJobLabels())
+            .build();
     return new BigQueryClient(
         options.build().getService(),
         config.getMaterializationProject(),
         config.getMaterializationDataset(),
         destinationTableCache,
-        config.getBigQueryJobLabels(),
+        bigQueryJobLabels,
         config.getQueryJobPriority());
   }
 }
