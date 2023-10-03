@@ -386,22 +386,6 @@ public class BigQueryDataSourceReaderContext {
         String.format(
             "Use Dynamic Partition Pruning, originally planned %d, adjust to %d partitions",
             previousInputPartitionContexts.size(), plannedInputPartitionContexts.size()));
-
-    // TODO: Spread streams more evenly. This solution reduces the parallelism as it potentially
-    // leaves partitions without streams while other may have more than one stream.
-
-    // first let's update the streams in the previous planned partitions
-    for (int i = 0; i < plannedInputPartitionContexts.size(); i++) {
-      previousInputPartitionContexts
-          .get(i)
-          .resetStreamNamesFrom(plannedInputPartitionContexts.get(i));
-    }
-    // second, clear the redundant partitions
-    for (int i = plannedInputPartitionContexts.size();
-        i < previousInputPartitionContexts.size();
-        i++) {
-      previousInputPartitionContexts.get(i).clearStreamsList();
-    }
   }
 
   public void pruneColumns(StructType requiredSchema) {
