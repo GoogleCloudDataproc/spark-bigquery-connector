@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.EnvironmentContext;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
 import com.google.inject.Module;
@@ -25,10 +26,13 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructType;
 
 public class SparkBigQueryConnectorModule implements Module {
+
+  private static final String SPARK_YARN_TAGS = "spark.yarn.tags";
 
   private final SparkSession spark;
   private final Map<String, String> options;
@@ -95,7 +99,20 @@ public class SparkBigQueryConnectorModule implements Module {
   @Singleton
   @Provides
   public EnvironmentContext provideEnvironmentContext() {
-    return new EnvironmentContext(
-        SparkBigQueryUtil.extractJobLabels(spark.sparkContext().getConf()));
+    ImmutableMap.Builder<String, String> labels = ImmutableMap.builder();
+    ImmutableList<String> tags =
+        Stream.of(Optional.ofNullable(spark.sparkContext().getConf().get(SPARK_YARN_TAGS, null)))
+            .filter(Optional::isPresent)
+            .flatMap(value -> Stream.of(value.get().split(",")))
+            .collect(ImmutableList.toImmutableList());
+    tags.stream()
+        .filter(tag -> tag.startsWith("dataproc_job_"))
+        .findFirst()
+        .ifPresent(tag -> labels.put("dataproc_job_id", tag.substring(tag.lastIndexOf('_'))));
+    tags.stream()
+        .filter(tag -> tag.startsWith("dataproc_uuid_"))
+        .findFirst()
+        .ifPresent(tag -> labels.put("dataproc_job_uuid", tag.substring(tag.lastIndexOf('_'))));
+    return new EnvironmentContext(labels.build());
   }
 }
