@@ -226,7 +226,7 @@ public class SparkBigQueryConfig
 
   private com.google.common.base.Optional<String> destinationTableKmsKeyName = empty();
 
-  private boolean allowMapTYpeConversion;
+  private boolean allowMapTypeConversion = ALLOW_MAP_TYPE_CONVERSION_DEFAULT;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -555,7 +555,7 @@ public class SparkBigQueryConfig
     config.destinationTableKmsKeyName =
         getAnyOption(globalOptions, options, "destinationTableKmsKeyName");
 
-    config.allowMapTYpeConversion =
+    config.allowMapTypeConversion =
         getAnyOption(globalOptions, options, ALLOW_MAP_TYPE_CONVERSION)
             .transform(Boolean::valueOf)
             .or(ALLOW_MAP_TYPE_CONVERSION_DEFAULT);
@@ -997,7 +997,7 @@ public class SparkBigQueryConfig
   }
 
   public boolean getAllowMapTypeConversion() {
-    return allowMapTYpeConversion;
+    return allowMapTypeConversion;
   }
 
   public ImmutableMap<String, String> getBigQueryTableLabels() {
