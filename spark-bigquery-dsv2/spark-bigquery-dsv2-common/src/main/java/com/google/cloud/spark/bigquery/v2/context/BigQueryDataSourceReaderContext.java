@@ -112,6 +112,7 @@ public class BigQueryDataSourceReaderContext {
   // "planInputPartitionContexts". We will use this to get table statistics in estimateStatistics.
   private Supplier<ReadSessionResponse> readSessionResponse;
   private final ExecutorService asyncReadSessionExecutor = Executors.newSingleThreadExecutor();
+  private boolean isBuilt = false;
 
   public BigQueryDataSourceReaderContext(
       TableInfo table,
@@ -423,9 +424,17 @@ public class BigQueryDataSourceReaderContext {
   public StatisticsContext estimateStatistics() {
     if (table.getDefinition().getType() == TableDefinition.Type.TABLE) {
       // Create StatisticsContext with information from read session response.
-      final long tableSizeInBytes =
-          readSessionResponse.get().getReadSession().getEstimatedTotalBytesScanned();
-      final long numRowsInTable = readSessionResponse.get().getReadSession().getEstimatedRowCount();
+      final long tableSizeInBytes;
+      final long numRowsInTable;
+      if (isBuilt) {
+        tableSizeInBytes =
+            readSessionResponse.get().getReadSession().getEstimatedTotalBytesScanned();
+        numRowsInTable = readSessionResponse.get().getReadSession().getEstimatedRowCount();
+      } else {
+        // If the scan is not built, filters & projections are not yet pushed. Use the fast path.
+        tableSizeInBytes = table.getNumBytes();
+        numRowsInTable = table.getNumRows().longValue();
+      }
 
       StatisticsContext tableStatisticsContext =
           new StatisticsContext() {
@@ -494,5 +503,6 @@ public class BigQueryDataSourceReaderContext {
     // Supplier provided by Suppliers.memoize is thread-safe
     asyncReadSessionExecutor.submit(() -> readSessionResponse.get());
     asyncReadSessionExecutor.shutdown();
+    isBuilt = true;
   }
 }
