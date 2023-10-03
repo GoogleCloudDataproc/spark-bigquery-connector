@@ -25,6 +25,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
@@ -130,5 +131,23 @@ public class SparkBigQueryUtilTest {
             ImmutableList.of(IsNotNull.apply("foo")));
     assertThat(filters).hasSize(1);
     assertThat(filters.get(0).references()).asList().containsExactly("foo");
+  }
+
+  @Test
+  public void testExtractJobLabels_no_labels() {
+    ImmutableMap<String, String> labels = SparkBigQueryUtil.extractJobLabels(new SparkConf());
+    assertThat(labels).isEmpty();
+  }
+
+  @Test
+  public void testExtractJobLabels_with_labels() {
+    SparkConf sparkConf = new SparkConf();
+    sparkConf.set(
+        "spark.yarn.tags",
+        "dataproc_hash_d371badb-9112-3812-8284-ee81f54d3558,dataproc_job_d8f27392957446dbbd7dc28df568e4eb,dataproc_master_index_0,dataproc_uuid_df379ef3-eeda-3234-8941-e1a36a1959a3");
+    ImmutableMap<String, String> labels = SparkBigQueryUtil.extractJobLabels(sparkConf);
+    assertThat(labels).hasSize(2);
+    assertThat(labels).containsEntry("dataproc_job_id", "d8f27392957446dbbd7dc28df568e4eb");
+    assertThat(labels).containsEntry("dataproc_job_uuid", "df379ef3-eeda-3234-8941-e1a36a1959a3");
   }
 }
