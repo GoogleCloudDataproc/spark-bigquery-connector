@@ -6,7 +6,8 @@
 * PR #1061: Handle NPE case when reading BQ table with NUMERIC fields. Thanks @hayssams !
 * Issue #144: allow writing Spark String to BQ TIME type
 * Issue #867: Support writing with RangePartitioning
-* PR #1008: Adding support to expose bigquery metrics using Spark custom metrics API.
+* Issue #1062: Adding dataproc job ID and UUID labels to BigQuery jobs
+* PR #1008: Adding support to expose BigQuery metrics using Spark custom metrics API.
 * PR #1038: Logical plan now shows the BigQuery table of DirectBigQueryRelation. Thanks @idc101 !
 * PR #1058: View names will appear in query plan instead of the materialized table
 * PR #1069: Support TimestampNTZ datatype in spark 3.4

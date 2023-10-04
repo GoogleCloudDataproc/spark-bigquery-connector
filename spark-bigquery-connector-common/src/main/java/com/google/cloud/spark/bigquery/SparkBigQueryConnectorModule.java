@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
+import com.google.cloud.bigquery.connector.common.EnvironmentContext;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
@@ -89,5 +90,12 @@ public class SparkBigQueryConnectorModule implements Module {
   @Provides
   public UserAgentProvider provideUserAgentProvider() {
     return new SparkBigQueryConnectorUserAgentProvider(dataSourceVersion.toString().toLowerCase());
+  }
+
+  @Singleton
+  @Provides
+  public EnvironmentContext provideEnvironmentContext() {
+    return new EnvironmentContext(
+        SparkBigQueryUtil.extractJobLabels(spark.sparkContext().getConf()));
   }
 }

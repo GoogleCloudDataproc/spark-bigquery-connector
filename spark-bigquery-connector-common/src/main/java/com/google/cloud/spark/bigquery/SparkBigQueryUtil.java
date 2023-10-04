@@ -27,6 +27,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -40,14 +41,18 @@ import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.Metadata;
+import org.jetbrains.annotations.NotNull;
 
 /** Spark related utilities */
 public class SparkBigQueryUtil {
+
+  private static final String SPARK_YARN_TAGS = "spark.yarn.tags";
 
   static final Properties BUILD_PROPERTIES = loadBuildProperties();
 
@@ -256,5 +261,24 @@ public class SparkBigQueryUtil {
 
   public static Stream<TypeConverter> getTypeConverterStream() {
     return typeConverters.stream();
+  }
+
+  @NotNull
+  public static ImmutableMap<String, String> extractJobLabels(SparkConf sparkConf) {
+    Builder<String, String> labels = ImmutableMap.builder();
+    ImmutableList<String> tags =
+        Stream.of(Optional.ofNullable(sparkConf.get(SPARK_YARN_TAGS, null)))
+            .filter(Optional::isPresent)
+            .flatMap(value -> Stream.of(value.get().split(",")))
+            .collect(ImmutableList.toImmutableList());
+    tags.stream()
+        .filter(tag -> tag.startsWith("dataproc_job_"))
+        .findFirst()
+        .ifPresent(tag -> labels.put("dataproc_job_id", tag.substring(tag.lastIndexOf('_') + 1)));
+    tags.stream()
+        .filter(tag -> tag.startsWith("dataproc_uuid_"))
+        .findFirst()
+        .ifPresent(tag -> labels.put("dataproc_job_uuid", tag.substring(tag.lastIndexOf('_') + 1)));
+    return labels.build();
   }
 }
