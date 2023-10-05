@@ -194,7 +194,7 @@ public class SchemaConverterTest {
     assertThat(field.getScale()).isEqualTo(scale);
   }
 
-  private Field getKeyValeRepeatedField() {
+  private Field getKeyValueRepeatedField() {
     return Field.newBuilder(
             "foo",
             LegacySQLTypeName.RECORD,
@@ -386,7 +386,7 @@ public class SchemaConverterTest {
   public void testConvertBigQueryMapToSparkMap_with_actual_map() {
     Optional<StructField> fieldOpt =
         SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
-            .convertMap(getKeyValeRepeatedField(), Metadata.empty());
+            .convertMap(getKeyValueRepeatedField(), Metadata.empty());
     MapType longToStringMapType = DataTypes.createMapType(DataTypes.LongType, DataTypes.StringType);
     assertThat(fieldOpt.isPresent()).isTrue();
     StructField field = fieldOpt.get();
@@ -398,7 +398,7 @@ public class SchemaConverterTest {
   public void testConvertBigQueryMapToSparkMap_mapTypeConversionDisabled() {
     Optional<StructField> fieldOpt =
         SchemaConverters.from(SchemaConvertersConfiguration.of(ZoneId.of("UTC"), false))
-            .convertMap(getKeyValeRepeatedField(), Metadata.empty());
+            .convertMap(getKeyValueRepeatedField(), Metadata.empty());
     assertThat(fieldOpt.isPresent()).isFalse();
   }
 
@@ -406,7 +406,7 @@ public class SchemaConverterTest {
   public void testConvertBigQueryToSparkArray_mapTypeConversionDisabled() {
     StructField field =
         SchemaConverters.from(SchemaConvertersConfiguration.of(ZoneId.of("UTC"), false))
-            .convert(getKeyValeRepeatedField());
+            .convert(getKeyValueRepeatedField());
     StructType elementType =
         new StructType()
             .add("key", DataTypes.LongType, true)
