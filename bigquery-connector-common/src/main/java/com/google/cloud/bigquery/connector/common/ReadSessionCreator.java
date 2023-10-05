@@ -26,6 +26,7 @@ import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec; 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
@@ -121,7 +122,9 @@ public class ReadSessionCreator {
         ArrowSerializationOptions.newBuilder()
             .setBufferCompression(config.getArrowCompressionCodec())
             .build());
-
+    readOptions.setResponseCompressionCodec(ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_SNAPPY)
+    log.debug("AQIU: setting ResponseCompressionCodec to be snappy");
+	
     int preferredMinStreamCount =
         config
             .getPreferredMinParallelism()

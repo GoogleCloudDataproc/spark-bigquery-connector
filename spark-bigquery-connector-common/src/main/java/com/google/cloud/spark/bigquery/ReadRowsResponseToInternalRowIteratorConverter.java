@@ -21,12 +21,16 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.protobuf.ByteString;
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
+import org.xerial.snappy.Snappy;
+
 
 public interface ReadRowsResponseToInternalRowIteratorConverter {
 
@@ -114,6 +118,9 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
     private final com.google.common.base.Optional<BigQueryStorageReadRowsTracer>
         bigQueryStorageReadRowsTracer;
 
+    int decompressedArrowRecordBatchSize;
+    ByteString decompressedArrowRecordBatch;
+
     public Arrow(
         List<String> columnsInOrder,
         ByteString arrowSchema,
@@ -124,14 +131,46 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
       this.arrowSchema = arrowSchema;
       this.userProvidedSchema = userProvidedSchema;
       this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
+      this.decompressed_size = 0;
     }
+
 
     @Override
     public Iterator<InternalRow> convert(ReadRowsResponse response) {
+      // hack: assume that we are always asking for Snappy compression
+      ByteString arrowRecordBatch;
+      // TODO: how do I get the new ReadRowsResponse field?
+      int statedUncompressedSize = response.getUncompressedByteSize();
+      if (statedUncompressedSize > 0) {
+        // the result was compressed, we need to decompress it.
+        if (decompressedArrowRecordBatchSize > 0) {
+          // it has already been decompressed.  use the decompressed result
+          arrowRecordBatch = decompressedArrowRecordBatch;
+        } else {
+          try {
+            ByteBuffer arrowRecordBatchBuffer = ByteBuffer.allocate(
+                response.getUncompressedBytesSize());
+            // https://cloud.google.com/java/docs/reference/protobuf/latest/com.google.protobuf.ByteString#com_google_protobuf_ByteString_asReadOnlyByteBuffer__
+            // Use asReadOnlyByteBuffer() because it tries to avoid a copy Byte[].  The result uses the same backing array as the byte string, if possible.
+            // ByteBuffer arrowRecordBatchBuffer = ByteBuffer.allocate(Snappy.uncompressedLength(
+            //     response.getArrowRecordBatch().getSerializedRecordBatch().asReadOnlyByteBuffer()));
+            decompressedArrowRecordBatchSize = Snappy.uncompress(
+                response.getArrowRecordBatch().getSerializedRecordBatch().asReadOnlyByteBuffer(),
+                arrowRecordBatchBuffer);
+            // assert(decompressedArrowRecordBatchSize > 0);
+            // assert(decompressedArrowRecordBatch == statedUncompressedSize);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+          decompressedArrowRecordBatch = ByteString.copyFrom(arrowRecordBatchBuffer);
+          arrowRecordBatch = decompressedArrowRecordBatch;
+        }
+      }
+
       return new ArrowBinaryIterator(
           columnsInOrder,
           arrowSchema,
-          response.getArrowRecordBatch().getSerializedRecordBatch(),
+          arrowRecordBatch,
           userProvidedSchema.toJavaUtil(),
           bigQueryStorageReadRowsTracer.toJavaUtil());
     }
