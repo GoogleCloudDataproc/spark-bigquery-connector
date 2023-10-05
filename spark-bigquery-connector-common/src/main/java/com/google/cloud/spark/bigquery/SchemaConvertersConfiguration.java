@@ -24,20 +24,33 @@ public class SchemaConvertersConfiguration implements Serializable {
 
   private final ZoneId datetimeZoneId;
 
-  private SchemaConvertersConfiguration(ZoneId datetimeZoneId) {
+  private final boolean allowMapTypeConversion;
+
+  private SchemaConvertersConfiguration(ZoneId datetimeZoneId, boolean allowMapTypeConversion) {
     this.datetimeZoneId = datetimeZoneId;
+    this.allowMapTypeConversion = allowMapTypeConversion;
   }
 
   public static SchemaConvertersConfiguration from(SparkBigQueryConfig config) {
-    return SchemaConvertersConfiguration.of(config.getDatetimeZoneId());
+    return SchemaConvertersConfiguration.of(
+        config.getDatetimeZoneId(), config.getAllowMapTypeConversion());
   }
 
   public static SchemaConvertersConfiguration of(@Nonnull ZoneId datetimeZoneId) {
-    return new SchemaConvertersConfiguration(datetimeZoneId);
+    return new SchemaConvertersConfiguration(datetimeZoneId, true);
+  }
+
+  public static SchemaConvertersConfiguration of(
+      @Nonnull ZoneId datetimeZoneId, @Nonnull boolean allowMapTypeConversion) {
+    return new SchemaConvertersConfiguration(datetimeZoneId, allowMapTypeConversion);
   }
 
   public ZoneId getDatetimeZoneId() {
     return datetimeZoneId;
+  }
+
+  public boolean getAllowMapTypeConversion() {
+    return allowMapTypeConversion;
   }
 
   @Override
@@ -45,16 +58,22 @@ public class SchemaConvertersConfiguration implements Serializable {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     SchemaConvertersConfiguration that = (SchemaConvertersConfiguration) o;
-    return Objects.equal(datetimeZoneId, that.datetimeZoneId);
+    return Objects.equal(datetimeZoneId, that.datetimeZoneId)
+        && Objects.equal(allowMapTypeConversion, that.allowMapTypeConversion);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(datetimeZoneId);
+    return Objects.hashCode(datetimeZoneId, allowMapTypeConversion);
   }
 
   @Override
   public String toString() {
-    return "SchemaConvertersConfiguration{" + "datetimeZoneId=" + datetimeZoneId + '}';
+    return "SchemaConvertersConfiguration{"
+        + "datetimeZoneId="
+        + datetimeZoneId
+        + ",allowMapTypeConversion="
+        + allowMapTypeConversion
+        + '}';
   }
 }

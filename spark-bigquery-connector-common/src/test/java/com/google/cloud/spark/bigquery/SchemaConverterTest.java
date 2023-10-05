@@ -30,6 +30,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import java.time.ZoneId;
 import java.util.Optional;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.types.*;
@@ -191,6 +192,16 @@ public class SchemaConverterTest {
     assertThat(field.getType()).isEqualTo(expectedType);
     assertThat(field.getPrecision()).isEqualTo(precision);
     assertThat(field.getScale()).isEqualTo(scale);
+  }
+
+  private Field getKeyValueRepeatedField() {
+    return Field.newBuilder(
+            "foo",
+            LegacySQLTypeName.RECORD,
+            Field.of("key", LegacySQLTypeName.INTEGER),
+            Field.of("value", LegacySQLTypeName.STRING))
+        .setMode(Mode.REPEATED)
+        .build();
   }
 
   @Test
@@ -375,19 +386,33 @@ public class SchemaConverterTest {
   public void testConvertBigQueryMapToSparkMap_with_actual_map() {
     Optional<StructField> fieldOpt =
         SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
-            .convertMap(
-                Field.newBuilder(
-                        "foo",
-                        LegacySQLTypeName.RECORD,
-                        Field.of("key", LegacySQLTypeName.INTEGER),
-                        Field.of("value", LegacySQLTypeName.STRING))
-                    .setMode(Mode.REPEATED)
-                    .build(),
-                Metadata.empty());
+            .convertMap(getKeyValueRepeatedField(), Metadata.empty());
     MapType longToStringMapType = DataTypes.createMapType(DataTypes.LongType, DataTypes.StringType);
     assertThat(fieldOpt.isPresent()).isTrue();
     StructField field = fieldOpt.get();
     assertThat(field.dataType()).isEqualTo(longToStringMapType);
+    assertThat(field.name()).isEqualTo("foo");
+  }
+
+  @Test
+  public void testConvertBigQueryMapToSparkMap_mapTypeConversionDisabled() {
+    Optional<StructField> fieldOpt =
+        SchemaConverters.from(SchemaConvertersConfiguration.of(ZoneId.of("UTC"), false))
+            .convertMap(getKeyValueRepeatedField(), Metadata.empty());
+    assertThat(fieldOpt.isPresent()).isFalse();
+  }
+
+  @Test
+  public void testConvertBigQueryToSparkArray_mapTypeConversionDisabled() {
+    StructField field =
+        SchemaConverters.from(SchemaConvertersConfiguration.of(ZoneId.of("UTC"), false))
+            .convert(getKeyValueRepeatedField());
+    StructType elementType =
+        new StructType()
+            .add("key", DataTypes.LongType, true)
+            .add("value", DataTypes.StringType, true);
+    ArrayType arrayType = new ArrayType(elementType, true);
+    assertThat(field.dataType()).isEqualTo(arrayType);
     assertThat(field.name()).isEqualTo("foo");
   }
 

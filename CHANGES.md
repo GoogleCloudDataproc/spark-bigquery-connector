@@ -7,6 +7,7 @@
 * Issue #144: allow writing Spark String to BQ TIME type
 * Issue #867: Support writing with RangePartitioning
 * Issue #1062: Adding dataproc job ID and UUID labels to BigQuery jobs
+* Issue #1046: Add a way to disable map type support
 * PR #1008: Adding support to expose BigQuery metrics using Spark custom metrics API.
 * PR #1038: Logical plan now shows the BigQuery table of DirectBigQueryRelation. Thanks @idc101 !
 * PR #1058: View names will appear in query plan instead of the materialized table
