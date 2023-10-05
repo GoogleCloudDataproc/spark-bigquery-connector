@@ -228,16 +228,60 @@ public class BigQueryClient {
   }
 
   /**
+   * Overwrites the partitions of the destination table, using the partitions from the given temporary table,
+   * transactionally.
+   *
+   * @param temporaryTableId   The {@code TableId} representing the temporary-table.
+   * @param destinationTableId The {@code TableId} representing the destination table.
+   * @return The {@code Job} object representing this operation (which can be tracked to wait until
+   * it has finished successfully).
+   */
+  public Job overwriteDestinationWithTemporaryDynamicPartitons(
+          TableId temporaryTableId, TableId destinationTableId) {
+
+    TableDefinition destinationDefinition = getTable(destinationTableId).getDefinition();
+    if (destinationDefinition instanceof StandardTableDefinition) {
+      StandardTableDefinition sdt = (StandardTableDefinition) destinationDefinition;
+      TimePartitioning timePartitioning = sdt.getTimePartitioning();
+      if (timePartitioning != null) {
+        TimePartitioning.Type partitionType = timePartitioning.getType();
+        String field = timePartitioning.getField();
+        String extractedPartitionedField = String.format("timestamp_trunc(%s, %s)", field, partitionType.toString());
+      }
+      RangePartitioning rangePartitioning = sdt.getRangePartitioning();
+      if (rangePartitioning != null) {
+
+      }
+    }
+    String queryFormat =
+            "MERGE `%s`\n"
+                    + "USING (SELECT * FROM `%s`)\n"
+                    + "ON FALSE\n"
+                    + "WHEN NOT MATCHED THEN INSERT ROW\n"
+                    + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
+    String destinationTableName = fullTableName(destinationTableId);
+    String temporaryTableName = fullTableName(temporaryTableId);
+    String sqlQuery = String.format(queryFormat, destinationTableName, temporaryTableName);
+    QueryJobConfiguration queryConfig =
+            jobConfigurationFactory
+                    .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
+                    .setUseLegacySql(false)
+                    .build();
+
+    return create(JobInfo.newBuilder(queryConfig).build());
+  }
+
+  /**
    * Overwrites the given destination table, with all the data from the given temporary table,
    * transactionally.
    *
-   * @param temporaryTableId The {@code TableId} representing the temporary-table.
+   * @param temporaryTableId   The {@code TableId} representing the temporary-table.
    * @param destinationTableId The {@code TableId} representing the destination table.
    * @return The {@code Job} object representing this operation (which can be tracked to wait until
-   *     it has finished successfully).
+   * it has finished successfully).
    */
   public Job overwriteDestinationWithTemporary(
-      TableId temporaryTableId, TableId destinationTableId) {
+          TableId temporaryTableId, TableId destinationTableId) {
     String queryFormat =
         "MERGE `%s`\n"
             + "USING (SELECT * FROM `%s`)\n"
