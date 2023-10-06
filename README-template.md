@@ -856,14 +856,14 @@ word-break:break-word
   <tr>
      <td><code>allowMapTypeConversion</code>
      </td>
-     <td>Boolean config to disable conversion from BigQuery records to Spark MapType 
+     <td>Boolean config to disable conversion from BigQuery records to Spark MapType
           when the record has two subfields with field names as <code>key</code> and <code>value</code>.
-          Default value is <code>true</code> which allows the conversion. 
+          Default value is <code>true</code> which allows the conversion.
          <br/> (Optional)
      </td>
      <td>Read</td>
    </tr>
-   
+
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter
