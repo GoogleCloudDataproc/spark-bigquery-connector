@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import org.apache.spark.sql.connector.expressions.Expressions;
 import org.apache.spark.sql.connector.expressions.NamedReference;
 import org.apache.spark.sql.connector.metric.CustomMetric;
@@ -55,14 +56,14 @@ public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
 
   @Override
   public void filter(Filter[] filters) {
-    List<ArrowInputPartitionContext> newInputPartitionContexts = ctx.filter(filters);
+    Optional<List<ArrowInputPartitionContext>> newInputPartitionContexts = ctx.filter(filters);
     // re-assign partitions
-    if (newInputPartitionContexts != null) {
-      super.partitions =
-          newInputPartitionContexts.stream()
-              .map(inputPartitionContext -> new BigQueryInputPartition(inputPartitionContext))
-              .toArray(InputPartition[]::new);
-    }
+    newInputPartitionContexts.ifPresent(
+        arrowInputPartitionContexts ->
+            super.partitions =
+                arrowInputPartitionContexts.stream()
+                    .map(BigQueryInputPartition::new)
+                    .toArray(InputPartition[]::new));
   }
 
   @Override
