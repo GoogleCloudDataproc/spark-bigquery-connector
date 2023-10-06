@@ -33,6 +33,7 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryJobEvents;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -140,6 +141,10 @@ public class BigQueryRDDFactory {
             tableId, ImmutableList.copyOf(requiredColumns), BigQueryUtil.emptyIfNeeded(filter));
     ReadSession readSession = readSessionResponse.getReadSession();
     TableInfo actualTable = readSessionResponse.getReadTableInfo();
+    SparkBigQueryJobEvents.postReadStreamsPerSession(
+        sqlContext,
+        SparkBigQueryJobEvents.extractDecodedSessionIDFromSessionName(readSession.getName()),
+        readSession.getStreamsCount());
 
     List<BigQueryPartition> partitions =
         Streams.mapWithIndex(

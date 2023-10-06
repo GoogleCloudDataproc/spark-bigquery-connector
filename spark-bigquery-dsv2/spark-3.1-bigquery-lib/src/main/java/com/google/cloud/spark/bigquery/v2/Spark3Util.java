@@ -23,9 +23,10 @@ import com.google.cloud.spark.bigquery.InjectorBuilder;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import com.google.cloud.spark.bigquery.metrics.SparkTelemetryEvents;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryJobEvents;
 import com.google.inject.Injector;
 import java.util.Map;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.types.StructType;
 
@@ -44,10 +45,11 @@ public class Spark3Util {
             .build();
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
-    SparkTelemetryEvents sparkTelemetryEvents = injector.getInstance(SparkTelemetryEvents.class);
-    sparkTelemetryEvents.updateInputFormatEvent();
+    SparkBigQueryJobEvents.postInputFormatEvent(
+        injector.getInstance(SparkSession.class).sqlContext());
     UserAgentProvider userAgentProvider = injector.getInstance(UserAgentProvider.class);
-    sparkTelemetryEvents.updateConnectorVersion(userAgentProvider.getUserAgent());
+    SparkBigQueryJobEvents.postConnectorVersion(
+        injector.getInstance(SparkSession.class).sqlContext(), userAgentProvider.getUserAgent());
     TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
     if (tableInfo == null) {
       return bigQueryTableCreator.create(injector, config.getTableId(), sparkProvidedSchema);

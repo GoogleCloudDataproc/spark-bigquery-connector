@@ -4,89 +4,93 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.cloud.bigquery.connector.common.BigQueryMetrics;
-import com.google.cloud.spark.bigquery.plugins.SparkBigQueryPluginUtil;
+
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.spark.metrics.source.Source;
 
 public class SparkMetricsSource implements Source, Serializable, BigQueryMetrics {
-  private transient MetricRegistry registry;
-  private transient Timer parseTime;
-  private transient Timer timeInSpark;
-  private transient Counter bytesRead;
-  private transient Counter rowsRead;
-  private transient Timer scanTime;
+    private transient MetricRegistry registry;
+    private transient Timer parseTime;
+    private transient Timer timeInSpark;
+    private transient Counter bytesRead;
+    private transient Counter rowsRead;
+    private transient Timer scanTime;
 
-  public SparkMetricsSource() {
-    registry = new MetricRegistry();
-    parseTime = new Timer();
-    timeInSpark = new Timer();
-    bytesRead = new Counter();
-    rowsRead = new Counter();
-    scanTime = new Timer();
-    registry.register("parseTime", parseTime);
-    registry.register("timeInSpark", timeInSpark);
-    registry.register("bytesRead", bytesRead);
-    registry.register("rowsRead", rowsRead);
-    registry.register("scanTime", scanTime);
-  }
+    private final String sessionName;
 
-  @Override
-  public String sourceName() {
-    return "bigquery-metrics-source";
-  }
+    public SparkMetricsSource(String sessionName) {
+        registry = new MetricRegistry();
+        parseTime = new Timer();
+        timeInSpark = new Timer();
+        bytesRead = new Counter();
+        rowsRead = new Counter();
+        scanTime = new Timer();
+        registry.register("parseTime", parseTime);
+        registry.register("timeInSpark", timeInSpark);
+        registry.register("bytesRead", bytesRead);
+        registry.register("rowsRead", rowsRead);
+        registry.register("scanTime", scanTime);
+        this.sessionName = sessionName;
+    }
 
-  @Override
-  public MetricRegistry metricRegistry() {
-    return registry;
-  }
+    @Override
+    public String sourceName() {
+        return "bigquery-metrics-source";
+    }
 
-  @Override
-  public void updateParseTime(long val) {
-    parseTime.update(val, TimeUnit.MILLISECONDS);
-    SparkBigQueryPluginUtil.parseTimeCounter.inc(val);
-  }
+    @Override
+    public MetricRegistry metricRegistry() {
+        return registry;
+    }
 
-  @Override
-  public void updateTimeInSpark(long val) {
-    timeInSpark.update(val, TimeUnit.MILLISECONDS);
-  }
+    @Override
+    public void updateParseTime(long val) {
+        parseTime.update(val, TimeUnit.MILLISECONDS);
+        ReadSessionMetrics.forSession(sessionName).getParseTimeCounter().inc(val);
+    }
 
-  @Override
-  public void incrementBytesReadCounter(long val) {
-    bytesRead.inc(val);
-    SparkBigQueryPluginUtil.bytesReadCounter.inc(val);
-  }
+    @Override
+    public void updateTimeInSpark(long val) {
+        timeInSpark.update(val, TimeUnit.MILLISECONDS);
+    }
 
-  @Override
-  public void incrementRowsReadCounter(long val) {
-    rowsRead.inc(val);
-    SparkBigQueryPluginUtil.rowsReadCounter.inc(val);
-  }
+    @Override
+    public void incrementBytesReadCounter(long val) {
+        bytesRead.inc(val);
+        ReadSessionMetrics.forSession(sessionName).getBytesReadCounter().inc(val);
+    }
 
-  @Override
-  public void updateScanTime(long val) {
-    scanTime.update(val, TimeUnit.MILLISECONDS);
-    SparkBigQueryPluginUtil.scanTimeCounter.inc(val);
-  }
+    @Override
+    public void incrementRowsReadCounter(long val) {
+        rowsRead.inc(val);
+        ReadSessionMetrics.forSession(sessionName).getRowsReadCounter().inc(val);
+    }
 
-  public Timer getParseTime() {
-    return this.parseTime;
-  }
+    @Override
+    public void updateScanTime(long val) {
+        scanTime.update(val, TimeUnit.MILLISECONDS);
+        ReadSessionMetrics.forSession(sessionName).getScanTimeCounter().inc(val);
+    }
 
-  public Timer getTimeInSpark() {
-    return this.timeInSpark;
-  }
+    public Timer getParseTime() {
+        return this.parseTime;
+    }
 
-  public Timer getScanTime() {
-    return this.scanTime;
-  }
+    public Timer getTimeInSpark() {
+        return this.timeInSpark;
+    }
 
-  public Counter getBytesRead() {
-    return this.bytesRead;
-  }
+    public Timer getScanTime() {
+        return this.scanTime;
+    }
 
-  public Counter getRowsRead() {
-    return this.rowsRead;
-  }
+    public Counter getBytesRead() {
+        return this.bytesRead;
+    }
+
+    public Counter getRowsRead() {
+        return this.rowsRead;
+    }
 }

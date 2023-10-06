@@ -31,6 +31,7 @@ import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConv
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryJobEvents;
 import com.google.cloud.spark.bigquery.metrics.SparkMetricsSource;
 import com.google.common.base.Joiner;
 import java.util.Arrays;
@@ -91,7 +92,9 @@ class Scala213BigQueryRDD extends RDD<InternalRow> {
   @Override
   public scala.collection.Iterator<InternalRow> compute(Partition split, TaskContext context) {
     BigQueryPartition bigQueryPartition = (BigQueryPartition) split;
-    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource();
+    SparkMetricsSource sparkMetricsSource =
+        new SparkMetricsSource(
+            SparkBigQueryJobEvents.extractDecodedSessionIDFromStreamName(this.streamNames.get(0)));
     SparkEnv.get().metricsSystem().registerSource(sparkMetricsSource);
     BigQueryStorageReadRowsTracer tracer =
         bigQueryTracerFactory.newReadRowsTracer(

@@ -1,9 +1,12 @@
 package com.google.cloud.spark.bigquery.plugins;
 
 import static com.google.cloud.spark.bigquery.plugins.SparkBigQueryPluginUtil.FAILED_MESSAGE;
+import static com.google.cloud.spark.bigquery.plugins.SparkBigQueryPluginUtil.SUCCESS_MESSAGE;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Metric;
+import com.google.cloud.spark.bigquery.metrics.ReadSessionMetrics;
+import com.google.cloud.spark.events.MetricJson;
 import java.util.Map;
 import org.apache.spark.api.plugin.ExecutorPlugin;
 import org.apache.spark.api.plugin.PluginContext;
@@ -14,36 +17,45 @@ public class SparkBigQueryExecutorPlugin implements ExecutorPlugin {
   @Override
   public void init(PluginContext ctx, Map<String, String> extraConf) {
     this.ctx = ctx;
-    ctx.metricRegistry()
-        .register(SparkBigQueryPluginUtil.scanTime, SparkBigQueryPluginUtil.scanTimeCounter);
-    ctx.metricRegistry()
-        .register(SparkBigQueryPluginUtil.parseTime, SparkBigQueryPluginUtil.parseTimeCounter);
-    ctx.metricRegistry()
-        .register(SparkBigQueryPluginUtil.bytesRead, SparkBigQueryPluginUtil.bytesReadCounter);
-    ctx.metricRegistry()
-        .register(SparkBigQueryPluginUtil.rowsRead, SparkBigQueryPluginUtil.rowsReadCounter);
+    ReadSessionMetrics.createReadSessionMetricsMap();
+  }
+
+  private void sendMessageToDriver(String sessionID, String metricName, Metric metric)
+      throws Exception {
+    Counter metricCounter = (Counter) metric;
+    if (metricCounter.getCount() == 0) {
+      //if the metric doesn't have any value, we don't need to send it.
+      return;
+    }
+    MetricJson metricJson =
+        new MetricJson(ctx.executorID(), sessionID, metricName, metricCounter.getCount());
+    Object status = ctx.ask(metricJson);
+    if (status.toString().equals(SUCCESS_MESSAGE)) {
+      metricCounter.dec(metricCounter.getCount());
+    } else {
+      throw new RuntimeException("Unable to send the message to driver");
+    }
   }
 
   @Override
   public void onTaskSucceeded() {
-    try {
-      Map<String, Metric> metrics = ctx.metricRegistry().getMetrics();
-      for (Map.Entry<String, Metric> e : metrics.entrySet()) {
-        if (e.getKey().equals(SparkBigQueryPluginUtil.scanTime)
-            || e.getKey().equals(SparkBigQueryPluginUtil.parseTime)
-            || e.getKey().equals(SparkBigQueryPluginUtil.bytesRead)
-            || e.getKey().equals(SparkBigQueryPluginUtil.rowsRead)) {
-          MetricJson metricJson =
-              new MetricJson(ctx.executorID(), e.getKey(), ((Counter) e.getValue()).getCount());
-          Object status = ctx.ask(metricJson);
-          if (status.toString().equals(FAILED_MESSAGE)) {
-            throw new RuntimeException("");
-          }
+    Map<String, ReadSessionMetrics.SessionMetrics> map =
+        ReadSessionMetrics.getReadSessionMetricsMap();
+    for (Map.Entry<String, ReadSessionMetrics.SessionMetrics> e : map.entrySet()) {
+      try {
+        String sessionID = e.getKey();
+        ReadSessionMetrics.SessionMetrics tableMetrics = e.getValue();
+        for (Map.Entry<String, Metric> me : tableMetrics.getNameToMetricMap().entrySet()) {
+          sendMessageToDriver(sessionID, me.getKey(), me.getValue());
         }
+      } catch (Exception ex) {
+        throw new RuntimeException(ex);
       }
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw new RuntimeException(e);
     }
+  }
+
+  @Override
+  public void shutdown() {
+    ReadSessionMetrics.clearReadSessionMetricsMap();
   }
 }
