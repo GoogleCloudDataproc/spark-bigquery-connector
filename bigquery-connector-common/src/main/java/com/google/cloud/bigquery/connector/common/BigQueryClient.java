@@ -250,6 +250,9 @@ public class BigQueryClient {
       }
       RangePartitioning rangePartitioning = sdt.getRangePartitioning();
       if (rangePartitioning != null) {
+          String getPartitionsOfTemporarySql = String.format("SELECT distinct partition_id FROM %s.%s.INFORMATION_SCHEMA.PARTITIONS WHERE " +
+                  "table_name = %s", temporaryTableId.getDataset(), temporaryTableId.getProject(), temporaryTableId.getTable());
+          TableResult result = query(getPartitionsOfTemporarySql);
 
       }
     }
