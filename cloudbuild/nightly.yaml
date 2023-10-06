@@ -33,3 +33,5 @@ timeout: 10800s
 
 options:
   machineType: 'N1_HIGHCPU_32'
+
+logsBucket: spark-bigquery-connector-cloud-build-logs
