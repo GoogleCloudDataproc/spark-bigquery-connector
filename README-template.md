@@ -63,6 +63,7 @@ The latest version of the connector is publicly available in the following links
 
 | version    | Link                                                                                                                                                                                                                   |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Spark 3.4  | `gs://spark-lib/bigquery/spark-3.4-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.4-bigquery-${next-release-tag}.jar))                                        |
 | Spark 3.3  | `gs://spark-lib/bigquery/spark-3.3-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.3-bigquery-${next-release-tag}.jar))                                        |
 | Spark 3.2  | `gs://spark-lib/bigquery/spark-3.2-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.2-bigquery-${next-release-tag}.jar))                                        |
 | Spark 3.1  | `gs://spark-lib/bigquery/spark-3.1-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.1-bigquery-${next-release-tag}.jar))                                        |
@@ -78,15 +79,16 @@ The final two connectors are Scala based connectors, please use the jar relevant
 below.
 
 ### Connector to Spark Compatibility Matrix
-| Connector \ Spark                     | 2.3     | 2.4<br>(Scala 2.11) | 2.4<br>(Scala 2.12) | 3.0     | 3.1     | 3.2     | 3.3     |
-|---------------------------------------|---------|---------------------|---------------------|---------|---------|---------|---------|
-| spark-3.3-bigquery                    |         |                     |                     |         |         |         | &check; |
-| spark-3.2-bigquery                    |         |                     |                     |         |         | &check; | &check; |
-| spark-3.1-bigquery                    |         |                     |                     |         | &check; | &check; | &check; |
-| spark-2.4-bigquery                    |         | &check;             | &check;             |         |         |         |         |
-| spark-bigquery-with-dependencies_2.13 |         |                     |                     |         |         | &check; | &check; |
-| spark-bigquery-with-dependencies_2.12 |         |                     | &check;             | &check; | &check; | &check; | &check; |
-| spark-bigquery-with-dependencies_2.11 | &check; | &check;             |                     |         |         |         |         |
+| Connector \ Spark                     | 2.3     | 2.4<br>(Scala 2.11) | 2.4<br>(Scala 2.12) | 3.0     | 3.1     | 3.2     | 3.3     |3.4      |
+|---------------------------------------|---------|---------------------|---------------------|---------|---------|---------|---------|---------|
+| spark-3.4-bigquery                    |         |                     |                     |         |         |         |         | &check; |
+| spark-3.3-bigquery                    |         |                     |                     |         |         |         | &check; | &check; |
+| spark-3.2-bigquery                    |         |                     |                     |         |         | &check; | &check; | &check; |
+| spark-3.1-bigquery                    |         |                     |                     |         | &check; | &check; | &check; | &check; |
+| spark-2.4-bigquery                    |         | &check;             | &check;             |         |         |         |         |         |
+| spark-bigquery-with-dependencies_2.13 |         |                     |                     |         |         | &check; | &check; | &check; |
+| spark-bigquery-with-dependencies_2.12 |         |                     | &check;             | &check; | &check; | &check; | &check; | &check; |
+| spark-bigquery-with-dependencies_2.11 | &check; | &check;             |                     |         |         |         |         |         |
 
 ### Connector to Dataproc Image Compatibility Matrix
 | Connector \ Dataproc Image            | 1.3     | 1.4     | 1.5     | 2.0     | 2.1     | Serverless<br>Image 1.0 | Serverless<br>Image 2.0 |
