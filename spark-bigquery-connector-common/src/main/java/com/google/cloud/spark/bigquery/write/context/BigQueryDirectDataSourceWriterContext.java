@@ -204,7 +204,9 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
    * be done; otherwise all streams will be batch committed using the BigQuery Storage Write API,
    * and then: if in OVERWRITE mode, the overwriteDestinationWithTemporary function from
    * BigQueryClient will be called to replace the destination table with all the data from the
-   * temporary table; if in ALL_ELSE mode no more work needs to be done.
+   * temporary table; if in OVERWRITE mode with dynamic partitions enabled,
+   * overwriteDestinationWithTemporaryDynamicPartitons from BigQueryClient will be called to replace
+   * the required partitions;if in ALL_ELSE mode no more work needs to be done.
    *
    * @see WritingMode
    * @see BigQueryClient#overwriteDestinationWithTemporary(TableId, TableId, PartitionOverwriteMode)
@@ -242,11 +244,11 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
         || writingMode.equals(WritingMode.OVERWRITE)) {
       Job queryJob =
           (writingMode.equals(WritingMode.OVERWRITE))
-              ? overwriteMode == PartitionOverwriteMode.STATIC ?
-                  bigQueryClient.overwriteDestinationWithTemporary(
-                          tableToWrite.getTableId(), destinationTableId) :
-                  bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
-                          tableToWrite.getTableId(), destinationTableId)
+              ? overwriteMode == PartitionOverwriteMode.STATIC
+                  ? bigQueryClient.overwriteDestinationWithTemporary(
+                      tableToWrite.getTableId(), destinationTableId)
+                  : bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
+                      tableToWrite.getTableId(), destinationTableId)
               : bigQueryClient.appendDestinationWithTemporary(
                   tableToWrite.getTableId(), destinationTableId);
       BigQueryClient.waitForJob(queryJob);

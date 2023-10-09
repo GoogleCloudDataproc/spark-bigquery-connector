@@ -23,6 +23,8 @@ import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.EncryptionConfiguration;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobConfiguration;
@@ -227,64 +229,92 @@ public class BigQueryClient {
     return create(JobInfo.newBuilder(queryConfig).build());
   }
 
+  private String getQueryForTimePartitionedTable(
+      String destinationTableName,
+      String temporaryTableName,
+      StandardTableDefinition destinationDefinition,
+      TimePartitioning timePartitioning) {
+    TimePartitioning.Type partitionType = timePartitioning.getType();
+    String partitionField = timePartitioning.getField();
+    String extractedPartitioned = "timestamp_trunc(`%s`.`%s`, `%s`)";
+    String extractedPartitionedSource =
+        String.format(
+            extractedPartitioned, temporaryTableName, partitionField, partitionType.toString());
+    String extractedPartitionedTarget =
+        String.format(
+            extractedPartitioned, destinationTableName, partitionField, partitionType.toString());
+    FieldList allFields = destinationDefinition.getSchema().getFields();
+    String commaSeparatedFields =
+        allFields.stream().map(Field::getName).collect(Collectors.joining(","));
+
+    String queryFormat =
+        "MERGE `%s` AS target\n"
+            + "USING (SELECT * FROM `%s` CROSS JOIN UNNEST([true, false])  is_delete) AS source\n"
+            + "ON `%s` = `%s` AND is_delete\n"
+            + "WHEN MATCHED THEN DELETE\n"
+            + "WHEN NOT MATCHED AND NOT is_delete THEN\n"
+            + "INSERT('%s') VALUES('%s')";
+    return String.format(
+        queryFormat,
+        destinationTableName,
+        temporaryTableName,
+        extractedPartitionedSource,
+        extractedPartitionedTarget,
+        commaSeparatedFields,
+        commaSeparatedFields);
+  }
+
   /**
-   * Overwrites the partitions of the destination table, using the partitions from the given temporary table,
-   * transactionally.
+   * Overwrites the partitions of the destination table, using the partitions from the given
+   * temporary table, transactionally.
    *
-   * @param temporaryTableId   The {@code TableId} representing the temporary-table.
+   * @param temporaryTableId The {@code TableId} representing the temporary-table.
    * @param destinationTableId The {@code TableId} representing the destination table.
    * @return The {@code Job} object representing this operation (which can be tracked to wait until
-   * it has finished successfully).
+   *     it has finished successfully).
    */
   public Job overwriteDestinationWithTemporaryDynamicPartitons(
-          TableId temporaryTableId, TableId destinationTableId) {
+      TableId temporaryTableId, TableId destinationTableId) {
 
     TableDefinition destinationDefinition = getTable(destinationTableId).getDefinition();
+    String sqlQuery = null;
     if (destinationDefinition instanceof StandardTableDefinition) {
+      String destinationTableName = fullTableName(destinationTableId);
+      String temporaryTableName = fullTableName(temporaryTableId);
       StandardTableDefinition sdt = (StandardTableDefinition) destinationDefinition;
+
       TimePartitioning timePartitioning = sdt.getTimePartitioning();
       if (timePartitioning != null) {
-        TimePartitioning.Type partitionType = timePartitioning.getType();
-        String field = timePartitioning.getField();
-        String extractedPartitionedField = String.format("timestamp_trunc(%s, %s)", field, partitionType.toString());
+        sqlQuery =
+            getQueryForTimePartitionedTable(
+                destinationTableName, temporaryTableName, sdt, timePartitioning);
       }
-      RangePartitioning rangePartitioning = sdt.getRangePartitioning();
-      if (rangePartitioning != null) {
-          String getPartitionsOfTemporarySql = String.format("SELECT distinct partition_id FROM %s.%s.INFORMATION_SCHEMA.PARTITIONS WHERE " +
-                  "table_name = %s", temporaryTableId.getDataset(), temporaryTableId.getProject(), temporaryTableId.getTable());
-          TableResult result = query(getPartitionsOfTemporarySql);
+      if (sqlQuery != null) {
+        QueryJobConfiguration queryConfig =
+            jobConfigurationFactory
+                .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
+                .setUseLegacySql(false)
+                .build();
 
+        return create(JobInfo.newBuilder(queryConfig).build());
       }
     }
-    String queryFormat =
-            "MERGE `%s`\n"
-                    + "USING (SELECT * FROM `%s`)\n"
-                    + "ON FALSE\n"
-                    + "WHEN NOT MATCHED THEN INSERT ROW\n"
-                    + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
-    String destinationTableName = fullTableName(destinationTableId);
-    String temporaryTableName = fullTableName(temporaryTableId);
-    String sqlQuery = String.format(queryFormat, destinationTableName, temporaryTableName);
-    QueryJobConfiguration queryConfig =
-            jobConfigurationFactory
-                    .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
-                    .setUseLegacySql(false)
-                    .build();
 
-    return create(JobInfo.newBuilder(queryConfig).build());
+    // no partitioning default to statndard overwrite
+    return overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
   }
 
   /**
    * Overwrites the given destination table, with all the data from the given temporary table,
    * transactionally.
    *
-   * @param temporaryTableId   The {@code TableId} representing the temporary-table.
+   * @param temporaryTableId The {@code TableId} representing the temporary-table.
    * @param destinationTableId The {@code TableId} representing the destination table.
    * @return The {@code Job} object representing this operation (which can be tracked to wait until
-   * it has finished successfully).
+   *     it has finished successfully).
    */
   public Job overwriteDestinationWithTemporary(
-          TableId temporaryTableId, TableId destinationTableId) {
+      TableId temporaryTableId, TableId destinationTableId) {
     String queryFormat =
         "MERGE `%s`\n"
             + "USING (SELECT * FROM `%s`)\n"
