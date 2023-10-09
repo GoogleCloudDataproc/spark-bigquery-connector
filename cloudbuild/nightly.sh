@@ -38,13 +38,13 @@ case $STEP in
   build)
     checkenv
     # Build
-    $MVN install -DskipTests -Pdsv1,dsv2
+    $MVN install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2
     #coverage report
-    $MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1,dsv2
+    $MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2
     # Run integration tests
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1,dsv2_2.4,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv1_2.13,dsv2_2.4,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4
     # Run acceptance tests
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1,dsv2_2.4,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.12,dsv1_2.13,dsv2_2.4,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4
     # Upload test coverage report to Codecov
     bash <(curl -s https://codecov.io/bash) -K -F "nightly"
 
