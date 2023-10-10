@@ -342,11 +342,18 @@ public class BigQueryDataSourceReaderContext {
     return allFilters;
   }
 
-  public void filter(Filter[] filters) {
+  /**
+   * Re-creates the read-sesion and re-computes partitions for dynamic partition pruning
+   *
+   * @param filters dynamic partition pruning filters
+   * @return new planned partitions if dynamic partition pruning goes through, else returns empty
+   *     option.
+   */
+  public Optional<List<ArrowInputPartitionContext>> filter(Filter[] filters) {
     logger.info(String.format("Use Dynamic Partition Pruning runtime filters: %s", filters));
     if (plannedInputPartitionContexts == null) {
       logger.error("Should have planned partitions.");
-      return;
+      return Optional.empty();
     }
 
     ImmutableList<Filter> newFilters =
@@ -359,7 +366,7 @@ public class BigQueryDataSourceReaderContext {
       logger.info(
           "Could not find filters for partition of clustering field for table {}, aborting DPP filter",
           BigQueryUtil.friendlyTableName(tableId));
-      return;
+      return Optional.empty();
     }
     pushedFilters =
         Stream.concat(Arrays.stream(pushedFilters), newFilters.stream()).toArray(Filter[]::new);
@@ -367,7 +374,7 @@ public class BigQueryDataSourceReaderContext {
     if (!BigQueryUtil.filterLengthInLimit(combinedFilter)) {
       logger.warn(
           "New filter for Dynamic Partition Pruning is too large, skipping partition pruning");
-      return;
+      return Optional.empty();
     }
 
     // Copies previous planned input partition contexts.
@@ -377,32 +384,17 @@ public class BigQueryDataSourceReaderContext {
     planBatchInputPartitionContexts();
 
     if (plannedInputPartitionContexts.size() > previousInputPartitionContexts.size()) {
-      logger.error(
+      logger.warn(
           String.format(
               "New partitions should not be more than originally planned. Previously had %d streams, now has %d.",
               previousInputPartitionContexts.size(), plannedInputPartitionContexts.size()));
-      return;
+      return Optional.of(plannedInputPartitionContexts);
     }
     logger.info(
         String.format(
             "Use Dynamic Partition Pruning, originally planned %d, adjust to %d partitions",
             previousInputPartitionContexts.size(), plannedInputPartitionContexts.size()));
-
-    // TODO: Spread streams more evenly. This solution reduces the parallelism as it potentially
-    // leaves partitions without streams while other may have more than one stream.
-
-    // first let's update the streams in the previous planned partitions
-    for (int i = 0; i < plannedInputPartitionContexts.size(); i++) {
-      previousInputPartitionContexts
-          .get(i)
-          .resetStreamNamesFrom(plannedInputPartitionContexts.get(i));
-    }
-    // second, clear the redundant partitions
-    for (int i = plannedInputPartitionContexts.size();
-        i < previousInputPartitionContexts.size();
-        i++) {
-      previousInputPartitionContexts.get(i).clearStreamsList();
-    }
+    return Optional.of(plannedInputPartitionContexts);
   }
 
   public void pruneColumns(StructType requiredSchema) {

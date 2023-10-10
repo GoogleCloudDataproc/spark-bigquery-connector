@@ -28,7 +28,6 @@ import com.google.cloud.spark.bigquery.metrics.SparkMetricsSource;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -93,13 +92,5 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
   @Override
   public boolean supportColumnarReads() {
     return true;
-  }
-
-  public void resetStreamNamesFrom(ArrowInputPartitionContext ctx) {
-    this.streamNames = ImmutableList.copyOf(ctx.streamNames);
-  }
-
-  public void clearStreamsList() {
-    this.streamNames = Collections.emptyList();
   }
 }
