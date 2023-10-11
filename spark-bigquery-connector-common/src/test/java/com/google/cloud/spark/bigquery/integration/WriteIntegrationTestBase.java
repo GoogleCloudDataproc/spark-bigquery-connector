@@ -55,6 +55,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -1776,16 +1777,22 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(result.count()).isEqualTo(2);
     List<Row> rows = result.collectAsList();
 
-    Row row1 = rows.get(0);
-    Row row2 = rows.get(1);
+    Map<Long, Timestamp> expectedValues = new HashMap<>();
+    expectedValues.put(10L, Timestamp.valueOf("2023-09-29 2:00:00"));
+    expectedValues.put(20L, Timestamp.valueOf("2023-09-30 12:00:00"));
 
-    assertThat(row1.getLong(row1.fieldIndex("order_id"))).isEqualTo(10);
-    assertThat(row1.getTimestamp(row1.fieldIndex(orderDateTime)))
-        .isEqualTo(Timestamp.valueOf("2023-09-29 2:00:00"));
+    expectedValues.forEach(
+        (expectedOrderId, expectedTimestamp) -> {
+          Row matchingRow =
+              rows.stream()
+                  .filter(row -> row.getLong(row.fieldIndex("order_id")) == expectedOrderId)
+                  .findFirst()
+                  .orElse(null);
 
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(20);
-    assertThat(row2.getTimestamp(row2.fieldIndex(orderDateTime)))
-        .isEqualTo(Timestamp.valueOf("2023-09-30 12:00:00"));
+          assertThat(matchingRow).isNotNull();
+          assertThat(matchingRow.getTimestamp(matchingRow.fieldIndex(orderDateTime)))
+              .isEqualTo(expectedTimestamp);
+        });
   }
 
   public void testWriteSchemaSubset() throws Exception {
