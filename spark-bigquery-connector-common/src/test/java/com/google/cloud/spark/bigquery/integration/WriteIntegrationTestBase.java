@@ -95,26 +95,17 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   protected Class<? extends Exception> expectedExceptionOnExistingTable;
   protected BigQuery bq;
 
-  private DataType dateTimeTypeInSpark;
-
   public WriteIntegrationTestBase(SparkBigQueryConfig.WriteMethod writeMethod) {
-    this(writeMethod, IllegalArgumentException.class, DataTypes.StringType);
-  }
-
-  public WriteIntegrationTestBase(
-      SparkBigQueryConfig.WriteMethod writeMethod, DataType dateTimeTypeInSpark) {
-    this(writeMethod, IllegalArgumentException.class, dateTimeTypeInSpark);
+    this(writeMethod, IllegalArgumentException.class);
   }
 
   public WriteIntegrationTestBase(
       SparkBigQueryConfig.WriteMethod writeMethod,
-      Class<? extends Exception> expectedExceptionOnExistingTable,
-      DataType dateTimeTypeInSpark) {
+      Class<? extends Exception> expectedExceptionOnExistingTable) {
     super();
     this.writeMethod = writeMethod;
     this.expectedExceptionOnExistingTable = expectedExceptionOnExistingTable;
     this.bq = BigQueryOptions.getDefaultInstance().getService();
-    this.dateTimeTypeInSpark = dateTimeTypeInSpark;
   }
 
   private Metadata metadata(Map<String, String> map) {
@@ -1019,7 +1010,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(testTableNumberOfRows()).isEqualTo(0);
   }
 
-  private StructType structType(StructField... fields) {
+  protected StructType structType(StructField... fields) {
     return new StructType(fields);
   }
 
@@ -1444,7 +1435,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(head.getLong(head.fieldIndex("wake_up_time"))).isEqualTo(36000000000L);
   }
 
-  private Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(Dataset<Row> df) {
+  protected Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(Dataset<Row> df) {
     df.write()
         .format("bigquery")
         .mode(SaveMode.Overwrite)
@@ -1465,6 +1456,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testOverwriteDynamicPartition_partitionTimestampByHour() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1508,6 +1500,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testOverwriteDynamicPartition_partitionTimestampByDay() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1551,6 +1544,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testOverwriteDynamicPartition_partitionTimestampByMonth() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1594,6 +1588,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testOverwriteDynamicPartition_partitionTimestampByYear() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1636,167 +1631,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_partitionDateTimeByHour() {
-    String orderId = "order_id";
-    String orderDateTime = "order_date_time";
-    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-    IntegrationTestUtils.runQuery(
-        String.format(
-            "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                + "PARTITION BY timestamp_trunc(order_date_time, HOUR) "
-                + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
-                + "(2, DATETIME '2023-09-28 10:00:00'), (3, DATETIME '2023-09-28 10:30:00')])",
-            testDataset, testTable, orderId, orderDateTime));
-
-    Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, LocalDateTime.of(2023, 9, 28, 10, 15, 0)),
-                RowFactory.create(20, LocalDateTime.of(2023, 9, 30, 12, 0, 0))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, dateTimeTypeInSpark, true, Metadata.empty())));
-
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
-    assertThat(result.count()).isEqualTo(3);
-    List<Row> rows = result.collectAsList();
-
-    Row row1 = rows.get(0);
-    Row row2 = rows.get(1);
-    Row row3 = rows.get(2);
-
-    assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(1);
-    assertThat(row1.get(row1.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-28T01:00");
-
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
-    assertThat(row2.get(row2.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-28T10:15");
-
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
-    assertThat(row3.get(row3.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-30T12:00");
-  }
-
-  @Test
-  public void testOverwriteDynamicPartition_partitionDateTimeByDay() {
-    String orderId = "order_id";
-    String orderDateTime = "order_date_time";
-    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-    IntegrationTestUtils.runQuery(
-        String.format(
-            "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                + "PARTITION BY timestamp_trunc(order_date_time, DAY) "
-                + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
-                + "(2, DATETIME '2023-09-29 10:00:00'), (3, DATETIME '2023-09-29 17:30:00')])",
-            testDataset, testTable, orderId, orderDateTime));
-
-    Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, LocalDateTime.of(2023, 9, 29, 10, 15, 0)),
-                RowFactory.create(20, LocalDateTime.of(2023, 9, 30, 12, 0, 0))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, dateTimeTypeInSpark, true, Metadata.empty())));
-
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
-    assertThat(result.count()).isEqualTo(3);
-    List<Row> rows = result.collectAsList();
-
-    Row row1 = rows.get(0);
-    Row row2 = rows.get(1);
-    Row row3 = rows.get(2);
-
-    assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(1);
-    assertThat(row1.get(row1.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-28T01:00");
-
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
-    assertThat(row2.get(row2.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-29T10:15");
-
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
-    assertThat(row3.get(row3.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-30T12:00");
-  }
-
-  @Test
-  public void testOverwriteDynamicPartition_partitionDateTimeByMonth() {
-    String orderId = "order_id";
-    String orderDateTime = "order_date_time";
-    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-    IntegrationTestUtils.runQuery(
-        String.format(
-            "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                + "PARTITION BY timestamp_trunc(order_date_time, MONTH) "
-                + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
-                + "(2, DATETIME '2023-10-29 10:00:00'), (3, DATETIME '2023-10-29 17:30:00')])",
-            testDataset, testTable, orderId, orderDateTime));
-
-    Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, LocalDateTime.of(2023, 10, 20, 10, 15, 0)),
-                RowFactory.create(20, LocalDateTime.of(2023, 11, 30, 12, 0, 0))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, dateTimeTypeInSpark, true, Metadata.empty())));
-
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
-    assertThat(result.count()).isEqualTo(3);
-    List<Row> rows = result.collectAsList();
-
-    Row row1 = rows.get(0);
-    Row row2 = rows.get(1);
-    Row row3 = rows.get(2);
-
-    assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(1);
-    assertThat(row1.get(row1.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-28T01:00");
-
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
-    assertThat(row2.get(row2.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-10-20T10:15");
-
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
-    assertThat(row3.get(row3.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-11-30T12:00");
-  }
-
-  @Test
-  public void testOverwriteDynamicPartition_partitionDateTimeByYear() {
-    String orderId = "order_id";
-    String orderDateTime = "order_date_time";
-    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-    IntegrationTestUtils.runQuery(
-        String.format(
-            "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                + "PARTITION BY timestamp_trunc(order_date_time, YEAR) "
-                + "AS SELECT * FROM UNNEST([(1, DATETIME '2022-09-28 1:00:00'), "
-                + "(2, DATETIME '2023-10-29 10:00:00'), (3, DATETIME '2023-11-29 17:30:00')])",
-            testDataset, testTable, orderId, orderDateTime));
-
-    Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, LocalDateTime.of(2023, 10, 20, 10, 15, 0)),
-                RowFactory.create(20, LocalDateTime.of(2024, 11, 30, 12, 0, 0))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, dateTimeTypeInSpark, true, Metadata.empty())));
-
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
-    assertThat(result.count()).isEqualTo(3);
-    List<Row> rows = result.collectAsList();
-
-    Row row1 = rows.get(0);
-    Row row2 = rows.get(1);
-    Row row3 = rows.get(2);
-
-    assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(1);
-    assertThat(row1.get(row1.fieldIndex(orderDateTime)).toString()).isEqualTo("2022-09-28T01:00");
-
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
-    assertThat(row2.get(row2.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-10-20T10:15");
-
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
-    assertThat(row3.get(row3.fieldIndex(orderDateTime)).toString()).isEqualTo("2024-11-30T12:00");
-  }
-
-  @Test
   public void testOverwriteDynamicPartition_partitionDateByDay() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String orderId = "order_id";
     String orderDate = "order_date";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1836,6 +1672,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testOverwriteDynamicPartition_partitionDateByMonth() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String orderId = "order_id";
     String orderDate = "order_date";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1876,6 +1713,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testOverwriteDynamicPartition_partitionDateByYear() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String orderId = "order_id";
     String orderDate = "order_date";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1916,6 +1754,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testOverwriteDynamicPartition_noTimePartitioning() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
