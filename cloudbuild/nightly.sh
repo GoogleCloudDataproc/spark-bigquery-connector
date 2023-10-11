@@ -58,9 +58,6 @@ case $STEP in
     readonly BUILD_REVISION="$(cat /workspace/revision.txt)"
 
     # Upload nightly artifacts to the snapshot bucket and mark nightly snapshot
-    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-with-dependencies_2.11/${BUILD_REVISION}/spark-bigquery-with-dependencies_2.11-${BUILD_REVISION}.jar" "gs://${BUCKET}"
-    gsutil cp "gs://${BUCKET}/spark-bigquery-with-dependencies_2.11-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-with-dependencies_2.11-nightly-snapshot.jar"
-
     gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-with-dependencies_2.12/${BUILD_REVISION}/spark-bigquery-with-dependencies_2.12-${BUILD_REVISION}.jar" "gs://${BUCKET}"
     gsutil cp "gs://${BUCKET}/spark-bigquery-with-dependencies_2.12-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar"
 
