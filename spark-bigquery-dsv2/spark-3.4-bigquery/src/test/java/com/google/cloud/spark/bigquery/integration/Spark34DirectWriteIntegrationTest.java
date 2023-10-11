@@ -28,7 +28,6 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.TimeZone;
-
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -81,21 +80,22 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     IntegrationTestUtils.runQuery(
-            String.format(
-                    "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                            + "PARTITION BY timestamp_trunc(order_date_time, HOUR) "
-                            + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
-                            + "(2, DATETIME '2023-09-28 10:00:00'), (3, DATETIME '2023-09-28 10:30:00')])",
-                    testDataset, testTable, orderId, orderDateTime));
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
+                + "PARTITION BY timestamp_trunc(order_date_time, HOUR) "
+                + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
+                + "(2, DATETIME '2023-09-28 10:00:00'), (3, DATETIME '2023-09-28 10:30:00')])",
+            testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
-            spark.createDataFrame(
-                    Arrays.asList(
-                            RowFactory.create(10, LocalDateTime.of(2023, 9, 28, 10, 15, 0)),
-                            RowFactory.create(20, LocalDateTime.of(2023, 9, 30, 12, 0, 0))),
-                    structType(
-                            StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                            StructField.apply(orderDateTime, DataTypes.TimestampNTZType, true, Metadata.empty())));
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create(10, LocalDateTime.of(2023, 9, 28, 10, 15, 0)),
+                RowFactory.create(20, LocalDateTime.of(2023, 9, 30, 12, 0, 0))),
+            structType(
+                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                StructField.apply(
+                    orderDateTime, DataTypes.TimestampNTZType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
     assertThat(result.count()).isEqualTo(3);
@@ -122,21 +122,22 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     IntegrationTestUtils.runQuery(
-            String.format(
-                    "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                            + "PARTITION BY timestamp_trunc(order_date_time, DAY) "
-                            + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
-                            + "(2, DATETIME '2023-09-29 10:00:00'), (3, DATETIME '2023-09-29 17:30:00')])",
-                    testDataset, testTable, orderId, orderDateTime));
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
+                + "PARTITION BY timestamp_trunc(order_date_time, DAY) "
+                + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
+                + "(2, DATETIME '2023-09-29 10:00:00'), (3, DATETIME '2023-09-29 17:30:00')])",
+            testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
-            spark.createDataFrame(
-                    Arrays.asList(
-                            RowFactory.create(10, LocalDateTime.of(2023, 9, 29, 10, 15, 0)),
-                            RowFactory.create(20, LocalDateTime.of(2023, 9, 30, 12, 0, 0))),
-                    structType(
-                            StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                            StructField.apply(orderDateTime, DataTypes.TimestampNTZType, true, Metadata.empty())));
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create(10, LocalDateTime.of(2023, 9, 29, 10, 15, 0)),
+                RowFactory.create(20, LocalDateTime.of(2023, 9, 30, 12, 0, 0))),
+            structType(
+                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                StructField.apply(
+                    orderDateTime, DataTypes.TimestampNTZType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
     assertThat(result.count()).isEqualTo(3);
@@ -163,21 +164,22 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     IntegrationTestUtils.runQuery(
-            String.format(
-                    "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                            + "PARTITION BY timestamp_trunc(order_date_time, MONTH) "
-                            + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
-                            + "(2, DATETIME '2023-10-29 10:00:00'), (3, DATETIME '2023-10-29 17:30:00')])",
-                    testDataset, testTable, orderId, orderDateTime));
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
+                + "PARTITION BY timestamp_trunc(order_date_time, MONTH) "
+                + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
+                + "(2, DATETIME '2023-10-29 10:00:00'), (3, DATETIME '2023-10-29 17:30:00')])",
+            testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
-            spark.createDataFrame(
-                    Arrays.asList(
-                            RowFactory.create(10, LocalDateTime.of(2023, 10, 20, 10, 15, 0)),
-                            RowFactory.create(20, LocalDateTime.of(2023, 11, 30, 12, 0, 0))),
-                    structType(
-                            StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                            StructField.apply(orderDateTime, DataTypes.TimestampNTZType, true, Metadata.empty())));
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create(10, LocalDateTime.of(2023, 10, 20, 10, 15, 0)),
+                RowFactory.create(20, LocalDateTime.of(2023, 11, 30, 12, 0, 0))),
+            structType(
+                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                StructField.apply(
+                    orderDateTime, DataTypes.TimestampNTZType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
     assertThat(result.count()).isEqualTo(3);
@@ -204,21 +206,22 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     IntegrationTestUtils.runQuery(
-            String.format(
-                    "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                            + "PARTITION BY timestamp_trunc(order_date_time, YEAR) "
-                            + "AS SELECT * FROM UNNEST([(1, DATETIME '2022-09-28 1:00:00'), "
-                            + "(2, DATETIME '2023-10-29 10:00:00'), (3, DATETIME '2023-11-29 17:30:00')])",
-                    testDataset, testTable, orderId, orderDateTime));
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
+                + "PARTITION BY timestamp_trunc(order_date_time, YEAR) "
+                + "AS SELECT * FROM UNNEST([(1, DATETIME '2022-09-28 1:00:00'), "
+                + "(2, DATETIME '2023-10-29 10:00:00'), (3, DATETIME '2023-11-29 17:30:00')])",
+            testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
-            spark.createDataFrame(
-                    Arrays.asList(
-                            RowFactory.create(10, LocalDateTime.of(2023, 10, 20, 10, 15, 0)),
-                            RowFactory.create(20, LocalDateTime.of(2024, 11, 30, 12, 0, 0))),
-                    structType(
-                            StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                            StructField.apply(orderDateTime, DataTypes.TimestampNTZType, true, Metadata.empty())));
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create(10, LocalDateTime.of(2023, 10, 20, 10, 15, 0)),
+                RowFactory.create(20, LocalDateTime.of(2024, 11, 30, 12, 0, 0))),
+            structType(
+                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                StructField.apply(
+                    orderDateTime, DataTypes.TimestampNTZType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
     assertThat(result.count()).isEqualTo(3);
