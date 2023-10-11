@@ -152,6 +152,7 @@ public class SparkBigQueryConfig
   private static final Boolean ALLOW_MAP_TYPE_CONVERSION_DEFAULT = true;
   public static final String partitionOverwriteModeProperty =
       "spark.sql.sources.partitionOverwriteMode";
+
   public PartitionOverwriteMode partitionOverwriteModeValue = PartitionOverwriteMode.STATIC;
 
   TableId tableId;

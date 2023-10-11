@@ -155,6 +155,6 @@ public class BigQueryDirectDataSourceWriterContextTest {
         SchemaConvertersConfiguration.of(ZoneId.of("UTC")),
         java.util.Optional.empty(),
         false,
-            PartitionOverwriteMode.STATIC);
+        PartitionOverwriteMode.STATIC);
   }
 }

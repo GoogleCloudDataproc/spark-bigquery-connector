@@ -15,6 +15,8 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryForTimePartitionedTable;
+
 import com.google.cloud.BaseServiceException;
 import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.BigQuery;
@@ -23,8 +25,6 @@ import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.EncryptionConfiguration;
-import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobConfiguration;
@@ -227,41 +227,6 @@ public class BigQueryClient {
             .build();
 
     return create(JobInfo.newBuilder(queryConfig).build());
-  }
-
-  private String getQueryForTimePartitionedTable(
-      String destinationTableName,
-      String temporaryTableName,
-      StandardTableDefinition destinationDefinition,
-      TimePartitioning timePartitioning) {
-    TimePartitioning.Type partitionType = timePartitioning.getType();
-    String partitionField = timePartitioning.getField();
-    String extractedPartitioned = "timestamp_trunc(`%s`.`%s`, `%s`)";
-    String extractedPartitionedSource =
-        String.format(
-            extractedPartitioned, temporaryTableName, partitionField, partitionType.toString());
-    String extractedPartitionedTarget =
-        String.format(
-            extractedPartitioned, destinationTableName, partitionField, partitionType.toString());
-    FieldList allFields = destinationDefinition.getSchema().getFields();
-    String commaSeparatedFields =
-        allFields.stream().map(Field::getName).collect(Collectors.joining(","));
-
-    String queryFormat =
-        "MERGE `%s` AS target\n"
-            + "USING (SELECT * FROM `%s` CROSS JOIN UNNEST([true, false])  is_delete) AS source\n"
-            + "ON `%s` = `%s` AND is_delete\n"
-            + "WHEN MATCHED THEN DELETE\n"
-            + "WHEN NOT MATCHED AND NOT is_delete THEN\n"
-            + "INSERT('%s') VALUES('%s')";
-    return String.format(
-        queryFormat,
-        destinationTableName,
-        temporaryTableName,
-        extractedPartitionedSource,
-        extractedPartitionedTarget,
-        commaSeparatedFields,
-        commaSeparatedFields);
   }
 
   /**

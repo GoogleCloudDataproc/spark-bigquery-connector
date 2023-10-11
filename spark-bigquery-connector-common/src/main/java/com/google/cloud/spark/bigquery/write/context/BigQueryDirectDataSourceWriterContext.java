@@ -209,7 +209,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
    * the required partitions;if in ALL_ELSE mode no more work needs to be done.
    *
    * @see WritingMode
-   * @see BigQueryClient#overwriteDestinationWithTemporary(TableId, TableId, PartitionOverwriteMode)
+   * @see BigQueryClient#overwriteDestinationWithTemporary(TableId, TableId)
    * @param messages the BigQueryWriterCommitMessage array returned by the BigQueryDataWriter's.
    */
   @Override
