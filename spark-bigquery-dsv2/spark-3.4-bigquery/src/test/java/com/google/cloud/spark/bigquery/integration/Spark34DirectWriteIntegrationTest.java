@@ -26,6 +26,7 @@ import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.TimeZone;
 import org.apache.spark.sql.Dataset;
@@ -100,6 +101,7 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
+    rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
 
     Row row1 = rows.get(0);
     Row row2 = rows.get(1);
@@ -142,6 +144,7 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
+    rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
 
     Row row1 = rows.get(0);
     Row row2 = rows.get(1);
@@ -184,6 +187,7 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
+    rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
 
     Row row1 = rows.get(0);
     Row row2 = rows.get(1);
@@ -226,6 +230,7 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
+    rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
 
     Row row1 = rows.get(0);
     Row row2 = rows.get(1);
