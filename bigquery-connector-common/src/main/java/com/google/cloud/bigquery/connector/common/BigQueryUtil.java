@@ -621,20 +621,24 @@ public class BigQueryUtil {
             .map(Field::getName)
             .map(element -> "`" + element + "`")
             .collect(Collectors.joining(","));
+    String booleanInjectedColumn = "_" + Long.toString(1234567890123456789L);
 
     String queryFormat =
         "MERGE `%s` AS target\n"
-            + "USING (SELECT * FROM `%s` CROSS JOIN UNNEST([true, false])  is_delete) AS source\n"
-            + "ON %s = %s AND is_delete\n"
+            + "USING (SELECT * FROM `%s` CROSS JOIN UNNEST([true, false])  %s) AS source\n"
+            + "ON %s = %s AND %s\n"
             + "WHEN MATCHED THEN DELETE\n"
-            + "WHEN NOT MATCHED AND NOT is_delete THEN\n"
+            + "WHEN NOT MATCHED AND NOT %s THEN\n"
             + "INSERT(%s) VALUES(%s)";
     return String.format(
         queryFormat,
         destinationTableName,
         temporaryTableName,
+        booleanInjectedColumn,
         extractedPartitionedSource,
         extractedPartitionedTarget,
+        booleanInjectedColumn,
+        booleanInjectedColumn,
         commaSeparatedFields,
         commaSeparatedFields);
   }
