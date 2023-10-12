@@ -2,16 +2,17 @@
 
 ## Next
 
-* Issue #453: fix comment handling in query
-* PR #1061: Handle NPE case when reading BQ table with NUMERIC fields. Thanks @hayssams !
-* Issue #144: allow writing Spark String to BQ TIME type
-* Issue #867: Support writing with RangePartitioning
-* Issue #1062: Adding dataproc job ID and UUID labels to BigQuery jobs
-* Issue #1046: Add a way to disable map type support
+* Added new connector, `spark-3.4-bigquery` aimed to be used in Spark 3.4 and above. This connector implements new APIs and capabilities provided by the Spark Data Source V2 API.
 * PR #1008: Adding support to expose BigQuery metrics using Spark custom metrics API.
 * PR #1038: Logical plan now shows the BigQuery table of DirectBigQueryRelation. Thanks @idc101 !
 * PR #1058: View names will appear in query plan instead of the materialized table
+* PR #1061: Handle NPE case when reading BQ table with NUMERIC fields. Thanks @hayssams !
 * PR #1069: Support TimestampNTZ datatype in spark 3.4
+* Issue #453: fix comment handling in query
+* Issue #144: allow writing Spark String to BQ TIME type
+* Issue #867: Support writing with RangePartitioning
+* Issue #1046: Add a way to disable map type support
+* Issue #1062: Adding dataproc job ID and UUID labels to BigQuery jobs
 
 ## 0.32.2 - 2023-08-07
 
