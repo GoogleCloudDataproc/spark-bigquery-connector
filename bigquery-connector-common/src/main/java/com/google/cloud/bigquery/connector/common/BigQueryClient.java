@@ -509,8 +509,8 @@ public class BigQueryClient {
   public TableInfo materializeQueryToTable(
       String querySql, int expirationTimeInMinutes, Map<String, String> additionalQueryJobLabels) {
     TableId destinationTableId = createDestinationTable(Optional.empty(), Optional.empty());
-    DestinationTableBuilder tableBuilder =
-        new DestinationTableBuilder(
+    TempTableBuilder tableBuilder =
+        new TempTableBuilder(
             this,
             querySql,
             destinationTableId,
@@ -545,7 +545,7 @@ public class BigQueryClient {
     try {
       return destinationTableCache.get(
           querySql,
-          new DestinationTableBuilder(
+          new TempTableBuilder(
               this,
               querySql,
               destinationTableId,
@@ -562,9 +562,9 @@ public class BigQueryClient {
   }
 
   private TableInfo materializeTable(
-      String querySql, DestinationTableBuilder destinationTableBuilder) {
+      String querySql, TempTableBuilder tmpTableBuilder) {
     try {
-      return destinationTableCache.get(querySql, destinationTableBuilder);
+      return destinationTableCache.get(querySql, tmpTableBuilder);
     } catch (Exception e) {
       throw new BigQueryConnectorException(
           BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
@@ -767,7 +767,7 @@ public class BigQueryClient {
     }
   }
 
-  static class DestinationTableBuilder implements Callable<TableInfo> {
+  static class TempTableBuilder implements Callable<TableInfo> {
     final BigQueryClient bigQueryClient;
     final String querySql;
     final TableId destinationTable;
@@ -775,7 +775,7 @@ public class BigQueryClient {
     final JobConfigurationFactory jobConfigurationFactory;
     final Map<String, String> additionalQueryJobLabels;
 
-    DestinationTableBuilder(
+    TempTableBuilder(
         BigQueryClient bigQueryClient,
         String querySql,
         TableId destinationTable,
