@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.EnvironmentContext;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
@@ -25,10 +26,17 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.spark.scheduler.SparkListener;
+import org.apache.spark.scheduler.SparkListenerApplicationEnd;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SparkBigQueryConnectorModule implements Module {
+
+  private static Logger logger = LoggerFactory.getLogger(SparkBigQueryConnectorModule.class);
+  private static boolean registeredCleanupListener = false;
 
   private final SparkSession spark;
   private final Map<String, String> options;
@@ -58,6 +66,20 @@ public class SparkBigQueryConnectorModule implements Module {
   @Override
   public void configure(Binder binder) {
     binder.bind(BigQueryConfig.class).toProvider(this::provideSparkBigQueryConfig);
+    if (!registeredCleanupListener) {
+      logger.info("Registering cleanup jobs listener, should happen just once");
+      spark
+          .sparkContext()
+          .addSparkListener(
+              new SparkListener() {
+                @Override
+                public void onApplicationEnd(SparkListenerApplicationEnd applicationEnd) {
+                  logger.info("In SparkListener.onApplicationEnd, going to activate cleanup jobs");
+                  BigQueryClient.runCleanupJobs();
+                }
+              });
+      registeredCleanupListener = true;
+    }
   }
 
   @Singleton
