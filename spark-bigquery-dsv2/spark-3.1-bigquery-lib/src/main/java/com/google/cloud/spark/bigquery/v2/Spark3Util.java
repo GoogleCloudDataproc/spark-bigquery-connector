@@ -49,7 +49,8 @@ public class Spark3Util {
         injector.getInstance(SparkSession.class).sqlContext());
     UserAgentProvider userAgentProvider = injector.getInstance(UserAgentProvider.class);
     SparkBigQueryJobEvents.postConnectorVersion(
-        injector.getInstance(SparkSession.class).sqlContext(), userAgentProvider.getUserAgent());
+        injector.getInstance(SparkSession.class).sqlContext(),
+        userAgentProvider.getConnectorInfo());
     TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
     if (tableInfo == null) {
       return bigQueryTableCreator.create(injector, config.getTableId(), sparkProvidedSchema);

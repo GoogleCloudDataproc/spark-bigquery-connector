@@ -1,6 +1,5 @@
 package com.google.cloud.spark.bigquery.plugins;
 
-import static com.google.cloud.spark.bigquery.plugins.SparkBigQueryPluginUtil.FAILED_MESSAGE;
 import static com.google.cloud.spark.bigquery.plugins.SparkBigQueryPluginUtil.SUCCESS_MESSAGE;
 
 import com.codahale.metrics.Counter;
@@ -24,11 +23,10 @@ public class SparkBigQueryExecutorPlugin implements ExecutorPlugin {
       throws Exception {
     Counter metricCounter = (Counter) metric;
     if (metricCounter.getCount() == 0) {
-      //if the metric doesn't have any value, we don't need to send it.
+      // if the metric doesn't have any value, we don't need to send it.
       return;
     }
-    MetricJson metricJson =
-        new MetricJson(ctx.executorID(), sessionID, metricName, metricCounter.getCount());
+    MetricJson metricJson = new MetricJson(sessionID, metricName, metricCounter.getCount());
     Object status = ctx.ask(metricJson);
     if (status.toString().equals(SUCCESS_MESSAGE)) {
       metricCounter.dec(metricCounter.getCount());
