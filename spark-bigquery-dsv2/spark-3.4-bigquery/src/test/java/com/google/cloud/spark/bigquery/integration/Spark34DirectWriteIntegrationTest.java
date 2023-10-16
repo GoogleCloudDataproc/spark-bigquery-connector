@@ -110,10 +110,10 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
     assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(1);
     assertThat(row1.get(row1.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-28T01:00");
 
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(10);
     assertThat(row2.get(row2.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-28T10:15");
 
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(20);
     assertThat(row3.get(row3.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-30T12:00");
   }
 
@@ -153,10 +153,10 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
     assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(1);
     assertThat(row1.get(row1.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-28T01:00");
 
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(10);
     assertThat(row2.get(row2.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-29T10:15");
 
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(20);
     assertThat(row3.get(row3.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-30T12:00");
   }
 
@@ -196,10 +196,10 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
     assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(1);
     assertThat(row1.get(row1.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-09-28T01:00");
 
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(10);
     assertThat(row2.get(row2.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-10-20T10:15");
 
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(20);
     assertThat(row3.get(row3.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-11-30T12:00");
   }
 
@@ -239,10 +239,10 @@ public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase 
     assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(1);
     assertThat(row1.get(row1.fieldIndex(orderDateTime)).toString()).isEqualTo("2022-09-28T01:00");
 
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(10);
     assertThat(row2.get(row2.fieldIndex(orderDateTime)).toString()).isEqualTo("2023-10-20T10:15");
 
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(20);
     assertThat(row3.get(row3.fieldIndex(orderDateTime)).toString()).isEqualTo("2024-11-30T12:00");
   }
 }

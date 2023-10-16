@@ -1489,11 +1489,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(row1.getTimestamp(row1.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2023-09-28 1:00:00"));
 
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(10);
     assertThat(row2.getTimestamp(row2.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2023-09-28 10:15:00"));
 
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(20);
     assertThat(row3.getTimestamp(row3.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2023-09-30 12:00:00"));
   }
@@ -1534,11 +1534,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(row1.getTimestamp(row1.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2023-09-28 1:00:00"));
 
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(10);
     assertThat(row2.getTimestamp(row2.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2023-09-29 2:00:00"));
 
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(20);
     assertThat(row3.getTimestamp(row3.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2023-09-30 12:00:00"));
   }
@@ -1579,11 +1579,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(row1.getTimestamp(row1.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2023-09-28 1:00:00"));
 
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(10);
     assertThat(row2.getTimestamp(row2.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2023-10-29 2:00:00"));
 
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(20);
     assertThat(row3.getTimestamp(row3.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2023-11-30 12:00:00"));
   }
@@ -1624,11 +1624,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(row1.getTimestamp(row1.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2022-09-28 1:00:00"));
 
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(10);
     assertThat(row2.getTimestamp(row2.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2023-10-29 2:00:00"));
 
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(20);
     assertThat(row3.getTimestamp(row3.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2024-11-30 12:00:00"));
   }
@@ -1667,10 +1667,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(1);
     assertThat(row1.getDate(row1.fieldIndex(orderDate))).isEqualTo(Date.valueOf("2023-09-28"));
 
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(10);
     assertThat(row2.getDate(row2.fieldIndex(orderDate))).isEqualTo(Date.valueOf("2023-09-29"));
 
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(20);
     assertThat(row3.getDate(row3.fieldIndex(orderDate))).isEqualTo(Date.valueOf("2023-09-30"));
   }
 
@@ -1709,10 +1709,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(1);
     assertThat(row1.getDate(row1.fieldIndex(orderDate))).isEqualTo(Date.valueOf("2023-09-28"));
 
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(10);
     assertThat(row2.getDate(row2.fieldIndex(orderDate))).isEqualTo(Date.valueOf("2023-10-20"));
 
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(20);
     assertThat(row3.getDate(row3.fieldIndex(orderDate))).isEqualTo(Date.valueOf("2023-11-30"));
   }
 
@@ -1751,10 +1751,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(1);
     assertThat(row1.getDate(row1.fieldIndex(orderDate))).isEqualTo(Date.valueOf("2022-09-28"));
 
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(10);
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(10);
     assertThat(row2.getDate(row2.fieldIndex(orderDate))).isEqualTo(Date.valueOf("2023-10-20"));
 
-    assertThat(row3.getLong(row3.fieldIndex("order_id"))).isEqualTo(20);
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(20);
     assertThat(row3.getDate(row3.fieldIndex(orderDate))).isEqualTo(Date.valueOf("2024-11-30"));
   }
 
@@ -1788,11 +1788,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     Row row1 = rows.get(0);
     Row row2 = rows.get(1);
 
-    assertThat(row1.getLong(row1.fieldIndex("order_id"))).isEqualTo(10);
+    assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(10);
     assertThat(row1.getTimestamp(row1.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2023-09-29 2:00:00"));
 
-    assertThat(row2.getLong(row2.fieldIndex("order_id"))).isEqualTo(20);
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(20);
     assertThat(row2.getTimestamp(row2.fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2023-09-30 12:00:00"));
   }
