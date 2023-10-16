@@ -617,10 +617,7 @@ public class BigQueryUtil {
         String.format(extractedPartitioned, "target", partitionField, partitionType.toString());
     FieldList allFields = destinationDefinition.getSchema().getFields();
     String commaSeparatedFields =
-        allFields.stream()
-            .map(Field::getName)
-            .map(element -> "`" + element + "`")
-            .collect(Collectors.joining(","));
+        allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
     String booleanInjectedColumn = "_" + Long.toString(1234567890123456789L);
 
     String queryFormat =
