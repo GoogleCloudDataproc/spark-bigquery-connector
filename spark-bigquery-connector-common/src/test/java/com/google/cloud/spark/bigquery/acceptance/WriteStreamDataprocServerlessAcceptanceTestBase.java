@@ -36,7 +36,7 @@ public class WriteStreamDataprocServerlessAcceptanceTestBase
   public void testBatch() throws Exception {
     // TODO: fix streaming test
     assumeTrue("Test is broken, disabling it for now", false);
-    
+
     String testName = "write-stream-test";
     String jsonFileName = "write_stream_data.json";
     String jsonFileUri = context.testBaseGcsDir + "/" + testName + "/json/" + jsonFileName;
