@@ -2,8 +2,6 @@
 
 ## Next
 
-* PR #1095: CVE-2023-4586: Upgrading the netty dependencies
-
 ## 0.33.0 - 2023-10-17
 
 * Added new connector, `spark-3.4-bigquery` aimed to be used in Spark 3.4 and above. This connector implements new APIs and capabilities provided by the Spark Data Source V2 API.
