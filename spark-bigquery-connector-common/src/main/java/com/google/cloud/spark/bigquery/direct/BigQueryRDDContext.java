@@ -33,6 +33,7 @@ import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.metrics.SparkMetricsSource;
 import com.google.common.base.Joiner;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -44,7 +45,9 @@ import org.apache.spark.TaskContext;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
 
-class BigQueryRDDContext {
+class BigQueryRDDContext implements Serializable {
+
+  private static long serialVersionUID = -2219993393692435055L;
 
   private final Partition[] partitions;
   private final ReadSession readSession;
