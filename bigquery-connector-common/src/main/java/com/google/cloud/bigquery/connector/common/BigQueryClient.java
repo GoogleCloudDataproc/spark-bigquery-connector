@@ -15,6 +15,8 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryForTimePartitionedTable;
+
 import com.google.cloud.BaseServiceException;
 import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.BigQuery;
@@ -225,6 +227,46 @@ public class BigQueryClient {
             .build();
 
     return create(JobInfo.newBuilder(queryConfig).build());
+  }
+
+  /**
+   * Overwrites the partitions of the destination table, using the partitions from the given
+   * temporary table, transactionally.
+   *
+   * @param temporaryTableId The {@code TableId} representing the temporary-table.
+   * @param destinationTableId The {@code TableId} representing the destination table.
+   * @return The {@code Job} object representing this operation (which can be tracked to wait until
+   *     it has finished successfully).
+   */
+  public Job overwriteDestinationWithTemporaryDynamicPartitons(
+      TableId temporaryTableId, TableId destinationTableId) {
+
+    TableDefinition destinationDefinition = getTable(destinationTableId).getDefinition();
+    String sqlQuery = null;
+    if (destinationDefinition instanceof StandardTableDefinition) {
+      String destinationTableName = fullTableName(destinationTableId);
+      String temporaryTableName = fullTableName(temporaryTableId);
+      StandardTableDefinition sdt = (StandardTableDefinition) destinationDefinition;
+
+      TimePartitioning timePartitioning = sdt.getTimePartitioning();
+      if (timePartitioning != null) {
+        sqlQuery =
+            getQueryForTimePartitionedTable(
+                destinationTableName, temporaryTableName, sdt, timePartitioning);
+      }
+      if (sqlQuery != null) {
+        QueryJobConfiguration queryConfig =
+            jobConfigurationFactory
+                .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
+                .setUseLegacySql(false)
+                .build();
+
+        return create(JobInfo.newBuilder(queryConfig).build());
+      }
+    }
+
+    // no partitioning default to statndard overwrite
+    return overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
   }
 
   /**

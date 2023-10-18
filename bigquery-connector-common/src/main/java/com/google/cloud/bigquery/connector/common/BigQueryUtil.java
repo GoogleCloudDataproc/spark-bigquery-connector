@@ -86,6 +86,7 @@ public class BigQueryUtil {
   // Allow all non-whitespace beside ':' and '.'.
   // These confuse the qualified table parsing.
   private static final String TABLE_PATTERN = "[\\S&&[^.:]]+";
+
   /**
    * Regex for an optionally fully qualified table.
    *
@@ -600,5 +601,42 @@ public class BigQueryUtil {
     return noNewLinesQuery.length() > maxLength
         ? noNewLinesQuery.substring(0, maxLength) + /* ellipsis */ '\u2026'
         : noNewLinesQuery;
+  }
+
+  static String getQueryForTimePartitionedTable(
+      String destinationTableName,
+      String temporaryTableName,
+      StandardTableDefinition destinationDefinition,
+      TimePartitioning timePartitioning) {
+    TimePartitioning.Type partitionType = timePartitioning.getType();
+    String partitionField = timePartitioning.getField();
+    String extractedPartitioned = "timestamp_trunc(`%s`.`%s`, %s)";
+    String extractedPartitionedSource =
+        String.format(extractedPartitioned, "source", partitionField, partitionType.toString());
+    String extractedPartitionedTarget =
+        String.format(extractedPartitioned, "target", partitionField, partitionType.toString());
+    FieldList allFields = destinationDefinition.getSchema().getFields();
+    String commaSeparatedFields =
+        allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
+    String booleanInjectedColumn = "_" + Long.toString(1234567890123456789L);
+
+    String queryFormat =
+        "MERGE `%s` AS target\n"
+            + "USING (SELECT * FROM `%s` CROSS JOIN UNNEST([true, false])  %s) AS source\n"
+            + "ON %s = %s AND %s\n"
+            + "WHEN MATCHED THEN DELETE\n"
+            + "WHEN NOT MATCHED AND NOT %s THEN\n"
+            + "INSERT(%s) VALUES(%s)";
+    return String.format(
+        queryFormat,
+        destinationTableName,
+        temporaryTableName,
+        booleanInjectedColumn,
+        extractedPartitionedSource,
+        extractedPartitionedTarget,
+        booleanInjectedColumn,
+        booleanInjectedColumn,
+        commaSeparatedFields,
+        commaSeparatedFields);
   }
 }

@@ -76,9 +76,10 @@ public class BigQueryDataSourceWriterModule implements Module {
         tableConfig.getKmsKeyName(), // needs to be serializable
         tableConfig.isWriteAtLeastOnce()
             && !mode.equals(
-                SaveMode.Overwrite) // writeAtLeastOnce mode is currently not supported in OverWrite
+                SaveMode
+                    .Overwrite), // writeAtLeastOnce mode is currently not supported in OverWrite
         // mode.
-        );
+        tableConfig.getPartitionOverwriteModeValue());
   }
 
   @Singleton

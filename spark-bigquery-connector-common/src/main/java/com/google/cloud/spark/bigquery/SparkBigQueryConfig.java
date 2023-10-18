@@ -148,10 +148,12 @@ public class SparkBigQueryConfig
   static final String BIGQUERY_JOB_LABEL_PREFIX = "bigQueryJobLabel.";
   static final String BIGQUERY_TABLE_LABEL_PREFIX = "bigQueryTableLabel.";
   public static final Priority DEFAULT_JOB_PRIORITY = Priority.INTERACTIVE;
-
   static final String ALLOW_MAP_TYPE_CONVERSION = "allowMapTypeConversion";
-
   private static final Boolean ALLOW_MAP_TYPE_CONVERSION_DEFAULT = true;
+  public static final String partitionOverwriteModeProperty =
+      "spark.sql.sources.partitionOverwriteMode";
+
+  public PartitionOverwriteMode partitionOverwriteModeValue = PartitionOverwriteMode.STATIC;
 
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
@@ -560,6 +562,11 @@ public class SparkBigQueryConfig
             .transform(Boolean::valueOf)
             .or(ALLOW_MAP_TYPE_CONVERSION_DEFAULT);
 
+    config.partitionOverwriteModeValue =
+        getAnyOption(globalOptions, options, partitionOverwriteModeProperty)
+            .transform(PartitionOverwriteMode::valueOf)
+            .or(PartitionOverwriteMode.STATIC);
+
     return config;
   }
 
@@ -932,6 +939,10 @@ public class SparkBigQueryConfig
 
   public ZoneId getDatetimeZoneId() {
     return datetimeZoneId;
+  }
+
+  public PartitionOverwriteMode getPartitionOverwriteModeValue() {
+    return partitionOverwriteModeValue;
   }
 
   @Override
