@@ -3,6 +3,7 @@
 ## Next
 
 * PR #1057: Enable async writes for greater throughput
+* PR #1094: CVE-2023-5072: Upgrading the org.json:json dependency
 * PR #1095: CVE-2023-4586: Upgrading the netty dependencies
 
 ## 0.33.0 - 2023-10-17
