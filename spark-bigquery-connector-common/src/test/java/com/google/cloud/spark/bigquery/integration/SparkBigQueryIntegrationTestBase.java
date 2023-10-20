@@ -47,6 +47,9 @@ public class SparkBigQueryIntegrationTestBase {
               .master("local")
               .config("spark.ui.enabled", "false")
               .config("spark.default.parallelism", 20)
+              .config("spark.datasource.bigquery.bqNumStreamsPerPartition", 2)
+              .config(
+                  "spark.plugins", "com.google.cloud.spark.bigquery.plugins.SparkBigQueryPlugin")
               .getOrCreate();
       // reducing test's logs
       spark.sparkContext().setLogLevel("WARN");

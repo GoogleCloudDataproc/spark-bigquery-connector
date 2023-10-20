@@ -37,6 +37,7 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryJobEvents;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -291,10 +292,15 @@ public class BigQueryDataSourceReaderContext {
             .orElse(ImmutableList.copyOf(fields.keySet()));
     Optional<String> filter = getCombinedFilter();
     ReadSessionResponse response = readSessionCreator.create(tableId, selectedFields, filter);
+    String sessionName = response.getReadSession().getName();
+    SparkBigQueryJobEvents.postReadStreamsPerSession(
+        sqlContext,
+        SparkBigQueryJobEvents.extractDecodedSessionIDFromSessionName(sessionName),
+        response.getReadSession().getStreamsCount());
     logger.info(
         "Got read session for {}: {} for application id: {}",
         tableId.toString(),
-        response.getReadSession().getName(),
+        sessionName,
         applicationId);
     return response;
   }

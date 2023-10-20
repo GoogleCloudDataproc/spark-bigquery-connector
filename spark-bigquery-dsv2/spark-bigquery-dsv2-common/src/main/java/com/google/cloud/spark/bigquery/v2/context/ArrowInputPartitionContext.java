@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryJobEvents;
 import com.google.cloud.spark.bigquery.metrics.SparkMetricsSource;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -65,7 +66,9 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
   }
 
   public InputPartitionReaderContext<ColumnarBatch> createPartitionReaderContext() {
-    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource();
+    SparkMetricsSource sparkMetricsSource =
+        new SparkMetricsSource(
+            SparkBigQueryJobEvents.extractDecodedSessionIDFromStreamName(this.streamNames.get(0)));
     SparkEnv.get().metricsSystem().registerSource(sparkMetricsSource);
     BigQueryStorageReadRowsTracer tracer =
         tracerFactory.newReadRowsTracer(Joiner.on(",").join(streamNames), sparkMetricsSource);

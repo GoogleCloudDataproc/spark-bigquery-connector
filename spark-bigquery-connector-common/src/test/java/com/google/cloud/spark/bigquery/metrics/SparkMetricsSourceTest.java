@@ -8,13 +8,13 @@ public class SparkMetricsSourceTest {
 
   @Test
   public void testNew() {
-    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource();
+    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource("");
     assertThat(sparkMetricsSource.sourceName()).isEqualTo("bigquery-metrics-source");
   }
 
   @Test
   public void testParseTime() {
-    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource();
+    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource("");
     assertThat(sparkMetricsSource.getParseTime().getCount()).isEqualTo(0);
     sparkMetricsSource.updateParseTime(10);
     assertThat(sparkMetricsSource.getParseTime().getCount()).isEqualTo(1);
@@ -22,7 +22,7 @@ public class SparkMetricsSourceTest {
 
   @Test
   public void testTimeInSpark() {
-    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource();
+    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource("");
     assertThat(sparkMetricsSource.getTimeInSpark().getCount()).isEqualTo(0);
     sparkMetricsSource.updateTimeInSpark(12);
     sparkMetricsSource.updateTimeInSpark(56);
@@ -32,7 +32,7 @@ public class SparkMetricsSourceTest {
 
   @Test
   public void testBytesReadCounter() {
-    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource();
+    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource("");
     assertThat(sparkMetricsSource.getBytesRead().getCount()).isEqualTo(0);
     sparkMetricsSource.incrementBytesReadCounter(1);
     sparkMetricsSource.incrementBytesReadCounter(2);
@@ -42,7 +42,7 @@ public class SparkMetricsSourceTest {
 
   @Test
   public void testRowsReadCounter() {
-    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource();
+    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource("");
     assertThat(sparkMetricsSource.getRowsRead().getCount()).isEqualTo(0);
     sparkMetricsSource.incrementRowsReadCounter(2);
     sparkMetricsSource.incrementRowsReadCounter(3);
@@ -52,7 +52,7 @@ public class SparkMetricsSourceTest {
 
   @Test
   public void testScanTime() {
-    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource();
+    SparkMetricsSource sparkMetricsSource = new SparkMetricsSource("");
     assertThat(sparkMetricsSource.getScanTime().getCount()).isEqualTo(0);
     sparkMetricsSource.updateScanTime(22);
     sparkMetricsSource.updateScanTime(56);

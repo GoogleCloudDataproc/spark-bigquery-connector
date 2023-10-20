@@ -16,7 +16,9 @@ public class SparkMetricsSource implements Source, Serializable, BigQueryMetrics
   private transient Counter rowsRead;
   private transient Timer scanTime;
 
-  public SparkMetricsSource() {
+  private final String sessionName;
+
+  public SparkMetricsSource(String sessionName) {
     registry = new MetricRegistry();
     parseTime = new Timer();
     timeInSpark = new Timer();
@@ -28,6 +30,7 @@ public class SparkMetricsSource implements Source, Serializable, BigQueryMetrics
     registry.register("bytesRead", bytesRead);
     registry.register("rowsRead", rowsRead);
     registry.register("scanTime", scanTime);
+    this.sessionName = sessionName;
   }
 
   @Override
@@ -43,6 +46,7 @@ public class SparkMetricsSource implements Source, Serializable, BigQueryMetrics
   @Override
   public void updateParseTime(long val) {
     parseTime.update(val, TimeUnit.MILLISECONDS);
+    ReadSessionMetrics.forSession(sessionName).getParseTimeCounter().inc(val);
   }
 
   @Override
@@ -53,16 +57,19 @@ public class SparkMetricsSource implements Source, Serializable, BigQueryMetrics
   @Override
   public void incrementBytesReadCounter(long val) {
     bytesRead.inc(val);
+    ReadSessionMetrics.forSession(sessionName).getBytesReadCounter().inc(val);
   }
 
   @Override
   public void incrementRowsReadCounter(long val) {
     rowsRead.inc(val);
+    ReadSessionMetrics.forSession(sessionName).getRowsReadCounter().inc(val);
   }
 
   @Override
   public void updateScanTime(long val) {
     scanTime.update(val, TimeUnit.MILLISECONDS);
+    ReadSessionMetrics.forSession(sessionName).getScanTimeCounter().inc(val);
   }
 
   public Timer getParseTime() {

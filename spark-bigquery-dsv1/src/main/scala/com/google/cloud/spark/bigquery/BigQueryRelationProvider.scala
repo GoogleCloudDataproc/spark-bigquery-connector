@@ -17,9 +17,10 @@ package com.google.cloud.spark.bigquery
 
 import java.util.Optional
 import com.google.cloud.bigquery.TableDefinition
-import com.google.cloud.bigquery.TableDefinition.Type.{EXTERNAL, MATERIALIZED_VIEW, TABLE, VIEW, SNAPSHOT}
-import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryClientModule, LoggingBigQueryTracerFactory, BigQueryUtil}
+import com.google.cloud.bigquery.TableDefinition.Type.{EXTERNAL, MATERIALIZED_VIEW, SNAPSHOT, TABLE, VIEW}
+import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryClientModule, BigQueryUtil, LoggingBigQueryTracerFactory, UserAgentProvider}
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryJobEvents
 import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper
 import com.google.common.collect.ImmutableMap
 import com.google.inject.{Guice, Injector}
@@ -27,7 +28,7 @@ import org.apache.spark.sql.execution.streaming.Sink
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
+import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode, SparkSession}
 
 import scala.collection.JavaConverters._
 
@@ -73,6 +74,9 @@ class BigQueryRelationProvider(
                                         schema: Option[StructType] = None): BigQueryRelation = {
     val injector = getGuiceInjectorCreator().createGuiceInjector(sqlContext, parameters, schema)
     val opts = injector.getInstance(classOf[SparkBigQueryConfig])
+    SparkBigQueryJobEvents.postInputFormatEvent(injector.getInstance(classOf[SparkSession]).sqlContext)
+    val userAgentProvider = injector.getInstance(classOf[UserAgentProvider])
+    SparkBigQueryJobEvents.postConnectorVersion(injector.getInstance(classOf[SparkSession]).sqlContext, userAgentProvider.getConnectorInfo)
     val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
     val tableInfo = bigQueryClient.getReadTable(opts.toReadTableOptions)
     val tableName = BigQueryUtil.friendlyTableName(opts.getTableId)
