@@ -666,7 +666,7 @@ public class BigQueryUtil {
 
     String partitionField = rangePartitioning.getField();
     String extractedPartitioned =
-        "IF(%s.%s > %s, 0, RANGE_BUCKET(%s.%s, GENERATE_ARRAY(%s, %s, %s)))";
+        "IFNULL(IF(%s.%s >= %s, 0, RANGE_BUCKET(%s.%s, GENERATE_ARRAY(%s, %s, %s))), -1)";
     String extractedPartitionedSource =
         String.format(
             extractedPartitioned,
