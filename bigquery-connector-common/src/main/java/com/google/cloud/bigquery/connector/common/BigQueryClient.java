@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryForRangePartitionedTable;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryForTimePartitionedTable;
 
 import com.google.cloud.BaseServiceException;
@@ -272,7 +273,15 @@ public class BigQueryClient {
         sqlQuery =
             getQueryForTimePartitionedTable(
                 destinationTableName, temporaryTableName, sdt, timePartitioning);
+      } else {
+        RangePartitioning rangePartitioning = sdt.getRangePartitioning();
+        if (rangePartitioning != null) {
+          sqlQuery =
+              getQueryForRangePartitionedTable(
+                  destinationTableName, temporaryTableName, sdt, rangePartitioning);
+        }
       }
+
       if (sqlQuery != null) {
         QueryJobConfiguration queryConfig =
             jobConfigurationFactory

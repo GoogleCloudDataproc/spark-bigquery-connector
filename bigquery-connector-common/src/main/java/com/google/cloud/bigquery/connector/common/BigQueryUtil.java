@@ -603,18 +603,12 @@ public class BigQueryUtil {
         : noNewLinesQuery;
   }
 
-  static String getQueryForTimePartitionedTable(
+  static String getMergeQueryForPartitionedTable(
       String destinationTableName,
       String temporaryTableName,
       StandardTableDefinition destinationDefinition,
-      TimePartitioning timePartitioning) {
-    TimePartitioning.Type partitionType = timePartitioning.getType();
-    String partitionField = timePartitioning.getField();
-    String extractedPartitioned = "timestamp_trunc(`%s`.`%s`, %s)";
-    String extractedPartitionedSource =
-        String.format(extractedPartitioned, "source", partitionField, partitionType.toString());
-    String extractedPartitionedTarget =
-        String.format(extractedPartitioned, "target", partitionField, partitionType.toString());
+      String extractedPartitionedSource,
+      String extractedPartitionedTarget) {
     FieldList allFields = destinationDefinition.getSchema().getFields();
     String commaSeparatedFields =
         allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
@@ -638,5 +632,69 @@ public class BigQueryUtil {
         booleanInjectedColumn,
         commaSeparatedFields,
         commaSeparatedFields);
+  }
+
+  static String getQueryForTimePartitionedTable(
+      String destinationTableName,
+      String temporaryTableName,
+      StandardTableDefinition destinationDefinition,
+      TimePartitioning timePartitioning) {
+    TimePartitioning.Type partitionType = timePartitioning.getType();
+    String partitionField = timePartitioning.getField();
+    String extractedPartitioned = "timestamp_trunc(`%s`.`%s`, %s)";
+    String extractedPartitionedSource =
+        String.format(extractedPartitioned, "source", partitionField, partitionType.toString());
+    String extractedPartitionedTarget =
+        String.format(extractedPartitioned, "target", partitionField, partitionType.toString());
+    return getMergeQueryForPartitionedTable(
+        destinationTableName,
+        temporaryTableName,
+        destinationDefinition,
+        extractedPartitionedSource,
+        extractedPartitionedTarget);
+  }
+
+  static String getQueryForRangePartitionedTable(
+      String destinationTableName,
+      String temporaryTableName,
+      StandardTableDefinition destinationDefinition,
+      RangePartitioning rangePartitioning) {
+
+    long start = rangePartitioning.getRange().getStart();
+    long end = rangePartitioning.getRange().getEnd();
+    long interval = rangePartitioning.getRange().getInterval();
+
+    String partitionField = rangePartitioning.getField();
+    String extractedPartitioned =
+        "IFNULL(IF(%s.%s >= %s, 0, RANGE_BUCKET(%s.%s, GENERATE_ARRAY(%s, %s, %s))), -1)";
+    String extractedPartitionedSource =
+        String.format(
+            extractedPartitioned,
+            "source",
+            partitionField,
+            end,
+            "source",
+            partitionField,
+            start,
+            end,
+            interval);
+    String extractedPartitionedTarget =
+        String.format(
+            extractedPartitioned,
+            "target",
+            partitionField,
+            end,
+            "target",
+            partitionField,
+            start,
+            end,
+            interval);
+
+    return getMergeQueryForPartitionedTable(
+        destinationTableName,
+        temporaryTableName,
+        destinationDefinition,
+        extractedPartitionedSource,
+        extractedPartitionedTarget);
   }
 }

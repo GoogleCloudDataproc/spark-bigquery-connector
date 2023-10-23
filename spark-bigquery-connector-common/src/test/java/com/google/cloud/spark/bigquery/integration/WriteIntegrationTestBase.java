@@ -1797,6 +1797,222 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .isEqualTo(Timestamp.valueOf("2023-09-30 12:00:00"));
   }
 
+  @Test
+  public void testOverwriteDynamicPartition_rangePartitioned() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String orderId = "order_id";
+    String orderCount = "order_count";
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "AS SELECT * FROM UNNEST([(1, 1000), "
+                + "(8, 1005), ( 21, 1010), (83, 1020)])",
+            testDataset, testTable, orderId, orderCount));
+
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create(4, 2000),
+                RowFactory.create(20, 2050),
+                RowFactory.create(85, 3000),
+                RowFactory.create(90, 3050)),
+            structType(
+                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
+
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    assertThat(result.count()).isEqualTo(5);
+    List<Row> rows = result.collectAsList();
+    rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
+
+    Row row1 = rows.get(0);
+    Row row2 = rows.get(1);
+    Row row3 = rows.get(2);
+    Row row4 = rows.get(3);
+    Row row5 = rows.get(4);
+
+    assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(4);
+    assertThat(row1.getLong(row1.fieldIndex(orderCount))).isEqualTo(2000);
+
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(20);
+    assertThat(row2.getLong(row2.fieldIndex(orderCount))).isEqualTo(2050);
+
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(21);
+    assertThat(row3.getLong(row3.fieldIndex(orderCount))).isEqualTo(1010);
+
+    assertThat(row4.getLong(row4.fieldIndex(orderId))).isEqualTo(85);
+    assertThat(row4.getLong(row4.fieldIndex(orderCount))).isEqualTo(3000);
+
+    assertThat(row5.getLong(row5.fieldIndex(orderId))).isEqualTo(90);
+    assertThat(row5.getLong(row5.fieldIndex(orderCount))).isEqualTo(3050);
+  }
+
+  @Test
+  public void testOverwriteDynamicPartition_rangePartitionedOutsideRangeLessThanStart() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String orderId = "order_id";
+    String orderCount = "order_count";
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "AS SELECT * FROM UNNEST([(1, 1000), "
+                + "(2, 1005), ( 150, 1010)])",
+            testDataset, testTable, orderId, orderCount));
+
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create(4, 2000), RowFactory.create(-10, 2050)),
+            structType(
+                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
+
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    assertThat(result.count()).isEqualTo(2);
+    List<Row> rows = result.collectAsList();
+    rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
+
+    Row row1 = rows.get(0);
+    Row row2 = rows.get(1);
+
+    assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(-10);
+    assertThat(row1.getLong(row1.fieldIndex(orderCount))).isEqualTo(2050);
+
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(4);
+    assertThat(row2.getLong(row2.fieldIndex(orderCount))).isEqualTo(2000);
+  }
+
+  @Test
+  public void testOverwriteDynamicPartition_rangePartitionedOutsideRangeGreaterThanEnd() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String orderId = "order_id";
+    String orderCount = "order_count";
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "AS SELECT * FROM UNNEST([(1, 1000), "
+                + "(2, 1005), ( -1, 1010)])",
+            testDataset, testTable, orderId, orderCount));
+
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create(4, 2000), RowFactory.create(105, 2050)),
+            structType(
+                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
+
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    assertThat(result.count()).isEqualTo(2);
+    List<Row> rows = result.collectAsList();
+    rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
+
+    Row row1 = rows.get(0);
+    Row row2 = rows.get(1);
+
+    assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(4);
+    assertThat(row1.getLong(row1.fieldIndex(orderCount))).isEqualTo(2000);
+
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(105);
+    assertThat(row2.getLong(row2.fieldIndex(orderCount))).isEqualTo(2050);
+  }
+
+  @Test
+  public void testOverwriteDynamicPartition_rangePartitionedBoundaryCondition() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String orderId = "order_id";
+    String orderCount = "order_count";
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "AS SELECT * FROM UNNEST([(1, 1000), "
+                + "(11, 1005), ( 100, 1010)])",
+            testDataset, testTable, orderId, orderCount));
+
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create(-1, 2000), RowFactory.create(5, 2050)),
+            structType(
+                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
+
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    assertThat(result.count()).isEqualTo(3);
+    List<Row> rows = result.collectAsList();
+    rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
+
+    Row row1 = rows.get(0);
+    Row row2 = rows.get(1);
+    Row row3 = rows.get(2);
+
+    assertThat(row1.getLong(row1.fieldIndex(orderId))).isEqualTo(-1);
+    assertThat(row1.getLong(row1.fieldIndex(orderCount))).isEqualTo(2000);
+
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(5);
+    assertThat(row2.getLong(row2.fieldIndex(orderCount))).isEqualTo(2050);
+
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(11);
+    assertThat(row3.getLong(row3.fieldIndex(orderCount))).isEqualTo(1005);
+  }
+
+  @Test
+  public void testOverwriteDynamicPartition_rangePartitionedWithNulls() {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    String orderId = "order_id";
+    String orderCount = "order_count";
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "AS SELECT * FROM UNNEST([(NULL, 1000), "
+                + "(11, 1005)])",
+            testDataset, testTable, orderId, orderCount));
+
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create(null, 2000), RowFactory.create(5, 2050)),
+            structType(
+                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
+
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    assertThat(result.count()).isEqualTo(3);
+
+    List<Row> rows = result.collectAsList();
+
+    Comparator<Row> rowComparator =
+        Comparator.comparing(
+            row -> {
+              Object value = row.get(row.fieldIndex(orderId));
+              if (value == null) {
+                return Long.MIN_VALUE;
+              }
+              return (Long) value;
+            });
+
+    rows.sort(rowComparator);
+
+    Row row1 = rows.get(0);
+    Row row2 = rows.get(1);
+    Row row3 = rows.get(2);
+
+    assertThat(row1.get(row1.fieldIndex(orderId))).isNull();
+    assertThat(row1.getLong(row1.fieldIndex(orderCount))).isEqualTo(2000);
+
+    assertThat(row2.getLong(row2.fieldIndex(orderId))).isEqualTo(5);
+    assertThat(row2.getLong(row2.fieldIndex(orderCount))).isEqualTo(2050);
+
+    assertThat(row3.getLong(row3.fieldIndex(orderId))).isEqualTo(11);
+    assertThat(row3.getLong(row3.fieldIndex(orderCount))).isEqualTo(1005);
+  }
+
   public void testWriteSchemaSubset() throws Exception {
     StructType initialSchema =
         structType(
