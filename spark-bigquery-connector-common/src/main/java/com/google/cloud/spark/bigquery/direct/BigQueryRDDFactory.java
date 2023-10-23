@@ -202,26 +202,19 @@ public class BigQueryRDDFactory {
       Class<? extends RDD<InternalRow>> clazz =
           (Class<? extends RDD<InternalRow>>) Class.forName(bigQueryRDDClassName);
       Constructor<? extends RDD<InternalRow>> constructor =
-          clazz.getConstructor(
-              SparkContext.class,
-              Partition[].class,
-              ReadSession.class,
-              Schema.class,
-              String[].class,
-              SparkBigQueryConfig.class,
-              BigQueryClientFactory.class,
-              BigQueryTracerFactory.class);
+          clazz.getConstructor(SparkContext.class, BigQueryRDDContext.class);
 
       RDD<InternalRow> bigQueryRDD =
           constructor.newInstance(
               sqlContext.sparkContext(),
-              partitions,
-              readSession,
-              bqSchema,
-              columnsInOrder,
-              options,
-              bigQueryClientFactory,
-              bigQueryTracerFactory);
+              new BigQueryRDDContext(
+                  partitions,
+                  readSession,
+                  bqSchema,
+                  columnsInOrder,
+                  options,
+                  bigQueryClientFactory,
+                  bigQueryTracerFactory));
 
       return bigQueryRDD;
     } catch (Exception e) {

@@ -145,7 +145,11 @@ public class BigQueryWriteHelper {
   }
 
   void updateMetadataIfNeeded() {
-    StructType sparkSchema = data.schema();
+    updateTableMetadataIfNeeded(data.schema(), config, bigQueryClient);
+  }
+
+  public static void updateTableMetadataIfNeeded(
+      StructType sparkSchema, SparkBigQueryConfig config, BigQueryClient bigQueryClient) {
     Map<String, StructField> fieldsToUpdate =
         Stream.of(sparkSchema.fields())
             .filter(
@@ -188,7 +192,7 @@ public class BigQueryWriteHelper {
     }
   }
 
-  Field updatedField(Field field, StructField sparkSchemaField) {
+  static Field updatedField(Field field, StructField sparkSchemaField) {
     Field.Builder newField = field.toBuilder();
     Optional<String> bqDescription =
         SchemaConverters.getDescriptionOrCommentOfField(

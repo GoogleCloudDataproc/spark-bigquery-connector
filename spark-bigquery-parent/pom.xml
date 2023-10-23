@@ -350,6 +350,11 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-pmd-plugin</artifactId>
+                    <version>3.21.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
                     <version>3.3.1</version>
                 </plugin>
@@ -412,6 +417,30 @@
                         </manifest>
                     </archive>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <configuration>
+                    <aggregate>true</aggregate>
+                    <inputEncoding>utf-8</inputEncoding>
+                    <minimumTokens>100</minimumTokens>
+                    <printFailingErrors>true</printFailingErrors>
+                    <targetJdk>1.8</targetJdk>
+                    <cpd>
+                        <minimumTileSize>100</minimumTileSize>
+                        <failOnViolation>true</failOnViolation>
+                    </cpd>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>copy-paste-detector</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>cpd-check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

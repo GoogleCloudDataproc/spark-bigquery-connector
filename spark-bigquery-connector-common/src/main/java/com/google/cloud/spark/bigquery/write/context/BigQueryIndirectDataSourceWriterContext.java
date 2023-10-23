@@ -15,11 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.write.context;
 
-import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
@@ -28,14 +26,12 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
-import com.google.cloud.spark.bigquery.SupportedCustomDataType;
+import com.google.cloud.spark.bigquery.write.BigQueryWriteHelper;
 import com.google.cloud.spark.bigquery.write.IntermediateDataCleaner;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
@@ -43,7 +39,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,55 +149,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   }
 
   void updateMetadataIfNeeded() {
-    Map<String, StructField> fieldsToUpdate =
-        Stream.of(sparkSchema.fields())
-            .filter(
-                field -> {
-                  Optional<SupportedCustomDataType> supportedCustomDataType =
-                      SupportedCustomDataType.of(field.dataType());
-                  return supportedCustomDataType.isPresent()
-                      || SchemaConverters.getDescriptionOrCommentOfField(
-                              field, supportedCustomDataType)
-                          .isPresent();
-                })
-            .collect(Collectors.toMap(StructField::name, Function.identity()));
-
-    if (!fieldsToUpdate.isEmpty() || !config.getBigQueryTableLabels().isEmpty()) {
-      TableInfo originalTableInfo = bigQueryClient.getTable(config.getTableIdWithoutThePartition());
-      TableInfo.Builder updatedTableInfo = originalTableInfo.toBuilder();
-
-      if (!fieldsToUpdate.isEmpty()) {
-        logger.debug("updating schema, found fields to update: {}", fieldsToUpdate.keySet());
-        TableDefinition originalTableDefinition = originalTableInfo.getDefinition();
-        Schema originalSchema = originalTableDefinition.getSchema();
-        Schema updatedSchema =
-            Schema.of(
-                originalSchema.getFields().stream()
-                    .map(
-                        field ->
-                            Optional.ofNullable(fieldsToUpdate.get(field.getName()))
-                                .map(sparkSchemaField -> updatedField(field, sparkSchemaField))
-                                .orElse(field))
-                    .collect(Collectors.toList()));
-        updatedTableInfo.setDefinition(
-            originalTableDefinition.toBuilder().setSchema(updatedSchema).build());
-      }
-
-      if (!config.getBigQueryTableLabels().isEmpty()) {
-        updatedTableInfo.setLabels(config.getBigQueryTableLabels());
-      }
-
-      bigQueryClient.update(updatedTableInfo.build());
-    }
-  }
-
-  Field updatedField(Field field, StructField sparkSchemaField) {
-    Field.Builder newField = field.toBuilder();
-    Optional<String> bqDescription =
-        SchemaConverters.getDescriptionOrCommentOfField(
-            sparkSchemaField, SupportedCustomDataType.of(sparkSchemaField.dataType()));
-    bqDescription.ifPresent(newField::setDescription);
-    return newField.build();
+    BigQueryWriteHelper.updateTableMetadataIfNeeded(sparkSchema, config, bigQueryClient);
   }
 
   void cleanTemporaryGcsPathIfNeeded() {
