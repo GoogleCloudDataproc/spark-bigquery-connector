@@ -35,6 +35,7 @@ import io.grpc.netty.NettyChannelBuilder;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -112,7 +113,7 @@ public class BigQueryClientFactory implements Serializable {
     // ExternalAccountCredentials first and then compare their hashCodes.
     if (credentials instanceof ExternalAccountCredentials) {
       return Objects.hashCode(
-          BigQueryUtil.getCredentialsByteArray(credentials),
+          Arrays.hashCode(BigQueryUtil.getCredentialsByteArray(credentials)),
           headerProvider,
           bqConfig.getClientCreationHashCode());
     }
