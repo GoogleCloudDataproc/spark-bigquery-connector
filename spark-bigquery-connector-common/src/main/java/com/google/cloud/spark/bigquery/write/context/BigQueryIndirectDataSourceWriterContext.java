@@ -16,18 +16,23 @@
 package com.google.cloud.spark.bigquery.write.context;
 
 import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
+import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.write.BigQueryWriteHelper;
 import com.google.cloud.spark.bigquery.write.IntermediateDataCleaner;
+import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
@@ -63,6 +68,10 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   private final Optional<IntermediateDataCleaner> intermediateDataCleaner;
 
   private Optional<TableInfo> tableInfo = Optional.empty();
+  private final Schema tableSchema;
+  private final JobInfo.WriteDisposition writeDisposition;
+
+  private TableId temporaryTableId = null;
 
   public BigQueryIndirectDataSourceWriterContext(
       BigQueryClient bigQueryClient,
@@ -81,6 +90,16 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     this.saveMode = saveMode;
     this.gcsPath = gcsPath;
     this.intermediateDataCleaner = intermediateDataCleaner;
+
+    Schema schema =
+        SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+            .toBigQuerySchema(sparkSchema);
+    if (tableInfo.isPresent()) {
+      schema =
+          BigQueryUtil.adjustSchemaIfNeeded(schema, tableInfo.get().getDefinition().getSchema());
+    }
+    this.tableSchema = schema;
+    this.writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
   }
 
   @Override
@@ -103,7 +122,26 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
           Stream.of(messages)
               .map(msg -> ((BigQueryIndirectWriterCommitMessageContext) msg).getUri())
               .collect(Collectors.toList());
-      loadDataToBigQuery(sourceUris);
+
+      JobInfo.WriteDisposition writeDisposition =
+          SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
+      if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE
+          && config.getPartitionOverwriteModeValue() == PartitionOverwriteMode.DYNAMIC
+          && bigQueryClient.tableExists(config.getTableId())) {
+        temporaryTableId = createTempTable(config.getTableId(), tableSchema);
+        loadDataToBigQuery(sourceUris);
+        Job queryJob =
+            bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
+                temporaryTableId, config.getTableId());
+        BigQueryClient.waitForJob(queryJob);
+        Preconditions.checkState(
+            bigQueryClient.deleteTable(temporaryTableId),
+            new BigQueryConnectorException(
+                String.format(
+                    "Could not delete temporary table %s from BigQuery", temporaryTableId)));
+      } else {
+        loadDataToBigQuery(sourceUris);
+      }
       updateMetadataIfNeeded();
       logger.info("Data has been successfully loaded to BigQuery");
     } catch (IOException e) {
@@ -130,22 +168,41 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     this.tableInfo = Optional.ofNullable(tableInfo);
   }
 
+  private TableId createTempTable(TableId destinationTableId, Schema bigQuerySchema)
+      throws IllegalArgumentException {
+    TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
+    Schema tableSchema = destinationTable.getDefinition().getSchema();
+    Preconditions.checkArgument(
+        BigQueryUtil.schemaWritable(
+            bigQuerySchema, // sourceSchema
+            tableSchema, // destinationSchema
+            false, // regardFieldOrder
+            config.getEnableModeCheckForSchemaFields()),
+        new BigQueryConnectorException.InvalidSchemaException(
+            "Destination table's schema is not compatible with dataframe's schema"));
+    return bigQueryClient.createTempTable(destinationTableId, bigQuerySchema).getTableId();
+  }
+
   void loadDataToBigQuery(List<String> sourceUris) throws IOException {
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
-    JobInfo.WriteDisposition writeDisposition =
-        SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
 
-    Schema schema =
-        SchemaConverters.from(SchemaConvertersConfiguration.from(config))
-            .toBigQuerySchema(sparkSchema);
-    if (tableInfo.isPresent()) {
-      schema =
-          BigQueryUtil.adjustSchemaIfNeeded(schema, tableInfo.get().getDefinition().getSchema());
+    if (temporaryTableId != null) {
+      bigQueryClient.loadDataIntoTable(
+          config,
+          optimizedSourceUris,
+          FormatOptions.avro(),
+          writeDisposition,
+          Optional.of(tableSchema),
+          temporaryTableId);
+    } else {
+      bigQueryClient.loadDataIntoTable(
+          config,
+          optimizedSourceUris,
+          FormatOptions.avro(),
+          writeDisposition,
+          Optional.of(tableSchema));
     }
-
-    bigQueryClient.loadDataIntoTable(
-        config, optimizedSourceUris, FormatOptions.avro(), writeDisposition, Optional.of(schema));
   }
 
   void updateMetadataIfNeeded() {

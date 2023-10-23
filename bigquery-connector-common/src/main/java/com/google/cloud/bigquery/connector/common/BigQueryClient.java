@@ -648,10 +648,11 @@ public class BigQueryClient {
       List<String> sourceUris,
       FormatOptions formatOptions,
       JobInfo.WriteDisposition writeDisposition,
-      Optional<Schema> schema) {
+      Optional<Schema> schema,
+      TableId tableToWrite) {
     LoadJobConfiguration.Builder jobConfiguration =
         jobConfigurationFactory
-            .createLoadJobConfigurationBuilder(options, sourceUris, formatOptions)
+            .createLoadJobConfigurationBuilder(tableToWrite, sourceUris, formatOptions)
             .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
             .setWriteDisposition(writeDisposition);
 
@@ -758,6 +759,16 @@ public class BigQueryClient {
               jobId.getProject(), jobId.getLocation(), jobId.getJob()));
       throw new BigQueryException(0, "Problem loading data into BigQuery", e);
     }
+  }
+
+  public void loadDataIntoTable(
+      LoadDataOptions options,
+      List<String> sourceUris,
+      FormatOptions formatOptions,
+      JobInfo.WriteDisposition writeDisposition,
+      Optional<Schema> schema) {
+    loadDataIntoTable(
+        options, sourceUris, formatOptions, writeDisposition, schema, options.getTableId());
   }
 
   /** Creates the table with the given schema, only if it does not exist yet. */
@@ -927,9 +938,9 @@ public class BigQueryClient {
     }
 
     LoadJobConfiguration.Builder createLoadJobConfigurationBuilder(
-        LoadDataOptions options, List<String> sourceUris, FormatOptions formatOptions) {
+        TableId tableId, List<String> sourceUris, FormatOptions formatOptions) {
       LoadJobConfiguration.Builder builder =
-          LoadJobConfiguration.newBuilder(options.getTableId(), sourceUris, formatOptions);
+          LoadJobConfiguration.newBuilder(tableId, sourceUris, formatOptions);
       if (labels != null && !labels.isEmpty()) {
         builder.setLabels(labels);
       }
