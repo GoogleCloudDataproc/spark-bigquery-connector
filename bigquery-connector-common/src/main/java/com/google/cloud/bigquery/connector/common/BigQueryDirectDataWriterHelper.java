@@ -17,11 +17,13 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.client.util.Sleeper;
 import com.google.api.core.ApiFuture;
+import com.google.api.core.ApiFutures;
 import com.google.api.core.NanoClock;
 import com.google.api.gax.retrying.*;
 import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1.CreateWriteStreamRequest;
+import com.google.cloud.bigquery.storage.v1.Exceptions.OffsetAlreadyExists;
 import com.google.cloud.bigquery.storage.v1.FinalizeWriteStreamRequest;
 import com.google.cloud.bigquery.storage.v1.FinalizeWriteStreamResponse;
 import com.google.cloud.bigquery.storage.v1.ProtoRows;
@@ -32,8 +34,12 @@ import com.google.cloud.bigquery.storage.v1.stub.readrows.ApiResultRetryAlgorith
 import com.google.common.base.Optional;
 import com.google.protobuf.ByteString;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +68,9 @@ public class BigQueryDirectDataWriterHelper {
   private long appendRequestRowCount = 0; // number of rows waiting for the next append request
   private long appendRequestSizeBytes = 0; // number of bytes waiting for the next append request
   private long writeStreamRowCount = 0; // total offset / rows of the current write-stream
+
+  private final ExecutorService appendRowsExecutor = Executors.newSingleThreadExecutor();
+  private final Queue<ApiFuture<AppendRowsResponse>> appendRowsFuturesQueue = new LinkedList<>();
 
   public BigQueryDirectDataWriterHelper(
       BigQueryClientFactory writeClientFactory,
@@ -185,18 +194,79 @@ public class BigQueryDirectDataWriterHelper {
   }
 
   /**
+   * Throws an exception if there is an error in any of the responses received thus far. Since
+   * responses arrive in order, we proceed to check the next response only after the previous
+   * response has arrived.
+   *
+   * @throws BigQueryConnectorException If there was an invalid response
+   */
+  private void checkForFailedResponse(boolean waitForResponse) {
+    ApiFuture<AppendRowsResponse> validatedAppendRowsFuture = null;
+    while ((validatedAppendRowsFuture = appendRowsFuturesQueue.peek()) != null) {
+      if (waitForResponse || validatedAppendRowsFuture.isDone()) {
+        appendRowsFuturesQueue.poll();
+        boolean succeeded = false;
+        try {
+          AppendRowsResponse response = validatedAppendRowsFuture.get();
+          // If we got here, the response was successful
+          succeeded = true;
+        } catch (ExecutionException e) {
+          if (e.getCause().getClass() == OffsetAlreadyExists.class) {
+            // Under heavy load the WriteAPI client library may resend a request due to failed
+            // connection. The OffsetAlreadyExists exception indicates a request was previously
+            // sent, hence it is safe to ignore it.
+            logger.warn("Ignoring OffsetAlreadyExists exception: {}", e.getCause().getMessage());
+            succeeded = true;
+          } else {
+            logger.error(
+                "Write-stream {} with name {} exception while retrieving AppendRowsResponse",
+                partitionId,
+                writeStreamName);
+            throw new BigQueryConnectorException(
+                "Execution Exception while retrieving AppendRowsResponse", e);
+          }
+        } catch (InterruptedException e) {
+          logger.error(
+              "Write-stream {} with name {} interrupted exception while retrieving AppendRowsResponse",
+              partitionId,
+              writeStreamName);
+          throw new BigQueryConnectorException(
+              "Interrupted Exception while retrieving AppendRowsResponse", e);
+        } finally {
+          if (!succeeded) {
+            appendRowsExecutor.shutdown();
+          }
+        }
+      } else {
+        break;
+      }
+    }
+  }
+
+  /**
    * Sends an AppendRowsRequest to the BigQuery Storage Write API.
    *
    * @throws IOException If the append rows request fails: either by returning the wrong offset
    *     (deduplication error) or if the response contains an error.
    */
   private void sendAppendRowsRequest() throws IOException {
+    boolean waitForResponse = false;
+    if (writeAtLeastOnce) {
+      // FUTURE: Enable async writes with default stream once client retries are supported.
+      // When using default stream we may encounter retry-able server errors when under high load.
+      waitForResponse = true; // disable async writes
+    }
+    checkForFailedResponse(waitForResponse);
     long offset = this.writeAtLeastOnce ? -1 : writeStreamRowCount;
 
     ApiFuture<AppendRowsResponse> appendRowsResponseApiFuture =
         streamWriter.append(protoRows.build(), offset);
-    validateAppendRowsResponse(appendRowsResponseApiFuture, offset);
-
+    ApiFuture<AppendRowsResponse> validatedAppendRowsFuture =
+        ApiFutures.transformAsync(
+            appendRowsResponseApiFuture,
+            appendRowsResponse -> validateAppendRowsResponse(appendRowsResponse, offset),
+            appendRowsExecutor);
+    appendRowsFuturesQueue.add(validatedAppendRowsFuture);
     clearProtoRows();
     this.writeStreamRowCount += appendRequestRowCount;
     this.appendRequestRowCount = 0;
@@ -207,20 +277,13 @@ public class BigQueryDirectDataWriterHelper {
    * Validates an AppendRowsResponse, after retrieving its future: makes sure the responses' future
    * matches the expectedOffset, and returned with no errors.
    *
-   * @param appendRowsResponseApiFuture The future of the AppendRowsResponse
+   * @param appendRowsResponse The AppendRowsResponse
    * @param expectedOffset The expected offset to be returned by the response.
    * @throws IOException If the response returned with error, or the offset did not match the
    *     expected offset.
    */
-  private void validateAppendRowsResponse(
-      ApiFuture<AppendRowsResponse> appendRowsResponseApiFuture, long expectedOffset)
-      throws IOException {
-    AppendRowsResponse appendRowsResponse = null;
-    try {
-      appendRowsResponse = appendRowsResponseApiFuture.get();
-    } catch (InterruptedException | ExecutionException e) {
-      throw new BigQueryConnectorException("Could not retrieve AppendRowsResponse", e);
-    }
+  private ApiFuture<AppendRowsResponse> validateAppendRowsResponse(
+      AppendRowsResponse appendRowsResponse, long expectedOffset) throws IOException {
     if (appendRowsResponse.hasError()) {
       throw new IOException(
           "Append request failed with error: " + appendRowsResponse.getError().getMessage());
@@ -237,6 +300,7 @@ public class BigQueryDirectDataWriterHelper {
                 writeStreamName, responseOffset, expectedOffset));
       }
     }
+    return ApiFutures.immediateFuture(appendRowsResponse);
   }
 
   /**
@@ -252,6 +316,11 @@ public class BigQueryDirectDataWriterHelper {
   public long finalizeStream() throws IOException {
     if (this.protoRows.getSerializedRowsCount() != 0) {
       sendAppendRowsRequest();
+    }
+    try {
+      checkForFailedResponse(true /* waitForResponse */);
+    } finally {
+      appendRowsExecutor.shutdown();
     }
     long responseFinalizedRowCount = writeStreamRowCount;
 
