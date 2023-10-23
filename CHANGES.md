@@ -4,6 +4,11 @@
 
 * PR #1094: CVE-2023-5072: Upgrading the org.json:json dependency
 * PR #1095: CVE-2023-4586: Upgrading the netty dependencies
+* BigQuery API has been upgraded to version 2.33.2
+* BigQuery Storage API has been upgraded to version 2.44.0
+* GAX has been upgraded to version 2.35.0
+* gRPC has been upgraded to version 1.58.0
+* Protocol Buffers has been upgraded to version 3.24.4
 
 ## 0.33.0 - 2023-10-17
 
