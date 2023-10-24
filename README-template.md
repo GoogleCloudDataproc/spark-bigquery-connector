@@ -598,8 +598,7 @@ word-break:break-word
    <td>The format of the data before it is loaded to BigQuery, values can be
        either "parquet","orc" or "avro". In order to use the Avro format, the
        spark-avro package must be added in runtime.
-       <br/>(Optional. Defaults to <code>parquet</code>). On write only.
-       <br/><i>Supported only by the `spark-bigquery-with-dependencies_2.XX` connectors and just for the `INDIRECT` write method. The `spark-X.Y-bigquery` connectors use only AVRO as an intermediate format.</i>
+       <br/>(Optional. Defaults to <code>parquet</code>). On write only. Supported only for the `INDIRECT` write method.
    </td>
    <td>Write</td>
   </tr>
