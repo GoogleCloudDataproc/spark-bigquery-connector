@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.common.truth.Truth.*;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -25,27 +26,21 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.api.gax.rpc.FixedHeaderProvider;
 import com.google.api.gax.rpc.HeaderProvider;
 import com.google.auth.Credentials;
-import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.auth.oauth2.IdentityPoolCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
-import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.security.PrivateKey;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.Test;
-
-import static com.google.common.truth.Truth.*;
 
 public class BigQueryClientFactoryTest {
   private static final String CLIENT_EMAIL =
@@ -433,11 +428,17 @@ public class BigQueryClientFactoryTest {
   @Test
   public void testHashCodeWithExternalAccountCredentials() throws Exception {
     // Credentials taken from https://google.aip.dev/auth/4117:
-    Credentials credentials = GoogleCredentials.fromStream(getClass().getResourceAsStream("/external-account-credentials.json"));
+    Credentials credentials =
+        GoogleCredentials.fromStream(
+            getClass().getResourceAsStream("/external-account-credentials.json"));
 
     when(bigQueryCredentialsSupplier.getCredentials()).thenReturn(credentials);
 
-    BigQueryClientFactory factory = new BigQueryClientFactory(bigQueryCredentialsSupplier, FixedHeaderProvider.create("foo", "bar"), new TestBigQueryConfig(Optional.empty()));
+    BigQueryClientFactory factory =
+        new BigQueryClientFactory(
+            bigQueryCredentialsSupplier,
+            FixedHeaderProvider.create("foo", "bar"),
+            new TestBigQueryConfig(Optional.empty()));
 
     int hashCode1 = factory.hashCode();
     int hashCode2 = factory.hashCode();
