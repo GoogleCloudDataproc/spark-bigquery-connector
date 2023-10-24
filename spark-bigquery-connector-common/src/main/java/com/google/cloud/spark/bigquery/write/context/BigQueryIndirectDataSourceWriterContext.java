@@ -68,10 +68,9 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   private final Optional<IntermediateDataCleaner> intermediateDataCleaner;
 
   private Optional<TableInfo> tableInfo = Optional.empty();
-  private final Schema tableSchema;
-  private final JobInfo.WriteDisposition writeDisposition;
 
   private TableId temporaryTableId = null;
+  private final JobInfo.WriteDisposition writeDisposition;
 
   public BigQueryIndirectDataSourceWriterContext(
       BigQueryClient bigQueryClient,
@@ -90,15 +89,6 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     this.saveMode = saveMode;
     this.gcsPath = gcsPath;
     this.intermediateDataCleaner = intermediateDataCleaner;
-
-    Schema schema =
-        SchemaConverters.from(SchemaConvertersConfiguration.from(config))
-            .toBigQuerySchema(sparkSchema);
-    if (tableInfo.isPresent()) {
-      schema =
-          BigQueryUtil.adjustSchemaIfNeeded(schema, tableInfo.get().getDefinition().getSchema());
-    }
-    this.tableSchema = schema;
     this.writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
   }
 
@@ -123,13 +113,18 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
               .map(msg -> ((BigQueryIndirectWriterCommitMessageContext) msg).getUri())
               .collect(Collectors.toList());
 
-      JobInfo.WriteDisposition writeDisposition =
-          SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
+      Schema schema =
+          SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+              .toBigQuerySchema(sparkSchema);
+      if (tableInfo.isPresent()) {
+        schema =
+            BigQueryUtil.adjustSchemaIfNeeded(schema, tableInfo.get().getDefinition().getSchema());
+      }
       if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE
           && config.getPartitionOverwriteModeValue() == PartitionOverwriteMode.DYNAMIC
           && bigQueryClient.tableExists(config.getTableId())) {
-        temporaryTableId = createTempTable(config.getTableId(), tableSchema);
-        loadDataToBigQuery(sourceUris);
+        temporaryTableId = createTempTable(config.getTableId(), schema);
+        loadDataToBigQuery(sourceUris, schema);
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
                 temporaryTableId, config.getTableId());
@@ -139,9 +134,8 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
             new BigQueryConnectorException(
                 String.format(
                     "Could not delete temporary table %s from BigQuery", temporaryTableId)));
-      } else {
-        loadDataToBigQuery(sourceUris);
       }
+      loadDataToBigQuery(sourceUris, schema);
       updateMetadataIfNeeded();
       logger.info("Data has been successfully loaded to BigQuery");
     } catch (IOException e) {
@@ -149,6 +143,21 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     } finally {
       cleanTemporaryGcsPathIfNeeded();
     }
+  }
+
+  private TableId createTempTable(TableId destinationTableId, Schema bigQuerySchema)
+      throws IllegalArgumentException {
+    TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
+    Schema tableSchema = destinationTable.getDefinition().getSchema();
+    Preconditions.checkArgument(
+        BigQueryUtil.schemaWritable(
+            bigQuerySchema, // sourceSchema
+            tableSchema, // destinationSchema
+            false, // regardFieldOrder
+            config.getEnableModeCheckForSchemaFields()),
+        new BigQueryConnectorException.InvalidSchemaException(
+            "Destination table's schema is not compatible with dataframe's schema"));
+    return bigQueryClient.createTempTable(destinationTableId, bigQuerySchema).getTableId();
   }
 
   @Override
@@ -168,22 +177,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     this.tableInfo = Optional.ofNullable(tableInfo);
   }
 
-  private TableId createTempTable(TableId destinationTableId, Schema bigQuerySchema)
-      throws IllegalArgumentException {
-    TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
-    Schema tableSchema = destinationTable.getDefinition().getSchema();
-    Preconditions.checkArgument(
-        BigQueryUtil.schemaWritable(
-            bigQuerySchema, // sourceSchema
-            tableSchema, // destinationSchema
-            false, // regardFieldOrder
-            config.getEnableModeCheckForSchemaFields()),
-        new BigQueryConnectorException.InvalidSchemaException(
-            "Destination table's schema is not compatible with dataframe's schema"));
-    return bigQueryClient.createTempTable(destinationTableId, bigQuerySchema).getTableId();
-  }
-
-  void loadDataToBigQuery(List<String> sourceUris) throws IOException {
+  void loadDataToBigQuery(List<String> sourceUris, Schema schema) throws IOException {
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
 
@@ -193,15 +187,11 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
           optimizedSourceUris,
           FormatOptions.avro(),
           writeDisposition,
-          Optional.of(tableSchema),
+          Optional.of(schema),
           temporaryTableId);
     } else {
       bigQueryClient.loadDataIntoTable(
-          config,
-          optimizedSourceUris,
-          FormatOptions.avro(),
-          writeDisposition,
-          Optional.of(tableSchema));
+          config, optimizedSourceUris, FormatOptions.avro(), writeDisposition, Optional.of(schema));
     }
   }
 
