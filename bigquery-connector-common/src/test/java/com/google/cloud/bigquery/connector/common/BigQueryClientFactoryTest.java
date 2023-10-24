@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.common.truth.Truth.*;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -22,7 +23,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.api.gax.retrying.RetrySettings;
+import com.google.api.gax.rpc.FixedHeaderProvider;
 import com.google.api.gax.rpc.HeaderProvider;
+import com.google.auth.Credentials;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
@@ -419,6 +423,26 @@ public class BigQueryClientFactoryTest {
     assertNotSame(writeClient, writeClient2);
     assertNotSame(writeClient, writeClient3);
     assertSame(writeClient2, writeClient3);
+  }
+
+  @Test
+  public void testHashCodeWithExternalAccountCredentials() throws Exception {
+    // Credentials taken from https://google.aip.dev/auth/4117:
+    Credentials credentials =
+        GoogleCredentials.fromStream(
+            getClass().getResourceAsStream("/external-account-credentials.json"));
+
+    when(bigQueryCredentialsSupplier.getCredentials()).thenReturn(credentials);
+
+    BigQueryClientFactory factory =
+        new BigQueryClientFactory(
+            bigQueryCredentialsSupplier,
+            FixedHeaderProvider.create("foo", "bar"),
+            new TestBigQueryConfig(Optional.empty()));
+
+    int hashCode1 = factory.hashCode();
+    int hashCode2 = factory.hashCode();
+    assertThat(hashCode2).isEqualTo(hashCode1);
   }
 
   private ServiceAccountCredentials createServiceAccountCredentials(String clientId) {
