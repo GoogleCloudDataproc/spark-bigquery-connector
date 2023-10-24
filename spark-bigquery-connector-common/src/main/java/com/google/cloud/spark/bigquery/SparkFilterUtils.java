@@ -338,6 +338,8 @@ public class SparkFilterUtils {
   }
 
   static String quote(String value) {
-    return "`" + value + "`";
+    return value.contains(".")
+        ? Arrays.stream(value.split("\\.")).collect(Collectors.joining("`.`", "`", "`"))
+        : "`" + value + "`";
   }
 }
