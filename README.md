@@ -281,8 +281,8 @@ df.write \
 ```
 
 Writing to existing partitioned tables (date partitioned, ingestion time partitioned and range
-partitioned) in APPEND save mode is fully supported by the connector and the BigQuery Storage Write
-API. Partition overwrite and the use of `datePartition`, `partitionField`, `partitionType`, `partitionRangeStart`, `partitionRangeEnd`, `partitionRangeInterval` as
+partitioned) in APPEND save mode and OVERWRITE mode (only date and range partitioned) is fully supported by the connector and the BigQuery Storage Write
+API. The use of `datePartition`, `partitionField`, `partitionType`, `partitionRangeStart`, `partitionRangeEnd`, `partitionRangeInterval`
 described below is not supported at this moment by the direct write method.
 
 **Important:** Please refer to the [data ingestion pricing](https://cloud.google.com/bigquery/pricing#data_ingestion_pricing)
