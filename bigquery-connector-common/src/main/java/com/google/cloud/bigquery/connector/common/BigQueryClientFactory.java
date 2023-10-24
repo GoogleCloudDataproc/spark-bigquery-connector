@@ -61,6 +61,8 @@ public class BigQueryClientFactory implements Serializable {
   private final HeaderProvider headerProvider;
   private final BigQueryConfig bqConfig;
 
+  private int cachedHashCode = 0;
+
   @Inject
   public BigQueryClientFactory(
       BigQueryCredentialsSupplier bigQueryCredentialsSupplier,
@@ -105,20 +107,26 @@ public class BigQueryClientFactory implements Serializable {
 
   @Override
   public int hashCode() {
-    // Here, credentials is an instance of GoogleCredentials which can be one out of
-    // GoogleCredentials, UserCredentials, ServiceAccountCredentials, ExternalAccountCredentials or
-    // ImpersonatedCredentials (See the class BigQueryCredentialsSupplier which supplies these
-    // Credentials). Subclasses of the abstract class ExternalAccountCredentials do not have the
-    // hashCode method defined on them and hence we get the byte array of the
-    // ExternalAccountCredentials first and then compare their hashCodes.
-    if (credentials instanceof ExternalAccountCredentials) {
-      return Objects.hashCode(
-          Arrays.hashCode(BigQueryUtil.getCredentialsByteArray(credentials)),
-          headerProvider,
-          bqConfig.getClientCreationHashCode());
+    // caching the hash code, as we use it 3 times (potentially) get*Client() method
+    if (cachedHashCode == 0) {
+      // Here, credentials is an instance of GoogleCredentials which can be one out of
+      // GoogleCredentials, UserCredentials, ServiceAccountCredentials, ExternalAccountCredentials
+      // or ImpersonatedCredentials (See the class BigQueryCredentialsSupplier which supplies these
+      // Credentials). Subclasses of the abstract class ExternalAccountCredentials do not have the
+      // hashCode method defined on them and hence we get the byte array of the
+      // ExternalAccountCredentials first and then compare their hashCodes.
+      if (credentials instanceof ExternalAccountCredentials) {
+        cachedHashCode =
+            Objects.hashCode(
+                Arrays.hashCode(BigQueryUtil.getCredentialsByteArray(credentials)),
+                headerProvider,
+                bqConfig.getClientCreationHashCode());
+      } else {
+        cachedHashCode =
+            Objects.hashCode(credentials, headerProvider, bqConfig.getClientCreationHashCode());
+      }
     }
-
-    return Objects.hashCode(credentials, headerProvider, bqConfig.getClientCreationHashCode());
+    return cachedHashCode;
   }
 
   @Override
