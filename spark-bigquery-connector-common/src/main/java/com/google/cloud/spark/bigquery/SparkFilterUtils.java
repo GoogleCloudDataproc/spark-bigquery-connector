@@ -337,6 +337,10 @@ public class SparkFilterUtils {
     return value.replace("'", "\\'");
   }
 
+  // Converting BigQuery field name into the quoted field name for BigQuery SQL
+  // foo         -> `foo`
+  // foo.bar     -> `foo`.`bar`
+  // foo.bar.baz -> `foo`.`bar`.`baz`
   static String quote(String value) {
     return value.contains(".")
         ? Arrays.stream(value.split("\\.")).collect(Collectors.joining("`.`", "`", "`"))
