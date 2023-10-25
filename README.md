@@ -1127,15 +1127,15 @@ using the following code:
 **Python:**
 ```python
 from pyspark.sql import SparkSession
-spark = SparkSession.builder
-  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.33.0")
+spark = SparkSession.builder \
+  .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.33.0") \
   .getOrCreate()
-df = spark.read.format("bigquery")
+df = spark.read.format("bigquery") \
   .load("dataset.table")
 ```
 
 **Scala:**
-```python
+```scala
 val spark = SparkSession.builder
 .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.33.0")
 .getOrCreate()
