@@ -37,7 +37,6 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.validation.constraints.NotNull;
 import org.apache.hadoop.conf.Configuration;
@@ -46,13 +45,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.catalyst.expressions.AttributeReference;
-import org.apache.spark.sql.catalyst.expressions.NamedExpression;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.Metadata;
-import org.apache.spark.sql.types.StructType;
-import scala.collection.mutable.ListBuffer;
 
 /** Spark related utilities */
 public class SparkBigQueryUtil {
@@ -285,21 +280,5 @@ public class SparkBigQueryUtil {
         .findFirst()
         .ifPresent(tag -> labels.put("dataproc_job_uuid", tag.substring(tag.lastIndexOf('_') + 1)));
     return labels.build();
-  }
-
-  public static List<AttributeReference> schemaToAttributeReferences(StructType schema) {
-    List<AttributeReference> result =
-        Stream.of(schema.fields())
-            .map(
-                field ->
-                    new AttributeReference(
-                        field.name(),
-                        field.dataType(),
-                        field.nullable(),
-                        field.metadata(),
-                        NamedExpression.newExprId(),
-                        new ListBuffer<String>().toStream()))
-            .collect(Collectors.toList());
-    return result;
   }
 }

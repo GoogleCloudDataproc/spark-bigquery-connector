@@ -15,17 +15,19 @@
  */
 package org.apache.spark.sql;
 
-import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.analysis.SimpleAnalyzer$;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.catalyst.expressions.Attribute;
 import org.apache.spark.sql.catalyst.expressions.AttributeReference;
+import org.apache.spark.sql.catalyst.expressions.NamedExpression;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.JavaConverters;
+import scala.collection.mutable.ListBuffer;
 
 public class PreScala213SparkSqlUtils extends SparkSqlUtils {
 
@@ -57,8 +59,19 @@ public class PreScala213SparkSqlUtils extends SparkSqlUtils {
 
   // `toAttributes` is protected[sql] starting spark 3.2.0, so we need this call to be in the same
   // package. Since Scala 2.13/Spark 3.3 forbids it, the implementation has been ported to Java
-  public static scala.collection.Seq<AttributeReference> toAttributes(StructType schema) {
-    return JavaConverters.asScalaBuffer(SparkBigQueryUtil.schemaToAttributeReferences(schema))
+  public static scala.collection.Seq<AttributeReference> toAttributes(StructType schema212) {
+    return JavaConverters.asScalaBuffer(
+            Stream.of(schema212.fields())
+                .map(
+                    field212 ->
+                        new AttributeReference(
+                            field212.name(),
+                            field212.dataType(),
+                            field212.nullable(),
+                            field212.metadata(),
+                            NamedExpression.newExprId(),
+                            new ListBuffer<String>().toStream()))
+                .collect(Collectors.toList()))
         .toSeq();
   }
 }
