@@ -339,4 +339,11 @@ public class SparkFilterUtilsTest {
         part2,
         part3);
   }
+
+  @Test
+  public void testQuote() {
+    assertThat(SparkFilterUtils.quote("foo")).isEqualTo("`foo`");
+    assertThat(SparkFilterUtils.quote("foo.bar")).isEqualTo("`foo`.`bar`");
+    assertThat(SparkFilterUtils.quote("foo.bar.baz")).isEqualTo("`foo`.`bar`.`baz`");
+  }
 }

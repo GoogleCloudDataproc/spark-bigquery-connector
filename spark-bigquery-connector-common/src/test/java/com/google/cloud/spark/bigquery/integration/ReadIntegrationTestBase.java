@@ -31,6 +31,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
@@ -547,5 +549,22 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
                   "views>1000 AND title='Google' AND DATE(datehour) BETWEEN DATE('2021-01-01') AND DATE('2021-07-01')")
               .collect();
         });
+  }
+
+  @Test
+  public void testNestedFieldProjection() throws Exception {
+    Dataset<Row> githubNestedDF =
+        spark.read().format("bigquery").load("bigquery-public-data:samples.github_nested");
+    List<Row> repositoryUrlRows =
+        githubNestedDF
+            .filter(
+                "repository.has_downloads = true AND url = 'https://github.com/googleapi/googleapi'")
+            .select("repository.url")
+            .collectAsList();
+    assertThat(repositoryUrlRows).hasSize(4);
+    Set<String> uniqueUrls =
+        repositoryUrlRows.stream().map(row -> row.getString(0)).collect(Collectors.toSet());
+    assertThat(uniqueUrls).hasSize(1);
+    assertThat(uniqueUrls).contains("https://github.com/googleapi/googleapi");
   }
 }
