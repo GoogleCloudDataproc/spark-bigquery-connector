@@ -120,7 +120,7 @@ public class BigQueryDirectDataSourceWriterContextTest {
   public void testDeleteOnAbort_saveModeOverwrite() {
     when(bigQueryClient.tableExists(any())).thenReturn(true);
     when(bigQueryClient.getTable(any())).thenReturn(destinationTable);
-    when(bigQueryClient.createTempTable(any(), any(), any())).thenReturn(tempTable);
+    when(bigQueryClient.createTempTable(any(), any(), anyBoolean())).thenReturn(tempTable);
     when(bigQueryClient.createTablePathForBigQueryStorage(any())).thenReturn("");
     BigQueryDirectDataSourceWriterContext ctx =
         createBigQueryDirectDataSourceWriterContext(SaveMode.Overwrite);
