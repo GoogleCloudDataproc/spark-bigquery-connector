@@ -38,7 +38,7 @@ import org.junit.Test;
 public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase {
 
   public Spark34DirectWriteIntegrationTest() {
-    super(SparkBigQueryConfig.WriteMethod.DIRECT, true, DataTypes.TimestampNTZType);
+    super(SparkBigQueryConfig.WriteMethod.DIRECT, DataTypes.TimestampNTZType);
   }
 
   // tests from superclass

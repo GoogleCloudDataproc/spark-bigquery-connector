@@ -96,35 +96,25 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   protected final SparkBigQueryConfig.WriteMethod writeMethod;
   protected Class<? extends Exception> expectedExceptionOnExistingTable;
   protected BigQuery bq;
-  protected boolean sparkVersionAboveOrEqualTo3_4;
-
-  protected DataType timeStampNTZType;
+  protected Optional<DataType> timeStampNTZType;
 
   public WriteIntegrationTestBase(SparkBigQueryConfig.WriteMethod writeMethod) {
-    this(writeMethod, IllegalArgumentException.class, false, null);
+    this(writeMethod, IllegalArgumentException.class, Optional.empty());
   }
 
   public WriteIntegrationTestBase(
-      SparkBigQueryConfig.WriteMethod writeMethod,
-      boolean sparkVersionAboveOrEqualTo3_4,
-      DataType timeStampNTZType) {
-    this(
-        writeMethod,
-        IllegalArgumentException.class,
-        sparkVersionAboveOrEqualTo3_4,
-        timeStampNTZType);
+      SparkBigQueryConfig.WriteMethod writeMethod, DataType timeStampNTZType) {
+    this(writeMethod, IllegalArgumentException.class, Optional.of(timeStampNTZType));
   }
 
   public WriteIntegrationTestBase(
       SparkBigQueryConfig.WriteMethod writeMethod,
       Class<? extends Exception> expectedExceptionOnExistingTable,
-      boolean sparkVersionAboveOrEqualTo3_4,
-      DataType timeStampNTZType) {
+      Optional<DataType> timeStampNTZType) {
     super();
     this.writeMethod = writeMethod;
     this.expectedExceptionOnExistingTable = expectedExceptionOnExistingTable;
     this.bq = BigQueryOptions.getDefaultInstance().getService();
-    this.sparkVersionAboveOrEqualTo3_4 = sparkVersionAboveOrEqualTo3_4;
     this.timeStampNTZType = timeStampNTZType;
   }
 
@@ -1775,7 +1765,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testOverwriteDynamicPartition_partitionDateTimeByHour() {
-    assumeThat(sparkVersionAboveOrEqualTo3_4, is(true));
+    assumeThat(timeStampNTZType.isPresent(), is(true));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1794,7 +1784,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 RowFactory.create(20, LocalDateTime.of(2023, 9, 30, 12, 0, 0))),
             structType(
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, timeStampNTZType, true, Metadata.empty())));
+                StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
     assertThat(result.count()).isEqualTo(3);
@@ -1817,7 +1807,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testOverwriteDynamicPartition_partitionDateTimeByDay() {
-    assumeThat(sparkVersionAboveOrEqualTo3_4, is(true));
+    assumeThat(timeStampNTZType.isPresent(), is(true));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1836,7 +1826,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 RowFactory.create(20, LocalDateTime.of(2023, 9, 30, 12, 0, 0))),
             structType(
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, timeStampNTZType, true, Metadata.empty())));
+                StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
     assertThat(result.count()).isEqualTo(3);
@@ -1859,7 +1849,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testOverwriteDynamicPartition_partitionDateTimeByMonth() {
-    assumeThat(sparkVersionAboveOrEqualTo3_4, is(true));
+    assumeThat(timeStampNTZType.isPresent(), is(true));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1878,7 +1868,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 RowFactory.create(20, LocalDateTime.of(2023, 11, 30, 12, 0, 0))),
             structType(
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, timeStampNTZType, true, Metadata.empty())));
+                StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
     assertThat(result.count()).isEqualTo(3);
@@ -1901,7 +1891,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testOverwriteDynamicPartition_partitionDateTimeByYear() {
-    assumeThat(sparkVersionAboveOrEqualTo3_4, is(true));
+    assumeThat(timeStampNTZType.isPresent(), is(true));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1920,7 +1910,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 RowFactory.create(20, LocalDateTime.of(2024, 11, 30, 12, 0, 0))),
             structType(
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, timeStampNTZType, true, Metadata.empty())));
+                StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
     assertThat(result.count()).isEqualTo(3);

@@ -25,7 +25,6 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
-import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsRequest;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
@@ -140,28 +139,25 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       throws IllegalArgumentException {
     if (bigQueryClient.tableExists(destinationTableId)) {
       TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
-      Schema tableSchema = destinationTable.getDefinition().getSchema();
-      Preconditions.checkArgument(
-          BigQueryUtil.schemaWritable(
-              bigQuerySchema, // sourceSchema
-              tableSchema, // destinationSchema
-              false, // regardFieldOrder
-              enableModeCheckForSchemaFields),
-          new BigQueryConnectorException.InvalidSchemaException(
-              "Destination table's schema is not compatible with dataframe's schema"));
       switch (saveMode) {
         case Append:
           if (writeAtLeastOnce) {
             writingMode = WritingMode.APPEND_AT_LEAST_ONCE;
             return new BigQueryTable(
-                bigQueryClient.createTempTable(destinationTableId, bigQuerySchema).getTableId(),
+                bigQueryClient
+                    .createTempTable(
+                        destinationTableId, bigQuerySchema, enableModeCheckForSchemaFields)
+                    .getTableId(),
                 true);
           }
           break;
         case Overwrite:
           writingMode = WritingMode.OVERWRITE;
           return new BigQueryTable(
-              bigQueryClient.createTempTable(destinationTableId, bigQuerySchema).getTableId(),
+              bigQueryClient
+                  .createTempTable(
+                      destinationTableId, bigQuerySchema, enableModeCheckForSchemaFields)
+                  .getTableId(),
               true);
         case Ignore:
           writingMode = WritingMode.IGNORE_INPUTS;

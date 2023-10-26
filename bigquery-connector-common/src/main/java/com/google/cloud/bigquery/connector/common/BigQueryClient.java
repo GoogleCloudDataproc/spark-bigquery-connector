@@ -189,24 +189,35 @@ public class BigQueryClient {
   }
 
   /**
-   * Creates a temporary table with a time-to-live of 1 day, and the same location as the
-   * destination table; the temporary table will have the same name as the destination table, with
-   * the current time in milliseconds appended to it; useful for holding temporary data in order to
-   * overwrite the destination table.
+   * Creates a temporary table with a job to cleanup after application end, and the same location as
+   * the destination table; the temporary table will have the same name as the destination table,
+   * with the current time in milliseconds appended to it; useful for holding temporary data in
+   * order to overwrite the destination table.
    *
    * @param destinationTableId The TableId of the eventual destination for the data going into the
    *     temporary table.
    * @param schema The Schema of the destination / temporary table.
    * @return The {@code Table} object representing the created temporary table.
    */
-  public TableInfo createTempTable(TableId destinationTableId, Schema schema) {
+  public TableInfo createTempTable(
+      TableId destinationTableId, Schema schema, boolean enableModeCheckForSchemaFields)
+      throws IllegalArgumentException {
+    TableInfo destinationTable = getTable(destinationTableId);
+    Schema tableSchema = destinationTable.getDefinition().getSchema();
+    Preconditions.checkArgument(
+        BigQueryUtil.schemaWritable(
+            schema, // sourceSchema
+            tableSchema, // destinationSchema
+            false, // regardFieldOrder
+            enableModeCheckForSchemaFields),
+        new BigQueryConnectorException.InvalidSchemaException(
+            "Destination table's schema is not compatible with dataframe's schema"));
     TableId tempTableId = createTempTableId(destinationTableId);
-    // Build TableInfo with expiration time of one day from current epoch.
     TableInfo tableInfo =
-        TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema))
-            .setExpirationTime(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1))
-            .build();
-    return bigQuery.create(tableInfo);
+        TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema)).build();
+    TableInfo tempTable = bigQuery.create(tableInfo);
+    CLEANUP_JOBS.add(() -> deleteTable(tempTable.getTableId()));
+    return tempTable;
   }
 
   public TableId createTempTableId(TableId destinationTableId) {
@@ -649,10 +660,10 @@ public class BigQueryClient {
       FormatOptions formatOptions,
       JobInfo.WriteDisposition writeDisposition,
       Optional<Schema> schema,
-      TableId tableToWrite) {
+      TableId destinationTable) {
     LoadJobConfiguration.Builder jobConfiguration =
         jobConfigurationFactory
-            .createLoadJobConfigurationBuilder(tableToWrite, sourceUris, formatOptions)
+            .createLoadJobConfigurationBuilder(destinationTable, sourceUris, formatOptions)
             .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
             .setWriteDisposition(writeDisposition);
 

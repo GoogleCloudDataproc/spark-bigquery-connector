@@ -22,7 +22,6 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
-import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
@@ -32,7 +31,6 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.write.BigQueryWriteHelper;
 import com.google.cloud.spark.bigquery.write.IntermediateDataCleaner;
-import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
@@ -69,7 +67,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
 
   private Optional<TableInfo> tableInfo = Optional.empty();
 
-  private TableId temporaryTableId = null;
+  private Optional<TableId> temporaryTableId = Optional.empty();
   private final JobInfo.WriteDisposition writeDisposition;
 
   public BigQueryIndirectDataSourceWriterContext(
@@ -123,17 +121,17 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
       if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE
           && config.getPartitionOverwriteModeValue() == PartitionOverwriteMode.DYNAMIC
           && bigQueryClient.tableExists(config.getTableId())) {
-        temporaryTableId = createTempTable(config.getTableId(), schema);
+        temporaryTableId =
+            Optional.of(
+                bigQueryClient
+                    .createTempTable(
+                        config.getTableId(), schema, config.getEnableModeCheckForSchemaFields())
+                    .getTableId());
         loadDataToBigQuery(sourceUris, schema);
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
-                temporaryTableId, config.getTableId());
+                temporaryTableId.get(), config.getTableId());
         BigQueryClient.waitForJob(queryJob);
-        Preconditions.checkState(
-            bigQueryClient.deleteTable(temporaryTableId),
-            new BigQueryConnectorException(
-                String.format(
-                    "Could not delete temporary table %s from BigQuery", temporaryTableId)));
       }
       loadDataToBigQuery(sourceUris, schema);
       updateMetadataIfNeeded();
@@ -143,21 +141,6 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     } finally {
       cleanTemporaryGcsPathIfNeeded();
     }
-  }
-
-  private TableId createTempTable(TableId destinationTableId, Schema bigQuerySchema)
-      throws IllegalArgumentException {
-    TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
-    Schema tableSchema = destinationTable.getDefinition().getSchema();
-    Preconditions.checkArgument(
-        BigQueryUtil.schemaWritable(
-            bigQuerySchema, // sourceSchema
-            tableSchema, // destinationSchema
-            false, // regardFieldOrder
-            config.getEnableModeCheckForSchemaFields()),
-        new BigQueryConnectorException.InvalidSchemaException(
-            "Destination table's schema is not compatible with dataframe's schema"));
-    return bigQueryClient.createTempTable(destinationTableId, bigQuerySchema).getTableId();
   }
 
   @Override
@@ -180,19 +163,14 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   void loadDataToBigQuery(List<String> sourceUris, Schema schema) throws IOException {
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
-
-    if (temporaryTableId != null) {
-      bigQueryClient.loadDataIntoTable(
-          config,
-          optimizedSourceUris,
-          FormatOptions.avro(),
-          writeDisposition,
-          Optional.of(schema),
-          temporaryTableId);
-    } else {
-      bigQueryClient.loadDataIntoTable(
-          config, optimizedSourceUris, FormatOptions.avro(), writeDisposition, Optional.of(schema));
-    }
+    TableId destinationTableId = temporaryTableId.orElse(config.getTableId());
+    bigQueryClient.loadDataIntoTable(
+        config,
+        optimizedSourceUris,
+        FormatOptions.avro(),
+        writeDisposition,
+        Optional.of(schema),
+        destinationTableId);
   }
 
   void updateMetadataIfNeeded() {

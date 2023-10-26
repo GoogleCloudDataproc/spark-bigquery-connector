@@ -281,8 +281,8 @@ df.write \
 ```
 
 Writing to existing partitioned tables (date partitioned, ingestion time partitioned and range
-partitioned) in APPEND save mode and OVERWRITE mode (only date and range partitioned) is fully supported by the connector and the BigQuery Storage Write
-API. The use of `datePartition`, `partitionField`, `partitionType`, `partitionRangeStart`, `partitionRangeEnd`, `partitionRangeInterval`
+partitioned) in APPEND save mode is fully supported by the connector and the BigQuery Storage Write
+API. Partition overwrite and the use of `datePartition`, `partitionField`, `partitionType`, `partitionRangeStart`, `partitionRangeEnd`, `partitionRangeInterval` as
 described below is not supported at this moment by the direct write method.
 
 **Important:** Please refer to the [data ingestion pricing](https://cloud.google.com/bigquery/pricing#data_ingestion_pricing)
@@ -859,17 +859,6 @@ word-break:break-word
          <br/> (Optional)
      </td>
      <td>Read</td>
-   </tr>
-  <tr>
-     <td><code>spark.sql.sources.partitionOverwriteMode</code>
-     </td>
-     <td>Config to specify the overwrite mode on write when the table is range/time partitioned.
-         Currently supportd two modes : <code>static</code> and <code>dynamic</code>. In <code>static</code> mode,
-         the entire table is overwritten. In <code>dynamic</code> mode, the data is overwritten by partitions of the existing table.
-         The default value is static.
-         <br/> (Optional)
-     </td>
-     <td>Write</td>
    </tr>
 
 </table>
