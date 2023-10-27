@@ -122,7 +122,10 @@ public class ReadSessionCreatorTest {
     Optional<String> encodedBase =
         Optional.of(java.util.Base64.getEncoder().encodeToString(request.toByteArray()));
     ReadSessionCreatorConfig config =
-        new ReadSessionCreatorConfigBuilder().setRequestEncodedBase(encodedBase).build();
+        new ReadSessionCreatorConfigBuilder()
+            .setEnableReadSessionCaching(false)
+            .setRequestEncodedBase(encodedBase)
+            .build();
     ReadSessionCreator creator =
         new ReadSessionCreator(config, bigQueryClient, bigQueryReadClientFactory);
     when(bigQueryReadClientFactory.getBigQueryReadClient()).thenReturn(readClient);
@@ -153,7 +156,10 @@ public class ReadSessionCreatorTest {
     when(mockBigQueryClientFactory.getBigQueryReadClient()).thenReturn(client);
 
     ReadSessionCreatorConfig config =
-        new ReadSessionCreatorConfigBuilder().setDefaultParallelism(10).build();
+        new ReadSessionCreatorConfigBuilder()
+            .setEnableReadSessionCaching(false)
+            .setDefaultParallelism(10)
+            .build();
     ReadSessionCreator creator =
         new ReadSessionCreator(config, bigQueryClient, mockBigQueryClientFactory);
     ReadSessionResponse readSessionResponse =
@@ -179,6 +185,7 @@ public class ReadSessionCreatorTest {
 
     ReadSessionCreatorConfig config =
         new ReadSessionCreatorConfigBuilder()
+            .setEnableReadSessionCaching(false)
             .setDefaultParallelism(10)
             .setPreferredMinParallelism(OptionalInt.of(21_000))
             .build();
@@ -206,6 +213,7 @@ public class ReadSessionCreatorTest {
 
     ReadSessionCreatorConfig config =
         new ReadSessionCreatorConfigBuilder()
+            .setEnableReadSessionCaching(false)
             .setDefaultParallelism(10)
             .setMaxParallelism(OptionalInt.of(21_000))
             .build();
@@ -234,6 +242,7 @@ public class ReadSessionCreatorTest {
 
     ReadSessionCreatorConfig config =
         new ReadSessionCreatorConfigBuilder()
+            .setEnableReadSessionCaching(false)
             .setPreferredMinParallelism(OptionalInt.of(21_000))
             .setMaxParallelism(OptionalInt.of(10))
             .build();
@@ -261,6 +270,7 @@ public class ReadSessionCreatorTest {
 
     ReadSessionCreatorConfig config =
         new ReadSessionCreatorConfigBuilder()
+            .setEnableReadSessionCaching(false)
             .setDefaultParallelism(20)
             .setMaxParallelism(OptionalInt.of(10))
             .build();

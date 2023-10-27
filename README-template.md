@@ -877,6 +877,15 @@ word-break:break-word
      </td>
      <td>Write</td>
    </tr>
+  <tr>
+     <td><code>enableReadSessionCaching</code>
+     </td>
+     <td>Boolean config to disable read session caching. Caches BigQuery read sessions to allow for faster Spark query planning.
+          Default value is <code>true</code>.
+         <br/> (Optional)
+     </td>
+     <td>Read</td>
+   </tr>
 
 </table>
 

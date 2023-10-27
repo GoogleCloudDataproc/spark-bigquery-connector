@@ -343,7 +343,7 @@ public class BigQueryDataSourceReaderContext {
   }
 
   /**
-   * Re-creates the read-sesion and re-computes partitions for dynamic partition pruning
+   * Re-creates the read session and re-computes partitions for dynamic partition pruning
    *
    * @param filters dynamic partition pruning filters
    * @return new planned partitions if dynamic partition pruning goes through, else returns empty

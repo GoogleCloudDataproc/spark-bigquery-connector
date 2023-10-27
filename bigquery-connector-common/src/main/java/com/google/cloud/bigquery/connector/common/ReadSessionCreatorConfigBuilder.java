@@ -42,7 +42,7 @@ public class ReadSessionCreatorConfigBuilder {
   int streamsPerPartition = 1;
   private CompressionCodec arrowCompressionCodec = CompressionCodec.COMPRESSION_UNSPECIFIED;
   private Optional<String> traceId = Optional.empty();
-  private boolean enableReadSessionCaching = false;
+  private boolean enableReadSessionCaching = true;
 
   @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setViewsEnabled(boolean viewsEnabled) {

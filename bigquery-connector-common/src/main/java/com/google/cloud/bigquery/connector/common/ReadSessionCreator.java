@@ -48,7 +48,7 @@ public class ReadSessionCreator {
 
   private static final Logger log = LoggerFactory.getLogger(ReadSessionCreator.class);
   private static final Cache<CreateReadSessionRequest, ReadSession> READ_SESSION_CACHE =
-      CacheBuilder.newBuilder().expireAfterWrite(4, TimeUnit.HOURS).maximumSize(1000).build();
+      CacheBuilder.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(1000).build();
 
   private final ReadSessionCreatorConfig config;
   private final BigQueryClient bigQueryClient;
