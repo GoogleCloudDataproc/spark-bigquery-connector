@@ -12,6 +12,7 @@
 * GAX has been upgraded to version 2.35.0
 * gRPC has been upgraded to version 1.58.0
 * Protocol Buffers has been upgraded to version 3.24.4
+* Support for Dynamic partition overwrite for time and range partitioned table
 
 ## 0.33.0 - 2023-10-17
 
