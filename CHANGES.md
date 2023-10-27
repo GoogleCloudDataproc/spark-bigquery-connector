@@ -7,12 +7,12 @@
 * PR #1095: CVE-2023-4586: Upgrading the netty dependencies
 * PR #1104: Fixed nested field predicate pushdown
 * Issue #1099: Fixing the usage of ExternalAccountCredentials
+* Issue #103: Support for Dynamic partition overwrite for time and range partitioned table
 * BigQuery API has been upgraded to version 2.33.2
 * BigQuery Storage API has been upgraded to version 2.44.0
 * GAX has been upgraded to version 2.35.0
 * gRPC has been upgraded to version 1.58.0
 * Protocol Buffers has been upgraded to version 3.24.4
-* Support for Dynamic partition overwrite for time and range partitioned table
 
 ## 0.33.0 - 2023-10-17
 
