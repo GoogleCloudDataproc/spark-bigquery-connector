@@ -189,10 +189,10 @@ public class BigQueryClient {
   }
 
   /**
-   * Creates a temporary table with a time-to-live of 1 day, and the same location as the
-   * destination table; the temporary table will have the same name as the destination table, with
-   * the current time in milliseconds appended to it; useful for holding temporary data in order to
-   * overwrite the destination table.
+   * Creates a temporary table with a job to cleanup after application end, and the same location as
+   * the destination table; the temporary table will have the same name as the destination table,
+   * with the current time in milliseconds appended to it; useful for holding temporary data in
+   * order to overwrite the destination table.
    *
    * @param destinationTableId The TableId of the eventual destination for the data going into the
    *     temporary table.
@@ -201,12 +201,27 @@ public class BigQueryClient {
    */
   public TableInfo createTempTable(TableId destinationTableId, Schema schema) {
     TableId tempTableId = createTempTableId(destinationTableId);
-    // Build TableInfo with expiration time of one day from current epoch.
     TableInfo tableInfo =
-        TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema))
-            .setExpirationTime(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1))
-            .build();
-    return bigQuery.create(tableInfo);
+        TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema)).build();
+    TableInfo tempTable = bigQuery.create(tableInfo);
+    CLEANUP_JOBS.add(() -> deleteTable(tempTable.getTableId()));
+    return tempTable;
+  }
+
+  public TableInfo createTempTableAfterCheckingSchema(
+      TableId destinationTableId, Schema schema, boolean enableModeCheckForSchemaFields)
+      throws IllegalArgumentException {
+    TableInfo destinationTable = getTable(destinationTableId);
+    Schema tableSchema = destinationTable.getDefinition().getSchema();
+    Preconditions.checkArgument(
+        BigQueryUtil.schemaWritable(
+            schema, // sourceSchema
+            tableSchema, // destinationSchema
+            false, // regardFieldOrder
+            enableModeCheckForSchemaFields),
+        new BigQueryConnectorException.InvalidSchemaException(
+            "Destination table's schema is not compatible with dataframe's schema"));
+    return createTempTable(destinationTableId, schema);
   }
 
   public TableId createTempTableId(TableId destinationTableId) {
@@ -648,10 +663,11 @@ public class BigQueryClient {
       List<String> sourceUris,
       FormatOptions formatOptions,
       JobInfo.WriteDisposition writeDisposition,
-      Optional<Schema> schema) {
+      Optional<Schema> schema,
+      TableId destinationTable) {
     LoadJobConfiguration.Builder jobConfiguration =
         jobConfigurationFactory
-            .createLoadJobConfigurationBuilder(options, sourceUris, formatOptions)
+            .createLoadJobConfigurationBuilder(destinationTable, sourceUris, formatOptions)
             .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
             .setWriteDisposition(writeDisposition);
 
@@ -927,9 +943,9 @@ public class BigQueryClient {
     }
 
     LoadJobConfiguration.Builder createLoadJobConfigurationBuilder(
-        LoadDataOptions options, List<String> sourceUris, FormatOptions formatOptions) {
+        TableId tableId, List<String> sourceUris, FormatOptions formatOptions) {
       LoadJobConfiguration.Builder builder =
-          LoadJobConfiguration.newBuilder(options.getTableId(), sourceUris, formatOptions);
+          LoadJobConfiguration.newBuilder(tableId, sourceUris, formatOptions);
       if (labels != null && !labels.isEmpty()) {
         builder.setLabels(labels);
       }

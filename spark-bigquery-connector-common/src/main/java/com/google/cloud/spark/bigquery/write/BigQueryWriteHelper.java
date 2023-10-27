@@ -17,13 +17,16 @@ package com.google.cloud.spark.bigquery.write;
 
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableDefinition;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
@@ -63,6 +66,11 @@ public class BigQueryWriteHelper {
   private final Path gcsPath;
   private final Optional<IntermediateDataCleaner> createTemporaryPathDeleter;
 
+  private final Schema tableSchema;
+  private final JobInfo.WriteDisposition writeDisposition;
+
+  private Optional<TableId> temporaryTableId = Optional.empty();
+
   public BigQueryWriteHelper(
       BigQueryClient bigQueryClient,
       SQLContext sqlContext,
@@ -81,6 +89,16 @@ public class BigQueryWriteHelper {
         SparkBigQueryUtil.createGcsPath(config, conf, sqlContext.sparkContext().applicationId());
     this.createTemporaryPathDeleter =
         config.getTemporaryGcsBucket().map(unused -> new IntermediateDataCleaner(gcsPath, conf));
+
+    Schema schema =
+        SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+            .toBigQuerySchema(data.schema());
+    if (tableInfo.isPresent()) {
+      schema =
+          BigQueryUtil.adjustSchemaIfNeeded(schema, tableInfo.get().getDefinition().getSchema());
+    }
+    this.tableSchema = schema;
+    this.writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
   }
 
   public void writeDataFrameToBigQuery() {
@@ -105,7 +123,25 @@ public class BigQueryWriteHelper {
       String format = config.getIntermediateFormat().getDataSource();
       data.write().format(format).save(gcsPath.toString());
 
-      loadDataToBigQuery();
+      if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE
+          && config.getPartitionOverwriteModeValue() == PartitionOverwriteMode.DYNAMIC
+          && bigQueryClient.tableExists(config.getTableId())) {
+        temporaryTableId =
+            Optional.of(
+                bigQueryClient
+                    .createTempTableAfterCheckingSchema(
+                        config.getTableId(),
+                        tableSchema,
+                        config.getEnableModeCheckForSchemaFields())
+                    .getTableId());
+        loadDataToBigQuery();
+        Job queryJob =
+            bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
+                temporaryTableId.get(), config.getTableId());
+        BigQueryClient.waitForJob(queryJob);
+      } else {
+        loadDataToBigQuery();
+      }
       updateMetadataIfNeeded();
     } catch (Exception e) {
       throw new BigQueryConnectorException("Failed to write to BigQuery", e);
@@ -128,16 +164,14 @@ public class BigQueryWriteHelper {
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
     JobInfo.WriteDisposition writeDisposition =
         SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
-    Schema schema =
-        SchemaConverters.from(SchemaConvertersConfiguration.from(config))
-            .toBigQuerySchema(data.schema());
-    if (tableInfo.isPresent()) {
-      schema =
-          BigQueryUtil.adjustSchemaIfNeeded(schema, tableInfo.get().getDefinition().getSchema());
-    }
-
+    TableId destinationTableId = temporaryTableId.orElse(config.getTableId());
     bigQueryClient.loadDataIntoTable(
-        config, optimizedSourceUris, formatOptions, writeDisposition, Optional.of(schema));
+        config,
+        optimizedSourceUris,
+        formatOptions,
+        writeDisposition,
+        Optional.of(tableSchema),
+        destinationTableId);
   }
 
   String friendlyTableName() {

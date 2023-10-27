@@ -16,12 +16,15 @@
 package com.google.cloud.spark.bigquery.write.context;
 
 import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
+import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
@@ -64,6 +67,9 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
 
   private Optional<TableInfo> tableInfo = Optional.empty();
 
+  private Optional<TableId> temporaryTableId = Optional.empty();
+  private final JobInfo.WriteDisposition writeDisposition;
+
   public BigQueryIndirectDataSourceWriterContext(
       BigQueryClient bigQueryClient,
       SparkBigQueryConfig config,
@@ -81,6 +87,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     this.saveMode = saveMode;
     this.gcsPath = gcsPath;
     this.intermediateDataCleaner = intermediateDataCleaner;
+    this.writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
   }
 
   @Override
@@ -103,7 +110,30 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
           Stream.of(messages)
               .map(msg -> ((BigQueryIndirectWriterCommitMessageContext) msg).getUri())
               .collect(Collectors.toList());
-      loadDataToBigQuery(sourceUris);
+
+      Schema schema =
+          SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+              .toBigQuerySchema(sparkSchema);
+      if (tableInfo.isPresent()) {
+        schema =
+            BigQueryUtil.adjustSchemaIfNeeded(schema, tableInfo.get().getDefinition().getSchema());
+      }
+      if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE
+          && config.getPartitionOverwriteModeValue() == PartitionOverwriteMode.DYNAMIC
+          && bigQueryClient.tableExists(config.getTableId())) {
+        temporaryTableId =
+            Optional.of(
+                bigQueryClient
+                    .createTempTableAfterCheckingSchema(
+                        config.getTableId(), schema, config.getEnableModeCheckForSchemaFields())
+                    .getTableId());
+        loadDataToBigQuery(sourceUris, schema);
+        Job queryJob =
+            bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
+                temporaryTableId.get(), config.getTableId());
+        BigQueryClient.waitForJob(queryJob);
+      }
+      loadDataToBigQuery(sourceUris, schema);
       updateMetadataIfNeeded();
       logger.info("Data has been successfully loaded to BigQuery");
     } catch (IOException e) {
@@ -130,22 +160,17 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     this.tableInfo = Optional.ofNullable(tableInfo);
   }
 
-  void loadDataToBigQuery(List<String> sourceUris) throws IOException {
+  void loadDataToBigQuery(List<String> sourceUris, Schema schema) throws IOException {
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
-    JobInfo.WriteDisposition writeDisposition =
-        SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
-
-    Schema schema =
-        SchemaConverters.from(SchemaConvertersConfiguration.from(config))
-            .toBigQuerySchema(sparkSchema);
-    if (tableInfo.isPresent()) {
-      schema =
-          BigQueryUtil.adjustSchemaIfNeeded(schema, tableInfo.get().getDefinition().getSchema());
-    }
-
+    TableId destinationTableId = temporaryTableId.orElse(config.getTableId());
     bigQueryClient.loadDataIntoTable(
-        config, optimizedSourceUris, FormatOptions.avro(), writeDisposition, Optional.of(schema));
+        config,
+        optimizedSourceUris,
+        FormatOptions.avro(),
+        writeDisposition,
+        Optional.of(schema),
+        destinationTableId);
   }
 
   void updateMetadataIfNeeded() {
