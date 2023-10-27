@@ -776,16 +776,6 @@ public class BigQueryClient {
     }
   }
 
-  public void loadDataIntoTable(
-      LoadDataOptions options,
-      List<String> sourceUris,
-      FormatOptions formatOptions,
-      JobInfo.WriteDisposition writeDisposition,
-      Optional<Schema> schema) {
-    loadDataIntoTable(
-        options, sourceUris, formatOptions, writeDisposition, schema, options.getTableId());
-  }
-
   /** Creates the table with the given schema, only if it does not exist yet. */
   public void createTableIfNeeded(
       TableId tableId, Schema bigQuerySchema, CreateTableOptions options) {
