@@ -129,7 +129,7 @@ public class BigQueryWriteHelper {
         temporaryTableId =
             Optional.of(
                 bigQueryClient
-                    .createTempTable(
+                    .createTempTableAfterCheckingSchema(
                         config.getTableId(),
                         tableSchema,
                         config.getEnableModeCheckForSchemaFields())

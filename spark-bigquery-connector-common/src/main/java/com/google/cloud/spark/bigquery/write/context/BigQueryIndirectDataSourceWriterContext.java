@@ -124,7 +124,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
         temporaryTableId =
             Optional.of(
                 bigQueryClient
-                    .createTempTable(
+                    .createTempTableAfterCheckingSchema(
                         config.getTableId(), schema, config.getEnableModeCheckForSchemaFields())
                     .getTableId());
         loadDataToBigQuery(sourceUris, schema);

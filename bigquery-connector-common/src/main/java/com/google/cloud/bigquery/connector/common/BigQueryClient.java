@@ -199,7 +199,16 @@ public class BigQueryClient {
    * @param schema The Schema of the destination / temporary table.
    * @return The {@code Table} object representing the created temporary table.
    */
-  public TableInfo createTempTable(
+  public TableInfo createTempTable(TableId destinationTableId, Schema schema) {
+    TableId tempTableId = createTempTableId(destinationTableId);
+    TableInfo tableInfo =
+        TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema)).build();
+    TableInfo tempTable = bigQuery.create(tableInfo);
+    CLEANUP_JOBS.add(() -> deleteTable(tempTable.getTableId()));
+    return tempTable;
+  }
+
+  public TableInfo createTempTableAfterCheckingSchema(
       TableId destinationTableId, Schema schema, boolean enableModeCheckForSchemaFields)
       throws IllegalArgumentException {
     TableInfo destinationTable = getTable(destinationTableId);
@@ -212,12 +221,7 @@ public class BigQueryClient {
             enableModeCheckForSchemaFields),
         new BigQueryConnectorException.InvalidSchemaException(
             "Destination table's schema is not compatible with dataframe's schema"));
-    TableId tempTableId = createTempTableId(destinationTableId);
-    TableInfo tableInfo =
-        TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema)).build();
-    TableInfo tempTable = bigQuery.create(tableInfo);
-    CLEANUP_JOBS.add(() -> deleteTable(tempTable.getTableId()));
-    return tempTable;
+    return createTempTable(destinationTableId, schema);
   }
 
   public TableId createTempTableId(TableId destinationTableId) {
