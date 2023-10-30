@@ -153,7 +153,9 @@ public class BigQueryDirectDataWriterHelper {
   private StreamWriter createStreamWriter(String writeStreamName) {
     try {
       StreamWriter.Builder streamWriter =
-          StreamWriter.newBuilder(writeStreamName, writeClient).setWriterSchema(this.protoSchema);
+          StreamWriter.newBuilder(writeStreamName, writeClient)
+              .setWriterSchema(this.protoSchema)
+              .setRetrySettings(this.retrySettings);
       if (traceId.isPresent()) {
         streamWriter.setTraceId(traceId.get());
       }
