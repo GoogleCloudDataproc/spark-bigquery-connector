@@ -21,16 +21,12 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.protobuf.ByteString;
-import java.io.IOException;
 import java.io.Serializable;
-import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
-import org.xerial.snappy.Snappy;
-
 
 public interface ReadRowsResponseToInternalRowIteratorConverter {
 
@@ -131,15 +127,16 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
       this.arrowSchema = arrowSchema;
       this.userProvidedSchema = userProvidedSchema;
       this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
-      this.decompressed_size = 0;
+      // TODO(AQIU): get this field that does not yet exist
+      // this.decompressed_byte_size = 0;
     }
-
 
     @Override
     public Iterator<InternalRow> convert(ReadRowsResponse response) {
+      /*
       // hack: assume that we are always asking for Snappy compression
       ByteString arrowRecordBatch;
-      // TODO: how do I get the new ReadRowsResponse field?
+      // TODO(AQIU): the new ReadRowsResponse field does not yet exist
       int statedUncompressedSize = response.getUncompressedByteSize();
       if (statedUncompressedSize > 0) {
         // the result was compressed, we need to decompress it.
@@ -167,10 +164,19 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
         }
       }
 
+
       return new ArrowBinaryIterator(
           columnsInOrder,
           arrowSchema,
           arrowRecordBatch,
+          userProvidedSchema.toJavaUtil(),
+          bigQueryStorageReadRowsTracer.toJavaUtil());
+      */
+
+      return new ArrowBinaryIterator(
+          columnsInOrder,
+          arrowSchema,
+          response.getArrowRecordBatch().getSerializedRecordBatch(),
           userProvidedSchema.toJavaUtil(),
           bigQueryStorageReadRowsTracer.toJavaUtil());
     }

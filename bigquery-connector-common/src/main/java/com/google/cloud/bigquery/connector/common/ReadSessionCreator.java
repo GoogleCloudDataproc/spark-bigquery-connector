@@ -26,7 +26,6 @@ import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
-import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec; 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
@@ -39,6 +38,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+// TODO(aqiu) This field does not yet exist in the public client library
+// import
+// com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 
 // A helper class, also handles view materialization
 public class ReadSessionCreator {
@@ -103,9 +106,13 @@ public class ReadSessionCreator {
             .map(
                 value -> {
                   try {
-                    return com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest.parseFrom(
-                        java.util.Base64.getDecoder().decode(value));
+                    CreateReadSessionRequest parsed =
+                        com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest.parseFrom(
+                            java.util.Base64.getDecoder().decode(value));
+                    log.info("AQIU: parsed encoded CreateReadSessionRequest %s", parsed);
+                    return parsed;
                   } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+                    log.info("AQIU: could not decode encoded CreateReadSessionRequest");
                     throw new RuntimeException("Couldn't decode:" + value, e);
                   }
                 })
@@ -122,9 +129,12 @@ public class ReadSessionCreator {
         ArrowSerializationOptions.newBuilder()
             .setBufferCompression(config.getArrowCompressionCodec())
             .build());
-    readOptions.setResponseCompressionCodec(ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_SNAPPY)
-    log.debug("AQIU: setting ResponseCompressionCodec to be snappy");
-	
+    log.info("AQIU: setting arrow compression to be %s", config.getArrowCompressionCodec());
+
+    // TODO(AQIU): set this feild that does not yet exist
+    // readOptions.setResponseCompressionCodec(ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_SNAPPY);
+    // log.debug("AQIU: setting ResponseCompressionCodec to be snappy");
+
     int preferredMinStreamCount =
         config
             .getPreferredMinParallelism()
