@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.34.0 - 2023-10-31
 
 * PR #1057: Enable async writes for greater throughput
