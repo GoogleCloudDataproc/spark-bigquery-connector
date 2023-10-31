@@ -106,10 +106,22 @@ steps:
       - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
       - 'BIGQUERY_KMS_KEY_NAME=${_BIGQUERY_KMS_KEY_NAME}'
 
+# 4h. Run integration tests concurrently with unit tests (DSv2, Spark 3.5)
+  - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
+    id: 'integration-tests-3.5'
+    waitFor: ['integration-tests-3.4']
+    entrypoint: 'bash'
+    args: ['/workspace/cloudbuild/presubmit.sh', 'integrationtest-3.5']
+    env:
+    - 'GOOGLE_CLOUD_PROJECT=${_GOOGLE_CLOUD_PROJECT}'
+    - 'TEMPORARY_GCS_BUCKET=${_TEMPORARY_GCS_BUCKET}'
+    - 'BIGLAKE_CONNECTION_ID=${_BIGLAKE_CONNECTION_ID}'
+    - 'BIGQUERY_KMS_KEY_NAME=${_BIGQUERY_KMS_KEY_NAME}'
+
   # 5. Upload coverage to CodeCov
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
     id: 'upload-it-to-codecov'
-    waitFor: ['integration-tests-2.12','integration-tests-2.13','integration-tests-2.4','integration-tests-3.1','integration-tests-3.2','integration-tests-3.3', 'integration-tests-3.4']
+    waitFor: ['integration-tests-2.12','integration-tests-2.13','integration-tests-2.4','integration-tests-3.1','integration-tests-3.2','integration-tests-3.3', 'integration-tests-3.4', 'integration-tests-3.5']
     entrypoint: 'bash'
     args: ['/workspace/cloudbuild/presubmit.sh', 'upload-it-to-codecov']
     env:
