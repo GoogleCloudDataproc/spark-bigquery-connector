@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.34.0 - 2023-10-31
 
 * PR #1057: Enable async writes for greater throughput
 * PR #1094: CVE-2023-5072: Upgrading the org.json:json dependency
