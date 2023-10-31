@@ -212,7 +212,7 @@ public class SparkBigQueryConfig
   private int channelPoolSize = 1;
   private com.google.common.base.Optional<Integer> flowControlWindowBytes =
       com.google.common.base.Optional.absent();
-  private boolean enableReadSessionCaching = false;
+  private boolean enableReadSessionCaching = true;
   private SparkBigQueryProxyAndHttpConfig sparkBigQueryProxyAndHttpConfig;
   private CompressionCodec arrowCompressionCodec = DEFAULT_ARROW_COMPRESSION_CODEC;
   private WriteMethod writeMethod = DEFAULT_WRITE_METHOD;
@@ -490,7 +490,7 @@ public class SparkBigQueryConfig
             .transform(Integer::parseInt)
             .or(defaultChannelPoolSize);
     config.enableReadSessionCaching =
-        getAnyBooleanOption(globalOptions, options, "enableReadSessionCaching", false);
+        getAnyBooleanOption(globalOptions, options, "enableReadSessionCaching", true);
 
     String arrowCompressionCodecParam =
         getAnyOption(globalOptions, options, ARROW_COMPRESSION_CODEC_OPTION)

@@ -6,6 +6,7 @@
 * PR #1094: CVE-2023-5072: Upgrading the org.json:json dependency
 * PR #1095: CVE-2023-4586: Upgrading the netty dependencies
 * PR #1104: Fixed nested field predicate pushdown
+* PR #1109: Enable read session caching by default for faster Spark planning
 * PR #1111: Enable retry of failed messages
 * Issue #103: Support for Dynamic partition overwrite for time and range partitioned table
 * Issue #1099: Fixing the usage of ExternalAccountCredentials
