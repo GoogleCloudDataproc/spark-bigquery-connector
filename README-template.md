@@ -886,6 +886,16 @@ word-break:break-word
      </td>
      <td>Read</td>
    </tr>
+  <tr>
+     <td><code>readSessionCacheDurationMins</code>
+     </td>
+     <td>Config to set the read session caching duration in minutes. Only works if <code>enableReadSessionCaching</code> is <code>true</code> (default).
+          Allows specifying the duration to cache read sessions for. Maximum allowed value is <code>300</code>.
+          Default value is <code>5</code>.
+         <br/> (Optional)
+     </td>
+     <td>Read</td>
+   </tr>
 
 </table>
 

@@ -41,6 +41,7 @@ public class ReadSessionCreatorConfig {
   private final CompressionCodec arrowCompressionCodec;
   private final Optional<String> traceId;
   private final boolean enableReadSessionCaching;
+  private final long readSessionCacheDurationMins;
 
   ReadSessionCreatorConfig(
       boolean viewsEnabled,
@@ -62,7 +63,8 @@ public class ReadSessionCreatorConfig {
       int streamsPerPartition,
       CompressionCodec arrowCompressionCodec,
       Optional<String> traceId,
-      boolean enableReadSessionCaching) {
+      boolean enableReadSessionCaching,
+      long readSessionCacheDurationMins) {
     this.viewsEnabled = viewsEnabled;
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
@@ -83,6 +85,7 @@ public class ReadSessionCreatorConfig {
     this.arrowCompressionCodec = arrowCompressionCodec;
     this.traceId = traceId;
     this.enableReadSessionCaching = enableReadSessionCaching;
+    this.readSessionCacheDurationMins = readSessionCacheDurationMins;
   }
 
   public boolean isViewsEnabled() {
@@ -171,5 +174,9 @@ public class ReadSessionCreatorConfig {
 
   public boolean isReadSessionCachingEnabled() {
     return enableReadSessionCaching;
+  }
+
+  public long getReadSessionCacheDurationMins() {
+    return readSessionCacheDurationMins;
   }
 }

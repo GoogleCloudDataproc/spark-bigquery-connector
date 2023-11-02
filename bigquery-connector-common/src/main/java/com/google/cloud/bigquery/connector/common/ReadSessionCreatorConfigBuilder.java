@@ -43,6 +43,7 @@ public class ReadSessionCreatorConfigBuilder {
   private CompressionCodec arrowCompressionCodec = CompressionCodec.COMPRESSION_UNSPECIFIED;
   private Optional<String> traceId = Optional.empty();
   private boolean enableReadSessionCaching = true;
+  private long readSessionCacheDurationMins = 5L;
 
   @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setViewsEnabled(boolean viewsEnabled) {
@@ -172,6 +173,12 @@ public class ReadSessionCreatorConfigBuilder {
     return this;
   }
 
+  public ReadSessionCreatorConfigBuilder setReadSessionCacheDurationMins(
+      long readSessionCacheDurationMins) {
+    this.readSessionCacheDurationMins = readSessionCacheDurationMins;
+    return this;
+  }
+
   public ReadSessionCreatorConfig build() {
     return new ReadSessionCreatorConfig(
         viewsEnabled,
@@ -193,6 +200,7 @@ public class ReadSessionCreatorConfigBuilder {
         streamsPerPartition,
         arrowCompressionCodec,
         traceId,
-        enableReadSessionCaching);
+        enableReadSessionCaching,
+        readSessionCacheDurationMins);
   }
 }
