@@ -21,12 +21,15 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.UnknownFieldSet;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public interface ReadRowsResponseToInternalRowIteratorConverter {
 
@@ -114,6 +117,8 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
     private final com.google.common.base.Optional<BigQueryStorageReadRowsTracer>
         bigQueryStorageReadRowsTracer;
 
+    private static final Logger log = LoggerFactory.getLogger(Arrow.class);
+
     int decompressedArrowRecordBatchSize;
     ByteString decompressedArrowRecordBatch;
 
@@ -172,6 +177,13 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
           userProvidedSchema.toJavaUtil(),
           bigQueryStorageReadRowsTracer.toJavaUtil());
       */
+
+      UnknownFieldSet unknownFieldSet = response.getUnknownFields();
+      java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
+      log.info("AQIU: encountered UnknownFieldSet.asMap {}", unknownFieldSetMap);
+      log.info(
+          "AQIU: serializedRecordBatch", response.getArrowRecordBatch().getSerializedRecordBatch());
+      log.info("AQIU:");
 
       return new ArrowBinaryIterator(
           columnsInOrder,

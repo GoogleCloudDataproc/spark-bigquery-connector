@@ -31,6 +31,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.protobuf.Descriptors.FieldDescriptor;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -86,9 +87,9 @@ public class ReadSessionCreator {
    * constructed with.
    *
    * @param table The table to create the session for.
-   * @param selectedFields
-   * @param filter
-   * @return
+   * @param selectedFields Projection : the fields (e.g. columns) to return
+   * @param filter Selection: how to filter rows that match this filter
+   * @return ReadSessionResponse
    */
   public ReadSessionResponse create(
       TableId table, ImmutableList<String> selectedFields, Optional<String> filter) {
@@ -109,16 +110,19 @@ public class ReadSessionCreator {
                     CreateReadSessionRequest parsed =
                         com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest.parseFrom(
                             java.util.Base64.getDecoder().decode(value));
-                    log.info("AQIU: parsed encoded CreateReadSessionRequest %s", parsed);
+                    log.info("AQIU: parsed encoded CreateReadSessionRequest {}", parsed.toString());
                     return parsed;
                   } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    log.info("AQIU: could not decode encoded CreateReadSessionRequest");
+                    log.info("AQIU: could not decode encoded CreateReadSessionRequest {}", value);
                     throw new RuntimeException("Couldn't decode:" + value, e);
                   }
                 })
             .orElse(CreateReadSessionRequest.newBuilder().build());
     ReadSession.Builder requestedSession = request.getReadSession().toBuilder();
     config.getTraceId().ifPresent(traceId -> requestedSession.setTraceId(traceId));
+    if (config.getTraceId().isPresent()) {
+      log.info("AQIU: traceID: {} maybe set TraceId {}", config.getTraceId(), requestedSession.getTraceId());
+    }
 
     TableReadOptions.Builder readOptions = requestedSession.getReadOptionsBuilder();
     if (!isInputTableAView(tableDetails)) {
@@ -129,11 +133,18 @@ public class ReadSessionCreator {
         ArrowSerializationOptions.newBuilder()
             .setBufferCompression(config.getArrowCompressionCodec())
             .build());
-    log.info("AQIU: setting arrow compression to be %s", config.getArrowCompressionCodec());
+    // log.info("AQIU: setting arrow compression to be {}", config.getArrowCompressionCodec());
 
-    // TODO(AQIU): set this feild that does not yet exist
+    // TODO(AQIU): set this field that does not yet exist
     // readOptions.setResponseCompressionCodec(ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_SNAPPY);
-    // log.debug("AQIU: setting ResponseCompressionCodec to be snappy");
+    // following instructions here:
+    // https://stackoverflow.com/questions/56090867/how-to-deal-with-unknown-protobuf-fields-in-java
+    FieldDescriptor responseCompressionCodec =
+        readOptions.getDescriptorForType().findFieldByName("response_compression_codec");
+    readOptions.setField(responseCompressionCodec, 1);
+    log.info(
+        "AQIU: setting ResponseCompressionCodec to be snappy aka {}",
+        readOptions.getField(responseCompressionCodec));
 
     int preferredMinStreamCount =
         config

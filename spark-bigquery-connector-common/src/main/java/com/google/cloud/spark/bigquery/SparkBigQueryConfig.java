@@ -204,8 +204,12 @@ public class SparkBigQueryConfig
   boolean pushAllFilters = true;
   boolean enableModeCheckForSchemaFields = true;
   private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
-  private com.google.common.base.Optional<String> bigQueryStorageGrpcEndpoint = empty();
-  private com.google.common.base.Optional<String> bigQueryHttpEndpoint = empty();
+  //   private com.google.common.base.Optional<String> bigQueryStorageGrpcEndpoint = empty();
+  //   private com.google.common.base.Optional<String> bigQueryHttpEndpoint = empty();
+  private com.google.common.base.Optional<String> bigQueryStorageGrpcEndpoint =
+      com.google.common.base.Optional.of("test-bigquerystorage-grpc.sandbox.googleapis.com:443");
+  private com.google.common.base.Optional<String> bigQueryHttpEndpoint =
+      com.google.common.base.Optional.of("https://us-test-bigquery.sandbox.google.com");
   private int numBackgroundThreadsPerStream = 0;
   private int numPrebufferReadRowsResponses = MIN_BUFFERED_RESPONSES_PER_STREAM;
   private int numStreamsPerPartition = MIN_STREAMS_PER_PARTITION;
