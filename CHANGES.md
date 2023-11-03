@@ -2,6 +2,8 @@
 
 ## Next
 
+* PR #1117: Make read session caching duration configurable
+
 ## 0.34.0 - 2023-10-31
 
 * PR #1057: Enable async writes for greater throughput
