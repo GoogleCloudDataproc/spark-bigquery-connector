@@ -47,12 +47,23 @@ public class ReadSessionCreator {
   public static final int DEFAULT_MIN_PARALLELISM_FACTOR = 3;
 
   private static final Logger log = LoggerFactory.getLogger(ReadSessionCreator.class);
-  private static final Cache<CreateReadSessionRequest, ReadSession> READ_SESSION_CACHE =
-      CacheBuilder.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(1000).build();
+  private static boolean initialized = false;
+  private static Cache<CreateReadSessionRequest, ReadSession> READ_SESSION_CACHE;
 
   private final ReadSessionCreatorConfig config;
   private final BigQueryClient bigQueryClient;
   private final BigQueryClientFactory bigQueryReadClientFactory;
+
+  private static synchronized void initializeCache(long readSessionCacheDurationMins) {
+    if (!initialized) {
+      READ_SESSION_CACHE =
+          CacheBuilder.newBuilder()
+              .expireAfterWrite(readSessionCacheDurationMins, TimeUnit.MINUTES)
+              .maximumSize(1000)
+              .build();
+      initialized = true;
+    }
+  }
 
   public ReadSessionCreator(
       ReadSessionCreatorConfig config,
@@ -61,6 +72,7 @@ public class ReadSessionCreator {
     this.config = config;
     this.bigQueryClient = bigQueryClient;
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
+    initializeCache(config.getReadSessionCacheDurationMins());
   }
 
   /**

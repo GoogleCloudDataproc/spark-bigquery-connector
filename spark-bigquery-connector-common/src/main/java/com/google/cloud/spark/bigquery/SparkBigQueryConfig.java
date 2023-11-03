@@ -213,6 +213,7 @@ public class SparkBigQueryConfig
   private com.google.common.base.Optional<Integer> flowControlWindowBytes =
       com.google.common.base.Optional.absent();
   private boolean enableReadSessionCaching = true;
+  private long readSessionCacheDurationMins = 5L;
   private SparkBigQueryProxyAndHttpConfig sparkBigQueryProxyAndHttpConfig;
   private CompressionCodec arrowCompressionCodec = DEFAULT_ARROW_COMPRESSION_CODEC;
   private WriteMethod writeMethod = DEFAULT_WRITE_METHOD;
@@ -491,6 +492,14 @@ public class SparkBigQueryConfig
             .or(defaultChannelPoolSize);
     config.enableReadSessionCaching =
         getAnyBooleanOption(globalOptions, options, "enableReadSessionCaching", true);
+    config.readSessionCacheDurationMins =
+        getAnyOption(globalOptions, options, "readSessionCacheDurationMins")
+            .transform(Long::parseLong)
+            .or(5L);
+    if (!(config.readSessionCacheDurationMins > 0L
+        && config.readSessionCacheDurationMins <= 300L)) {
+      throw new IllegalArgumentException("readSessionCacheDurationMins should be > 0 and <= 300");
+    }
 
     String arrowCompressionCodecParam =
         getAnyOption(globalOptions, options, ARROW_COMPRESSION_CODEC_OPTION)
@@ -1037,6 +1046,7 @@ public class SparkBigQueryConfig
         .setArrowCompressionCodec(arrowCompressionCodec)
         .setTraceId(traceId.toJavaUtil())
         .setEnableReadSessionCaching(enableReadSessionCaching)
+        .setReadSessionCacheDurationMins(readSessionCacheDurationMins)
         .build();
   }
 
