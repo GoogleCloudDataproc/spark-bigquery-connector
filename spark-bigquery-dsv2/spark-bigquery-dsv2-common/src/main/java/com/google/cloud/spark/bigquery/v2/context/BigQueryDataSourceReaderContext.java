@@ -43,7 +43,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,7 +98,7 @@ public class BigQueryDataSourceReaderContext {
   private final String applicationId;
   private Optional<StructType> schema;
   private Optional<StructType> userProvidedSchema;
-  private Filter[] pushedFilters = new Filter[] {};
+  private final Set<Filter> pushedFilters = new HashSet<>();
   private Filter[] allFilters = new Filter[] {};
   private Map<String, StructField> fields;
   private ImmutableList<String> selectedFields;
@@ -199,7 +199,7 @@ public class BigQueryDataSourceReaderContext {
             readSessionCreatorConfig.getPushAllFilters(),
             readSessionCreatorConfig.getReadDataFormat(),
             globalFilter,
-            pushedFilters));
+            pushedFilters.toArray(new Filter[0])));
   }
 
   public Stream<InputPartitionContext<ColumnarBatch>> planBatchInputPartitionContexts() {
@@ -330,12 +330,12 @@ public class BigQueryDataSourceReaderContext {
     }
 
     allFilters = filters;
-    pushedFilters = handledFilters.stream().toArray(Filter[]::new);
+    pushedFilters.addAll(handledFilters);
     return unhandledFilters.stream().toArray(Filter[]::new);
   }
 
   public Filter[] pushedFilters() {
-    return pushedFilters;
+    return pushedFilters.toArray(new Filter[0]);
   }
 
   public Filter[] getAllFilters() {
@@ -368,8 +368,7 @@ public class BigQueryDataSourceReaderContext {
           BigQueryUtil.friendlyTableName(tableId));
       return Optional.empty();
     }
-    pushedFilters =
-        Stream.concat(Arrays.stream(pushedFilters), newFilters.stream()).toArray(Filter[]::new);
+    pushedFilters.addAll(newFilters);
     Optional<String> combinedFilter = getCombinedFilter();
     if (!BigQueryUtil.filterLengthInLimit(combinedFilter)) {
       logger.warn(
