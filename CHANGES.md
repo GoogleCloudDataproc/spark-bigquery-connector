@@ -3,6 +3,7 @@
 ## Next
 
 * PR #1117: Make read session caching duration configurable
+* PR #1118: Improve read session caching key
 
 ## 0.34.0 - 2023-10-31
 
