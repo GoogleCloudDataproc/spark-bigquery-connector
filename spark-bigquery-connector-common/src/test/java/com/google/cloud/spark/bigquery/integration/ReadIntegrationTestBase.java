@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
 import com.google.common.base.Preconditions;
@@ -93,7 +94,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   private static final String LARGE_TABLE = "bigquery-public-data.samples.natality";
   private static final String LARGE_TABLE_FIELD = "is_male";
   private static final long LARGE_TABLE_NUM_ROWS = 33271914L;
-  private static final String NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent";
+  private static final String INVALID_TABLE_ID = "non-existent.non-existent.non-existent";
+  private static final String NON_EXISTENT_TABLE = "bigquery-public-data.samples.non-existent";
   private static final String ALL_TYPES_TABLE_NAME = "all_types";
 
   protected StructType allTypesTableSchema;
@@ -307,10 +309,20 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   @Test
-  public void testNonExistentSchema() {
+  public void testInvalidTable() {
     assertThrows(
-        "Trying to read a non existing table should throw an exception",
+        "Trying to read an invalid table id should throw an exception",
         RuntimeException.class,
+        () -> {
+          spark.read().format("bigquery").option("table", INVALID_TABLE_ID).load();
+        });
+  }
+
+  @Test
+  public void testLoadFromNonExistenceTable() {
+    assertThrows(
+        "Trying to read a non existing table should throw BigQueryException",
+        BigQueryException.class,
         () -> {
           spark.read().format("bigquery").option("table", NON_EXISTENT_TABLE).load();
         });

@@ -387,7 +387,8 @@ public class BigQueryClient {
 
     TableInfo table = getTable(options.tableId());
     if (table == null) {
-      return null;
+      throw new BigQueryException(
+          404, String.format("The table doesn't exist, %s", options.tableId()));
     }
 
     TableDefinition tableDefinition = table.getDefinition();
