@@ -526,7 +526,8 @@ public class SparkBigQueryConfig
     }
 
     com.google.common.base.Optional<String> traceApplicationNameParam =
-        getAnyOption(globalOptions, options, "traceApplicationName");
+        getAnyOption(globalOptions, options, "traceApplicationName")
+            .or(com.google.common.base.Optional.fromNullable("traceApplicationName"));
     config.traceId =
         traceApplicationNameParam.transform(
             traceApplicationName -> {

@@ -4,6 +4,7 @@
 
 * PR #1117: Make read session caching duration configurable
 * PR #1118: Improve read session caching key
+* PR #1122: Set traceId on write
 * PR #1127: Fix job labeling for mixed case Dataproc job names
 
 ## 0.34.0 - 2023-10-31

@@ -124,7 +124,8 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.INDIRECT);
     assertThat(config.getCacheExpirationTimeInMinutes())
         .isEqualTo(SparkBigQueryConfig.DEFAULT_CACHE_EXPIRATION_IN_MINUTES);
-    assertThat(config.getTraceId().isPresent()).isFalse();
+    assertThat(config.getTraceId().isPresent()).isTrue();
+    assertThat(config.getTraceId().get().startsWith("Spark:traceApplicationName:"));
     assertThat(config.getBigQueryJobLabels()).isEmpty();
     assertThat(config.getEnableModeCheckForSchemaFields()).isTrue();
     assertThat(config.getDatetimeZoneId()).isEqualTo(ZoneId.of("UTC"));
@@ -171,7 +172,7 @@ public class SparkBigQueryConfigTest {
                 .put("writeMethod", "direct")
                 .put("cacheExpirationTimeInMinutes", "100")
                 .put("traceJobId", "traceJobId")
-                .put("traceApplicationName", "traceApplicationName")
+                .put("traceApplicationName", "traceApplicationNameTest")
                 .put("bigQueryJobLabel.foo", "bar")
                 .put("enableModeCheckForSchemaFields", "false")
                 .put("datetimeZoneId", "Asia/Jerusalem")
@@ -223,7 +224,8 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getArrowCompressionCodec()).isEqualTo(CompressionCodec.ZSTD);
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.DIRECT);
     assertThat(config.getCacheExpirationTimeInMinutes()).isEqualTo(100);
-    assertThat(config.getTraceId()).isEqualTo(Optional.of("Spark:traceApplicationName:traceJobId"));
+    assertThat(config.getTraceId())
+        .isEqualTo(Optional.of("Spark:traceApplicationNameTest:traceJobId"));
     assertThat(config.getBigQueryJobLabels()).hasSize(1);
     assertThat(config.getBigQueryJobLabels()).containsEntry("foo", "bar");
     assertThat(config.getEnableModeCheckForSchemaFields()).isFalse();
