@@ -252,7 +252,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
                       tableToWrite.getTableId(), destinationTableId)
               : bigQueryClient.appendDestinationWithTemporary(
                   tableToWrite.getTableId(), destinationTableId);
-      BigQueryClient.waitForJob(queryJob);
+      bigQueryClient.waitForJob(queryJob);
       Preconditions.checkState(
           bigQueryClient.deleteTable(tableToWrite.getTableId()),
           new BigQueryConnectorException(

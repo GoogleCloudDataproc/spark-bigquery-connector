@@ -72,7 +72,8 @@ public class IntegrationTestUtils {
             Optional.empty(),
             destinationTableCache,
             ImmutableMap.of(),
-            SparkBigQueryConfig.DEFAULT_JOB_PRIORITY);
+            SparkBigQueryConfig.DEFAULT_JOB_PRIORITY,
+            Optional.empty());
     bigQueryClient.query(query);
   }
 

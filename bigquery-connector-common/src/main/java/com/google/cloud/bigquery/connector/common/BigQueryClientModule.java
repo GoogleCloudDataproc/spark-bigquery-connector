@@ -26,6 +26,7 @@ import com.google.inject.Binder;
 import com.google.inject.Provides;
 import com.google.inject.Scopes;
 import com.google.inject.Singleton;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class BigQueryClientModule implements com.google.inject.Module {
@@ -99,7 +100,8 @@ public class BigQueryClientModule implements com.google.inject.Module {
       HeaderProvider headerProvider,
       BigQueryCredentialsSupplier bigQueryCredentialsSupplier,
       Cache<String, TableInfo> destinationTableCache,
-      EnvironmentContext environmentContext) {
+      EnvironmentContext environmentContext,
+      BigQueryJobCompletionListener jobCompletionListener) {
     BigQueryOptions.Builder options =
         BigQueryOptions.newBuilder()
             .setHeaderProvider(headerProvider)
@@ -134,6 +136,7 @@ public class BigQueryClientModule implements com.google.inject.Module {
         config.getMaterializationDataset(),
         destinationTableCache,
         bigQueryJobLabels,
-        config.getQueryJobPriority());
+        config.getQueryJobPriority(),
+        Optional.of(jobCompletionListener));
   }
 }

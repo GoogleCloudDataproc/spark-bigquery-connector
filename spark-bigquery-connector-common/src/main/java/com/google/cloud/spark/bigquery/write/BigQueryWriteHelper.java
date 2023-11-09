@@ -138,7 +138,7 @@ public class BigQueryWriteHelper {
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
                 temporaryTableId.get(), config.getTableId());
-        BigQueryClient.waitForJob(queryJob);
+        bigQueryClient.waitForJob(queryJob);
       } else {
         loadDataToBigQuery();
       }
