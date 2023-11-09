@@ -22,7 +22,6 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
-import com.google.cloud.bigquery.connector.common.BigQueryJobCompletionListener;
 import com.google.cloud.spark.bigquery.events.BigQueryJobCompletedEvent;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -73,7 +72,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     List<JobInfo> jobInfos = listener.getJobInfos();
     assertThat(jobInfos).hasSize(1);
     JobInfo jobInfo = jobInfos.iterator().next();
-    assertThat(((QueryJobConfiguration)jobInfo.getConfiguration()).getQuery()).isEqualTo(query);
+    assertThat(((QueryJobConfiguration) jobInfo.getConfiguration()).getQuery()).isEqualTo(query);
   }
 
   @Test
@@ -184,8 +183,8 @@ class TestBigQueryJobCompletionListener extends SparkListener {
 
   @Override
   public void onOtherEvent(SparkListenerEvent event) {
-    if(event instanceof BigQueryJobCompletedEvent) {
-      jobInfos.add(((BigQueryJobCompletedEvent)event).getJobInfo());
+    if (event instanceof BigQueryJobCompletedEvent) {
+      jobInfos.add(((BigQueryJobCompletedEvent) event).getJobInfo());
     }
   }
 

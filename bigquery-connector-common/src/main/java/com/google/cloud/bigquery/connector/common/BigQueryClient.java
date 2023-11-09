@@ -18,7 +18,6 @@ package com.google.cloud.bigquery.connector.common;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryForRangePartitionedTable;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryForTimePartitionedTable;
 
-import com.google.cloud.BaseServiceException;
 import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
