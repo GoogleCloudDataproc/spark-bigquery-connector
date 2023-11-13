@@ -656,4 +656,15 @@ public class BigQueryUtilTest {
     assertThat(BigQueryUtil.prepareQueryForLog("SELECT a FROM table", 10))
         .isEqualTo("SELECT a F\u2026");
   }
+
+  @Test
+  public void testSanitizeLabelValue() {
+    // testing to lower case transformation, and character handling
+    assertThat(BigQueryUtil.sanitizeLabelValue("Foo-bar*")).isEqualTo("foo-bar_");
+    // testing Strings longer than 63 characters
+    assertThat(
+            BigQueryUtil.sanitizeLabelValue(
+                "1234567890123456789012345678901234567890123456789012345678901234567890"))
+        .isEqualTo("123456789012345678901234567890123456789012345678901234567890123");
+  }
 }

@@ -697,4 +697,21 @@ public class BigQueryUtil {
         extractedPartitionedSource,
         extractedPartitionedTarget);
   }
+
+  // based on https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#jobconfiguration, it
+  // seems that the values are subject to the same restriction
+  public static String sanitizeLabelValue(String value) {
+    int resultLength = Math.min(value.length(), 63);
+    StringBuilder buf = new StringBuilder(value.length());
+    for (int i = 0; i < resultLength; i++) {
+      char ch = Character.toLowerCase(value.charAt(i));
+      if (Character.isLetterOrDigit(ch) || ch == '-' || ch == '_') {
+        buf.append(ch);
+      } else {
+        // if not alpha-numeric or -,_ then append underscore as a placeholder
+        buf.append('_');
+      }
+    }
+    return buf.toString();
+  }
 }
