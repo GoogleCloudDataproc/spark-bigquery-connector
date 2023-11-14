@@ -5,7 +5,7 @@ import static com.google.cloud.spark.bigquery.plugins.SparkBigQueryPluginUtil.SU
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Metric;
 import com.google.cloud.spark.bigquery.metrics.ReadSessionMetrics;
-import com.google.cloud.spark.events.MetricJson;
+import com.google.cloud.spark.events.BigQueryConnectorMetricJsonEvent;
 import java.util.Map;
 import org.apache.spark.api.plugin.ExecutorPlugin;
 import org.apache.spark.api.plugin.PluginContext;
@@ -26,8 +26,9 @@ public class SparkBigQueryExecutorPlugin implements ExecutorPlugin {
       // if the metric doesn't have any value, we don't need to send it.
       return;
     }
-    MetricJson metricJson = new MetricJson(sessionID, metricName, metricCounter.getCount());
-    Object status = ctx.ask(metricJson);
+    BigQueryConnectorMetricJsonEvent bigQueryConnectorMetricJsonEvent =
+        new BigQueryConnectorMetricJsonEvent(sessionID, metricName, metricCounter.getCount());
+    Object status = ctx.ask(bigQueryConnectorMetricJsonEvent);
     if (status.toString().equals(SUCCESS_MESSAGE)) {
       metricCounter.dec(metricCounter.getCount());
     } else {

@@ -74,9 +74,11 @@ class BigQueryRelationProvider(
                                         schema: Option[StructType] = None): BigQueryRelation = {
     val injector = getGuiceInjectorCreator().createGuiceInjector(sqlContext, parameters, schema)
     val opts = injector.getInstance(classOf[SparkBigQueryConfig])
-    SparkBigQueryJobEvents.postInputFormatEvent(injector.getInstance(classOf[SparkSession]).sqlContext)
+    val sqlContext = injector.getInstance(classOf[SparkSession]).sqlContext
+    SparkBigQueryJobEvents.postInputFormatEvent(sqlContext)
     val userAgentProvider = injector.getInstance(classOf[UserAgentProvider])
-    SparkBigQueryJobEvents.postConnectorVersion(injector.getInstance(classOf[SparkSession]).sqlContext, userAgentProvider.getConnectorInfo)
+    SparkBigQueryJobEvents.postConnectorVersion(sqlContext, userAgentProvider.getConnectorInfo)
+    val tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions)
     val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
     val tableInfo = bigQueryClient.getReadTable(opts.toReadTableOptions)
     val tableName = BigQueryUtil.friendlyTableName(opts.getTableId)

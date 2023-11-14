@@ -3,8 +3,7 @@ package com.google.cloud.spark.bigquery.plugins;
 import static com.google.cloud.spark.bigquery.plugins.SparkBigQueryPluginUtil.FAILED_MESSAGE;
 import static com.google.cloud.spark.bigquery.plugins.SparkBigQueryPluginUtil.SUCCESS_MESSAGE;
 
-import com.google.cloud.spark.events.BigQueryConnectorMetricEvent;
-import com.google.cloud.spark.events.MetricJson;
+import com.google.cloud.spark.events.BigQueryConnectorMetricJsonEvent;
 import com.google.gson.JsonSyntaxException;
 import java.util.Collections;
 import java.util.Map;
@@ -27,9 +26,9 @@ public class SparkBigQueryDriverPlugin implements DriverPlugin {
   @Override
   public Object receive(Object message) throws Exception {
     try {
-      if (message instanceof MetricJson) {
-        MetricJson metricJson = (MetricJson) message;
-        sparkContext.listenerBus().post(new BigQueryConnectorMetricEvent(metricJson));
+      if (message instanceof BigQueryConnectorMetricJsonEvent) {
+        BigQueryConnectorMetricJsonEvent bigQueryConnectorMetricJsonEvent = (BigQueryConnectorMetricJsonEvent) message;
+        sparkContext.listenerBus().post(bigQueryConnectorMetricJsonEvent);
       }
       return SUCCESS_MESSAGE;
     } catch (JsonSyntaxException j) {

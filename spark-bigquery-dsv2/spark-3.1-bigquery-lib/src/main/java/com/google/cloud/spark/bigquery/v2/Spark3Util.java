@@ -26,6 +26,7 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.metrics.SparkBigQueryJobEvents;
 import com.google.inject.Injector;
 import java.util.Map;
+import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.types.StructType;
@@ -45,12 +46,10 @@ public class Spark3Util {
             .build();
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
-    SparkBigQueryJobEvents.postInputFormatEvent(
-        injector.getInstance(SparkSession.class).sqlContext());
+    SQLContext sqlContext = injector.getInstance(SparkSession.class).sqlContext();
+    SparkBigQueryJobEvents.postInputFormatEvent(sqlContext);
     UserAgentProvider userAgentProvider = injector.getInstance(UserAgentProvider.class);
-    SparkBigQueryJobEvents.postConnectorVersion(
-        injector.getInstance(SparkSession.class).sqlContext(),
-        userAgentProvider.getConnectorInfo());
+    SparkBigQueryJobEvents.postConnectorVersion(sqlContext, userAgentProvider.getConnectorInfo());
     TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
     if (tableInfo == null) {
       return bigQueryTableCreator.create(injector, config.getTableId(), sparkProvidedSchema);
