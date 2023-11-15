@@ -274,11 +274,19 @@ public class SparkBigQueryUtil {
     tags.stream()
         .filter(tag -> tag.startsWith("dataproc_job_"))
         .findFirst()
-        .ifPresent(tag -> labels.put("dataproc_job_id", tag.substring(tag.lastIndexOf('_') + 1)));
+        .ifPresent(
+            tag ->
+                labels.put(
+                    "dataproc_job_id",
+                    BigQueryUtil.sanitizeLabelValue(tag.substring(tag.lastIndexOf('_') + 1))));
     tags.stream()
         .filter(tag -> tag.startsWith("dataproc_uuid_"))
         .findFirst()
-        .ifPresent(tag -> labels.put("dataproc_job_uuid", tag.substring(tag.lastIndexOf('_') + 1)));
+        .ifPresent(
+            tag ->
+                labels.put(
+                    "dataproc_job_uuid",
+                    BigQueryUtil.sanitizeLabelValue(tag.substring(tag.lastIndexOf('_') + 1))));
     return labels.build();
   }
 }
