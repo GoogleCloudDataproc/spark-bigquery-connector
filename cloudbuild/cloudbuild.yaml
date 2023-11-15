@@ -109,7 +109,7 @@ steps:
 # 4h. Run integration tests concurrently with unit tests (DSv2, Spark 3.5)
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
     id: 'integration-tests-3.5'
-    waitFor: ['integration-tests-3.4']
+    waitFor: ['integration-tests-3.2']
     entrypoint: 'bash'
     args: ['/workspace/cloudbuild/presubmit.sh', 'integrationtest-3.5']
     env:

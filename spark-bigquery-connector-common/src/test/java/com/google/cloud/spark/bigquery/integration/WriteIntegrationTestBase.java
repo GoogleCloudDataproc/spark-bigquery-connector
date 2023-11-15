@@ -35,6 +35,7 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
 import com.google.cloud.spark.bigquery.SchemaConverters;
@@ -2449,6 +2450,79 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     Row row = values.get(0);
     assertThat(row.get(row.fieldIndex("features")))
         .isInstanceOf(org.apache.spark.ml.linalg.Vector.class);
+  }
+
+  @Test
+  public void testTimestampNTZDirectWriteToBigQuery() throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    assumeThat(timeStampNTZType.isPresent(), is(true));
+    LocalDateTime time = LocalDateTime.of(2023, 9, 1, 12, 23, 34, 268543 * 1000);
+    List<Row> rows = Arrays.asList(RowFactory.create(time));
+    Dataset<Row> df =
+        spark.createDataFrame(
+            rows,
+            new StructType(
+                new StructField[] {
+                  StructField.apply("foo", timeStampNTZType.get(), true, Metadata.empty())
+                }));
+    String table = testDataset.toString() + "." + testTable;
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Overwrite)
+        .option("table", table)
+        .option("writeMethod", SparkBigQueryConfig.WriteMethod.DIRECT.toString())
+        .save();
+    BigQuery bigQuery = IntegrationTestUtils.getBigquery();
+    TableResult result =
+        bigQuery.query(
+            QueryJobConfiguration.of(String.format("Select foo from %s", fullTableName())));
+    assertThat(result.getSchema().getFields().get(0).getType())
+        .isEqualTo(LegacySQLTypeName.DATETIME);
+    assertThat(result.streamValues().findFirst().get().get(0).getValue())
+        .isEqualTo("2023-09-01T12:23:34.268543");
+  }
+
+  @Test
+  public void testTimestampNTZIndirectWriteToBigQueryAvroFormat() throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    assumeThat(timeStampNTZType.isPresent(), is(true));
+    LocalDateTime time = LocalDateTime.of(2023, 9, 1, 12, 23, 34, 268543 * 1000);
+    TableResult result = insertAndGetTimestampNTZToBigQuery(time, "avro");
+    assertThat(result.getSchema().getFields().get(0).getType())
+        .isEqualTo(LegacySQLTypeName.DATETIME);
+    assertThat(result.streamValues().findFirst().get().get(0).getValue())
+        .isEqualTo("2023-09-01T12:23:34.268543");
+  }
+
+  @Test
+  public void testTimestampNTZIndirectWriteToBigQueryParquetFormat() throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    assumeThat(timeStampNTZType.isPresent(), is(true));
+    LocalDateTime time = LocalDateTime.of(2023, 9, 15, 12, 36, 34, 268543 * 1000);
+    TableResult result = insertAndGetTimestampNTZToBigQuery(time, "parquet");
+    assertThat(result.getSchema().getFields().get(0).getType())
+        .isEqualTo(LegacySQLTypeName.DATETIME);
+    assertThat(result.streamValues().findFirst().get().get(0).getValue())
+        .isEqualTo("2023-09-15T12:36:34.268543");
+  }
+
+  private TableResult insertAndGetTimestampNTZToBigQuery(LocalDateTime time, String format)
+      throws InterruptedException {
+    Preconditions.checkArgument(timeStampNTZType.isPresent(), "timestampNTZType not present");
+    List<Row> rows = Arrays.asList(RowFactory.create(time));
+    Dataset<Row> df =
+        spark.createDataFrame(
+            rows,
+            new StructType(
+                new StructField[] {
+                  StructField.apply("foo", timeStampNTZType.get(), true, Metadata.empty())
+                }));
+    writeToBigQuery(df, SaveMode.Overwrite, format);
+    BigQuery bigQuery = IntegrationTestUtils.getBigquery();
+    TableResult result =
+        bigQuery.query(
+            QueryJobConfiguration.of(String.format("Select foo from %s", fullTableName())));
+    return result;
   }
 
   protected long numberOfRowsWith(String name) {

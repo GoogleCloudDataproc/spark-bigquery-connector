@@ -31,12 +31,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
@@ -103,18 +105,35 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   protected List<String> gcsObjectsToClean = new ArrayList<>();
 
   public ReadIntegrationTestBase() {
-    this(true);
+    this(true, Optional.empty());
   }
 
   public ReadIntegrationTestBase(boolean userProvidedSchemaAllowed) {
-    this(userProvidedSchemaAllowed, ALL_TYPES_TABLE_SCHEMA);
+    this(userProvidedSchemaAllowed, Optional.empty());
+  }
+
+  public ReadIntegrationTestBase(boolean userProvidedSchemaAllowed, DataType timestampNTZType) {
+    this(userProvidedSchemaAllowed, Optional.of(timestampNTZType));
   }
 
   public ReadIntegrationTestBase(
-      boolean userProvidedSchemaAllowed, StructType allTypesTableSchema) {
+      boolean userProvidedSchemaAllowed, Optional<DataType> timeStampNTZType) {
     super();
-    this.userProvidedSchemaAllowed = userProvidedSchemaAllowed;
-    this.allTypesTableSchema = allTypesTableSchema;
+    this.userProvidedSchemaAllowed = true;
+    intializeSchema(timeStampNTZType);
+  }
+
+  private void intializeSchema(Optional<DataType> timeStampNTZType) {
+    if (!timeStampNTZType.isPresent()) {
+      allTypesTableSchema = ALL_TYPES_TABLE_SCHEMA;
+      return;
+    }
+    allTypesTableSchema = new StructType();
+    for (StructField field : ALL_TYPES_TABLE_SCHEMA.fields()) {
+      DataType dateTimeType = field.name().equals("dt") ? timeStampNTZType.get() : field.dataType();
+      allTypesTableSchema =
+          allTypesTableSchema.add(field.name(), dateTimeType, field.nullable(), field.metadata());
+    }
   }
 
   @Before

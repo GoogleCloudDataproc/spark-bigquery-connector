@@ -17,12 +17,12 @@ package com.google.cloud.spark.bigquery.acceptance;
 
 import org.junit.Ignore;
 
-@Ignore // Waiting for the serverless dataproc.sparkBqConnector.uri property
+@Ignore // Waiting for the serverless spark 3.5 runtime
 public class Spark35BigNumericDataprocServerlessAcceptanceTest
     extends BigNumericDataprocServerlessAcceptanceTestBase {
 
   public Spark35BigNumericDataprocServerlessAcceptanceTest() {
-    super("spark-3.5-bigquery", "2.1");
+    super("spark-3.5-bigquery", "2.2");
   }
 
   // tests from superclass
