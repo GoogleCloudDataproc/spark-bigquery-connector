@@ -16,6 +16,7 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.protobuf.UnknownFieldSet;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -29,6 +30,7 @@ public class ReadRowsResponseInputStreamEnumeration implements java.util.Enumera
   private final Iterator<ReadRowsResponse> responses;
   private ReadRowsResponse currentResponse;
   private final BigQueryStorageReadRowsTracer tracer;
+  private boolean didLogResponse = false; // reduce spam
 
   public ReadRowsResponseInputStreamEnumeration(
       Iterator<ReadRowsResponse> responses, BigQueryStorageReadRowsTracer tracer) {
@@ -46,6 +48,17 @@ public class ReadRowsResponseInputStreamEnumeration implements java.util.Enumera
       throw new NoSuchElementException("No more responses");
     }
     ReadRowsResponse ret = currentResponse;
+
+    // TODO: AQIU: it is hit here!  decompress here?
+    if (didLogResponse == false) {
+      UnknownFieldSet unknownFieldSet = currentResponse.getUnknownFields();
+      java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
+      System.out.printf(
+          "AQIU: ReadRowsResponseInputStreamEnumeration ReadRowsResponse UnknownFieldSet.asMap {}"
+              + " \n",
+          unknownFieldSetMap);
+      didLogResponse = true;
+    }
     loadNextResponse();
     return ret.getArrowRecordBatch().getSerializedRecordBatch().newInput();
   }

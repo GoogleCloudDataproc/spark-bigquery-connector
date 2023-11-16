@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import com.google.protobuf.UnknownFieldSet;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -57,6 +58,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
   Object last;
   volatile boolean cancelled = false;
   private final Collection<Observer> observers;
+  private boolean didLogResponse = false; // reduce spam
 
   StreamCombiningIterator(
       BigQueryReadClient client,
@@ -90,7 +92,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       }
 
       try {
-        completeStream(/*addEos=*/ false);
+        completeStream(/* addEos= */ false);
       } finally {
         Preconditions.checkState(
             responses.add(error), "Responses should always have capacity to add element");
@@ -119,6 +121,15 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       observer.request();
       @SuppressWarnings("unchecked")
       ReadRowsResponse tmp = (ReadRowsResponse) last;
+      if (didLogResponse == false) {
+        // TODO: AQIU THIS IS HIT: why isn't there an unknownFieldSet returned?
+        UnknownFieldSet unknownFieldSet = tmp.getUnknownFields();
+        java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
+        log.info(
+            "AQIU: StreamCombiningIterator ReadRowsResponse UnknownFieldSet.asMap {}",
+            unknownFieldSetMap);
+        didLogResponse = true;
+      }
       return tmp;
     } finally {
       if (last != EOS) {
@@ -168,7 +179,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       if (cancelled) {
         return;
       }
-      completeStream(/*addEos=*/ true);
+      completeStream(/* addEos= */ true);
     }
   }
 
@@ -180,7 +191,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       if (hasActiveObservers()) {
         return;
       }
-      completeStream(/*addEos=*/ true);
+      completeStream(/* addEos= */ true);
     }
     for (Observer observer : observers) {
       observer.cancel();
@@ -214,12 +225,14 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
     private long readRowsCount = 0;
     /* Number of retries so far on this observer */
     private int retries = 0;
+
     /**
      * All methods accessing controller must be synchronized using controllerLock. The states of
      * this object are: - Fresh object: null - Stream ready (receiving responses): not null -
      * Retrying stream: null - Stream Finished: null
      */
     StreamController controller;
+
     // Number of responses enqueued in the main iterator.
     AtomicInteger enqueuedCount = new AtomicInteger(0);
     private final Object controllerLock = new Object();

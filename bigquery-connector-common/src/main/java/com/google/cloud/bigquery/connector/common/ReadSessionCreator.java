@@ -31,7 +31,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.protobuf.Descriptors.FieldDescriptor;
+import com.google.protobuf.UnknownFieldSet;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -40,7 +40,7 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO(aqiu) This field does not yet exist in the public client library
+// TODO(AQIU) This field does not yet exist in the public client library
 // import
 // com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 
@@ -118,33 +118,26 @@ public class ReadSessionCreator {
                   }
                 })
             .orElse(CreateReadSessionRequest.newBuilder().build());
-    ReadSession.Builder requestedSession = request.getReadSession().toBuilder();
-    config.getTraceId().ifPresent(traceId -> requestedSession.setTraceId(traceId));
+
+    ReadSession.Builder readSessionBuilder = request.getReadSession().toBuilder();
+    config.getTraceId().ifPresent(traceId -> readSessionBuilder.setTraceId(traceId));
     if (config.getTraceId().isPresent()) {
-      log.info("AQIU: traceID: {} maybe set TraceId {}", config.getTraceId(), requestedSession.getTraceId());
+      log.info(
+          "AQIU: traceID: {} maybe set TraceId {}",
+          config.getTraceId(),
+          readSessionBuilder.getTraceId());
     }
 
-    TableReadOptions.Builder readOptions = requestedSession.getReadOptionsBuilder();
+    TableReadOptions.Builder readOptionsBuilder = readSessionBuilder.getReadOptionsBuilder();
     if (!isInputTableAView(tableDetails)) {
-      filter.ifPresent(readOptions::setRowRestriction);
+      filter.ifPresent(readOptionsBuilder::setRowRestriction);
     }
-    readOptions.addAllSelectedFields(selectedFields);
-    readOptions.setArrowSerializationOptions(
+    readOptionsBuilder.addAllSelectedFields(selectedFields);
+    readOptionsBuilder.setArrowSerializationOptions(
         ArrowSerializationOptions.newBuilder()
             .setBufferCompression(config.getArrowCompressionCodec())
             .build());
-    // log.info("AQIU: setting arrow compression to be {}", config.getArrowCompressionCodec());
-
-    // TODO(AQIU): set this field that does not yet exist
-    // readOptions.setResponseCompressionCodec(ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_SNAPPY);
-    // following instructions here:
-    // https://stackoverflow.com/questions/56090867/how-to-deal-with-unknown-protobuf-fields-in-java
-    FieldDescriptor responseCompressionCodec =
-        readOptions.getDescriptorForType().findFieldByName("response_compression_codec");
-    readOptions.setField(responseCompressionCodec, 1);
-    log.info(
-        "AQIU: setting ResponseCompressionCodec to be snappy aka {}",
-        readOptions.getField(responseCompressionCodec));
+    log.info("AQIU: setting arrow compression to be {}", config.getArrowCompressionCodec());
 
     int preferredMinStreamCount =
         config
@@ -175,30 +168,78 @@ public class ReadSessionCreator {
     if (minStreamCount > maxStreamCount) {
       minStreamCount = maxStreamCount;
       log.warn(
-          "preferred min parallelism is larger than the max parallelism, therefore setting it to max parallelism [{}]",
+          "preferred min parallelism is larger than the max parallelism, therefore setting it to"
+              + " max parallelism [{}]",
           minStreamCount);
     }
     Instant sessionPrepEndTime = Instant.now();
+
+    // TODO(AQIU): set this field that does not yet exist
+    // readOptions.setResponseCompressionCodec(ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_SNAPPY);
+
+    // A mildly psychotic way of adding unknown fields to a message:
+    //
+    // Creating response_compression_codec unknown field.
+    // enum response_compression_codec = 2 lz4_framed compression
+    UnknownFieldSet.Field responseCompressionCodecUnknownField =
+        UnknownFieldSet.Field.newBuilder().addFixed32(2).build();
+    // Creating response_compression_codec to readOptionsUnknownField Set
+    com.google.protobuf.UnknownFieldSet readOptionsUnknownFieldSet =
+        UnknownFieldSet.newBuilder().addField(6, responseCompressionCodecUnknownField).build();
+
+    // Attach ReadOptions Field set to ReadSession UnknownFieldSet
+    UnknownFieldSet.Field readOptionsUnknownField =
+        UnknownFieldSet.Field.newBuilder().addGroup(readOptionsUnknownFieldSet).build();
+    UnknownFieldSet readSessionOptionUnknownFieldSet =
+        UnknownFieldSet.newBuilder().mergeField(8, readOptionsUnknownField).build();
+
+    // attach ReadSession unknown fields to CreateReadSesionRequest UnknownFieldSet
+    UnknownFieldSet.Field readSessionOptionUnknownField =
+        UnknownFieldSet.Field.newBuilder().addGroup(readSessionOptionUnknownFieldSet).build();
+    // ReadSession is field 2 of CreateReadSessionRequest
+    UnknownFieldSet createReadSessionRequestUnknownFieldSet =
+        UnknownFieldSet.newBuilder().mergeField(2, readSessionOptionUnknownField).build();
+
+    TableReadOptions readOptions =
+        readOptionsBuilder.mergeUnknownFields(readOptionsUnknownFieldSet).build();
+
+    ReadSession readSessionOption =
+        readSessionBuilder
+            .setDataFormat(config.getReadDataFormat())
+            .setReadOptions(readOptions)
+            .setTable(tablePath)
+            .mergeUnknownFields(readSessionOptionUnknownFieldSet)
+            .build();
 
     CreateReadSessionRequest createReadSessionRequest =
         request
             .newBuilder()
             .setParent("projects/" + bigQueryClient.getProjectId())
-            .setReadSession(
-                requestedSession
-                    .setDataFormat(config.getReadDataFormat())
-                    .setReadOptions(readOptions)
-                    .setTable(tablePath)
-                    .build())
+            .setReadSession(readSessionOption)
             .setMaxStreamCount(maxStreamCount)
             .setPreferredMinStreamCount(minStreamCount)
+            .mergeUnknownFields(createReadSessionRequestUnknownFieldSet)
             .build();
-    if (config.isReadSessionCachingEnabled()
-        && getReadSessionCache().asMap().containsKey(createReadSessionRequest)) {
-      ReadSession readSession = getReadSessionCache().asMap().get(createReadSessionRequest);
-      log.info("Reusing read session: {}, for table: {}", readSession.getName(), table);
-      return new ReadSessionResponse(readSession, actualTable);
-    }
+
+    log.info(
+        "AQIU: createReadSessionRequest.read_session.read_options UnknownFieldSet.asMap {}\n",
+        readOptions.getUnknownFields().asMap());
+
+    log.info(
+        "AQIU: createReadSessionRequest.read_session UnknownFieldSet.asMap {}\n",
+        readSessionOption.getUnknownFields().asMap());
+
+    log.info(
+        "AQIU: CreateReadSessionRequest UnknownFieldSet.asMap {}\n",
+        createReadSessionRequest.getUnknownFields().asMap());
+
+    // TODO: reenable?
+    // if (config.isReadSessionCachingEnabled()
+    //     && getReadSessionCache().asMap().containsKey(createReadSessionRequest)) {
+    //   ReadSession readSession = getReadSessionCache().asMap().get(createReadSessionRequest);
+    //   log.info("Reusing read session: {}, for table: {}", readSession.getName(), table);
+    //   return new ReadSessionResponse(readSession, actualTable);
+    // }
     ReadSession readSession = bigQueryReadClient.createReadSession(createReadSessionRequest);
 
     if (readSession != null) {
@@ -222,11 +263,10 @@ public class ReadSessionCreator {
       log.info("Read session:{}", new Gson().toJson(jsonObject));
       if (readSession.getStreamsCount() != maxStreamCount) {
         log.info(
-            "Requested {} max partitions, but only received {} "
-                + "from the BigQuery Storage API for session {}. Notice that the "
-                + "number of streams in actual may be lower than the requested number, depending on "
-                + "the amount parallelism that is reasonable for the table and the maximum amount of "
-                + "parallelism allowed by the system.",
+            "Requested {} max partitions, but only received {} from the BigQuery Storage API for"
+                + " session {}. Notice that the number of streams in actual may be lower than the"
+                + " requested number, depending on the amount parallelism that is reasonable for"
+                + " the table and the maximum amount of parallelism allowed by the system.",
             maxStreamCount,
             readSession.getStreamsCount(),
             readSession.getName());
@@ -283,7 +323,8 @@ public class ReadSessionCreator {
         throw new BigQueryConnectorException(
             UNSUPPORTED,
             format(
-                "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
+                "Views are not enabled. You can enable views by setting '%s' to true. Notice"
+                    + " additional cost may occur.",
                 config.getViewEnabledParamName()));
       }
       return true;

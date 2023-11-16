@@ -20,6 +20,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.collect.ImmutableList;
+import com.google.protobuf.UnknownFieldSet;
 import java.util.Iterator;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.slf4j.Logger;
@@ -60,6 +61,14 @@ public class InternalRowIterator implements Iterator<InternalRow> {
         return false;
       }
       ReadRowsResponse readRowsResponse = readRowsResponses.next();
+
+      // TODO AQIU: this is not hit! this is not where we should decompress!
+      UnknownFieldSet unknownFieldSet = readRowsResponse.getUnknownFields();
+      java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
+      log.info(
+          "AQIU: InternalRowIterator ReadRowsResponse UnknownFieldSet.asMap {}",
+          unknownFieldSetMap);
+
       bigQueryStorageReadRowsTracer.readRowsResponseObtained(
           readRowsResponse == null ? 0 : converter.getBatchSizeInBytes(readRowsResponse));
       bigQueryStorageReadRowsTracer.nextBatchNeeded();

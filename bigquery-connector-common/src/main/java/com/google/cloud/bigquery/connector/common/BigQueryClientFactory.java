@@ -78,10 +78,8 @@ public class BigQueryClientFactory implements Serializable {
     synchronized (readClientMap) {
       if (!readClientMap.containsKey(this)) {
         log.info(
-            "AQIU: creating BigQueryREadClient with gRPC endpoint: %s",
-            this.bqConfig.getBigQueryStorageGrpcEndpoint());
-        log.info(
-            "AQIU: creating BgiQueryReadClient with HTTP endpoint: %s",
+            "AQIU: creating BigQueryReadClient with gRPC endpoint: {} and HTTP endpoint {}",
+            this.bqConfig.getBigQueryStorageGrpcEndpoint(),
             this.bqConfig.getBigQueryHttpEndpoint());
         BigQueryReadClient bigQueryReadClient =
             createBigQueryReadClient(
