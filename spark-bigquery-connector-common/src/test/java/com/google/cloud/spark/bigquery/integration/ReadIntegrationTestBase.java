@@ -119,7 +119,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   public ReadIntegrationTestBase(
       boolean userProvidedSchemaAllowed, Optional<DataType> timeStampNTZType) {
     super();
-    this.userProvidedSchemaAllowed = true;
+    this.userProvidedSchemaAllowed = userProvidedSchemaAllowed;
     intializeSchema(timeStampNTZType);
   }
 
