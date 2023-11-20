@@ -31,7 +31,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.protobuf.UnknownFieldSet;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -174,32 +173,6 @@ public class ReadSessionCreator {
     }
     Instant sessionPrepEndTime = Instant.now();
 
-    // TODO(AQIU): set this field that does not yet exist
-    // readOptions.setResponseCompressionCodec(ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_SNAPPY);
-
-    // A mildly psychotic way of adding unknown fields to a message:
-    //
-    // Creating response_compression_codec unknown field.
-    // enum response_compression_codec = 2 lz4_framed compression
-    UnknownFieldSet.Field responseCompressionCodecUnknownField =
-        UnknownFieldSet.Field.newBuilder().addFixed32(2).build();
-    // Creating response_compression_codec to readOptionsUnknownField Set
-    com.google.protobuf.UnknownFieldSet readOptionsUnknownFieldSet =
-        UnknownFieldSet.newBuilder().addField(6, responseCompressionCodecUnknownField).build();
-
-    // Attach ReadOptions Field set to ReadSession UnknownFieldSet
-    UnknownFieldSet.Field readOptionsUnknownField =
-        UnknownFieldSet.Field.newBuilder().addGroup(readOptionsUnknownFieldSet).build();
-    UnknownFieldSet readSessionOptionUnknownFieldSet =
-        UnknownFieldSet.newBuilder().mergeField(8, readOptionsUnknownField).build();
-
-    // attach ReadSession unknown fields to CreateReadSesionRequest UnknownFieldSet
-    UnknownFieldSet.Field readSessionOptionUnknownField =
-        UnknownFieldSet.Field.newBuilder().addGroup(readSessionOptionUnknownFieldSet).build();
-    // ReadSession is field 2 of CreateReadSessionRequest
-    UnknownFieldSet createReadSessionRequestUnknownFieldSet =
-        UnknownFieldSet.newBuilder().mergeField(2, readSessionOptionUnknownField).build();
-
     TableReadOptions readOptions =
         readOptionsBuilder.mergeUnknownFields(readOptionsUnknownFieldSet).build();
 
@@ -208,7 +181,6 @@ public class ReadSessionCreator {
             .setDataFormat(config.getReadDataFormat())
             .setReadOptions(readOptions)
             .setTable(tablePath)
-            .mergeUnknownFields(readSessionOptionUnknownFieldSet)
             .build();
 
     CreateReadSessionRequest createReadSessionRequest =
@@ -221,25 +193,13 @@ public class ReadSessionCreator {
             .mergeUnknownFields(createReadSessionRequestUnknownFieldSet)
             .build();
 
-    log.info(
-        "AQIU: createReadSessionRequest.read_session.read_options UnknownFieldSet.asMap {}\n",
-        readOptions.getUnknownFields().asMap());
-
-    log.info(
-        "AQIU: createReadSessionRequest.read_session UnknownFieldSet.asMap {}\n",
-        readSessionOption.getUnknownFields().asMap());
-
-    log.info(
-        "AQIU: CreateReadSessionRequest UnknownFieldSet.asMap {}\n",
-        createReadSessionRequest.getUnknownFields().asMap());
-
     // TODO: reenable?
-    // if (config.isReadSessionCachingEnabled()
-    //     && getReadSessionCache().asMap().containsKey(createReadSessionRequest)) {
-    //   ReadSession readSession = getReadSessionCache().asMap().get(createReadSessionRequest);
-    //   log.info("Reusing read session: {}, for table: {}", readSession.getName(), table);
-    //   return new ReadSessionResponse(readSession, actualTable);
-    // }
+    if (config.isReadSessionCachingEnabled()
+        && getReadSessionCache().asMap().containsKey(createReadSessionRequest)) {
+      ReadSession readSession = getReadSessionCache().asMap().get(createReadSessionRequest);
+      log.info("Reusing read session: {}, for table: {}", readSession.getName(), table);
+      return new ReadSessionResponse(readSession, actualTable);
+    }
     ReadSession readSession = bigQueryReadClient.createReadSession(createReadSessionRequest);
 
     if (readSession != null) {
