@@ -4,11 +4,13 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import net.jpountz.lz4.LZ4Factory;
+import net.jpountz.lz4.LZ4FastDecompressor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xerial.snappy.Snappy;
 
-// TODO: is this snappy implementation better tha org.xerial.snappy.Snappy
+// TODO: is this snappy implementation better than org.xerial.snappy.Snappy
 // import io.netty.handler.codec.compression.Snappy;
 
 public class DecompressReadRowsResponse {
@@ -35,8 +37,16 @@ public class DecompressReadRowsResponse {
     }
 
     try {
+      byte[] compressed = response.getArrowRecordBatch().getSerializedRecordBatch().toByteArray();
       if (lz4Compression == true) {
-        // TODO:
+        // TODO: https://github.com/lz4/lz4-java
+        LZ4Factory factory = LZ4Factory.fastestInstance();
+
+        LZ4FastDecompressor decompressor = factory.fastDecompressor();
+        byte[] decompressed = new byte[(int) statedUncompressedByteSize];
+        decompressor.decompress(compressed, 0, decompressed, 0, (int) statedUncompressedByteSize);
+        return new ByteArrayInputStream(decompressed);
+
       } else {
         // Note that if trying to use asReadOnlyByteBuffer() to avoid copying to Byte[] bY using the
         // same backing array as the byte string, if possible, then
@@ -46,23 +56,21 @@ public class DecompressReadRowsResponse {
         // direct buffer, and snappy will give this error:
         // com.google.cloud.spark.bigquery.repackaged.org.xerial.snappy.SnappyError:
         // [NOT_A_DIRECT_BUFFER] input is not a direct buffer
-        byte[] decompressedByteArray =
-            Snappy.uncompress(
-                response.getArrowRecordBatch().getSerializedRecordBatch().toByteArray());
+        byte[] decompressed = Snappy.uncompress(compressed);
 
         if (linesToLog > 0) {
           log.info(
-              "AQIU: DecompressReadRowsResponse decompressed length  = {} vs uncompessed length {}",
-              decompressedByteArray.length,
+              "AQIU: DecompressReadRowsResponse decompressed length  = {} vs uncompressed length"
+                  + " {}",
+              decompressed.length,
               statedUncompressedByteSize);
           linesToLog--;
         }
 
-        return new ByteArrayInputStream(decompressedByteArray);
+        return new ByteArrayInputStream(decompressed);
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    return response.getArrowRecordBatch().getSerializedRecordBatch().newInput();
   }
 }

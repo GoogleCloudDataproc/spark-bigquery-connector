@@ -20,7 +20,6 @@ import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.common.collect.ImmutableList;
-import com.google.protobuf.UnknownFieldSet;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Optional;
@@ -51,11 +50,12 @@ class BigQueryInputPartitionReaderContext implements InputPartitionReaderContext
       }
       ReadRowsResponse readRowsResponse = readRowsResponses.next();
       // This is not hit.
-      UnknownFieldSet unknownFieldSet = readRowsResponse.getUnknownFields();
-      java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
-      System.out.printf(
-          "AQIU: BigQueryInputPartitionReaderContext ReadRowsResponse UnknownFieldSet.asMap {} \n",
-          unknownFieldSetMap);
+      // UnknownFieldSet unknownFieldSet = readRowsResponse.getUnknownFields();
+      // java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
+      // System.out.printf(
+      //     "AQIU: BigQueryInputPartitionReaderContext ReadRowsResponse UnknownFieldSet.asMap {}
+      // \n",
+      //     unknownFieldSetMap);
       rows = converter.convert(readRowsResponse);
     }
     currentRow = rows.next();

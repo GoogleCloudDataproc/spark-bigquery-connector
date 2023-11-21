@@ -16,7 +16,6 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
-import com.google.protobuf.UnknownFieldSet;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -50,17 +49,18 @@ public class ReadRowsResponseInputStreamEnumeration implements java.util.Enumera
     ReadRowsResponse ret = currentResponse;
 
     // TODO: AQIU: it is hit here!  decompress here?
-    if (didLogResponse == false) {
-      UnknownFieldSet unknownFieldSet = currentResponse.getUnknownFields();
-      java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
-      System.out.printf(
-          "AQIU: ReadRowsResponseInputStreamEnumeration ReadRowsResponse UnknownFieldSet.asMap {}"
-              + " \n",
-          unknownFieldSetMap);
-      didLogResponse = true;
-    }
+    // if (didLogResponse == false) {
+    //   UnknownFieldSet unknownFieldSet = currentResponse.getUnknownFields();
+    //   java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
+    //   System.out.printf(
+    //       "AQIU: ReadRowsResponseInputStreamEnumeration ReadRowsResponse UnknownFieldSet.asMap
+    // {}"
+    //           + " \n",
+    //       unknownFieldSetMap);
+    //   didLogResponse = true;
+    // }
     loadNextResponse();
-    return DecompressReadRowsResponse.decompressArrowRecordBatch(ret, true);
+    return DecompressReadRowsResponse.decompressArrowRecordBatch(ret, false);
   }
 
   void loadNextResponse() {
