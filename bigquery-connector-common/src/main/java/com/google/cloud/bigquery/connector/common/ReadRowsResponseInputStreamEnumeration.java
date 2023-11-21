@@ -60,7 +60,7 @@ public class ReadRowsResponseInputStreamEnumeration implements java.util.Enumera
       didLogResponse = true;
     }
     loadNextResponse();
-    return ret.getArrowRecordBatch().getSerializedRecordBatch().newInput();
+    return DecompressReadRowsResponse.decompressArrowRecordBatch(ret);
   }
 
   void loadNextResponse() {

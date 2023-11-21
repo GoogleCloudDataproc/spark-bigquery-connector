@@ -141,13 +141,13 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
       // TODO: AQIU: this is not hit! his is not where we should decompress!
       UnknownFieldSet unknownFieldSet = response.getUnknownFields();
       java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
-      log.info(
-          "AQIU: ReadRowsResponseToInternalRowIteratorConverter ReadRowsResponse"
-              + " UnknownFieldSet.asMap {}",
-          unknownFieldSetMap);
-      log.info(
-          "AQIU: ReadRowsResponseToInternalRowIteratorConverter serializedRecordBatch",
-          response.getArrowRecordBatch().getSerializedRecordBatch());
+      // log.info(
+      //     "AQIU: ReadRowsResponseToInternalRowIteratorConverter ReadRowsResponse"
+      //         + " UnknownFieldSet.asMap {}",
+      //     unknownFieldSetMap);
+      // log.info(
+      //     "AQIU: ReadRowsResponseToInternalRowIteratorConverter serializedRecordBatch",
+      //     response.getArrowRecordBatch().getSerializedRecordBatch());
 
       /*
       // hack: assume that we are always asking for Snappy compression

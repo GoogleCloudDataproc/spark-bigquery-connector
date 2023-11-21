@@ -125,9 +125,9 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
         // TODO: AQIU: this is hit. decompress here?
         UnknownFieldSet unknownFieldSet = tmp.getUnknownFields();
         java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
-        log.info(
-            "AQIU: StreamCombiningIterator ReadRowsResponse UnknownFieldSet.asMap {}",
-            unknownFieldSetMap);
+        // log.info(
+        //     "AQIU: StreamCombiningIterator ReadRowsResponse UnknownFieldSet.asMap {}",
+        //     unknownFieldSetMap);
         didLogResponse = true;
       }
       return tmp;
