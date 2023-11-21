@@ -653,10 +653,10 @@
                             <pattern>org.tukaani.xz</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.tukaani.xz</shadedPattern>
                         </relocation>
-                        <relocation>
+                        <!-- <relocation>
                             <pattern>org.xerial.snappy</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.xerial.snappy</shadedPattern>
-                        </relocation>
+                        </relocation> -->
                         <relocation>
                             <pattern>META-INF/native/libnetty</pattern>
                             <shadedPattern>META-INF/native/libcom_google_cloud_spark_bigquery_repackaged_netty
