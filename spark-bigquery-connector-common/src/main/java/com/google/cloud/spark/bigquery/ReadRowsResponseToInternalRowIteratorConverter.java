@@ -138,7 +138,7 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
 
     @Override
     public Iterator<InternalRow> convert(ReadRowsResponse response) {
-      // TODO: AQIU: this is not hit! this is not where we should decompress!
+      // TODO: AQIU: this is not hit! his is not where we should decompress!
       UnknownFieldSet unknownFieldSet = response.getUnknownFields();
       java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
       log.info(

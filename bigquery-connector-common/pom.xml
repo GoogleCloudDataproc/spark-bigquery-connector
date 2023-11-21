@@ -28,6 +28,13 @@
       <artifactId>proto-google-cloud-bigquerystorage-v1</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.xerial.snappy</groupId>
+      <artifactId>snappy-java</artifactId>
+      <version>1.1.9.1</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-bigquery</artifactId>
       <exclusions>

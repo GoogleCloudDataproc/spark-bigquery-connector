@@ -173,8 +173,7 @@ public class ReadSessionCreator {
     }
     Instant sessionPrepEndTime = Instant.now();
 
-    TableReadOptions readOptions =
-        readOptionsBuilder.mergeUnknownFields(readOptionsUnknownFieldSet).build();
+    TableReadOptions readOptions = readOptionsBuilder.build();
 
     ReadSession readSessionOption =
         readSessionBuilder
@@ -190,7 +189,6 @@ public class ReadSessionCreator {
             .setReadSession(readSessionOption)
             .setMaxStreamCount(maxStreamCount)
             .setPreferredMinStreamCount(minStreamCount)
-            .mergeUnknownFields(createReadSessionRequestUnknownFieldSet)
             .build();
 
     // TODO: reenable?

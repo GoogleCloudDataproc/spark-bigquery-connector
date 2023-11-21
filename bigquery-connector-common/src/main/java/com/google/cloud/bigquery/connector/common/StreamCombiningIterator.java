@@ -122,7 +122,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       @SuppressWarnings("unchecked")
       ReadRowsResponse tmp = (ReadRowsResponse) last;
       if (didLogResponse == false) {
-        // TODO: AQIU THIS IS HIT: why isn't there an unknownFieldSet returned?
+        // TODO: AQIU: this is hit. decompress here?
         UnknownFieldSet unknownFieldSet = tmp.getUnknownFields();
         java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
         log.info(
