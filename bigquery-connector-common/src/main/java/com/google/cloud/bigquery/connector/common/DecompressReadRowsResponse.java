@@ -1,37 +1,35 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.protobuf.UnknownFieldSet;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import net.jpountz.lz4.LZ4Factory;
 import net.jpountz.lz4.LZ4FastDecompressor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+// import org.slf4j.Logger;
+// import org.slf4j.LoggerFactory;
 import org.xerial.snappy.Snappy;
 
 // TODO: is this snappy implementation better than org.xerial.snappy.Snappy
 // import io.netty.handler.codec.compression.Snappy;
 
 public class DecompressReadRowsResponse {
-  private static long linesToLog = 10; // reduce spam only return this number of lines
-  private static final Logger log = LoggerFactory.getLogger(DecompressReadRowsResponse.class);
+  // private static long linesToLog = 10; // reduce spam only return this number of lines
+  // private static final Logger log = LoggerFactory.getLogger(DecompressReadRowsResponse.class);
 
   /** Returns a new allocator limited to maxAllocation bytes */
   public static InputStream decompressArrowRecordBatch(
       ReadRowsResponse response, boolean lz4Compression) {
 
-    long statedUncompressedByteSize =
-        response.getUnknownFields().getField(9).getVarintList().get(0);
+    UnknownFieldSet.Field newField = response.getUnknownFields().getField(9);
+    if (newField.getVarintList().size() == 0) {
+      // no compression here, return directly
+      return response.getArrowRecordBatch().getSerializedRecordBatch().newInput();
+    }
 
+    long statedUncompressedByteSize = newField.getVarintList().get(0);
     if (statedUncompressedByteSize <= 0) {
-      if (linesToLog > 0) {
-        log.info(
-            "AQIU: DecompressReadRowsResponse found uncompressedByteSize is 0 or less. it is {}",
-            statedUncompressedByteSize);
-        linesToLog--;
-      }
-
       // no compession here, return directly
       return response.getArrowRecordBatch().getSerializedRecordBatch().newInput();
     }
@@ -58,14 +56,14 @@ public class DecompressReadRowsResponse {
         // [NOT_A_DIRECT_BUFFER] input is not a direct buffer
         byte[] decompressed = Snappy.uncompress(compressed);
 
-        if (linesToLog > 0) {
-          log.info(
-              "AQIU: DecompressReadRowsResponse decompressed length  = {} vs uncompressed length"
-                  + " {}",
-              decompressed.length,
-              statedUncompressedByteSize);
-          linesToLog--;
-        }
+        // if (linesToLog > 0) {
+        //   log.info(
+        //       "AQIU: DecompressReadRowsResponse decompressed length  = {} vs uncompressed length"
+        //           + " {}",
+        //       decompressed.length,
+        //       statedUncompressedByteSize);
+        //   linesToLog--;
+        // }
 
         return new ByteArrayInputStream(decompressed);
       }

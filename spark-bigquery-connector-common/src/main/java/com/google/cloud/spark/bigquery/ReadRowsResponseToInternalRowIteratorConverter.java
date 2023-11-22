@@ -21,7 +21,6 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.UnknownFieldSet;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
@@ -139,8 +138,8 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
     @Override
     public Iterator<InternalRow> convert(ReadRowsResponse response) {
       // TODO: AQIU: this is not hit! his is not where we should decompress!
-      UnknownFieldSet unknownFieldSet = response.getUnknownFields();
-      java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
+      // UnknownFieldSet unknownFieldSet = response.getUnknownFields();
+      // java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
       // log.info(
       //     "AQIU: ReadRowsResponseToInternalRowIteratorConverter ReadRowsResponse"
       //         + " UnknownFieldSet.asMap {}",
@@ -179,7 +178,6 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
           arrowRecordBatch = decompressedArrowRecordBatch;
         }
       }
-
 
       return new ArrowBinaryIterator(
           columnsInOrder,

@@ -29,7 +29,6 @@ public class ReadRowsResponseInputStreamEnumeration implements java.util.Enumera
   private final Iterator<ReadRowsResponse> responses;
   private ReadRowsResponse currentResponse;
   private final BigQueryStorageReadRowsTracer tracer;
-  private boolean didLogResponse = false; // reduce spam
 
   public ReadRowsResponseInputStreamEnumeration(
       Iterator<ReadRowsResponse> responses, BigQueryStorageReadRowsTracer tracer) {
@@ -48,19 +47,10 @@ public class ReadRowsResponseInputStreamEnumeration implements java.util.Enumera
     }
     ReadRowsResponse ret = currentResponse;
 
-    // TODO: AQIU: it is hit here!  decompress here?
-    // if (didLogResponse == false) {
-    //   UnknownFieldSet unknownFieldSet = currentResponse.getUnknownFields();
-    //   java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
-    //   System.out.printf(
-    //       "AQIU: ReadRowsResponseInputStreamEnumeration ReadRowsResponse UnknownFieldSet.asMap
-    // {}"
-    //           + " \n",
-    //       unknownFieldSetMap);
-    //   didLogResponse = true;
-    // }
+    // AQIU: it is hit here and we decompress here
     loadNextResponse();
-    return DecompressReadRowsResponse.decompressArrowRecordBatch(ret, false);
+    return ret.getArrowRecordBatch().getSerializedRecordBatch().newInput();
+    // return DecompressReadRowsResponse.decompressArrowRecordBatch(ret, false);
   }
 
   void loadNextResponse() {

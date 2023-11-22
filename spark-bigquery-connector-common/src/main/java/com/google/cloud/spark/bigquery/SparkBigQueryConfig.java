@@ -464,6 +464,7 @@ public class SparkBigQueryConfig
     config.bigQueryStorageGrpcEndpoint =
         getAnyOption(globalOptions, options, "bigQueryStorageGrpcEndpoint");
     config.bigQueryHttpEndpoint = getAnyOption(globalOptions, options, "bigQueryHttpEndpoint");
+    // TODO: AQIU: set this for the different compressions
     config.encodedCreateReadSessionRequest =
         getAnyOption(globalOptions, options, "bqEncodedCreateReadSessionRequest");
     config.numBackgroundThreadsPerStream =
