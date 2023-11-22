@@ -49,7 +49,10 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
   Optional<ReadSessionMetrics> readSessionMetrics;
 
   LoggingBigQueryStorageReadRowsTracer(
-      String streamName, int logIntervalPowerOf2, BigQueryMetrics bigQueryMetrics, Optional<ReadSessionMetrics> readSessionMetrics) {
+      String streamName,
+      int logIntervalPowerOf2,
+      BigQueryMetrics bigQueryMetrics,
+      Optional<ReadSessionMetrics> readSessionMetrics) {
     this.streamName = streamName;
     this.logIntervalPowerOf2 = logIntervalPowerOf2;
     this.bigQueryMetrics = bigQueryMetrics;
@@ -144,7 +147,7 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
     bigQueryMetrics.updateScanTime(getScanTimeInMilliSec());
     bigQueryMetrics.updateParseTime(getParseTimeInMilliSec());
     bigQueryMetrics.updateTimeInSpark(getTimeInSparkInMilliSec());
-    if(readSessionMetrics.isPresent()) {
+    if (readSessionMetrics.isPresent()) {
       readSessionMetrics.get().incrementBytesReadAccumulator(getBytesRead());
       readSessionMetrics.get().incrementRowsReadAccumulator(getRowsRead());
       readSessionMetrics.get().incrementParseTimeAccumulator(getParseTimeInMilliSec());

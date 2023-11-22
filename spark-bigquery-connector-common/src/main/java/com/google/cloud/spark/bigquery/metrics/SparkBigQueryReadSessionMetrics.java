@@ -2,10 +2,10 @@ package com.google.cloud.spark.bigquery.metrics;
 
 import com.google.cloud.bigquery.connector.common.ReadSessionMetrics;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
-import org.apache.spark.SparkContext;
 import org.apache.spark.scheduler.SparkListener;
 import org.apache.spark.scheduler.SparkListenerEvent;
 import org.apache.spark.scheduler.SparkListenerJobEnd;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.util.LongAccumulator;
 
 import java.io.Serializable;
@@ -22,35 +22,48 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
   private final LongAccumulator rowsReadAccumulator;
   private final LongAccumulator scanTimeAccumulator;
   private final LongAccumulator parseTimeAccumulator;
-  private final long numReadStreams;
+  public long numReadStreams;
 
   private final String sessionId;
-  private final SparkContext sparkContext;
+  private final SparkSession sparkSession;
 
   private SparkBigQueryReadSessionMetrics(
-      SparkContext sparkContext, String sessionName, long numReadStreams) {
+      SparkSession sparkSession, String sessionName, long numReadStreams) {
     this.numReadStreams = numReadStreams;
-    this.sparkContext = sparkContext;
+    this.sparkSession = sparkSession;
     this.sessionId =
         SparkBigQueryConnectorMetricsUtils.extractDecodedSessionIdFromSessionName(sessionName);
 
     this.bytesReadAccumulator =
-        sparkContext.longAccumulator(
-            SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(bytesRead, sessionName));
+        sparkSession
+            .sparkContext()
+            .longAccumulator(
+                SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(
+                    bytesRead, sessionName));
+
     this.rowsReadAccumulator =
-        sparkContext.longAccumulator(
-            SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(rowsRead, sessionName));
+        sparkSession
+            .sparkContext()
+            .longAccumulator(
+                SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(
+                    rowsRead, sessionName));
     this.scanTimeAccumulator =
-        sparkContext.longAccumulator(
-            SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(scanTime, sessionName));
+        sparkSession
+            .sparkContext()
+            .longAccumulator(
+                SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(
+                    scanTime, sessionName));
     this.parseTimeAccumulator =
-        sparkContext.longAccumulator(
-            SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(parseTime, sessionName));
+        sparkSession
+            .sparkContext()
+            .longAccumulator(
+                SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(
+                    parseTime, sessionName));
   }
 
   public static SparkBigQueryReadSessionMetrics from(
-      SparkContext sparkContext, ReadSession readSession, long numReadStreams) {
-    return new SparkBigQueryReadSessionMetrics(sparkContext, readSession.getName(), numReadStreams);
+      SparkSession sparkSession, ReadSession readSession, long numReadStreams) {
+    return new SparkBigQueryReadSessionMetrics(sparkSession, readSession.getName(), numReadStreams);
   }
 
   public void incrementBytesReadAccumulator(long value) {
@@ -98,7 +111,8 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
 
       Method buildMethod = eventBuilderClass.getDeclaredMethod("build");
 
-      sparkContext
+      sparkSession
+          .sparkContext()
           .listenerBus()
           .post(
               (SparkListenerEvent)
@@ -107,7 +121,8 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
                           .getDeclaredConstructor(String.class, String.class, Long.class)
                           .newInstance(sessionId, readStreams, numReadStreams)));
 
-      sparkContext
+      sparkSession
+          .sparkContext()
           .listenerBus()
           .post(
               (SparkListenerEvent)
@@ -116,7 +131,8 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
                           .getDeclaredConstructor(String.class, String.class, Long.class)
                           .newInstance(sessionId, bytesRead, getBytesRead())));
 
-      sparkContext
+      sparkSession
+          .sparkContext()
           .listenerBus()
           .post(
               (SparkListenerEvent)
@@ -125,7 +141,8 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
                           .getDeclaredConstructor(String.class, String.class, Long.class)
                           .newInstance(sessionId, rowsRead, getRowsRead())));
 
-      sparkContext
+      sparkSession
+          .sparkContext()
           .listenerBus()
           .post(
               (SparkListenerEvent)
@@ -134,7 +151,8 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
                           .getDeclaredConstructor(String.class, String.class, Long.class)
                           .newInstance(sessionId, parseTime, getParseTime())));
 
-      sparkContext
+      sparkSession
+          .sparkContext()
           .listenerBus()
           .post(
               (SparkListenerEvent)
