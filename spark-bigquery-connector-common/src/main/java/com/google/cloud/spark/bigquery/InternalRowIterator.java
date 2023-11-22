@@ -61,13 +61,6 @@ public class InternalRowIterator implements Iterator<InternalRow> {
       }
       ReadRowsResponse readRowsResponse = readRowsResponses.next();
 
-      // TODO AQIU: this is not hit! this is not where we should decompress!
-      // UnknownFieldSet unknownFieldSet = readRowsResponse.getUnknownFields();
-      // java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
-      // log.info(
-      //     "AQIU: InternalRowIterator ReadRowsResponse UnknownFieldSet.asMap {}",
-      //     unknownFieldSetMap);
-
       bigQueryStorageReadRowsTracer.readRowsResponseObtained(
           readRowsResponse == null ? 0 : converter.getBatchSizeInBytes(readRowsResponse));
       bigQueryStorageReadRowsTracer.nextBatchNeeded();

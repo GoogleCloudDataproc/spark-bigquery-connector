@@ -22,7 +22,6 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-// import com.google.protobuf.UnknownFieldSet;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -58,7 +57,6 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
   Object last;
   volatile boolean cancelled = false;
   private final Collection<Observer> observers;
-  private boolean didLogResponse = false; // reduce spam
 
   StreamCombiningIterator(
       BigQueryReadClient client,
@@ -121,16 +119,6 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       observer.request();
       @SuppressWarnings("unchecked")
       ReadRowsResponse tmp = (ReadRowsResponse) last;
-      if (didLogResponse == false) {
-        // TODO: AQIU: this is hit. decompress here?
-        // UnknownFieldSet unknownFieldSet = tmp.getUnknownFields();
-        // java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap =
-        // unknownFieldSet.asMap();
-        // log.info(
-        //     "AQIU: StreamCombiningIterator ReadRowsResponse UnknownFieldSet.asMap {}",
-        //     unknownFieldSetMap);
-        didLogResponse = true;
-      }
       return tmp;
     } finally {
       if (last != EOS) {

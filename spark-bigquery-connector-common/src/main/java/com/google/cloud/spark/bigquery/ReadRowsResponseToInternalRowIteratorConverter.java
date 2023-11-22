@@ -27,8 +27,6 @@ import java.util.List;
 import java.util.Optional;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public interface ReadRowsResponseToInternalRowIteratorConverter {
 
@@ -116,11 +114,6 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
     private final com.google.common.base.Optional<BigQueryStorageReadRowsTracer>
         bigQueryStorageReadRowsTracer;
 
-    private static final Logger log = LoggerFactory.getLogger(Arrow.class);
-
-    int decompressedArrowRecordBatchSize;
-    ByteString decompressedArrowRecordBatch;
-
     public Arrow(
         List<String> columnsInOrder,
         ByteString arrowSchema,
@@ -131,62 +124,10 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
       this.arrowSchema = arrowSchema;
       this.userProvidedSchema = userProvidedSchema;
       this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
-      // TODO(AQIU): get this field that does not yet exist
-      // this.decompressed_byte_size = 0;
     }
 
     @Override
     public Iterator<InternalRow> convert(ReadRowsResponse response) {
-      // TODO: AQIU: this is not hit! his is not where we should decompress!
-      // UnknownFieldSet unknownFieldSet = response.getUnknownFields();
-      // java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
-      // log.info(
-      //     "AQIU: ReadRowsResponseToInternalRowIteratorConverter ReadRowsResponse"
-      //         + " UnknownFieldSet.asMap {}",
-      //     unknownFieldSetMap);
-      // log.info(
-      //     "AQIU: ReadRowsResponseToInternalRowIteratorConverter serializedRecordBatch",
-      //     response.getArrowRecordBatch().getSerializedRecordBatch());
-
-      /*
-      // hack: assume that we are always asking for Snappy compression
-      ByteString arrowRecordBatch;
-      // TODO(AQIU): the new ReadRowsResponse field does not yet exist
-      int statedUncompressedSize = response.getUncompressedByteSize();
-      if (statedUncompressedSize > 0) {
-        // the result was compressed, we need to decompress it.
-        if (decompressedArrowRecordBatchSize > 0) {
-          // it has already been decompressed.  use the decompressed result
-          arrowRecordBatch = decompressedArrowRecordBatch;
-        } else {
-          try {
-            ByteBuffer arrowRecordBatchBuffer = ByteBuffer.allocate(
-                response.getUncompressedBytesSize());
-            // https://cloud.google.com/java/docs/reference/protobuf/latest/com.google.protobuf.ByteString#com_google_protobuf_ByteString_asReadOnlyByteBuffer__
-            // Use asReadOnlyByteBuffer() because it tries to avoid a copy Byte[].  The result uses the same backing array as the byte string, if possible.
-            // ByteBuffer arrowRecordBatchBuffer = ByteBuffer.allocate(Snappy.uncompressedLength(
-            //     response.getArrowRecordBatch().getSerializedRecordBatch().asReadOnlyByteBuffer()));
-            decompressedArrowRecordBatchSize = Snappy.uncompress(
-                response.getArrowRecordBatch().getSerializedRecordBatch().asReadOnlyByteBuffer(),
-                arrowRecordBatchBuffer);
-            // assert(decompressedArrowRecordBatchSize > 0);
-            // assert(decompressedArrowRecordBatch == statedUncompressedSize);
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-          decompressedArrowRecordBatch = ByteString.copyFrom(arrowRecordBatchBuffer);
-          arrowRecordBatch = decompressedArrowRecordBatch;
-        }
-      }
-
-      return new ArrowBinaryIterator(
-          columnsInOrder,
-          arrowSchema,
-          arrowRecordBatch,
-          userProvidedSchema.toJavaUtil(),
-          bigQueryStorageReadRowsTracer.toJavaUtil());
-      */
-
       return new ArrowBinaryIterator(
           columnsInOrder,
           arrowSchema,

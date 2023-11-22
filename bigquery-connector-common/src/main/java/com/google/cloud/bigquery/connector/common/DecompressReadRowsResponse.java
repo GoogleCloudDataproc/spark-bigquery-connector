@@ -7,12 +7,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import net.jpountz.lz4.LZ4Factory;
 import net.jpountz.lz4.LZ4FastDecompressor;
-// import org.slf4j.Logger;
-// import org.slf4j.LoggerFactory;
 import org.xerial.snappy.Snappy;
 
-// TODO: is this snappy implementation better than org.xerial.snappy.Snappy
-// import io.netty.handler.codec.compression.Snappy;
+// import org.slf4j.Logger;
+// import org.slf4j.LoggerFactory;
 
 public class DecompressReadRowsResponse {
   // private static long linesToLog = 10; // reduce spam only return this number of lines
@@ -43,6 +41,16 @@ public class DecompressReadRowsResponse {
         LZ4FastDecompressor decompressor = factory.fastDecompressor();
         byte[] decompressed = new byte[(int) statedUncompressedByteSize];
         decompressor.decompress(compressed, 0, decompressed, 0, (int) statedUncompressedByteSize);
+
+        // if (linesToLog > 0) {
+        //   log.info(
+        //       "AQIU: DecompressReadRowsResponse lz4 compressed decompressed length = {} vs"
+        //           + " uncompressed length {}",
+        //       decompressed.length,
+        //       statedUncompressedByteSize);
+        //   linesToLog--;
+        // }
+
         return new ByteArrayInputStream(decompressed);
 
       } else {
@@ -58,7 +66,8 @@ public class DecompressReadRowsResponse {
 
         // if (linesToLog > 0) {
         //   log.info(
-        //       "AQIU: DecompressReadRowsResponse decompressed length  = {} vs uncompressed length"
+        //       "AQIU: DecompressReadRowsResponse snappy decompressed length  = {} vs uncompressed
+        // length"
         //           + " {}",
         //       decompressed.length,
         //       statedUncompressedByteSize);

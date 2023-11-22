@@ -206,10 +206,6 @@ public class SparkBigQueryConfig
   private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
   private com.google.common.base.Optional<String> bigQueryStorageGrpcEndpoint = empty();
   private com.google.common.base.Optional<String> bigQueryHttpEndpoint = empty();
-  // private com.google.common.base.Optional<String> bigQueryStorageGrpcEndpoint =
-  //     com.google.common.base.Optional.of("test-bigquerystorage-grpc.sandbox.googleapis.com:443");
-  // private com.google.common.base.Optional<String> bigQueryHttpEndpoint =
-  //     com.google.common.base.Optional.of("https://us-test-bigquery.sandbox.google.com");
   private int numBackgroundThreadsPerStream = 0;
   private int numPrebufferReadRowsResponses = MIN_BUFFERED_RESPONSES_PER_STREAM;
   private int numStreamsPerPartition = MIN_STREAMS_PER_PARTITION;
@@ -464,7 +460,6 @@ public class SparkBigQueryConfig
     config.bigQueryStorageGrpcEndpoint =
         getAnyOption(globalOptions, options, "bigQueryStorageGrpcEndpoint");
     config.bigQueryHttpEndpoint = getAnyOption(globalOptions, options, "bigQueryHttpEndpoint");
-    // TODO: AQIU: set this for the different compressions
     config.encodedCreateReadSessionRequest =
         getAnyOption(globalOptions, options, "bqEncodedCreateReadSessionRequest");
     config.numBackgroundThreadsPerStream =

@@ -39,10 +39,6 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO(AQIU) This field does not yet exist in the public client library
-// import
-// com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
-
 // A helper class, also handles view materialization
 public class ReadSessionCreator {
 
@@ -191,7 +187,6 @@ public class ReadSessionCreator {
             .setPreferredMinStreamCount(minStreamCount)
             .build();
 
-    // TODO: reenable?
     if (config.isReadSessionCachingEnabled()
         && getReadSessionCache().asMap().containsKey(createReadSessionRequest)) {
       ReadSession readSession = getReadSessionCache().asMap().get(createReadSessionRequest);
