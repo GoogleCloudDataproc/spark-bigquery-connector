@@ -49,13 +49,6 @@ class BigQueryInputPartitionReaderContext implements InputPartitionReaderContext
         return false;
       }
       ReadRowsResponse readRowsResponse = readRowsResponses.next();
-      // This is not hit.
-      // UnknownFieldSet unknownFieldSet = readRowsResponse.getUnknownFields();
-      // java.util.Map<Integer, UnknownFieldSet.Field> unknownFieldSetMap = unknownFieldSet.asMap();
-      // System.out.printf(
-      //     "AQIU: BigQueryInputPartitionReaderContext ReadRowsResponse UnknownFieldSet.asMap {}
-      // \n",
-      //     unknownFieldSetMap);
       rows = converter.convert(readRowsResponse);
     }
     currentRow = rows.next();

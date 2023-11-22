@@ -90,7 +90,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       }
 
       try {
-        completeStream(/* addEos= */ false);
+        completeStream(/*addEos=*/ false);
       } finally {
         Preconditions.checkState(
             responses.add(error), "Responses should always have capacity to add element");
@@ -168,7 +168,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       if (cancelled) {
         return;
       }
-      completeStream(/* addEos= */ true);
+      completeStream(/*addEos=*/ true);
     }
   }
 
@@ -180,7 +180,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       if (hasActiveObservers()) {
         return;
       }
-      completeStream(/* addEos= */ true);
+      completeStream(/*addEos=*/ true);
     }
     for (Observer observer : observers) {
       observer.cancel();
@@ -214,14 +214,12 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
     private long readRowsCount = 0;
     /* Number of retries so far on this observer */
     private int retries = 0;
-
     /**
      * All methods accessing controller must be synchronized using controllerLock. The states of
      * this object are: - Fresh object: null - Stream ready (receiving responses): not null -
      * Retrying stream: null - Stream Finished: null
      */
     StreamController controller;
-
     // Number of responses enqueued in the main iterator.
     AtomicInteger enqueuedCount = new AtomicInteger(0);
     private final Object controllerLock = new Object();

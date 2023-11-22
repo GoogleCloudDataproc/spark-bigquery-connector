@@ -13,7 +13,7 @@ import org.xerial.snappy.Snappy;
 // import org.slf4j.LoggerFactory;
 
 public class DecompressReadRowsResponse {
-  // private static long linesToLog = 10; // reduce spam only return this number of lines
+  // private static long linesToLog = 100; // reduce spam - only return this number of lines
   // private static final Logger log = LoggerFactory.getLogger(DecompressReadRowsResponse.class);
 
   /** Returns a new allocator limited to maxAllocation bytes */

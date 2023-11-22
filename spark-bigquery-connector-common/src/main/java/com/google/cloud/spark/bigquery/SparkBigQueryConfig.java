@@ -203,6 +203,7 @@ public class SparkBigQueryConfig
   int maxReadRowsRetries = 3;
   boolean pushAllFilters = true;
   boolean enableModeCheckForSchemaFields = true;
+
   private com.google.common.base.Optional<String> encodedCreateReadSessionRequest = empty();
   private com.google.common.base.Optional<String> bigQueryStorageGrpcEndpoint = empty();
   private com.google.common.base.Optional<String> bigQueryHttpEndpoint = empty();
@@ -460,8 +461,19 @@ public class SparkBigQueryConfig
     config.bigQueryStorageGrpcEndpoint =
         getAnyOption(globalOptions, options, "bigQueryStorageGrpcEndpoint");
     config.bigQueryHttpEndpoint = getAnyOption(globalOptions, options, "bigQueryHttpEndpoint");
-    config.encodedCreateReadSessionRequest =
-        getAnyOption(globalOptions, options, "bqEncodedCreateReadSessionRequest");
+    // # arrow compression (These can all use the same binary)
+    // COMPRESSION_UNSPECIFIED=EgRCAhoA
+    // ZSTD=EgZCBBoCEAI=
+    // LZ4_FRAME=EgZCBBoCEAE=
+
+    // # this one can also use the same binary as the above!
+    // RESPONSE_COMPRESSION_CODEC_UNSPECIFIED=EkFCAjAAWjsiOXJlYWRfYXBpX3Byb2plY3RfY29uZmlne2VuYWJsZV9yZXNwb25zZV9jb21wcmVzc2lvbjp0cnVlfQ==
+    // # encoded requests
+    // RESPONSE_COMPRESSION_CODEC_SNAPPY=EkFCAjABWjsiOXJlYWRfYXBpX3Byb2plY3RfY29uZmlne2VuYWJsZV9yZXNwb25zZV9jb21wcmVzc2lvbjp0cnVlfQ==
+    // RESPONSE_COMPRESSION_CODEC_LZ4_UNFRAMED=EkFCAjACWjsiOXJlYWRfYXBpX3Byb2plY3RfY29uZmlne2VuYWJsZV9yZXNwb25zZV9jb21wcmVzc2lvbjp0cnVlfQ==
+
+    config.encodedCreateReadSessionRequest = com.google.common.base.Optional.of("EgZCBBoCEAE=");
+    // getAnyOption(globalOptions, options, "bqEncodedCreateReadSessionRequest");
     config.numBackgroundThreadsPerStream =
         getAnyOption(globalOptions, options, "bqBackgroundThreadsPerStream")
             .transform(Integer::parseInt)

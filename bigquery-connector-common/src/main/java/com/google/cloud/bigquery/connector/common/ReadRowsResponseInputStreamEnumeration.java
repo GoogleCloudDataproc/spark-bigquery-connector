@@ -50,7 +50,7 @@ public class ReadRowsResponseInputStreamEnumeration implements java.util.Enumera
     // AQIU: it is hit here and we decompress here
     loadNextResponse();
     return ret.getArrowRecordBatch().getSerializedRecordBatch().newInput();
-    // return DecompressReadRowsResponse.decompressArrowRecordBatch(ret, false);
+    // return DecompressReadRowsResponse.decompressArrowRecordBatch(ret, true);
   }
 
   void loadNextResponse() {
