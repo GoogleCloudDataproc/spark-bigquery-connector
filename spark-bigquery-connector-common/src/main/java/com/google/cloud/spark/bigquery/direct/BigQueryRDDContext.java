@@ -84,7 +84,7 @@ class BigQueryRDDContext implements Serializable {
     SparkEnv.get().metricsSystem().registerSource(sparkMetricsSource);
     BigQueryStorageReadRowsTracer tracer =
         bigQueryTracerFactory.newReadRowsTracer(
-            Joiner.on(",").join(streamNames), sparkMetricsSource);
+            Joiner.on(",").join(streamNames), sparkMetricsSource, Optional.empty());
 
     ReadRowsRequest.Builder request =
         ReadRowsRequest.newBuilder().setReadStream(bigQueryPartition.getStream());

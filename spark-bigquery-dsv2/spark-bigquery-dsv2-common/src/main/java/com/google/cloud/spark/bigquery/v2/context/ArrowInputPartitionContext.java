@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryReadSessionMetrics;
 import com.google.cloud.spark.bigquery.metrics.SparkMetricsSource;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -45,6 +46,7 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
   private final ImmutableList<String> selectedFields;
   private final ByteString serializedArrowSchema;
   private final com.google.common.base.Optional<StructType> userProvidedSchema;
+  private final SparkBigQueryReadSessionMetrics sparkBigQueryReadSessionMetrics;
 
   public ArrowInputPartitionContext(
       BigQueryClientFactory bigQueryReadClientFactory,
@@ -53,7 +55,8 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
       ReadRowsHelper.Options options,
       ImmutableList<String> selectedFields,
       ReadSessionResponse readSessionResponse,
-      Optional<StructType> userProvidedSchema) {
+      Optional<StructType> userProvidedSchema,
+      SparkBigQueryReadSessionMetrics sparkBigQueryReadSessionMetrics) {
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
     this.streamNames = names;
     this.options = options;
@@ -62,13 +65,14 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
         readSessionResponse.getReadSession().getArrowSchema().getSerializedSchema();
     this.tracerFactory = tracerFactory;
     this.userProvidedSchema = fromJavaUtil(userProvidedSchema);
+    this.sparkBigQueryReadSessionMetrics = sparkBigQueryReadSessionMetrics;
   }
 
   public InputPartitionReaderContext<ColumnarBatch> createPartitionReaderContext() {
     SparkMetricsSource sparkMetricsSource = new SparkMetricsSource();
     SparkEnv.get().metricsSystem().registerSource(sparkMetricsSource);
     BigQueryStorageReadRowsTracer tracer =
-        tracerFactory.newReadRowsTracer(Joiner.on(",").join(streamNames), sparkMetricsSource);
+        tracerFactory.newReadRowsTracer(Joiner.on(",").join(streamNames), sparkMetricsSource, Optional.ofNullable(sparkBigQueryReadSessionMetrics));
     List<ReadRowsRequest.Builder> readRowsRequests =
         streamNames.stream()
             .map(name -> ReadRowsRequest.newBuilder().setReadStream(name))
