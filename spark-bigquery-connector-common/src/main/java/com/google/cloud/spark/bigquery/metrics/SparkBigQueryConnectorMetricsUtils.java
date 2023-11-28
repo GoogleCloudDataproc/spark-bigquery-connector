@@ -1,9 +1,8 @@
 package com.google.cloud.spark.bigquery.metrics;
 
+import java.lang.reflect.Method;
 import org.apache.spark.SparkContext;
 import org.apache.spark.scheduler.SparkListenerEvent;
-
-import java.lang.reflect.Method;
 
 public class SparkBigQueryConnectorMetricsUtils {
   public static void postInputFormatEvent(SparkContext sparkContext) {

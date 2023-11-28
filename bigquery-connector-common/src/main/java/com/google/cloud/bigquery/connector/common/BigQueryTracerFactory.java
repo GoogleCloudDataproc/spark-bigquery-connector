@@ -21,5 +21,7 @@ import java.util.Optional;
 /** Factory to create application level tracers for bigquery operations. */
 public interface BigQueryTracerFactory extends Serializable {
   BigQueryStorageReadRowsTracer newReadRowsTracer(
-          String streamName, BigQueryMetrics bigQueryMetrics, Optional<ReadSessionMetrics> readSessionMetrics);
+      String streamName,
+      BigQueryMetrics bigQueryMetrics,
+      Optional<ReadSessionMetrics> readSessionMetrics);
 }

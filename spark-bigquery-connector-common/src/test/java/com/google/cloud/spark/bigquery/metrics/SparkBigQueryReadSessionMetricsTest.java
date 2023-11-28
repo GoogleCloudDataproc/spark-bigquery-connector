@@ -1,19 +1,13 @@
 package com.google.cloud.spark.bigquery.metrics;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.cloud.bigquery.storage.v1.ReadSession;
-import com.google.cloud.spark.bigquery.integration.TestConstants;
 import org.apache.spark.SparkContext;
-import org.apache.spark.scheduler.SparkListenerEvent;
 import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.List;
-
-import static com.google.common.truth.Truth.assertThat;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assume.assumeThat;
 
 public class SparkBigQueryReadSessionMetricsTest {
   SparkSession spark;
@@ -33,7 +27,7 @@ public class SparkBigQueryReadSessionMetricsTest {
 
   @After
   public void tearDown() {
-    if(sparkContext != null) {
+    if (sparkContext != null) {
       sparkContext.stop();
     }
   }
@@ -44,9 +38,7 @@ public class SparkBigQueryReadSessionMetricsTest {
     long numReadStreams = 10;
     SparkBigQueryReadSessionMetrics metrics =
         SparkBigQueryReadSessionMetrics.from(
-            sparkContext,
-            ReadSession.newBuilder().setName(sessionName).build(),
-            numReadStreams);
+            spark, ReadSession.newBuilder().setName(sessionName).build(), numReadStreams);
     assertThat(metrics.getNumReadStreams()).isEqualTo(numReadStreams);
 
     metrics.incrementBytesReadAccumulator(1024);
@@ -74,21 +66,5 @@ public class SparkBigQueryReadSessionMetricsTest {
     } catch (ClassNotFoundException ignored) {
       return false;
     }
-  }
-
-  @Test
-  public void testPostReadSessionMetricsToBus() {
-    assumeThat(checkIfReadSessionMetricEventExist(), equalTo(true));
-    String sessionName = "testSession";
-    long numReadStreams = 10;
-    SparkBigQueryReadSessionMetrics metrics =
-            SparkBigQueryReadSessionMetrics.from(
-                    sparkContext,
-                    ReadSession.newBuilder().setName(sessionName).build(),
-                    numReadStreams);
-
-    sparkContext.addSparkListener(metrics);
-    spark.read().format("bigquery").option("table", "bigquery-public-data.samples.shakespeare").load().count();
-    System.out.println(metrics.getBytesRead());
   }
 }

@@ -72,12 +72,15 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
     SparkMetricsSource sparkMetricsSource = new SparkMetricsSource();
     SparkEnv.get().metricsSystem().registerSource(sparkMetricsSource);
     BigQueryStorageReadRowsTracer tracer =
-        tracerFactory.newReadRowsTracer(Joiner.on(",").join(streamNames), sparkMetricsSource, Optional.ofNullable(sparkBigQueryReadSessionMetrics));
+        tracerFactory.newReadRowsTracer(
+            Joiner.on(",").join(streamNames),
+            sparkMetricsSource,
+            Optional.ofNullable(sparkBigQueryReadSessionMetrics));
     List<ReadRowsRequest.Builder> readRowsRequests =
         streamNames.stream()
             .map(name -> ReadRowsRequest.newBuilder().setReadStream(name))
             .collect(Collectors.toList());
-
+    // ((LongAccumulator) AccumulatorContext.get(0).get()).add(100L);
     ReadRowsHelper readRowsHelper =
         new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequests, options);
     tracer.startStream();

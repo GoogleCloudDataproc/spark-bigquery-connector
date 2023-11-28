@@ -20,7 +20,6 @@ import com.google.gson.JsonObject;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

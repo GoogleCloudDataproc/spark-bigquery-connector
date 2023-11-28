@@ -58,9 +58,12 @@ public class InjectorBuilderTest {
 
   @Test
   public void testConnectorInfo() {
-    SparkSession.builder().master("local[1]").config("spark.driver.bindAddress", "127.0.0.1").getOrCreate();
+    SparkSession.builder()
+        .master("local[1]")
+        .config("spark.driver.bindAddress", "127.0.0.1")
+        .getOrCreate();
     Injector injector =
-            new InjectorBuilder().withOptions(ImmutableMap.of("table", "foo.bar")).build();
+        new InjectorBuilder().withOptions(ImmutableMap.of("table", "foo.bar")).build();
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
     assertThat(config.getTableId().getTable()).isEqualTo("bar");
     UserAgentProvider userAgentProvider = injector.getInstance(UserAgentProvider.class);

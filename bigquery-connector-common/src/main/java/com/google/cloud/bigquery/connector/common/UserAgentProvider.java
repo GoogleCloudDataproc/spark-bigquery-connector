@@ -18,5 +18,6 @@ package com.google.cloud.bigquery.connector.common;
 public interface UserAgentProvider {
 
   String getUserAgent();
+
   String getConnectorInfo();
 }
