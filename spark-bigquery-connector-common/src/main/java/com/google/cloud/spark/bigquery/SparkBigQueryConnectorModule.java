@@ -125,7 +125,7 @@ public class SparkBigQueryConnectorModule implements Module {
 
   @Singleton
   @Provides
-  public BigQueryJobCompletionListener bigQueryJobCompletionListener() {
+  public BigQueryJobCompletionListener provideBigQueryJobCompletionListener() {
     return completedJob ->
         BigQueryJobCompletedEvent.from(completedJob)
             .ifPresent(event -> spark.sparkContext().listenerBus().post(event));
