@@ -909,7 +909,11 @@ public class BigQueryClient {
 
     Job waitForJob(Job job) {
       try {
-        log.info("Job submitted : {}, {}", job.getJobId(), job.getSelfLink());
+        log.info(
+            "Job submitted : {}, {},  Job type : {}",
+            job.getJobId(),
+            job.getSelfLink(),
+            job.getConfiguration().getType());
         Job completedJob = job.waitFor();
         log.info(
             "Job has finished {} creationTime : {}, startTime : {}, endTime : {} ",
