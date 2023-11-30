@@ -881,7 +881,7 @@ public class BigQueryClient {
     }
 
     TableInfo createTableFromQuery() {
-      log.debug("destinationTable is {}", tempTable);
+      log.info("DestinationTable is {}", tempTable);
       JobInfo jobInfo =
           JobInfo.of(
               jobConfigurationFactory
@@ -889,9 +889,10 @@ public class BigQueryClient {
                   .setDestinationTable(tempTable)
                   .build());
 
-      log.debug("running query {}", jobInfo);
+      log.info("running query {}", querySql);
+
       Job job = waitForJob(bigQueryClient.create(jobInfo));
-      log.debug("job has finished. {}", job);
+
       if (job.getStatus().getError() != null) {
         throw BigQueryUtil.convertToBigQueryException(job.getStatus().getError());
       }
@@ -908,7 +909,20 @@ public class BigQueryClient {
 
     Job waitForJob(Job job) {
       try {
-        return job.waitFor();
+        log.info(
+            "Job submitted : {}, {},  Job type : {}",
+            job.getJobId(),
+            job.getSelfLink(),
+            job.getConfiguration().getType());
+        Job completedJob = job.waitFor();
+        log.info(
+            "Job has finished {} creationTime : {}, startTime : {}, endTime : {} ",
+            completedJob.getJobId(),
+            completedJob.getStatistics().getCreationTime(),
+            completedJob.getStatistics().getStartTime(),
+            completedJob.getStatistics().getEndTime());
+        log.debug("Job has finished. {}", completedJob);
+        return completedJob;
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new BigQueryException(
