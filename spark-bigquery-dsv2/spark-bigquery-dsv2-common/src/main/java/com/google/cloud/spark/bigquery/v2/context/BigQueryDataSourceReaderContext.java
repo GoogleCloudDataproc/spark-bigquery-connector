@@ -43,6 +43,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,6 +60,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.plans.logical.statsEstimation.EstimationUtils;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -445,12 +448,16 @@ public class BigQueryDataSourceReaderContext {
       ReadSession readSession = readSessionResponse.get().getReadSession();
       // Physical file size for BigLake tables is the size of the files post file pruning and
       // includes all fields.
-      // TODO: Improve this estimate by taking projections into account.
-      long tablePhysicalSizeInBytes = readSession.getEstimatedTotalPhysicalFileSize();
+      final long tablePhysicalSizeInBytes = readSession.getEstimatedTotalPhysicalFileSize();
+      final long originalRowSize = getRowSize(fields.values());
+      final long projectedRowSize =
+          schema.map(schema -> getRowSize(Arrays.asList(schema.fields()))).orElse(originalRowSize);
+      final long tableProjectedSizeInBytes =
+          (tablePhysicalSizeInBytes * projectedRowSize) / originalRowSize;
       final OptionalLong sizeInBytes =
-          (tablePhysicalSizeInBytes == 0)
+          (tableProjectedSizeInBytes == 0)
               ? OptionalLong.empty()
-              : OptionalLong.of(tablePhysicalSizeInBytes);
+              : OptionalLong.of(tableProjectedSizeInBytes);
 
       StatisticsContext tableStatisticsContext =
           new StatisticsContext() {
@@ -495,5 +502,15 @@ public class BigQueryDataSourceReaderContext {
     asyncReadSessionExecutor.submit(() -> readSessionResponse.get());
     asyncReadSessionExecutor.shutdown();
     isBuilt = true;
+  }
+
+  /** This logic is taken from Spark's {@link EstimationUtils::getSizePerRow } */
+  private long getRowSize(Collection<StructField> fields) {
+    // There should be some overhead in Row object, the size should not be zero when there are
+    // no columns, this helps to prevent divide-by-zero error.
+    return 8
+        + fields.stream()
+            .map(structField -> (long) structField.dataType().defaultSize())
+            .reduce(0L, Long::sum);
   }
 }
