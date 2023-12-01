@@ -6,6 +6,7 @@
 * PR #1118: Improve read session caching key
 * PR #1122: Set traceId on write
 * PR #1127: Fix job labeling for mixed case Dataproc job names
+* PR #1136: Consider projections for biglake stats
 
 ## 0.34.0 - 2023-10-31
 
