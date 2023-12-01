@@ -60,7 +60,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.catalyst.plans.logical.statsEstimation.EstimationUtils;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -504,7 +503,10 @@ public class BigQueryDataSourceReaderContext {
     isBuilt = true;
   }
 
-  /** This logic is taken from Spark's {@link EstimationUtils::getSizePerRow } */
+  /**
+   * This logic is taken from Spark's {@link
+   * org.apache.spark.sql.catalyst.plans.logical.statsEstimation.EstimationUtils ::getSizePerRow }
+   */
   private long getRowSize(Collection<StructField> fields) {
     // There should be some overhead in Row object, the size should not be zero when there are
     // no columns, this helps to prevent divide-by-zero error.
