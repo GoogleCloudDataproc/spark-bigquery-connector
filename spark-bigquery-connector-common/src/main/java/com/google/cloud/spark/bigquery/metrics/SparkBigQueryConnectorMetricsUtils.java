@@ -40,7 +40,7 @@ public class SparkBigQueryConnectorMetricsUtils {
   }
 
   public static String extractDecodedSessionIdFromSessionName(String sessionName) {
-    return sessionName;
+    return sessionName.split("/")[5];
   }
 
   public static String getAccumulatorNameForMetric(String metricName, String sessionName) {

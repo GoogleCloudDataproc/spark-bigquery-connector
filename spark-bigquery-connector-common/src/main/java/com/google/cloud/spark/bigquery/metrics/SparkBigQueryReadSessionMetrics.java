@@ -3,8 +3,10 @@ package com.google.cloud.spark.bigquery.metrics;
 import com.google.cloud.bigquery.connector.common.ReadSessionMetrics;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import org.apache.spark.scheduler.SparkListener;
-import org.apache.spark.scheduler.SparkListenerApplicationEnd;
+import org.apache.spark.scheduler.SparkListenerEvent;
+import org.apache.spark.scheduler.SparkListenerJobEnd;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.util.LongAccumulator;
 import org.slf4j.Logger;
@@ -18,13 +20,15 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
   private static final String parseTime = "bqParseTime";
   private static final String readStreams = "bqReadStreams";
   private final LongAccumulator bytesReadAccumulator;
-  private final LongAccumulator rowsReadAccumulator;
+  public final LongAccumulator rowsReadAccumulator;
   private final LongAccumulator scanTimeAccumulator;
   private final LongAccumulator parseTimeAccumulator;
   public long numReadStreams;
 
   private final String sessionId;
   private final SparkSession sparkSession;
+
+  private boolean isMetricsSentToListener;
 
   private static final Logger logger =
       LoggerFactory.getLogger(SparkBigQueryReadSessionMetrics.class);
@@ -42,16 +46,12 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
             .longAccumulator(
                 SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(
                     bytesRead, sessionName));
-    logger.info("bytesReadAccumulator.id() = " + bytesReadAccumulator.id());
-
     this.rowsReadAccumulator =
         sparkSession
             .sparkContext()
             .longAccumulator(
                 SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(
                     rowsRead, sessionName));
-
-    logger.info("rowsReadAccumulator.id() = " + rowsReadAccumulator.id());
     this.scanTimeAccumulator =
         sparkSession
             .sparkContext()
@@ -64,6 +64,8 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
             .longAccumulator(
                 SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(
                     parseTime, sessionName));
+
+    this.isMetricsSentToListener = false;
   }
 
   public static SparkBigQueryReadSessionMetrics from(
@@ -73,12 +75,10 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
 
   public void incrementBytesReadAccumulator(long value) {
     bytesReadAccumulator.add(value);
-    logger.info("Increment : bytesReadAccumulator value = " + bytesReadAccumulator.value());
   }
 
   public void incrementRowsReadAccumulator(long value) {
     rowsReadAccumulator.add(value);
-    logger.info("Increment : rowsReadAccumulator value = " + rowsReadAccumulator.value());
   }
 
   public void incrementScanTimeAccumulator(long value) {
@@ -109,69 +109,84 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
     return numReadStreams;
   }
 
+  public LongAccumulator getBytesReadAccumulator() {
+    return bytesReadAccumulator;
+  }
+
+  public LongAccumulator getRowsReadAccumulator() {
+    return rowsReadAccumulator;
+  }
+
+  public LongAccumulator getParseTimeAccumulator() {
+    return parseTimeAccumulator;
+  }
+
+  public LongAccumulator getScanTimeAccumulator() {
+    return scanTimeAccumulator;
+  }
+
   @Override
-  public void onApplicationEnd(SparkListenerApplicationEnd jobEnd) {
-    logger.info("bytesReadAccumulator value = " + bytesReadAccumulator.value());
-    logger.info("rowsReadAccumulator value = " + rowsReadAccumulator.value());
-    //    try {
-    //      Class<?> eventBuilderClass =
-    //          Class.forName(
-    //
-    // "com.google.cloud.spark.events.BigQueryConnectorReadSessionMetricEvent$BigQueryConnectorReadSessionMetricEventBuilder");
-    //
-    //      Method buildMethod = eventBuilderClass.getDeclaredMethod("build");
-    //
-    //      sparkSession
-    //          .sparkContext()
-    //          .listenerBus()
-    //          .post(
-    //              (SparkListenerEvent)
-    //                  buildMethod.invoke(
-    //                      eventBuilderClass
-    //                          .getDeclaredConstructor(String.class, String.class, Long.class)
-    //                          .newInstance(sessionId, readStreams, numReadStreams)));
-    //
-    //      sparkSession
-    //          .sparkContext()
-    //          .listenerBus()
-    //          .post(
-    //              (SparkListenerEvent)
-    //                  buildMethod.invoke(
-    //                      eventBuilderClass
-    //                          .getDeclaredConstructor(String.class, String.class, Long.class)
-    //                          .newInstance(sessionId, bytesRead, getBytesRead())));
-    //
-    //      sparkSession
-    //          .sparkContext()
-    //          .listenerBus()
-    //          .post(
-    //              (SparkListenerEvent)
-    //                  buildMethod.invoke(
-    //                      eventBuilderClass
-    //                          .getDeclaredConstructor(String.class, String.class, Long.class)
-    //                          .newInstance(sessionId, rowsRead, getRowsRead())));
-    //
-    //      sparkSession
-    //          .sparkContext()
-    //          .listenerBus()
-    //          .post(
-    //              (SparkListenerEvent)
-    //                  buildMethod.invoke(
-    //                      eventBuilderClass
-    //                          .getDeclaredConstructor(String.class, String.class, Long.class)
-    //                          .newInstance(sessionId, parseTime, getParseTime())));
-    //
-    //      sparkSession
-    //          .sparkContext()
-    //          .listenerBus()
-    //          .post(
-    //              (SparkListenerEvent)
-    //                  buildMethod.invoke(
-    //                      eventBuilderClass
-    //                          .getDeclaredConstructor(String.class, String.class, Long.class)
-    //                          .newInstance(sessionId, scanTime, getScanTime())));
-    //
-    //    } catch (ReflectiveOperationException ignored) {
-    //    }
+  public void onJobEnd(SparkListenerJobEnd jobEnd) {
+    if (!isMetricsSentToListener) {
+      try {
+        Class<?> eventBuilderClass =
+            Class.forName(
+                "com.google.cloud.spark.events.BigQueryConnectorReadSessionMetricEvent$BigQueryConnectorReadSessionMetricEventBuilder");
+
+        Method buildMethod = eventBuilderClass.getDeclaredMethod("build");
+
+        sparkSession
+            .sparkContext()
+            .listenerBus()
+            .post(
+                (SparkListenerEvent)
+                    buildMethod.invoke(
+                        eventBuilderClass
+                            .getDeclaredConstructor(String.class, String.class, Long.class)
+                            .newInstance(sessionId, readStreams, numReadStreams)));
+
+        sparkSession
+            .sparkContext()
+            .listenerBus()
+            .post(
+                (SparkListenerEvent)
+                    buildMethod.invoke(
+                        eventBuilderClass
+                            .getDeclaredConstructor(String.class, String.class, Long.class)
+                            .newInstance(sessionId, bytesRead, getBytesRead())));
+
+        sparkSession
+            .sparkContext()
+            .listenerBus()
+            .post(
+                (SparkListenerEvent)
+                    buildMethod.invoke(
+                        eventBuilderClass
+                            .getDeclaredConstructor(String.class, String.class, Long.class)
+                            .newInstance(sessionId, rowsRead, getRowsRead())));
+
+        sparkSession
+            .sparkContext()
+            .listenerBus()
+            .post(
+                (SparkListenerEvent)
+                    buildMethod.invoke(
+                        eventBuilderClass
+                            .getDeclaredConstructor(String.class, String.class, Long.class)
+                            .newInstance(sessionId, parseTime, getParseTime())));
+
+        sparkSession
+            .sparkContext()
+            .listenerBus()
+            .post(
+                (SparkListenerEvent)
+                    buildMethod.invoke(
+                        eventBuilderClass
+                            .getDeclaredConstructor(String.class, String.class, Long.class)
+                            .newInstance(sessionId, scanTime, getScanTime())));
+        isMetricsSentToListener = true;
+      } catch (ReflectiveOperationException ignored) {
+      }
+    }
   }
 }

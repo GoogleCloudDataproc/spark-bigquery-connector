@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.spark.SparkEnv;
+import org.apache.spark.TaskContext;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 
@@ -70,17 +71,24 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
 
   public InputPartitionReaderContext<ColumnarBatch> createPartitionReaderContext() {
     SparkMetricsSource sparkMetricsSource = new SparkMetricsSource();
+
+    TaskContext.get()
+        .registerAccumulator(sparkBigQueryReadSessionMetrics.getBytesReadAccumulator());
+    TaskContext.get().registerAccumulator(sparkBigQueryReadSessionMetrics.getRowsReadAccumulator());
+    TaskContext.get()
+        .registerAccumulator(sparkBigQueryReadSessionMetrics.getParseTimeAccumulator());
+    TaskContext.get().registerAccumulator(sparkBigQueryReadSessionMetrics.getScanTimeAccumulator());
+
     SparkEnv.get().metricsSystem().registerSource(sparkMetricsSource);
     BigQueryStorageReadRowsTracer tracer =
         tracerFactory.newReadRowsTracer(
             Joiner.on(",").join(streamNames),
             sparkMetricsSource,
-            Optional.ofNullable(sparkBigQueryReadSessionMetrics));
+            Optional.of(sparkBigQueryReadSessionMetrics));
     List<ReadRowsRequest.Builder> readRowsRequests =
         streamNames.stream()
             .map(name -> ReadRowsRequest.newBuilder().setReadStream(name))
             .collect(Collectors.toList());
-    // ((LongAccumulator) AccumulatorContext.get(0).get()).add(100L);
     ReadRowsHelper readRowsHelper =
         new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequests, options);
     tracer.startStream();

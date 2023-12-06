@@ -230,6 +230,7 @@ public class BigQueryDataSourceReaderContext {
               .map(Field::getName)
               .collect(ImmutableList.toImmutableList());
     }
+
     ImmutableList<String> partitionSelectedFields = tempSelectedFields;
     Optional<StructType> arrowSchema = Optional.of(userProvidedSchema.orElse(readSchema()));
     plannedInputPartitionContexts =

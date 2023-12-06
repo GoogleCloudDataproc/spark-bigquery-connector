@@ -20,7 +20,6 @@ import static org.mockito.Mockito.mock;
 
 import java.time.Instant;
 import java.util.Optional;
-
 import org.junit.Before;
 import org.junit.Test;
 
