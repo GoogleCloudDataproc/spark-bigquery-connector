@@ -35,7 +35,6 @@ public class SparkBigQueryConnectorMetricsUtils {
                           .getDeclaredConstructor(String.class)
                           .newInstance(connectorVersion)));
     } catch (ReflectiveOperationException ignored) {
-      System.out.println(ignored);
     }
   }
 
