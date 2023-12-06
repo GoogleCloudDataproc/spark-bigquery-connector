@@ -34,7 +34,7 @@ public class SparkBigQueryReadSessionMetricsTest {
 
   @Test
   public void testReadSessionMetricsAccumulator() {
-    String sessionName = "testSession";
+    String sessionName = "projects/test-project/locations/us/sessions/testSession";
     long numReadStreams = 10;
     SparkBigQueryReadSessionMetrics metrics =
         SparkBigQueryReadSessionMetrics.from(
@@ -56,15 +56,5 @@ public class SparkBigQueryReadSessionMetricsTest {
     metrics.incrementScanTimeAccumulator(1000);
     metrics.incrementScanTimeAccumulator(5000);
     assertThat(metrics.getScanTime()).isEqualTo(6000);
-  }
-
-  private boolean checkIfReadSessionMetricEventExist() {
-    try {
-      Class.forName(
-          "com.google.cloud.spark.events.BigQueryConnectorReadSessionMetricEvent$BigQueryConnectorReadSessionMetricEventBuilder");
-      return true;
-    } catch (ClassNotFoundException ignored) {
-      return false;
-    }
   }
 }
