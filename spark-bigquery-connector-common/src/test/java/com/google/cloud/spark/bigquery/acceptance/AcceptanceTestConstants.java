@@ -49,5 +49,5 @@ public class AcceptanceTestConstants {
           + MAX_BIG_NUMERIC
           + "\" as bignumeric) as max";
 
-  protected static final long SERVERLESS_BATCH_TIMEOUT_IN_SECONDS = 600;
+  protected static final long SERVERLESS_BATCH_TIMEOUT_IN_SECONDS = 1200;
 }
