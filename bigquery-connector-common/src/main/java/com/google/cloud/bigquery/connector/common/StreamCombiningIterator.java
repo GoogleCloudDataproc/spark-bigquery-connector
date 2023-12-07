@@ -73,8 +73,8 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
     if (this.bufferEntriesPerStream > 0 || requests.size() > 0) {
       log.info(
           "new combining stream with {} streams and {} buffered entries",
-          this.bufferEntriesPerStream,
-          requests.size());
+          requests.size(),
+          this.bufferEntriesPerStream);
     }
     // + 1 to leave space for terminal object.
     responses = new ArrayBlockingQueue<>((requests.size() * this.bufferEntriesPerStream) + 1);
