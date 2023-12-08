@@ -20,7 +20,8 @@ import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.runBqQuery;
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.api.gax.longrunning.OperationSnapshot;
+import com.google.cloud.dataproc.v1.Batch;
+import com.google.cloud.dataproc.v1.Batch.State;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -57,15 +58,14 @@ public class BigNumericDataprocServerlessAcceptanceTestBase
             context.bqTable));
     String tableName = context.bqDataset + "." + context.bqTable;
 
-    OperationSnapshot operationSnapshot =
+    Batch batch =
         createAndRunPythonBatch(
             context,
             testName,
             "big_numeric.py",
             zipFileUri,
             Arrays.asList(tableName, context.getResultsDirUri(testName)));
-    assertThat(operationSnapshot.isDone()).isTrue();
-    assertThat(operationSnapshot.getErrorMessage()).isEmpty();
+    assertThat(batch.getState()).isEqualTo(State.SUCCEEDED);
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
     assertThat(output.trim()).isEqualTo(MIN_BIG_NUMERIC + "," + MAX_BIG_NUMERIC);
   }

@@ -22,7 +22,6 @@ import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.gen
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.uploadConnectorJar;
 
 import com.google.api.gax.longrunning.OperationFuture;
-import com.google.api.gax.longrunning.OperationSnapshot;
 import com.google.cloud.dataproc.v1.Batch;
 import com.google.cloud.dataproc.v1.BatchControllerClient;
 import com.google.cloud.dataproc.v1.BatchControllerSettings;
@@ -80,7 +79,7 @@ public class DataprocServerlessAcceptanceTestBase {
     deleteBqDatasetAndTables(context.bqDataset);
   }
 
-  protected OperationSnapshot createAndRunPythonBatch(
+  protected Batch createAndRunPythonBatch(
       AcceptanceTestContext context,
       String testName,
       String pythonFile,
@@ -115,9 +114,8 @@ public class DataprocServerlessAcceptanceTestBase {
                 .setBatch(batch)
                 .build());
 
-    return batchAsync
-        .getPollingFuture()
-        .get(AcceptanceTestConstants.SERVERLESS_BATCH_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
+    return batchAsync.get(
+        AcceptanceTestConstants.SERVERLESS_BATCH_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
   }
 
   protected PySparkBatch.Builder createPySparkBatchBuilder(

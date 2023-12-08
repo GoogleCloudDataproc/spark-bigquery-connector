@@ -17,7 +17,8 @@ package com.google.cloud.spark.bigquery.acceptance;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.api.gax.longrunning.OperationSnapshot;
+import com.google.cloud.dataproc.v1.Batch;
+import com.google.cloud.dataproc.v1.Batch.State;
 import java.util.Arrays;
 import org.junit.Test;
 
@@ -32,15 +33,14 @@ public class ReadSheakspeareDataprocServerlessAcceptanceTestBase
 
   @Test
   public void testBatch() throws Exception {
-    OperationSnapshot operationSnapshot =
+    Batch batch =
         createAndRunPythonBatch(
             context,
             testName,
             "read_shakespeare.py",
             null,
             Arrays.asList(context.getResultsDirUri(testName)));
-    assertThat(operationSnapshot.isDone()).isTrue();
-    assertThat(operationSnapshot.getErrorMessage()).isEmpty();
+    assertThat(batch.getState()).isEqualTo(State.SUCCEEDED);
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
     assertThat(output.trim()).isEqualTo("spark,10");
   }

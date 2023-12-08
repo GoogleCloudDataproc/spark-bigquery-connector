@@ -18,7 +18,8 @@ package com.google.cloud.spark.bigquery.acceptance;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.getNumOfRowsOfBqTable;
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.api.gax.longrunning.OperationSnapshot;
+import com.google.cloud.dataproc.v1.Batch;
+import com.google.cloud.dataproc.v1.Batch.State;
 import java.util.Arrays;
 import org.junit.Test;
 
@@ -42,7 +43,7 @@ public class WriteStreamDataprocServerlessAcceptanceTestBase
         jsonFileUri,
         "application/json");
 
-    OperationSnapshot operationSnapshot =
+    Batch batch =
         createAndRunPythonBatch(
             context,
             testName,
@@ -53,8 +54,7 @@ public class WriteStreamDataprocServerlessAcceptanceTestBase
                 context.bqDataset,
                 context.bqStreamTable,
                 AcceptanceTestUtils.BUCKET));
-    assertThat(operationSnapshot.isDone()).isTrue();
-    assertThat(operationSnapshot.getErrorMessage()).isEmpty();
+    assertThat(batch.getState()).isEqualTo(State.SUCCEEDED);
 
     int numOfRows = getNumOfRowsOfBqTable(context.bqDataset, context.bqStreamTable);
     assertThat(numOfRows).isEqualTo(2);
