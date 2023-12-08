@@ -18,6 +18,7 @@ package com.google.cloud.bigquery.connector.common;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryForRangePartitionedTable;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryForTimePartitionedTable;
 
+import com.google.cloud.BaseServiceException;
 import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -898,7 +899,7 @@ public class BigQueryClient {
       if (completedJobInfo.getStatus().getError() != null) {
         throw BigQueryUtil.convertToBigQueryException(completedJobInfo.getStatus().getError());
       }
-       // Registering a cleanup job
+      // Registering a cleanup job
       CLEANUP_JOBS.add(() -> bigQueryClient.deleteTable(tempTable));
       // add expiration time to the table
       TableInfo createdTable = bigQueryClient.getTable(tempTable);

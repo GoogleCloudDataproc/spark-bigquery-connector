@@ -367,7 +367,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         spark
             .read()
             .format("bigquery")
-            .option("table", "bigquery-public-data:ethereum_blockchain.live_logs")
+            .option("table", "bigquery-public-data:bigqueryml_ncaa.cume_games_view")
             .option("viewsEnabled", "true")
             .option("viewMaterializationProject", PROJECT_ID)
             .option("viewMaterializationDataset", testDataset.toString())
