@@ -83,6 +83,7 @@ public class BigQueryClient {
   private final Optional<String> materializationProject;
   private final Optional<String> materializationDataset;
   private final JobConfigurationFactory jobConfigurationFactory;
+  private final Optional<BigQueryJobCompletionListener> jobCompletionListener;
 
   public BigQueryClient(
       BigQuery bigQuery,
@@ -90,12 +91,14 @@ public class BigQueryClient {
       Optional<String> materializationDataset,
       Cache<String, TableInfo> destinationTableCache,
       Map<String, String> labels,
-      Priority queryJobPriority) {
+      Priority queryJobPriority,
+      Optional<BigQueryJobCompletionListener> jobCompletionListener) {
     this.bigQuery = bigQuery;
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
     this.destinationTableCache = destinationTableCache;
     this.jobConfigurationFactory = new JobConfigurationFactory(labels, queryJobPriority);
+    this.jobCompletionListener = jobCompletionListener;
   }
 
   public static synchronized void runCleanupJobs() {
@@ -118,7 +121,7 @@ public class BigQueryClient {
    *
    * @param job The {@code Job} to keep track of.
    */
-  public static void waitForJob(Job job) {
+  public JobInfo waitForJob(Job job) {
     try {
       Job completedJob =
           job.waitFor(
@@ -128,6 +131,8 @@ public class BigQueryClient {
         throw new UncheckedIOException(
             new IOException(completedJob.getStatus().getError().toString()));
       }
+      jobCompletionListener.ifPresent(jcl -> jcl.accept(completedJob));
+      return completedJob;
     } catch (InterruptedException e) {
       throw new RuntimeException(
           "Could not copy table from temporary sink to destination table.", e);
@@ -890,11 +895,9 @@ public class BigQueryClient {
                   .build());
 
       log.info("running query {}", querySql);
-
-      Job job = waitForJob(bigQueryClient.create(jobInfo));
-
-      if (job.getStatus().getError() != null) {
-        throw BigQueryUtil.convertToBigQueryException(job.getStatus().getError());
+      JobInfo completedJobInfo = bigQueryClient.waitForJob(bigQueryClient.create(jobInfo));
+      if (completedJobInfo.getStatus().getError() != null) {
+        throw BigQueryUtil.convertToBigQueryException(completedJobInfo.getStatus().getError());
       }
       // Registering a cleanup job
       CLEANUP_JOBS.add(() -> bigQueryClient.deleteTable(tempTable));

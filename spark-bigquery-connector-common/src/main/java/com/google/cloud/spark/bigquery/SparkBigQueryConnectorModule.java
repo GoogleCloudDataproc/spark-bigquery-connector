@@ -17,8 +17,10 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
+import com.google.cloud.bigquery.connector.common.BigQueryJobCompletionListener;
 import com.google.cloud.bigquery.connector.common.EnvironmentContext;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
+import com.google.cloud.spark.bigquery.events.BigQueryJobCompletedEvent;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
 import com.google.inject.Module;
@@ -119,5 +121,13 @@ public class SparkBigQueryConnectorModule implements Module {
   public EnvironmentContext provideEnvironmentContext() {
     return new EnvironmentContext(
         SparkBigQueryUtil.extractJobLabels(spark.sparkContext().getConf()));
+  }
+
+  @Singleton
+  @Provides
+  public BigQueryJobCompletionListener provideBigQueryJobCompletionListener() {
+    return completedJob ->
+        BigQueryJobCompletedEvent.from(completedJob)
+            .ifPresent(event -> spark.sparkContext().listenerBus().post(event));
   }
 }

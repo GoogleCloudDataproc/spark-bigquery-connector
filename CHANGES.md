@@ -6,6 +6,7 @@
 * PR #1117: Make read session caching duration configurable
 * PR #1118: Improve read session caching key
 * PR #1122: Set traceId on write
+* PR #1124: Added `SparkListenerEvent`s for Query and Load jobs running on BigQuery
 * PR #1127: Fix job labeling for mixed case Dataproc job names
 * PR #1136: Consider projections for biglake stats
 

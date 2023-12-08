@@ -20,16 +20,38 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.spark.bigquery.events.BigQueryJobCompletedEvent;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.apache.spark.scheduler.SparkListener;
+import org.apache.spark.scheduler.SparkListenerEvent;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   private BigQuery bq;
+
+  private TestBigQueryJobCompletionListener listener = new TestBigQueryJobCompletionListener();
+
+  @Before
+  public void addListener() {
+    listener.reset();
+    spark.sparkContext().addSparkListener(listener);
+  }
+
+  @After
+  public void removeListener() {
+    spark.sparkContext().removeSparkListener(listener);
+  }
 
   protected ReadFromQueryIntegrationTestBase() {
     super();
@@ -46,6 +68,11 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             .load(query);
 
     validateResult(df);
+    // validate event publishing
+    List<JobInfo> jobInfos = listener.getJobInfos();
+    assertThat(jobInfos).hasSize(1);
+    JobInfo jobInfo = jobInfos.iterator().next();
+    assertThat(((QueryJobConfiguration) jobInfo.getConfiguration()).getQuery()).isEqualTo(query);
   }
 
   @Test
@@ -147,5 +174,25 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             .load(query);
 
     validateResult(df);
+  }
+}
+
+class TestBigQueryJobCompletionListener extends SparkListener {
+
+  private List<JobInfo> jobInfos = new ArrayList<>();
+
+  @Override
+  public void onOtherEvent(SparkListenerEvent event) {
+    if (event instanceof BigQueryJobCompletedEvent) {
+      jobInfos.add(((BigQueryJobCompletedEvent) event).getJobInfo());
+    }
+  }
+
+  public ImmutableList<JobInfo> getJobInfos() {
+    return ImmutableList.copyOf(jobInfos);
+  }
+
+  public void reset() {
+    jobInfos.clear();
   }
 }
