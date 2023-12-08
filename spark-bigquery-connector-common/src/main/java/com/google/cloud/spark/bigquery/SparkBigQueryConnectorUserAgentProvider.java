@@ -111,6 +111,10 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
     jsonObject.addProperty("connectorVersion", SparkBigQueryUtil.CONNECTOR_VERSION);
     jsonObject.addProperty("datasource", dataSourceVersion);
     jsonObject.addProperty("dataprocImage", DATAPROC_IMAGE_PART);
+    jsonObject.addProperty("gcpRegion", GCP_REGION_PART);
+    jsonObject.addProperty("sparkVersion", SPARK_VERSION);
+    jsonObject.addProperty("javaVersion", JAVA_VERSION);
+    jsonObject.addProperty("scalaVersion", SCALA_VERSION);
     return jsonObject.toString();
   }
 }
