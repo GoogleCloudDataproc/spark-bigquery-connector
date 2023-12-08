@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Google Inc. All Rights Reserved.
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *       https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,16 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.integration;
+package com.google.cloud.spark.bigquery.acceptance;
 
-import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import org.apache.spark.sql.types.DataTypes;
+import org.junit.Ignore;
 
-public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase {
+@Ignore // Waiting for the serverless dataproc.sparkBqConnector.uri property
+public class Spark35ReadSheakspeareDataprocServerlessAcceptanceTest
+    extends ReadSheakspeareDataprocServerlessAcceptanceTestBase {
 
-  public Spark34DirectWriteIntegrationTest() {
-    super(SparkBigQueryConfig.WriteMethod.DIRECT, DataTypes.TimestampNTZType);
+  public Spark35ReadSheakspeareDataprocServerlessAcceptanceTest() {
+    super("spark-3.5-bigquery", "2.2");
   }
 
   // tests from superclass
+
 }

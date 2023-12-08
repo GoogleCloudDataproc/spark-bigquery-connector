@@ -2,6 +2,7 @@
 
 ## Next
 
+* PR #1115: Added new connector, `spark-3.5-bigquery` aimed to be used in Spark 3.5. This connector implements new APIs and capabilities provided by the Spark Data Source V2 API.
 * PR #1117: Make read session caching duration configurable
 * PR #1118: Improve read session caching key
 * PR #1122: Set traceId on write

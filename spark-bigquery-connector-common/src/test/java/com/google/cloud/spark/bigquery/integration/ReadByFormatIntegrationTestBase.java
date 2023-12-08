@@ -16,6 +16,8 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assume.assumeThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.google.cloud.bigquery.BigQuery;
@@ -30,14 +32,17 @@ import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -48,15 +53,27 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   private static final int LARGE_TABLE_NUMBER_OF_PARTITIONS = 138;
   protected final String dataFormat;
   protected final boolean userProvidedSchemaAllowed;
+  protected Optional<DataType> timeStampNTZType;
 
   public ReadByFormatIntegrationTestBase(String dataFormat) {
-    this(dataFormat, true);
+    this(dataFormat, true, Optional.empty());
   }
 
   public ReadByFormatIntegrationTestBase(String dataFormat, boolean userProvidedSchemaAllowed) {
+    this(dataFormat, userProvidedSchemaAllowed, Optional.empty());
+  }
+
+  public ReadByFormatIntegrationTestBase(
+      String dataFormat, boolean userProvidedSchemaAllowed, DataType timestampNTZType) {
+    this(dataFormat, userProvidedSchemaAllowed, Optional.of(timestampNTZType));
+  }
+
+  public ReadByFormatIntegrationTestBase(
+      String dataFormat, boolean userProvidedSchemaAllowed, Optional<DataType> timestampNTZType) {
     super();
     this.dataFormat = dataFormat;
     this.userProvidedSchemaAllowed = userProvidedSchemaAllowed;
+    this.timeStampNTZType = timestampNTZType;
   }
 
   @Test
@@ -270,6 +287,33 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
         rowList.stream().map(row -> scalaMapToJavaMap(row.getMap(0))).collect(Collectors.toList());
     assertThat(result).contains(ImmutableMap.of("a", Long.valueOf(1), "b", Long.valueOf(2)));
     assertThat(result).contains(ImmutableMap.of("c", Long.valueOf(3)));
+  }
+
+  @Test
+  public void testTimestampNTZReadFromBigQuery() {
+    assumeThat(timeStampNTZType.isPresent(), is(true));
+    BigQuery bigQuery = IntegrationTestUtils.getBigquery();
+    LocalDateTime dateTime = LocalDateTime.of(2023, 9, 18, 14, 30, 15, 234 * 1_000_000);
+    bigQuery.create(
+        TableInfo.newBuilder(
+                TableId.of(testDataset.toString(), testTable),
+                StandardTableDefinition.of(Schema.of(Field.of("foo", LegacySQLTypeName.DATETIME))))
+            .build());
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "INSERT INTO %s.%s (foo) VALUES " + "('%s')", testDataset, testTable, dateTime));
+
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    StructType schema = df.schema();
+    assertThat(schema.apply("foo").dataType()).isEqualTo(timeStampNTZType.get());
+    Row row = df.head();
+    assertThat(row.get(0)).isEqualTo(dateTime);
   }
 
   static <K, V> Map<K, V> scalaMapToJavaMap(scala.collection.Map<K, V> map) {

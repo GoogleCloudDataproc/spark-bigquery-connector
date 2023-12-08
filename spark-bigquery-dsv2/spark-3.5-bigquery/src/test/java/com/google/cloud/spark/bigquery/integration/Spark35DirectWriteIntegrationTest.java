@@ -18,9 +18,9 @@ package com.google.cloud.spark.bigquery.integration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import org.apache.spark.sql.types.DataTypes;
 
-public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase {
+public class Spark35DirectWriteIntegrationTest extends WriteIntegrationTestBase {
 
-  public Spark34DirectWriteIntegrationTest() {
+  public Spark35DirectWriteIntegrationTest() {
     super(SparkBigQueryConfig.WriteMethod.DIRECT, DataTypes.TimestampNTZType);
   }
 

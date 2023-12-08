@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Google Inc. All Rights Reserved.
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *       https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,14 +15,13 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import org.apache.spark.sql.types.DataTypes;
 
-public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase {
+public class Spark35ReadByFormatIntegrationTest extends ReadByFormatIntegrationTestBase {
 
-  public Spark34DirectWriteIntegrationTest() {
-    super(SparkBigQueryConfig.WriteMethod.DIRECT, DataTypes.TimestampNTZType);
+  public Spark35ReadByFormatIntegrationTest() {
+    super("ARROW", /* userProvidedSchemaAllowed */ false, DataTypes.TimestampNTZType);
   }
 
-  // tests from superclass
+  // tests are from the super-class
 }

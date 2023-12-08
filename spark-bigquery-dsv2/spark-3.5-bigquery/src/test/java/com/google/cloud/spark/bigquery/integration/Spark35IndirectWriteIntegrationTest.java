@@ -17,11 +17,18 @@ package com.google.cloud.spark.bigquery.integration;
 
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import org.apache.spark.sql.types.DataTypes;
+import org.junit.Before;
 
-public class Spark34DirectWriteIntegrationTest extends WriteIntegrationTestBase {
+public class Spark35IndirectWriteIntegrationTest extends WriteIntegrationTestBase {
 
-  public Spark34DirectWriteIntegrationTest() {
-    super(SparkBigQueryConfig.WriteMethod.DIRECT, DataTypes.TimestampNTZType);
+  public Spark35IndirectWriteIntegrationTest() {
+    super(SparkBigQueryConfig.WriteMethod.INDIRECT, DataTypes.TimestampNTZType);
+  }
+
+  @Before
+  public void setParquetLoadBehaviour() {
+    // TODO: make this the default value
+    spark.conf().set("enableListInference", "true");
   }
 
   // tests from superclass
