@@ -103,6 +103,9 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
   }
 
   @Override
+  /*
+   * Creates JsonObject of the conenctor info as Json format is used at the receiver of this event.
+   */
   public String getConnectorInfo() {
     JsonObject jsonObject = new JsonObject();
     jsonObject.addProperty("connectorVersion", SparkBigQueryUtil.CONNECTOR_VERSION);

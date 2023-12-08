@@ -82,6 +82,7 @@ class BigQueryRDDContext implements Serializable {
     BigQueryPartition bigQueryPartition = (BigQueryPartition) split;
     SparkMetricsSource sparkMetricsSource = new SparkMetricsSource();
     SparkEnv.get().metricsSystem().registerSource(sparkMetricsSource);
+    // Read session metrics are not supported for dsv1
     BigQueryStorageReadRowsTracer tracer =
         bigQueryTracerFactory.newReadRowsTracer(
             Joiner.on(",").join(streamNames), sparkMetricsSource, Optional.empty());

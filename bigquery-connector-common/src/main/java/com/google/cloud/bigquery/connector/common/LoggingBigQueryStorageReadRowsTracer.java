@@ -146,12 +146,13 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
     bigQueryMetrics.updateScanTime(getScanTimeInMilliSec());
     bigQueryMetrics.updateParseTime(getParseTimeInMilliSec());
     bigQueryMetrics.updateTimeInSpark(getTimeInSparkInMilliSec());
-    if (readSessionMetrics.isPresent()) {
-      readSessionMetrics.get().incrementBytesReadAccumulator(getBytesRead());
-      readSessionMetrics.get().incrementRowsReadAccumulator(getRowsRead());
-      readSessionMetrics.get().incrementParseTimeAccumulator(getParseTimeInMilliSec());
-      readSessionMetrics.get().incrementScanTimeAccumulator(getScanTimeInMilliSec());
-    }
+    readSessionMetrics.ifPresent(
+        metrics -> {
+          metrics.incrementBytesReadAccumulator(getBytesRead());
+          metrics.incrementRowsReadAccumulator(getRowsRead());
+          metrics.incrementParseTimeAccumulator(getParseTimeInMilliSec());
+          metrics.incrementScanTimeAccumulator(getScanTimeInMilliSec());
+        });
     linesLogged++;
   }
 
