@@ -15,12 +15,18 @@
  */
 package com.google.cloud.spark.bigquery.acceptance;
 
+import org.junit.Test;
+
 public class Scala213ReadSheakspeareDataprocServerlessAcceptanceTest extends ReadSheakspeareDataprocServerlessAcceptanceTestBase {
 
     public Scala213ReadSheakspeareDataprocServerlessAcceptanceTest() {
-        super("spark-bigquery", "2.0");
+        super("spark-bigquery", "2.0", "spark-bigquery-with-dependencies_2.13-0.34.0");
     }
 
     // tests from superclass
+    @Test
+    public void foo() throws Exception {
+        testBatch();
+    }
 
 }

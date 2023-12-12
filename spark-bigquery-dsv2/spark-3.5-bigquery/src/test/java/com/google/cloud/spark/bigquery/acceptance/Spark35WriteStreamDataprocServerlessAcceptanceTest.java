@@ -22,7 +22,7 @@ public class Spark35WriteStreamDataprocServerlessAcceptanceTest
     extends WriteStreamDataprocServerlessAcceptanceTestBase {
 
   public Spark35WriteStreamDataprocServerlessAcceptanceTest() {
-    super("spark-3.5-bigquery", "2.2");
+    super("spark-3.5-bigquery", "2.2", "spark-bigquery-latest");
   }
 
   // tests from superclass

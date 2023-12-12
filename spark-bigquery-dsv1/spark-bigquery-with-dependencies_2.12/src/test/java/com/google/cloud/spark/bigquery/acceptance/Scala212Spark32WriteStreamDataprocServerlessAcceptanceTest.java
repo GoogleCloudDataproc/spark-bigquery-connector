@@ -22,7 +22,7 @@ public class Scala212Spark32WriteStreamDataprocServerlessAcceptanceTest
     extends WriteStreamDataprocServerlessAcceptanceTestBase {
 
   public Scala212Spark32WriteStreamDataprocServerlessAcceptanceTest() {
-    super("spark-bigquery", "1.0");
+    super("spark-bigquery", "1.0", "spark-bigquery-with-dependencies_2.12-0.34.0");
   }
 
   // tests from superclass

@@ -15,13 +15,18 @@
  */
 package com.google.cloud.spark.bigquery.acceptance;
 
+import org.junit.Test;
+
 public class Spark31BigNumericDataprocServerlessAcceptanceTest
     extends BigNumericDataprocServerlessAcceptanceTestBase {
 
   public Spark31BigNumericDataprocServerlessAcceptanceTest() {
-    super("spark-3.1-bigquery", "1.0");
+    super("spark-3.1-bigquery", "1.0", "spark-3.1-bigquery-0.34.0");
   }
 
   // tests from superclass
-
+  @Test
+  public void foo() throws Exception {
+    testBatch();
+  }
 }

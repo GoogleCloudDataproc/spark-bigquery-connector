@@ -28,8 +28,8 @@ public class WriteStreamDataprocServerlessAcceptanceTestBase
     extends DataprocServerlessAcceptanceTestBase {
 
   public WriteStreamDataprocServerlessAcceptanceTestBase(
-      String connectorJarPrefix, String s8sImageVersion) {
-    super(connectorJarPrefix, s8sImageVersion);
+      String connectorJarPrefix, String s8sImageVersion, String connectorJarName) {
+    super(connectorJarPrefix, s8sImageVersion, connectorJarName);
   }
 
   @Test

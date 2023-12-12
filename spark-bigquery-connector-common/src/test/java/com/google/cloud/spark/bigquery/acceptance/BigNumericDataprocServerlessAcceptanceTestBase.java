@@ -36,8 +36,8 @@ public class BigNumericDataprocServerlessAcceptanceTestBase
     extends DataprocServerlessAcceptanceTestBase {
 
   public BigNumericDataprocServerlessAcceptanceTestBase(
-      String connectorJarPrefix, String s8sImageVersion) {
-    super(connectorJarPrefix, s8sImageVersion);
+      String connectorJarPrefix, String s8sImageVersion, String connectorJarName) {
+    super(connectorJarPrefix, s8sImageVersion, connectorJarName);
   }
 
   @Test

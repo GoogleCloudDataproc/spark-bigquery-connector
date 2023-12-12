@@ -19,7 +19,7 @@ public class Spark33ReadSheakspeareDataprocServerlessAcceptanceTest
     extends ReadSheakspeareDataprocServerlessAcceptanceTestBase {
 
   public Spark33ReadSheakspeareDataprocServerlessAcceptanceTest() {
-    super("spark-3.3-bigquery", "2.0");
+    super("spark-3.3-bigquery", "2.0", "spark-3.3-bigquery-0.34.0");
   }
 
   // tests from superclass

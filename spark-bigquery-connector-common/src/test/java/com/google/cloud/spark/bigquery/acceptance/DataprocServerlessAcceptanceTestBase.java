@@ -55,9 +55,13 @@ public class DataprocServerlessAcceptanceTestBase {
   private final String connectorJarPrefix;
   private final String s8sImageVersion;
 
-  public DataprocServerlessAcceptanceTestBase(String connectorJarPrefix, String s8sImageVersion) {
+  private final String connectorJarName;
+
+  public DataprocServerlessAcceptanceTestBase(
+      String connectorJarPrefix, String s8sImageVersion, String connectorJarName) {
     this.connectorJarPrefix = connectorJarPrefix;
     this.s8sImageVersion = s8sImageVersion;
+    this.connectorJarName = connectorJarName;
   }
 
   @Before
@@ -98,7 +102,12 @@ public class DataprocServerlessAcceptanceTestBase {
         Batch.newBuilder()
             .setName(parent + "/batches/" + context.clusterId)
             .setPysparkBatch(createPySparkBatchBuilder(context, testName, pythonZipUri, args))
-            .setRuntimeConfig(RuntimeConfig.newBuilder().setVersion(s8sImageVersion))
+            .setRuntimeConfig(
+                RuntimeConfig.newBuilder()
+                    .setVersion(s8sImageVersion)
+                    .putProperties(
+                        "dataproc.sparkBqConnector.uri",
+                        String.format("gs://spark-lib/bigquery/%s.jar", connectorJarName)))
             .setEnvironmentConfig(
                 EnvironmentConfig.newBuilder()
                     .setExecutionConfig(
