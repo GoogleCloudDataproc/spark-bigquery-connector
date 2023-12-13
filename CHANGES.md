@@ -9,6 +9,7 @@
 * PR #1124: Added `SparkListenerEvent`s for Query and Load jobs running on BigQuery
 * PR #1127: Fix job labeling for mixed case Dataproc job names
 * PR #1136: Consider projections for biglake stats
+* PR #1143: Enable async write for default stream
 
 ## 0.34.0 - 2023-10-31
 

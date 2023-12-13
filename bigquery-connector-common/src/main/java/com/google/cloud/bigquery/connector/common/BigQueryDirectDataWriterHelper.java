@@ -252,13 +252,7 @@ public class BigQueryDirectDataWriterHelper {
    *     (deduplication error) or if the response contains an error.
    */
   private void sendAppendRowsRequest() throws IOException {
-    boolean waitForResponse = false;
-    if (writeAtLeastOnce) {
-      // FUTURE: Enable async writes with default stream once client retries are supported.
-      // When using default stream we may encounter retry-able server errors when under high load.
-      waitForResponse = true; // disable async writes
-    }
-    checkForFailedResponse(waitForResponse);
+    checkForFailedResponse(false /*waitForResponse*/);
     long offset = this.writeAtLeastOnce ? -1 : writeStreamRowCount;
 
     ApiFuture<AppendRowsResponse> appendRowsResponseApiFuture =
