@@ -22,4 +22,5 @@ public class Scala213ReadSheakspeareDataprocServerlessAcceptanceTest extends Rea
     }
 
     // tests from superclass
+
 }
