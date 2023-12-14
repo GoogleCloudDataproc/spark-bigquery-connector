@@ -98,8 +98,10 @@ public class DataprocServerlessAcceptanceTestBase {
         Batch.newBuilder()
             .setName(parent + "/batches/" + context.clusterId)
             .setPysparkBatch(createPySparkBatchBuilder(context, testName, pythonZipUri, args))
-            .setRuntimeConfig(RuntimeConfig.newBuilder().setVersion(s8sImageVersion).putProperties(
-                            "dataproc.sparkBqConnector.uri", connectorJarUri))
+            .setRuntimeConfig(
+                RuntimeConfig.newBuilder()
+                    .setVersion(s8sImageVersion)
+                    .putProperties("dataproc.sparkBqConnector.uri", connectorJarUri))
             .setEnvironmentConfig(
                 EnvironmentConfig.newBuilder()
                     .setExecutionConfig(
