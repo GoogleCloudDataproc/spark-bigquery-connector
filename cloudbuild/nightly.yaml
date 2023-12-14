@@ -29,7 +29,7 @@ steps:
 images: ['gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-nightly']
 
 # Many tests, so it takes time
-timeout: 10800s
+timeout: 14400s
 
 options:
   machineType: 'N1_HIGHCPU_32'
