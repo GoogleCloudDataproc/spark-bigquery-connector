@@ -33,7 +33,7 @@ public class SparkBigQueryConnectorMetricsUtils {
           .listenerBus()
           .post(
               (SparkListenerEvent)
-                  eventClass.getConstructor(String.class, Long.class).newInstance("bigquery", -1L));
+                  eventClass.getConstructor(String.class, long.class).newInstance("bigquery", -1L));
     } catch (ReflectiveOperationException ignored) {
       logger.info("spark.events.InputFormatEvent library not in class path");
     }
