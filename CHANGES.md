@@ -10,6 +10,12 @@
 * PR #1127: Fix job labeling for mixed case Dataproc job names
 * PR #1136: Consider projections for biglake stats
 * PR #1143: Enable async write for default stream
+* BigQuery API has been upgraded to version 2.35.0
+* BigQuery Storage API has been upgraded to version 2.47.0
+* GAX has been upgraded to version 2.38.0
+* gRPC has been upgraded to version 1.60.0
+* Netty has been upgraded to version 4.1.103.Final
+* Protocol Buffers has been upgraded to version 3.25.1
 
 ## 0.34.0 - 2023-10-31
 
