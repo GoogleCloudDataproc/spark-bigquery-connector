@@ -40,7 +40,6 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
   private final LongAccumulator scanTimeAccumulator;
   private final LongAccumulator parseTimeAccumulator;
   public long numReadStreams;
-
   private final String sessionId;
   private final SparkSession sparkSession;
 
@@ -51,8 +50,7 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
       SparkSession sparkSession, String sessionName, long numReadStreams) {
     this.numReadStreams = numReadStreams;
     this.sparkSession = sparkSession;
-    this.sessionId =
-        SparkBigQueryConnectorMetricsUtils.extractDecodedSessionIdFromSessionName(sessionName);
+    this.sessionId = sessionName;
 
     this.bytesReadAccumulator =
         sparkSession

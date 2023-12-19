@@ -60,15 +60,7 @@ public class SparkBigQueryConnectorMetricsUtils {
     }
   }
 
-  /*
-   * The session name is of the form projects/<project_id>/locations/<location>/sessions/<session_id>.
-   * This method extracts the session id from the session name to get the shortest possible unique identifier for a session.
-   */
-  public static String extractDecodedSessionIdFromSessionName(String sessionName) {
-    return sessionName.split("/")[5];
-  }
-
   public static String getAccumulatorNameForMetric(String metricName, String sessionName) {
-    return String.format("%s-%s", extractDecodedSessionIdFromSessionName(sessionName), metricName);
+    return String.format("%s-%s", sessionName, metricName);
   }
 }
