@@ -31,6 +31,7 @@ import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobConfiguration;
 import com.google.cloud.bigquery.JobId;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
@@ -630,6 +631,23 @@ public class BigQueryClient {
     return materializeTable(querySql, tableId, expirationTimeInMinutes);
   }
 
+  public Schema getTableSchema(String querySql, Map<String, String> additionalQueryJobLabels) {
+    JobInfo jobInfo =
+            JobInfo.of(
+                    jobConfigurationFactory
+                            .createQueryJobConfigurationBuilder(querySql, additionalQueryJobLabels)
+                            .setDryRun(true)
+                            .build());
+
+    log.info("running query {}", querySql);
+    JobInfo completedJobInfo = create(jobInfo);
+    if (completedJobInfo.getStatus().getError() != null) {
+      throw BigQueryUtil.convertToBigQueryException(completedJobInfo.getStatus().getError());
+    }
+    JobStatistics.QueryStatistics queryStatistics = completedJobInfo.getStatistics();
+    return queryStatistics.getSchema();
+  }
+
   private TableInfo materializeTable(
       String querySql, TableId destinationTableId, int expirationTimeInMinutes) {
     try {
@@ -896,6 +914,7 @@ public class BigQueryClient {
 
       log.info("running query {}", querySql);
       JobInfo completedJobInfo = bigQueryClient.waitForJob(bigQueryClient.create(jobInfo));
+//      JobInfo completedJobInfo = bigQueryClient.create(jobInfo);
       if (completedJobInfo.getStatus().getError() != null) {
         throw BigQueryUtil.convertToBigQueryException(completedJobInfo.getStatus().getError());
       }
