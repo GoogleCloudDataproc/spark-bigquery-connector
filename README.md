@@ -116,6 +116,7 @@ repository. It can be used using the `--packages` option or the
 | Scala 2.13 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:0.35.0` |
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.35.0` |
 | Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0` |
+
 ### Specifying the  Spark BigQuery connector version in a Dataproc cluster
 
 Dataproc clusters created using image 2.1 and above, or batches using the Dataproc serverless service come with built-in Spark BigQuery connector.
