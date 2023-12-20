@@ -37,6 +37,7 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryReadSessionMetrics;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -59,6 +60,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.StructField;
@@ -95,6 +97,7 @@ public class BigQueryDataSourceReaderContext {
   private final ReadSessionCreator readSessionCreator;
   private final SparkBigQueryConfig options;
   private final SQLContext sqlContext;
+  private final SparkSession sparkSession;
   private final BigQueryRDDFactory bigQueryRDDFactory;
   private final Optional<String> globalFilter;
   private final String applicationId;
@@ -126,13 +129,15 @@ public class BigQueryDataSourceReaderContext {
       Optional<StructType> schema,
       String applicationId,
       SparkBigQueryConfig options,
-      SQLContext sqlContext) {
+      SQLContext sqlContext,
+      SparkSession sparkSession) {
     this.table = table;
     this.tableId = table.getTableId();
     this.readSessionCreatorConfig = readSessionCreatorConfig;
     this.bigQueryClient = bigQueryClient;
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
     this.bigQueryTracerFactory = tracerFactory;
+    this.sparkSession = sparkSession;
     this.readSessionCreator =
         new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
     this.globalFilter = globalFilter;
@@ -210,6 +215,11 @@ public class BigQueryDataSourceReaderContext {
     }
 
     ReadSession readSession = readSessionResponse.get().getReadSession();
+    SparkBigQueryReadSessionMetrics sparkBigQueryReadSessionMetrics =
+        SparkBigQueryReadSessionMetrics.from(
+            sparkSession, readSession, readSession.getStreamsCount());
+
+    sparkSession.sparkContext().addSparkListener(sparkBigQueryReadSessionMetrics);
 
     ImmutableList<String> tempSelectedFields = selectedFields;
     if (tempSelectedFields.isEmpty()) {
@@ -222,6 +232,7 @@ public class BigQueryDataSourceReaderContext {
               .map(Field::getName)
               .collect(ImmutableList.toImmutableList());
     }
+
     ImmutableList<String> partitionSelectedFields = tempSelectedFields;
     Optional<StructType> arrowSchema = Optional.of(userProvidedSchema.orElse(readSchema()));
     plannedInputPartitionContexts =
@@ -240,7 +251,8 @@ public class BigQueryDataSourceReaderContext {
                         readSessionCreatorConfig.toReadRowsHelperOptions(),
                         partitionSelectedFields,
                         readSessionResponse.get(),
-                        arrowSchema))
+                        arrowSchema,
+                        sparkBigQueryReadSessionMetrics))
             .collect(Collectors.toList());
     return plannedInputPartitionContexts.stream()
         .map(ctx -> (InputPartitionContext<ColumnarBatch>) ctx);

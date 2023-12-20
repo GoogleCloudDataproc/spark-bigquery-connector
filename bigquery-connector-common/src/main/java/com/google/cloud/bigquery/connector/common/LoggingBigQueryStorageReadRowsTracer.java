@@ -19,6 +19,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,11 +45,17 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
   long linesLogged = 0;
   BigQueryMetrics bigQueryMetrics;
 
+  Optional<ReadSessionMetrics> readSessionMetrics;
+
   LoggingBigQueryStorageReadRowsTracer(
-      String streamName, int logIntervalPowerOf2, BigQueryMetrics bigQueryMetrics) {
+      String streamName,
+      int logIntervalPowerOf2,
+      BigQueryMetrics bigQueryMetrics,
+      Optional<ReadSessionMetrics> readSessionMetrics) {
     this.streamName = streamName;
     this.logIntervalPowerOf2 = logIntervalPowerOf2;
     this.bigQueryMetrics = bigQueryMetrics;
+    this.readSessionMetrics = readSessionMetrics;
   }
 
   @Override
@@ -139,6 +146,13 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
     bigQueryMetrics.updateScanTime(getScanTimeInMilliSec());
     bigQueryMetrics.updateParseTime(getParseTimeInMilliSec());
     bigQueryMetrics.updateTimeInSpark(getTimeInSparkInMilliSec());
+    readSessionMetrics.ifPresent(
+        metrics -> {
+          metrics.incrementBytesReadAccumulator(getBytesRead());
+          metrics.incrementRowsReadAccumulator(getRowsRead());
+          metrics.incrementParseTimeAccumulator(getParseTimeInMilliSec());
+          metrics.incrementScanTimeAccumulator(getScanTimeInMilliSec());
+        });
     linesLogged++;
   }
 
@@ -153,7 +167,7 @@ public class LoggingBigQueryStorageReadRowsTracer implements BigQueryStorageRead
   @Override
   public BigQueryStorageReadRowsTracer forkWithPrefix(String id) {
     return new LoggingBigQueryStorageReadRowsTracer(
-        "id-" + id + "-" + streamName, logIntervalPowerOf2, bigQueryMetrics);
+        "id-" + id + "-" + streamName, logIntervalPowerOf2, bigQueryMetrics, readSessionMetrics);
   }
 
   @Override

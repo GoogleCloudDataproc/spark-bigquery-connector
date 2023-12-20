@@ -41,6 +41,7 @@ public class ArrowInputPartitionContextTest {
                     /*prebufferResponses=*/ 1),
                 null,
                 new ReadSessionResponse(ReadSession.getDefaultInstance(), null),
+                null,
                 null));
   }
 }

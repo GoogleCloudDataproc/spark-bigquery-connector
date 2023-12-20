@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.connector.common.UserAgentProvider;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.io.CharStreams;
 import com.google.common.io.Closeables;
+import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Optional;
@@ -99,5 +100,21 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
   @Override
   public String getUserAgent() {
     return USER_AGENT + " datasource/" + dataSourceVersion;
+  }
+
+  @Override
+  /*
+   * Creates JsonObject of the conenctor info as Json format is used at the receiver of this event.
+   */
+  public String getConnectorInfo() {
+    JsonObject jsonObject = new JsonObject();
+    jsonObject.addProperty("connectorVersion", SparkBigQueryUtil.CONNECTOR_VERSION);
+    jsonObject.addProperty("datasource", dataSourceVersion);
+    jsonObject.addProperty("dataprocImage", DATAPROC_IMAGE_PART);
+    jsonObject.addProperty("gcpRegion", GCP_REGION_PART);
+    jsonObject.addProperty("sparkVersion", SPARK_VERSION);
+    jsonObject.addProperty("javaVersion", JAVA_VERSION);
+    jsonObject.addProperty("scalaVersion", SCALA_VERSION);
+    return jsonObject.toString();
   }
 }

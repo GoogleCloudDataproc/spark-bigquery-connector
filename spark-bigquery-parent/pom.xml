@@ -587,6 +587,7 @@
                             <excludes>
                                 <exclude>com.google.cloud.bigquery.connector.common.**</exclude>
                                 <exclude>com.google.cloud.spark.bigquery.**</exclude>
+                                <exclude>com.google.cloud.spark.events.**</exclude>
                             </excludes>
                         </relocation>
                         <relocation>
