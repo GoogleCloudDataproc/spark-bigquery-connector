@@ -105,8 +105,8 @@ The connector is also available from the
 repository. It can be used using the `--packages` option or the
 `spark.jars.packages` configuration property. Use the following value
 
-| version    | Connector Artifact                                                    |
-|------------|-----------------------------------------------------------------------|
+| version    | Connector Artifact                                                                |
+|------------|-----------------------------------------------------------------------------------|
 | Spark 3.5  | `com.google.cloud.spark:spark-3.5-bigquery:0.35.0`                    |
 | Spark 3.4  | `com.google.cloud.spark:spark-3.4-bigquery:0.35.0`                    |
 | Spark 3.3  | `com.google.cloud.spark:spark-3.3-bigquery:0.35.0`                    |
@@ -115,7 +115,7 @@ repository. It can be used using the `--packages` option or the
 | Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:0.35.0`                    |
 | Scala 2.13 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:0.35.0` |
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.35.0` |
-| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0`              |
 
 ### Specifying the  Spark BigQuery connector version in a Dataproc cluster
 
