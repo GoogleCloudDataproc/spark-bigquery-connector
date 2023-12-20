@@ -121,6 +121,7 @@ repository. It can be used using the `--packages` option or the
 | Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:${next-release-tag}`                    |
 | Scala 2.13 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:${next-release-tag}` |
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:${next-release-tag}` |
+| Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0`              |
 
 ### Specifying the  Spark BigQuery connector version in a Dataproc cluster
 
