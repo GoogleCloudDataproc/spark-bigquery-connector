@@ -1019,6 +1019,8 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
    <td><strong><code>StringType</code></strong>
    </td>
    <td>Spark has no DATETIME type.
+    <p>
+    Spark string can be written to an existing BQ DATETIME column provided it is in the <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#canonical_format_for_datetime_literals">format for BQ DATETIME literals</a>.
    </td>
   </tr>
   <tr valign="top">
