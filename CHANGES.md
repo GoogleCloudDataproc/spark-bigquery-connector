@@ -2,6 +2,8 @@
 
 ## Next
 
+* PR #1153: allow writing spark string to BQ datetime
+
 ## 0.35.0 - 2023-12-19
 
 * PR #1115: Added new connector, `spark-3.5-bigquery` aimed to be used in Spark 3.5. This connector implements new APIs and capabilities provided by the Spark Data Source V2 API.
