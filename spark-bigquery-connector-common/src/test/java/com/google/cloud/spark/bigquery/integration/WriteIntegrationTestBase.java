@@ -1480,7 +1480,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(result).hasSize(1);
     Row head = result.get(0);
     assertThat(head.getString(head.fieldIndex("name"))).isEqualTo("abc");
-    assertThat(head.getString(head.fieldIndex("datetime1"))).isEqualTo("0001-01-01T01:22:24.999888");
+    assertThat(head.getString(head.fieldIndex("datetime1")))
+        .isEqualTo("0001-01-01T01:22:24.999888");
   }
 
   protected Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(Dataset<Row> df) {
