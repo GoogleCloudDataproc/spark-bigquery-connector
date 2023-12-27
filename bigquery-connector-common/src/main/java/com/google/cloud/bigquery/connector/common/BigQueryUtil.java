@@ -347,6 +347,8 @@ public class BigQueryUtil {
             && destinationType.equals(LegacySQLTypeName.BIGNUMERIC))
         || (sourceType.equals(LegacySQLTypeName.STRING)
             && destinationType.equals(LegacySQLTypeName.TIME))
+        || (sourceType.equals(LegacySQLTypeName.STRING)
+            && destinationType.equals(LegacySQLTypeName.DATETIME))
         || sourceType.equals(destinationType);
   }
 

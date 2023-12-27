@@ -55,6 +55,7 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1444,6 +1445,49 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     Row head = result.get(0);
     assertThat(head.getString(head.fieldIndex("name"))).isEqualTo("abc");
     assertThat(head.getLong(head.fieldIndex("wake_up_time"))).isEqualTo(36000000000L);
+  }
+
+  @Test
+  public void testWriteStringToDateTimeField() {
+    // not supported for indirect writes
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (name STRING, datetime1 DATETIME)", testDataset, testTable));
+    String name = "abc";
+    String dateTime1 = "0001-01-01T01:22:24.999888";
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create(name, dateTime1)),
+            structType(
+                StructField.apply("name", DataTypes.StringType, true, Metadata.empty()),
+                StructField.apply("datetime1", DataTypes.StringType, true, Metadata.empty())));
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("writeMethod", writeMethod.toString())
+        .save();
+
+    Dataset<Row> resultDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    List<Row> result = resultDF.collectAsList();
+    assertThat(result).hasSize(1);
+    Row head = result.get(0);
+    assertThat(head.getString(head.fieldIndex("name"))).isEqualTo("abc");
+    if (timeStampNTZType.isPresent()) {
+      // For Spark 3.4+, BQ's datetime is converted to Spark's TimestampNTZ i.e. java LocalDateTime
+      LocalDateTime expected = LocalDateTime.of(1, 1, 1, 1, 22, 24).plus(999888, ChronoUnit.MICROS);
+      assertThat(head.get(head.fieldIndex("datetime1"))).isEqualTo(expected);
+    } else {
+      assertThat(head.get(head.fieldIndex("datetime1"))).isEqualTo("0001-01-01T01:22:24.999888");
+    }
   }
 
   protected Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(Dataset<Row> df) {
