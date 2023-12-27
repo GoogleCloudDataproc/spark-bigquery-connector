@@ -1016,11 +1016,13 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
   <tr valign="top">
    <td><strong><code>DATETIME</code></strong>
    </td>
-   <td><strong><code>StringType</code></strong>
+   <td><strong><code>StringType</code>, </strong><strong><code>TimestampNTZType</code>*</strong>
    </td>
    <td>Spark has no DATETIME type.
     <p>
     Spark string can be written to an existing BQ DATETIME column provided it is in the <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#canonical_format_for_datetime_literals">format for BQ DATETIME literals</a>.
+    <p>
+    * For Spark 3.4+, BQ DATETIME is read as Spark's TimestampNTZ type i.e. java LocalDateTime
    </td>
   </tr>
   <tr valign="top">

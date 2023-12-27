@@ -1482,15 +1482,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     Row head = result.get(0);
     assertThat(head.getString(head.fieldIndex("name"))).isEqualTo("abc");
     if (timeStampNTZType.isPresent()) {
-      // For Spark 3.4+, BQ's datetime is converted to Spark's TimestampNTZ i.e. LocalDateTime
-      LocalDateTime expected = LocalDateTime.of(1,1,1,1,22,24).plus(999888, ChronoUnit.MICROS);
-      assertThat(head.get(head.fieldIndex("datetime1")))
-          .isEqualTo(expected);
+      // For Spark 3.4+, BQ's datetime is converted to Spark's TimestampNTZ i.e. java LocalDateTime
+      LocalDateTime expected = LocalDateTime.of(1, 1, 1, 1, 22, 24).plus(999888, ChronoUnit.MICROS);
+      assertThat(head.get(head.fieldIndex("datetime1"))).isEqualTo(expected);
     } else {
-      assertThat(head.get(head.fieldIndex("datetime1")))
-          .isEqualTo("0001-01-01T01:22:24.999888");
+      assertThat(head.get(head.fieldIndex("datetime1"))).isEqualTo("0001-01-01T01:22:24.999888");
     }
-
   }
 
   protected Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(Dataset<Row> df) {
