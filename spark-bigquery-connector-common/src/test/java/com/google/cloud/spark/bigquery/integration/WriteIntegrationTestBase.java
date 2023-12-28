@@ -54,7 +54,6 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -288,7 +287,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .option("dataset", testDataset.toString())
             .option("table", testTable)
             .load();
-    SchemaConverters sc = SchemaConverters.from(SchemaConvertersConfiguration.of(ZoneId.of("UTC")));
+    SchemaConverters sc = SchemaConverters.from(SchemaConvertersConfiguration.createDefault());
     Schema initialSchema = sc.toBigQuerySchema(df.schema());
     Schema readSchema = sc.toBigQuerySchema(readDF.schema());
     assertEquals(initialSchema, readSchema);

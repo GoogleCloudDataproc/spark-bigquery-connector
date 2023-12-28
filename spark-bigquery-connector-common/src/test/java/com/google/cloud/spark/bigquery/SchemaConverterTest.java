@@ -30,7 +30,6 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
-import java.time.ZoneId;
 import java.util.Optional;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.types.*;
@@ -397,7 +396,7 @@ public class SchemaConverterTest {
   @Test
   public void testConvertBigQueryMapToSparkMap_mapTypeConversionDisabled() {
     Optional<StructField> fieldOpt =
-        SchemaConverters.from(SchemaConvertersConfiguration.of(ZoneId.of("UTC"), false))
+        SchemaConverters.from(SchemaConvertersConfiguration.of(false))
             .convertMap(getKeyValueRepeatedField(), Metadata.empty());
     assertThat(fieldOpt.isPresent()).isFalse();
   }
@@ -405,7 +404,7 @@ public class SchemaConverterTest {
   @Test
   public void testConvertBigQueryToSparkArray_mapTypeConversionDisabled() {
     StructField field =
-        SchemaConverters.from(SchemaConvertersConfiguration.of(ZoneId.of("UTC"), false))
+        SchemaConverters.from(SchemaConvertersConfiguration.of(false))
             .convert(getKeyValueRepeatedField());
     StructType elementType =
         new StructType()

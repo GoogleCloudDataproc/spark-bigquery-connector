@@ -819,20 +819,6 @@ word-break:break-word
      </td>
      <td>Read</td>
    </tr>
-   <tr>
-     <td><code>datetimeZoneId</code>
-     </td>
-     <td> The time zone ID used to convert BigQuery's
-          <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#datetime_type">DATETIME</a>
-          into Spark's Timestamp, and vice versa.
-          <br/> The value should be a legal <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">time zone name</a>,
-          that appears is accepted by Java's <code>java.time.ZoneId</code>. The full list can be
-          seen by running <code>java.time.ZoneId.getAvailableZoneIds()</code> in Java/Scala, or
-          <code>sc._jvm.java.time.ZoneId.getAvailableZoneIds()</code> in pyspark.
-          <br/> (Optional. Defaults to <code>UTC</code>)
-     </td>
-     <td>Read/Write</td>
-   </tr>
   <tr>
      <td><code>queryJobPriority</code>
      </td>

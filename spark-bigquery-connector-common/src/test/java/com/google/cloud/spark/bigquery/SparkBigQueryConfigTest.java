@@ -35,7 +35,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
@@ -128,7 +127,6 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getTraceId().get().startsWith("Spark:traceApplicationName:"));
     assertThat(config.getBigQueryJobLabels()).isEmpty();
     assertThat(config.getEnableModeCheckForSchemaFields()).isTrue();
-    assertThat(config.getDatetimeZoneId()).isEqualTo(ZoneId.of("UTC"));
     assertThat(config.getQueryJobPriority()).isEqualTo(SparkBigQueryConfig.DEFAULT_JOB_PRIORITY);
     assertThat(config.getKmsKeyName()).isEqualTo(Optional.empty());
     assertThat(config.getAllowMapTypeConversion()).isTrue();
@@ -175,7 +173,6 @@ public class SparkBigQueryConfigTest {
                 .put("traceApplicationName", "traceApplicationNameTest")
                 .put("bigQueryJobLabel.foo", "bar")
                 .put("enableModeCheckForSchemaFields", "false")
-                .put("datetimeZoneId", "Asia/Jerusalem")
                 .put("queryJobPriority", "batch")
                 .put("destinationTableKmsKeyName", "some/key/name")
                 .put("allowMapTypeConversion", "false")
@@ -229,7 +226,6 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryJobLabels()).hasSize(1);
     assertThat(config.getBigQueryJobLabels()).containsEntry("foo", "bar");
     assertThat(config.getEnableModeCheckForSchemaFields()).isFalse();
-    assertThat(config.getDatetimeZoneId()).isEqualTo(ZoneId.of("Asia/Jerusalem"));
     assertThat(config.getQueryJobPriority()).isEqualTo(Priority.valueOf("BATCH"));
     assertThat(config.getKmsKeyName()).isEqualTo(Optional.of("some/key/name"));
     assertThat(config.getAllowMapTypeConversion()).isFalse();

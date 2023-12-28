@@ -31,7 +31,6 @@ import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import java.time.ZoneId;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
@@ -152,7 +151,7 @@ public class BigQueryDirectDataSourceWriterContextTest {
         Optional.absent(),
         true,
         ImmutableMap.<String, String>builder().build(),
-        SchemaConvertersConfiguration.of(ZoneId.of("UTC")),
+        SchemaConvertersConfiguration.createDefault(),
         java.util.Optional.empty(),
         false,
         PartitionOverwriteMode.STATIC);
