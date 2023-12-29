@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.35.1 - 2023-12-28
 
 * PR #1153: allow writing spark string to BQ datetime
 
