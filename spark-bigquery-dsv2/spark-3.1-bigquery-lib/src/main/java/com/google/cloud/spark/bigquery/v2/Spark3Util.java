@@ -15,7 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
@@ -26,6 +25,7 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.metrics.SparkBigQueryConnectorMetricsUtils;
 import com.google.inject.Injector;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.connector.catalog.Table;
@@ -46,20 +46,20 @@ public class Spark3Util {
             .build();
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
-    TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
     SparkContext sparkContext = injector.getInstance(SparkSession.class).sparkContext();
     SparkBigQueryConnectorMetricsUtils.postInputFormatEvent(sparkContext);
     UserAgentProvider userAgentProvider = injector.getInstance(UserAgentProvider.class);
     SparkBigQueryConnectorMetricsUtils.postConnectorVersion(
         sparkContext, userAgentProvider.getConnectorInfo());
-    if (tableInfo == null) {
-      return bigQueryTableCreator.create(injector, config.getTableId(), sparkProvidedSchema);
-    }
-    StructType schema =
-        sparkProvidedSchema != null
-            ? sparkProvidedSchema
-            : SchemaConverters.from(SchemaConvertersConfiguration.from(config))
-                .toSpark(tableInfo.getDefinition().getSchema());
-    return bigQueryTableCreator.create(injector, tableInfo.getTableId(), schema);
+    Supplier<StructType> schemaSupplier =
+        () -> {
+          StructType schema =
+              sparkProvidedSchema != null
+                  ? sparkProvidedSchema
+                  : SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+                      .toSpark(bigQueryClient.getReadTableSchema(config.toReadTableOptions()));
+          return schema;
+        };
+    return bigQueryTableCreator.create(injector, schemaSupplier);
   }
 }

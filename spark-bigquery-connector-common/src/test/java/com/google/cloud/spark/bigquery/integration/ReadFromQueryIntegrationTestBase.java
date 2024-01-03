@@ -20,18 +20,24 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.spark.bigquery.events.BigQueryJobCompletedEvent;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.StreamSupport;
 import org.apache.spark.scheduler.SparkListener;
 import org.apache.spark.scheduler.SparkListenerEvent;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,6 +45,8 @@ import org.junit.Test;
 class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   private BigQuery bq;
+
+  private final boolean isSpark3AndAbove;
 
   private TestBigQueryJobCompletionListener listener = new TestBigQueryJobCompletionListener();
 
@@ -54,8 +62,13 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
   }
 
   protected ReadFromQueryIntegrationTestBase() {
+    this(false);
+  }
+
+  protected ReadFromQueryIntegrationTestBase(boolean isSpark3AndAbove) {
     super();
     this.bq = BigQueryOptions.getDefaultInstance().getService();
+    this.isSpark3AndAbove = isSpark3AndAbove;
   }
 
   private void testReadFromQueryInternal(String query) {
@@ -117,6 +130,26 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             .option("materializationDataset", testDataset.toString())
             .option("query", query)
             .load();
+
+    StructType expectedSchema =
+        DataTypes.createStructType(
+            ImmutableList.of(
+                DataTypes.createStructField("corpus", DataTypes.StringType, true),
+                DataTypes.createStructField("word_count", DataTypes.LongType, true)));
+
+    assertThat(df.schema()).isEqualTo(expectedSchema);
+
+    if (isSpark3AndAbove) {
+      Iterable<Table> tablesInDataset =
+          IntegrationTestUtils.listTables(
+              DatasetId.of(testDataset.toString()),
+              TableDefinition.Type.TABLE,
+              TableDefinition.Type.MATERIALIZED_VIEW);
+      assertThat(
+              StreamSupport.stream(tablesInDataset.spliterator(), false)
+                  .noneMatch(table -> table.getTableId().getTable().startsWith("_bqc_")))
+          .isTrue();
+    }
 
     validateResult(df);
   }

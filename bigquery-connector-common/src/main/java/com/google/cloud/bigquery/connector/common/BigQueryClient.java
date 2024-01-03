@@ -417,6 +417,18 @@ public class BigQueryClient {
             tableType, table.getTableId().getDataset(), table.getTableId().getTable()));
   }
 
+  public Schema getReadTableSchema(ReadTableOptions options) {
+    Optional<String> query = options.query();
+    // lazy materialization if it's a query
+    if (query.isPresent()) {
+      validateViewsEnabled(options);
+      String sql = query.get();
+      return getTableSchema(sql, Collections.emptyMap());
+    }
+    TableInfo table = getReadTable(options);
+    return table != null ? table.getDefinition().getSchema() : null;
+  }
+
   private void validateViewsEnabled(ReadTableOptions options) {
     if (!options.viewsEnabled()) {
       throw new BigQueryConnectorException(
@@ -440,7 +452,7 @@ public class BigQueryClient {
     return bigQuery.listDatasets(projectId).iterateAll();
   }
 
-  Iterable<Table> listTables(DatasetId datasetId, TableDefinition.Type... types) {
+  public Iterable<Table> listTables(DatasetId datasetId, TableDefinition.Type... types) {
     Set<TableDefinition.Type> allowedTypes = ImmutableSet.copyOf(types);
     Iterable<Table> allTables = bigQuery.listTables(datasetId).iterateAll();
     return StreamSupport.stream(allTables.spliterator(), false)
@@ -633,11 +645,11 @@ public class BigQueryClient {
 
   public Schema getTableSchema(String querySql, Map<String, String> additionalQueryJobLabels) {
     JobInfo jobInfo =
-            JobInfo.of(
-                    jobConfigurationFactory
-                            .createQueryJobConfigurationBuilder(querySql, additionalQueryJobLabels)
-                            .setDryRun(true)
-                            .build());
+        JobInfo.of(
+            jobConfigurationFactory
+                .createQueryJobConfigurationBuilder(querySql, additionalQueryJobLabels)
+                .setDryRun(true)
+                .build());
 
     log.info("running query {}", querySql);
     JobInfo completedJobInfo = create(jobInfo);
@@ -914,7 +926,6 @@ public class BigQueryClient {
 
       log.info("running query {}", querySql);
       JobInfo completedJobInfo = bigQueryClient.waitForJob(bigQueryClient.create(jobInfo));
-//      JobInfo completedJobInfo = bigQueryClient.create(jobInfo);
       if (completedJobInfo.getStatus().getError() != null) {
         throw BigQueryUtil.convertToBigQueryException(completedJobInfo.getStatus().getError());
       }
