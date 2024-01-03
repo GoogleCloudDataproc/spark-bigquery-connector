@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
@@ -53,12 +54,14 @@ public class Spark3Util {
         sparkContext, userAgentProvider.getConnectorInfo());
     Supplier<StructType> schemaSupplier =
         () -> {
-          StructType schema =
-              sparkProvidedSchema != null
-                  ? sparkProvidedSchema
-                  : SchemaConverters.from(SchemaConvertersConfiguration.from(config))
-                      .toSpark(bigQueryClient.getReadTableSchema(config.toReadTableOptions()));
-          return schema;
+          if (sparkProvidedSchema != null) {
+            return sparkProvidedSchema;
+          }
+          Schema schemaFromTable = bigQueryClient.getReadTableSchema(config.toReadTableOptions());
+          return schemaFromTable != null
+              ? SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+                  .toSpark(schemaFromTable)
+              : null;
         };
     return bigQueryTableCreator.create(injector, schemaSupplier);
   }
