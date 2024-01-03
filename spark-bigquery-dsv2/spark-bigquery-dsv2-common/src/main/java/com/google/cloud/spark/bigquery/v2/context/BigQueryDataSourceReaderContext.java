@@ -427,7 +427,7 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public StatisticsContext estimateStatistics() {
-    if (table.getDefinition().getType() == TableDefinition.Type.TABLE) {
+    if (SparkBigQueryUtil.isBigQueryNativeTable(table)) {
       // Create StatisticsContext with information from read session response.
       final long tableSizeInBytes;
       final long numRowsInTable;
@@ -455,7 +455,8 @@ public class BigQueryDataSourceReaderContext {
           };
 
       return tableStatisticsContext;
-    } else if (table.getDefinition().getType() == TableDefinition.Type.EXTERNAL) {
+    } else if (table.getDefinition().getType() == TableDefinition.Type.EXTERNAL
+        || SparkBigQueryUtil.isBigLakeManagedTable(table)) {
       ReadSession readSession = readSessionResponse.get().getReadSession();
       // Physical file size for BigLake tables is the size of the files post file pruning and
       // includes all fields.

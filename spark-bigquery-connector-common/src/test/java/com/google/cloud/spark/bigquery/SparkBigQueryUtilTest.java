@@ -17,9 +17,14 @@ package com.google.cloud.spark.bigquery;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.ExternalTableDefinition;
+import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.BigLakeConfiguration;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
@@ -149,5 +154,85 @@ public class SparkBigQueryUtilTest {
     assertThat(labels).hasSize(2);
     assertThat(labels).containsEntry("dataproc_job_id", "d8f27392957446dbbd7dc28df568e4eb");
     assertThat(labels).containsEntry("dataproc_job_uuid", "df379ef3-eeda-3234-8941-e1a36a1959a3");
+  }
+
+  @Test
+  public void testIsBigLakeManagedTable_with_BigLakeManagedTable() {
+    TableInfo bigLakeManagedTable =
+        TableInfo.of(
+            TableId.of("dataset", "biglakemanagedtable"),
+            StandardTableDefinition.newBuilder()
+                .setBigLakeConfiguration(
+                    BigLakeConfiguration.newBuilder()
+                        .setTableFormat("ICEBERG")
+                        .setConnectionId("us-connection")
+                        .setFileFormat("PARQUET")
+                        .setStorageUri("gs://bigquery/blmt/nations.parquet")
+                        .build())
+                .build());
+
+    assertTrue(SparkBigQueryUtil.isBigLakeManagedTable(bigLakeManagedTable));
+  }
+
+  @Test
+  public void testIsBigLakeManagedTable_with_BigQueryExternalTable() {
+    TableInfo bigQueryExternalTable =
+        TableInfo.of(
+            TableId.of("dataset", "bigqueryexternaltable"),
+            ExternalTableDefinition.newBuilder(
+                    "gs://bigquery/nations.parquet", FormatOptions.avro())
+                .build());
+
+    assertFalse(SparkBigQueryUtil.isBigLakeManagedTable(bigQueryExternalTable));
+  }
+
+  @Test
+  public void testIsBigLakeManagedTable_with_BigQueryNativeTable() {
+    TableInfo bigQueryNativeTable =
+        TableInfo.of(
+            TableId.of("dataset", "bigquerynativetable"),
+            StandardTableDefinition.newBuilder().setLocation("us-east-1").build());
+
+    assertFalse(SparkBigQueryUtil.isBigLakeManagedTable(bigQueryNativeTable));
+  }
+
+  @Test
+  public void testIsBigQueryNativeTable_with_BigLakeManagedTable() {
+    TableInfo bigLakeManagedTable =
+        TableInfo.of(
+            TableId.of("dataset", "biglakemanagedtable"),
+            StandardTableDefinition.newBuilder()
+                .setBigLakeConfiguration(
+                    BigLakeConfiguration.newBuilder()
+                        .setTableFormat("ICEBERG")
+                        .setConnectionId("us-connection")
+                        .setFileFormat("PARQUET")
+                        .setStorageUri("gs://bigquery/blmt/nations.parquet")
+                        .build())
+                .build());
+
+    assertFalse(SparkBigQueryUtil.isBigQueryNativeTable(bigLakeManagedTable));
+  }
+
+  @Test
+  public void testIsBigQueryNativeTable_with_BigQueryExternalTable() {
+    TableInfo bigQueryExternalTable =
+        TableInfo.of(
+            TableId.of("dataset", "bigqueryexternaltable"),
+            ExternalTableDefinition.newBuilder(
+                    "gs://bigquery/nations.parquet", FormatOptions.avro())
+                .build());
+
+    assertFalse(SparkBigQueryUtil.isBigQueryNativeTable(bigQueryExternalTable));
+  }
+
+  @Test
+  public void testIsBigQueryNativeTable_with_BigQueryNativeTable() {
+    TableInfo bigQueryNativeTable =
+        TableInfo.of(
+            TableId.of("dataset", "bigquerynativetable"),
+            StandardTableDefinition.newBuilder().setLocation("us-east-1").build());
+
+    assertTrue(SparkBigQueryUtil.isBigQueryNativeTable(bigQueryNativeTable));
   }
 }
