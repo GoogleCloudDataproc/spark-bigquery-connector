@@ -301,9 +301,10 @@ public class SparkBigQueryUtil {
    * @return Returns true if the table is a BigLake Managed table.
    */
   public static boolean isBigLakeManagedTable(TableInfo table) {
-    return table.getDefinition().getType() == TableDefinition.Type.TABLE
-        && table.getDefinition() instanceof StandardTableDefinition
-        && ((StandardTableDefinition) table.getDefinition()).getBigLakeConfiguration() != null;
+    TableDefinition tableDefinition = table.getDefinition();
+    return tableDefinition.getType() == TableDefinition.Type.TABLE
+        && tableDefinition instanceof StandardTableDefinition
+        && ((StandardTableDefinition) tableDefinition).getBigLakeConfiguration() != null;
   }
 
   /**
