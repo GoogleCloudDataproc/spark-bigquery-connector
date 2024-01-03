@@ -417,13 +417,20 @@ public class BigQueryClient {
             tableType, table.getTableId().getDataset(), table.getTableId().getTable()));
   }
 
+  /**
+   * Returns the schema of the table/query/view. Uses dryRun to get the query schema instead of
+   * materializing it.
+   *
+   * @param options The {@code ReadTableOptions} options for reading the data source.
+   * @return The schema.
+   */
   public Schema getReadTableSchema(ReadTableOptions options) {
     Optional<String> query = options.query();
     // lazy materialization if it's a query
     if (query.isPresent()) {
       validateViewsEnabled(options);
       String sql = query.get();
-      return getTableSchema(sql, Collections.emptyMap());
+      return getQueryResultSchema(sql, Collections.emptyMap());
     }
     TableInfo table = getReadTable(options);
     return table != null ? table.getDefinition().getSchema() : null;
@@ -643,7 +650,8 @@ public class BigQueryClient {
     return materializeTable(querySql, tableId, expirationTimeInMinutes);
   }
 
-  public Schema getTableSchema(String querySql, Map<String, String> additionalQueryJobLabels) {
+  public Schema getQueryResultSchema(
+      String querySql, Map<String, String> additionalQueryJobLabels) {
     JobInfo jobInfo =
         JobInfo.of(
             jobConfigurationFactory
@@ -651,7 +659,7 @@ public class BigQueryClient {
                 .setDryRun(true)
                 .build());
 
-    log.info("running query {}", querySql);
+    log.info("running query dryRun {}", querySql);
     JobInfo completedJobInfo = create(jobInfo);
     if (completedJobInfo.getStatus().getError() != null) {
       throw BigQueryUtil.convertToBigQueryException(completedJobInfo.getStatus().getError());

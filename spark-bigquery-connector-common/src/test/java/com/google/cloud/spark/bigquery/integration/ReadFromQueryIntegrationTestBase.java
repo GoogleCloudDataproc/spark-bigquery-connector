@@ -46,7 +46,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
 
   private BigQuery bq;
 
-  private final boolean isSpark3AndAbove;
+  private final boolean isDsv2OnSpark3AndAbove;
 
   private TestBigQueryJobCompletionListener listener = new TestBigQueryJobCompletionListener();
 
@@ -65,10 +65,10 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     this(false);
   }
 
-  protected ReadFromQueryIntegrationTestBase(boolean isSpark3AndAbove) {
+  protected ReadFromQueryIntegrationTestBase(boolean isDsv2OnSpark3AndAbove) {
     super();
     this.bq = BigQueryOptions.getDefaultInstance().getService();
-    this.isSpark3AndAbove = isSpark3AndAbove;
+    this.isDsv2OnSpark3AndAbove = isDsv2OnSpark3AndAbove;
   }
 
   private void testReadFromQueryInternal(String query) {
@@ -139,7 +139,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
 
     assertThat(df.schema()).isEqualTo(expectedSchema);
 
-    if (isSpark3AndAbove) {
+    if (isDsv2OnSpark3AndAbove) {
       Iterable<Table> tablesInDataset =
           IntegrationTestUtils.listTables(
               DatasetId.of(testDataset.toString()),

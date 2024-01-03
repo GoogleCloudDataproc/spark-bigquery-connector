@@ -65,7 +65,7 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
             ImmutableMap.of(),
             injector.getInstance(DataSourceVersion.class),
             injector.getInstance(SparkSession.class),
-            Optional.of(schemaSupplier.get()), /*tableIsMandatory*/
+            Optional.ofNullable(schemaSupplier.get()), /*tableIsMandatory*/
             true);
     Injector readerInjector =
         injector.createChildInjector(
