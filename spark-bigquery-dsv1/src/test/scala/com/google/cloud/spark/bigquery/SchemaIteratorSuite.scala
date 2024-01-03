@@ -27,7 +27,6 @@ import org.apache.spark.sql.types._
 import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
 
-import java.time.ZoneId
 import java.util.Optional
 import scala.collection.JavaConverters._
 
@@ -38,7 +37,7 @@ import scala.collection.JavaConverters._
 @Ignore
 class SchemaIteratorSuite extends AnyFunSuite {
 
-  val schemaConvertersConfiguration = SchemaConvertersConfiguration.of(ZoneId.of("UTC"))
+  val schemaConvertersConfiguration = SchemaConvertersConfiguration.createDefault()
   val schemaConverters = SchemaConverters.from(schemaConvertersConfiguration)
 
   test("compare arrow and avro results") {

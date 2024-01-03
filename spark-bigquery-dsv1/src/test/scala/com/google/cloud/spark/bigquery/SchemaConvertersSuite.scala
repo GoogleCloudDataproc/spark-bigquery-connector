@@ -22,11 +22,9 @@ import com.google.cloud.bigquery.{Field, Schema}
 import org.apache.spark.sql.types._
 import org.scalatest.funsuite.AnyFunSuite
 
-import java.time.ZoneId
-
 class SchemaConvertersSuite extends AnyFunSuite {
   
-  val schemaConverters = SchemaConverters.from(SchemaConvertersConfiguration.of(ZoneId.of("UTC")))
+  val schemaConverters = SchemaConverters.from(SchemaConvertersConfiguration.createDefault())
 
   test("empty schema conversion") {
     val bqSchema = Schema.of()

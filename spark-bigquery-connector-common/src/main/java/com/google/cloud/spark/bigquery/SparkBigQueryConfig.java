@@ -58,7 +58,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Serializable;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
@@ -88,7 +87,6 @@ public class SparkBigQueryConfig
         Serializable {
 
   public static final int MAX_TRACE_ID_LENGTH = 256;
-  private static final ZoneId DEFAULT_DATETIME_ZONE_ID = ZoneId.of("UTC");
 
   public enum WriteMethod {
     DIRECT,
@@ -149,7 +147,7 @@ public class SparkBigQueryConfig
   static final String BIGQUERY_TABLE_LABEL_PREFIX = "bigQueryTableLabel.";
   public static final Priority DEFAULT_JOB_PRIORITY = Priority.INTERACTIVE;
   static final String ALLOW_MAP_TYPE_CONVERSION = "allowMapTypeConversion";
-  private static final Boolean ALLOW_MAP_TYPE_CONVERSION_DEFAULT = true;
+  static final Boolean ALLOW_MAP_TYPE_CONVERSION_DEFAULT = true;
   public static final String partitionOverwriteModeProperty =
       "spark.sql.sources.partitionOverwriteMode";
 
@@ -224,7 +222,6 @@ public class SparkBigQueryConfig
   private ImmutableMap<String, String> bigQueryJobLabels = ImmutableMap.of();
   private ImmutableMap<String, String> bigQueryTableLabels = ImmutableMap.of();
   private com.google.common.base.Optional<Long> createReadSessionTimeoutInSeconds;
-  private ZoneId datetimeZoneId;
   private QueryJobConfiguration.Priority queryJobPriority = DEFAULT_JOB_PRIORITY;
 
   private com.google.common.base.Optional<String> destinationTableKmsKeyName = empty();
@@ -552,11 +549,6 @@ public class SparkBigQueryConfig
     config.createReadSessionTimeoutInSeconds =
         getAnyOption(globalOptions, options, "createReadSessionTimeoutInSeconds")
             .transform(Long::parseLong);
-
-    config.datetimeZoneId =
-        getAnyOption(globalOptions, options, "datetimeZoneId")
-            .transform(ZoneId::of)
-            .or(DEFAULT_DATETIME_ZONE_ID);
 
     config.queryJobPriority =
         getAnyOption(globalOptions, options, "queryJobPriority")
@@ -945,10 +937,6 @@ public class SparkBigQueryConfig
   @Override
   public Optional<Long> getCreateReadSessionTimeoutInSeconds() {
     return createReadSessionTimeoutInSeconds.toJavaUtil();
-  }
-
-  public ZoneId getDatetimeZoneId() {
-    return datetimeZoneId;
   }
 
   public PartitionOverwriteMode getPartitionOverwriteModeValue() {

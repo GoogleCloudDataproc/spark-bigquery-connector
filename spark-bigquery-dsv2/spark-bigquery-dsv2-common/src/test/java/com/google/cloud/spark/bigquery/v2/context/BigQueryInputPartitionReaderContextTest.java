@@ -23,7 +23,6 @@ import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConv
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.TextFormat;
-import java.time.ZoneId;
 import java.util.Iterator;
 import java.util.Optional;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -106,7 +105,7 @@ public class BigQueryInputPartitionReaderContextTest {
             ALL_TYPES_TABLE_AVRO_RAW_SCHEMA,
             Optional.empty(),
             Optional.empty(),
-            SchemaConvertersConfiguration.of(ZoneId.of("UTC")));
+            SchemaConvertersConfiguration.createDefault());
 
     BigQueryInputPartitionReaderContext reader =
         new BigQueryInputPartitionReaderContext(readRowsResponses, converter, null);

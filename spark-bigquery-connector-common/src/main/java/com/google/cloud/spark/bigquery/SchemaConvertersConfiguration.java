@@ -17,36 +17,25 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.common.base.Objects;
 import java.io.Serializable;
-import java.time.ZoneId;
-import javax.annotation.Nonnull;
 
 public class SchemaConvertersConfiguration implements Serializable {
 
-  private final ZoneId datetimeZoneId;
-
   private final boolean allowMapTypeConversion;
 
-  private SchemaConvertersConfiguration(ZoneId datetimeZoneId, boolean allowMapTypeConversion) {
-    this.datetimeZoneId = datetimeZoneId;
+  private SchemaConvertersConfiguration(boolean allowMapTypeConversion) {
     this.allowMapTypeConversion = allowMapTypeConversion;
   }
 
   public static SchemaConvertersConfiguration from(SparkBigQueryConfig config) {
-    return SchemaConvertersConfiguration.of(
-        config.getDatetimeZoneId(), config.getAllowMapTypeConversion());
+    return SchemaConvertersConfiguration.of(config.getAllowMapTypeConversion());
   }
 
-  public static SchemaConvertersConfiguration of(@Nonnull ZoneId datetimeZoneId) {
-    return new SchemaConvertersConfiguration(datetimeZoneId, true);
+  public static SchemaConvertersConfiguration of(boolean allowMapTypeConversion) {
+    return new SchemaConvertersConfiguration(allowMapTypeConversion);
   }
 
-  public static SchemaConvertersConfiguration of(
-      @Nonnull ZoneId datetimeZoneId, @Nonnull boolean allowMapTypeConversion) {
-    return new SchemaConvertersConfiguration(datetimeZoneId, allowMapTypeConversion);
-  }
-
-  public ZoneId getDatetimeZoneId() {
-    return datetimeZoneId;
+  public static SchemaConvertersConfiguration createDefault() {
+    return new SchemaConvertersConfiguration(SparkBigQueryConfig.ALLOW_MAP_TYPE_CONVERSION_DEFAULT);
   }
 
   public boolean getAllowMapTypeConversion() {
@@ -58,21 +47,18 @@ public class SchemaConvertersConfiguration implements Serializable {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     SchemaConvertersConfiguration that = (SchemaConvertersConfiguration) o;
-    return Objects.equal(datetimeZoneId, that.datetimeZoneId)
-        && Objects.equal(allowMapTypeConversion, that.allowMapTypeConversion);
+    return Objects.equal(allowMapTypeConversion, that.allowMapTypeConversion);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(datetimeZoneId, allowMapTypeConversion);
+    return Objects.hashCode(allowMapTypeConversion);
   }
 
   @Override
   public String toString() {
     return "SchemaConvertersConfiguration{"
-        + "datetimeZoneId="
-        + datetimeZoneId
-        + ",allowMapTypeConversion="
+        + "allowMapTypeConversion="
         + allowMapTypeConversion
         + '}';
   }
