@@ -454,8 +454,6 @@ word-break:break-word
    <td><code>readDataFormat</code>
    </td>
    <td>Data Format for reading from BigQuery. Options : <code>ARROW</code>, <code>AVRO</code>
-	Unsupported Arrow filters are not pushed down and results are filtered later by Spark.
-	(Currently Arrow does not suport disjunction across columns).
        <br/>(Optional. Defaults to <code>ARROW</code>)
    </td>
    <td>Read</td>
@@ -477,8 +475,10 @@ word-break:break-word
    </td>
    <td>If set to <code>true</code>, the connector pushes all the filters Spark can delegate
        to BigQuery Storage API. This reduces amount of data that needs to be sent from
-       BigQuery Storage API servers to Spark clients.
+       BigQuery Storage API servers to Spark clients. This option has been
+       deprecated and will be removed in a future version.
        <br/>(Optional, defaults to <code>true</code>)
+       <br/><strong>(Deprecated)</strong>
    </td>
    <td>Read</td>
   </tr>
