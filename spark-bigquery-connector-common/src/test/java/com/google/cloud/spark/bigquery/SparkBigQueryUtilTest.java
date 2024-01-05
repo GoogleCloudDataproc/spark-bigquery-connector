@@ -16,15 +16,15 @@
 package com.google.cloud.spark.bigquery;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
-import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.BigLakeConfiguration;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.FormatOptions;
-import com.google.cloud.bigquery.BigLakeConfiguration;
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;

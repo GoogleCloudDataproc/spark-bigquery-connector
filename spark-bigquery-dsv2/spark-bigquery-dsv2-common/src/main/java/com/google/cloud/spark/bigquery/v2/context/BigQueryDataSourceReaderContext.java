@@ -427,6 +427,7 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public StatisticsContext estimateStatistics() {
+    boolean isBigLakeManagedTable = SparkBigQueryUtil.isBigLakeManagedTable(table);
     if (SparkBigQueryUtil.isBigQueryNativeTable(table)) {
       // Create StatisticsContext with information from read session response.
       final long tableSizeInBytes;
@@ -456,11 +457,12 @@ public class BigQueryDataSourceReaderContext {
 
       return tableStatisticsContext;
     } else if (table.getDefinition().getType() == TableDefinition.Type.EXTERNAL
-        || SparkBigQueryUtil.isBigLakeManagedTable(table)) {
+        || isBigLakeManagedTable) {
       ReadSession readSession = readSessionResponse.get().getReadSession();
       // Physical file size for BigLake tables is the size of the files post file pruning and
       // includes all fields.
       final long tablePhysicalSizeInBytes = readSession.getEstimatedTotalPhysicalFileSize();
+      final long tableRowCount = readSession.getEstimatedRowCount();
       final long originalRowSize = getRowSize(fields.values());
       final long projectedRowSize =
           schema.map(schema -> getRowSize(Arrays.asList(schema.fields()))).orElse(originalRowSize);
@@ -480,7 +482,8 @@ public class BigQueryDataSourceReaderContext {
 
             @Override
             public OptionalLong numRows() {
-              return OptionalLong.empty();
+              // Number of rows are only available for BigLake Managed tables.
+              return isBigLakeManagedTable ? OptionalLong.of(tableRowCount) : OptionalLong.empty();
             }
           };
       return tableStatisticsContext;
