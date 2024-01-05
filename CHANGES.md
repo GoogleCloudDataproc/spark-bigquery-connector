@@ -2,10 +2,11 @@
 
 ## Next
 
+* PR #1155: allow lazy materialization of query on load
+
 ## 0.35.1 - 2023-12-28
 
 * PR #1153: allow writing spark string to BQ datetime
-* PR #1155: allow lazy materialization of query on load
 
 ## 0.35.0 - 2023-12-19
 
