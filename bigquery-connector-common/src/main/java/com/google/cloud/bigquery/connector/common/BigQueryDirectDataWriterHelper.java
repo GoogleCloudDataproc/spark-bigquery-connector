@@ -175,7 +175,7 @@ public class BigQueryDirectDataWriterHelper {
    * @throws IOException If sendAppendRowsRequest fails.
    */
   public void addRow(ByteString message) throws IOException {
-    int messageSize = message.size();
+    int messageSize = message.size() + 2; // Protobuf overhead is at least 2 bytes per row.
 
     if (appendRequestSizeBytes + messageSize > MAX_APPEND_ROWS_REQUEST_SIZE) {
       // If a single row exceeds the maximum size for an append request, this is a nonrecoverable

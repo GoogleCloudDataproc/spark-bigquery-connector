@@ -3,6 +3,7 @@
 ## Next
 
 * PR #1155: allow lazy materialization of query on load
+* Issue #1116: BigQuery write fails with MessageSize is too large
 
 ## 0.35.1 - 2023-12-28
 
