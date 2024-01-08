@@ -15,7 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.TableId;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
@@ -25,6 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.inject.Injector;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
@@ -44,13 +44,11 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
           TableCapability.BATCH_READ, TableCapability.V1_BATCH_WRITE, TableCapability.TRUNCATE);
 
   protected Injector injector;
-  protected TableId tableId;
-  protected StructType schema;
+  protected Supplier<StructType> schemaSupplier;
 
-  public Spark31BigQueryTable(Injector injector, TableId tableId, StructType schema) {
+  public Spark31BigQueryTable(Injector injector, Supplier<StructType> schemaSupplier) {
     this.injector = injector;
-    this.tableId = tableId;
-    this.schema = schema;
+    this.schemaSupplier = schemaSupplier;
   }
 
   @Override
@@ -67,7 +65,7 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
             ImmutableMap.of(),
             injector.getInstance(DataSourceVersion.class),
             injector.getInstance(SparkSession.class),
-            Optional.of(schema), /*tableIsMandatory*/
+            Optional.ofNullable(schemaSupplier.get()), /*tableIsMandatory*/
             true);
     Injector readerInjector =
         injector.createChildInjector(
@@ -84,7 +82,7 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
 
   @Override
   public StructType schema() {
-    return this.schema;
+    return this.schemaSupplier.get();
   }
 
   @Override

@@ -15,13 +15,13 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.bigquery.TableId;
 import com.google.inject.Injector;
+import java.util.function.Supplier;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.types.StructType;
 
 @FunctionalInterface
 public interface BigQueryTableCreator {
 
-  Table create(Injector injector, TableId tableId, StructType schema);
+  Table create(Injector injector, Supplier<StructType> schema);
 }

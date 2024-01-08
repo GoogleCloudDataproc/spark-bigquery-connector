@@ -24,6 +24,8 @@ import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.ViewDefinition;
@@ -56,6 +58,17 @@ public class IntegrationTestUtils {
     return BigQueryOptions.getDefaultInstance().getService();
   }
 
+  private static BigQueryClient getBigQueryClient() {
+    return new BigQueryClient(
+        getBigquery(),
+        Optional.empty(),
+        Optional.empty(),
+        destinationTableCache,
+        ImmutableMap.of(),
+        SparkBigQueryConfig.DEFAULT_JOB_PRIORITY,
+        Optional.empty());
+  }
+
   public static void createDataset(String dataset) {
     BigQuery bq = getBigquery();
     DatasetId datasetId = DatasetId.of(dataset);
@@ -64,16 +77,11 @@ public class IntegrationTestUtils {
   }
 
   public static void runQuery(String query) {
-    BigQueryClient bigQueryClient =
-        new BigQueryClient(
-            getBigquery(),
-            Optional.empty(),
-            Optional.empty(),
-            destinationTableCache,
-            ImmutableMap.of(),
-            SparkBigQueryConfig.DEFAULT_JOB_PRIORITY,
-            Optional.empty());
-    bigQueryClient.query(query);
+    getBigQueryClient().query(query);
+  }
+
+  public static Iterable<Table> listTables(DatasetId datasetId, TableDefinition.Type... types) {
+    return getBigQueryClient().listTables(datasetId, types);
   }
 
   public static void createBigLakeTable(

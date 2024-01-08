@@ -16,7 +16,9 @@
 package com.google.cloud.spark.bigquery.integration;
 
 public class Spark31ReadFromQueryIntegrationTest extends ReadFromQueryIntegrationTestBase {
-
+  public Spark31ReadFromQueryIntegrationTest() {
+    super(true);
+  }
   // tests are from the super-class
 
 }

@@ -31,6 +31,7 @@ import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobConfiguration;
 import com.google.cloud.bigquery.JobId;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
@@ -416,6 +417,25 @@ public class BigQueryClient {
             tableType, table.getTableId().getDataset(), table.getTableId().getTable()));
   }
 
+  /**
+   * Returns the schema of the table/query/view. Uses dryRun to get the query schema instead of
+   * materializing it.
+   *
+   * @param options The {@code ReadTableOptions} options for reading the data source.
+   * @return The schema.
+   */
+  public Schema getReadTableSchema(ReadTableOptions options) {
+    Optional<String> query = options.query();
+    // lazy materialization if it's a query
+    if (query.isPresent()) {
+      validateViewsEnabled(options);
+      String sql = query.get();
+      return getQueryResultSchema(sql, Collections.emptyMap());
+    }
+    TableInfo table = getReadTable(options);
+    return table != null ? table.getDefinition().getSchema() : null;
+  }
+
   private void validateViewsEnabled(ReadTableOptions options) {
     if (!options.viewsEnabled()) {
       throw new BigQueryConnectorException(
@@ -439,7 +459,7 @@ public class BigQueryClient {
     return bigQuery.listDatasets(projectId).iterateAll();
   }
 
-  Iterable<Table> listTables(DatasetId datasetId, TableDefinition.Type... types) {
+  public Iterable<Table> listTables(DatasetId datasetId, TableDefinition.Type... types) {
     Set<TableDefinition.Type> allowedTypes = ImmutableSet.copyOf(types);
     Iterable<Table> allTables = bigQuery.listTables(datasetId).iterateAll();
     return StreamSupport.stream(allTables.spliterator(), false)
@@ -628,6 +648,24 @@ public class BigQueryClient {
         createDestinationTable(
             Optional.ofNullable(viewId.getProject()), Optional.ofNullable(viewId.getDataset()));
     return materializeTable(querySql, tableId, expirationTimeInMinutes);
+  }
+
+  public Schema getQueryResultSchema(
+      String querySql, Map<String, String> additionalQueryJobLabels) {
+    JobInfo jobInfo =
+        JobInfo.of(
+            jobConfigurationFactory
+                .createQueryJobConfigurationBuilder(querySql, additionalQueryJobLabels)
+                .setDryRun(true)
+                .build());
+
+    log.info("running query dryRun {}", querySql);
+    JobInfo completedJobInfo = create(jobInfo);
+    if (completedJobInfo.getStatus().getError() != null) {
+      throw BigQueryUtil.convertToBigQueryException(completedJobInfo.getStatus().getError());
+    }
+    JobStatistics.QueryStatistics queryStatistics = completedJobInfo.getStatistics();
+    return queryStatistics.getSchema();
   }
 
   private TableInfo materializeTable(
