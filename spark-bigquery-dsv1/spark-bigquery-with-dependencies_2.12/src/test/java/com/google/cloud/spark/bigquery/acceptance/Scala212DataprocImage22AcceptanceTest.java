@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,26 @@
  */
 package com.google.cloud.spark.bigquery.acceptance;
 
-public class Scala212Spark32ReadSheakspeareDataprocServerlessAcceptanceTest
-    extends ReadSheakspeareDataprocServerlessAcceptanceTestBase {
+import java.util.Collections;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 
-  public Scala212Spark32ReadSheakspeareDataprocServerlessAcceptanceTest() {
-    super("spark-bigquery", "1.0");
+public class Scala212DataprocImage22AcceptanceTest extends DataprocAcceptanceTestBase {
+
+  private static AcceptanceTestContext context;
+
+  public Scala212DataprocImage22AcceptanceTest() {
+    super(context);
   }
 
-  // tests from superclass
+  @BeforeClass
+  public static void setup() throws Exception {
+    context =
+        DataprocAcceptanceTestBase.setup("2.2-debian12", "spark-bigquery", Collections.emptyList());
+  }
 
+  @AfterClass
+  public static void tearDown() throws Exception {
+    DataprocAcceptanceTestBase.tearDown(context);
+  }
 }
