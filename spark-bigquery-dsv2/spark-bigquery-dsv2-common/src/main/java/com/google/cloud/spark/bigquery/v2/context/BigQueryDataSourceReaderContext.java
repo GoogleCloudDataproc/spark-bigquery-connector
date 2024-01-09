@@ -427,8 +427,8 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public StatisticsContext estimateStatistics() {
-    boolean isBigLakeManagedTable = SparkBigQueryUtil.isBigLakeManagedTable(table);
-    if (SparkBigQueryUtil.isBigQueryNativeTable(table)) {
+    boolean isBigLakeManagedTable = BigQueryUtil.isBigLakeManagedTable(table);
+    if (BigQueryUtil.isBigQueryNativeTable(table)) {
       // Create StatisticsContext with information from read session response.
       final long tableSizeInBytes;
       final long numRowsInTable;
