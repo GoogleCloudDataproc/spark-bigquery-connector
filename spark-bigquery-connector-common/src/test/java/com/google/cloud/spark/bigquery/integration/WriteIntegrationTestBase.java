@@ -1409,8 +1409,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .isEqualTo(new BigDecimal("12345.123450000000000"));
   }
 
-  @Test
-  public void testWriteStringToTimeField() throws Exception {
+  private void testWriteStringToTimeField_internal(SaveMode saveMode) {
     // not supported for indirect writes
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     IntegrationTestUtils.runQuery(
@@ -1426,7 +1425,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply("wake_up_time", DataTypes.StringType, true, Metadata.empty())));
     df.write()
         .format("bigquery")
-        .mode(SaveMode.Append)
+        .mode(saveMode)
         .option("dataset", testDataset.toString())
         .option("table", testTable)
         .option("writeMethod", writeMethod.toString())
@@ -1447,7 +1446,16 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteStringToDateTimeField() {
+  public void testWriteStringToTimeField_OverwriteSaveMode() {
+    testWriteStringToTimeField_internal(SaveMode.Overwrite);
+  }
+
+  @Test
+  public void testWriteStringToTimeField_AppendSaveMode() {
+    testWriteStringToTimeField_internal(SaveMode.Append);
+  }
+
+  private void testWriteStringToDateTimeField_internal(SaveMode saveMode) {
     // not supported for indirect writes
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     IntegrationTestUtils.runQuery(
@@ -1463,7 +1471,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply("datetime1", DataTypes.StringType, true, Metadata.empty())));
     df.write()
         .format("bigquery")
-        .mode(SaveMode.Append)
+        .mode(saveMode)
         .option("dataset", testDataset.toString())
         .option("table", testTable)
         .option("writeMethod", writeMethod.toString())
@@ -1487,6 +1495,16 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     } else {
       assertThat(head.get(head.fieldIndex("datetime1"))).isEqualTo("0001-01-01T01:22:24.999888");
     }
+  }
+
+  @Test
+  public void testWriteStringToDateTimeField_OverwriteSaveMode() {
+    testWriteStringToDateTimeField_internal(SaveMode.Overwrite);
+  }
+
+  @Test
+  public void testWriteStringToDateTimeField_AppendSaveMode() {
+    testWriteStringToDateTimeField_internal(SaveMode.Append);
   }
 
   protected Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(Dataset<Row> df) {
