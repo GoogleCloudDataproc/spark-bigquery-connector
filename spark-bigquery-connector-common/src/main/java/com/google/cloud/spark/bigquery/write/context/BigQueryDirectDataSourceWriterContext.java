@@ -154,15 +154,13 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
           if (writeAtLeastOnce) {
             writingMode = WritingMode.APPEND_AT_LEAST_ONCE;
             return new BigQueryTable(
-                bigQueryClient.createTempTable(destinationTableId, bigQuerySchema).getTableId(),
-                true);
+                bigQueryClient.createTempTable(destinationTableId, tableSchema).getTableId(), true);
           }
           break;
         case Overwrite:
           writingMode = WritingMode.OVERWRITE;
           return new BigQueryTable(
-              bigQueryClient.createTempTable(destinationTableId, bigQuerySchema).getTableId(),
-              true);
+              bigQueryClient.createTempTable(destinationTableId, tableSchema).getTableId(), true);
         case Ignore:
           writingMode = WritingMode.IGNORE_INPUTS;
           break;
