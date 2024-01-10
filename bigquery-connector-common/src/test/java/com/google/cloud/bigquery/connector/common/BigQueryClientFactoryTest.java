@@ -601,6 +601,11 @@ public class BigQueryClientFactoryTest {
     }
 
     @Override
+    public long getBigQueryJobTimeoutInMinutes() {
+      return 6 * 60;
+    }
+
+    @Override
     public boolean equals(Object o) {
       if (this == o) {
         return true;

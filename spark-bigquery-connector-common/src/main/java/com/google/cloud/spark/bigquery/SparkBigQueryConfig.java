@@ -152,6 +152,8 @@ public class SparkBigQueryConfig
       "spark.sql.sources.partitionOverwriteMode";
 
   public PartitionOverwriteMode partitionOverwriteModeValue = PartitionOverwriteMode.STATIC;
+  public static final String BIGQUERY_JOB_TIMEOUT_IN_MINUTES = "bigQueryJobTimeoutInMinutes";
+  static final long BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT = 6 * 60; // 6 hrs
 
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
@@ -227,6 +229,7 @@ public class SparkBigQueryConfig
   private com.google.common.base.Optional<String> destinationTableKmsKeyName = empty();
 
   private boolean allowMapTypeConversion = ALLOW_MAP_TYPE_CONVERSION_DEFAULT;
+  private long bigQueryJobTimeoutInMinutes = BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -568,6 +571,11 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, partitionOverwriteModeProperty)
             .transform(PartitionOverwriteMode::valueOf)
             .or(PartitionOverwriteMode.STATIC);
+
+    config.bigQueryJobTimeoutInMinutes =
+        getAnyOption(globalOptions, options, BIGQUERY_JOB_TIMEOUT_IN_MINUTES)
+            .transform(Long::valueOf)
+            .or(BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT);
 
     return config;
   }
@@ -1007,6 +1015,10 @@ public class SparkBigQueryConfig
 
   public boolean getAllowMapTypeConversion() {
     return allowMapTypeConversion;
+  }
+
+  public long getBigQueryJobTimeoutInMinutes() {
+    return bigQueryJobTimeoutInMinutes;
   }
 
   public ImmutableMap<String, String> getBigQueryTableLabels() {

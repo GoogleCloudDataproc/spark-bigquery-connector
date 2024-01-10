@@ -885,6 +885,15 @@ word-break:break-word
      </td>
      <td>Read</td>
    </tr>
+  <tr>
+     <td><code>bigQueryJobTimeoutInMinutes</code>
+     </td>
+     <td>Config to set the BigQuery job timeout in minutes.
+          Default value is <code>360</code> minutes.
+         <br/> (Optional)
+     </td>
+     <td>Read</td>
+   </tr>
 
 </table>
 

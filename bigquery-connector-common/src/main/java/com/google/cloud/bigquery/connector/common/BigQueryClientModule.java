@@ -137,6 +137,7 @@ public class BigQueryClientModule implements com.google.inject.Module {
         destinationTableCache,
         bigQueryJobLabels,
         config.getQueryJobPriority(),
-        Optional.of(jobCompletionListener));
+        Optional.of(jobCompletionListener),
+        config.getBigQueryJobTimeoutInMinutes());
   }
 }
