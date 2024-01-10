@@ -130,6 +130,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getQueryJobPriority()).isEqualTo(SparkBigQueryConfig.DEFAULT_JOB_PRIORITY);
     assertThat(config.getKmsKeyName()).isEqualTo(Optional.empty());
     assertThat(config.getAllowMapTypeConversion()).isTrue();
+    assertThat(config.getBigQueryJobTimeoutInMinutes()).isEqualTo(6 * 60);
   }
 
   @Test
@@ -176,6 +177,7 @@ public class SparkBigQueryConfigTest {
                 .put("queryJobPriority", "batch")
                 .put("destinationTableKmsKeyName", "some/key/name")
                 .put("allowMapTypeConversion", "false")
+                .put("bigQueryJobTimeoutInMinutes", "30")
                 .build());
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -229,6 +231,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getQueryJobPriority()).isEqualTo(Priority.valueOf("BATCH"));
     assertThat(config.getKmsKeyName()).isEqualTo(Optional.of("some/key/name"));
     assertThat(config.getAllowMapTypeConversion()).isFalse();
+    assertThat(config.getBigQueryJobTimeoutInMinutes()).isEqualTo(30);
   }
 
   @Test
