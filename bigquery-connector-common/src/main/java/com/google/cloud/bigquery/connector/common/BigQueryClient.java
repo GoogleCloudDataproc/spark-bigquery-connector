@@ -139,7 +139,7 @@ public class BigQueryClient {
       if (!completedJob.isDone()) {
         completedJob.cancel();
         throw new IllegalStateException(
-            String.format("Job aborted due to timeout %s", bigQueryJobTimeoutInMinutes));
+            String.format("Job aborted due to timeout  : %s minutes", bigQueryJobTimeoutInMinutes));
       }
       jobCompletionListener.ifPresent(jcl -> jcl.accept(completedJob));
       return completedJob;
