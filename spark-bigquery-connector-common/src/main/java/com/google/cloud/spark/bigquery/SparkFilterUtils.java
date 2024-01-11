@@ -301,6 +301,7 @@ public class SparkFilterUtils {
     return StreamSupport.stream(filters.spliterator(), false)
         .map(SparkFilterUtils::compileFilter)
         .sorted()
+        .map(filter -> "(" + filter.get() + ")")
         .collect(Collectors.joining(" AND "));
   }
 
