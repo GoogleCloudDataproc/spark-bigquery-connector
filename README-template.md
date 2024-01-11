@@ -892,7 +892,7 @@ word-break:break-word
           Default value is <code>360</code> minutes.
          <br/> (Optional)
      </td>
-     <td>Read</td>
+     <td>Read/Write</td>
    </tr>
 
 </table>
