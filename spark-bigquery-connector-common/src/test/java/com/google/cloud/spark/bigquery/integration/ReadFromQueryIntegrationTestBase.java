@@ -211,16 +211,23 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
 
   @Test
   public void testReadFromLongQueryWithBigQueryJobTimeout() {
-    String query = String.format("SELECT * FROM `bigquery-public-data.github_repos.commits`");
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("viewsEnabled", true)
-            .option("materializationDataset", testDataset.toString())
-            .option("bigQueryJobTimeoutInMinutes", "1")
-            .load(query);
-    assertThrows(RuntimeException.class, df::show);
+    String query = "SELECT * FROM `bigquery-public-data.github_repos.commits`";
+    assertThrows(
+        RuntimeException.class,
+        () -> {
+          try {
+            spark
+                .read()
+                .format("bigquery")
+                .option("viewsEnabled", true)
+                .option("materializationDataset", testDataset.toString())
+                .option("bigQueryJobTimeoutInMinutes", "1")
+                .load(query)
+                .show();
+          } catch (Exception e) {
+            throw e;
+          }
+        });
   }
 }
 
