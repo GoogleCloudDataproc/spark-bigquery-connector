@@ -35,7 +35,7 @@ public class SparkBigQueryConnectorMetricsUtils {
               (SparkListenerEvent)
                   eventClass.getConstructor(String.class, long.class).newInstance("bigquery", -1L));
     } catch (ReflectiveOperationException ignored) {
-      logger.info("spark.events.InputFormatEvent library not in class path");
+      logger.debug("spark.events.InputFormatEvent library not in class path");
     }
   }
 
@@ -56,7 +56,7 @@ public class SparkBigQueryConnectorMetricsUtils {
                           .getDeclaredConstructor(String.class)
                           .newInstance(connectorVersion)));
     } catch (ReflectiveOperationException ignored) {
-      logger.info("spark.events.BigQueryConnectorVersionEvent library not in class path");
+      logger.debug("spark.events.BigQueryConnectorVersionEvent library not in class path");
     }
   }
 

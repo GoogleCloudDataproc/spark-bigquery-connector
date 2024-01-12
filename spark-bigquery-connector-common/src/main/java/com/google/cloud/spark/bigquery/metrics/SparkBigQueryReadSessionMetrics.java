@@ -218,7 +218,8 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
                           .newInstance(sessionId, scanTime, getScanTime())));
       sparkSession.sparkContext().removeSparkListener(this);
     } catch (ReflectiveOperationException ignored) {
-      logger.info("spark.events.BigQueryConnectorReadSessionMetricEvent library not in class path");
+      logger.debug(
+          "spark.events.BigQueryConnectorReadSessionMetricEvent library not in class path");
     }
   }
 }
