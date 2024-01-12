@@ -19,7 +19,7 @@ package com.google.cloud.spark.bigquery.pushdowns
 class Spark33BigQueryPushdown extends BaseSparkBigQueryPushdown {
 
   override def supportsSparkVersion(sparkVersion: String): Boolean = {
-    sparkVersion.startsWith("3.3")
+    sparkVersion.startsWith("3.3") || sparkVersion.startsWith("3.4") || sparkVersion.startsWith("3.5")
   }
 
   override def createSparkExpressionConverter(expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory): SparkExpressionConverter = {
