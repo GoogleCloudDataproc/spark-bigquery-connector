@@ -29,6 +29,8 @@ import org.apache.arrow.vector.complex.*;
 
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.ArrowType.ArrowTypeID;
+import org.apache.spark.sql.catalyst.util.RebaseDateTime;
+import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.types.*;
 
 import org.apache.spark.sql.vectorized.ColumnVector;
@@ -536,6 +538,7 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
 
   private static class TimestampMicroTZVectorAccessor extends ArrowSchemaConverter {
     private final TimeStampMicroTZVector vector;
+    private final String localTimeZoneId = SQLConf.get().sessionLocalTimeZone();
 
     TimestampMicroTZVectorAccessor(TimeStampMicroTZVector vector) {
       super(vector);
@@ -550,7 +553,7 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
 
     @Override
     public final long getLong(int rowId) {
-      return vector.get(rowId);
+      return RebaseDateTime.rebaseJulianToGregorianMicros(localTimeZoneId, vector.get(rowId));
     }
 
     @Override

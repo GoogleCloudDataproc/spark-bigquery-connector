@@ -31,6 +31,9 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -189,9 +192,9 @@ public class SparkBigQueryUtil {
     }
     // need to return timestamp in epoch microseconds
     java.sql.Timestamp timestamp = (java.sql.Timestamp) sparkValue;
-    long epochSecondsAsMicros = (timestamp.getTime() / 1000) * 1_000_000;
-    int micros = timestamp.getNanos() / 1000;
-    return epochSecondsAsMicros + micros;
+    long epochMillis = timestamp.getTime();
+    int micros = (timestamp.getNanos() / 1000) % 1000;
+    return epochMillis * 1000 + micros;
   }
 
   public static int sparkDateToBigQuery(Object sparkValue) {
