@@ -53,8 +53,9 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final int channelPoolSize;
   private final Optional<Integer> flowControlWindowBytes;
   private final QueryJobConfiguration.Priority queryJobPriority;
+  private final long bigQueryJobTimeoutInMinutes;
 
-  BigQueryClientFactoryConfig(BigQueryConfig bigQueryConfig) {
+  BigQueryClientFactoryConfig(BigQueryConfig bigQueryConfig, long bigQueryJobTimeoutInMinutes) {
     this.accessTokenProviderFQCN = bigQueryConfig.getAccessTokenProviderFQCN();
     this.accessTokenProviderConfig = bigQueryConfig.getAccessTokenProviderConfig();
     this.credentialsKey = bigQueryConfig.getCredentialsKey();
@@ -85,6 +86,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.channelPoolSize = bigQueryConfig.getChannelPoolSize();
     this.flowControlWindowBytes = bigQueryConfig.getFlowControlWindowBytes();
     this.queryJobPriority = bigQueryConfig.getQueryJobPriority();
+    this.bigQueryJobTimeoutInMinutes = bigQueryJobTimeoutInMinutes;
   }
 
   @Override
@@ -220,6 +222,10 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   @Override
   public Priority getQueryJobPriority() {
     return queryJobPriority;
+  }
+
+  public long getBigQueryJobTimeoutInMinutes() {
+    return bigQueryJobTimeoutInMinutes;
   }
 
   @Override

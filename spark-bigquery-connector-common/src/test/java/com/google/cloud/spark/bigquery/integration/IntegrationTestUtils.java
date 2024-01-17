@@ -66,7 +66,8 @@ public class IntegrationTestUtils {
         destinationTableCache,
         ImmutableMap.of(),
         SparkBigQueryConfig.DEFAULT_JOB_PRIORITY,
-        Optional.empty());
+        Optional.empty(),
+        6 * 60);
   }
 
   public static void createDataset(String dataset) {

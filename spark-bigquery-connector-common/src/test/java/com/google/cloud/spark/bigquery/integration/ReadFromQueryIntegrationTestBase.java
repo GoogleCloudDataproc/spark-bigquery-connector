@@ -208,6 +208,27 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
 
     validateResult(df);
   }
+
+  @Test
+  public void testReadFromLongQueryWithBigQueryJobTimeout() {
+    String query = "SELECT * FROM `largesamples.wikipedia_pageviews_201001`";
+    assertThrows(
+        RuntimeException.class,
+        () -> {
+          try {
+            spark
+                .read()
+                .format("bigquery")
+                .option("viewsEnabled", true)
+                .option("materializationDataset", testDataset.toString())
+                .option("bigQueryJobTimeoutInMinutes", "1")
+                .load(query)
+                .show();
+          } catch (Exception e) {
+            throw e;
+          }
+        });
+  }
 }
 
 class TestBigQueryJobCompletionListener extends SparkListener {
