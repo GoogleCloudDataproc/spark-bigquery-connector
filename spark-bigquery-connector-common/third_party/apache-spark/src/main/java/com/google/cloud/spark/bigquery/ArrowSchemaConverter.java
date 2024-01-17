@@ -15,11 +15,12 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.common.collect.ImmutableList;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.arrow.memory.ArrowBuf;
 import java.time.LocalDateTime;
@@ -537,12 +538,21 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
   }
 
   private static class TimestampMicroTZVectorAccessor extends ArrowSchemaConverter {
+
+    private final Optional<Method> rebaseMicrosMethod;
     private final TimeStampMicroTZVector vector;
     private final String localTimeZoneId = SQLConf.get().sessionLocalTimeZone();
 
     TimestampMicroTZVectorAccessor(TimeStampMicroTZVector vector) {
       super(vector);
       this.vector = vector;
+      Method rebaseMicrosTmp = null;
+      try {
+        Class<?> rebaseDateTimeClass = Class.forName(
+            "org.apache.spark.sql.catalyst.util.RebaseDateTime");
+        rebaseMicrosTmp = rebaseDateTimeClass.getDeclaredMethod("rebaseJulianToGregorianMicros", String.class, Long.class);
+      } catch (ReflectiveOperationException ignored) { }
+      rebaseMicrosMethod = Optional.ofNullable(rebaseMicrosTmp);
     }
 
     @Override
@@ -553,7 +563,12 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
 
     @Override
     public final long getLong(int rowId) {
-      return RebaseDateTime.rebaseJulianToGregorianMicros(localTimeZoneId, vector.get(rowId));
+      try {
+        if (rebaseMicrosMethod.isPresent()) {
+          return (long) rebaseMicrosMethod.get().invoke(localTimeZoneId, vector.get(rowId));
+        }
+      } catch (ReflectiveOperationException ignored) { }
+      return vector.get(rowId);
     }
 
     @Override
