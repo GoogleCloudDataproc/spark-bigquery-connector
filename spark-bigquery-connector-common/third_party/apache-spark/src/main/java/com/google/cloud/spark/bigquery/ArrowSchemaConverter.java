@@ -30,7 +30,6 @@ import org.apache.arrow.vector.complex.*;
 
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.ArrowType.ArrowTypeID;
-import org.apache.spark.sql.catalyst.util.RebaseDateTime;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.types.*;
 
@@ -541,16 +540,16 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
 
     private final Optional<Method> rebaseMicrosMethod;
     private final TimeStampMicroTZVector vector;
-    private final String localTimeZoneId = SQLConf.get().sessionLocalTimeZone();
 
     TimestampMicroTZVectorAccessor(TimeStampMicroTZVector vector) {
       super(vector);
       this.vector = vector;
       Method rebaseMicrosTmp = null;
       try {
+        // for Spark 3.0+ only. See https://issues.apache.org/jira/browse/SPARK-26651
         Class<?> rebaseDateTimeClass = Class.forName(
             "org.apache.spark.sql.catalyst.util.RebaseDateTime");
-        rebaseMicrosTmp = rebaseDateTimeClass.getDeclaredMethod("rebaseJulianToGregorianMicros", String.class, Long.class);
+        rebaseMicrosTmp = rebaseDateTimeClass.getDeclaredMethod("rebaseJulianToGregorianMicros", long.class);
       } catch (ReflectiveOperationException ignored) { }
       rebaseMicrosMethod = Optional.ofNullable(rebaseMicrosTmp);
     }
@@ -565,7 +564,7 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
     public final long getLong(int rowId) {
       try {
         if (rebaseMicrosMethod.isPresent()) {
-          return (long) rebaseMicrosMethod.get().invoke(localTimeZoneId, vector.get(rowId));
+          return (long) rebaseMicrosMethod.get().invoke(rebaseMicrosMethod.get(), vector.get(rowId));
         }
       } catch (ReflectiveOperationException ignored) { }
       return vector.get(rowId);

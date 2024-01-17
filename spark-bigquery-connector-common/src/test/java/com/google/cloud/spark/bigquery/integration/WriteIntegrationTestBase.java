@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeThat;
+import static org.junit.Assume.assumeTrue;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
@@ -95,6 +96,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   protected static AtomicInteger id = new AtomicInteger(0);
   protected final SparkBigQueryConfig.WriteMethod writeMethod;
+  private final boolean isSpark3AndAbove;
   protected Class<? extends Exception> expectedExceptionOnExistingTable;
   protected BigQuery bq;
   protected Optional<DataType> timeStampNTZType;
@@ -117,6 +119,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     this.expectedExceptionOnExistingTable = expectedExceptionOnExistingTable;
     this.bq = BigQueryOptions.getDefaultInstance().getService();
     this.timeStampNTZType = timeStampNTZType;
+    this.isSpark3AndAbove = spark.version().startsWith("3.");
   }
 
   private Metadata metadata(Map<String, String> map) {
@@ -1511,6 +1514,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testWriteToTimestampField() {
     // not supported for indirect writes
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    assumeTrue(isSpark3AndAbove);
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (name STRING, timestamp1 TIMESTAMP)", testDataset, testTable));
