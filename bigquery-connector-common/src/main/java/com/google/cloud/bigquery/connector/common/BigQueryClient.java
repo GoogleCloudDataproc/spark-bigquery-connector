@@ -85,6 +85,7 @@ public class BigQueryClient {
   private final Optional<String> materializationDataset;
   private final JobConfigurationFactory jobConfigurationFactory;
   private final Optional<BigQueryJobCompletionListener> jobCompletionListener;
+  private final long bigQueryJobTimeoutInMinutes;
 
   public BigQueryClient(
       BigQuery bigQuery,
@@ -93,13 +94,15 @@ public class BigQueryClient {
       Cache<String, TableInfo> destinationTableCache,
       Map<String, String> labels,
       Priority queryJobPriority,
-      Optional<BigQueryJobCompletionListener> jobCompletionListener) {
+      Optional<BigQueryJobCompletionListener> jobCompletionListener,
+      long bigQueryJobTimeoutInMinutes) {
     this.bigQuery = bigQuery;
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
     this.destinationTableCache = destinationTableCache;
     this.jobConfigurationFactory = new JobConfigurationFactory(labels, queryJobPriority);
     this.jobCompletionListener = jobCompletionListener;
+    this.bigQueryJobTimeoutInMinutes = bigQueryJobTimeoutInMinutes;
   }
 
   public static synchronized void runCleanupJobs() {
@@ -127,10 +130,16 @@ public class BigQueryClient {
       Job completedJob =
           job.waitFor(
               RetryOption.initialRetryDelay(Duration.ofSeconds(1)),
-              RetryOption.totalTimeout(Duration.ofMinutes(3)));
-      if (completedJob == null && completedJob.getStatus().getError() != null) {
+              RetryOption.totalTimeout(Duration.ofMinutes(bigQueryJobTimeoutInMinutes)));
+      if (completedJob == null || completedJob.getStatus().getError() != null) {
         throw new UncheckedIOException(
-            new IOException(completedJob.getStatus().getError().toString()));
+            new IOException(
+                completedJob != null ? completedJob.getStatus().getError().toString() : null));
+      }
+      if (!completedJob.isDone()) {
+        completedJob.cancel();
+        throw new IllegalStateException(
+            String.format("Job aborted due to timeout  : %s minutes", bigQueryJobTimeoutInMinutes));
       }
       jobCompletionListener.ifPresent(jcl -> jcl.accept(completedJob));
       return completedJob;

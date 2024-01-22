@@ -3,6 +3,7 @@
 ## Next
 
 * PR #1155: allow lazy materialization of query on load
+* PR #1163: Added config to set the BigQuery Job timeout
 * PR #1171: fix read, write issues with Timestamp
 * Issue #1116: BigQuery write fails with MessageSize is too large
 

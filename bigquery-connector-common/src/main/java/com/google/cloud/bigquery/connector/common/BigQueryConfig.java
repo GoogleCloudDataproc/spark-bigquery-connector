@@ -81,6 +81,8 @@ public interface BigQueryConfig {
 
   Priority getQueryJobPriority();
 
+  long getBigQueryJobTimeoutInMinutes();
+
   default int getClientCreationHashCode() {
     return Objects.hashCode(
         getAccessTokenProviderFQCN(),
