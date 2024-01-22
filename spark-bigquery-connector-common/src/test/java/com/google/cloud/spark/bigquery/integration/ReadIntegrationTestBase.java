@@ -25,6 +25,7 @@ import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,6 +34,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.spark.sql.Dataset;
@@ -51,6 +53,7 @@ import org.junit.Test;
 
 public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
+  private static final TimeZone DEFAULT_TZ = TimeZone.getDefault();
   private static final Map<String, Collection<String>> FILTER_DATA =
       ImmutableMap.<String, Collection<String>>builder()
           .put("word_count == 4", ImmutableList.of("'A", "'But", "'Faith"))
@@ -146,6 +149,11 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     for (String object : gcsObjectsToClean) {
       AcceptanceTestUtils.deleteGcsDir(object);
     }
+  }
+
+  @After
+  public void resetDefaultTimeZone() {
+    TimeZone.setDefault(DEFAULT_TZ);
   }
 
   /**
@@ -585,5 +593,29 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         repositoryUrlRows.stream().map(row -> row.getString(0)).collect(Collectors.toSet());
     assertThat(uniqueUrls).hasSize(1);
     assertThat(uniqueUrls).contains("https://github.com/googleapi/googleapi");
+  }
+
+  @Test
+  public void testReadFilteredTimestampField() {
+    TimeZone.setDefault(TimeZone.getTimeZone("PST"));
+    spark.conf().set("spark.sql.session.timeZone", "UTC");
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` AS\n" + "SELECT TIMESTAMP(\"2023-01-09 10:00:00\") as eventTime;",
+            testDataset, testTable));
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    Dataset<Row> filteredDF =
+        df.where(df.apply("eventTime").between("2023-01-09 10:00:00", "2023-01-09 10:00:00"));
+    List<Row> result = filteredDF.collectAsList();
+    assertThat(result).hasSize(1);
+    Row head = result.get(0);
+    assertThat(head.get(head.fieldIndex("eventTime")))
+        .isEqualTo(Timestamp.valueOf("2023-01-09 02:00:00"));
   }
 }
