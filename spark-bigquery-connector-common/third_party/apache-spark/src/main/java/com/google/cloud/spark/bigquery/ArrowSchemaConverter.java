@@ -15,11 +15,12 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.common.collect.ImmutableList;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.arrow.memory.ArrowBuf;
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ import org.apache.arrow.vector.complex.*;
 
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.ArrowType.ArrowTypeID;
+import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.types.*;
 
 import org.apache.spark.sql.vectorized.ColumnVector;
@@ -535,11 +537,21 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
   }
 
   private static class TimestampMicroTZVectorAccessor extends ArrowSchemaConverter {
+
+    private final Optional<Method> rebaseMicrosMethod;
     private final TimeStampMicroTZVector vector;
 
     TimestampMicroTZVectorAccessor(TimeStampMicroTZVector vector) {
       super(vector);
       this.vector = vector;
+      Method rebaseMicrosTmp = null;
+      try {
+        // for Spark 3.0+ only. See https://issues.apache.org/jira/browse/SPARK-26651
+        Class<?> rebaseDateTimeClass = Class.forName(
+            "org.apache.spark.sql.catalyst.util.RebaseDateTime");
+        rebaseMicrosTmp = rebaseDateTimeClass.getDeclaredMethod("rebaseJulianToGregorianMicros", long.class);
+      } catch (ReflectiveOperationException ignored) { }
+      rebaseMicrosMethod = Optional.ofNullable(rebaseMicrosTmp);
     }
 
     @Override
@@ -550,6 +562,11 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
 
     @Override
     public final long getLong(int rowId) {
+      try {
+        if (rebaseMicrosMethod.isPresent()) {
+          return (long) rebaseMicrosMethod.get().invoke(rebaseMicrosMethod.get(), vector.get(rowId));
+        }
+      } catch (ReflectiveOperationException ignored) { }
       return vector.get(rowId);
     }
 
