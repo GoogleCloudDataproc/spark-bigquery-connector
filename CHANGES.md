@@ -4,6 +4,7 @@
 
 * PR #1155: allow lazy materialization of query on load
 * PR #1163: Added config to set the BigQuery Job timeout
+* PR #1166: Fix filters by adding surrounding parenthesis. Thanks @tom-s-powell !
 * Issue #1116: BigQuery write fails with MessageSize is too large
 
 ## 0.35.1 - 2023-12-28
