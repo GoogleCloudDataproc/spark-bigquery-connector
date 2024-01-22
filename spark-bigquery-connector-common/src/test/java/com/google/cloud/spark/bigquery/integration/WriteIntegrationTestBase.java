@@ -1507,6 +1507,47 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     testWriteStringToDateTimeField_internal(SaveMode.Append);
   }
 
+  @Test
+  public void testWriteToTimestampField() {
+    // not supported for indirect writes
+    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (name STRING, timestamp1 TIMESTAMP)", testDataset, testTable));
+    String name = "abc";
+    // ensure timezone differences don't influence writes
+    TimeZone.setDefault(TimeZone.getTimeZone("IST"));
+    Timestamp timestamp1 = Timestamp.valueOf("1501-01-01 01:22:24.999888");
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create(name, timestamp1)),
+            structType(
+                StructField.apply("name", DataTypes.StringType, true, Metadata.empty()),
+                StructField.apply("timestamp1", DataTypes.TimestampType, true, Metadata.empty())));
+    df.write()
+        .format("bigquery")
+        .mode("append")
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("writeMethod", writeMethod.toString())
+        .save();
+    // ensure timezone differences don't influence reads
+    TimeZone.setDefault(TimeZone.getTimeZone("PST"));
+
+    Dataset<Row> resultDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    List<Row> result = resultDF.collectAsList();
+    assertThat(result).hasSize(1);
+    Row head = result.get(0);
+    assertThat(head.getString(head.fieldIndex("name"))).isEqualTo("abc");
+    assertThat(head.get(head.fieldIndex("timestamp1"))).isEqualTo(timestamp1);
+  }
+
   protected Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(Dataset<Row> df) {
     df.write()
         .format("bigquery")
