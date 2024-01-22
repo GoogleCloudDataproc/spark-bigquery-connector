@@ -211,11 +211,12 @@ public class SparkFilterUtils {
             handledFilters(pushAllFilters, readDataFormat, ImmutableList.copyOf(pushedFilters)));
     return Stream.of(
             configFilter,
-            compiledPushedFilter.length() == 0
-                ? Optional.empty()
+            compiledPushedFilter.isEmpty()
+                ? Optional.<String>empty()
                 : Optional.of(compiledPushedFilter))
         .filter(Optional::isPresent)
-        .map(filter -> "(" + filter.get() + ")")
+        .map(Optional::get)
+        .map(filter -> filter.startsWith("(") && filter.endsWith(")") ? filter : "(" + filter + ")")
         .collect(Collectors.joining(" AND "));
   }
 
@@ -268,15 +269,15 @@ public class SparkFilterUtils {
     }
     if (filter instanceof And) {
       And and = (And) filter;
-      return format("((%s) AND (%s))", compileFilter(and.left()), compileFilter(and.right()));
+      return format("(%s) AND (%s)", compileFilter(and.left()), compileFilter(and.right()));
     }
     if (filter instanceof Or) {
       Or or = (Or) filter;
-      return format("((%s) OR (%s))", compileFilter(or.left()), compileFilter(or.right()));
+      return format("(%s) OR (%s)", compileFilter(or.left()), compileFilter(or.right()));
     }
     if (filter instanceof Not) {
       Not not = (Not) filter;
-      return format("(NOT (%s))", compileFilter(not.child()));
+      return format("NOT (%s)", compileFilter(not.child()));
     }
     if (filter instanceof StringStartsWith) {
       StringStartsWith stringStartsWith = (StringStartsWith) filter;
@@ -301,6 +302,7 @@ public class SparkFilterUtils {
     return StreamSupport.stream(filters.spliterator(), false)
         .map(SparkFilterUtils::compileFilter)
         .sorted()
+        .map(filter -> "(" + filter + ")")
         .collect(Collectors.joining(" AND "));
   }
 
