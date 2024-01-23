@@ -145,17 +145,11 @@ public class DataprocAcceptanceTestBase {
         .setProjectId(PROJECT_ID)
         .setConfig(
             ClusterConfig.newBuilder()
-                .addInitializationActions(
-                    NodeInitializationAction.newBuilder()
-                        .setExecutableFile(
-                            String.format(
-                                "gs://goog-dataproc-initialization-actions-%s/connectors/connectors.sh",
-                                REGION)))
                 .setGceClusterConfig(
                     GceClusterConfig.newBuilder()
                         .setNetworkUri("default")
                         .setZoneUri(REGION + "-a")
-                        .putMetadata("spark-bigquery-connector-url", connectorJarUri))
+                        .putMetadata("SPARK_BQ_CONNECTOR_URL", connectorJarUri))
                 .setMasterConfig(
                     InstanceGroupConfig.newBuilder()
                         .setNumInstances(1)
