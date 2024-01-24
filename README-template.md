@@ -93,16 +93,17 @@ below.
 | spark-bigquery-with-dependencies_2.11 | &check; | &check; |         |         |         |         |         |         |
 
 ### Connector to Dataproc Image Compatibility Matrix
-| Connector \ Dataproc Image            | 1.3     | 1.4     | 1.5     | 2.0     | 2.1     | Serverless<br>Image 1.0 | Serverless<br>Image 2.0 | Serverless<br>Image 2.1 |
-|---------------------------------------|---------|---------|---------|---------|---------|-------------------------|-------------------------|-------------------------|
-| spark-3.4-bigquery                    |         |         |         |         |         |                         |                         | &check;                 |
-| spark-3.3-bigquery                    |         |         |         |         | &check; | &check;                 | &check;                 | &check;                 |
-| spark-3.2-bigquery                    |         |         |         |         | &check; | &check;                 | &check;                 | &check;                 |
-| spark-3.1-bigquery                    |         |         |         | &check; | &check; | &check;                 | &check;                 | &check;                 |
-| spark-2.4-bigquery                    |         | &check; | &check; |         |         |                         |                         |                         |
-| spark-bigquery-with-dependencies_2.13 |         |         |         |         |         |                         | &check;                 | &check;                 |
-| spark-bigquery-with-dependencies_2.12 |         |         | &check; | &check; | &check; | &check;                 |                         |                         |
-| spark-bigquery-with-dependencies_2.11 | &check; | &check; |         |         |         |                         |                         |                         |
+| Connector \ Dataproc Image            | 1.3     | 1.4     | 1.5     | 2.0     | 2.1     | 2.2     | Serverless<br>Image 1.0 | Serverless<br>Image 2.0 | Serverless<br>Image 2.1 | Serverless<br>Image 2.2 |
+|---------------------------------------|---------|---------|---------|---------|---------|---------|-------------------------|-------------------------|-------------------------|-------------------------|
+| spark-3.5-bigquery                    |         |         |         |         |         | &check; |                         |                         |                         | &check;                 |
+| spark-3.4-bigquery                    |         |         |         |         |         | &check; |                         |                         | &check;                 | &check;                 |
+| spark-3.3-bigquery                    |         |         |         |         | &check; | &check; | &check;                 | &check;                 | &check;                 | &check;                 |
+| spark-3.2-bigquery                    |         |         |         |         | &check; | &check; | &check;                 | &check;                 | &check;                 | &check;                 |
+| spark-3.1-bigquery                    |         |         |         | &check; | &check; | &check; | &check;                 | &check;                 | &check;                 | &check;                 |
+| spark-2.4-bigquery                    |         | &check; | &check; |         |         |         |                         |                         |                         |                         |
+| spark-bigquery-with-dependencies_2.13 |         |         |         |         |         |         |                         | &check;                 | &check;                 | &check;                 |
+| spark-bigquery-with-dependencies_2.12 |         |         | &check; | &check; | &check; | &check; | &check;                 |                         |                         |                         |
+| spark-bigquery-with-dependencies_2.11 | &check; | &check; |         |         |         |         |                         |                         |                         |                         |
 
 ### Maven / Ivy Package Usage
 The connector is also available from the
