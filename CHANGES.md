@@ -7,6 +7,11 @@
 * PR #1166: Fix filters by adding surrounding parenthesis. Thanks @tom-s-powell !
 * PR #1171: fix read, write issues with Timestamp
 * Issue #1116: BigQuery write fails with MessageSize is too large
+* BigQuery API has been upgraded to version 2.36.0
+* GAX has been upgraded to version 2.40.0
+* gRPC has been upgraded to version 1.61.0
+* Netty has been upgraded to version 4.1.106.Final
+* Protocol Buffers has been upgraded to version 3.25.2
 
 ## 0.35.1 - 2023-12-28
 
