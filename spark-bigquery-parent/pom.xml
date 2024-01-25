@@ -54,6 +54,7 @@
         <avro.version>1.11.3</avro.version>
         <arrow.version>15.0.0</arrow.version>
         <gax.version>2.40.0</gax.version>
+        <google-auth.version>1.22.0</google-auth.version>
         <google-cloud-bigquery.version>2.36.0</google-cloud-bigquery.version>
         <google-cloud-bigquerystorage.version>2.47.0</google-cloud-bigquerystorage.version>
         <google-cloud-dataproc.version>4.30.0</google-cloud-dataproc.version>
@@ -116,7 +117,7 @@
             <dependency>
                     <groupId>com.google.auth</groupId>
                     <artifactId>google-auth-library-bom</artifactId>
-                    <version>1.16.1</version>
+                    <version>${google-auth.version}</version>
                     <type>pom</type>
                     <scope>import</scope>
             </dependency>
