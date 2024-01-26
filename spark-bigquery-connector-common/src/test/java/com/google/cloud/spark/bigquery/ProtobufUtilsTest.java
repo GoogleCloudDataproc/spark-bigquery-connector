@@ -35,6 +35,9 @@ import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
@@ -113,44 +116,62 @@ public class ProtobufUtilsTest {
 
   @Test
   public void testSparkStructRowToDynamicMessage() throws Exception {
+    Map<Integer, ProtobufUtils.ProtobufSchemaFieldCacheEntry> fieldIndexToEntryMap =
+        new HashMap<>();
     StructType schema = new StructType().add(SPARK_NESTED_STRUCT_FIELD);
     Descriptors.Descriptor schemaDescriptor = toDescriptor(schema);
-    Message converted = buildSingleRowMessage(schema, schemaDescriptor, STRUCT_INTERNAL_ROW);
+    Message converted =
+        buildSingleRowMessage(
+            schema,
+            schemaDescriptor,
+            STRUCT_INTERNAL_ROW,
+            Optional.of(fieldIndexToEntryMap),
+            DynamicMessage.newBuilder(schemaDescriptor));
     DynamicMessage expected = StructRowMessage;
-
     assertThat(converted.toString()).isEqualTo(expected.toString());
+    assertThat(!fieldIndexToEntryMap.isEmpty());
+    Message convertedSecond =
+        buildSingleRowMessage(
+            schema,
+            schemaDescriptor,
+            STRUCT_INTERNAL_ROW,
+            Optional.of(fieldIndexToEntryMap),
+            DynamicMessage.newBuilder(schemaDescriptor));
+    assertThat(convertedSecond.toString()).isEqualTo(expected.toString());
+  }
+
+  private InternalRow getDummyRow() {
+    return new GenericInternalRow(
+        new Object[] {
+          1,
+          UTF8String.fromString("A"),
+          ArrayData.toArrayData(new int[] {0, 1, 2}),
+          INTERNAL_STRUCT_DATA,
+          3.14,
+          true,
+          new byte[] {11, 0x7F},
+          1594080000000L,
+          1594080000000L,
+          Decimal.apply(
+              new BigDecimal(
+                  "-99999999999999999999999999999.999999999",
+                  new MathContext(BQ_NUMERIC_PRECISION)),
+              BQ_NUMERIC_PRECISION,
+              BQ_NUMERIC_SCALE),
+          Decimal.apply(new BigDecimal("0.78960446186580977117854925043439539146"))
+        });
   }
 
   @Test
   public void testSparkRowToProtoRow() throws Exception {
     ProtoRows converted =
-        toProtoRows(
-            BIG_SPARK_SCHEMA,
-            new InternalRow[] {
-              new GenericInternalRow(
-                  new Object[] {
-                    1,
-                    UTF8String.fromString("A"),
-                    ArrayData.toArrayData(new int[] {0, 1, 2}),
-                    INTERNAL_STRUCT_DATA,
-                    3.14,
-                    true,
-                    new byte[] {11, 0x7F},
-                    1594080000000L,
-                    1594080000000L,
-                    Decimal.apply(
-                        new BigDecimal(
-                            "-99999999999999999999999999999.999999999",
-                            new MathContext(BQ_NUMERIC_PRECISION)),
-                        BQ_NUMERIC_PRECISION,
-                        BQ_NUMERIC_SCALE),
-                    Decimal.apply(new BigDecimal("0.78960446186580977117854925043439539146"))
-                  })
-            });
+        toProtoRows(BIG_SPARK_SCHEMA, new InternalRow[] {getDummyRow(), getDummyRow()});
 
     ProtoRows expected = MY_PROTO_ROWS;
 
     assertThat(converted.getSerializedRows(0).toByteArray())
+        .isEqualTo(expected.getSerializedRows(0).toByteArray());
+    assertThat(converted.getSerializedRows(1).toByteArray())
         .isEqualTo(expected.getSerializedRows(0).toByteArray());
   }
 
@@ -359,7 +380,12 @@ public class ProtobufUtilsTest {
       DynamicMessage.newBuilder(STRUCT_SCHEMA_DESCRIPTOR)
           .setField(
               STRUCT_SCHEMA_DESCRIPTOR.findFieldByNumber(1),
-              buildSingleRowMessage(MY_STRUCT, STRUCT_DESCRIPTOR, INTERNAL_STRUCT_DATA))
+              buildSingleRowMessage(
+                  MY_STRUCT,
+                  STRUCT_DESCRIPTOR,
+                  INTERNAL_STRUCT_DATA,
+                  /*fieldIndexToEntryMap*/ Optional.empty(),
+                  DynamicMessage.newBuilder(STRUCT_DESCRIPTOR)))
           .build();
 
   public Descriptors.Descriptor BIG_SCHEMA_ROW_DESCRIPTOR = createBigSchemaRowDescriptor();
@@ -383,7 +409,12 @@ public class ProtobufUtilsTest {
                   .addRepeatedField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(3), 2L)
                   .setField(
                       BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(4),
-                      buildSingleRowMessage(MY_STRUCT, STRUCT_DESCRIPTOR, INTERNAL_STRUCT_DATA))
+                      buildSingleRowMessage(
+                          MY_STRUCT,
+                          STRUCT_DESCRIPTOR,
+                          INTERNAL_STRUCT_DATA,
+                          /*fieldIndexToEntryMap*/ Optional.empty(),
+                          DynamicMessage.newBuilder(STRUCT_DESCRIPTOR)))
                   .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(5), 3.14)
                   .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(6), true)
                   .setField(BIG_SCHEMA_ROW_DESCRIPTOR.findFieldByNumber(7), new byte[] {11, 0x7F})
