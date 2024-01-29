@@ -85,6 +85,7 @@ import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.hamcrest.CoreMatchers;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
@@ -93,6 +94,7 @@ import scala.Some;
 
 abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
+  private static final TimeZone DEFAULT_TZ = TimeZone.getDefault();
   protected static AtomicInteger id = new AtomicInteger(0);
   protected final SparkBigQueryConfig.WriteMethod writeMethod;
   protected Class<? extends Exception> expectedExceptionOnExistingTable;
@@ -129,6 +131,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void createTestTableName() {
     // have a fresh table for each test
     this.testTable = "test_" + System.nanoTime();
+  }
+
+  @After
+  public void resetDefaultTimeZone() {
+    TimeZone.setDefault(DEFAULT_TZ);
   }
 
   private String createDiffInSchemaDestTable(String schema) {

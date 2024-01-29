@@ -323,7 +323,14 @@ public class SparkFilterUtils {
       return "DATE '" + value + "'";
     }
     if (value instanceof Timestamp || value instanceof Instant) {
-      return "TIMESTAMP '" + value + "'";
+      final Instant instant;
+      if (value instanceof Timestamp) {
+        instant = ((Timestamp) value).toInstant();
+      } else {
+        instant = (Instant) value;
+      }
+      // Instant uses ISO-8601 representation.
+      return "TIMESTAMP '" + instant.toString() + "'";
     }
     if (value instanceof Object[]) {
       return Arrays.stream((Object[]) value)

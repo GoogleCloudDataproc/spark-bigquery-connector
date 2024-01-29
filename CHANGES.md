@@ -2,6 +2,8 @@
 
 ## Next
 
+* PR #1176: fix timestamp filter translation issue
+
 ## 0.36.0 - 2024-01-25
 
 * PR #1155: allow lazy materialization of query on load

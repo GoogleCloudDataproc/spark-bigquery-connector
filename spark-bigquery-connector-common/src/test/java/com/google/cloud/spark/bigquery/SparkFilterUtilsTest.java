@@ -28,7 +28,9 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.TimeZone;
 import org.apache.spark.sql.sources.*;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,6 +38,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class SparkFilterUtilsTest {
 
+  private static final TimeZone DEFAULT_TZ = TimeZone.getDefault();
   private static final DataFormat ARROW = DataFormat.ARROW;
   private static final DataFormat AVRO = DataFormat.AVRO;
 
@@ -54,6 +57,11 @@ public class SparkFilterUtilsTest {
   public SparkFilterUtilsTest(DataFormat dataFormat, boolean pushAllFilters) {
     this.dataFormat = dataFormat;
     this.pushAllFilters = pushAllFilters;
+  }
+
+  @After
+  public void resetDefaultTimeZone() {
+    TimeZone.setDefault(DEFAULT_TZ);
   }
 
   @Test
@@ -217,11 +225,12 @@ public class SparkFilterUtilsTest {
 
   @Test
   public void testTimestampFilters() throws ParseException {
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     Timestamp ts1 = Timestamp.valueOf("2008-12-25 15:30:00");
     Timestamp ts2 = Timestamp.valueOf("2020-01-25 02:10:10");
     assertThat(SparkFilterUtils.compileFilter(In.apply("tsfield", new Object[] {ts1, ts2})))
         .isEqualTo(
-            "`tsfield` IN (TIMESTAMP '2008-12-25 15:30:00.0', TIMESTAMP '2020-01-25 02:10:10.0')");
+            "`tsfield` IN (TIMESTAMP '2008-12-25T15:30:00Z', TIMESTAMP '2020-01-25T02:10:10Z')");
   }
 
   @Test
@@ -231,6 +240,34 @@ public class SparkFilterUtilsTest {
     assertThat(SparkFilterUtils.compileFilter(In.apply("tsfield", new Object[] {ts1, ts2})))
         .isEqualTo(
             "`tsfield` IN (TIMESTAMP '2008-12-25T15:30:00Z', TIMESTAMP '2020-01-25T02:10:10Z')");
+  }
+
+  @Test
+  public void testTimestampFilters_timezone() {
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    Filter part1 = IsNotNull.apply("t1");
+    Filter part2 = GreaterThanOrEqual.apply("t1", Timestamp.valueOf("2023-01-09 10:00:00.123456"));
+    Filter part3 = LessThanOrEqual.apply("t1", Timestamp.valueOf("2023-01-09 10:00:00.456789"));
+    checkFilters(
+        pushAllFilters,
+        dataFormat,
+        "",
+        "(`t1` <= TIMESTAMP '2023-01-09T10:00:00.456789Z') AND (`t1` >= TIMESTAMP '2023-01-09T10:00:00.123456Z') AND (`t1` IS NOT NULL)",
+        Optional.empty(),
+        part1,
+        part2,
+        part3);
+    // should give same results regardless of local timezone
+    TimeZone.setDefault(TimeZone.getTimeZone("PST"));
+    checkFilters(
+        pushAllFilters,
+        dataFormat,
+        "",
+        "(`t1` <= TIMESTAMP '2023-01-09T10:00:00.456789Z') AND (`t1` >= TIMESTAMP '2023-01-09T10:00:00.123456Z') AND (`t1` IS NOT NULL)",
+        Optional.empty(),
+        part1,
+        part2,
+        part3);
   }
 
   @Test
