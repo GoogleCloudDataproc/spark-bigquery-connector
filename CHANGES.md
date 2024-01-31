@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.36.1 - 2024-01-31
 
 * PR #1176: fix timestamp filter translation issue
