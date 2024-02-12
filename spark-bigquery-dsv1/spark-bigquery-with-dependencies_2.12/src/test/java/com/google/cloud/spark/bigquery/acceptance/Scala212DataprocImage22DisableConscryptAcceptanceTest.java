@@ -24,7 +24,7 @@ public class Scala212DataprocImage22DisableConscryptAcceptanceTest
   private static AcceptanceTestContext context;
 
   public Scala212DataprocImage22DisableConscryptAcceptanceTest() {
-    super(context);
+    super(context, false);
   }
 
   @BeforeClass

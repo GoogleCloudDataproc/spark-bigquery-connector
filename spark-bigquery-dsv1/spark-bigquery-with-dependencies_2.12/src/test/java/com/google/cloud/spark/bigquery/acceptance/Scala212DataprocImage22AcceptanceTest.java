@@ -24,7 +24,8 @@ public class Scala212DataprocImage22AcceptanceTest extends DataprocAcceptanceTes
   private static AcceptanceTestContext context;
 
   public Scala212DataprocImage22AcceptanceTest() {
-    super(context);
+    // TODO: sparkStreamingSupported should be set to true onceå bug is fixed in image 2.2
+    super(context, false);
   }
 
   @BeforeClass
