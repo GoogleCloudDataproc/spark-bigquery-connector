@@ -134,7 +134,9 @@ public class SparkBigQueryConfig
   private static final String CONF_PREFIX = "spark.datasource.bigquery.";
   private static final int DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT = 60 * 1000;
   private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
-  private static final Pattern LOWERCASE_QUERY_PATTERN = Pattern.compile("^(select|with)\\s+.*$");
+  private static final Pattern LOWERCASE_QUERY_PATTERN =
+      Pattern.compile("^(select|with)\\b[\\s\\S]*");
+  private static final Pattern HAS_WHITESPACE_PATTERN = Pattern.compile("\\s");
   // Both MIN values correspond to the lower possible value that will actually make the code work.
   // 0 or less would make code hang or other bad side effects.
   public static final int MIN_BUFFERED_RESPONSES_PER_STREAM = 1;
@@ -630,9 +632,11 @@ public class SparkBigQueryConfig
 
   @VisibleForTesting
   static boolean isQuery(String tableParamStr) {
-    String potentialQuery =
-        tableParamStr.toLowerCase().replaceAll("--.*(\n|$)", " ").replaceAll("\n", " ");
-    return LOWERCASE_QUERY_PATTERN.matcher(potentialQuery).matches();
+    // A potential query will start with (select|with) or contain a whitespace in between. This
+    // assumes good intentions. Queries like "/**/select'asdf'" although valid won't pass this test.
+    String potentialQuery = tableParamStr.toLowerCase().trim();
+    return LOWERCASE_QUERY_PATTERN.matcher(potentialQuery).matches()
+        || HAS_WHITESPACE_PATTERN.matcher(potentialQuery).find();
   }
 
   private static void validateDateFormat(
