@@ -22,6 +22,9 @@ import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.gen
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.uploadConnectorJar;
 
 import com.google.api.gax.longrunning.OperationFuture;
+import com.google.api.gax.longrunning.OperationTimedPollAlgorithm;
+import com.google.api.gax.retrying.RetrySettings;
+import com.google.api.gax.retrying.TimedRetryAlgorithm;
 import com.google.cloud.dataproc.v1.Batch;
 import com.google.cloud.dataproc.v1.BatchControllerClient;
 import com.google.cloud.dataproc.v1.BatchControllerSettings;
@@ -36,6 +39,7 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
+import org.threeten.bp.Duration;
 
 public class DataprocServerlessAcceptanceTestBase {
 
@@ -65,11 +69,24 @@ public class DataprocServerlessAcceptanceTestBase {
     uploadConnectorJar(CONNECTOR_JAR_DIRECTORY, connectorJarPrefix, context.connectorJarUri);
     createBqDataset(context.bqDataset);
 
-    batchController =
-        BatchControllerClient.create(
-            BatchControllerSettings.newBuilder()
-                .setEndpoint(AcceptanceTestConstants.DATAPROC_ENDPOINT)
+    BatchControllerSettings.Builder batchControllerSettingsBuilder =
+        BatchControllerSettings.newBuilder().setEndpoint(AcceptanceTestConstants.DATAPROC_ENDPOINT);
+    TimedRetryAlgorithm timedRetryAlgorithm =
+        OperationTimedPollAlgorithm.create(
+            RetrySettings.newBuilder()
+                .setInitialRetryDelay(Duration.ofMillis(5000L))
+                .setRetryDelayMultiplier(1)
+                .setMaxRetryDelay(Duration.ofMillis(45000L))
+                .setInitialRpcTimeout(Duration.ZERO)
+                .setRpcTimeoutMultiplier(1.0)
+                .setMaxRpcTimeout(Duration.ofMillis(600000L))
+                .setTotalTimeout(Duration.ofMillis(600000L))
                 .build());
+    batchControllerSettingsBuilder
+        .createBatchOperationSettings()
+        .setPollingAlgorithm(timedRetryAlgorithm);
+
+    batchController = BatchControllerClient.create(batchControllerSettingsBuilder.build());
   }
 
   @After

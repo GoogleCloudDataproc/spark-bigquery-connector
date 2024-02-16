@@ -17,7 +17,9 @@ package com.google.cloud.spark.bigquery.acceptance;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
+@Ignore
 public class Scala211DataprocImage13DisableConscryptAcceptanceTest
     extends DataprocAcceptanceTestBase {
 

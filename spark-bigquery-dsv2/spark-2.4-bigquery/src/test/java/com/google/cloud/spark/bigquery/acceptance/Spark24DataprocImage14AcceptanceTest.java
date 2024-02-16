@@ -18,7 +18,9 @@ package com.google.cloud.spark.bigquery.acceptance;
 import java.util.Collections;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
+@Ignore
 public class Spark24DataprocImage14AcceptanceTest extends DataprocAcceptanceTestBase {
 
   private static AcceptanceTestContext context;

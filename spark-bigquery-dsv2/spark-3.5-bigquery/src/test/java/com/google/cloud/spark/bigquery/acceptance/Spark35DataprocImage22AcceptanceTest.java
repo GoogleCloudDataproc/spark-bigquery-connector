@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Google Inc. All Rights Reserved.
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *       https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,17 +15,15 @@
  */
 package com.google.cloud.spark.bigquery.acceptance;
 
+import java.util.Collections;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 
-@Ignore
-public class Spark24DataprocImage15DisableConscryptAcceptanceTest
-    extends DataprocAcceptanceTestBase {
+public class Spark35DataprocImage22AcceptanceTest extends DataprocAcceptanceTestBase {
 
   private static AcceptanceTestContext context;
 
-  public Spark24DataprocImage15DisableConscryptAcceptanceTest() {
+  public Spark35DataprocImage22AcceptanceTest() {
     super(context, false);
   }
 
@@ -33,7 +31,7 @@ public class Spark24DataprocImage15DisableConscryptAcceptanceTest
   public static void setup() throws Exception {
     context =
         DataprocAcceptanceTestBase.setup(
-            "1.5-debian10", "spark-2.4-bigquery", DISABLE_CONSCRYPT_LIST);
+            "2.2-debian12", "spark-3.5-bigquery", Collections.emptyList());
   }
 
   @AfterClass
