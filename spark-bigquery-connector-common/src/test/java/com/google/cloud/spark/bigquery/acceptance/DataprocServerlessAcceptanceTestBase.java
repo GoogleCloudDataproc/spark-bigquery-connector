@@ -79,7 +79,7 @@ public class DataprocServerlessAcceptanceTestBase {
                 .setMaxRetryDelay(Duration.ofMillis(45000L))
                 .setInitialRpcTimeout(Duration.ZERO)
                 .setRpcTimeoutMultiplier(1.0)
-                .setMaxRpcTimeout(Duration.ZERO)
+                .setMaxRpcTimeout(Duration.ofMillis(600000L))
                 .setTotalTimeout(Duration.ofMillis(600000L))
                 .build());
     batchControllerSettingsBuilder
