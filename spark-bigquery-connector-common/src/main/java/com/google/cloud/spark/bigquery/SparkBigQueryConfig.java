@@ -155,7 +155,7 @@ public class SparkBigQueryConfig
   public static final String BIGQUERY_JOB_TIMEOUT_IN_MINUTES = "bigQueryJobTimeoutInMinutes";
   static final long BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT = 6 * 60; // 6 hrs
 
-  public static final String GPNS_ATTRIBUTION = "GPN";
+  public static final String GPN_ATTRIBUTION = "GPN";
 
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
@@ -580,7 +580,7 @@ public class SparkBigQueryConfig
             .transform(Long::valueOf)
             .or(BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT);
 
-    config.GPN = getAnyOption(globalOptions, options, GPNS_ATTRIBUTION);
+    config.GPN = getAnyOption(globalOptions, options, GPN_ATTRIBUTION);
 
     return config;
   }
