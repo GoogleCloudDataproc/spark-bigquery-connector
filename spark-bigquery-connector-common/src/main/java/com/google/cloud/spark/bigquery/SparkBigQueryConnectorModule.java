@@ -114,7 +114,7 @@ public class SparkBigQueryConnectorModule implements Module {
   @Provides
   public UserAgentProvider provideUserAgentProvider() {
     return new SparkBigQueryConnectorUserAgentProvider(
-        dataSourceVersion.toString().toLowerCase(), provideSparkBigQueryConfig().getpartner());
+        dataSourceVersion.toString().toLowerCase(), provideSparkBigQueryConfig().getGPN());
   }
 
   @Singleton
