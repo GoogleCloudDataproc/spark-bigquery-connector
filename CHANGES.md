@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Next
+* PR #1156: Propagate stats for BigLake Managed tables
 
 * PR #1181: Add caching during protobuf generation
 
