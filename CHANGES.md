@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Next
+* PR #1156: Propagate stats for BigLake Managed tables
 
 ## 0.36.2 - 2024-05-07
 

@@ -716,4 +716,33 @@ public class BigQueryUtil {
     }
     return buf.toString();
   }
+
+  /**
+   * BigLake Managed tables are not represented by a dedicated type. Instead, their presence is
+   * indicated by the field 'bigLakeConfiguration' within the StandardTableDefinition {@link
+   * StandardTableDefinition#getBigLakeConfiguration()}.
+   *
+   * @param table the table to check
+   * @return Returns true if the table is a BigLake Managed table.
+   */
+  public static boolean isBigLakeManagedTable(TableInfo table) {
+    TableDefinition tableDefinition = table.getDefinition();
+    return tableDefinition.getType() == TableDefinition.Type.TABLE
+        && tableDefinition instanceof StandardTableDefinition
+        && ((StandardTableDefinition) tableDefinition).getBigLakeConfiguration() != null;
+  }
+
+  /**
+   * Since StandardTableDefinition (table_type == TableDefinition.Type.TABLE) can represent both
+   * BigQuery native tables and BigLake Managed tables, the absence of the "bigLakeConfiguration"
+   * field within the StandardTableDefinition {@link
+   * StandardTableDefinition#getBigLakeConfiguration()}. indicates a BigQuery native table.
+   *
+   * @param table the table to check
+   * @return Returns true if the table is a BigQuery Native table.
+   */
+  public static boolean isBigQueryNativeTable(TableInfo table) {
+    return table.getDefinition().getType() == TableDefinition.Type.TABLE
+        && !isBigLakeManagedTable(table);
+  }
 }
