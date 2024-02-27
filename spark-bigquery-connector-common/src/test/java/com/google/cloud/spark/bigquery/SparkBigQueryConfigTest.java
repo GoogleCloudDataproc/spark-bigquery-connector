@@ -131,7 +131,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getKmsKeyName()).isEqualTo(Optional.empty());
     assertThat(config.getAllowMapTypeConversion()).isTrue();
     assertThat(config.getBigQueryJobTimeoutInMinutes()).isEqualTo(6 * 60);
-    assertThat(config.getGPN()).isEmpty();
+    assertThat(config.getGpn()).isEmpty();
   }
 
   @Test
@@ -234,7 +234,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getKmsKeyName()).isEqualTo(Optional.of("some/key/name"));
     assertThat(config.getAllowMapTypeConversion()).isFalse();
     assertThat(config.getBigQueryJobTimeoutInMinutes()).isEqualTo(30);
-    assertThat(config.getGPN().get()).isEqualTo("testUser");
+    assertThat(config.getGpn().get()).isEqualTo("testUser");
   }
 
   @Test

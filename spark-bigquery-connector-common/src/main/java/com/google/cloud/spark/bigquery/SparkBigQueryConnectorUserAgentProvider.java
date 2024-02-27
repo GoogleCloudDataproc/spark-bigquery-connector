@@ -60,11 +60,11 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
           DATAPROC_IMAGE_PART);
 
   private String dataSourceVersion;
-  private Optional<String> GPN;
+  private Optional<String> gpn;
 
-  public SparkBigQueryConnectorUserAgentProvider(String dataSourceVersion, Optional<String> GPN) {
+  public SparkBigQueryConnectorUserAgentProvider(String dataSourceVersion, Optional<String> gpn) {
     this.dataSourceVersion = dataSourceVersion;
-    this.GPN = GPN;
+    this.gpn = gpn;
   }
 
   // Queries the GCE metadata server
@@ -104,7 +104,7 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
 
     StringBuilder userAgentBuilder = new StringBuilder();
     userAgentBuilder.append(USER_AGENT).append(" datasource/").append(dataSourceVersion);
-    GPN.ifPresent(s -> userAgentBuilder.append(" GPN:").append(s));
+    gpn.ifPresent(s -> userAgentBuilder.append(" GPN:").append(s));
     return userAgentBuilder.toString();
   }
 
@@ -121,7 +121,7 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
     jsonObject.addProperty("sparkVersion", SPARK_VERSION);
     jsonObject.addProperty("javaVersion", JAVA_VERSION);
     jsonObject.addProperty("scalaVersion", SCALA_VERSION);
-    GPN.ifPresent(s -> jsonObject.addProperty("GPN", s));
+    gpn.ifPresent(s -> jsonObject.addProperty("GPN", s));
     return jsonObject.toString();
   }
 }

@@ -232,7 +232,7 @@ public class SparkBigQueryConfig
 
   private boolean allowMapTypeConversion = ALLOW_MAP_TYPE_CONVERSION_DEFAULT;
   private long bigQueryJobTimeoutInMinutes = BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT;
-  private com.google.common.base.Optional<String> GPN;
+  private com.google.common.base.Optional<String> gpn;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -580,7 +580,7 @@ public class SparkBigQueryConfig
             .transform(Long::valueOf)
             .or(BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT);
 
-    config.GPN = getAnyOption(globalOptions, options, GPN_ATTRIBUTION);
+    config.gpn = getAnyOption(globalOptions, options, GPN_ATTRIBUTION);
 
     return config;
   }
@@ -1030,8 +1030,8 @@ public class SparkBigQueryConfig
     return bigQueryTableLabels;
   }
 
-  public Optional<String> getGPN() {
-    return GPN.toJavaUtil();
+  public Optional<String> getGpn() {
+    return gpn.toJavaUtil();
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
