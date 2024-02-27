@@ -155,6 +155,8 @@ public class SparkBigQueryConfig
   public static final String BIGQUERY_JOB_TIMEOUT_IN_MINUTES = "bigQueryJobTimeoutInMinutes";
   static final long BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT = 6 * 60; // 6 hrs
 
+  public static final String GPN_ATTRIBUTION = "GPN";
+
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
   // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
@@ -230,6 +232,7 @@ public class SparkBigQueryConfig
 
   private boolean allowMapTypeConversion = ALLOW_MAP_TYPE_CONVERSION_DEFAULT;
   private long bigQueryJobTimeoutInMinutes = BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT;
+  private com.google.common.base.Optional<String> gpn;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -576,6 +579,8 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, BIGQUERY_JOB_TIMEOUT_IN_MINUTES)
             .transform(Long::valueOf)
             .or(BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT);
+
+    config.gpn = getAnyOption(globalOptions, options, GPN_ATTRIBUTION);
 
     return config;
   }
@@ -1023,6 +1028,10 @@ public class SparkBigQueryConfig
 
   public ImmutableMap<String, String> getBigQueryTableLabels() {
     return bigQueryTableLabels;
+  }
+
+  public Optional<String> getGpn() {
+    return gpn.toJavaUtil();
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {

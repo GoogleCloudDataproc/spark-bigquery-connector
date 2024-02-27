@@ -40,9 +40,14 @@ public class InjectorBuilderTest {
   @Test
   public void testParams() {
     SparkSession spark = SparkSession.builder().master("local[1]").appName("test").getOrCreate();
+    ImmutableMap<String, String> options =
+        ImmutableMap.<String, String>builder()
+            .put("table", "foo.bar")
+            .put("GPN", "testUser")
+            .build();
     Injector injector =
         new InjectorBuilder()
-            .withOptions(ImmutableMap.of("table", "foo.bar"))
+            .withOptions(options)
             .withCustomDefaults(ImmutableMap.of("writeMethod", "INDIRECT"))
             .withSpark(spark)
             .withDataSourceVersion(DataSourceVersion.V1)
@@ -54,6 +59,7 @@ public class InjectorBuilderTest {
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.INDIRECT);
     UserAgentProvider userAgentProvider = injector.getInstance(UserAgentProvider.class);
     assertThat(userAgentProvider.getUserAgent()).contains("v1");
+    assertThat(userAgentProvider.getUserAgent()).contains("testUser");
   }
 
   @Test
@@ -62,11 +68,16 @@ public class InjectorBuilderTest {
         .master("local[1]")
         .config("spark.driver.bindAddress", "127.0.0.1")
         .getOrCreate();
-    Injector injector =
-        new InjectorBuilder().withOptions(ImmutableMap.of("table", "foo.bar")).build();
+    ImmutableMap<String, String> options =
+        ImmutableMap.<String, String>builder()
+            .put("table", "foo.bar")
+            .put("GPN", "testUser")
+            .build();
+    Injector injector = new InjectorBuilder().withOptions(options).build();
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
     assertThat(config.getTableId().getTable()).isEqualTo("bar");
     UserAgentProvider userAgentProvider = injector.getInstance(UserAgentProvider.class);
     assertThat(userAgentProvider.getConnectorInfo()).contains("v2");
+    assertThat(userAgentProvider.getConnectorInfo()).contains("testUser");
   }
 }
