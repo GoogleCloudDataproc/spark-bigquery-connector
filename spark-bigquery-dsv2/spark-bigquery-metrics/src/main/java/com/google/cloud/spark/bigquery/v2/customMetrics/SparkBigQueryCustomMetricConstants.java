@@ -11,4 +11,7 @@ public class SparkBigQueryCustomMetricConstants {
   static final String BIG_QUERY_PARSE_TIME_METRIC_DESCRIPTION = "parsing time for BQ";
   public static final String BIG_QUERY_TIME_IN_SPARK_METRIC_NAME = "bqTimeInSpark";
   static final String BIG_QUERY_TIME_IN_SPARK_METRIC_DESCRIPTION = "time spent in spark";
+  public static final String BIG_QUERY_NUMBER_OF_READ_STREAMS_METRIC_NAME = "bqNumReadStreams";
+  static final String BIG_QUERY_NUMBER_OF_READ_STREAMS_METRIC_DESCRIPTION =
+      "number of read streams";
 }

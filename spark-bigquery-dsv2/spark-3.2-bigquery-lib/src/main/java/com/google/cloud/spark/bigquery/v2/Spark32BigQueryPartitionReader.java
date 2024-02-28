@@ -39,7 +39,8 @@ public class Spark32BigQueryPartitionReader<T> extends BigQueryPartitionReader {
                       bigQueryStorageReadRowsTracer.getParseTimeInMilliSec()),
                   new SparkBigQueryTaskMetric(
                       BIG_QUERY_TIME_IN_SPARK_METRIC_NAME,
-                      bigQueryStorageReadRowsTracer.getTimeInSparkInMilliSec())
+                      bigQueryStorageReadRowsTracer.getTimeInSparkInMilliSec()),
+                  new SparkBigQueryTaskMetric(BIG_QUERY_NUMBER_OF_READ_STREAMS_METRIC_NAME, 1)
                 })
         .orElse(new SparkBigQueryTaskMetric[] {});
   }
