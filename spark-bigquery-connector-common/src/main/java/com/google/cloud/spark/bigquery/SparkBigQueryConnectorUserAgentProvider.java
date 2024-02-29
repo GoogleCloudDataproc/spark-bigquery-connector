@@ -52,11 +52,7 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
   static final String USER_AGENT =
       format(
           "spark/%s java/%s scala/%s%s%s",
-          SPARK_VERSION,
-          JAVA_VERSION,
-          SCALA_VERSION,
-          GCP_REGION_PART,
-          DATAPROC_IMAGE_PART);
+          SPARK_VERSION, JAVA_VERSION, SCALA_VERSION, GCP_REGION_PART, DATAPROC_IMAGE_PART);
 
   private String dataSourceVersion;
   private Optional<String> gpn;
@@ -102,7 +98,9 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
   public String getUserAgent() {
 
     StringBuilder userAgentBuilder = new StringBuilder();
-    userAgentBuilder.append("spark-bigquery-connector/").append(SparkBigQueryUtil.CONNECTOR_VERSION);
+    userAgentBuilder
+        .append("spark-bigquery-connector/")
+        .append(SparkBigQueryUtil.CONNECTOR_VERSION);
     gpn.ifPresent(s -> userAgentBuilder.append(" (GPN:").append(s).append(") "));
     userAgentBuilder.append(USER_AGENT).append(" datasource/").append(dataSourceVersion);
 
