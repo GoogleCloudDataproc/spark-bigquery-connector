@@ -51,8 +51,7 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
   private static String SCALA_VERSION = Properties.versionNumberString();
   static final String USER_AGENT =
       format(
-          "spark-bigquery-connector/%s spark/%s java/%s scala/%s%s%s",
-          SparkBigQueryUtil.CONNECTOR_VERSION,
+          "spark/%s java/%s scala/%s%s%s",
           SPARK_VERSION,
           JAVA_VERSION,
           SCALA_VERSION,
@@ -103,8 +102,10 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
   public String getUserAgent() {
 
     StringBuilder userAgentBuilder = new StringBuilder();
+    userAgentBuilder.append("spark-bigquery-connector/").append(SparkBigQueryUtil.CONNECTOR_VERSION);
+    gpn.ifPresent(s -> userAgentBuilder.append(" (GPN:").append(s).append(") "));
     userAgentBuilder.append(USER_AGENT).append(" datasource/").append(dataSourceVersion);
-    gpn.ifPresent(s -> userAgentBuilder.append(" GPN:").append(s));
+
     return userAgentBuilder.toString();
   }
 

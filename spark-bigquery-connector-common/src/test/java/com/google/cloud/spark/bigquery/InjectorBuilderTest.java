@@ -59,7 +59,7 @@ public class InjectorBuilderTest {
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.INDIRECT);
     UserAgentProvider userAgentProvider = injector.getInstance(UserAgentProvider.class);
     assertThat(userAgentProvider.getUserAgent()).contains("v1");
-    assertThat(userAgentProvider.getUserAgent()).contains("testUser");
+    assertThat(userAgentProvider.getUserAgent()).contains("(GPN:testUser)");
   }
 
   @Test
