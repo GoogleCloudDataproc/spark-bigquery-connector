@@ -5,6 +5,8 @@
 
 * PR #1181: Add caching during protobuf generation
 
+* PR #1190: Enable connection sharing for atLeastOnce writes
+
 ## 0.36.1 - 2024-01-31
 
 * PR #1176: fix timestamp filter translation issue
