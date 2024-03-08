@@ -531,4 +531,8 @@ public class BigQueryDataSourceReaderContext {
             .map(structField -> (long) structField.dataType().defaultSize())
             .reduce(0L, Long::sum);
   }
+
+  public String getReadSessionId() {
+    return readSessionResponse.get().getReadSession().getName();
+  }
 }
