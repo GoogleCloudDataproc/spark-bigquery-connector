@@ -7,6 +7,15 @@
 * Issue #1182: Fix query check logic
 
 * PR #1190: Enable connection sharing for atLeastOnce writes
+* Arrow has been upgraded to version 15.0.1
+* BigQuery API has been upgraded to version 2.38.1
+* Dataproc has been upgraded to 4.34.0
+* GCS has been upgraded to 2.35.0
+* GAX has been upgraded to version 2.45.0
+* gRPC has been upgraded to version 1.62.2
+* Netty has been upgraded to version 4.1.107.Final
+* Protocol Buffers has been upgraded to version 3.25.3
+
 
 ## 0.36.1 - 2024-01-31
 
