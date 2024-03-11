@@ -1,9 +1,10 @@
 # Release Notes
 
 ## Next
-* PR #1156: Propagate stats for BigLake Managed tables
 
+* PR #1156: Propagate stats for BigLake Managed tables
 * PR #1181: Add caching during protobuf generation
+* Issue #1182: Fix query check logic
 
 * PR #1190: Enable connection sharing for atLeastOnce writes
 

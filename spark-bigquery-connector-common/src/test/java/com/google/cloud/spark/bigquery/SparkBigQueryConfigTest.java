@@ -464,6 +464,12 @@ public class SparkBigQueryConfigTest {
     assertThat(SparkBigQueryConfig.isQuery("select--comment\n* from table")).isTrue();
     assertThat(SparkBigQueryConfig.isQuery("select col1 -- comment\nfrom table")).isTrue();
     assertThat(SparkBigQueryConfig.isQuery("select col1 from table -- comment")).isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("# a comment\nSELECT * from a\nLIMIT 10")).isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("SELECT\n*\nfrom\ntable")).isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("SELECT\t*\tfrom\ttable")).isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("SELECT(COUNT(*))FROM`project.dataset.table`")).isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("select'asdf'")).isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("SELECT/**/*/**/FROM/**/table")).isTrue();
   }
 
   @Test
