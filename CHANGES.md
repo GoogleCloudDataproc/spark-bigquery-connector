@@ -2,16 +2,16 @@
 
 ## Next
 
+* :warning: Starting version 0.38.0 of the connector, the `spark-2.4-bigquery` version won't be released as Spark 2.4 is 
+  well-supported by the `spark-bigquery-with-dependencies` connectors.
 * PR #1156: Propagate stats for BigLake Managed tables
 * PR #1181: Add caching during protobuf generation
-* Issue #1182: Fix query check logic
-
 * PR #1190: Enable connection sharing for atLeastOnce writes
-* Arrow has been upgraded to version 15.0.1
+* Issue #1182: Fix query check logic
 * BigQuery API has been upgraded to version 2.38.1
-* Dataproc has been upgraded to 4.34.0
-* GCS has been upgraded to 2.35.0
+* BigQuery Storage API has been upgraded to version 3.3.1
 * GAX has been upgraded to version 2.45.0
+* Arrow has been upgraded to version 15.0.1
 * gRPC has been upgraded to version 1.62.2
 * Netty has been upgraded to version 4.1.107.Final
 * Protocol Buffers has been upgraded to version 3.25.3
