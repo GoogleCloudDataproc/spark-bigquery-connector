@@ -2,7 +2,7 @@
 
 ## Next
 
-* :warning: Starting version 0.38.0 of the connector, the `spark-2.4-bigquery` version won't be released as Spark 2.4 is 
+* :warning: Starting version 0.38.0 of the connector, the `spark-2.4-bigquery` version won't be released as Spark 2.4 is
   well-supported by the `spark-bigquery-with-dependencies` connectors.
 * PR #1156: Propagate stats for BigLake Managed tables
 * PR #1181: Add caching during protobuf generation
