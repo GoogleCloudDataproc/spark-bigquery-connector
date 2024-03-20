@@ -90,10 +90,13 @@ public class ReadSessionCreator {
       TableId table, ImmutableList<String> selectedFields, Optional<String> filter) {
     Instant sessionPrepStartTime = Instant.now();
     TableInfo tableDetails = bigQueryClient.getTable(table);
-
     TableInfo actualTable = getActualTable(tableDetails, selectedFields, filter);
 
     BigQueryReadClient bigQueryReadClient = bigQueryReadClientFactory.getBigQueryReadClient();
+    log.info(
+        "Creating a read session for table {}, filters used : {}",
+        actualTable.getFriendlyName(),
+        filter.orElse("None"));
 
     String tablePath = toTablePath(actualTable.getTableId());
     CreateReadSessionRequest request =
