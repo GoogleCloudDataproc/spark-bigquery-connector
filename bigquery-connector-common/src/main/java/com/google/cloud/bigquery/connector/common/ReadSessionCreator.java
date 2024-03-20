@@ -94,8 +94,11 @@ public class ReadSessionCreator {
 
     BigQueryReadClient bigQueryReadClient = bigQueryReadClientFactory.getBigQueryReadClient();
     log.info(
-        "Creating a read session for table {}, filters used : {}",
+        "|creation a read session for table {}, parameters: "
+            + "|selectedFields=[{}],"
+            + "|filters=[{}]",
         actualTable.getFriendlyName(),
+        String.join(",", selectedFields),
         filter.orElse("None"));
 
     String tablePath = toTablePath(actualTable.getTableId());
