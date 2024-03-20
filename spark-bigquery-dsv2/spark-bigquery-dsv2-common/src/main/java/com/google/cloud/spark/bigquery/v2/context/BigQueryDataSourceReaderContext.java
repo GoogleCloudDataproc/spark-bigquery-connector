@@ -533,6 +533,10 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public String getReadSessionId() {
-    return readSessionResponse.get().getReadSession().getName();
+    if (isBuilt) {
+      return readSessionResponse.get().getReadSession().getName();
+    } else {
+      return "N/A";
+    }
   }
 }
