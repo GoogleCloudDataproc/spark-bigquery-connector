@@ -111,14 +111,14 @@ public class DirectBigQueryRelation extends BigQueryRelation
 
   @Override
   public RDD<Row> buildScan(String[] requiredColumns, Filter[] filters) {
-    log.info(
-        "|Querying table {}, parameters sent from Spark:"
-            + "|requiredColumns=[{}],"
-            + "|filters=[{}]",
-        getTableNameForLogging(),
-        String.join(",", requiredColumns),
-        Arrays.stream(filters).map(f -> f.toString()).collect(Collectors.joining(",")));
     compiledFilter = getCompiledFilter(filters);
+    log.info(
+            "|Querying table {}, parameters sent from Spark:"
+                    + "|requiredColumns=[{}],"
+                    + "|filters=[{}]",
+            getTableNameForLogging(),
+            String.join(",", requiredColumns),
+            compiledFilter);
     ReadSessionCreator readSessionCreator =
         new ReadSessionCreator(
             options.toReadSessionCreatorConfig(), bigQueryClient, bigQueryReadClientFactory);
