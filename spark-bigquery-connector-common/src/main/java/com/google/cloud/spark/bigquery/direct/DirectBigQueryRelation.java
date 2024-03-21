@@ -115,7 +115,7 @@ public class DirectBigQueryRelation extends BigQueryRelation
     log.info(
         "|Querying table {}, parameters sent from Spark:"
             + "|requiredColumns=[{}],"
-            + "|filters=[{}]",
+            + "|filter=[{}]",
         getTableNameForLogging(),
         String.join(",", requiredColumns),
         compiledFilter);

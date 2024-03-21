@@ -96,7 +96,7 @@ public class ReadSessionCreator {
     log.info(
         "|creation a read session for table {}, parameters: "
             + "|selectedFields=[{}],"
-            + "|filters=[{}]",
+            + "|filter=[{}]",
         actualTable.getFriendlyName(),
         String.join(",", selectedFields),
         filter.orElse("None"));
