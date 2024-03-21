@@ -88,6 +88,34 @@ public class BigQueryDataSourceReaderContext {
         }
       };
 
+  private static class MemoizedSupplierWrapper<T> implements Supplier<T> {
+    private final Supplier<T> supplier;
+    private volatile boolean calculated;
+    private volatile T value;
+
+    MemoizedSupplierWrapper(Supplier<T> supplier) {
+      this.supplier = supplier;
+      calculated = false;
+    }
+
+    @Override
+    public T get() {
+      if (!calculated) {
+        synchronized (this) {
+          if (!calculated) {
+            value = supplier.get();
+            calculated = true;
+          }
+        }
+      }
+      return value;
+    }
+
+    public boolean isCalculated() {
+      return calculated;
+    }
+  }
+
   private final TableInfo table;
   private final TableId tableId;
   private final ReadSessionCreatorConfig readSessionCreatorConfig;
@@ -115,7 +143,7 @@ public class BigQueryDataSourceReaderContext {
   // In Spark 3.1 connector, "estimateStatistics" is called before
   // "planBatchInputPartitionContexts" or
   // "planInputPartitionContexts". We will use this to get table statistics in estimateStatistics.
-  private Supplier<ReadSessionResponse> readSessionResponse;
+  private MemoizedSupplierWrapper<ReadSessionResponse> readSessionResponse;
   private final ExecutorService asyncReadSessionExecutor = Executors.newSingleThreadExecutor();
   private boolean isBuilt = false;
 
@@ -165,7 +193,8 @@ public class BigQueryDataSourceReaderContext {
   }
 
   private void resetReadSessionResponse() {
-    this.readSessionResponse = Suppliers.memoize(this::createReadSession);
+    this.readSessionResponse =
+        new MemoizedSupplierWrapper<>(Suppliers.memoize(this::createReadSession));
   }
 
   public StructType readSchema() {
@@ -533,10 +562,9 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public String getReadSessionId() {
-    if (isBuilt) {
+    if (readSessionResponse.isCalculated()) {
       return readSessionResponse.get().getReadSession().getName();
-    } else {
-      return "N/A";
     }
+    return "N/A";
   }
 }
