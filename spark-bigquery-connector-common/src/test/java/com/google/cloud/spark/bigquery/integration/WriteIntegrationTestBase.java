@@ -2625,8 +2625,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             Arrays.asList(RowFactory.create("foo", 10), RowFactory.create("bar", 20)),
             new StructType().add("name", DataTypes.StringType).add("age", DataTypes.IntegerType));
     writeToBigQueryAvroFormat(df, SaveMode.Append, "True");
-    assertEquals(
-        initialDescription, bq.getTable(testDataset.toString(), testTable).getDescription());
+    assertThat(initialDescription)
+        .isEqualTo(bq.getTable(testDataset.toString(), testTable).getDescription());
     Dataset<Row> readDF =
         spark
             .read()
@@ -2636,8 +2636,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .load();
 
     assertThat(readDF.count()).isAtLeast(1);
-    assertEquals(
-        initialDescription, bq.getTable(testDataset.toString(), testTable).getDescription());
+    assertThat(initialDescription)
+        .isEqualTo(bq.getTable(testDataset.toString(), testTable).getDescription());
   }
 
   private TableResult insertAndGetTimestampNTZToBigQuery(LocalDateTime time, String format)

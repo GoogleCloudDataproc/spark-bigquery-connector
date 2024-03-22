@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.MemoizingSupplierWithChecker;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
@@ -38,7 +39,6 @@ import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
 import com.google.cloud.spark.bigquery.metrics.SparkBigQueryReadSessionMetrics;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -55,7 +55,6 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -88,34 +87,6 @@ public class BigQueryDataSourceReaderContext {
         }
       };
 
-  private static class MemoizedSupplierWrapper<T> implements Supplier<T> {
-    private final Supplier<T> supplier;
-    private volatile boolean calculated;
-    private volatile T value;
-
-    MemoizedSupplierWrapper(Supplier<T> supplier) {
-      this.supplier = supplier;
-      calculated = false;
-    }
-
-    @Override
-    public T get() {
-      if (!calculated) {
-        synchronized (this) {
-          if (!calculated) {
-            value = supplier.get();
-            calculated = true;
-          }
-        }
-      }
-      return value;
-    }
-
-    public boolean isCalculated() {
-      return calculated;
-    }
-  }
-
   private final TableInfo table;
   private final TableId tableId;
   private final ReadSessionCreatorConfig readSessionCreatorConfig;
@@ -143,7 +114,7 @@ public class BigQueryDataSourceReaderContext {
   // In Spark 3.1 connector, "estimateStatistics" is called before
   // "planBatchInputPartitionContexts" or
   // "planInputPartitionContexts". We will use this to get table statistics in estimateStatistics.
-  private MemoizedSupplierWrapper<ReadSessionResponse> readSessionResponse;
+  private MemoizingSupplierWithChecker<ReadSessionResponse> readSessionResponse;
   private final ExecutorService asyncReadSessionExecutor = Executors.newSingleThreadExecutor();
   private boolean isBuilt = false;
 
@@ -193,8 +164,7 @@ public class BigQueryDataSourceReaderContext {
   }
 
   private void resetReadSessionResponse() {
-    this.readSessionResponse =
-        new MemoizedSupplierWrapper<>(Suppliers.memoize(this::createReadSession));
+    this.readSessionResponse = new MemoizingSupplierWithChecker<>(this::createReadSession);
   }
 
   public StructType readSchema() {
@@ -562,7 +532,7 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public String getReadSessionId() {
-    if (readSessionResponse.isCalculated()) {
+    if (readSessionResponse.isInitialized()) {
       return readSessionResponse.get().getReadSession().getName();
     }
     return "N/A";
