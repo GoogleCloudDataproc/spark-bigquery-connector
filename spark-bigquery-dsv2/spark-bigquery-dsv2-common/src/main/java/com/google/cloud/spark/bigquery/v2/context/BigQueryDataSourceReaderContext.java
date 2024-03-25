@@ -24,7 +24,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
-import com.google.cloud.bigquery.connector.common.MemoizingSupplierWithChecker;
+import com.google.cloud.bigquery.connector.common.LazyInitializationSupplier;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
@@ -114,7 +114,7 @@ public class BigQueryDataSourceReaderContext {
   // In Spark 3.1 connector, "estimateStatistics" is called before
   // "planBatchInputPartitionContexts" or
   // "planInputPartitionContexts". We will use this to get table statistics in estimateStatistics.
-  private MemoizingSupplierWithChecker<ReadSessionResponse> readSessionResponse;
+  private LazyInitializationSupplier<ReadSessionResponse> readSessionResponse;
   private final ExecutorService asyncReadSessionExecutor = Executors.newSingleThreadExecutor();
   private boolean isBuilt = false;
 
@@ -164,7 +164,7 @@ public class BigQueryDataSourceReaderContext {
   }
 
   private void resetReadSessionResponse() {
-    this.readSessionResponse = new MemoizingSupplierWithChecker<>(this::createReadSession);
+    this.readSessionResponse = new LazyInitializationSupplier<>(this::createReadSession);
   }
 
   public StructType readSchema() {

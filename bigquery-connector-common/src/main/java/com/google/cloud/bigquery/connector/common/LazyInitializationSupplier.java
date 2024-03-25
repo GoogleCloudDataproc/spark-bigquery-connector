@@ -18,7 +18,6 @@ package com.google.cloud.bigquery.connector.common;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Supplier;
-import java.io.Serializable;
 import javax.annotation.CheckForNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -26,13 +25,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * This class is adapted from MemoizingSupplier of Googles’ Guava library.
  * A separate class is added to be able to access initialized variable to check if the value is already built.
  */
-public class MemoizingSupplierWithChecker<T extends @Nullable Object>
-    implements Supplier<T>, Serializable {
+public class LazyInitializationSupplier<T extends @Nullable Object> implements Supplier<T> {
   final Supplier<T> delegate;
-  transient volatile boolean initialized;
+  volatile boolean initialized;
   @CheckForNull transient T value;
 
-  public MemoizingSupplierWithChecker(Supplier<T> delegate) {
+  public LazyInitializationSupplier(Supplier<T> delegate) {
     this.delegate = checkNotNull(delegate);
   }
 
@@ -61,6 +59,4 @@ public class MemoizingSupplierWithChecker<T extends @Nullable Object>
   public boolean isInitialized() {
     return initialized;
   }
-
-  private static final long serialVersionUID = 0;
 }
