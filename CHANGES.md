@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.37.0 - 2024-03-25
 
 * :warning: Starting version 0.38.0 of the connector, the `spark-2.4-bigquery` version won't be released as Spark 2.4 is
