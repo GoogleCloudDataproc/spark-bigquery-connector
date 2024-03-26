@@ -2615,6 +2615,31 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .isEqualTo("2023-09-15T12:36:34.268543");
   }
 
+  @Test
+  public void testTableDescriptionRemainsUnchanged() {
+    IntegrationTestUtils.runQuery(
+        String.format("CREATE TABLE `%s.%s` (name STRING, age INT64)", testDataset, testTable));
+    String initialDescription = bq.getTable(testDataset.toString(), testTable).getDescription();
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create("foo", 10), RowFactory.create("bar", 20)),
+            new StructType().add("name", DataTypes.StringType).add("age", DataTypes.IntegerType));
+    writeToBigQueryAvroFormat(df, SaveMode.Append, "True");
+    assertThat(initialDescription)
+        .isEqualTo(bq.getTable(testDataset.toString(), testTable).getDescription());
+    Dataset<Row> readDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+
+    assertThat(readDF.count()).isAtLeast(1);
+    assertThat(initialDescription)
+        .isEqualTo(bq.getTable(testDataset.toString(), testTable).getDescription());
+  }
+
   private TableResult insertAndGetTimestampNTZToBigQuery(LocalDateTime time, String format)
       throws InterruptedException {
     Preconditions.checkArgument(timeStampNTZType.isPresent(), "timestampNTZType not present");

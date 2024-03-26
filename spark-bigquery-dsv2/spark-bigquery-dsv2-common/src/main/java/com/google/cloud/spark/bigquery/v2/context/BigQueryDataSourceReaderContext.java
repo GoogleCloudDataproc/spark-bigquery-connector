@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.LazyInitializationSupplier;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
@@ -38,7 +39,6 @@ import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
 import com.google.cloud.spark.bigquery.metrics.SparkBigQueryReadSessionMetrics;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -55,7 +55,6 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -115,7 +114,7 @@ public class BigQueryDataSourceReaderContext {
   // In Spark 3.1 connector, "estimateStatistics" is called before
   // "planBatchInputPartitionContexts" or
   // "planInputPartitionContexts". We will use this to get table statistics in estimateStatistics.
-  private Supplier<ReadSessionResponse> readSessionResponse;
+  private LazyInitializationSupplier<ReadSessionResponse> readSessionResponse;
   private final ExecutorService asyncReadSessionExecutor = Executors.newSingleThreadExecutor();
   private boolean isBuilt = false;
 
@@ -165,7 +164,7 @@ public class BigQueryDataSourceReaderContext {
   }
 
   private void resetReadSessionResponse() {
-    this.readSessionResponse = Suppliers.memoize(this::createReadSession);
+    this.readSessionResponse = new LazyInitializationSupplier<>(this::createReadSession);
   }
 
   public StructType readSchema() {
@@ -530,5 +529,12 @@ public class BigQueryDataSourceReaderContext {
         + fields.stream()
             .map(structField -> (long) structField.dataType().defaultSize())
             .reduce(0L, Long::sum);
+  }
+
+  public String getReadSessionId() {
+    if (readSessionResponse.isInitialized()) {
+      return readSessionResponse.get().getReadSession().getName();
+    }
+    return "N/A";
   }
 }
