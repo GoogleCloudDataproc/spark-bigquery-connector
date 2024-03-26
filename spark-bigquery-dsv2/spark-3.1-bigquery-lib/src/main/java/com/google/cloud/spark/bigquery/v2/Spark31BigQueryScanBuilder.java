@@ -95,7 +95,9 @@ public class Spark31BigQueryScanBuilder
 
   @Override
   public String description() {
-    return String.format("Reading table [%s]", ctx.getFullTableName());
+    return String.format(
+        "Reading table [%s], Read session Id : %s ",
+        ctx.getFullTableName(), ctx.getReadSessionId());
   }
 
   @Override
