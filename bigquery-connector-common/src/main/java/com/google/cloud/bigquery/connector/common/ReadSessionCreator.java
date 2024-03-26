@@ -82,9 +82,9 @@ public class ReadSessionCreator {
    * constructed with.
    *
    * @param table The table to create the session for.
-   * @param selectedFields
-   * @param filter
-   * @return
+   * @param selectedFields Projection : the fields (e.g. columns) to return
+   * @param filter Selection: how to filter rows that match this filter
+   * @return ReadSessionResponse
    */
   public ReadSessionResponse create(
       TableId table, ImmutableList<String> selectedFields, Optional<String> filter) {
@@ -108,25 +108,37 @@ public class ReadSessionCreator {
             .map(
                 value -> {
                   try {
-                    return com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest.parseFrom(
-                        java.util.Base64.getDecoder().decode(value));
+                    CreateReadSessionRequest parsed =
+                        com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest.parseFrom(
+                            java.util.Base64.getDecoder().decode(value));
+                    log.info("AQIU: parsed encoded CreateReadSessionRequest {}", parsed.toString());
+                    return parsed;
                   } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+                    log.info("AQIU: could not decode encoded CreateReadSessionRequest {}", value);
                     throw new RuntimeException("Couldn't decode:" + value, e);
                   }
                 })
             .orElse(CreateReadSessionRequest.newBuilder().build());
-    ReadSession.Builder requestedSession = request.getReadSession().toBuilder();
-    config.getTraceId().ifPresent(traceId -> requestedSession.setTraceId(traceId));
 
-    TableReadOptions.Builder readOptions = requestedSession.getReadOptionsBuilder();
-    if (!isInputTableAView(tableDetails)) {
-      filter.ifPresent(readOptions::setRowRestriction);
+    ReadSession.Builder readSessionBuilder = request.getReadSession().toBuilder();
+    config.getTraceId().ifPresent(traceId -> readSessionBuilder.setTraceId(traceId));
+    if (config.getTraceId().isPresent()) {
+      log.info(
+          "AQIU: traceID: {} maybe set TraceId {}",
+          config.getTraceId(),
+          readSessionBuilder.getTraceId());
     }
-    readOptions.addAllSelectedFields(selectedFields);
-    readOptions.setArrowSerializationOptions(
+
+    TableReadOptions.Builder readOptionsBuilder = readSessionBuilder.getReadOptionsBuilder();
+    if (!isInputTableAView(tableDetails)) {
+      filter.ifPresent(readOptionsBuilder::setRowRestriction);
+    }
+    readOptionsBuilder.addAllSelectedFields(selectedFields);
+    readOptionsBuilder.setArrowSerializationOptions(
         ArrowSerializationOptions.newBuilder()
             .setBufferCompression(config.getArrowCompressionCodec())
             .build());
+    log.info("AQIU: setting arrow compression to be {}", config.getArrowCompressionCodec());
 
     int preferredMinStreamCount =
         config
@@ -157,24 +169,30 @@ public class ReadSessionCreator {
     if (minStreamCount > maxStreamCount) {
       minStreamCount = maxStreamCount;
       log.warn(
-          "preferred min parallelism is larger than the max parallelism, therefore setting it to max parallelism [{}]",
+          "preferred min parallelism is larger than the max parallelism, therefore setting it to"
+              + " max parallelism [{}]",
           minStreamCount);
     }
     Instant sessionPrepEndTime = Instant.now();
+
+    TableReadOptions readOptions = readOptionsBuilder.build();
+
+    ReadSession readSessionOption =
+        readSessionBuilder
+            .setDataFormat(config.getReadDataFormat())
+            .setReadOptions(readOptions)
+            .setTable(tablePath)
+            .build();
 
     CreateReadSessionRequest createReadSessionRequest =
         request
             .newBuilder()
             .setParent("projects/" + bigQueryClient.getProjectId())
-            .setReadSession(
-                requestedSession
-                    .setDataFormat(config.getReadDataFormat())
-                    .setReadOptions(readOptions)
-                    .setTable(tablePath)
-                    .build())
+            .setReadSession(readSessionOption)
             .setMaxStreamCount(maxStreamCount)
             .setPreferredMinStreamCount(minStreamCount)
             .build();
+
     if (config.isReadSessionCachingEnabled()
         && getReadSessionCache().asMap().containsKey(createReadSessionRequest)) {
       ReadSession readSession = getReadSessionCache().asMap().get(createReadSessionRequest);
@@ -204,11 +222,10 @@ public class ReadSessionCreator {
       log.info("Read session:{}", new Gson().toJson(jsonObject));
       if (readSession.getStreamsCount() != maxStreamCount) {
         log.info(
-            "Requested {} max partitions, but only received {} "
-                + "from the BigQuery Storage API for session {}. Notice that the "
-                + "number of streams in actual may be lower than the requested number, depending on "
-                + "the amount parallelism that is reasonable for the table and the maximum amount of "
-                + "parallelism allowed by the system.",
+            "Requested {} max partitions, but only received {} from the BigQuery Storage API for"
+                + " session {}. Notice that the number of streams in actual may be lower than the"
+                + " requested number, depending on the amount parallelism that is reasonable for"
+                + " the table and the maximum amount of parallelism allowed by the system.",
             maxStreamCount,
             readSession.getStreamsCount(),
             readSession.getName());
@@ -265,7 +282,8 @@ public class ReadSessionCreator {
         throw new BigQueryConnectorException(
             UNSUPPORTED,
             format(
-                "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
+                "Views are not enabled. You can enable views by setting '%s' to true. Notice"
+                    + " additional cost may occur.",
                 config.getViewEnabledParamName()));
       }
       return true;

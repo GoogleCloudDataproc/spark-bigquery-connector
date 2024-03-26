@@ -46,8 +46,11 @@ public class ReadRowsResponseInputStreamEnumeration implements java.util.Enumera
       throw new NoSuchElementException("No more responses");
     }
     ReadRowsResponse ret = currentResponse;
+
+    // AQIU: it is hit here and we decompress here
     loadNextResponse();
     return ret.getArrowRecordBatch().getSerializedRecordBatch().newInput();
+    // return DecompressReadRowsResponse.decompressArrowRecordBatch(ret, true);
   }
 
   void loadNextResponse() {
