@@ -410,6 +410,80 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   @Test
+  public void testArrowResponseCompressionCodec() {
+    List<Row> avroResultsUncompressed =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("filter", "word_count = 1 OR corpus_date = 0")
+            .option("readDataFormat", "AVRO")
+            .load()
+            .collectAsList();
+
+    List<Row> arrowResultsUncompressed =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("readDataFormat", "ARROW")
+            .load()
+            .where("word_count = 1 OR corpus_date = 0")
+            .collectAsList();
+
+    List<Row> arrowResultsWithLZ4ResponseCompression =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("readDataFormat", "ARROW")
+            .option("responseCompressionCodec", "RESPONSE_COMPRESSION_CODEC_LZ4")
+            .load()
+            .where("word_count = 1 OR corpus_date = 0")
+            .collectAsList();
+
+    assertThat(avroResultsUncompressed).isEqualTo(arrowResultsWithLZ4ResponseCompression);
+    assertThat(arrowResultsUncompressed).isEqualTo(arrowResultsWithLZ4ResponseCompression);
+  }
+
+  @Test
+  public void testAvroResponseCompressionCodec() {
+    List<Row> arrowResultsUncompressed =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("filter", "word_count = 1 OR corpus_date = 0")
+            .option("readDataFormat", "ARROW")
+            .load()
+            .collectAsList();
+
+    List<Row> avroResultsUncompressed =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("readDataFormat", "AVRO")
+            .load()
+            .where("word_count = 1 OR corpus_date = 0")
+            .collectAsList();
+
+    List<Row> avroResultsWithLZ4ResponseCompression =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("readDataFormat", "AVRO")
+            .option("responseCompressionCodec", "RESPONSE_COMPRESSION_CODEC_LZ4")
+            .load()
+            .where("word_count = 1 OR corpus_date = 0")
+            .collectAsList();
+
+    assertThat(arrowResultsUncompressed).isEqualTo(avroResultsWithLZ4ResponseCompression);
+    assertThat(avroResultsUncompressed).isEqualTo(avroResultsWithLZ4ResponseCompression);
+  }
+
+  @Test
   public void testArrowCompressionCodec() {
     List<Row> avroResults =
         spark
@@ -573,7 +647,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         com.google.api.gax.rpc.DeadlineExceededException.class,
         () -> {
           df.where(
-                  "views>1000 AND title='Google' AND DATE(datehour) BETWEEN DATE('2021-01-01') AND DATE('2021-07-01')")
+                  "views>1000 AND title='Google' AND DATE(datehour) BETWEEN DATE('2021-01-01') AND"
+                      + " DATE('2021-07-01')")
               .collect();
         });
   }
@@ -585,7 +660,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     List<Row> repositoryUrlRows =
         githubNestedDF
             .filter(
-                "repository.has_downloads = true AND url = 'https://github.com/googleapi/googleapi'")
+                "repository.has_downloads = true AND url ="
+                    + " 'https://github.com/googleapi/googleapi'")
             .select("repository.url")
             .collectAsList();
     assertThat(repositoryUrlRows).hasSize(4);

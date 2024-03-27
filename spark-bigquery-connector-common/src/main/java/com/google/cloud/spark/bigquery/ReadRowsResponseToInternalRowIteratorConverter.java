@@ -20,6 +20,7 @@ import static com.google.common.base.Optional.fromJavaUtil;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 import com.google.protobuf.ByteString;
 import java.io.Serializable;
 import java.util.Iterator;
@@ -36,14 +37,16 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
       final String rawAvroSchema,
       final Optional<StructType> userProvidedSchema,
       final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer,
-      final SchemaConvertersConfiguration schemaConvertersConfiguration) {
+      final SchemaConvertersConfiguration schemaConvertersConfiguration,
+      final ResponseCompressionCodec responseCompressionCodec) {
     return new Avro(
         bqSchema,
         columnsInOrder,
         rawAvroSchema,
         fromJavaUtil(userProvidedSchema),
         fromJavaUtil(bigQueryStorageReadRowsTracer),
-        schemaConvertersConfiguration);
+        schemaConvertersConfiguration,
+        responseCompressionCodec);
   }
 
   static ReadRowsResponseToInternalRowIteratorConverter arrow(
@@ -71,6 +74,7 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
     private final com.google.common.base.Optional<BigQueryStorageReadRowsTracer>
         bigQueryStorageReadRowsTracer;
     private final SchemaConvertersConfiguration schemaConvertersConfiguration;
+    private final ResponseCompressionCodec responseCompressionCodec;
 
     public Avro(
         Schema bqSchema,
@@ -79,13 +83,15 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
         com.google.common.base.Optional<StructType> userProvidedSchema,
         com.google.common.base.Optional<BigQueryStorageReadRowsTracer>
             bigQueryStorageReadRowsTracer,
-        SchemaConvertersConfiguration schemaConvertersConfiguration) {
+        SchemaConvertersConfiguration schemaConvertersConfiguration,
+        ResponseCompressionCodec responseCompressionCodec) {
       this.bqSchema = bqSchema;
       this.columnsInOrder = columnsInOrder;
       this.rawAvroSchema = rawAvroSchema;
       this.userProvidedSchema = userProvidedSchema;
       this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
       this.schemaConvertersConfiguration = schemaConvertersConfiguration;
+      this.responseCompressionCodec = responseCompressionCodec;
     }
 
     @Override
@@ -94,14 +100,18 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
           bqSchema,
           columnsInOrder,
           new org.apache.avro.Schema.Parser().parse(rawAvroSchema),
-          response.getAvroRows().getSerializedBinaryRows(),
+          response,
           userProvidedSchema.toJavaUtil(),
           bigQueryStorageReadRowsTracer.toJavaUtil(),
-          schemaConvertersConfiguration);
+          schemaConvertersConfiguration,
+          responseCompressionCodec);
     }
 
     @Override
     public int getBatchSizeInBytes(ReadRowsResponse response) {
+      if (response.getUncompressedByteSize() > 0) {
+        return (int) response.getUncompressedByteSize();
+      }
       return response.getAvroRows().getSerializedBinaryRows().size();
     }
   }

@@ -16,8 +16,11 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
-import com.google.protobuf.ByteString;
+import com.google.cloud.bigquery.connector.common.DecompressReadRowsResponse;
+import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Iterator;
@@ -57,14 +60,25 @@ public class AvroBinaryIterator implements Iterator<InternalRow> {
       Schema bqSchema,
       List<String> columnsInOrder,
       org.apache.avro.Schema schema,
-      ByteString rowsInBytes,
+      ReadRowsResponse response,
       Optional<StructType> userProvidedSchema,
       Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer,
-      SchemaConvertersConfiguration schemaConvertersConfiguration) {
+      SchemaConvertersConfiguration schemaConvertersConfiguration,
+      ResponseCompressionCodec responseCompressionCodec) {
     reader = new GenericDatumReader<GenericRecord>(schema);
     this.bqSchema = bqSchema;
     this.columnsInOrder = columnsInOrder;
-    in = new DecoderFactory().binaryDecoder(rowsInBytes.toByteArray(), null);
+    try {
+      in =
+          new DecoderFactory()
+              .binaryDecoder(
+                  DecompressReadRowsResponse.decompressAvroRecordBatch(
+                      response, responseCompressionCodec),
+                  null);
+    } catch (IOException e) {
+      throw new BigQueryConnectorException(
+          "Failed to decode Avro binary for a ReadRowsResponse", e);
+    }
     this.userProvidedSchema = userProvidedSchema;
     this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
     this.schemaConverters = SchemaConverters.from(schemaConvertersConfiguration);

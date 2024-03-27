@@ -117,7 +117,8 @@ class BigQueryRDDContext implements Serializable {
               readSession.getAvroSchema().getSchema(),
               Optional.of(schema),
               Optional.of(tracer),
-              SchemaConvertersConfiguration.from(options));
+              SchemaConvertersConfiguration.from(options),
+              options.getResponseCompressionCodec());
     } else {
       converter =
           ReadRowsResponseToInternalRowIteratorConverter.arrow(

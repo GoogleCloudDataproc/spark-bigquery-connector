@@ -29,6 +29,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.ByteArrayOutputStream;
@@ -120,6 +121,8 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryClientRetrySettings().getMaxAttempts()).isEqualTo(10);
     assertThat(config.getArrowCompressionCodec())
         .isEqualTo(CompressionCodec.COMPRESSION_UNSPECIFIED);
+    assertThat(config.getResponseCompressionCodec())
+        .isEqualTo(ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_UNSPECIFIED);
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.INDIRECT);
     assertThat(config.getCacheExpirationTimeInMinutes())
         .isEqualTo(SparkBigQueryConfig.DEFAULT_CACHE_EXPIRATION_IN_MINUTES);
@@ -170,6 +173,7 @@ public class SparkBigQueryConfigTest {
                 .put("httpReadTimeout", "20000")
                 .put("httpMaxRetry", "5")
                 .put("arrowCompressionCodec", "ZSTD")
+                .put("responseCompressionCodec", "RESPONSE_COMPRESSION_CODEC_LZ4")
                 .put("writeMethod", "direct")
                 .put("cacheExpirationTimeInMinutes", "100")
                 .put("traceJobId", "traceJobId")
@@ -225,6 +229,8 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryClientReadTimeout()).isEqualTo(20000);
     assertThat(config.getBigQueryClientRetrySettings().getMaxAttempts()).isEqualTo(5);
     assertThat(config.getArrowCompressionCodec()).isEqualTo(CompressionCodec.ZSTD);
+    assertThat(config.getResponseCompressionCodec())
+        .isEqualTo(ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_LZ4);
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.DIRECT);
     assertThat(config.getCacheExpirationTimeInMinutes()).isEqualTo(100);
     assertThat(config.getTraceId())
@@ -340,6 +346,7 @@ public class SparkBigQueryConfigTest {
                 .put("dataset", "test_d")
                 .put("project", "test_p")
                 .put("arrowCompressionCodec", "randomCompression")
+                .put("responseCompressionCodec", "randomCompression")
                 .build());
 
     IllegalArgumentException exception =

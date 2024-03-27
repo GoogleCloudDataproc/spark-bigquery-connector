@@ -17,6 +17,7 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
@@ -40,6 +41,7 @@ public class ReadSessionCreatorConfig {
   private final int prebufferResponses;
   private final int streamsPerPartition;
   private final CompressionCodec arrowCompressionCodec;
+  private final ResponseCompressionCodec responseCompressionCodec;
   private final Optional<String> traceId;
   private final boolean enableReadSessionCaching;
   private final long readSessionCacheDurationMins;
@@ -64,6 +66,7 @@ public class ReadSessionCreatorConfig {
       int prebufferResponses,
       int streamsPerPartition,
       CompressionCodec arrowCompressionCodec,
+      ResponseCompressionCodec responseCompressionCodec,
       Optional<String> traceId,
       boolean enableReadSessionCaching,
       long readSessionCacheDurationMins,
@@ -86,6 +89,7 @@ public class ReadSessionCreatorConfig {
     this.prebufferResponses = prebufferResponses;
     this.streamsPerPartition = streamsPerPartition;
     this.arrowCompressionCodec = arrowCompressionCodec;
+    this.responseCompressionCodec = responseCompressionCodec;
     this.traceId = traceId;
     this.enableReadSessionCaching = enableReadSessionCaching;
     this.readSessionCacheDurationMins = readSessionCacheDurationMins;
@@ -118,6 +122,10 @@ public class ReadSessionCreatorConfig {
 
   public CompressionCodec getArrowCompressionCodec() {
     return arrowCompressionCodec;
+  }
+
+  public ResponseCompressionCodec getResponseCompressionCodec() {
+    return responseCompressionCodec;
   }
 
   public int getMaxReadRowsRetries() {

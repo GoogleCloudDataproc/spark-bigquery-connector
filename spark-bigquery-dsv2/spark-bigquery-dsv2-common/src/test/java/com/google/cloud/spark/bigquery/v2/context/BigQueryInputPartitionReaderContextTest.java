@@ -19,6 +19,7 @@ import static com.google.common.truth.Truth.*;
 
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.common.collect.ImmutableList;
@@ -85,7 +86,12 @@ public class BigQueryInputPartitionReaderContextTest {
           + "  }\n"
           + "}\n"
           + "avro_rows {\n"
-          + "  serialized_binary_rows: \"\\002\\nhello\\002\\b\\001\\002\\003\\004\\002\\310\\001\\0023333336@\\002 \\000\\000\\000\\000\\000\\000\\000\\000\\000\\000\\000\\nX\\324\\226\\000\\002\\001\\002\\244\\234\\205\\342\\275\\242\\312\\005\\002\\204\\235\\002\\002\\340\\232\\206\\213\\330\\004\\00222019-11-11T11:11:11.11111\\002 POINT(31.2 44.5)\\002\\002\\fin_rec\\002\\\"\\000\\004\\006big\\nquery\\000\\000\"\n"
+          + "  serialized_binary_rows: \"\\002\\n"
+          + "hello\\002\\b\\001\\002\\003\\004\\002\\310\\001\\0023333336@\\002"
+          + " \\000\\000\\000\\000\\000\\000\\000\\000\\000\\000\\000\\n"
+          + "X\\324\\226\\000\\002\\001\\002\\244\\234\\205\\342\\275\\242\\312\\005\\002\\204\\235\\002\\002\\340\\232\\206\\213\\330\\004\\00222019-11-11T11:11:11.11111\\002"
+          + " POINT(31.2 44.5)\\002\\002\\fin_rec\\002\\\"\\000\\004\\006big\\n"
+          + "query\\000\\000\"\n"
           + "  row_count: 1\n"
           + "}\n"
           + "row_count: 1\n";
@@ -105,7 +111,8 @@ public class BigQueryInputPartitionReaderContextTest {
             ALL_TYPES_TABLE_AVRO_RAW_SCHEMA,
             Optional.empty(),
             Optional.empty(),
-            SchemaConvertersConfiguration.createDefault());
+            SchemaConvertersConfiguration.createDefault(),
+            ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_UNSPECIFIED);
 
     BigQueryInputPartitionReaderContext reader =
         new BigQueryInputPartitionReaderContext(readRowsResponses, converter, null);

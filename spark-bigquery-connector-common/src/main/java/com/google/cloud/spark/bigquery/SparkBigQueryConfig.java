@@ -51,6 +51,7 @@ import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -125,6 +126,10 @@ public class SparkBigQueryConfig
   static final CompressionCodec DEFAULT_ARROW_COMPRESSION_CODEC =
       CompressionCodec.COMPRESSION_UNSPECIFIED;
 
+  @VisibleForTesting
+  static final ResponseCompressionCodec DEFAULT_RESPONSE_COMPRESSION_CODEC =
+      ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_UNSPECIFIED;
+
   static final String GCS_CONFIG_CREDENTIALS_FILE_PROPERTY =
       "google.cloud.auth.service.account.json.keyfile";
   static final String GCS_CONFIG_PROJECT_ID_PROPERTY = "fs.gs.project.id";
@@ -143,6 +148,7 @@ public class SparkBigQueryConfig
   public static final int MIN_STREAMS_PER_PARTITION = 1;
   private static final int DEFAULT_BIGQUERY_CLIENT_RETRIES = 10;
   private static final String ARROW_COMPRESSION_CODEC_OPTION = "arrowCompressionCodec";
+  private static final String RESPONSE_COMPRESSION_CODEC_OPTION = "responseCompressionCodec";
   private static final WriteMethod DEFAULT_WRITE_METHOD = WriteMethod.INDIRECT;
   public static final int DEFAULT_CACHE_EXPIRATION_IN_MINUTES = 15;
   static final String BIGQUERY_JOB_LABEL_PREFIX = "bigQueryJobLabel.";
@@ -221,6 +227,7 @@ public class SparkBigQueryConfig
   private Long snapshotTimeMillis = null;
   private SparkBigQueryProxyAndHttpConfig sparkBigQueryProxyAndHttpConfig;
   private CompressionCodec arrowCompressionCodec = DEFAULT_ARROW_COMPRESSION_CODEC;
+  private ResponseCompressionCodec responseCompressionCodec = DEFAULT_RESPONSE_COMPRESSION_CODEC;
   private WriteMethod writeMethod = DEFAULT_WRITE_METHOD;
   boolean writeAtLeastOnce = false;
   private int cacheExpirationTimeInMinutes = DEFAULT_CACHE_EXPIRATION_IN_MINUTES;
@@ -519,6 +526,21 @@ public class SparkBigQueryConfig
           format(
               "Compression codec '%s' for Arrow is not supported. Supported formats are %s",
               arrowCompressionCodecParam, Arrays.toString(CompressionCodec.values())));
+    }
+
+    String responseCompressionCodecParam =
+        getAnyOption(globalOptions, options, RESPONSE_COMPRESSION_CODEC_OPTION)
+            .transform(String::toUpperCase)
+            .or(DEFAULT_RESPONSE_COMPRESSION_CODEC.toString());
+
+    try {
+      config.responseCompressionCodec =
+          ResponseCompressionCodec.valueOf(responseCompressionCodecParam);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          format(
+              "Response compression codec '%s' is not supported. Supported formats are %s",
+              responseCompressionCodecParam, Arrays.toString(ResponseCompressionCodec.values())));
     }
 
     config.cacheExpirationTimeInMinutes =
@@ -823,6 +845,10 @@ public class SparkBigQueryConfig
     return arrowCompressionCodec;
   }
 
+  public ResponseCompressionCodec getResponseCompressionCodec() {
+    return responseCompressionCodec;
+  }
+
   public boolean isCombinePushedDownFilters() {
     return combinePushedDownFilters;
   }
@@ -1066,6 +1092,7 @@ public class SparkBigQueryConfig
         .setPrebufferReadRowsResponses(numPrebufferReadRowsResponses)
         .setStreamsPerPartition(numStreamsPerPartition)
         .setArrowCompressionCodec(arrowCompressionCodec)
+        .setResponseCompressionCodec(responseCompressionCodec)
         .setTraceId(traceId.toJavaUtil())
         .setEnableReadSessionCaching(enableReadSessionCaching)
         .setReadSessionCacheDurationMins(readSessionCacheDurationMins)
