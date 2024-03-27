@@ -76,6 +76,7 @@ class BigQueryRDDContext implements Serializable {
     this.options = options;
     this.bqSchema = bqSchema;
     this.streamNames = BigQueryUtil.getStreamNames(readSession);
+    this.bigQueryClientFactory.setAudienceForIdentityToken(readSession.getName());
   }
 
   public scala.collection.Iterator<InternalRow> compute(Partition split, TaskContext context) {
