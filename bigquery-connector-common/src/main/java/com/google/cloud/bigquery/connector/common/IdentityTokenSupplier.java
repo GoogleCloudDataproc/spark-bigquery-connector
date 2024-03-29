@@ -47,15 +47,14 @@ public class IdentityTokenSupplier implements Serializable {
                   new InputStreamReader(connection.getInputStream(), Charsets.UTF_8));
         } else {
           cachedToken = null;
-          log.info(
-              String.format("Unable to obtain identity token, response code: [%s]", responseCode));
+          log.info("Unable to obtain identity token, response code: [{}]", responseCode);
         }
       } catch (IOException ex) {
-        log.info(String.format("Unable to obtain identity token, Exception: %s", ex.getMessage()));
+        log.info("Unable to obtain identity token", ex);
         cachedToken = null;
       }
       lastFetchTime = currentTimeInMillis;
     }
-    return cachedToken != null ? Optional.of(cachedToken) : Optional.empty();
+    return Optional.ofNullable(cachedToken);
   }
 }
