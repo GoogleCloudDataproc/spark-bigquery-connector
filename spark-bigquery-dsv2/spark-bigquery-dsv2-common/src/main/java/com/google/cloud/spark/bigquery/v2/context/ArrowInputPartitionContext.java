@@ -67,8 +67,10 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
     this.tracerFactory = tracerFactory;
     this.userProvidedSchema = fromJavaUtil(userProvidedSchema);
     this.sparkBigQueryReadSessionMetrics = sparkBigQueryReadSessionMetrics;
-    this.bigQueryReadClientFactory.setAudienceForIdentityToken(
-        readSessionResponse.getReadSession().getName());
+    if (bigQueryReadClientFactory != null) {
+      this.bigQueryReadClientFactory.setAudienceForIdentityToken(
+          readSessionResponse.getReadSession().getName());
+    }
   }
 
   public InputPartitionReaderContext<ColumnarBatch> createPartitionReaderContext() {
