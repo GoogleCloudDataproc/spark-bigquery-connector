@@ -394,24 +394,62 @@ public class SchemaConverterTest {
   }
 
   @Test
-  public void testConvertSparkMapToBigQueryMap_complex_type() {
-    MapType mapType =
+  public void testConvertSparkMapToBigQueryMap_nested() {
+    MapType sparkNestedMapType =
         DataTypes.createMapType(
             DataTypes.IntegerType, new StructType().add("v", DataTypes.IntegerType, false), true);
     Field bigQueryType =
         SchemaConverters.from(SchemaConvertersConfiguration.of(false))
-            .createBigQueryColumn(simpleStructField("nestedMap", mapType), 2);
+            .createBigQueryColumn(simpleStructField("nestedMap", sparkNestedMapType), 2);
     assertThat(bigQueryType.getType()).isEqualTo(LegacySQLTypeName.RECORD);
     FieldList subFields = bigQueryType.getSubFields();
     assertThat(subFields.size()).isEqualTo(2);
-    assertThat(
-            subFields.stream()
-                .anyMatch(subField -> subField.getType().equals(LegacySQLTypeName.RECORD)))
-        .isTrue();
-    assertThat(
-            subFields.stream()
-                .anyMatch(subField -> subField.getType().equals(LegacySQLTypeName.INTEGER)))
-        .isTrue();
+    assertThat(subFields.get(0))
+        .isEqualTo(
+            Field.newBuilder("key", LegacySQLTypeName.INTEGER).setMode(Mode.REQUIRED).build());
+    assertThat(subFields.get(1))
+        .isEqualTo(
+            Field.newBuilder(
+                    "value",
+                    LegacySQLTypeName.RECORD,
+                    FieldList.of(
+                        Field.newBuilder("v", LegacySQLTypeName.INTEGER)
+                            .setMode(Mode.REQUIRED)
+                            .build()))
+                .setMode(Mode.NULLABLE)
+                .build());
+  }
+
+  @Test
+  public void testConvertBigQueryMapToSparkMap_nested() {
+    Field bigQueryNestedMapField =
+        Field.newBuilder(
+                "map_complex",
+                LegacySQLTypeName.RECORD,
+                FieldList.of(
+                    Field.newBuilder("key", LegacySQLTypeName.STRING)
+                        .setMode(Mode.REQUIRED)
+                        .build(),
+                    Field.newBuilder(
+                            "value",
+                            LegacySQLTypeName.RECORD,
+                            FieldList.of(
+                                Field.newBuilder("v", LegacySQLTypeName.INTEGER)
+                                    .setMode(Mode.REQUIRED)
+                                    .build()))
+                        .setMode(Mode.NULLABLE)
+                        .build()))
+            .setMode(Field.Mode.REPEATED)
+            .build();
+    Optional<StructField> sparkField =
+        SchemaConverters.from(SchemaConvertersConfiguration.of(true))
+            .convertMap(bigQueryNestedMapField, Metadata.empty());
+    assertThat(sparkField.isPresent()).isTrue();
+    StructField sparkMap = sparkField.get();
+    MapType sparkNestedMapType =
+        DataTypes.createMapType(
+            DataTypes.StringType, new StructType().add("v", DataTypes.LongType, false), true);
+    assertThat(sparkMap.dataType()).isEqualTo(sparkNestedMapType);
   }
 
   @Test
