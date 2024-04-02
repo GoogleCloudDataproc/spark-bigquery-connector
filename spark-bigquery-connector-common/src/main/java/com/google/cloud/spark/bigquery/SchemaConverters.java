@@ -504,12 +504,14 @@ public class SchemaConverters {
       fieldType = LegacySQLTypeName.RECORD;
       subFields =
           FieldList.of(
-              Field.newBuilder("key", toBigQueryType(mapType.keyType(), sparkField.metadata()))
-                  .setMode(Mode.REQUIRED)
-                  .build(),
-              Field.newBuilder("value", toBigQueryType(mapType.valueType(), sparkField.metadata()))
-                  .setMode(mapType.valueContainsNull() ? Mode.NULLABLE : Mode.REQUIRED)
-                  .build());
+              buildMapTypeField(
+                  "key", mapType.keyType(), sparkField.metadata(), Mode.REQUIRED, depth),
+              buildMapTypeField(
+                  "value",
+                  mapType.valueType(),
+                  sparkField.metadata(),
+                  mapType.valueContainsNull() ? Mode.NULLABLE : Mode.REQUIRED,
+                  depth));
     } else if (sparkType instanceof DecimalType) {
       DecimalType decimalType = (DecimalType) sparkType;
       int leftOfDotDigits = decimalType.precision() - decimalType.scale();
@@ -566,6 +568,17 @@ public class SchemaConverters {
     return marker;
   }
 
+  private Field buildMapTypeField(
+      String fieldName, DataType sparkType, Metadata metadata, Mode fieldMode, int depth) {
+    LegacySQLTypeName sqlType = toBigQueryType(sparkType, metadata);
+    if (sqlType == LegacySQLTypeName.RECORD) {
+      FieldList subFields = sparkToBigQueryFields((StructType) sparkType, depth + 1);
+      return createBigQueryFieldBuilder(fieldName, sqlType, fieldMode, subFields).build();
+    } else {
+      return createBigQueryFieldBuilder(fieldName, sqlType, fieldMode, null).build();
+    }
+  }
+
   @VisibleForTesting
   protected LegacySQLTypeName toBigQueryType(DataType elementType, Metadata metadata) {
     Optional<LegacySQLTypeName> bigQueryType =
@@ -603,6 +616,9 @@ public class SchemaConverters {
     }
     if (elementType instanceof DateType) {
       return LegacySQLTypeName.DATE;
+    }
+    if (elementType instanceof StructType) {
+      return LegacySQLTypeName.RECORD;
     }
     throw new IllegalArgumentException("Data type not expected: " + elementType.simpleString());
   }

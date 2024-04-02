@@ -394,6 +394,27 @@ public class SchemaConverterTest {
   }
 
   @Test
+  public void testConvertSparkMapToBigQueryMap_complex_type() {
+    MapType mapType =
+        DataTypes.createMapType(
+            DataTypes.IntegerType, new StructType().add("v", DataTypes.IntegerType, false), true);
+    Field bigQueryType =
+        SchemaConverters.from(SchemaConvertersConfiguration.of(false))
+            .createBigQueryColumn(simpleStructField("nestedMap", mapType), 2);
+    assertThat(bigQueryType.getType()).isEqualTo(LegacySQLTypeName.RECORD);
+    FieldList subFields = bigQueryType.getSubFields();
+    assertThat(subFields.size()).isEqualTo(2);
+    assertThat(
+            subFields.stream()
+                .anyMatch(subField -> subField.getType().equals(LegacySQLTypeName.RECORD)))
+        .isTrue();
+    assertThat(
+            subFields.stream()
+                .anyMatch(subField -> subField.getType().equals(LegacySQLTypeName.INTEGER)))
+        .isTrue();
+  }
+
+  @Test
   public void testConvertBigQueryMapToSparkMap_mapTypeConversionDisabled() {
     Optional<StructField> fieldOpt =
         SchemaConverters.from(SchemaConvertersConfiguration.of(false))
