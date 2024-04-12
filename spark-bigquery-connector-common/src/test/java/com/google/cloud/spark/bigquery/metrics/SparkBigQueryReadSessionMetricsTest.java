@@ -2,6 +2,7 @@ package com.google.cloud.spark.bigquery.metrics;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SparkSession;
@@ -38,7 +39,12 @@ public class SparkBigQueryReadSessionMetricsTest {
     long numReadStreams = 10;
     SparkBigQueryReadSessionMetrics metrics =
         SparkBigQueryReadSessionMetrics.from(
-            spark, ReadSession.newBuilder().setName(sessionName).build(), numReadStreams);
+            spark,
+            ReadSession.newBuilder().setName(sessionName).build(),
+            10L,
+            DataFormat.ARROW,
+            DataOrigin.QUERY,
+            numReadStreams);
     assertThat(metrics.getNumReadStreams()).isEqualTo(numReadStreams);
 
     metrics.incrementBytesReadAccumulator(1024);
