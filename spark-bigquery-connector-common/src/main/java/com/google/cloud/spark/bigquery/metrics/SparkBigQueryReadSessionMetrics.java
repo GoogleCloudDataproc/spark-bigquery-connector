@@ -31,6 +31,10 @@ import org.slf4j.LoggerFactory;
 
 public class SparkBigQueryReadSessionMetrics extends SparkListener
     implements Serializable, ReadSessionMetrics {
+  private static final String BYTES_READ = "bytesRead";
+  private static final String ROWS_READ = "rowsRead";
+  private static final String PARSE_TIME = "parseTime";
+  private static final String SCAN_TIME = "scanTime";
   private final LongAccumulator bytesReadAccumulator;
   public final LongAccumulator rowsReadAccumulator;
   private final LongAccumulator scanTimeAccumulator;
@@ -64,25 +68,25 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
             .sparkContext()
             .longAccumulator(
                 SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(
-                    "bytesRead", sessionName));
+                    BYTES_READ, sessionName));
     this.rowsReadAccumulator =
         sparkSession
             .sparkContext()
             .longAccumulator(
                 SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(
-                    "rowsRead", sessionName));
+                    ROWS_READ, sessionName));
     this.scanTimeAccumulator =
         sparkSession
             .sparkContext()
             .longAccumulator(
                 SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(
-                    "scanTime", sessionName));
+                    SCAN_TIME, sessionName));
     this.parseTimeAccumulator =
         sparkSession
             .sparkContext()
             .longAccumulator(
                 SparkBigQueryConnectorMetricsUtils.getAccumulatorNameForMetric(
-                    "parseTime", sessionName));
+                    PARSE_TIME, sessionName));
   }
 
   @Override
@@ -232,8 +236,7 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
 
       sparkSession.sparkContext().removeSparkListener(this);
     } catch (ReflectiveOperationException ex) {
-      logger.debug(
-          "spark.events.BigQueryConnectorReadSessionMetricEvent library not in class path");
+      logger.debug("spark.events.SparkBigQueryConnectorReadSessionEvent library not in class path");
     }
   }
 }
