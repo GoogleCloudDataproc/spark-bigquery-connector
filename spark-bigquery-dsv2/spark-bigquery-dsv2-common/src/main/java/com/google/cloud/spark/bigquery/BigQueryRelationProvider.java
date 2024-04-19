@@ -16,36 +16,21 @@
 
 package com.google.cloud.spark.bigquery;
 
-import static scala.collection.JavaConverters.mapAsJavaMap;
-
-import com.google.common.collect.ImmutableMap;
-import java.util.HashMap;
-import java.util.Optional;
 import org.apache.spark.sql.SQLContext;
-import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructType;
 import scala.Option;
 import scala.collection.immutable.Map;
 
-/** For OpenLineage */
+/**
+ * This class is created only for compatability with OpenLineage, since it expects an instance of
+ * this class <a *
+ * href="https://github.com/OpenLineage/OpenLineage/blob/9ec3f262901f812b8f43c19262770d2fcad5ae9a/integration/spark/shared/src/main/java/io/openlineage/spark/agent/lifecycle/plan/BigQueryNodeOutputVisitor.java#L55">here</a>.
+ * Additional usage of this class for V2 connector is discouraged.
+ */
 public abstract class BigQueryRelationProvider {
   public SparkBigQueryConfig createSparkBigQueryConfig(
       SQLContext sqlContext, Map<String, String> options, Option<StructType> schema) {
-    java.util.Map<String, String> optionsMap = new HashMap<>(mapAsJavaMap(options));
-    DataSourceVersion.V1.updateOptionsMap(optionsMap);
-    SparkSession spark = sqlContext.sparkSession();
-    ImmutableMap<String, String> globalOptions =
-        ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll()));
-
-    return SparkBigQueryConfig.from(
-        ImmutableMap.copyOf(optionsMap),
-        globalOptions,
-        spark.sparkContext().hadoopConfiguration(),
-        ImmutableMap.of(),
-        1,
-        spark.sqlContext().conf(),
-        spark.version(),
-        Optional.ofNullable(schema.getOrElse(null)),
-        true);
+    return SparkBigQueryUtil.createSparkBigQueryConfig(
+        sqlContext, options, schema, DataSourceVersion.V2);
   }
 }
