@@ -23,6 +23,8 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -331,6 +333,10 @@ public class SparkFilterUtils {
       }
       // Instant uses ISO-8601 representation.
       return "TIMESTAMP '" + instant.toString() + "'";
+    }
+    if (value instanceof LocalDateTime) {
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+      return "DATETIME '" + ((LocalDateTime) value).format(formatter) + "'";
     }
     if (value instanceof Object[]) {
       return Arrays.stream((Object[]) value)
