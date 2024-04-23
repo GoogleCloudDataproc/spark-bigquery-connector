@@ -618,4 +618,23 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assertThat(head.get(head.fieldIndex("eventTime")))
         .isEqualTo(Timestamp.valueOf("2023-01-09 02:00:00"));
   }
+
+  @Test
+  public void testPushDateTimePredicate() {
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
+                + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-25 1:00:00'), "
+                + "(2, DATETIME '2023-09-29 10:00:00'), (3, DATETIME '2023-10-30 17:30:00')])",
+            testDataset, testTable, "orderId", "orderDateTime"));
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load()
+            .where("orderDateTime < '2023-10-25 10:00:00'");
+    assertThat(df.count()).isEqualTo(2);
+  }
 }
