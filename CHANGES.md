@@ -2,6 +2,8 @@
 
 ## Next
 
+* PR #1205: Sending Identity token in the read API header
+* Issue #1195: Support map type with complex value
 * Issue #1215: Support predicate pushdown for DATETIME
 
 ## 0.37.0 - 2024-03-25
