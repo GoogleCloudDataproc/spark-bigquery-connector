@@ -15,6 +15,4 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-public class Spark33OpenLineageIntegrationTest extends OpenLineageIntegrationTestBase {
-
-}
+public class Spark33OpenLineageIntegrationTest extends OpenLineageIntegrationTestBase {}

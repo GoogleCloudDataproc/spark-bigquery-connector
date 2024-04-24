@@ -34,26 +34,32 @@ import org.junit.Test;
 import org.junit.rules.ExternalResource;
 
 public class OpenLineageIntegrationTestBase {
-  @ClassRule public static TestDataset testDataset = new SparkBigQueryIntegrationTestBase.TestDataset();
+  @ClassRule
+  public static TestDataset testDataset = new SparkBigQueryIntegrationTestBase.TestDataset();
+
   @ClassRule public static CustomSessionFactory sessionFactory = new CustomSessionFactory();
 
   protected SparkSession spark;
   protected String testTable;
   protected File lineageFile;
+
   public OpenLineageIntegrationTestBase() {
     this.spark = sessionFactory.spark;
     this.lineageFile = sessionFactory.lineageFile;
   }
+
   @Before
   public void createTestTable() {
     testTable = "test_" + System.nanoTime();
   }
+
   protected static class CustomSessionFactory extends ExternalResource {
     SparkSession spark;
     File lineageFile;
+
     @Override
     protected void before() throws Throwable {
-      lineageFile = File.createTempFile("openlineage_test_"+System.nanoTime(), ".log");
+      lineageFile = File.createTempFile("openlineage_test_" + System.nanoTime(), ".log");
       lineageFile.deleteOnExit();
       spark =
           SparkSession.builder()
@@ -91,11 +97,7 @@ public class OpenLineageIntegrationTestBase {
   public void testLineageEvent() {
     String fullTableName = testDataset.toString() + "." + testTable;
     Dataset<Row> readDF =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", TestConstants.SHAKESPEARE_TABLE)
-            .load();
+        spark.read().format("bigquery").option("table", TestConstants.SHAKESPEARE_TABLE).load();
     readDF.createOrReplaceTempView("words");
     Dataset<Row> writeDF =
         spark.sql("SELECT word, SUM(word_count) AS word_count FROM words GROUP BY word");
@@ -109,11 +111,13 @@ public class OpenLineageIntegrationTestBase {
         .save();
     try {
       List<JSONObject> eventList = parseEventLogs(lineageFile);
-      assertThat(eventList).isNotEmpty(); // check if there is at least one event with both input and output
-      eventList.forEach((event) -> { // check if each of these events have the correct input and output
-        assertThat(getFieldName(event, "inputs")).matches(TestConstants.SHAKESPEARE_TABLE);
-        assertThat(getFieldName(event, "outputs")).matches(fullTableName);
-      });
+      assertThat(eventList)
+          .isNotEmpty(); // check if there is at least one event with both input and output
+      eventList.forEach(
+          (event) -> { // check if each of these events have the correct input and output
+            assertThat(getFieldName(event, "inputs")).matches(TestConstants.SHAKESPEARE_TABLE);
+            assertThat(getFieldName(event, "outputs")).matches(fullTableName);
+          });
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
