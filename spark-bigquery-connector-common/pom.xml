@@ -28,6 +28,10 @@
             <artifactId>error_prone_annotations</artifactId>
         </dependency>
         <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.openlineage</groupId>
             <artifactId>openlineage-spark_2.12</artifactId>
         </dependency>

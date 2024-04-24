@@ -204,6 +204,11 @@
                 <version>1.16.0</version>
             </dependency>
             <dependency>
+                <groupId>commons-lang</groupId>
+                <artifactId>commons-lang</artifactId>
+                <version>2.6</version>
+            </dependency>
+            <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-bom</artifactId>
                 <version>${grpc.version}</version>
@@ -220,6 +225,12 @@
             <dependency>
                 <groupId>io.openlineage</groupId>
                 <artifactId>openlineage-spark_2.12</artifactId>
+                <version>${openlineage-spark.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.openlineage</groupId>
+                <artifactId>openlineage-spark_2.13</artifactId>
                 <version>${openlineage-spark.version}</version>
                 <scope>test</scope>
             </dependency>

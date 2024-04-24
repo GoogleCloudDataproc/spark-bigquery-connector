@@ -34,6 +34,10 @@
       </artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.openlineage</groupId>
+      <artifactId>openlineage-spark_${scala.binary.version}</artifactId>
+    </dependency>
   </dependencies>
   <build>
     <plugins>

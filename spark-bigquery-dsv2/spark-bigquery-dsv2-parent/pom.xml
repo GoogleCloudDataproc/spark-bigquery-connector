@@ -30,8 +30,12 @@
       <version>${project.parent.version}</version>
     </dependency>
     <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.openlineage</groupId>
-      <artifactId>openlineage-spark_2.12</artifactId>
+      <artifactId>openlineage-spark_${scala.binary.version}</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
