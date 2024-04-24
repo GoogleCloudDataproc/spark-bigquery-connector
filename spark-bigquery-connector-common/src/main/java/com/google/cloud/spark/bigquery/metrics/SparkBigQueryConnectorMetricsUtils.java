@@ -16,6 +16,9 @@
 package com.google.cloud.spark.bigquery.metrics;
 
 import java.lang.reflect.Method;
+
+import com.google.cloud.bigquery.storage.v1.DataFormat;
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import org.apache.spark.SparkContext;
 import org.apache.spark.scheduler.SparkListenerEvent;
 import org.slf4j.Logger;
@@ -59,6 +62,12 @@ public class SparkBigQueryConnectorMetricsUtils {
       logger.debug("spark.events.BigQueryConnectorVersionEvent library not in class path");
     }
   }
+
+  public static void postWriteSessionMetrics(
+          long timestamp,
+          SparkBigQueryConfig.WriteMethod writeMethod,
+          long bytesWritten,
+          DataFormat intermediateDataFormat) {}
 
   public static String getAccumulatorNameForMetric(String metricName, String sessionName) {
     return String.format("%s-%s", sessionName, metricName);

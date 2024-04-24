@@ -29,10 +29,14 @@ import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsRequest;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
+import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.ProtoSchema;
 import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryConnectorMetricsUtils;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryWriteSessionMetricsHelper;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -218,7 +222,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
         "BigQuery DataSource writer {} committed with messages:\n{}",
         writeUUID,
         Arrays.toString(messages));
-
+    long bytesWritten = 0;
     if (!writeAtLeastOnce) {
       BatchCommitWriteStreamsRequest.Builder batchCommitWriteStreamsRequest =
           BatchCommitWriteStreamsRequest.newBuilder().setParent(tablePathForBigQueryStorage);
@@ -263,6 +267,12 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       updatedTableInfo.setLabels(tableLabels);
       bigQueryClient.update(updatedTableInfo.build());
     }
+    long currentTimeMillis = System.currentTimeMillis();
+    SparkBigQueryConnectorMetricsUtils.postWriteSessionMetrics(
+        currentTimeMillis,
+        SparkBigQueryConfig.WriteMethod.DIRECT,
+        0,
+        DataFormat.DATA_FORMAT_UNSPECIFIED);
   }
 
   /**

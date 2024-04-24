@@ -24,20 +24,22 @@ public class BigQueryDirectWriterCommitMessageContext implements WriterCommitMes
   private final long epochId;
   private final String tablePath;
   private final long rowCount;
+  private final long bytesWritten;
 
   public BigQueryDirectWriterCommitMessageContext(
-      String writeStreamName /*List<String> writeStreamNames*/,
-      int partitionId,
-      long taskId,
-      long epochId,
-      String tablePath,
-      long rowCount) {
+          String writeStreamName /*List<String> writeStreamNames*/,
+          int partitionId,
+          long taskId,
+          long epochId,
+          String tablePath,
+          long rowCount, long bytesWritten) {
     this.writeStreamName = writeStreamName;
     this.partitionId = partitionId;
     this.taskId = taskId;
     this.epochId = epochId;
     this.tablePath = tablePath;
     this.rowCount = rowCount;
+    this.bytesWritten = bytesWritten;
   }
 
   public String getWriteStreamName() {
@@ -62,6 +64,10 @@ public class BigQueryDirectWriterCommitMessageContext implements WriterCommitMes
 
   public long getRowCount() {
     return rowCount;
+  }
+
+  public long getBytesWritten() {
+    return bytesWritten;
   }
 
   @Override

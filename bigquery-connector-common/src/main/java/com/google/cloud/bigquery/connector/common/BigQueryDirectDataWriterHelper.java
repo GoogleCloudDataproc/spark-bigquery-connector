@@ -69,6 +69,8 @@ public class BigQueryDirectDataWriterHelper {
   private long appendRequestSizeBytes = 0; // number of bytes waiting for the next append request
   private long writeStreamRowCount = 0; // total offset / rows of the current write-stream
 
+  private long writeStreamTotalBytes = 0; // total bytes written by the current write-stream
+
   private final ExecutorService appendRowsExecutor = Executors.newSingleThreadExecutor();
   private final Queue<ApiFuture<AppendRowsResponse>> appendRowsFuturesQueue = new LinkedList<>();
 
@@ -266,6 +268,7 @@ public class BigQueryDirectDataWriterHelper {
     appendRowsFuturesQueue.add(validatedAppendRowsFuture);
     clearProtoRows();
     this.writeStreamRowCount += appendRequestRowCount;
+    this.writeStreamTotalBytes += appendRequestSizeBytes;
     this.appendRequestRowCount = 0;
     this.appendRequestSizeBytes = 0;
   }
@@ -310,7 +313,7 @@ public class BigQueryDirectDataWriterHelper {
    *     the expected offset (which is equal to the number of rows appended thus far).
    * @see this#writeStreamRowCount
    */
-  public long finalizeStream() throws IOException {
+  public WriteStreamStatistics finalizeStream() throws IOException {
     if (this.protoRows.getSerializedRowsCount() != 0) {
       sendAppendRowsRequest();
     }
@@ -320,6 +323,7 @@ public class BigQueryDirectDataWriterHelper {
       appendRowsExecutor.shutdown();
     }
     long responseFinalizedRowCount = writeStreamRowCount;
+    long responseFinalizedBytesWritten = writeStreamTotalBytes;
 
     if (!this.writeAtLeastOnce) {
       waitBeforeFinalization();
@@ -347,7 +351,7 @@ public class BigQueryDirectDataWriterHelper {
 
     clean();
 
-    return responseFinalizedRowCount;
+    return  new WriteStreamStatistics(responseFinalizedRowCount, responseFinalizedBytesWritten);
   }
 
   /**
