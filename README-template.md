@@ -68,12 +68,11 @@ The latest version of the connector is publicly available in the following links
 | Spark 3.3  | `gs://spark-lib/bigquery/spark-3.3-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.3-bigquery-${next-release-tag}.jar))                                        |
 | Spark 3.2  | `gs://spark-lib/bigquery/spark-3.2-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.2-bigquery-${next-release-tag}.jar))                                        |
 | Spark 3.1  | `gs://spark-lib/bigquery/spark-3.1-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.1-bigquery-${next-release-tag}.jar))                                        |
-| Spark 2.4  | `gs://spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-2.4-bigquery-${next-release-tag}.jar))                                        |
 | Scala 2.13 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.13-${next-release-tag}.jar)) |
 | Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar)) |
 | Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar))                           |
 
-The first four versions are Java based connectors targeting Spark 2.4/3.1/3.2/3.3 of all Scala versions built on the new
+The first five versions are Java based connectors targeting Spark 2.4/3.1/3.2/3.3/3.4/3.5 of all Scala versions built on the new
 Data Source APIs (Data Source API v2) of Spark.
 
 The final two connectors are Scala based connectors, please use the jar relevant to your Spark installation as outlined
@@ -87,7 +86,6 @@ below.
 | spark-3.3-bigquery                    |         |         |         |         |         | &check; | &check; | &check; |
 | spark-3.2-bigquery                    |         |         |         |         | &check; | &check; | &check; | &check; |
 | spark-3.1-bigquery                    |         |         |         | &check; | &check; | &check; | &check; | &check; |
-| spark-2.4-bigquery                    |         | &check; |         |         |         |         |         |         |
 | spark-bigquery-with-dependencies_2.13 |         |         |         |         | &check; | &check; | &check; | &check; |
 | spark-bigquery-with-dependencies_2.12 |         | &check; | &check; | &check; | &check; | &check; | &check; | &check; |
 | spark-bigquery-with-dependencies_2.11 | &check; | &check; |         |         |         |         |         |         |
@@ -100,7 +98,6 @@ below.
 | spark-3.3-bigquery                    |         |         |         |         | &check; | &check; | &check;                 | &check;                 | &check;                 | &check;                 |
 | spark-3.2-bigquery                    |         |         |         |         | &check; | &check; | &check;                 | &check;                 | &check;                 | &check;                 |
 | spark-3.1-bigquery                    |         |         |         | &check; | &check; | &check; | &check;                 | &check;                 | &check;                 | &check;                 |
-| spark-2.4-bigquery                    |         | &check; | &check; |         |         |         |                         |                         |                         |                         |
 | spark-bigquery-with-dependencies_2.13 |         |         |         |         |         |         |                         | &check;                 | &check;                 | &check;                 |
 | spark-bigquery-with-dependencies_2.12 |         |         | &check; | &check; | &check; | &check; | &check;                 |                         |                         |                         |
 | spark-bigquery-with-dependencies_2.11 | &check; | &check; |         |         |         |         |                         |                         |                         |                         |
@@ -118,7 +115,6 @@ repository. It can be used using the `--packages` option or the
 | Spark 3.3  | `com.google.cloud.spark:spark-3.3-bigquery:${next-release-tag}`                    |
 | Spark 3.2  | `com.google.cloud.spark:spark-3.2-bigquery:${next-release-tag}`                    |
 | Spark 3.1  | `com.google.cloud.spark:spark-3.1-bigquery:${next-release-tag}`                    |
-| Spark 2.4  | `com.google.cloud.spark:spark-2.4-bigquery:${next-release-tag}`                    |
 | Scala 2.13 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:${next-release-tag}` |
 | Scala 2.12 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:${next-release-tag}` |
 | Scala 2.11 | `com.google.cloud.spark:spark-bigquery-with-dependencies_2.11:0.29.0`              |
