@@ -68,7 +68,6 @@ public class BigQueryDirectDataWriterHelper {
   private long appendRequestRowCount = 0; // number of rows waiting for the next append request
   private long appendRequestSizeBytes = 0; // number of bytes waiting for the next append request
   private long writeStreamRowCount = 0; // total offset / rows of the current write-stream
-
   private long writeStreamTotalBytes = 0; // total bytes written by the current write-stream
 
   private final ExecutorService appendRowsExecutor = Executors.newSingleThreadExecutor();
