@@ -15,15 +15,18 @@
  */
 package com.google.cloud.spark.bigquery.util;
 
+import static com.google.cloud.spark.bigquery.util.HdfsUtils.computeDirectorySizeInBytes;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Streams;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
@@ -62,5 +65,55 @@ public class HdfsUtilsTest {
             .collect(Collectors.toList());
     assertThat(textFiles).hasSize(1);
     assertThat(textFiles.iterator().next().getPath().getName()).endsWith("file1.txt");
+  }
+
+  @Test
+  public void testComputeDirectorySizeInBytes() throws IOException {
+    Path path =
+        new Path(Files.createTempDirectory("ComputeDirectorySizeTest").toFile().getAbsolutePath());
+    Configuration conf = new Configuration();
+    FileSystem fs = path.getFileSystem(conf);
+
+    Path file1 = new Path(path, "file1.txt");
+    String content1 = "File 1 ....!!!";
+    try (FSDataOutputStream out = fs.create(file1)) {
+      out.write(content1.getBytes());
+      out.flush();
+    }
+
+    Path file2 = new Path(path, "file2.txt");
+    String content2 = "File 2 in the same directory.";
+    try (FSDataOutputStream out = fs.create(file2)) {
+      out.write(content2.getBytes());
+      out.flush();
+    }
+
+    Path subDir = new Path(path, "subdir");
+    fs.mkdirs(subDir);
+
+    Path file3 = new Path(subDir, "file3.txt");
+    String content3 = "File 3 in subdir.";
+    try (FSDataOutputStream out = fs.create(file3)) {
+      out.write(content3.getBytes());
+      out.flush();
+    }
+
+    Path successFile = new Path(subDir, "_SUCCESS");
+    String content4 = "_SUCCESS File to be ignored.";
+    try (FSDataOutputStream out = fs.create(successFile)) {
+      out.write(content4.getBytes());
+      out.flush();
+    }
+
+    long expectedSize =
+        fs.getFileStatus(file1).getLen()
+            + fs.getFileStatus(file2).getLen()
+            + fs.getFileStatus(file3).getLen();
+
+    long actualSize = computeDirectorySizeInBytes(path, conf);
+
+    fs.delete(path, true);
+
+    assertThat(actualSize).isEqualTo(expectedSize);
   }
 }

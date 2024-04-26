@@ -351,7 +351,7 @@ public class BigQueryDirectDataWriterHelper {
 
     clean();
 
-    return  new WriteStreamStatistics(responseFinalizedRowCount, responseFinalizedBytesWritten);
+    return new WriteStreamStatistics(responseFinalizedRowCount, responseFinalizedBytesWritten);
   }
 
   /**

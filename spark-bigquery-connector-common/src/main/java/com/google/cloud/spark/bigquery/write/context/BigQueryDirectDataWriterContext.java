@@ -112,7 +112,9 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
     String writeStreamName = writerHelper.getWriteStreamName();
 
     logger.debug(
-        "Data Writer {}'s write-stream has finalized with row count: {}", partitionId, stats.getRowCount());
+        "Data Writer {}'s write-stream has finalized with row count: {}",
+        partitionId,
+        stats.getRowCount());
 
     return new BigQueryDirectWriterCommitMessageContext(
         writeStreamName,

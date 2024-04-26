@@ -57,7 +57,9 @@ public class BigQueryDataSourceWriterModule implements Module {
   @Singleton
   @Provides
   public BigQueryDirectDataSourceWriterContext provideDirectDataSourceWriterContext(
-      BigQueryClient bigQueryClient, BigQueryClientFactory bigQueryWriteClientFactory) {
+      BigQueryClient bigQueryClient,
+      BigQueryClientFactory bigQueryWriteClientFactory,
+      SparkSession spark) {
     TableId tableId = tableConfig.getTableId();
     RetrySettings bigqueryDataWriteHelperRetrySettings =
         tableConfig.getBigqueryDataWriteHelperRetrySettings();
@@ -79,7 +81,8 @@ public class BigQueryDataSourceWriterModule implements Module {
                 SaveMode
                     .Overwrite), // writeAtLeastOnce mode is currently not supported in OverWrite
         // mode.
-        tableConfig.getPartitionOverwriteModeValue());
+        tableConfig.getPartitionOverwriteModeValue(),
+        spark.sparkContext());
   }
 
   @Singleton
@@ -108,6 +111,7 @@ public class BigQueryDataSourceWriterModule implements Module {
         writeUUID,
         mode,
         gcsPath,
-        intermediateDataCleaner);
+        intermediateDataCleaner,
+        spark.sparkContext());
   }
 }

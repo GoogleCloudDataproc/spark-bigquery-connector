@@ -1094,6 +1094,7 @@ public class SparkBigQueryConfig
   }
 
   public enum IntermediateFormat {
+    NOT_SPECIFIED("not_specified", FormatOptions.parquet()),
     AVRO("avro", FormatOptions.avro()),
     AVRO_2_3("com.databricks.spark.avro", FormatOptions.avro()),
     ORC("orc", FormatOptions.orc()),

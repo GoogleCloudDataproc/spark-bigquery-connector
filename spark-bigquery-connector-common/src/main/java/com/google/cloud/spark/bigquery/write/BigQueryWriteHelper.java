@@ -15,6 +15,8 @@
  */
 package com.google.cloud.spark.bigquery.write;
 
+import static com.google.cloud.spark.bigquery.util.HdfsUtils.computeDirectorySizeInBytes;
+
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
@@ -32,6 +34,7 @@ import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryConnectorMetricsUtils;
 import com.google.cloud.spark.bigquery.util.HdfsUtils;
 import com.google.common.collect.Streams;
 import java.io.IOException;
@@ -44,6 +47,7 @@ import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.spark.SparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
@@ -70,6 +74,7 @@ public class BigQueryWriteHelper {
   private final JobInfo.WriteDisposition writeDisposition;
 
   private Optional<TableId> temporaryTableId = Optional.empty();
+  private final SparkContext sparkContext;
 
   public BigQueryWriteHelper(
       BigQueryClient bigQueryClient,
@@ -99,6 +104,7 @@ public class BigQueryWriteHelper {
     }
     this.tableSchema = schema;
     this.writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
+    this.sparkContext = sqlContext.sparkContext();
   }
 
   public void writeDataFrameToBigQuery() {
@@ -143,6 +149,14 @@ public class BigQueryWriteHelper {
         loadDataToBigQuery();
       }
       updateMetadataIfNeeded();
+
+      long currentTimeMillis = System.currentTimeMillis();
+      SparkBigQueryConnectorMetricsUtils.postWriteSessionMetrics(
+          currentTimeMillis,
+          SparkBigQueryConfig.WriteMethod.INDIRECT,
+          computeDirectorySizeInBytes(gcsPath, conf),
+          config.getIntermediateFormat(),
+          sparkContext);
     } catch (Exception e) {
       throw new BigQueryConnectorException("Failed to write to BigQuery", e);
     } finally {

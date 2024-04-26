@@ -15,10 +15,8 @@
  */
 package com.google.cloud.spark.bigquery.metrics;
 
-import java.lang.reflect.Method;
-
-import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import java.lang.reflect.Method;
 import org.apache.spark.SparkContext;
 import org.apache.spark.scheduler.SparkListenerEvent;
 import org.slf4j.Logger;
@@ -64,10 +62,60 @@ public class SparkBigQueryConnectorMetricsUtils {
   }
 
   public static void postWriteSessionMetrics(
-          long timestamp,
-          SparkBigQueryConfig.WriteMethod writeMethod,
-          long bytesWritten,
-          DataFormat intermediateDataFormat) {}
+      long timestamp,
+      SparkBigQueryConfig.WriteMethod writeMethod,
+      long bytesWritten,
+      SparkBigQueryConfig.IntermediateFormat intermediateDataFormat,
+      SparkContext sparkContext) {
+    try {
+      Class<?> eventBuilderClass =
+          Class.forName(
+              "com.google.cloud.spark.events.SparkBigQueryConnectorWriteEvent$SparkBigQueryConnectorWriteEventBuilder");
+
+      Object builderInstance =
+          eventBuilderClass.getDeclaredConstructor(long.class).newInstance(timestamp);
+      eventBuilderClass
+          .getMethod("setBytesWritten", long.class)
+          .invoke(builderInstance, bytesWritten);
+
+      Class<?> dataFormatEnum = Class.forName("com.google.cloud.spark.events.DataFormat");
+      Object[] dataFormatEnumConstants = dataFormatEnum.getEnumConstants();
+      Object generatedDataFormatEnumValue = dataFormatEnumConstants[0];
+      for (Object constant : dataFormatEnumConstants) {
+        Method nameMethod = constant.getClass().getMethod("name");
+        String name = (String) nameMethod.invoke(constant);
+        if (name.equalsIgnoreCase(intermediateDataFormat.getDataSource())) {
+          generatedDataFormatEnumValue = constant;
+          break;
+        }
+      }
+      eventBuilderClass
+          .getMethod("setIntermediateDataFormat", dataFormatEnum)
+          .invoke(builderInstance, generatedDataFormatEnumValue);
+
+      Class<?> dataWriteMethodEnum = Class.forName("com.google.cloud.spark.events.DataWriteMethod");
+      Object[] dataWriteMethodConstants = dataWriteMethodEnum.getEnumConstants();
+      Object generatedDataWriteMethodEnumValue = dataWriteMethodConstants[0];
+      for (Object constant : dataWriteMethodConstants) {
+        Method nameMethod = constant.getClass().getMethod("name");
+        String name = (String) nameMethod.invoke(constant);
+        if (name.equalsIgnoreCase(writeMethod.toString())) {
+          generatedDataWriteMethodEnumValue = constant;
+          break;
+        }
+      }
+      eventBuilderClass
+          .getMethod("setWriteMethod", dataWriteMethodEnum)
+          .invoke(builderInstance, generatedDataWriteMethodEnumValue);
+
+      Method buildMethod = eventBuilderClass.getDeclaredMethod("build");
+
+      sparkContext.listenerBus().post((SparkListenerEvent) buildMethod.invoke(builderInstance));
+
+    } catch (ReflectiveOperationException ex) {
+      logger.debug("spark.events.SparkBigQueryConnectorWriteEvent library not in class path");
+    }
+  }
 
   public static String getAccumulatorNameForMetric(String metricName, String sessionName) {
     return String.format("%s-%s", sessionName, metricName);

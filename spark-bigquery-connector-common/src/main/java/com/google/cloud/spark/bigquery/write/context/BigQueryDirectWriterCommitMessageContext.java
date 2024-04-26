@@ -27,12 +27,13 @@ public class BigQueryDirectWriterCommitMessageContext implements WriterCommitMes
   private final long bytesWritten;
 
   public BigQueryDirectWriterCommitMessageContext(
-          String writeStreamName /*List<String> writeStreamNames*/,
-          int partitionId,
-          long taskId,
-          long epochId,
-          String tablePath,
-          long rowCount, long bytesWritten) {
+      String writeStreamName /*List<String> writeStreamNames*/,
+      int partitionId,
+      long taskId,
+      long epochId,
+      String tablePath,
+      long rowCount,
+      long bytesWritten) {
     this.writeStreamName = writeStreamName;
     this.partitionId = partitionId;
     this.taskId = taskId;

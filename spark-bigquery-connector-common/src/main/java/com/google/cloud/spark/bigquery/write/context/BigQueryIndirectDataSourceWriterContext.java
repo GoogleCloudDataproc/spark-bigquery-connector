@@ -15,6 +15,8 @@
  */
 package com.google.cloud.spark.bigquery.write.context;
 
+import static com.google.cloud.spark.bigquery.util.HdfsUtils.computeDirectorySizeInBytes;
+
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
@@ -29,6 +31,7 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryConnectorMetricsUtils;
 import com.google.cloud.spark.bigquery.write.BigQueryWriteHelper;
 import com.google.cloud.spark.bigquery.write.IntermediateDataCleaner;
 import java.io.IOException;
@@ -40,6 +43,7 @@ import java.util.stream.Stream;
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
@@ -70,6 +74,8 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   private Optional<TableId> temporaryTableId = Optional.empty();
   private final JobInfo.WriteDisposition writeDisposition;
 
+  private final SparkContext sparkContext;
+
   public BigQueryIndirectDataSourceWriterContext(
       BigQueryClient bigQueryClient,
       SparkBigQueryConfig config,
@@ -78,7 +84,8 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
       String writeUUID,
       SaveMode saveMode,
       Path gcsPath,
-      Optional<IntermediateDataCleaner> intermediateDataCleaner) {
+      Optional<IntermediateDataCleaner> intermediateDataCleaner,
+      SparkContext sparkContext) {
     this.bigQueryClient = bigQueryClient;
     this.config = config;
     this.hadoopConfiguration = hadoopConfiguration;
@@ -88,6 +95,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     this.gcsPath = gcsPath;
     this.intermediateDataCleaner = intermediateDataCleaner;
     this.writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
+    this.sparkContext = sparkContext;
   }
 
   @Override
@@ -105,12 +113,17 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     logger.info(
         "Data has been successfully written to GCS. Going to load {} files to BigQuery",
         messages.length);
+    long totalDataSize = 0;
     try {
       List<String> sourceUris =
           Stream.of(messages)
               .map(msg -> ((BigQueryIndirectWriterCommitMessageContext) msg).getUri())
               .collect(Collectors.toList());
-
+      for (WriterCommitMessageContext msg : messages) {
+        String uri = ((BigQueryIndirectWriterCommitMessageContext) msg).getUri();
+        Path filePath = new Path(uri);
+        totalDataSize += computeDirectorySizeInBytes(filePath, hadoopConfiguration);
+      }
       Schema schema =
           SchemaConverters.from(SchemaConvertersConfiguration.from(config))
               .toBigQuerySchema(sparkSchema);
@@ -135,6 +148,13 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
       }
       loadDataToBigQuery(sourceUris, schema);
       updateMetadataIfNeeded();
+      long currentTimeMillis = System.currentTimeMillis();
+      SparkBigQueryConnectorMetricsUtils.postWriteSessionMetrics(
+          currentTimeMillis,
+          SparkBigQueryConfig.WriteMethod.INDIRECT,
+          totalDataSize,
+          config.getIntermediateFormat(),
+          sparkContext);
       logger.info("Data has been successfully loaded to BigQuery");
     } catch (IOException e) {
       throw new UncheckedIOException(e);
