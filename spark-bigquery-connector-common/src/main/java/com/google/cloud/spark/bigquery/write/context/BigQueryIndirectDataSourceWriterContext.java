@@ -153,7 +153,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
           currentTimeMillis,
           SparkBigQueryConfig.WriteMethod.INDIRECT,
           totalDataSize,
-          config.getIntermediateFormat(),
+          Optional.of(config.getIntermediateFormat()),
           sparkContext);
       logger.info("Data has been successfully loaded to BigQuery");
     } catch (IOException e) {

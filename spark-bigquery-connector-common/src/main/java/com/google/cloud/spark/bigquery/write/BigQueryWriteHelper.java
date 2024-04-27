@@ -155,7 +155,7 @@ public class BigQueryWriteHelper {
           currentTimeMillis,
           SparkBigQueryConfig.WriteMethod.INDIRECT,
           computeDirectorySizeInBytes(gcsPath, conf),
-          config.getIntermediateFormat(),
+          Optional.of(config.getIntermediateFormat()),
           sparkContext);
     } catch (Exception e) {
       throw new BigQueryConnectorException("Failed to write to BigQuery", e);

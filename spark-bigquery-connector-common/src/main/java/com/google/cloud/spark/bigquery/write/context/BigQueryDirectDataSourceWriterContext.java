@@ -275,7 +275,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
         currentTimeMillis,
         SparkBigQueryConfig.WriteMethod.DIRECT,
         bytesWritten,
-        SparkBigQueryConfig.IntermediateFormat.NOT_SPECIFIED,
+        java.util.Optional.empty(),
         sparkContext);
   }
 
