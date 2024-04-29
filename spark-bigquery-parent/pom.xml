@@ -52,21 +52,21 @@
         <revision>0.0.1-SNAPSHOT</revision>
 
         <avro.version>1.11.3</avro.version>
-        <arrow.version>15.0.1</arrow.version>
-        <gax.version>2.45.0</gax.version>
+        <arrow.version>16.0.0</arrow.version>
+        <gax.version>2.47.0</gax.version>
         <google-auth.version>1.23.0</google-auth.version>
-        <google-cloud-bigquery.version>2.38.1</google-cloud-bigquery.version>
-        <google-cloud-bigquerystorage.version>3.3.1</google-cloud-bigquerystorage.version>
-        <google-cloud-dataproc.version>4.34.0</google-cloud-dataproc.version>
-        <google-cloud-storage.version>2.35.0</google-cloud-storage.version>
+        <google-cloud-bigquery.version>2.39.0</google-cloud-bigquery.version>
+        <google-cloud-bigquerystorage.version>3.5.0</google-cloud-bigquerystorage.version>
+        <google-cloud-dataproc.version>4.39.0</google-cloud-dataproc.version>
+        <google-cloud-storage.version>2.37.0</google-cloud-storage.version>
         <google-truth.version>1.4.2</google-truth.version>
-        <grpc.version>1.62.2</grpc.version>
-        <guava.version>33.0.0-jre</guava.version>
-        <jackson.version>2.16.2</jackson.version>
-        <netty.version>4.1.107.Final</netty.version>
+        <grpc.version>1.63.0</grpc.version>
+        <guava.version>33.1.0-jre</guava.version>
+        <jackson.version>2.17.0</jackson.version>
+        <netty.version>4.1.109.Final</netty.version>
         <paranamer.version>2.8</paranamer.version>
-        <protobuf.version>3.25.3</protobuf.version>
-        <zstd.version>1.4.9-1</zstd.version>
+        <protobuf.version>4.26.1</protobuf.version>
+        <zstd.version>1.5.6-3</zstd.version>
         <deploy.skip>true</deploy.skip>
         <nexus.remote.skip>false</nexus.remote.skip>
         <shade.skip>true</shade.skip>

@@ -5,6 +5,13 @@
 * PR #1205: Sending Identity token in the read API header
 * Issue #1195: Support map type with complex value
 * Issue #1215: Support predicate pushdown for DATETIME
+* BigQuery API has been upgraded to version 2.39.0
+* BigQuery Storage API has been upgraded to version 3.5.0
+* GAX has been upgraded to version 2.47.0
+* Arrow has been upgraded to version 16.0.0
+* gRPC has been upgraded to version 1.63.0
+* Netty has been upgraded to version 4.1.109.Final
+* Protocol Buffers has been upgraded to version 4.26.1
 
 ## 0.37.0 - 2024-03-25
 
