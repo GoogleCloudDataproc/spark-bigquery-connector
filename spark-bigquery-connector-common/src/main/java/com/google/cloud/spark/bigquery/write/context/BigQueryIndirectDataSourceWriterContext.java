@@ -117,7 +117,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
           Stream.of(messages)
               .map(msg -> ((BigQueryIndirectWriterCommitMessageContext) msg).getUri())
               .collect(Collectors.toList());
-      
+
       Schema schema =
           SchemaConverters.from(SchemaConvertersConfiguration.from(config))
               .toBigQuerySchema(sparkSchema);
