@@ -11,7 +11,6 @@
 * Arrow has been upgraded to version 16.0.0
 * gRPC has been upgraded to version 1.63.0
 * Netty has been upgraded to version 4.1.109.Final
-* Protocol Buffers has been upgraded to version 4.26.1
 
 ## 0.37.0 - 2024-03-25
 
