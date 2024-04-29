@@ -710,7 +710,7 @@ public class BigQueryClient {
     }
   }
 
-  public void loadDataIntoTable(
+  public JobStatistics.LoadStatistics loadDataIntoTable(
       LoadDataOptions options,
       List<String> sourceUris,
       FormatOptions formatOptions,
@@ -796,6 +796,7 @@ public class BigQueryClient {
             "Done loading to {}. jobId: {}",
             BigQueryUtil.friendlyTableName(options.getTableId()),
             finishedJob.getJobId());
+        return finishedJob.getStatistics();
       }
     } catch (Exception e) {
       if (finishedJob == null) {

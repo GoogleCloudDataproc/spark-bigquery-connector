@@ -15,12 +15,11 @@
  */
 package com.google.cloud.spark.bigquery.write;
 
-import static com.google.cloud.spark.bigquery.util.HdfsUtils.computeDirectorySizeInBytes;
-
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -149,14 +148,6 @@ public class BigQueryWriteHelper {
         loadDataToBigQuery();
       }
       updateMetadataIfNeeded();
-
-      long currentTimeMillis = System.currentTimeMillis();
-      SparkBigQueryConnectorMetricsUtils.postWriteSessionMetrics(
-          currentTimeMillis,
-          SparkBigQueryConfig.WriteMethod.INDIRECT,
-          computeDirectorySizeInBytes(gcsPath, conf),
-          Optional.of(config.getIntermediateFormat()),
-          sparkContext);
     } catch (Exception e) {
       throw new BigQueryConnectorException("Failed to write to BigQuery", e);
     } finally {
@@ -179,13 +170,22 @@ public class BigQueryWriteHelper {
     JobInfo.WriteDisposition writeDisposition =
         SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
     TableId destinationTableId = temporaryTableId.orElse(config.getTableId());
-    bigQueryClient.loadDataIntoTable(
-        config,
-        optimizedSourceUris,
-        formatOptions,
-        writeDisposition,
-        Optional.of(tableSchema),
-        destinationTableId);
+    JobStatistics.LoadStatistics loadStatistics =
+        bigQueryClient.loadDataIntoTable(
+            config,
+            optimizedSourceUris,
+            formatOptions,
+            writeDisposition,
+            Optional.of(tableSchema),
+            destinationTableId);
+
+    long currentTimeMillis = System.currentTimeMillis();
+    SparkBigQueryConnectorMetricsUtils.postWriteSessionMetrics(
+        currentTimeMillis,
+        SparkBigQueryConfig.WriteMethod.INDIRECT,
+        loadStatistics.getOutputBytes(),
+        Optional.of(config.getIntermediateFormat()),
+        sparkContext);
   }
 
   String friendlyTableName() {

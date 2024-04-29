@@ -15,11 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.write.context;
 
-import static com.google.cloud.spark.bigquery.util.HdfsUtils.computeDirectorySizeInBytes;
-
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
@@ -113,17 +112,11 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     logger.info(
         "Data has been successfully written to GCS. Going to load {} files to BigQuery",
         messages.length);
-    long totalDataSize = 0;
     try {
       List<String> sourceUris =
           Stream.of(messages)
               .map(msg -> ((BigQueryIndirectWriterCommitMessageContext) msg).getUri())
               .collect(Collectors.toList());
-      for (WriterCommitMessageContext msg : messages) {
-        String uri = ((BigQueryIndirectWriterCommitMessageContext) msg).getUri();
-        Path filePath = new Path(uri);
-        totalDataSize += computeDirectorySizeInBytes(filePath, hadoopConfiguration);
-      }
       Schema schema =
           SchemaConverters.from(SchemaConvertersConfiguration.from(config))
               .toBigQuerySchema(sparkSchema);
@@ -148,13 +141,6 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
       }
       loadDataToBigQuery(sourceUris, schema);
       updateMetadataIfNeeded();
-      long currentTimeMillis = System.currentTimeMillis();
-      SparkBigQueryConnectorMetricsUtils.postWriteSessionMetrics(
-          currentTimeMillis,
-          SparkBigQueryConfig.WriteMethod.INDIRECT,
-          totalDataSize,
-          Optional.of(config.getIntermediateFormat()),
-          sparkContext);
       logger.info("Data has been successfully loaded to BigQuery");
     } catch (IOException e) {
       throw new UncheckedIOException(e);
@@ -184,13 +170,22 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
     TableId destinationTableId = temporaryTableId.orElse(config.getTableId());
-    bigQueryClient.loadDataIntoTable(
-        config,
-        optimizedSourceUris,
-        FormatOptions.avro(),
-        writeDisposition,
-        Optional.of(schema),
-        destinationTableId);
+    JobStatistics.LoadStatistics loadStatistics =
+        bigQueryClient.loadDataIntoTable(
+            config,
+            optimizedSourceUris,
+            FormatOptions.avro(),
+            writeDisposition,
+            Optional.of(schema),
+            destinationTableId);
+
+    long currentTimeMillis = System.currentTimeMillis();
+    SparkBigQueryConnectorMetricsUtils.postWriteSessionMetrics(
+        currentTimeMillis,
+        SparkBigQueryConfig.WriteMethod.INDIRECT,
+        loadStatistics.getOutputBytes(),
+        Optional.of(config.getIntermediateFormat()),
+        sparkContext);
   }
 
   void updateMetadataIfNeeded() {

@@ -18,10 +18,6 @@ package com.google.cloud.spark.bigquery.util;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Iterator;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 
 public class HdfsUtils {
@@ -51,20 +47,5 @@ public class HdfsUtils {
 
   public static <T> Iterable<T> toJavaUtilIterable(final RemoteIterator<T> remoteIterator) {
     return () -> toJavaUtilIterator(remoteIterator);
-  }
-
-  public static long computeDirectorySizeInBytes(Path path, Configuration conf) throws IOException {
-    long totalDataSize = 0;
-    FileSystem fs = path.getFileSystem(conf);
-    FileStatus status = fs.getFileStatus(path);
-    if (status.isDirectory()) {
-      FileStatus[] subDirs = fs.listStatus(path);
-      for (FileStatus file : subDirs) {
-        totalDataSize += computeDirectorySizeInBytes(file.getPath(), conf);
-      }
-    } else if (!status.getPath().getName().equals("_SUCCESS")) {
-      totalDataSize = status.getLen();
-    }
-    return totalDataSize;
   }
 }
