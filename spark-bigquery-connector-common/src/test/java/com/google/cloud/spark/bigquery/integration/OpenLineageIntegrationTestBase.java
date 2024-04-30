@@ -75,13 +75,15 @@ public class OpenLineageIntegrationTestBase {
   }
 
   private List<JSONObject> parseEventLogs(File file) throws Exception {
-    Scanner scanner = new Scanner(file);
-    List<JSONObject> eventList = new ArrayList<>();
-    while (scanner.hasNextLine()) {
-      String line = scanner.nextLine();
-      JSONObject event = new JSONObject(line);
-      if (!event.getJSONArray("inputs").isEmpty() && !event.getJSONArray("outputs").isEmpty()) {
-        eventList.add(event);
+    List<JSONObject> eventList;
+    try (Scanner scanner = new Scanner(file)) {
+      eventList = new ArrayList<>();
+      while (scanner.hasNextLine()) {
+        String line = scanner.nextLine();
+        JSONObject event = new JSONObject(line);
+        if (!event.getJSONArray("inputs").isEmpty() && !event.getJSONArray("outputs").isEmpty()) {
+          eventList.add(event);
+        }
       }
     }
     return eventList;
