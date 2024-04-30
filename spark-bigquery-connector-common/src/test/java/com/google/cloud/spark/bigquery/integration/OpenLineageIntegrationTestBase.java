@@ -19,7 +19,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.cloud.spark.bigquery.integration.SparkBigQueryIntegrationTestBase.TestDataset;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -75,7 +74,7 @@ public class OpenLineageIntegrationTestBase {
     }
   }
 
-  private List<JSONObject> parseEventLogs(File file) throws IOException {
+  private List<JSONObject> parseEventLogs(File file) throws Exception {
     Scanner scanner = new Scanner(file);
     List<JSONObject> eventList = new ArrayList<>();
     while (scanner.hasNextLine()) {
@@ -94,7 +93,7 @@ public class OpenLineageIntegrationTestBase {
   }
 
   @Test
-  public void testLineageEvent() {
+  public void testLineageEvent() throws Exception {
     String fullTableName = testDataset.toString() + "." + testTable;
     Dataset<Row> readDF =
         spark.read().format("bigquery").option("table", TestConstants.SHAKESPEARE_TABLE).load();
@@ -109,17 +108,13 @@ public class OpenLineageIntegrationTestBase {
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("writeMethod", "direct")
         .save();
-    try {
-      List<JSONObject> eventList = parseEventLogs(lineageFile);
-      assertThat(eventList)
-          .isNotEmpty(); // check if there is at least one event with both input and output
-      eventList.forEach(
-          (event) -> { // check if each of these events have the correct input and output
-            assertThat(getFieldName(event, "inputs")).matches(TestConstants.SHAKESPEARE_TABLE);
-            assertThat(getFieldName(event, "outputs")).matches(fullTableName);
-          });
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    List<JSONObject> eventList = parseEventLogs(lineageFile);
+    assertThat(eventList)
+        .isNotEmpty(); // check if there is at least one event with both input and output
+    eventList.forEach(
+        (event) -> { // check if each of these events have the correct input and output
+          assertThat(getFieldName(event, "inputs")).matches(TestConstants.SHAKESPEARE_TABLE);
+          assertThat(getFieldName(event, "outputs")).matches(fullTableName);
+        });
   }
 }
