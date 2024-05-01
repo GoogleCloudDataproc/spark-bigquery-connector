@@ -218,7 +218,7 @@ public class SparkBigQueryConfig
       com.google.common.base.Optional.absent();
   private boolean enableReadSessionCaching = true;
   private long readSessionCacheDurationMins = 5L;
-  private OptionalLong snapshotTimeMillis = OptionalLong.empty();
+  private Long snapshotTimeMillis = null;
   private SparkBigQueryProxyAndHttpConfig sparkBigQueryProxyAndHttpConfig;
   private CompressionCodec arrowCompressionCodec = DEFAULT_ARROW_COMPRESSION_CODEC;
   private WriteMethod writeMethod = DEFAULT_WRITE_METHOD;
@@ -586,10 +586,7 @@ public class SparkBigQueryConfig
     config.gpn = getAnyOption(globalOptions, options, GPN_ATTRIBUTION);
 
     config.snapshotTimeMillis =
-        getOption(options, "snapshotTimeMillis")
-            .transform(Long::valueOf)
-            .transform(OptionalLong::of)
-            .or(OptionalLong::empty);
+        getOption(options, "snapshotTimeMillis").transform(Long::valueOf).orNull();
 
     return config;
   }
@@ -1046,7 +1043,7 @@ public class SparkBigQueryConfig
   }
 
   public OptionalLong getSnapshotTimeMillis() {
-    return snapshotTimeMillis;
+    return snapshotTimeMillis == null ? OptionalLong.empty() : OptionalLong.of(snapshotTimeMillis);
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
@@ -1072,7 +1069,7 @@ public class SparkBigQueryConfig
         .setTraceId(traceId.toJavaUtil())
         .setEnableReadSessionCaching(enableReadSessionCaching)
         .setReadSessionCacheDurationMins(readSessionCacheDurationMins)
-        .setSnapshotTimeMillis(snapshotTimeMillis)
+        .setSnapshotTimeMillis(getSnapshotTimeMillis())
         .build();
   }
 
