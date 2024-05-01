@@ -38,6 +38,7 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
+import com.google.cloud.spark.bigquery.metrics.DataOrigin;
 import com.google.cloud.spark.bigquery.metrics.SparkBigQueryReadSessionMetrics;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -117,6 +118,7 @@ public class BigQueryDataSourceReaderContext {
   private LazyInitializationSupplier<ReadSessionResponse> readSessionResponse;
   private final ExecutorService asyncReadSessionExecutor = Executors.newSingleThreadExecutor();
   private boolean isBuilt = false;
+  private final BigQueryClient.ReadTableOptions readTableOptions;
 
   public BigQueryDataSourceReaderContext(
       TableInfo table,
@@ -129,7 +131,8 @@ public class BigQueryDataSourceReaderContext {
       String applicationId,
       SparkBigQueryConfig options,
       SQLContext sqlContext,
-      SparkSession sparkSession) {
+      SparkSession sparkSession,
+      BigQueryClient.ReadTableOptions readTableOptions) {
     this.table = table;
     this.tableId = table.getTableId();
     this.readSessionCreatorConfig = readSessionCreatorConfig;
@@ -137,6 +140,7 @@ public class BigQueryDataSourceReaderContext {
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
     this.bigQueryTracerFactory = tracerFactory;
     this.sparkSession = sparkSession;
+    this.readTableOptions = readTableOptions;
     this.readSessionCreator =
         new ReadSessionCreator(readSessionCreatorConfig, bigQueryClient, bigQueryReadClientFactory);
     this.globalFilter = globalFilter;
@@ -208,15 +212,34 @@ public class BigQueryDataSourceReaderContext {
             pushedFilters.toArray(new Filter[0])));
   }
 
+  public DataOrigin getDataOrigin() {
+    if (readTableOptions.query().isPresent()) {
+      return DataOrigin.QUERY;
+    } else if (BigQueryUtil.isBigLakeManagedTable(table)
+        || table.getDefinition().getType() == TableDefinition.Type.EXTERNAL) {
+      return DataOrigin.BIGLAKE;
+    } else if (table.getDefinition().getType() == TableDefinition.Type.MATERIALIZED_VIEW) {
+      return DataOrigin.VIEW;
+    } else {
+      return DataOrigin.TABLE;
+    }
+  }
+
   public Stream<InputPartitionContext<ColumnarBatch>> planBatchInputPartitionContexts() {
     if (!enableBatchRead()) {
       throw new IllegalStateException("Batch reads should not be enabled");
     }
 
     ReadSession readSession = readSessionResponse.get().getReadSession();
+    long currentTimeMillis = System.currentTimeMillis();
     SparkBigQueryReadSessionMetrics sparkBigQueryReadSessionMetrics =
         SparkBigQueryReadSessionMetrics.from(
-            sparkSession, readSession, readSession.getStreamsCount());
+            sparkSession,
+            readSession,
+            currentTimeMillis,
+            readSessionCreatorConfig.getReadDataFormat(),
+            getDataOrigin(),
+            readSession.getStreamsCount());
 
     sparkSession.sparkContext().addSparkListener(sparkBigQueryReadSessionMetrics);
 
