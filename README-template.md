@@ -899,7 +899,7 @@ word-break:break-word
      <td><code>snapshotTimeMillis</code>
      </td>
      <td>A timestamp specified in milliseconds to use to read a table snapshot.
-          By default time-travel is not used and the latest version of a table is read.
+          By default this is not set and the latest version of a table is read.
          <br/> (Optional)
      </td>
      <td>Read</td>
