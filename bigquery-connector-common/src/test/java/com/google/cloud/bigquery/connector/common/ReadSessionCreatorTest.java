@@ -41,16 +41,19 @@ import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.MockBigQueryRead;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableModifiers;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.cloud.bigquery.storage.v1.stub.EnhancedBigQueryReadStub;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
+import com.google.protobuf.Timestamp;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -286,6 +289,32 @@ public class ReadSessionCreatorTest {
     assertThat(createReadSessionRequest.getPreferredMinStreamCount()).isEqualTo(10);
   }
 
+  @Test
+  public void testSnapshotTimeMillis() throws Exception {
+    // setting up
+    when(bigQueryClient.getTable(any())).thenReturn(table);
+    mockBigQueryRead.reset();
+    mockBigQueryRead.addResponse(
+        ReadSession.newBuilder().addStreams(ReadStream.newBuilder().setName("0")).build());
+    BigQueryClientFactory mockBigQueryClientFactory = mock(BigQueryClientFactory.class);
+    when(mockBigQueryClientFactory.getBigQueryReadClient()).thenReturn(client);
+
+    ReadSessionCreatorConfig config =
+        new ReadSessionCreatorConfigBuilder()
+            .setEnableReadSessionCaching(false)
+            .setSnapshotTimeMillis(OptionalLong.of(1234567890L))
+            .build();
+    ReadSessionCreator creator =
+        new ReadSessionCreator(config, bigQueryClient, mockBigQueryClientFactory);
+    ReadSessionResponse readSessionResponse =
+        creator.create(table.getTableId(), ImmutableList.of(), Optional.empty());
+    assertThat(readSessionResponse).isNotNull();
+    CreateReadSessionRequest createReadSessionRequest =
+        (CreateReadSessionRequest) mockBigQueryRead.getRequests().get(0);
+    assertThat(createReadSessionRequest.getReadSession().getTableModifiers().getSnapshotTime())
+        .isEqualTo(Timestamp.newBuilder().setSeconds(1234567).setNanos(890000000).build());
+  }
+
   private void testCacheMissScenario(
       ReadSessionCreator creator,
       String readSessionName,
@@ -354,6 +383,7 @@ public class ReadSessionCreatorTest {
                     .setDataFormat(config.getReadDataFormat())
                     .setReadOptions(readOptions)
                     .setTable(ReadSessionCreator.toTablePath(table.getTableId()))
+                    .setTableModifiers(TableModifiers.newBuilder())
                     .build())
             .setMaxStreamCount(config.getMaxParallelism().getAsInt())
             .setPreferredMinStreamCount(3 * config.getDefaultParallelism())

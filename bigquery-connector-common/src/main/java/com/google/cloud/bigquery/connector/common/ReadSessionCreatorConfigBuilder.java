@@ -20,6 +20,7 @@ import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.OptionalLong;
 
 public class ReadSessionCreatorConfigBuilder {
 
@@ -44,6 +45,7 @@ public class ReadSessionCreatorConfigBuilder {
   private Optional<String> traceId = Optional.empty();
   private boolean enableReadSessionCaching = true;
   private long readSessionCacheDurationMins = 5L;
+  private OptionalLong snapshotTimeMillis = OptionalLong.empty();
 
   @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setViewsEnabled(boolean viewsEnabled) {
@@ -179,6 +181,12 @@ public class ReadSessionCreatorConfigBuilder {
     return this;
   }
 
+  @CanIgnoreReturnValue
+  public ReadSessionCreatorConfigBuilder setSnapshotTimeMillis(OptionalLong snapshotTimeMillis) {
+    this.snapshotTimeMillis = snapshotTimeMillis;
+    return this;
+  }
+
   public ReadSessionCreatorConfig build() {
     return new ReadSessionCreatorConfig(
         viewsEnabled,
@@ -201,6 +209,7 @@ public class ReadSessionCreatorConfigBuilder {
         arrowCompressionCodec,
         traceId,
         enableReadSessionCaching,
-        readSessionCacheDurationMins);
+        readSessionCacheDurationMins,
+        snapshotTimeMillis);
   }
 }

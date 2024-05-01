@@ -132,6 +132,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getAllowMapTypeConversion()).isTrue();
     assertThat(config.getBigQueryJobTimeoutInMinutes()).isEqualTo(6 * 60);
     assertThat(config.getGpn()).isEmpty();
+    assertThat(config.getSnapshotTimeMillis()).isEmpty();
   }
 
   @Test
@@ -180,6 +181,7 @@ public class SparkBigQueryConfigTest {
                 .put("allowMapTypeConversion", "false")
                 .put("bigQueryJobTimeoutInMinutes", "30")
                 .put("GPN", "testUser")
+                .put("snapshotTimeMillis", "123456789")
                 .build());
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -235,6 +237,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getAllowMapTypeConversion()).isFalse();
     assertThat(config.getBigQueryJobTimeoutInMinutes()).isEqualTo(30);
     assertThat(config.getGpn().get()).isEqualTo("testUser");
+    assertThat(config.getSnapshotTimeMillis()).hasValue(123456789L);
   }
 
   @Test

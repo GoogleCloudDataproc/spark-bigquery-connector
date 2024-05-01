@@ -25,12 +25,14 @@ import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableModifiers;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.protobuf.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -162,6 +164,17 @@ public class ReadSessionCreator {
     }
     Instant sessionPrepEndTime = Instant.now();
 
+    TableModifiers.Builder modifiers = TableModifiers.newBuilder();
+    config
+        .getSnapshotTimeMillis()
+        .ifPresent(
+            millis ->
+                modifiers.setSnapshotTime(
+                    Timestamp.newBuilder()
+                        .setSeconds(millis / 1000)
+                        .setNanos((int) ((millis % 1000) * 1000000))
+                        .build()));
+
     CreateReadSessionRequest createReadSessionRequest =
         request
             .newBuilder()
@@ -170,6 +183,7 @@ public class ReadSessionCreator {
                 requestedSession
                     .setDataFormat(config.getReadDataFormat())
                     .setReadOptions(readOptions)
+                    .setTableModifiers(modifiers)
                     .setTable(tablePath)
                     .build())
             .setMaxStreamCount(maxStreamCount)
