@@ -35,6 +35,10 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.openlineage</groupId>
+      <artifactId>openlineage-spark_${scala.binary.version}</artifactId>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>spark-3.2-bigquery-pushdown_${scala.binary.version}
       </artifactId>

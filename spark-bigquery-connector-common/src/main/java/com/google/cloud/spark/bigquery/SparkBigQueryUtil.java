@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery;
 
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.DEFAULT_FALLBACK;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getOptionFromMultipleParams;
+import static scala.collection.JavaConverters.mapAsJavaMap;
 
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.TableId;
@@ -31,6 +32,7 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,11 +45,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.SparkConf;
+import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.StructType;
+import scala.Option;
 
 /** Spark related utilities */
 public class SparkBigQueryUtil {
@@ -288,5 +293,30 @@ public class SparkBigQueryUtil {
                     "dataproc_job_uuid",
                     BigQueryUtil.sanitizeLabelValue(tag.substring(tag.lastIndexOf('_') + 1))));
     return labels.build();
+  }
+
+  public static SparkBigQueryConfig createSparkBigQueryConfig(
+      SQLContext sqlContext,
+      scala.collection.immutable.Map<String, String> options,
+      Option<StructType> schema,
+      DataSourceVersion dataSourceVersion) {
+    java.util.Map<String, String> optionsMap = new HashMap<>(mapAsJavaMap(options));
+    dataSourceVersion.updateOptionsMap(optionsMap);
+    SparkSession spark = sqlContext.sparkSession();
+    ImmutableMap<String, String> globalOptions =
+        ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll()));
+    int defaultParallelism =
+        spark.sparkContext().isStopped() ? 1 : spark.sparkContext().defaultParallelism();
+
+    return SparkBigQueryConfig.from(
+        ImmutableMap.copyOf(optionsMap),
+        globalOptions,
+        spark.sparkContext().hadoopConfiguration(),
+        ImmutableMap.of(),
+        defaultParallelism,
+        spark.sqlContext().conf(),
+        spark.version(),
+        Optional.ofNullable(schema.getOrElse(null)),
+        true);
   }
 }
