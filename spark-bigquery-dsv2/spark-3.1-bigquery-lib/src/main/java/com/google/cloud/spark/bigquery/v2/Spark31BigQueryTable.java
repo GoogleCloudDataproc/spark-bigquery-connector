@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
@@ -23,6 +24,7 @@ import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderModule
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Injector;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.spark.sql.SaveMode;
@@ -98,5 +100,15 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
     // The case where mode == SaveMode.Ignore is handled by Spark, so we can assume we can get the
     // context
     return new BigQueryWriteBuilder(injector, info, SaveMode.Append);
+  }
+
+  @Override
+  public Map<String, String> properties() {
+    SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
+    return ImmutableMap.<String, String>builder()
+        .put("openlineage.dataset.name", BigQueryUtil.friendlyTableName(config.getTableId()))
+        .put("openlineage.dataset.namespace", "bigquery")
+        .put("openlineage.dataset.storageDatasetFacet.storageLayer", "bigquery")
+        .build();
   }
 }
