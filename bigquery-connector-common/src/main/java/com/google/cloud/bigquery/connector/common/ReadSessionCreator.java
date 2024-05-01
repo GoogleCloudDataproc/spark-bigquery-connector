@@ -168,12 +168,14 @@ public class ReadSessionCreator {
     config
         .getSnapshotTimeMillis()
         .ifPresent(
-            millis ->
-                modifiers.setSnapshotTime(
-                    Timestamp.newBuilder()
-                        .setSeconds(millis / 1000)
-                        .setNanos((int) ((millis % 1000) * 1000000))
-                        .build()));
+            millis -> {
+              Instant snapshotTime = Instant.ofEpochMilli(millis);
+              modifiers.setSnapshotTime(
+                  Timestamp.newBuilder()
+                      .setSeconds(snapshotTime.getEpochSecond())
+                      .setNanos(snapshotTime.getNano())
+                      .build());
+            });
 
     CreateReadSessionRequest createReadSessionRequest =
         request
