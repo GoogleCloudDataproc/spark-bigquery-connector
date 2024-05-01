@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.38.0 - 2024-05-01
 
 * PR #1205: Sending Identity token in the read API header
 * Issue #1195: Support map type with complex value
