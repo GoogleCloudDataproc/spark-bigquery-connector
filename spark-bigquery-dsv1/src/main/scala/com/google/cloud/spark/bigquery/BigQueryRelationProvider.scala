@@ -110,12 +110,7 @@ class BigQueryRelationProvider(
   def createSparkBigQueryConfig(sqlContext: SQLContext,
                                 parameters: Map[String, String],
                                 schema: Option[StructType] = None): SparkBigQueryConfig = {
-    SparkBigQueryConfig.from(parameters.asJava,
-      ImmutableMap.of[String, String](),
-      DataSourceVersion.V1,
-      sqlContext.sparkSession,
-      Optional.ofNullable(schema.orNull),
-      /* tableIsMandatory */ true)
+    SparkBigQueryUtil.createSparkBigQueryConfig(sqlContext, parameters, schema, DataSourceVersion.V1)
     }
 
   override def shortName: String = "bigquery"

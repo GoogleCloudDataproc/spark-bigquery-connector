@@ -28,6 +28,10 @@
             <artifactId>error_prone_annotations</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.openlineage</groupId>
+            <artifactId>openlineage-spark_2.12</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.beam</groupId>
             <artifactId>beam-sdks-java-io-hadoop-common</artifactId>
             <version>2.43.0</version>
