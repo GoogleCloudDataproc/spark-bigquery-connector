@@ -643,17 +643,33 @@ public class BigQueryUtil {
       TimePartitioning timePartitioning) {
     TimePartitioning.Type partitionType = timePartitioning.getType();
     String partitionField = timePartitioning.getField();
-    String extractedPartitioned = "timestamp_trunc(`%s`.`%s`, %s)";
     String extractedPartitionedSource =
-        String.format(extractedPartitioned, "source", partitionField, partitionType.toString());
+        String.format("timestamp_trunc(`%s`, %s)", partitionField, partitionType.toString());
     String extractedPartitionedTarget =
-        String.format(extractedPartitioned, "target", partitionField, partitionType.toString());
-    return getMergeQueryForPartitionedTable(
+        String.format(
+            "timestamp_trunc(`%s`.`%s`, %s)", "target", partitionField, partitionType.toString());
+    FieldList allFields = destinationDefinition.getSchema().getFields();
+    String commaSeparatedFields =
+        allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
+
+    String queryFormat =
+        "DECLARE partitions_to_delete DEFAULT "
+            + "(SELECT ARRAY_AGG(DISTINCT(%s) IGNORE NULLS) FROM `%s`); \n"
+            + "MERGE `%s` AS target\n"
+            + "USING `%s` AS source\n"
+            + "ON FALSE\n"
+            + "WHEN NOT MATCHED BY SOURCE AND %s IN UNNEST(partitions_to_delete) THEN DELETE\n"
+            + "WHEN NOT MATCHED BY TARGET THEN\n"
+            + "INSERT(%s) VALUES(%s)";
+    return String.format(
+        queryFormat,
+        extractedPartitionedSource,
+        temporaryTableName,
         destinationTableName,
         temporaryTableName,
-        destinationDefinition,
-        extractedPartitionedSource,
-        extractedPartitionedTarget);
+        extractedPartitionedTarget,
+        commaSeparatedFields,
+        commaSeparatedFields);
   }
 
   static String getQueryForRangePartitionedTable(
