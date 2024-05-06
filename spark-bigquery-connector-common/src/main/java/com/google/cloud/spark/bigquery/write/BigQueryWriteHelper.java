@@ -19,6 +19,7 @@ import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -32,6 +33,7 @@ import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SupportedCustomDataType;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryConnectorMetricsUtils;
 import com.google.cloud.spark.bigquery.util.HdfsUtils;
 import com.google.common.collect.Streams;
 import java.io.IOException;
@@ -44,6 +46,7 @@ import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.spark.SparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
@@ -70,6 +73,7 @@ public class BigQueryWriteHelper {
   private final JobInfo.WriteDisposition writeDisposition;
 
   private Optional<TableId> temporaryTableId = Optional.empty();
+  private final SparkContext sparkContext;
 
   public BigQueryWriteHelper(
       BigQueryClient bigQueryClient,
@@ -99,6 +103,7 @@ public class BigQueryWriteHelper {
     }
     this.tableSchema = schema;
     this.writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
+    this.sparkContext = sqlContext.sparkContext();
   }
 
   public void writeDataFrameToBigQuery() {
@@ -165,13 +170,22 @@ public class BigQueryWriteHelper {
     JobInfo.WriteDisposition writeDisposition =
         SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
     TableId destinationTableId = temporaryTableId.orElse(config.getTableId());
-    bigQueryClient.loadDataIntoTable(
-        config,
-        optimizedSourceUris,
-        formatOptions,
-        writeDisposition,
-        Optional.of(tableSchema),
-        destinationTableId);
+    JobStatistics.LoadStatistics loadStatistics =
+        bigQueryClient.loadDataIntoTable(
+            config,
+            optimizedSourceUris,
+            formatOptions,
+            writeDisposition,
+            Optional.of(tableSchema),
+            destinationTableId);
+
+    long currentTimeMillis = System.currentTimeMillis();
+    SparkBigQueryConnectorMetricsUtils.postWriteSessionMetrics(
+        currentTimeMillis,
+        SparkBigQueryConfig.WriteMethod.INDIRECT,
+        loadStatistics.getOutputBytes(),
+        Optional.of(config.getIntermediateFormat()),
+        sparkContext);
   }
 
   String friendlyTableName() {

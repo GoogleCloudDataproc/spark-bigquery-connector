@@ -154,6 +154,7 @@ public class BigQueryDirectDataSourceWriterContextTest {
         SchemaConvertersConfiguration.createDefault(),
         java.util.Optional.empty(),
         false,
-        PartitionOverwriteMode.STATIC);
+        PartitionOverwriteMode.STATIC,
+        null);
   }
 }

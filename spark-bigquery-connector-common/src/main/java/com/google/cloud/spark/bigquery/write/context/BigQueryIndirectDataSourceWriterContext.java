@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery.write.context;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
@@ -29,6 +30,7 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryConnectorMetricsUtils;
 import com.google.cloud.spark.bigquery.write.BigQueryWriteHelper;
 import com.google.cloud.spark.bigquery.write.IntermediateDataCleaner;
 import java.io.IOException;
@@ -40,6 +42,7 @@ import java.util.stream.Stream;
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
@@ -70,6 +73,8 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   private Optional<TableId> temporaryTableId = Optional.empty();
   private final JobInfo.WriteDisposition writeDisposition;
 
+  private final SparkContext sparkContext;
+
   public BigQueryIndirectDataSourceWriterContext(
       BigQueryClient bigQueryClient,
       SparkBigQueryConfig config,
@@ -78,7 +83,8 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
       String writeUUID,
       SaveMode saveMode,
       Path gcsPath,
-      Optional<IntermediateDataCleaner> intermediateDataCleaner) {
+      Optional<IntermediateDataCleaner> intermediateDataCleaner,
+      SparkContext sparkContext) {
     this.bigQueryClient = bigQueryClient;
     this.config = config;
     this.hadoopConfiguration = hadoopConfiguration;
@@ -88,6 +94,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     this.gcsPath = gcsPath;
     this.intermediateDataCleaner = intermediateDataCleaner;
     this.writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
+    this.sparkContext = sparkContext;
   }
 
   @Override
@@ -164,13 +171,22 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
     TableId destinationTableId = temporaryTableId.orElse(config.getTableId());
-    bigQueryClient.loadDataIntoTable(
-        config,
-        optimizedSourceUris,
-        FormatOptions.avro(),
-        writeDisposition,
-        Optional.of(schema),
-        destinationTableId);
+    JobStatistics.LoadStatistics loadStatistics =
+        bigQueryClient.loadDataIntoTable(
+            config,
+            optimizedSourceUris,
+            FormatOptions.avro(),
+            writeDisposition,
+            Optional.of(schema),
+            destinationTableId);
+
+    long currentTimeMillis = System.currentTimeMillis();
+    SparkBigQueryConnectorMetricsUtils.postWriteSessionMetrics(
+        currentTimeMillis,
+        SparkBigQueryConfig.WriteMethod.INDIRECT,
+        loadStatistics.getOutputBytes(),
+        Optional.of(config.getIntermediateFormat()),
+        sparkContext);
   }
 
   void updateMetadataIfNeeded() {
