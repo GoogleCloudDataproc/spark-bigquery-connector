@@ -19,6 +19,7 @@ import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.Compressio
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.OptionalLong;
 
 public class ReadSessionCreatorConfig {
   private final boolean viewsEnabled;
@@ -42,6 +43,7 @@ public class ReadSessionCreatorConfig {
   private final Optional<String> traceId;
   private final boolean enableReadSessionCaching;
   private final long readSessionCacheDurationMins;
+  private final OptionalLong snapshotTimeMillis;
 
   ReadSessionCreatorConfig(
       boolean viewsEnabled,
@@ -64,7 +66,8 @@ public class ReadSessionCreatorConfig {
       CompressionCodec arrowCompressionCodec,
       Optional<String> traceId,
       boolean enableReadSessionCaching,
-      long readSessionCacheDurationMins) {
+      long readSessionCacheDurationMins,
+      OptionalLong snapshotTimeMillis) {
     this.viewsEnabled = viewsEnabled;
     this.materializationProject = materializationProject;
     this.materializationDataset = materializationDataset;
@@ -86,6 +89,7 @@ public class ReadSessionCreatorConfig {
     this.traceId = traceId;
     this.enableReadSessionCaching = enableReadSessionCaching;
     this.readSessionCacheDurationMins = readSessionCacheDurationMins;
+    this.snapshotTimeMillis = snapshotTimeMillis;
   }
 
   public boolean isViewsEnabled() {
@@ -178,5 +182,9 @@ public class ReadSessionCreatorConfig {
 
   public long getReadSessionCacheDurationMins() {
     return readSessionCacheDurationMins;
+  }
+
+  public OptionalLong getSnapshotTimeMillis() {
+    return snapshotTimeMillis;
   }
 }

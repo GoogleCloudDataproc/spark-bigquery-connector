@@ -895,7 +895,15 @@ word-break:break-word
      </td>
      <td>Read/Write</td>
    </tr>
-
+  <tr>
+     <td><code>snapshotTimeMillis</code>
+     </td>
+     <td>A timestamp specified in milliseconds to use to read a table snapshot.
+          By default this is not set and the latest version of a table is read.
+         <br/> (Optional)
+     </td>
+     <td>Read</td>
+   </tr>
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter
