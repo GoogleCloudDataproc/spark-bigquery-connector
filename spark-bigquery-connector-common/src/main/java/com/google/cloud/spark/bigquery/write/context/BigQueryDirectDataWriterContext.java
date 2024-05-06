@@ -22,6 +22,7 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryDirectDataWriterHelper;
+import com.google.cloud.bigquery.connector.common.WriteStreamStatistics;
 import com.google.cloud.bigquery.storage.v1.ProtoSchema;
 import com.google.common.base.Optional;
 import com.google.protobuf.ByteString;
@@ -93,14 +94,22 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
   public WriterCommitMessageContext commit() throws IOException {
     logger.debug("Data Writer {} finalizeStream()", partitionId);
 
-    long rowCount = writerHelper.finalizeStream();
+    WriteStreamStatistics stats = writerHelper.finalizeStream();
     String writeStreamName = writerHelper.getWriteStreamName();
 
     logger.debug(
-        "Data Writer {}'s write-stream has finalized with row count: {}", partitionId, rowCount);
+        "Data Writer {}'s write-stream has finalized with row count: {}",
+        partitionId,
+        stats.getRowCount());
 
     return new BigQueryDirectWriterCommitMessageContext(
-        writeStreamName, partitionId, taskId, epochId, tablePath, rowCount);
+        writeStreamName,
+        partitionId,
+        taskId,
+        epochId,
+        tablePath,
+        stats.getRowCount(),
+        stats.getBytesWritten());
   }
 
   @Override

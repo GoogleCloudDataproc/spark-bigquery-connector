@@ -33,10 +33,13 @@ import com.google.cloud.bigquery.storage.v1.ProtoSchema;
 import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.metrics.SparkBigQueryConnectorMetricsUtils;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
@@ -77,6 +80,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   }
 
   private WritingMode writingMode = WritingMode.ALL_ELSE;
+  private final SparkContext sparkContext;
 
   public BigQueryDirectDataSourceWriterContext(
       BigQueryClient bigQueryClient,
@@ -92,7 +96,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       SchemaConvertersConfiguration schemaConvertersConfiguration,
       java.util.Optional<String> destinationTableKmsKeyName,
       boolean writeAtLeastOnce,
-      PartitionOverwriteMode overwriteMode)
+      PartitionOverwriteMode overwriteMode,
+      SparkContext sparkContext)
       throws IllegalArgumentException {
     this.bigQueryClient = bigQueryClient;
     this.writeClientFactory = bigQueryWriteClientFactory;
@@ -106,6 +111,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     this.schemaConvertersConfiguration = schemaConvertersConfiguration;
     this.destinationTableKmsKeyName = Optional.fromJavaUtil(destinationTableKmsKeyName);
     this.writeAtLeastOnce = writeAtLeastOnce;
+    this.sparkContext = sparkContext;
     Schema bigQuerySchema =
         SchemaConverters.from(this.schemaConvertersConfiguration).toBigQuerySchema(sparkSchema);
     try {
@@ -218,11 +224,12 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
         "BigQuery DataSource writer {} committed with messages:\n{}",
         writeUUID,
         Arrays.toString(messages));
-
+    long bytesWritten = 0;
     if (!writeAtLeastOnce) {
       BatchCommitWriteStreamsRequest.Builder batchCommitWriteStreamsRequest =
           BatchCommitWriteStreamsRequest.newBuilder().setParent(tablePathForBigQueryStorage);
       for (WriterCommitMessageContext message : messages) {
+        bytesWritten += ((BigQueryDirectWriterCommitMessageContext) message).getBytesWritten();
         batchCommitWriteStreamsRequest.addWriteStreams(
             ((BigQueryDirectWriterCommitMessageContext) message).getWriteStreamName());
       }
@@ -263,6 +270,13 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       updatedTableInfo.setLabels(tableLabels);
       bigQueryClient.update(updatedTableInfo.build());
     }
+    long currentTimeMillis = System.currentTimeMillis();
+    SparkBigQueryConnectorMetricsUtils.postWriteSessionMetrics(
+        currentTimeMillis,
+        SparkBigQueryConfig.WriteMethod.DIRECT,
+        bytesWritten,
+        java.util.Optional.empty(),
+        sparkContext);
   }
 
   /**
