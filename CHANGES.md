@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.36.2 - 2024-05-07
 
 * Issue #1215: Support predicate pushdown for DATETIME
 
