@@ -441,6 +441,10 @@
                             <addDefaultSpecificationEntries>true
                             </addDefaultSpecificationEntries>
                         </manifest>
+                        <manifestEntries>
+                            <!-- Filtering out META-INF/versions/** during shading too -->
+                            <Multi-Release>false</Multi-Release>
+                        </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>
@@ -710,6 +714,7 @@
                                 <exclude>META-INF/*.DSA</exclude>
                                 <exclude>META-INF/*.RSA</exclude>
                                 <exclude>META-INF/maven/**</exclude>
+                                <exclude>META-INF/versions/**</exclude>
                                 <exclude>**/*.proto</exclude>
                             </excludes>
                         </filter>
