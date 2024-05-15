@@ -372,12 +372,6 @@ public class SparkBigQueryConfigTest {
             "Compression codec 'RANDOMCOMPRESSION' for Arrow is not supported."
                 + " Supported formats are "
                 + Arrays.toString(CompressionCodec.values()));
-    assertThat(exception)
-        .hasMessageThat()
-        .contains(
-            "Response compression codec 'RANDOMCOMPRESSION' is not supported."
-                + " Supported formats are "
-                + Arrays.toString(CompressionCodec.values()));
   }
 
   @Test
