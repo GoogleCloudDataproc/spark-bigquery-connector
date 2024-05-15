@@ -56,8 +56,9 @@ public class ReadRowsResponseInputStreamEnumeration implements java.util.Enumera
     ReadRowsResponse ret = currentResponse;
     loadNextResponse();
     try {
-      return new ByteArrayInputStream(DecompressReadRowsResponse.decompressArrowRecordBatch(
-          ret, this.responseCompressionCodec));
+      return new ByteArrayInputStream(
+          DecompressReadRowsResponse.decompressArrowRecordBatch(
+              ret, this.responseCompressionCodec));
     } catch (IOException e) {
       throw new UncheckedIOException("Could not read rows", e);
     }

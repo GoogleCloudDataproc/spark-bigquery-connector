@@ -2,9 +2,7 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import net.jpountz.lz4.LZ4Factory;
 import net.jpountz.lz4.LZ4FastDecompressor;
 
@@ -15,14 +13,16 @@ public class DecompressReadRowsResponse {
     byte[] responseBytes = response.getArrowRecordBatch().getSerializedRecordBatch().toByteArray();
     return decompressRecordBatchInternal(response, compressionCodec, responseBytes);
   }
+
   public static byte[] decompressAvroRecordBatch(
       ReadRowsResponse response, ResponseCompressionCodec compressionCodec) throws IOException {
     byte[] responseBytes = response.getAvroRows().getSerializedBinaryRows().toByteArray();
     return decompressRecordBatchInternal(response, compressionCodec, responseBytes);
   }
 
-  private static byte[] decompressRecordBatchInternal(ReadRowsResponse response,
-      ResponseCompressionCodec compressionCodec, byte[] responseBytes) throws IOException {
+  private static byte[] decompressRecordBatchInternal(
+      ReadRowsResponse response, ResponseCompressionCodec compressionCodec, byte[] responseBytes)
+      throws IOException {
     // step 1: read the uncompressed_byte_size
     // https://cloud.google.com/java/docs/reference/google-cloud-bigquerystorage/latest/com.google.cloud.bigquery.storage.v1.ReadRowsResponse#com_google_cloud_bigquery_storage_v1_ReadRowsResponse_getUncompressedByteSize__
     //
