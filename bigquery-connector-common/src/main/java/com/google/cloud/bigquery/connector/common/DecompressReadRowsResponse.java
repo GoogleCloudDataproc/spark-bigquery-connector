@@ -49,7 +49,7 @@ public class DecompressReadRowsResponse {
         // error! the response claims that it was compressed, but you did not specify which
         // compression codec to use.
         throw new IOException(
-            "Missing a compression codec to decode a compressed ReadRowsResponse");
+            "Missing a compression codec to decode a compressed ReadRowsResponse.");
     }
   }
 }
