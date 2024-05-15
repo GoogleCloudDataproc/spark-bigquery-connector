@@ -27,6 +27,7 @@ import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
@@ -244,6 +245,7 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryJobTimeoutInMinutes()).isEqualTo(30);
     assertThat(config.getGpn().get()).isEqualTo("testUser");
     assertThat(config.getSnapshotTimeMillis()).hasValue(123456789L);
+    BigQueryUtil.verifySerialization(config);
   }
 
   @Test

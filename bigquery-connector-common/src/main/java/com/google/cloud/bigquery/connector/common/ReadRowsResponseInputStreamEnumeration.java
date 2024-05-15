@@ -17,6 +17,7 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -55,8 +56,8 @@ public class ReadRowsResponseInputStreamEnumeration implements java.util.Enumera
     ReadRowsResponse ret = currentResponse;
     loadNextResponse();
     try {
-      return DecompressReadRowsResponse.decompressArrowRecordBatch(
-          ret, this.responseCompressionCodec);
+      return new ByteArrayInputStream(DecompressReadRowsResponse.decompressArrowRecordBatch(
+          ret, this.responseCompressionCodec));
     } catch (IOException e) {
       throw new UncheckedIOException("Could not read rows", e);
     }
