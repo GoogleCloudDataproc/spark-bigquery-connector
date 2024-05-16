@@ -21,6 +21,7 @@ import com.google.cloud.bigquery.{Field, Schema}
 import com.google.cloud.bigquery.storage.v1.AvroRows;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
+import com.google.cloud.bigquery.storage.v1.ArrowRecordBatch;
 import com.google.common.io.ByteStreams.toByteArray
 import com.google.protobuf.ByteString
 import org.apache.avro.{Schema => AvroSchema}
@@ -54,7 +55,11 @@ class SchemaIteratorSuite extends AnyFunSuite {
       toByteArray(getClass.getResourceAsStream("/alltypes.arrow")))
 
     // construct a ReadRowsResponse to pass to AvroBinaryIterator
-    val readRowsResponse =  ReadRowsResponse.newBuilder().setAvroRows(AvroRows.newBuilder().setSerializedBinaryRows(avroByteString)).build();
+    val avroReadRowsResponse =  ReadRowsResponse.newBuilder().setAvroRows(
+      AvroRows.newBuilder().setSerializedBinaryRows(avroByteString)).build();
+    val arrowReadRowsResponse = ReadRowsResponse.newBuilder().setArrowRecordBatch(
+      ArrowRecordBatch.newBuilder().setSerializedRecordBatch(arrowByteString)
+    ).build();
 
     // avro and arrow schemas required to read rows from bigquery
     val arrowSchema = ByteString.copyFrom(toByteArray(getClass.getResourceAsStream("/alltypes.arrowschema")))
@@ -91,9 +96,10 @@ class SchemaIteratorSuite extends AnyFunSuite {
 
     val arrowBinaryIterator = new ArrowBinaryIterator(columnsInOrder.asJava,
       arrowSchema,
-      arrowByteString,
+      arrowReadRowsResponse,
       Optional.empty(),
-      null).asScala
+      null,
+      responseCompressionCodec).asScala
 
     if (arrowBinaryIterator.hasNext) {
        arrowSparkRow = arrowBinaryIterator.next();
@@ -102,7 +108,7 @@ class SchemaIteratorSuite extends AnyFunSuite {
     val avroBinaryIterator = new AvroBinaryIterator(bqSchema,
       columnsInOrder.asJava,
       avroSchema,
-      readRowsResponse,
+      avroReadRowsResponse,
       Optional.empty(),
       Optional.empty(),
       schemaConvertersConfiguration,
@@ -167,7 +173,11 @@ class SchemaIteratorSuite extends AnyFunSuite {
       toByteArray(getClass.getResourceAsStream("/alltypes.arrow")))
 
     // construct a ReadRowsResponse to pass to AvroBinaryIterator
-    val readRowsResponse =  ReadRowsResponse.newBuilder().setAvroRows(AvroRows.newBuilder().setSerializedBinaryRows(avroByteString)).build();
+    val avroReadRowsResponse =  ReadRowsResponse.newBuilder().setAvroRows(
+      AvroRows.newBuilder().setSerializedBinaryRows(avroByteString)).build();
+    val arrowReadRowsResponse = ReadRowsResponse.newBuilder().setArrowRecordBatch(
+      ArrowRecordBatch.newBuilder().setSerializedRecordBatch(arrowByteString)
+    ).build();
 
     // avro and arrow schemas required to read rows from bigquery
     val arrowSchema = ByteString.copyFrom(toByteArray(getClass.getResourceAsStream("/alltypes.arrowschema")))
@@ -204,9 +214,10 @@ class SchemaIteratorSuite extends AnyFunSuite {
 
     val arrowBinaryIterator = new ArrowBinaryIterator(columnsInOrder.asJava,
       arrowSchema,
-      arrowByteString,
+      arrowReadRowsResponse,
       Optional.empty(),
-      Optional.empty()).asScala
+      Optional.empty(),
+      responseCompressionCodec).asScala
 
     if (arrowBinaryIterator.hasNext) {
       arrowSparkRow = arrowBinaryIterator.next();
@@ -215,7 +226,7 @@ class SchemaIteratorSuite extends AnyFunSuite {
     val avroBinaryIterator = new AvroBinaryIterator(bqSchema,
       columnsInOrder.asJava,
       avroSchema,
-      readRowsResponse,
+      avroReadRowsResponse,
       Optional.empty(),
       Optional.empty(),
       schemaConvertersConfiguration,
@@ -275,6 +286,9 @@ class SchemaIteratorSuite extends AnyFunSuite {
     val arrowByteString =
       ByteString.copyFrom(
         toByteArray(getClass.getResourceAsStream("/arrowDateTimeRowsInBytes")))
+    val arrowReadRowsResponse = ReadRowsResponse.newBuilder().setArrowRecordBatch(
+      ArrowRecordBatch.newBuilder().setSerializedRecordBatch(arrowByteString)
+    ).build();
 
     val arrowSchema =
       ByteString.copyFrom(
@@ -284,7 +298,12 @@ class SchemaIteratorSuite extends AnyFunSuite {
 
     val arrowBinaryIterator =
       new ArrowBinaryIterator(
-        columnsInOrder.asJava, arrowSchema, arrowByteString, Optional.empty(), Optional.empty()).asScala
+        columnsInOrder.asJava,
+        arrowSchema,
+        arrowReadRowsResponse,
+        Optional.empty(),
+        Optional.empty(),
+        responseCompressionCodec).asScala
 
     while (arrowBinaryIterator.hasNext) {
       val arrowSparkRow = arrowBinaryIterator.next()

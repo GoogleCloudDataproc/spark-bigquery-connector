@@ -17,10 +17,15 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.connector.common.ArrowReaderIterator;
 import com.google.cloud.bigquery.connector.common.ArrowUtil;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryStorageReadRowsTracer;
+import com.google.cloud.bigquery.connector.common.DecompressReadRowsResponse;
+import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.SequenceInputStream;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -51,21 +56,28 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
   public ArrowBinaryIterator(
       List<String> columnsInOrder,
       ByteString schema,
-      ByteString rowsInBytes,
+      ReadRowsResponse readRowsResponse,
       Optional<StructType> userProvidedSchema,
-      Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
+      Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer,
+      ResponseCompressionCodec responseCompressionCodec) {
     BufferAllocator allocator =
         ArrowUtil.newRootAllocator(maxAllocation)
             .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);
 
-    SequenceInputStream bytesWithSchemaStream =
-        new SequenceInputStream(
-            new ByteArrayInputStream(schema.toByteArray()),
-            new ByteArrayInputStream(rowsInBytes.toByteArray()));
-
-    ArrowStreamReader arrowStreamReader =
-        new ArrowStreamReader(bytesWithSchemaStream, allocator, CommonsCompressionFactory.INSTANCE);
-    arrowReaderIterator = new ArrowReaderIterator(arrowStreamReader);
+    try {
+      SequenceInputStream bytesWithSchemaStream =
+          new SequenceInputStream(
+              new ByteArrayInputStream(schema.toByteArray()),
+              DecompressReadRowsResponse.decompressArrowRecordBatch(
+                  readRowsResponse, responseCompressionCodec));
+      ArrowStreamReader arrowStreamReader =
+          new ArrowStreamReader(
+              bytesWithSchemaStream, allocator, CommonsCompressionFactory.INSTANCE);
+      arrowReaderIterator = new ArrowReaderIterator(arrowStreamReader);
+    } catch (IOException e) {
+      throw new BigQueryConnectorException(
+          "Failed to decode Arrow binary for a ReadRowsResponse", e);
+    }
     currentIterator = ImmutableList.<InternalRow>of().iterator();
     this.columnsInOrder = columnsInOrder;
 

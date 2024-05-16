@@ -53,12 +53,14 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
       final List<String> columnsInOrder,
       final ByteString arrowSchema,
       final Optional<StructType> userProvidedSchema,
-      final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer) {
+      final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer,
+      final ResponseCompressionCodec responseCompressionCodec) {
     return new Arrow(
         columnsInOrder,
         arrowSchema,
         fromJavaUtil(userProvidedSchema),
-        fromJavaUtil(bigQueryStorageReadRowsTracer));
+        fromJavaUtil(bigQueryStorageReadRowsTracer),
+        responseCompressionCodec);
   }
 
   Iterator<InternalRow> convert(ReadRowsResponse response);
@@ -123,31 +125,39 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
     private final com.google.common.base.Optional<StructType> userProvidedSchema;
     private final com.google.common.base.Optional<BigQueryStorageReadRowsTracer>
         bigQueryStorageReadRowsTracer;
+    private final ResponseCompressionCodec responseCompressionCodec;
 
     public Arrow(
         List<String> columnsInOrder,
         ByteString arrowSchema,
         com.google.common.base.Optional<StructType> userProvidedSchema,
         com.google.common.base.Optional<BigQueryStorageReadRowsTracer>
-            bigQueryStorageReadRowsTracer) {
+            bigQueryStorageReadRowsTracer,
+        ResponseCompressionCodec responseCompressionCodec) {
       this.columnsInOrder = columnsInOrder;
       this.arrowSchema = arrowSchema;
       this.userProvidedSchema = userProvidedSchema;
       this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
+      this.responseCompressionCodec = responseCompressionCodec;
     }
 
     @Override
     public Iterator<InternalRow> convert(ReadRowsResponse response) {
+
       return new ArrowBinaryIterator(
           columnsInOrder,
           arrowSchema,
-          response.getArrowRecordBatch().getSerializedRecordBatch(),
+          response,
           userProvidedSchema.toJavaUtil(),
-          bigQueryStorageReadRowsTracer.toJavaUtil());
+          bigQueryStorageReadRowsTracer.toJavaUtil(),
+          responseCompressionCodec);
     }
 
     @Override
     public int getBatchSizeInBytes(ReadRowsResponse response) {
+      if (response.getUncompressedByteSize() > 0) {
+        return (int) response.getUncompressedByteSize();
+      }
       return response.getArrowRecordBatch().getSerializedRecordBatch().size();
     }
   }

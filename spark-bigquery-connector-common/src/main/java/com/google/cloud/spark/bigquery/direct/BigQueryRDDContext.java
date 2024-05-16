@@ -125,7 +125,8 @@ class BigQueryRDDContext implements Serializable {
               Arrays.asList(columnsInOrder),
               readSession.getArrowSchema().getSerializedSchema(),
               Optional.of(schema),
-              Optional.of(tracer));
+              Optional.of(tracer),
+              options.getResponseCompressionCodec());
     }
 
     return new InterruptibleIterator<InternalRow>(
