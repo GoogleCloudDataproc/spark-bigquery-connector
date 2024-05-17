@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 import com.google.cloud.spark.bigquery.metrics.SparkBigQueryReadSessionMetrics;
 import com.google.cloud.spark.bigquery.metrics.SparkMetricsSource;
 import com.google.common.base.Joiner;
@@ -48,6 +49,7 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
   private final ByteString serializedArrowSchema;
   private final com.google.common.base.Optional<StructType> userProvidedSchema;
   private final SparkBigQueryReadSessionMetrics sparkBigQueryReadSessionMetrics;
+  private final ResponseCompressionCodec responseCompressionCodec;
 
   public ArrowInputPartitionContext(
       BigQueryClientFactory bigQueryReadClientFactory,
@@ -57,7 +59,8 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
       ImmutableList<String> selectedFields,
       ReadSessionResponse readSessionResponse,
       Optional<StructType> userProvidedSchema,
-      SparkBigQueryReadSessionMetrics sparkBigQueryReadSessionMetrics) {
+      SparkBigQueryReadSessionMetrics sparkBigQueryReadSessionMetrics,
+      ResponseCompressionCodec responseCompressionCodec) {
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
     this.streamNames = names;
     this.options = options;
@@ -71,6 +74,7 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
       this.bigQueryReadClientFactory.setAudienceForIdentityToken(
           readSessionResponse.getReadSession().getName());
     }
+    this.responseCompressionCodec = responseCompressionCodec;
   }
 
   public InputPartitionReaderContext<ColumnarBatch> createPartitionReaderContext() {
@@ -105,7 +109,8 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
         selectedFields,
         tracer,
         userProvidedSchema.toJavaUtil(),
-        options.numBackgroundThreads());
+        options.numBackgroundThreads(),
+        responseCompressionCodec);
   }
 
   @Override

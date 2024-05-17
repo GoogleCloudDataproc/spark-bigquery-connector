@@ -117,14 +117,16 @@ class BigQueryRDDContext implements Serializable {
               readSession.getAvroSchema().getSchema(),
               Optional.of(schema),
               Optional.of(tracer),
-              SchemaConvertersConfiguration.from(options));
+              SchemaConvertersConfiguration.from(options),
+              options.getResponseCompressionCodec());
     } else {
       converter =
           ReadRowsResponseToInternalRowIteratorConverter.arrow(
               Arrays.asList(columnsInOrder),
               readSession.getArrowSchema().getSerializedSchema(),
               Optional.of(schema),
-              Optional.of(tracer));
+              Optional.of(tracer),
+              options.getResponseCompressionCodec());
     }
 
     return new InterruptibleIterator<InternalRow>(

@@ -274,7 +274,8 @@ public class BigQueryDataSourceReaderContext {
                         partitionSelectedFields,
                         readSessionResponse.get(),
                         arrowSchema,
-                        sparkBigQueryReadSessionMetrics))
+                        sparkBigQueryReadSessionMetrics,
+                        readSessionCreatorConfig.getResponseCompressionCodec()))
             .collect(Collectors.toList());
     return plannedInputPartitionContexts.stream()
         .map(ctx -> (InputPartitionContext<ColumnarBatch>) ctx);
@@ -314,7 +315,8 @@ public class BigQueryDataSourceReaderContext {
           readSessionResponse.getReadSession().getAvroSchema().getSchema(),
           userProvidedSchema,
           /* bigQueryStorageReadRowTracer */ Optional.empty(),
-          SchemaConvertersConfiguration.from(options));
+          SchemaConvertersConfiguration.from(options),
+          readSessionCreatorConfig.getResponseCompressionCodec());
     }
     throw new IllegalArgumentException(
         "No known converted for " + readSessionCreatorConfig.getReadDataFormat());
@@ -400,7 +402,8 @@ public class BigQueryDataSourceReaderContext {
       // It means the filter combined filter won't change, so no need to create another read session
       // we are done here.
       logger.info(
-          "Could not find filters for partition of clustering field for table {}, aborting DPP filter",
+          "Could not find filters for partition of clustering field for table {}, aborting DPP"
+              + " filter",
           BigQueryUtil.friendlyTableName(tableId));
       return Optional.empty();
     }
@@ -421,7 +424,8 @@ public class BigQueryDataSourceReaderContext {
     if (plannedInputPartitionContexts.size() > previousInputPartitionContexts.size()) {
       logger.warn(
           String.format(
-              "New partitions should not be more than originally planned. Previously had %d streams, now has %d.",
+              "New partitions should not be more than originally planned. Previously had %d"
+                  + " streams, now has %d.",
               previousInputPartitionContexts.size(), plannedInputPartitionContexts.size()));
       return Optional.of(plannedInputPartitionContexts);
     }

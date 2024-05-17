@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Next
+* PR #1222: Add option to request lz4 compressed ReadRowsResponse
 
 ## 0.38.0 - 2024-05-01
 

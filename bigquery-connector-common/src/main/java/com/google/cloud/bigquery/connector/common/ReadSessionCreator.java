@@ -84,9 +84,9 @@ public class ReadSessionCreator {
    * constructed with.
    *
    * @param table The table to create the session for.
-   * @param selectedFields
-   * @param filter
-   * @return
+   * @param selectedFields Projection : the fields (e.g. columns) to return
+   * @param filter Selection: how to filter rows that match this filter
+   * @return ReadSessionResponse
    */
   public ReadSessionResponse create(
       TableId table, ImmutableList<String> selectedFields, Optional<String> filter) {
@@ -129,6 +129,7 @@ public class ReadSessionCreator {
         ArrowSerializationOptions.newBuilder()
             .setBufferCompression(config.getArrowCompressionCodec())
             .build());
+    readOptions.setResponseCompressionCodec(config.getResponseCompressionCodec());
 
     int preferredMinStreamCount =
         config
@@ -159,7 +160,8 @@ public class ReadSessionCreator {
     if (minStreamCount > maxStreamCount) {
       minStreamCount = maxStreamCount;
       log.warn(
-          "preferred min parallelism is larger than the max parallelism, therefore setting it to max parallelism [{}]",
+          "preferred min parallelism is larger than the max parallelism, therefore setting it to"
+              + " max parallelism [{}]",
           minStreamCount);
     }
     Instant sessionPrepEndTime = Instant.now();
@@ -220,11 +222,10 @@ public class ReadSessionCreator {
       log.info("Read session:{}", new Gson().toJson(jsonObject));
       if (readSession.getStreamsCount() != maxStreamCount) {
         log.info(
-            "Requested {} max partitions, but only received {} "
-                + "from the BigQuery Storage API for session {}. Notice that the "
-                + "number of streams in actual may be lower than the requested number, depending on "
-                + "the amount parallelism that is reasonable for the table and the maximum amount of "
-                + "parallelism allowed by the system.",
+            "Requested {} max partitions, but only received {} from the BigQuery Storage API for"
+                + " session {}. Notice that the number of streams in actual may be lower than the"
+                + " requested number, depending on the amount parallelism that is reasonable for"
+                + " the table and the maximum amount of parallelism allowed by the system.",
             maxStreamCount,
             readSession.getStreamsCount(),
             readSession.getName());
@@ -281,7 +282,8 @@ public class ReadSessionCreator {
         throw new BigQueryConnectorException(
             UNSUPPORTED,
             format(
-                "Views are not enabled. You can enable views by setting '%s' to true. Notice additional cost may occur.",
+                "Views are not enabled. You can enable views by setting '%s' to true. Notice"
+                    + " additional cost may occur.",
                 config.getViewEnabledParamName()));
       }
       return true;

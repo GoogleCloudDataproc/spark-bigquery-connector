@@ -780,6 +780,16 @@ word-break:break-word
      <td>Read</td>
    </tr>
    <tr valign="top">
+     <td><code>responseCompressionCodec</code>
+     </td>
+     <td>  Compression codec used to compress the ReadRowsResponse data. Options:
+           <code>RESPONSE_COMPRESSION_CODEC_UNSPECIFIED</code>,
+           <code>RESPONSE_COMPRESSION_CODEC_LZ4</code>
+          <br/> (Optional. Defaults to <code>RESPONSE_COMPRESSION_CODEC_UNSPECIFIED</code> which means no compression will be used)
+     </td>
+     <td>Read</td>
+   </tr>
+   <tr valign="top">
      <td><code>cacheExpirationTimeInMinutes</code>
      </td>
      <td>  The expiration time of the in-memory cache storing query information.

@@ -43,6 +43,7 @@ import com.google.cloud.bigquery.storage.v1.MockBigQueryRead;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableModifiers;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.cloud.bigquery.storage.v1.stub.EnhancedBigQueryReadStub;
 import com.google.common.cache.Cache;
@@ -375,6 +376,7 @@ public class ReadSessionCreatorTest {
         ArrowSerializationOptions.newBuilder()
             .setBufferCompression(config.getArrowCompressionCodec())
             .build());
+    readOptions.setResponseCompressionCodec(config.getResponseCompressionCodec());
     CreateReadSessionRequest key =
         CreateReadSessionRequest.newBuilder()
             .setParent("projects/" + bigQueryClient.getProjectId())
@@ -419,6 +421,8 @@ public class ReadSessionCreatorTest {
             .setReadDataFormat(DataFormat.ARROW)
             .setEnableReadSessionCaching(true)
             .setArrowCompressionCodec(CompressionCodec.COMPRESSION_UNSPECIFIED)
+            .setResponseCompressionCodec(
+                ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_UNSPECIFIED)
             .build();
     ReadSessionCreator creator =
         new ReadSessionCreator(config, bigQueryClient, mockBigQueryClientFactory);

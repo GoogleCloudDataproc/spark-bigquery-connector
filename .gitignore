@@ -32,3 +32,6 @@ AdAdHocITSuite.scala
 
 # Mac
 .DS_Store
+
+# Visual Studio IDE
+.vscode/

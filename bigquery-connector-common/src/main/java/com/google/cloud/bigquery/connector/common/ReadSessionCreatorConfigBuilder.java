@@ -17,6 +17,7 @@ package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -42,6 +43,8 @@ public class ReadSessionCreatorConfigBuilder {
   int prebufferResponses = 1;
   int streamsPerPartition = 1;
   private CompressionCodec arrowCompressionCodec = CompressionCodec.COMPRESSION_UNSPECIFIED;
+  private ResponseCompressionCodec responseCompressionCodec =
+      ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_UNSPECIFIED;
   private Optional<String> traceId = Optional.empty();
   private boolean enableReadSessionCaching = true;
   private long readSessionCacheDurationMins = 5L;
@@ -164,6 +167,13 @@ public class ReadSessionCreatorConfigBuilder {
   }
 
   @CanIgnoreReturnValue
+  public ReadSessionCreatorConfigBuilder setResponseCompressionCodec(
+      ResponseCompressionCodec responseCompressionCodec) {
+    this.responseCompressionCodec = responseCompressionCodec;
+    return this;
+  }
+
+  @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setTraceId(Optional<String> traceId) {
     this.traceId = traceId;
     return this;
@@ -207,6 +217,7 @@ public class ReadSessionCreatorConfigBuilder {
         prebufferResponses,
         streamsPerPartition,
         arrowCompressionCodec,
+        responseCompressionCodec,
         traceId,
         enableReadSessionCaching,
         readSessionCacheDurationMins,

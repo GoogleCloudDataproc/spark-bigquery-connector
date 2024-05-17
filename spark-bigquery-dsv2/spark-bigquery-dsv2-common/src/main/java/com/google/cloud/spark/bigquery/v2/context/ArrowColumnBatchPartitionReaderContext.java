@@ -23,6 +23,7 @@ import com.google.cloud.bigquery.connector.common.ParallelArrowReader;
 import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
 import com.google.cloud.bigquery.connector.common.ReadRowsResponseInputStreamEnumeration;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 import com.google.cloud.spark.bigquery.ArrowSchemaConverter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -162,7 +163,8 @@ public class ArrowColumnBatchPartitionReaderContext
       List<String> namesInOrder,
       BigQueryStorageReadRowsTracer tracer,
       Optional<StructType> userProvidedSchema,
-      int numBackgroundThreads) {
+      int numBackgroundThreads,
+      ResponseCompressionCodec responseCompressionCodec) {
     this.allocator = ArrowUtil.newRootAllocator(maxAllocation);
     this.readRowsHelper = readRowsHelper;
     this.namesInOrder = namesInOrder;
@@ -180,23 +182,24 @@ public class ArrowColumnBatchPartitionReaderContext
     if (numBackgroundThreads == 1) {
       // There is a background thread created by ParallelArrowReader that serves
       // as a thread to do parsing on.
-      InputStream fullStream = makeSingleInputStream(readRowsResponses, schema, tracer);
+      InputStream fullStream =
+          makeSingleInputStream(readRowsResponses, schema, tracer, responseCompressionCodec);
       reader =
           new ParallelReaderAdapter(
               allocator,
               ImmutableList.of(newArrowStreamReader(fullStream)),
               MoreExecutors.newDirectExecutorService(),
               tracer.forkWithPrefix("BackgroundReader"),
-              /*closeable=*/ null);
+              /* closeable= */ null);
     } else if (numBackgroundThreads > 1) {
       // Subtract one because current excess tasks will be executed
       // on round robin thread in ParallelArrowReader.
       ExecutorService backgroundParsingService =
           new ThreadPoolExecutor(
-              /*corePoolSize=*/ 1,
-              /*maximumPoolSize=*/ numBackgroundThreads - 1,
-              /*keepAliveTime=*/ 2,
-              /*keepAlivetimeUnit=*/ TimeUnit.SECONDS,
+              /* corePoolSize= */ 1,
+              /* maximumPoolSize= */ numBackgroundThreads - 1,
+              /* keepAliveTime= */ 2,
+              /* keepAlivetimeUnit= */ TimeUnit.SECONDS,
               new SynchronousQueue<>(),
               new ThreadPoolExecutor.CallerRunsPolicy());
       IteratorMultiplexer multiplexer =
@@ -207,7 +210,7 @@ public class ArrowColumnBatchPartitionReaderContext
         InputStream responseStream =
             new SequenceInputStream(
                 new ReadRowsResponseInputStreamEnumeration(
-                    multiplexer.getSplit(x), multiplexedTracer));
+                    multiplexer.getSplit(x), multiplexedTracer, responseCompressionCodec));
         InputStream schemaAndBatches = new SequenceInputStream(schema.newInput(), responseStream);
         closeables.add(multiplexedTracer::finished);
         readers.add(newArrowStreamReader(schemaAndBatches));
@@ -221,7 +224,8 @@ public class ArrowColumnBatchPartitionReaderContext
               multiplexer);
     } else {
       // Zero background threads.
-      InputStream fullStream = makeSingleInputStream(readRowsResponses, schema, tracer);
+      InputStream fullStream =
+          makeSingleInputStream(readRowsResponses, schema, tracer, responseCompressionCodec);
       reader = new SimpleAdapter(newArrowStreamReader(fullStream));
     }
   }
@@ -230,10 +234,12 @@ public class ArrowColumnBatchPartitionReaderContext
   private InputStream makeSingleInputStream(
       Iterator<ReadRowsResponse> readRowsResponses,
       ByteString schema,
-      BigQueryStorageReadRowsTracer tracer) {
+      BigQueryStorageReadRowsTracer tracer,
+      ResponseCompressionCodec responseCompressionCodec) {
     InputStream batchStream =
         new SequenceInputStream(
-            new ReadRowsResponseInputStreamEnumeration(readRowsResponses, tracer));
+            new ReadRowsResponseInputStreamEnumeration(
+                readRowsResponses, tracer, responseCompressionCodec));
     return new SequenceInputStream(schema.newInput(), batchStream);
   }
 

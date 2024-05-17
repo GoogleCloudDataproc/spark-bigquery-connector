@@ -16,7 +16,10 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
+import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -29,11 +32,15 @@ public class ReadRowsResponseInputStreamEnumeration implements java.util.Enumera
   private final Iterator<ReadRowsResponse> responses;
   private ReadRowsResponse currentResponse;
   private final BigQueryStorageReadRowsTracer tracer;
+  private final ResponseCompressionCodec responseCompressionCodec;
 
   public ReadRowsResponseInputStreamEnumeration(
-      Iterator<ReadRowsResponse> responses, BigQueryStorageReadRowsTracer tracer) {
+      Iterator<ReadRowsResponse> responses,
+      BigQueryStorageReadRowsTracer tracer,
+      ResponseCompressionCodec compressionCodec) {
     this.responses = responses;
     this.tracer = tracer;
+    this.responseCompressionCodec = compressionCodec;
     loadNextResponse();
   }
 
@@ -47,7 +54,12 @@ public class ReadRowsResponseInputStreamEnumeration implements java.util.Enumera
     }
     ReadRowsResponse ret = currentResponse;
     loadNextResponse();
-    return ret.getArrowRecordBatch().getSerializedRecordBatch().newInput();
+    try {
+      return DecompressReadRowsResponse.decompressArrowRecordBatch(
+          ret, this.responseCompressionCodec);
+    } catch (IOException e) {
+      throw new UncheckedIOException("Could not read rows", e);
+    }
   }
 
   void loadNextResponse() {
