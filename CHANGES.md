@@ -1,7 +1,11 @@
 # Release Notes
 
 ## Next
+
+* PR #1221: Adding support for [table snapshots](https://cloud.google.com/bigquery/docs/table-snapshots-intro). Thanks @tom-s-powell !
 * PR #1222: Add option to request lz4 compressed ReadRowsResponse
+* PR #1225: Fixing multi-release jar shading
+* PR #1227: Optimizing dynamic partition overwrite for Time partitioned tables
 
 ## 0.38.0 - 2024-05-01
 
