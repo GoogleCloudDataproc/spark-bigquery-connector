@@ -6,6 +6,11 @@
 * PR #1222: Add option to request lz4 compressed ReadRowsResponse
 * PR #1225: Fixing multi-release jar shading
 * PR #1227: Optimizing dynamic partition overwrite for Time partitioned tables
+* BigQuery API has been upgraded to version 2.40.1
+* BigQuery Storage API has been upgraded to version 3.5.1
+* GAX has been upgraded to version 2.48.1
+* Arrow has been upgraded to version 16.1.0
+* gRPC has been upgraded to version 1.64.0
 
 ## 0.38.0 - 2024-05-01
 
