@@ -52,7 +52,9 @@
         <revision>0.0.1-SNAPSHOT</revision>
 
         <avro.version>1.11.3</avro.version>
-        <arrow.version>16.1.0</arrow.version>
+        <!--arrow 16.1.0 breaks Java 8 support
+        https://github.com/apache/arrow/issues/41717 -->
+        <arrow.version>16.0.0</arrow.version>
         <gax.version>2.48.1</gax.version>
         <google-auth.version>1.23.0</google-auth.version>
         <google-cloud-bigquery.version>2.40.1</google-cloud-bigquery.version>

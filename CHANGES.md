@@ -9,7 +9,6 @@
 * BigQuery API has been upgraded to version 2.40.1
 * BigQuery Storage API has been upgraded to version 3.5.1
 * GAX has been upgraded to version 2.48.1
-* Arrow has been upgraded to version 16.1.0
 * gRPC has been upgraded to version 1.64.0
 
 ## 0.38.0 - 2024-05-01
