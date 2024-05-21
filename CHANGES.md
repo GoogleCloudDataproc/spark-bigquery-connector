@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.39.0 - 2024-05-21
 
 * PR #1221: Adding support for [table snapshots](https://cloud.google.com/bigquery/docs/table-snapshots-intro). Thanks @tom-s-powell !
 * PR #1222: Add option to request lz4 compressed ReadRowsResponse
