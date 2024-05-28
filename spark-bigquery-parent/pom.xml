@@ -661,6 +661,10 @@
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.io.perfmark</shadedPattern>
                         </relocation>
                         <relocation>
+                            <pattern>net.bytebuddy</pattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.net.bytebuddy</shadedPattern>
+                        </relocation>
+                        <relocation>
                             <pattern>org.apache.arrow</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.apache.arrow</shadedPattern>
                         </relocation>
@@ -687,6 +691,10 @@
                         <relocation>
                             <pattern>org.codehaus.mojo</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.codehaus.mojo</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.eclipse.collections</pattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.eclipse.collections</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>org.json</pattern>
