@@ -642,6 +642,10 @@
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.io.perfmark</shadedPattern>
                         </relocation>
                         <relocation>
+                            <pattern>net.bytebuddy</pattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.net.bytebuddy</shadedPattern>
+                        </relocation>
+                        <relocation>
                             <pattern>org.apache.arrow</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.apache.arrow</shadedPattern>
                         </relocation>
