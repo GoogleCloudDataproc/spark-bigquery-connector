@@ -2,6 +2,8 @@
 
 ## Next
 
+* PR #1236: Fixing unshaded artifacts, added shading verification
+
 ## 0.39.0 - 2024-05-21
 
 * PR #1221: Adding support for [table snapshots](https://cloud.google.com/bigquery/docs/table-snapshots-intro). Thanks @tom-s-powell !
