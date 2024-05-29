@@ -2,6 +2,9 @@
 
 ## Next
 * PR #1156: Propagate stats for BigLake Managed tables
+* PR #1205: Sending Identity token in the read API header
+* PR #1212: Support OpenLineage in spark-3.x-bigquery connectors
+* PR #1227: Optimizing dynamic partition overwrite for Time partitioned tables
 
 ## 0.36.2 - 2024-05-07
 
