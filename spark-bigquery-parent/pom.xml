@@ -67,6 +67,7 @@
         <jackson.version>2.17.1</jackson.version>
         <netty.version>4.1.109.Final</netty.version>
         <openlineage-spark.version>1.13.1</openlineage-spark.version>
+        <opentelemetry.version>1.37.0</opentelemetry.version>
         <paranamer.version>2.8</paranamer.version>
         <!-- Don't upgrade protobuf until bigquerystorage is compatible with 4.x version of proto.
         Ref : https://github.com/protocolbuffers/protobuf/issues/16452-->
@@ -237,6 +238,18 @@
                 <artifactId>openlineage-spark_2.13</artifactId>
                 <version>${openlineage-spark.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-api</artifactId>
+                <version>${opentelemetry.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-context</artifactId>
+                <version>${opentelemetry.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>javax.inject</groupId>
@@ -648,6 +661,10 @@
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.io.perfmark</shadedPattern>
                         </relocation>
                         <relocation>
+                            <pattern>net.bytebuddy</pattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.net.bytebuddy</shadedPattern>
+                        </relocation>
+                        <relocation>
                             <pattern>org.apache.arrow</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.apache.arrow</shadedPattern>
                         </relocation>
@@ -674,6 +691,10 @@
                         <relocation>
                             <pattern>org.codehaus.mojo</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.codehaus.mojo</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.eclipse.collections</pattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.eclipse.collections</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>org.json</pattern>
@@ -730,6 +751,27 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>verify-shaded-artifact</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <skip>${shade.skip}</skip>
+                    <executable>${reactor.project.basedir}/scripts/verify-shading.sh</executable>
+                    <arguments>
+                        <argument>${project.build.directory}/${project.build.finalName}.jar</argument>
+                    </arguments>
+                </configuration>
             </plugin>
         </plugins>
     </build>
