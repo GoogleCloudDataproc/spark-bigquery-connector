@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.36.3 - 2024-05-30
 * PR #1156: Propagate stats for BigLake Managed tables
 * PR #1205: Sending Identity token in the read API header
 * PR #1212: Support OpenLineage in spark-3.x-bigquery connectors
