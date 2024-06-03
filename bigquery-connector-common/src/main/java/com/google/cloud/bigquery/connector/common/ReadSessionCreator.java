@@ -220,16 +220,13 @@ public class ReadSessionCreator {
           "readSessionDuration",
           Duration.between(sessionPrepStartTime, sessionCreationEndTime).toMillis());
       log.info("Read session:{}", new Gson().toJson(jsonObject));
-      if (readSession.getStreamsCount() != maxStreamCount) {
-        log.info(
-            "Requested {} max partitions, but only received {} from the BigQuery Storage API for"
-                + " session {}. Notice that the number of streams in actual may be lower than the"
-                + " requested number, depending on the amount parallelism that is reasonable for"
-                + " the table and the maximum amount of parallelism allowed by the system.",
-            maxStreamCount,
-            readSession.getStreamsCount(),
-            readSession.getName());
-      }
+      log.info(
+          "Received {} partitions from the BigQuery Storage API for"
+              + " session {}. Notice that the number of streams in actual may be lower than the"
+              + " requested number, depending on the amount parallelism that is reasonable for"
+              + " the table and the maximum amount of parallelism allowed by the system.",
+          readSession.getStreamsCount(),
+          readSession.getName());
     }
 
     return new ReadSessionResponse(readSession, actualTable);
