@@ -116,8 +116,9 @@ public class SparkBigQueryUtil {
         gcsPath =
             new Path(
                 String.format(
-                    "gs://%s/%s",
-                    config.getPersistentGcsBucket().get(), config.getPersistentGcsPath().get()));
+                    "%s/%s",
+                    getBucketAndScheme(config.getPersistentGcsBucket().get()),
+                    config.getPersistentGcsPath().get()));
         FileSystem fs = gcsPath.getFileSystem(conf);
         if (fs.exists(gcsPath)) {
           throw new IllegalArgumentException(
@@ -140,16 +141,22 @@ public class SparkBigQueryUtil {
       throws IOException {
     boolean needNewPath = true;
     Path gcsPath = null;
+    String gcsBucketAndScheme = getBucketAndScheme(gcsBucket);
     while (needNewPath) {
       gcsPath =
           new Path(
               String.format(
-                  "gs://%s/.spark-bigquery-%s-%s", gcsBucket, applicationId, UUID.randomUUID()));
+                  "%s/.spark-bigquery-%s-%s",
+                  gcsBucketAndScheme, applicationId, UUID.randomUUID()));
       FileSystem fs = gcsPath.getFileSystem(conf);
       needNewPath = fs.exists(gcsPath);
     }
 
     return gcsPath;
+  }
+
+  private static String getBucketAndScheme(String gcsBucket) {
+    return gcsBucket.contains("://") ? gcsBucket : "gs://" + gcsBucket;
   }
 
   public static String getJobId(SQLConf sqlConf) {
