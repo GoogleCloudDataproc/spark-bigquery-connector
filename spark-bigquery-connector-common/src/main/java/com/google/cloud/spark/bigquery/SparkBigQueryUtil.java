@@ -41,7 +41,6 @@ import java.util.ServiceLoader;
 import java.util.UUID;
 import java.util.stream.Stream;
 import javax.validation.constraints.NotNull;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -118,7 +117,8 @@ public class SparkBigQueryUtil {
             new Path(
                 String.format(
                     "%s/%s",
-                    getBucketAndScheme(config.getPersistentGcsBucket().get()), config.getPersistentGcsPath().get()));
+                    getBucketAndScheme(config.getPersistentGcsBucket().get()),
+                    config.getPersistentGcsPath().get()));
         FileSystem fs = gcsPath.getFileSystem(conf);
         if (fs.exists(gcsPath)) {
           throw new IllegalArgumentException(
@@ -146,7 +146,8 @@ public class SparkBigQueryUtil {
       gcsPath =
           new Path(
               String.format(
-                  "%s/.spark-bigquery-%s-%s", gcsBucketAndScheme, applicationId, UUID.randomUUID()));
+                  "%s/.spark-bigquery-%s-%s",
+                  gcsBucketAndScheme, applicationId, UUID.randomUUID()));
       FileSystem fs = gcsPath.getFileSystem(conf);
       needNewPath = fs.exists(gcsPath);
     }
