@@ -29,7 +29,13 @@
         </dependency>
         <dependency>
             <groupId>io.openlineage</groupId>
-            <artifactId>openlineage-spark_2.12</artifactId>
+            <artifactId>spark-extension-interfaces</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.openlineage</groupId>
+            <artifactId>spark-extension-entrypoint</artifactId>
+            <version>1.0.0</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.beam</groupId>
