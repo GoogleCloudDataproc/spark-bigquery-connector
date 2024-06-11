@@ -67,7 +67,6 @@
         <jackson.version>2.17.1</jackson.version>
         <netty.version>4.1.109.Final</netty.version>
         <openlineage-spark.version>1.13.1</openlineage-spark.version>
-        <opentelemetry.version>1.37.0</opentelemetry.version>
         <paranamer.version>2.8</paranamer.version>
         <!-- Don't upgrade protobuf until bigquerystorage is compatible with 4.x version of proto.
         Ref : https://github.com/protocolbuffers/protobuf/issues/16452-->
@@ -238,18 +237,6 @@
                 <artifactId>openlineage-spark_2.13</artifactId>
                 <version>${openlineage-spark.version}</version>
                 <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.opentelemetry</groupId>
-                <artifactId>opentelemetry-api</artifactId>
-                <version>${opentelemetry.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.opentelemetry</groupId>
-                <artifactId>opentelemetry-context</artifactId>
-                <version>${opentelemetry.version}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>javax.inject</groupId>
@@ -655,6 +642,10 @@
                         <relocation>
                             <pattern>io.opencensus</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.io.opencensus</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>io.opentelemetry</pattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.io.opentelemetry</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>io.perfmark</pattern>
