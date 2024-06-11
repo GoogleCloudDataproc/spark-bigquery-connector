@@ -2,6 +2,7 @@
 
 ## Next
 
+* Issue #1126: Fixing Kryo serialization issues
 * PR #1236: Fixing unshaded artifacts, added shading verification
 
 ## 0.39.0 - 2024-05-21
