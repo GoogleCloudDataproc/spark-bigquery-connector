@@ -62,7 +62,9 @@ import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -207,8 +209,8 @@ public class SparkBigQueryConfig
   com.google.common.base.Optional<JobInfo.CreateDisposition> createDisposition = empty();
   boolean optimizedEmptyProjection = true;
   boolean useAvroLogicalTypes = false;
-  ImmutableList<String> decimalTargetTypes = ImmutableList.of();
-  ImmutableList<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.of();
+  List<String> decimalTargetTypes = Collections.emptyList();
+  List<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = Collections.emptyList();
   int materializationExpirationTimeInMinutes;
   int maxReadRowsRetries = 3;
   boolean pushAllFilters = true;
@@ -233,8 +235,8 @@ public class SparkBigQueryConfig
   private int cacheExpirationTimeInMinutes = DEFAULT_CACHE_EXPIRATION_IN_MINUTES;
   // used to create BigQuery ReadSessions
   private com.google.common.base.Optional<String> traceId;
-  private ImmutableMap<String, String> bigQueryJobLabels = ImmutableMap.of();
-  private ImmutableMap<String, String> bigQueryTableLabels = ImmutableMap.of();
+  private Map<String, String> bigQueryJobLabels = Collections.emptyMap();
+  private Map<String, String> bigQueryTableLabels = Collections.emptyMap();
   private com.google.common.base.Optional<Long> createReadSessionTimeoutInSeconds;
   private QueryJobConfiguration.Priority queryJobPriority = DEFAULT_JOB_PRIORITY;
 
@@ -464,11 +466,11 @@ public class SparkBigQueryConfig
     if (allowFieldRelaxation) {
       loadSchemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION);
     }
-    config.loadSchemaUpdateOptions = loadSchemaUpdateOptions.build();
+    config.loadSchemaUpdateOptions = Collections.unmodifiableList(loadSchemaUpdateOptions.build());
     com.google.common.base.Optional<String[]> decimalTargetTypes =
         getOption(options, "decimalTargetTypes").transform(s -> s.split(","));
     if (decimalTargetTypes.isPresent()) {
-      config.decimalTargetTypes = ImmutableList.copyOf(decimalTargetTypes.get());
+      config.decimalTargetTypes = Arrays.asList(decimalTargetTypes.get());
     }
     config.bigQueryStorageGrpcEndpoint =
         getAnyOption(globalOptions, options, "bigQueryStorageGrpcEndpoint");
@@ -630,7 +632,7 @@ public class SparkBigQueryConfig
   // takes only the options with the BIGQUERY_JOB_LABEL_PREFIX prefix, and strip them of this
   // prefix.
   // The `options` map overrides the `globalOptions` map.
-  static ImmutableMap<String, String> parseBigQueryLabels(
+  static Map<String, String> parseBigQueryLabels(
       ImmutableMap<String, String> globalOptions,
       ImmutableMap<String, String> options,
       String labelPrefix) {
@@ -650,7 +652,7 @@ public class SparkBigQueryConfig
       }
     }
 
-    return result.build();
+    return Collections.unmodifiableMap(result.build());
   }
 
   private static ImmutableMap<String, String> toLowerCaseKeysMap(Map<String, String> map) {
@@ -859,7 +861,7 @@ public class SparkBigQueryConfig
   }
 
   public ImmutableList<String> getDecimalTargetTypes() {
-    return decimalTargetTypes;
+    return ImmutableList.copyOf(decimalTargetTypes);
   }
 
   public boolean isViewsEnabled() {
@@ -925,7 +927,7 @@ public class SparkBigQueryConfig
   }
 
   public ImmutableList<JobInfo.SchemaUpdateOption> getLoadSchemaUpdateOptions() {
-    return loadSchemaUpdateOptions;
+    return ImmutableList.copyOf(loadSchemaUpdateOptions);
   }
 
   public int getMaterializationExpirationTimeInMinutes() {
@@ -1049,7 +1051,7 @@ public class SparkBigQueryConfig
 
   @Override
   public ImmutableMap<String, String> getBigQueryJobLabels() {
-    return bigQueryJobLabels;
+    return ImmutableMap.copyOf(bigQueryJobLabels);
   }
 
   public boolean getAllowMapTypeConversion() {
@@ -1061,7 +1063,7 @@ public class SparkBigQueryConfig
   }
 
   public ImmutableMap<String, String> getBigQueryTableLabels() {
-    return bigQueryTableLabels;
+    return ImmutableMap.copyOf(bigQueryTableLabels);
   }
 
   public Optional<String> getGpn() {
