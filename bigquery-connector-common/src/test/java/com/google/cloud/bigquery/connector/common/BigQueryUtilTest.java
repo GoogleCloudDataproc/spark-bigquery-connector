@@ -20,6 +20,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import com.google.auth.Credentials;
+import com.google.auth.oauth2.UserCredentials;
 import com.google.cloud.bigquery.BigLakeConfiguration;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
@@ -43,10 +45,8 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.Instant;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
@@ -749,5 +749,20 @@ public class BigQueryUtilTest {
             StandardTableDefinition.newBuilder().setLocation("us-east-1").build());
 
     assertTrue(BigQueryUtil.isBigQueryNativeTable(bigQueryNativeTable));
+  }
+
+  @Test
+  public void testCredentialSerialization() {
+    Credentials expected =
+        UserCredentials.create(
+            AccessToken.newBuilder()
+                .setTokenValue("notarealtoken")
+                .setExpirationTime(Date.from(Instant.now()))
+                .build());
+
+    Credentials credentials =
+        BigQueryUtil.getCredentialsFromByteArray(BigQueryUtil.getCredentialsByteArray(expected));
+
+    assertThat(credentials).isEqualTo(expected);
   }
 }
