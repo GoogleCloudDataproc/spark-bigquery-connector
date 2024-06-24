@@ -148,6 +148,7 @@ public class DataprocAcceptanceTestBase {
                 .setGceClusterConfig(
                     GceClusterConfig.newBuilder()
                         .setNetworkUri("default")
+                        .setInternalIpOnly(false)
                         .setZoneUri(REGION + "-a")
                         .putMetadata("SPARK_BQ_CONNECTOR_URL", connectorJarUri))
                 .setMasterConfig(
