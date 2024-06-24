@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.39.1 - 2024-06-24
 
 * PR #1236: Fixing unshaded artifacts, added shading verification
 * PR #1239: Allow GCS bucket to be supplied including a scheme. Thanks @tom-s-powell !
