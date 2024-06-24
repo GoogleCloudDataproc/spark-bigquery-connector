@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.39.1 - 2024-06-24
 
 * PR #1236: Fixing unshaded artifacts, added shading verification
