@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.cloud.bigquery.Field.Mode.NULLABLE;
 import static com.google.cloud.http.BaseHttpServiceException.UNKNOWN_CODE;
 import static com.google.common.base.Throwables.getCausalChain;
 import static java.lang.String.format;
@@ -431,7 +432,7 @@ public class BigQueryUtil {
   }
 
   static Field.Mode nullableIfNull(Field.Mode mode) {
-    return mode == null ? Field.Mode.NULLABLE : mode;
+    return mode == null ? NULLABLE : mode;
   }
 
   public static Optional<String> emptyIfNeeded(String value) {
@@ -549,14 +550,18 @@ public class BigQueryUtil {
    * @param existingTableSchema
    * @return the adjusted schema
    */
-  public static Schema adjustSchemaIfNeeded(Schema wantedSchema, Schema existingTableSchema) {
+  public static Schema adjustSchemaIfNeeded(
+      Schema wantedSchema, Schema existingTableSchema, boolean allowFieldRelaxation) {
     FieldList fields = wantedSchema.getFields();
     FieldList existingFields = existingTableSchema.getFields();
     Map<String, Field> existingFieldsMap =
         existingFields.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
     List<Field> adjustedFields =
         fields.stream()
-            .map(field -> adjustField(field, existingFieldsMap.get(field.getName())))
+            .map(
+                field ->
+                    adjustField(
+                        field, existingFieldsMap.get(field.getName()), allowFieldRelaxation))
             .collect(Collectors.toList());
     return Schema.of(adjustedFields);
   }
@@ -570,15 +575,21 @@ public class BigQueryUtil {
    * @return the adjusted field
    */
   @VisibleForTesting
-  static Field adjustField(Field field, @Nullable Field existingField) {
+  static Field adjustField(
+      Field field, @Nullable Field existingField, boolean allowFieldRelaxation) {
+    if (existingField == null) {
+      return field;
+    }
+    Mode fieldMode = existingField.getMode();
+    if (allowFieldRelaxation && field.getMode() == NULLABLE) {
+      fieldMode = NULLABLE;
+    }
     if (field.getType().equals(LegacySQLTypeName.NUMERIC)
-        && existingField != null
         && existingField.getType().equals(LegacySQLTypeName.BIGNUMERIC)) {
       // convert type
-      return field.toBuilder().setType(LegacySQLTypeName.BIGNUMERIC).build();
+      return existingField.toBuilder().setMode(fieldMode).build();
     }
     if (field.getType().equals(LegacySQLTypeName.RECORD)
-        && existingField != null
         && existingField.getType().equals(LegacySQLTypeName.RECORD)) {
       // need to go recursively
       FieldList subFields = field.getSubFields();
@@ -590,12 +601,15 @@ public class BigQueryUtil {
               subFields.stream()
                   .map(
                       subField ->
-                          adjustField(subField, existingSubFieldsMap.get(subField.getName())))
+                          adjustField(
+                              subField,
+                              existingSubFieldsMap.get(subField.getName()),
+                              allowFieldRelaxation))
                   .collect(Collectors.toList()));
-      return field.toBuilder().setType(LegacySQLTypeName.RECORD, adjustedSubFields).build();
+      return existingField.toBuilder().setType(LegacySQLTypeName.RECORD, adjustedSubFields).build();
     }
     // no adjustment
-    return field;
+    return existingField.toBuilder().setMode(fieldMode).build();
   }
 
   public static String prepareQueryForLog(String query, int maxLength) {

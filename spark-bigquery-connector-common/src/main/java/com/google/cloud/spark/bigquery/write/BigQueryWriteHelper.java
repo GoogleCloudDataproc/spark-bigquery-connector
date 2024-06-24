@@ -99,7 +99,12 @@ public class BigQueryWriteHelper {
             .toBigQuerySchema(data.schema());
     if (tableInfo.isPresent()) {
       schema =
-          BigQueryUtil.adjustSchemaIfNeeded(schema, tableInfo.get().getDefinition().getSchema());
+          BigQueryUtil.adjustSchemaIfNeeded(
+              schema,
+              tableInfo.get().getDefinition().getSchema(),
+              config
+                  .getLoadSchemaUpdateOptions()
+                  .contains(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION));
     }
     this.tableSchema = schema;
     this.writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
