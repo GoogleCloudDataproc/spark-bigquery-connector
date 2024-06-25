@@ -580,7 +580,7 @@ public class BigQueryUtil {
     if (existingField == null) {
       return field;
     }
-    Mode fieldMode = existingField.getMode();
+    Mode fieldMode = existingField.getMode() != null ? existingField.getMode() : NULLABLE;
     if (allowFieldRelaxation && field.getMode() == NULLABLE) {
       fieldMode = NULLABLE;
     }
