@@ -571,14 +571,19 @@ public class BigQueryUtil {
    */
   @VisibleForTesting
   static Field adjustField(Field field, @Nullable Field existingField) {
+    if (existingField == null) {
+      return field;
+    }
+    Field.Builder fieldBuilder = field.toBuilder();
+    if (existingField.getPolicyTags() != null) {
+      fieldBuilder.setPolicyTags(existingField.getPolicyTags());
+    }
     if (field.getType().equals(LegacySQLTypeName.NUMERIC)
-        && existingField != null
         && existingField.getType().equals(LegacySQLTypeName.BIGNUMERIC)) {
       // convert type
-      return field.toBuilder().setType(LegacySQLTypeName.BIGNUMERIC).build();
+      fieldBuilder.setType(LegacySQLTypeName.BIGNUMERIC);
     }
     if (field.getType().equals(LegacySQLTypeName.RECORD)
-        && existingField != null
         && existingField.getType().equals(LegacySQLTypeName.RECORD)) {
       // need to go recursively
       FieldList subFields = field.getSubFields();
@@ -592,10 +597,9 @@ public class BigQueryUtil {
                       subField ->
                           adjustField(subField, existingSubFieldsMap.get(subField.getName())))
                   .collect(Collectors.toList()));
-      return field.toBuilder().setType(LegacySQLTypeName.RECORD, adjustedSubFields).build();
+      fieldBuilder.setType(LegacySQLTypeName.RECORD, adjustedSubFields);
     }
-    // no adjustment
-    return field;
+    return fieldBuilder.build();
   }
 
   public static String prepareQueryForLog(String query, int maxLength) {

@@ -31,6 +31,7 @@ import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.HivePartitioningOptions;
 import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.PolicyTags;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
@@ -640,6 +641,22 @@ public class BigQueryUtilTest {
             "record", LegacySQLTypeName.RECORD, Field.of("subfield", LegacySQLTypeName.NUMERIC));
     Field adjustedField = BigQueryUtil.adjustField(field, null);
     assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.RECORD);
+  }
+
+  @Test
+  public void testAdjustField_policyTagsExistingField() {
+    Field field = Field.of("f", LegacySQLTypeName.BOOLEAN).toBuilder().build();
+    PolicyTags existingPolicyTags =
+        PolicyTags.newBuilder().setNames(Arrays.asList("test-tag-1")).build();
+    Field existingField =
+        Field.of("f", LegacySQLTypeName.BOOLEAN)
+            .toBuilder()
+            .setPolicyTags(existingPolicyTags)
+            .build();
+    Field adjustedField = BigQueryUtil.adjustField(field, existingField);
+    assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.BOOLEAN);
+    assertThat(adjustedField.getPolicyTags()).isNotNull();
+    assertThat(adjustedField.getPolicyTags()).isEqualTo(existingPolicyTags);
   }
 
   @Test
