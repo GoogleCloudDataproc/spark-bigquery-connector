@@ -584,11 +584,7 @@ public class BigQueryUtil {
     if (allowFieldRelaxation && field.getMode() == NULLABLE) {
       fieldMode = NULLABLE;
     }
-    if (field.getType().equals(LegacySQLTypeName.NUMERIC)
-        && existingField.getType().equals(LegacySQLTypeName.BIGNUMERIC)) {
-      // convert type
-      return existingField.toBuilder().setMode(fieldMode).build();
-    }
+
     if (field.getType().equals(LegacySQLTypeName.RECORD)
         && existingField.getType().equals(LegacySQLTypeName.RECORD)) {
       // need to go recursively
