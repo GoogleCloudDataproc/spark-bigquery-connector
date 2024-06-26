@@ -2,6 +2,9 @@
 
 ## Next
 
+* Issue #1043 : Fix Indirect write drops policy tags
+* Issue #1244 : Set schema Field Nullables as per ALLOW_FIELD_RELAXATION
+
 ## 0.39.1 - 2024-06-24
 
 * PR #1236: Fixing unshaded artifacts, added shading verification

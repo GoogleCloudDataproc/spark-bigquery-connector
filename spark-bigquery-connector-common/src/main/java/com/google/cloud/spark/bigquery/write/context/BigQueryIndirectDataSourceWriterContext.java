@@ -123,7 +123,12 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
               .toBigQuerySchema(sparkSchema);
       if (tableInfo.isPresent()) {
         schema =
-            BigQueryUtil.adjustSchemaIfNeeded(schema, tableInfo.get().getDefinition().getSchema());
+            BigQueryUtil.adjustSchemaIfNeeded(
+                schema,
+                tableInfo.get().getDefinition().getSchema(),
+                config
+                    .getLoadSchemaUpdateOptions()
+                    .contains(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION));
       }
       if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE
           && config.getPartitionOverwriteModeValue() == PartitionOverwriteMode.DYNAMIC
