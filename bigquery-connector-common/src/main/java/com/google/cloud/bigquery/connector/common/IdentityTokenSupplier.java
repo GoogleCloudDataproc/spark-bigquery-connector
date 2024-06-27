@@ -2,6 +2,7 @@ package com.google.cloud.bigquery.connector.common;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.base.Objects;
 import com.google.common.io.CharStreams;
 import com.google.common.io.Closeables;
 import java.io.IOException;
@@ -39,6 +40,24 @@ public class IdentityTokenSupplier implements Serializable {
     this.audience = audience;
     cachedToken = null;
     lastFetchTime = 0;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(cachedToken, lastFetchTime);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof IdentityTokenSupplier)) {
+      return false;
+    }
+    IdentityTokenSupplier that = (IdentityTokenSupplier) o;
+    return Objects.equal(this.cachedToken, that.cachedToken)
+        && this.lastFetchTime == that.lastFetchTime;
   }
 
   public Optional<String> getIdentityToken() {
