@@ -56,7 +56,8 @@ public class IdentityTokenSupplier implements Serializable {
       return false;
     }
     IdentityTokenSupplier that = (IdentityTokenSupplier) o;
-    return this.cachedToken.equals(that.cachedToken) && this.lastFetchTime == that.lastFetchTime;
+    return Objects.equal(this.cachedToken, that.cachedToken)
+        && this.lastFetchTime == that.lastFetchTime;
   }
 
   public Optional<String> getIdentityToken() {
