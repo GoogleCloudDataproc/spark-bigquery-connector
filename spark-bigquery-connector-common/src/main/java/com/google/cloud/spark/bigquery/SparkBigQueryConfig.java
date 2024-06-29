@@ -265,7 +265,7 @@ public class SparkBigQueryConfig
     return SparkBigQueryConfig.from(
         ImmutableMap.copyOf(optionsMap),
         ImmutableMap.copyOf(scalaMapToJavaMap(spark.conf().getAll())),
-        spark.sparkContext().hadoopConfiguration(),
+        spark.sessionState().newHadoopConf(),
         customDefaults,
         spark.sparkContext().defaultParallelism(),
         spark.sqlContext().conf(),
