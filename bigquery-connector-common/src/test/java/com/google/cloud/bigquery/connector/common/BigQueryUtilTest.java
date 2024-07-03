@@ -555,7 +555,8 @@ public class BigQueryUtilTest {
                 "record",
                 LegacySQLTypeName.RECORD,
                 Field.of("subfield", LegacySQLTypeName.STRING)));
-    Schema adjustedSchema = BigQueryUtil.adjustSchemaIfNeeded(wantedSchema, existingTableSchema);
+    Schema adjustedSchema =
+        BigQueryUtil.adjustSchemaIfNeeded(wantedSchema, existingTableSchema, false);
     assertThat(adjustedSchema.getFields()).hasSize(2);
     FieldList adjustedFields = adjustedSchema.getFields();
     assertThat(adjustedFields.get("numeric").getType()).isEqualTo(LegacySQLTypeName.BIGNUMERIC);
@@ -573,7 +574,8 @@ public class BigQueryUtilTest {
             Field.of("new_field", LegacySQLTypeName.STRING));
     Schema existingTableSchema =
         Schema.of(Field.of("existing_field", LegacySQLTypeName.BIGNUMERIC));
-    Schema adjustedSchema = BigQueryUtil.adjustSchemaIfNeeded(wantedSchema, existingTableSchema);
+    Schema adjustedSchema =
+        BigQueryUtil.adjustSchemaIfNeeded(wantedSchema, existingTableSchema, false);
     assertThat(adjustedSchema.getFields()).hasSize(2);
     FieldList adjustedFields = adjustedSchema.getFields();
     assertThat(adjustedFields.get("existing_field").getType())
@@ -585,15 +587,15 @@ public class BigQueryUtilTest {
   public void testAdjustField_no_op() {
     Field field = Field.of("f", LegacySQLTypeName.BOOLEAN);
     Field existingField = Field.of("f", LegacySQLTypeName.BIGNUMERIC);
-    Field adjustedField = BigQueryUtil.adjustField(field, existingField);
-    assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.BOOLEAN);
+    Field adjustedField = BigQueryUtil.adjustField(field, existingField, false);
+    assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.BIGNUMERIC);
   }
 
   @Test
   public void testAdjustField_numeric_to_big_numeric() {
     Field field = Field.of("numeric", LegacySQLTypeName.NUMERIC);
     Field existingField = Field.of("numeric", LegacySQLTypeName.BIGNUMERIC);
-    Field adjustedField = BigQueryUtil.adjustField(field, existingField);
+    Field adjustedField = BigQueryUtil.adjustField(field, existingField, false);
     assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.BIGNUMERIC);
   }
 
@@ -605,7 +607,7 @@ public class BigQueryUtilTest {
     Field existingField =
         Field.of(
             "record", LegacySQLTypeName.RECORD, Field.of("subfield", LegacySQLTypeName.STRING));
-    Field adjustedField = BigQueryUtil.adjustField(field, existingField);
+    Field adjustedField = BigQueryUtil.adjustField(field, existingField, false);
     assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.RECORD);
     assertThat(adjustedField.getSubFields()).hasSize(1);
     assertThat(adjustedField.getSubFields().get(0).getType()).isEqualTo(LegacySQLTypeName.STRING);
@@ -619,7 +621,7 @@ public class BigQueryUtilTest {
     Field existingField =
         Field.of(
             "record", LegacySQLTypeName.RECORD, Field.of("subfield", LegacySQLTypeName.BIGNUMERIC));
-    Field adjustedField = BigQueryUtil.adjustField(field, existingField);
+    Field adjustedField = BigQueryUtil.adjustField(field, existingField, false);
     assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.RECORD);
     assertThat(adjustedField.getSubFields()).hasSize(1);
     assertThat(adjustedField.getSubFields().get(0).getType())
@@ -629,7 +631,7 @@ public class BigQueryUtilTest {
   @Test
   public void testAdjustField_nullExistingField() {
     Field field = Field.of("f", LegacySQLTypeName.BOOLEAN);
-    Field adjustedField = BigQueryUtil.adjustField(field, null);
+    Field adjustedField = BigQueryUtil.adjustField(field, null, false);
     assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.BOOLEAN);
   }
 
@@ -638,7 +640,7 @@ public class BigQueryUtilTest {
     Field field =
         Field.of(
             "record", LegacySQLTypeName.RECORD, Field.of("subfield", LegacySQLTypeName.NUMERIC));
-    Field adjustedField = BigQueryUtil.adjustField(field, null);
+    Field adjustedField = BigQueryUtil.adjustField(field, null, false);
     assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.RECORD);
   }
 
@@ -749,5 +751,45 @@ public class BigQueryUtilTest {
             StandardTableDefinition.newBuilder().setLocation("us-east-1").build());
 
     assertTrue(BigQueryUtil.isBigQueryNativeTable(bigQueryNativeTable));
+  }
+
+  @Test
+  public void testAdjustField_nullable_allowRelaxation() {
+    Field field = Field.of("f", LegacySQLTypeName.BIGNUMERIC);
+    field = field.toBuilder().setMode(Mode.NULLABLE).build();
+    Field existingField = Field.of("f", LegacySQLTypeName.BIGNUMERIC);
+    existingField = existingField.toBuilder().setMode(Mode.REQUIRED).build();
+    Field adjustedField = BigQueryUtil.adjustField(field, existingField, true);
+    assertThat(adjustedField.getMode()).isEqualTo(Mode.NULLABLE);
+  }
+
+  @Test
+  public void testAdjustField_exisitingFieldNullable_allowRelaxation() {
+    Field field = Field.of("f", LegacySQLTypeName.BIGNUMERIC);
+    field = field.toBuilder().setMode(Mode.REQUIRED).build();
+    Field existingField = Field.of("f", LegacySQLTypeName.BIGNUMERIC);
+    existingField = existingField.toBuilder().setMode(Mode.NULLABLE).build();
+    Field adjustedField = BigQueryUtil.adjustField(field, existingField, true);
+    assertThat(adjustedField.getMode()).isEqualTo(Mode.NULLABLE);
+  }
+
+  @Test
+  public void testAdjustField_nullable_dontAllowRelaxation() {
+    Field field = Field.of("f", LegacySQLTypeName.BIGNUMERIC);
+    field = field.toBuilder().setMode(Mode.NULLABLE).build();
+    Field existingField = Field.of("f", LegacySQLTypeName.BIGNUMERIC);
+    existingField = existingField.toBuilder().setMode(Mode.REQUIRED).build();
+    Field adjustedField = BigQueryUtil.adjustField(field, existingField, false);
+    assertThat(adjustedField.getMode()).isEqualTo(Mode.REQUIRED);
+  }
+
+  @Test
+  public void testAdjustField_numeric_to_bigNumeric() {
+    Field field = Field.of("f", LegacySQLTypeName.NUMERIC);
+    field = field.toBuilder().setMode(Mode.NULLABLE).build();
+    Field existingField = Field.of("f", LegacySQLTypeName.BIGNUMERIC);
+    existingField = existingField.toBuilder().setMode(Mode.REQUIRED).build();
+    Field adjustedField = BigQueryUtil.adjustField(field, existingField, false);
+    assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.BIGNUMERIC);
   }
 }
