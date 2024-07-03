@@ -782,4 +782,14 @@ public class BigQueryUtilTest {
     Field adjustedField = BigQueryUtil.adjustField(field, existingField, false);
     assertThat(adjustedField.getMode()).isEqualTo(Mode.REQUIRED);
   }
+
+  @Test
+  public void testAdjustField_numeric_to_bigNumeric() {
+    Field field = Field.of("f", LegacySQLTypeName.NUMERIC);
+    field = field.toBuilder().setMode(Mode.NULLABLE).build();
+    Field existingField = Field.of("f", LegacySQLTypeName.BIGNUMERIC);
+    existingField = existingField.toBuilder().setMode(Mode.REQUIRED).build();
+    Field adjustedField = BigQueryUtil.adjustField(field, existingField, false);
+    assertThat(adjustedField.getType()).isEqualTo(LegacySQLTypeName.BIGNUMERIC);
+  }
 }
