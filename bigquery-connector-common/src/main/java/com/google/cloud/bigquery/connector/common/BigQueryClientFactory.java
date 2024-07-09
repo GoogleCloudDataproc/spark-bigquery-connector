@@ -31,6 +31,9 @@ import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.common.base.Objects;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.netty.NettyChannelBuilder;
@@ -41,6 +44,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +69,10 @@ public class BigQueryClientFactory implements Serializable {
   private final BigQueryConfig bqConfig;
 
   private int cachedHashCode = 0;
-  private IdentityTokenSupplier identityTokenSupplier;
+
+  private String audienceForIdentityToken;
+  private static final long identityTokenTtlInMillis = 50 * 60 * 1000;
+  private final LoadingCache<String, String> readSessionToIdentityTokenCache;
 
   @Inject
   public BigQueryClientFactory(
@@ -75,15 +83,22 @@ public class BigQueryClientFactory implements Serializable {
     this.credentials = bigQueryCredentialsSupplier.getCredentials();
     this.headerProvider = headerProvider;
     this.bqConfig = bqConfig;
+    this.audienceForIdentityToken = null;
+    readSessionToIdentityTokenCache =
+        CacheBuilder.newBuilder()
+            .expireAfterWrite(identityTokenTtlInMillis, TimeUnit.MILLISECONDS)
+            .build(CacheLoader.from(IdentityTokenSupplier::getIdentityToken));
   }
 
   public void setAudienceForIdentityToken(String audienceForIdentityToken) {
-    identityTokenSupplier = new IdentityTokenSupplier(audienceForIdentityToken);
+    this.audienceForIdentityToken = audienceForIdentityToken;
   }
 
   public BigQueryReadClient getBigQueryReadClient() {
     synchronized (readClientMap) {
-      if (!readClientMap.containsKey(this)) {
+      if (!readClientMap.containsKey(this)
+          || (audienceForIdentityToken != null
+              && readSessionToIdentityTokenCache.getIfPresent(audienceForIdentityToken) == null)) {
         BigQueryReadClient bigQueryReadClient =
             createBigQueryReadClient(
                 this.bqConfig.getBigQueryStorageGrpcEndpoint(),
@@ -127,15 +142,10 @@ public class BigQueryClientFactory implements Serializable {
             Objects.hashCode(
                 Arrays.hashCode(BigQueryUtil.getCredentialsByteArray(credentials)),
                 headerProvider,
-                bqConfig.getClientCreationHashCode(),
-                identityTokenSupplier);
+                bqConfig.getClientCreationHashCode());
       } else {
         cachedHashCode =
-            Objects.hashCode(
-                credentials,
-                headerProvider,
-                bqConfig.getClientCreationHashCode(),
-                identityTokenSupplier);
+            Objects.hashCode(credentials, headerProvider, bqConfig.getClientCreationHashCode());
       }
     }
     return cachedHashCode;
@@ -153,8 +163,7 @@ public class BigQueryClientFactory implements Serializable {
     BigQueryClientFactory that = (BigQueryClientFactory) o;
 
     if (Objects.equal(headerProvider, that.headerProvider)
-        && bqConfig.areClientCreationConfigsEqual(that.bqConfig)
-        && Objects.equal(identityTokenSupplier, that.identityTokenSupplier)) {
+        && bqConfig.areClientCreationConfigsEqual(that.bqConfig)) {
       // Here, credentials and that.credentials are instances of GoogleCredentials which can be one
       // of GoogleCredentials, UserCredentials, ServiceAccountCredentials,
       // ExternalAccountCredentials or ImpersonatedCredentials (See the class
@@ -236,19 +245,20 @@ public class BigQueryClientFactory implements Serializable {
       Optional<String> endpoint) {
 
     HeaderProvider actualHeaderProvider = headerProvider;
-    if (identityTokenSupplier != null) {
-      actualHeaderProvider =
-          identityTokenSupplier
-              .getIdentityToken()
-              .map(
-                  token ->
-                      (HeaderProvider)
-                          FixedHeaderProvider.create(
-                              ImmutableMap.<String, String>builder()
-                                  .putAll(headerProvider.getHeaders())
-                                  .put("x-bigquerystorage-api-token", token)
-                                  .buildKeepingLast()))
-              .orElse(headerProvider);
+    if (audienceForIdentityToken != null) {
+      try {
+        String token = readSessionToIdentityTokenCache.get(audienceForIdentityToken);
+        if (token != null) {
+          actualHeaderProvider =
+              FixedHeaderProvider.create(
+                  ImmutableMap.<String, String>builder()
+                      .putAll(headerProvider.getHeaders())
+                      .put("x-bigquerystorage-api-token", token)
+                      .buildKeepingLast());
+        }
+      } catch (ExecutionException ex) {
+        log.error("Unable to obtain identity token", ex);
+      }
     }
 
     InstantiatingGrpcChannelProvider.Builder transportBuilder =
