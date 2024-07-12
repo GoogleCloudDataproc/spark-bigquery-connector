@@ -542,7 +542,11 @@ public class BigQueryClient {
     }
   }
 
-  String createSql(TableId table, ImmutableList<String> requiredColumns, String[] filters) {
+  String createSql(
+      TableId table,
+      ImmutableList<String> requiredColumns,
+      String[] filters,
+      OptionalLong snapshotTimeMillis) {
     String columns =
         requiredColumns.isEmpty()
             ? "*"
@@ -550,17 +554,25 @@ public class BigQueryClient {
                 .map(column -> String.format("`%s`", column))
                 .collect(Collectors.joining(","));
 
-    return createSql(table, columns, filters);
+    return createSql(table, columns, filters, snapshotTimeMillis);
   }
 
   // assuming the SELECT part is properly formatted, can be used to call functions such as COUNT and
   // SUM
-  String createSql(TableId table, String formattedQuery, String[] filters) {
+  String createSql(
+      TableId table, String formattedQuery, String[] filters, OptionalLong snapshotTimeMillis) {
     String tableName = fullTableName(table);
 
     String whereClause = createWhereClause(filters).map(clause -> "WHERE " + clause).orElse("");
 
-    return String.format("SELECT %s FROM `%s` %s", formattedQuery, tableName, whereClause);
+    String snapshotTimeClause =
+        snapshotTimeMillis.isPresent()
+            ? String.format(
+                "FOR SYSTEM_TIME AS OF TIMESTAMP_MILLIS(%d)", snapshotTimeMillis.getAsLong())
+            : "";
+
+    return String.format(
+        "SELECT %s FROM `%s` %s %s", formattedQuery, tableName, whereClause, snapshotTimeClause);
   }
 
   public static String fullTableName(TableId tableId) {
