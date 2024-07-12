@@ -502,6 +502,15 @@ public class BigQueryUtil {
       StandardTableDefinition sdt = (StandardTableDefinition) definition;
       TimePartitioning timePartitioning = sdt.getTimePartitioning();
       if (timePartitioning != null) {
+        if (timePartitioning.getField() == null) {
+          // table contains pseudo columns
+          List<String> timePartitionFields = new ArrayList<>();
+          timePartitionFields.add("_PARTITIONTIME");
+          if (timePartitioning.getType().equals(TimePartitioning.Type.DAY)) {
+            timePartitionFields.add("_PARTITIONDATE");
+          }
+          return ImmutableList.copyOf(timePartitionFields);
+        }
         return ImmutableList.of(timePartitioning.getField());
       }
       RangePartitioning rangePartitioning = sdt.getRangePartitioning();
@@ -531,7 +540,7 @@ public class BigQueryUtil {
     }
 
     Clustering clustering = ((StandardTableDefinition) definition).getClustering();
-    if (clustering == null) {
+    if (clustering == null || clustering.getFields() == null) {
       return ImmutableList.of();
     }
     return ImmutableList.copyOf(clustering.getFields());

@@ -430,6 +430,34 @@ public class BigQueryUtilTest {
   }
 
   @Test
+  public void testGetPartitionField_time_partitioning_pseudoColumn() {
+    TableInfo info =
+        TableInfo.of(
+            TableId.of("foo", "bar"),
+            StandardTableDefinition.newBuilder()
+                .setTimePartitioning(
+                    TimePartitioning.newBuilder(TimePartitioning.Type.HOUR).build())
+                .build());
+    List<String> partitionFields = BigQueryUtil.getPartitionFields(info);
+    assertThat(partitionFields).hasSize(1);
+    assertThat(partitionFields).contains("_PARTITIONTIME");
+  }
+
+  @Test
+  public void testGetPartitionField_time_partitioning_pseudoColumn_day() {
+    TableInfo info =
+        TableInfo.of(
+            TableId.of("foo", "bar"),
+            StandardTableDefinition.newBuilder()
+                .setTimePartitioning(TimePartitioning.newBuilder(TimePartitioning.Type.DAY).build())
+                .build());
+    List<String> partitionFields = BigQueryUtil.getPartitionFields(info);
+    assertThat(partitionFields).hasSize(2);
+    assertThat(partitionFields).contains("_PARTITIONTIME");
+    assertThat(partitionFields).contains("_PARTITIONDATE");
+  }
+
+  @Test
   public void testGetPartitionField_range_partitioning() {
     TableInfo info =
         TableInfo.of(
