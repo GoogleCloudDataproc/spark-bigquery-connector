@@ -236,10 +236,6 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
                                       "x-bigquerystorage-api-token",
                                       Collections.singletonList(token))))
                   .orElse(GrpcCallContext.createDefault());
-          log.info(
-              "READ_SESSION_TO_IDENTITY_TOKEN_CACHE :"
-                  + READ_SESSION_TO_IDENTITY_TOKEN_CACHE.asMap().keySet());
-          log.info("Fetching identity token !!!" + callContext.getExtraHeaders());
         } catch (ExecutionException e) {
           log.error("Unable to obtain identity token", e);
         }
