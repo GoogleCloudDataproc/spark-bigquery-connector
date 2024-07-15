@@ -40,6 +40,7 @@ import java.util.stream.Stream;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.SparkVersion;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
@@ -712,5 +713,43 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .load()
             .where("orderDateTime < '2023-10-25 10:00:00'");
     assertThat(df.count()).isEqualTo(2);
+  }
+
+  @Test
+  public void testPseudoColumnsRuntimeFilteringDate() {
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INT64) PARTITION BY _PARTITIONDATE ",
+            testDataset, testTable, "orderId"));
+    String dt = "2000-01-01";
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .option("filter", "_PARTITIONDATE = '" + dt + "'")
+            .load()
+            .select("orderId");
+    df.join(df, "orderId").cache();
+  }
+
+  @Test
+  public void testPseudoColumnsRuntimeFilteringHour() {
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INT64) PARTITION BY TIMESTAMP_TRUNC(_PARTITIONTIME, HOUR) ",
+            testDataset, testTable, "orderId"));
+    String dt = "2000-01-01 18:00:00 UTC";
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .option("filter", "_PARTITIONTIME = '" + dt + "'")
+            .load()
+            .select("orderId");
+    df.join(df, "orderId").cache();
   }
 }
