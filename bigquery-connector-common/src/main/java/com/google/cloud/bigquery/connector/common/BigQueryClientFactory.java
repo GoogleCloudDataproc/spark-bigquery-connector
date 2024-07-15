@@ -19,7 +19,6 @@ import com.google.api.core.ApiFunction;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.grpc.ChannelPoolSettings;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
-import com.google.api.gax.rpc.FixedHeaderProvider;
 import com.google.api.gax.rpc.HeaderProvider;
 import com.google.api.gax.rpc.UnaryCallSettings;
 import com.google.auth.Credentials;
@@ -31,7 +30,6 @@ import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableMap;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.netty.NettyChannelBuilder;
 import java.io.IOException;
@@ -62,9 +60,7 @@ public class BigQueryClientFactory implements Serializable {
   // using the user agent as HeaderProvider is not serializable
   private final HeaderProvider headerProvider;
   private final BigQueryConfig bqConfig;
-
   private int cachedHashCode = 0;
-  private IdentityTokenSupplier identityTokenSupplier;
 
   @Inject
   public BigQueryClientFactory(
@@ -75,10 +71,6 @@ public class BigQueryClientFactory implements Serializable {
     this.credentials = bigQueryCredentialsSupplier.getCredentials();
     this.headerProvider = headerProvider;
     this.bqConfig = bqConfig;
-  }
-
-  public void setAudienceForIdentityToken(String audienceForIdentityToken) {
-    identityTokenSupplier = new IdentityTokenSupplier(audienceForIdentityToken);
   }
 
   public BigQueryReadClient getBigQueryReadClient() {
@@ -127,15 +119,10 @@ public class BigQueryClientFactory implements Serializable {
             Objects.hashCode(
                 Arrays.hashCode(BigQueryUtil.getCredentialsByteArray(credentials)),
                 headerProvider,
-                bqConfig.getClientCreationHashCode(),
-                identityTokenSupplier);
+                bqConfig.getClientCreationHashCode());
       } else {
         cachedHashCode =
-            Objects.hashCode(
-                credentials,
-                headerProvider,
-                bqConfig.getClientCreationHashCode(),
-                identityTokenSupplier);
+            Objects.hashCode(credentials, headerProvider, bqConfig.getClientCreationHashCode());
       }
     }
     return cachedHashCode;
@@ -153,8 +140,7 @@ public class BigQueryClientFactory implements Serializable {
     BigQueryClientFactory that = (BigQueryClientFactory) o;
 
     if (Objects.equal(headerProvider, that.headerProvider)
-        && bqConfig.areClientCreationConfigsEqual(that.bqConfig)
-        && Objects.equal(identityTokenSupplier, that.identityTokenSupplier)) {
+        && bqConfig.areClientCreationConfigsEqual(that.bqConfig)) {
       // Here, credentials and that.credentials are instances of GoogleCredentials which can be one
       // of GoogleCredentials, UserCredentials, ServiceAccountCredentials,
       // ExternalAccountCredentials or ImpersonatedCredentials (See the class
@@ -235,25 +221,9 @@ public class BigQueryClientFactory implements Serializable {
   private InstantiatingGrpcChannelProvider.Builder createTransportBuilder(
       Optional<String> endpoint) {
 
-    HeaderProvider actualHeaderProvider = headerProvider;
-    if (identityTokenSupplier != null) {
-      actualHeaderProvider =
-          identityTokenSupplier
-              .getIdentityToken()
-              .map(
-                  token ->
-                      (HeaderProvider)
-                          FixedHeaderProvider.create(
-                              ImmutableMap.<String, String>builder()
-                                  .putAll(headerProvider.getHeaders())
-                                  .put("x-bigquerystorage-api-token", token)
-                                  .buildKeepingLast()))
-              .orElse(headerProvider);
-    }
-
     InstantiatingGrpcChannelProvider.Builder transportBuilder =
         BigQueryReadSettings.defaultGrpcTransportProviderBuilder()
-            .setHeaderProvider(actualHeaderProvider);
+            .setHeaderProvider(headerProvider);
     setProxyConfig(transportBuilder);
     endpoint.ifPresent(
         e -> {
