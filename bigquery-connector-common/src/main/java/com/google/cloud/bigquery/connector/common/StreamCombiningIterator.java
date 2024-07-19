@@ -66,11 +66,11 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
   Object last;
   volatile boolean cancelled = false;
   private final Collection<Observer> observers;
-  private static final long IDENTITY_TOKEN_TTL_IN_MILLIS = 50 * 60 * 1000;
+  private static final long IDENTITY_TOKEN_TTL_IN_MINUTES = 50;
   private static final LoadingCache<String, Optional<String>> READ_SESSION_TO_IDENTITY_TOKEN_CACHE =
       CacheBuilder.newBuilder()
-          .expireAfterWrite(IDENTITY_TOKEN_TTL_IN_MILLIS, TimeUnit.MILLISECONDS)
-          .build(CacheLoader.from(IdentityTokenSupplier::createIdentityToken));
+          .expireAfterWrite(IDENTITY_TOKEN_TTL_IN_MINUTES, TimeUnit.MINUTES)
+          .build(CacheLoader.from(IdentityTokenSupplier::fetchIdentityToken));
 
   StreamCombiningIterator(
       BigQueryReadClient client,
@@ -217,7 +217,12 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
 
   private String parseReadSessionId(String stream) {
     int streamsIndex = stream.indexOf("/streams");
-    return streamsIndex != -1 ? stream.substring(0, streamsIndex) : stream;
+    if (streamsIndex != -1) {
+      return stream.substring(0, streamsIndex);
+    } else {
+      log.warn("Stream name {} in invalid format", stream);
+      return stream;
+    }
   }
 
   private void newConnection(Observer observer, ReadRowsRequest.Builder request) {
