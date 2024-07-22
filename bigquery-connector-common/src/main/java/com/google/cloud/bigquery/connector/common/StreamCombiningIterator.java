@@ -15,17 +15,26 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.api.gax.grpc.GrpcCallContext;
+import com.google.api.gax.rpc.ApiCallContext;
 import com.google.api.gax.rpc.ResponseObserver;
 import com.google.api.gax.rpc.StreamController;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.ReadRowsRequest;
 import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.common.base.Preconditions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -57,6 +66,11 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
   Object last;
   volatile boolean cancelled = false;
   private final Collection<Observer> observers;
+  private static final long IDENTITY_TOKEN_TTL_IN_MINUTES = 50;
+  private static final LoadingCache<String, Optional<String>> READ_SESSION_TO_IDENTITY_TOKEN_CACHE =
+      CacheBuilder.newBuilder()
+          .expireAfterWrite(IDENTITY_TOKEN_TTL_IN_MINUTES, TimeUnit.MINUTES)
+          .build(CacheLoader.from(IdentityTokenSupplier::fetchIdentityToken));
 
   StreamCombiningIterator(
       BigQueryReadClient client,
@@ -201,10 +215,36 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
     }
   }
 
+  private String parseReadSessionId(String stream) {
+    int streamsIndex = stream.indexOf("/streams");
+    if (streamsIndex != -1) {
+      return stream.substring(0, streamsIndex);
+    } else {
+      log.warn("Stream name {} in invalid format", stream);
+      return stream;
+    }
+  }
+
   private void newConnection(Observer observer, ReadRowsRequest.Builder request) {
     synchronized (lock) {
       if (!cancelled) {
-        client.readRowsCallable().call(request.build(), observer);
+        ApiCallContext callContext = GrpcCallContext.createDefault();
+        try {
+          callContext =
+              READ_SESSION_TO_IDENTITY_TOKEN_CACHE
+                  .get(parseReadSessionId(request.getReadStream()))
+                  .map(
+                      token ->
+                          GrpcCallContext.createDefault()
+                              .withExtraHeaders(
+                                  Collections.singletonMap(
+                                      "x-bigquerystorage-api-token",
+                                      Collections.singletonList(token))))
+                  .orElse(GrpcCallContext.createDefault());
+        } catch (ExecutionException e) {
+          log.error("Unable to obtain identity token", e);
+        }
+        client.readRowsCallable().call(request.build(), observer, callContext);
       }
     }
   }
