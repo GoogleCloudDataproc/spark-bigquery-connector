@@ -58,7 +58,7 @@
         <gax.version>2.48.1</gax.version>
         <google-auth.version>1.23.0</google-auth.version>
         <google-cloud-bigquery.version>2.40.1</google-cloud-bigquery.version>
-        <google-cloud-bigquerystorage.version>3.5.1</google-cloud-bigquerystorage.version>
+        <google-cloud-bigquerystorage.version>3.7.0</google-cloud-bigquerystorage.version>
         <google-cloud-dataproc.version>4.40.0</google-cloud-dataproc.version>
         <google-cloud-storage.version>2.38.0</google-cloud-storage.version>
         <google-truth.version>1.4.2</google-truth.version>
