@@ -98,10 +98,14 @@ public class ReadSessionCreator {
     log.info(
         "|creation a read session for table {}, parameters: "
             + "|selectedFields=[{}],"
-            + "|filter=[{}]",
+            + "|filter=[{}]"
+            + "|snapshotTimeMillis[{}]",
         actualTable.getFriendlyName(),
         String.join(",", selectedFields),
-        filter.orElse("None"));
+        filter.orElse("None"),
+        config.getSnapshotTimeMillis().isPresent()
+            ? String.valueOf(config.getSnapshotTimeMillis().getAsLong())
+            : "None");
 
     String tablePath = toTablePath(actualTable.getTableId());
     CreateReadSessionRequest request =
@@ -167,17 +171,20 @@ public class ReadSessionCreator {
     Instant sessionPrepEndTime = Instant.now();
 
     TableModifiers.Builder modifiers = TableModifiers.newBuilder();
-    config
-        .getSnapshotTimeMillis()
-        .ifPresent(
-            millis -> {
-              Instant snapshotTime = Instant.ofEpochMilli(millis);
-              modifiers.setSnapshotTime(
-                  Timestamp.newBuilder()
-                      .setSeconds(snapshotTime.getEpochSecond())
-                      .setNanos(snapshotTime.getNano())
-                      .build());
-            });
+
+    if (!isInputTableAView(tableDetails)) {
+      config
+          .getSnapshotTimeMillis()
+          .ifPresent(
+              millis -> {
+                Instant snapshotTime = Instant.ofEpochMilli(millis);
+                modifiers.setSnapshotTime(
+                    Timestamp.newBuilder()
+                        .setSeconds(snapshotTime.getEpochSecond())
+                        .setNanos(snapshotTime.getNano())
+                        .build());
+              });
+    }
 
     CreateReadSessionRequest createReadSessionRequest =
         request
@@ -255,7 +262,9 @@ public class ReadSessionCreator {
     }
     if (isInputTableAView(table)) {
       // get it from the view
-      String querySql = bigQueryClient.createSql(table.getTableId(), requiredColumns, filters);
+      String querySql =
+          bigQueryClient.createSql(
+              table.getTableId(), requiredColumns, filters, config.getSnapshotTimeMillis());
       log.debug("querySql is {}", querySql);
       return bigQueryClient.materializeViewToTable(
           querySql, table.getTableId(), config.getMaterializationExpirationTimeInMinutes());
