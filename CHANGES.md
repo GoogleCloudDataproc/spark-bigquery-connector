@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Next
+* PR #1261: Adding IdentityToken header in readRows call
 
 ## 0.36.3 - 2024-05-30
 * PR #1156: Propagate stats for BigLake Managed tables
