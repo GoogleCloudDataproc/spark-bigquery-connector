@@ -186,6 +186,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     return bq.getTable(testDataset.toString(), testTable + "_partitioned").getDefinition();
   }
 
+  private StandardTableDefinition getClusteredTableDefinition() {
+    return bq.getTable(testDataset.toString(), testTable + "_clustered").getDefinition();
+  }
+
   protected void writeToBigQueryAvroFormat(
       Dataset<Row> df, SaveMode mode, String writeAtLeastOnce) {
     writeToBigQuery(df, mode, "avro", writeAtLeastOnce);
@@ -866,6 +870,29 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     StandardTableDefinition tableDefinition = testPartitionedTableDefinition();
     assertThat(tableDefinition.getTimePartitioning().getField()).isEqualTo("created_timestamp");
+    assertThat(tableDefinition.getClustering().getFields()).contains("platform");
+  }
+
+  @Test
+  public void testWriteToBigQueryClusteredTable() {
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", TestConstants.LIBRARIES_PROJECTS_TABLE)
+            .load()
+            .where("platform = 'Sublime'");
+
+    df.write()
+        .format("bigquery")
+        .option("table", fullTableNameClustered())
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("clusteredFields", "platform")
+        .option("writeMethod", writeMethod.toString())
+        .mode(SaveMode.Append)
+        .save();
+
+    StandardTableDefinition tableDefinition = getClusteredTableDefinition();
     assertThat(tableDefinition.getClustering().getFields()).contains("platform");
   }
 
@@ -2676,6 +2703,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   protected String fullTableNamePartitioned() {
     return fullTableName() + "_partitioned";
+  }
+
+  protected String fullTableNameClustered() {
+    return fullTableName() + "_clustered";
   }
 
   protected boolean additionalDataValuesExist() {

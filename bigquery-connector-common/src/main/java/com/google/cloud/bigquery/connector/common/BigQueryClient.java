@@ -190,7 +190,18 @@ public class BigQueryClient {
    * @return The {@code Table} object representing the table that was created.
    */
   public TableInfo createTable(TableId tableId, Schema schema, CreateTableOptions options) {
-    TableInfo.Builder tableInfo = TableInfo.newBuilder(tableId, StandardTableDefinition.of(schema));
+
+    StandardTableDefinition.Builder tableDefinition =
+        StandardTableDefinition.newBuilder().setSchema(schema);
+
+    options
+        .getClusteredFields()
+        .ifPresent(
+            clusterdFields ->
+                tableDefinition.setClustering(
+                    Clustering.newBuilder().setFields(clusterdFields).build()));
+
+    TableInfo.Builder tableInfo = TableInfo.newBuilder(tableId, tableDefinition.build());
     options
         .getKmsKeyName()
         .ifPresent(
@@ -901,8 +912,14 @@ public class BigQueryClient {
       return Collections.emptyMap();
     }
 
+    default Optional<ImmutableList<String>> getClusteredFields() {
+      return Optional.empty();
+    }
+
     static CreateTableOptions of(
-        final Optional<String> kmsKeyName, final Map<String, String> bigQueryTableLabels) {
+        final Optional<String> kmsKeyName,
+        final Map<String, String> bigQueryTableLabels,
+        final Optional<ImmutableList<String>> clusteredFields) {
       return new CreateTableOptions() {
         @Override
         public Optional<String> getKmsKeyName() {
@@ -912,6 +929,11 @@ public class BigQueryClient {
         @Override
         public Map<String, String> getBigQueryTableLabels() {
           return bigQueryTableLabels;
+        }
+
+        @Override
+        public Optional<ImmutableList<String>> getClusteredFields() {
+          return clusteredFields;
         }
       };
     }

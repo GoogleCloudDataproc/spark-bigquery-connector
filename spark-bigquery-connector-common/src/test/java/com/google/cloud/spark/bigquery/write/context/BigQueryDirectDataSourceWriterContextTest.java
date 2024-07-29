@@ -155,6 +155,7 @@ public class BigQueryDirectDataSourceWriterContextTest {
         java.util.Optional.empty(),
         false,
         PartitionOverwriteMode.STATIC,
+        java.util.Optional.empty(),
         null);
   }
 }
