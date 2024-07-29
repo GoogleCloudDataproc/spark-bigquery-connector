@@ -32,7 +32,7 @@ spark = SparkSession.builder \
 # Code to enable query pushdown start
 # extract the spark-bigquery-support zip file
 import zipfile
-with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.27.0.zip")) as zf:
+with zipfile.ZipFile(SparkFiles.get("spark-bigquery-support-0.27.1.zip")) as zf:
   zf.extractall()
 try:
     import pkg_resources
