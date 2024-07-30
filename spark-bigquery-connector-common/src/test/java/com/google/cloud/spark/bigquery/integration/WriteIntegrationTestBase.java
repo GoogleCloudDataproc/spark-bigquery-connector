@@ -186,10 +186,6 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     return bq.getTable(testDataset.toString(), testTable + "_partitioned").getDefinition();
   }
 
-  private StandardTableDefinition getClusteredTableDefinition() {
-    return bq.getTable(testDataset.toString(), testTable + "_clustered").getDefinition();
-  }
-
   protected void writeToBigQueryAvroFormat(
       Dataset<Row> df, SaveMode mode, String writeAtLeastOnce) {
     writeToBigQuery(df, mode, "avro", writeAtLeastOnce);
@@ -885,14 +881,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     df.write()
         .format("bigquery")
-        .option("table", fullTableNameClustered())
+        .option("table", fullTableName())
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("clusteredFields", "platform")
         .option("writeMethod", writeMethod.toString())
         .mode(SaveMode.Append)
         .save();
 
-    StandardTableDefinition tableDefinition = getClusteredTableDefinition();
+    StandardTableDefinition tableDefinition =
+        bq.getTable(testDataset.toString(), testTable).getDefinition();
     assertThat(tableDefinition.getClustering().getFields()).contains("platform");
   }
 
@@ -2703,10 +2700,6 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   protected String fullTableNamePartitioned() {
     return fullTableName() + "_partitioned";
-  }
-
-  protected String fullTableNameClustered() {
-    return fullTableName() + "_clustered";
   }
 
   protected boolean additionalDataValuesExist() {
