@@ -197,9 +197,9 @@ public class BigQueryClient {
     options
         .getClusteredFields()
         .ifPresent(
-            clusterdFields ->
+            clusteredFields ->
                 tableDefinition.setClustering(
-                    Clustering.newBuilder().setFields(clusterdFields).build()));
+                    Clustering.newBuilder().setFields(clusteredFields).build()));
 
     TableInfo.Builder tableInfo = TableInfo.newBuilder(tableId, tableDefinition.build());
     options
