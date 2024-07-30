@@ -81,7 +81,6 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   }
 
   private WritingMode writingMode = WritingMode.ALL_ELSE;
-  private final Optional<ImmutableList<String>> clusteredFields;
   private final SparkContext sparkContext;
 
   public BigQueryDirectDataSourceWriterContext(
@@ -123,8 +122,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       throw new BigQueryConnectorException.InvalidSchemaException(
           "Could not convert Spark schema to protobuf descriptor", e);
     }
-    this.clusteredFields = Optional.fromJavaUtil(clusteredFields);
-    this.tableToWrite = getOrCreateTable(saveMode, destinationTableId, bigQuerySchema);
+    this.tableToWrite =
+        getOrCreateTable(saveMode, destinationTableId, bigQuerySchema, clusteredFields);
     this.tablePathForBigQueryStorage =
         bigQueryClient.createTablePathForBigQueryStorage(tableToWrite.getTableId());
 
@@ -145,7 +144,10 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
    *     or the temporaryTableId.
    */
   private BigQueryTable getOrCreateTable(
-      SaveMode saveMode, TableId destinationTableId, Schema bigQuerySchema)
+      SaveMode saveMode,
+      TableId destinationTableId,
+      Schema bigQuerySchema,
+      java.util.Optional<ImmutableList<String>> clusteredFields)
       throws IllegalArgumentException {
     if (bigQueryClient.tableExists(destinationTableId)) {
       TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
@@ -184,9 +186,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
                   destinationTableId,
                   bigQuerySchema,
                   BigQueryClient.CreateTableOptions.of(
-                      destinationTableKmsKeyName.toJavaUtil(),
-                      tableLabels,
-                      clusteredFields.toJavaUtil()))
+                      destinationTableKmsKeyName.toJavaUtil(), tableLabels, clusteredFields))
               .getTableId(),
           true);
     }
