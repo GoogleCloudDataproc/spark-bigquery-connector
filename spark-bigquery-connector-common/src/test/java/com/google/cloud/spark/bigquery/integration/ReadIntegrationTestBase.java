@@ -637,4 +637,64 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .where("orderDateTime < '2023-10-25 10:00:00'");
     assertThat(df.count()).isEqualTo(2);
   }
+
+  @Test
+  public void testPseudoColumnsRuntimeFilteringDate() {
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INT64) PARTITION BY _PARTITIONDATE ",
+            testDataset, testTable, "orderId"));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "INSERT INTO `%s.%s` (%s, _PARTITIONTIME) VALUES "
+                + "(101, \"2024-01-05 00:00:00 UTC\"),"
+                + "(102, \"2024-01-05 00:00:00 UTC\"),"
+                + "(201, \"2024-01-10 00:00:00 UTC\"),"
+                + "(202, \"2024-01-10 00:00:00 UTC\");",
+            testDataset, testTable, "orderId"));
+    String dt = "2024-01-05";
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .option("filter", "_PARTITIONDATE = '" + dt + "'")
+            .load()
+            .select("orderId");
+    List<Row> rows = df.join(df, "orderId").orderBy("orderId").collectAsList();
+    assertThat(rows.size()).isEqualTo(2);
+    assertThat(rows.get(0).getLong(0)).isEqualTo(101);
+    assertThat(rows.get(1).getLong(0)).isEqualTo(102);
+  }
+
+  @Test
+  public void testPseudoColumnsRuntimeFilteringHour() {
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (%s INT64) PARTITION BY TIMESTAMP_TRUNC(_PARTITIONTIME, HOUR) ",
+            testDataset, testTable, "orderId"));
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "INSERT INTO `%s.%s` (%s, _PARTITIONTIME) VALUES "
+                + "(101, \"2024-01-05 18:00:00 UTC\"),"
+                + "(102, \"2024-01-05 18:00:00 UTC\"),"
+                + "(201, \"2024-01-10 06:00:00 UTC\"),"
+                + "(202, \"2024-01-10 08:00:00 UTC\");",
+            testDataset, testTable, "orderId"));
+    String dt = "2024-01-05 18:00:00 UTC";
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .option("filter", "_PARTITIONTIME = '" + dt + "'")
+            .load()
+            .select("orderId");
+    List<Row> rows = df.join(df, "orderId").orderBy("orderId").collectAsList();
+    assertThat(rows.size()).isEqualTo(2);
+    assertThat(rows.get(0).getLong(0)).isEqualTo(101);
+    assertThat(rows.get(1).getLong(0)).isEqualTo(102);
+  }
 }
