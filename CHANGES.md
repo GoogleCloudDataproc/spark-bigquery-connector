@@ -5,6 +5,7 @@
 * Issue #1043 : Fix Indirect write drops policy tags
 * Issue #1244 : Set schema Field Nullables as per ALLOW_FIELD_RELAXATION
 * Issue #1254 : fix getting partitioning fields for pseudo columns
+* Issue #1263 : Support ClusteredFields in Direct Write
 
 ## 0.39.1 - 2024-06-24
 
