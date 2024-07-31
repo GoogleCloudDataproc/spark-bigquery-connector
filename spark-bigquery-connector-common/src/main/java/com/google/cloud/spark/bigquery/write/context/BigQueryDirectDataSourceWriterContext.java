@@ -37,6 +37,7 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.metrics.SparkBigQueryConnectorMetricsUtils;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import org.apache.spark.SparkContext;
@@ -97,6 +98,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       java.util.Optional<String> destinationTableKmsKeyName,
       boolean writeAtLeastOnce,
       PartitionOverwriteMode overwriteMode,
+      java.util.Optional<ImmutableList<String>> clusteredFields,
       SparkContext sparkContext)
       throws IllegalArgumentException {
     this.bigQueryClient = bigQueryClient;
@@ -120,8 +122,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       throw new BigQueryConnectorException.InvalidSchemaException(
           "Could not convert Spark schema to protobuf descriptor", e);
     }
-
-    this.tableToWrite = getOrCreateTable(saveMode, destinationTableId, bigQuerySchema);
+    this.tableToWrite =
+        getOrCreateTable(saveMode, destinationTableId, bigQuerySchema, clusteredFields);
     this.tablePathForBigQueryStorage =
         bigQueryClient.createTablePathForBigQueryStorage(tableToWrite.getTableId());
 
@@ -142,7 +144,10 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
    *     or the temporaryTableId.
    */
   private BigQueryTable getOrCreateTable(
-      SaveMode saveMode, TableId destinationTableId, Schema bigQuerySchema)
+      SaveMode saveMode,
+      TableId destinationTableId,
+      Schema bigQuerySchema,
+      java.util.Optional<ImmutableList<String>> clusteredFields)
       throws IllegalArgumentException {
     if (bigQueryClient.tableExists(destinationTableId)) {
       TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
@@ -181,7 +186,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
                   destinationTableId,
                   bigQuerySchema,
                   BigQueryClient.CreateTableOptions.of(
-                      destinationTableKmsKeyName.toJavaUtil(), tableLabels))
+                      destinationTableKmsKeyName.toJavaUtil(), tableLabels, clusteredFields))
               .getTableId(),
           true);
     }

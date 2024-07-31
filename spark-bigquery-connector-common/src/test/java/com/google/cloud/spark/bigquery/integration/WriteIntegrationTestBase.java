@@ -870,6 +870,30 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
+  public void testWriteToBigQueryClusteredTable() {
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", TestConstants.LIBRARIES_PROJECTS_TABLE)
+            .load()
+            .where("platform = 'Sublime'");
+
+    df.write()
+        .format("bigquery")
+        .option("table", fullTableName())
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("clusteredFields", "platform")
+        .option("writeMethod", writeMethod.toString())
+        .mode(SaveMode.Append)
+        .save();
+
+    StandardTableDefinition tableDefinition =
+        bq.getTable(testDataset.toString(), testTable).getDefinition();
+    assertThat(tableDefinition.getClustering().getFields()).contains("platform");
+  }
+
+  @Test
   public void testWriteWithTableLabels() throws Exception {
     Dataset<Row> df = initialData();
     spark.conf().set("bigQueryTableLabel.foo", "bar");

@@ -82,6 +82,7 @@ public class BigQueryDataSourceWriterModule implements Module {
                     .Overwrite), // writeAtLeastOnce mode is currently not supported in OverWrite
         // mode.
         tableConfig.getPartitionOverwriteModeValue(),
+        tableConfig.getClusteredFields(),
         spark.sparkContext());
   }
 
