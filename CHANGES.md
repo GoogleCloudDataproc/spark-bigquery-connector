@@ -2,6 +2,8 @@
 
 ## Next
 
+* PR #1259 : Encode snapshotTimeMillis in view materialization query. Thanks @tom-s-powell !
+* PR #1261 : Adding IdentityToken header in readRows call
 * Issue #1043 : Fix Indirect write drops policy tags
 * Issue #1244 : Set schema Field Nullables as per ALLOW_FIELD_RELAXATION
 * Issue #1254 : fix getting partitioning fields for pseudo columns
