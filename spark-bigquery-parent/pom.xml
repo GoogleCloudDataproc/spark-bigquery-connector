@@ -55,17 +55,17 @@
         <!--arrow 16.1.0 breaks Java 8 support
         https://github.com/apache/arrow/issues/41717 -->
         <arrow.version>16.0.0</arrow.version>
-        <gax.version>2.48.1</gax.version>
-        <google-auth.version>1.23.0</google-auth.version>
-        <google-cloud-bigquery.version>2.40.1</google-cloud-bigquery.version>
-        <google-cloud-bigquerystorage.version>3.7.0</google-cloud-bigquerystorage.version>
-        <google-cloud-dataproc.version>4.40.0</google-cloud-dataproc.version>
-        <google-cloud-storage.version>2.38.0</google-cloud-storage.version>
-        <google-truth.version>1.4.2</google-truth.version>
-        <grpc.version>1.64.0</grpc.version>
-        <guava.version>33.2.0-jre</guava.version>
-        <jackson.version>2.17.1</jackson.version>
-        <netty.version>4.1.109.Final</netty.version>
+        <gax.version>2.51.0</gax.version>
+        <google-auth.version>1.24.0</google-auth.version>
+        <google-cloud-bigquery.version>2.42.0</google-cloud-bigquery.version>
+        <google-cloud-bigquerystorage.version>3.8.0</google-cloud-bigquerystorage.version>
+        <google-cloud-dataproc.version>4.44.0</google-cloud-dataproc.version>
+        <google-cloud-storage.version>2.41.0</google-cloud-storage.version>
+        <google-truth.version>1.4.4</google-truth.version>
+        <grpc.version>1.65.1</grpc.version>
+        <guava.version>33.2.1-jre</guava.version>
+        <jackson.version>2.17.2</jackson.version>
+        <netty.version>4.1.112.Final</netty.version>
         <openlineage-spark.version>1.13.1</openlineage-spark.version>
         <paranamer.version>2.8</paranamer.version>
         <!-- Don't upgrade protobuf until bigquerystorage is compatible with 4.x version of proto.
