@@ -8,6 +8,12 @@
 * Issue #1244 : Set schema Field Nullables as per ALLOW_FIELD_RELAXATION
 * Issue #1254 : fix getting partitioning fields for pseudo columns
 * Issue #1263 : Support ClusteredFields in Direct Write
+* BigQuery API has been upgraded to version 2.42.0
+* BigQuery Storage API has been upgraded to version 3.8.0
+* GAX has been upgraded to version 2.51.0
+* gRPC has been upgraded to version 1.65.1
+* Netty has been upgraded to version 4.1.112.Final
+
 
 ## 0.39.1 - 2024-06-24
 
