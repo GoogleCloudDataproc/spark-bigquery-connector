@@ -66,7 +66,7 @@
         <guava.version>33.2.1-jre</guava.version>
         <jackson.version>2.17.2</jackson.version>
         <netty.version>4.1.112.Final</netty.version>
-        <openlineage-spark.version>1.13.1</openlineage-spark.version>
+        <openlineage-spark.version>1.19.0</openlineage-spark.version>
         <paranamer.version>2.8</paranamer.version>
         <!-- Don't upgrade protobuf until bigquerystorage is compatible with 4.x version of proto.
         Ref : https://github.com/protocolbuffers/protobuf/issues/16452-->
@@ -299,6 +299,11 @@
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
                 <version>4.11.0</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openlineage</groupId>
+                <artifactId>spark-extension-interfaces</artifactId>
+                <version>${openlineage-spark.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.conscrypt</groupId>
@@ -702,6 +707,10 @@
                         <relocation>
                             <pattern>org.xerial.snappy</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.xerial.snappy</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>io.openlineage.spark.shade</pattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.io.openlineage.spark.shade</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>META-INF/native/libnetty</pattern>
