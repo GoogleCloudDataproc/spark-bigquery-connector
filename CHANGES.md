@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.40.0 - 2024-08-05
 
 * PR #1259 : Encode snapshotTimeMillis in view materialization query. Thanks @tom-s-powell !
 * PR #1261 : Adding IdentityToken header in readRows call
