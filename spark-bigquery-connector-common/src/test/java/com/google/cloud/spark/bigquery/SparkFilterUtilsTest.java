@@ -181,7 +181,7 @@ public class SparkFilterUtilsTest {
     assertThat(SparkFilterUtils.compileFilter(EqualTo.apply("foo", 1))).isEqualTo("`foo` = 1");
     assertThat(SparkFilterUtils.compileFilter(EqualNullSafe.apply("foo", 1)))
         .isEqualTo(
-            "`foo` IS NULL AND 1 IS NULL OR `foo` IS NOT NULL AND 1 IS NOT NULL AND `foo` = 1");
+            "(`foo` IS NULL AND 1 IS NULL) OR (`foo` IS NOT NULL AND 1 IS NOT NULL AND `foo` = 1)");
     assertThat(SparkFilterUtils.compileFilter(GreaterThan.apply("foo", 2))).isEqualTo("`foo` > 2");
     assertThat(SparkFilterUtils.compileFilter(GreaterThanOrEqual.apply("foo", 3)))
         .isEqualTo("`foo` >= 3");
@@ -396,14 +396,14 @@ public class SparkFilterUtilsTest {
         pushAllFilters,
         dataFormat,
         "",
-        "((NOT (`c1` IS NULL AND 500 IS NULL OR `c1` IS NOT NULL "
+        "((NOT ((`c1` IS NULL AND 500 IS NULL) OR (`c1` IS NOT NULL "
+            + "AND 500 IS NOT NULL AND `c1` = 500))) "
+            + "OR (NOT ((`c2` IS NULL AND 500 IS NULL) OR (`c2` IS NOT NULL "
+            + "AND 500 IS NOT NULL AND `c2` = 500)))) "
+            + "AND ((`c1` IS NULL AND 500 IS NULL) OR (`c1` IS NOT NULL "
             + "AND 500 IS NOT NULL AND `c1` = 500)) "
-            + "OR (NOT (`c2` IS NULL AND 500 IS NULL OR `c2` IS NOT NULL "
-            + "AND 500 IS NOT NULL AND `c2` = 500))) "
-            + "AND (`c1` IS NULL AND 500 IS NULL OR `c1` IS NOT NULL "
-            + "AND 500 IS NOT NULL AND `c1` = 500) "
-            + "AND (`c2` IS NULL AND 500 IS NULL OR `c2` IS NOT NULL "
-            + "AND 500 IS NOT NULL AND `c2` = 500)",
+            + "AND ((`c2` IS NULL AND 500 IS NULL) OR (`c2` IS NOT NULL "
+            + "AND 500 IS NOT NULL AND `c2` = 500))",
         Optional.empty(),
         part1,
         part2,
