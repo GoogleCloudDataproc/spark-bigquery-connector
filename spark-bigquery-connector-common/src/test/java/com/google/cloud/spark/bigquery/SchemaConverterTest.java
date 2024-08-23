@@ -484,6 +484,42 @@ public class SchemaConverterTest {
     assertDecimal(numeric().setPrecision(20L).setScale(5L), 20, 5);
   }
 
+  @Test
+  public void testCreateDecimalTypeFromCustomBigNumericField() throws Exception {
+    Field customBigNumeric =
+        Field.newBuilder("foo", LegacySQLTypeName.BIGNUMERIC)
+            .setPrecision(76L)
+            .setScale(38L)
+            .build();
+    StructField field =
+        SchemaConverters.from(
+                SchemaConvertersConfiguration.of(
+                    false,
+                    com.google.common.base.Optional.of(38),
+                    com.google.common.base.Optional.of(10)))
+            .convert(customBigNumeric);
+    assertThat(field.dataType()).isEqualTo(DataTypes.createDecimalType(38, 10));
+  }
+
+  @Test
+  public void testCreateDecimalTypeFromCustomBigNumericField_wide() throws Exception {
+    Field customBigNumeric =
+        Field.newBuilder("foo", LegacySQLTypeName.BIGNUMERIC)
+            .setPrecision(76L)
+            .setScale(38L)
+            .build();
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          SchemaConverters.from(
+                  SchemaConvertersConfiguration.of(
+                      false,
+                      com.google.common.base.Optional.of(40),
+                      com.google.common.base.Optional.of(10)))
+              .convert(customBigNumeric);
+        });
+  }
+
   private Field.Builder numeric() {
     return Field.newBuilder("foo", LegacySQLTypeName.NUMERIC);
   }
@@ -493,6 +529,8 @@ public class SchemaConverterTest {
         SchemaConverters.createDecimalTypeFromNumericField(
             numeric.build(),
             LegacySQLTypeName.NUMERIC,
+            Optional.ofNullable(numeric().build().getPrecision()).map(Long::intValue),
+            Optional.ofNullable(numeric().build().getScale()).map(Long::intValue),
             BigQueryUtil.DEFAULT_NUMERIC_PRECISION,
             BigQueryUtil.DEFAULT_NUMERIC_SCALE);
     assertThat(decimalType.precision()).isEqualTo(expectedPrecision);

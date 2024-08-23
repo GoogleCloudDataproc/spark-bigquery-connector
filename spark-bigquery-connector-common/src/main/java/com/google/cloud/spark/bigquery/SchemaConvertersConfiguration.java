@@ -15,31 +15,62 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.empty;
+import static com.google.common.base.Optional.fromJavaUtil;
+
 import com.google.common.base.Objects;
+import com.google.common.base.Optional;
 import java.io.Serializable;
 
 public class SchemaConvertersConfiguration implements Serializable {
 
   private final boolean allowMapTypeConversion;
+  private Optional<Integer> bigNumericFieldsPrecision = empty();
+  private Optional<Integer> bigNumericFieldsScale = empty();
 
-  private SchemaConvertersConfiguration(boolean allowMapTypeConversion) {
+  private SchemaConvertersConfiguration(
+      boolean allowMapTypeConversion,
+      Optional<Integer> bigNumericFieldsPrecision,
+      Optional<Integer> bigNumericFieldsScale) {
     this.allowMapTypeConversion = allowMapTypeConversion;
+    this.bigNumericFieldsPrecision = bigNumericFieldsPrecision;
+    this.bigNumericFieldsScale = bigNumericFieldsScale;
   }
 
   public static SchemaConvertersConfiguration from(SparkBigQueryConfig config) {
-    return SchemaConvertersConfiguration.of(config.getAllowMapTypeConversion());
+    return SchemaConvertersConfiguration.of(
+        config.getAllowMapTypeConversion(),
+        fromJavaUtil(config.getBigNumericFieldsPrecision()),
+        fromJavaUtil(config.getBigNumericFieldsScale()));
   }
 
   public static SchemaConvertersConfiguration of(boolean allowMapTypeConversion) {
-    return new SchemaConvertersConfiguration(allowMapTypeConversion);
+    return new SchemaConvertersConfiguration(allowMapTypeConversion, empty(), empty());
+  }
+
+  public static SchemaConvertersConfiguration of(
+      boolean allowMapTypeConversion,
+      Optional<Integer> bigNumericFieldsPrecision,
+      Optional<Integer> bigNumericFieldsScale) {
+    return new SchemaConvertersConfiguration(
+        allowMapTypeConversion, bigNumericFieldsPrecision, bigNumericFieldsScale);
   }
 
   public static SchemaConvertersConfiguration createDefault() {
-    return new SchemaConvertersConfiguration(SparkBigQueryConfig.ALLOW_MAP_TYPE_CONVERSION_DEFAULT);
+    return new SchemaConvertersConfiguration(
+        SparkBigQueryConfig.ALLOW_MAP_TYPE_CONVERSION_DEFAULT, empty(), empty());
   }
 
   public boolean getAllowMapTypeConversion() {
     return allowMapTypeConversion;
+  }
+
+  public Optional<Integer> getBigNumericFieldsPrecision() {
+    return bigNumericFieldsPrecision;
+  }
+
+  public Optional<Integer> getBigNumericFieldsScale() {
+    return bigNumericFieldsScale;
   }
 
   @Override
@@ -47,12 +78,15 @@ public class SchemaConvertersConfiguration implements Serializable {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     SchemaConvertersConfiguration that = (SchemaConvertersConfiguration) o;
-    return Objects.equal(allowMapTypeConversion, that.allowMapTypeConversion);
+    return Objects.equal(allowMapTypeConversion, that.allowMapTypeConversion)
+        && Objects.equal(bigNumericFieldsPrecision, that.bigNumericFieldsPrecision)
+        && Objects.equal(bigNumericFieldsScale, that.bigNumericFieldsScale);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(allowMapTypeConversion);
+    return Objects.hashCode(
+        allowMapTypeConversion, bigNumericFieldsPrecision, bigNumericFieldsScale);
   }
 
   @Override

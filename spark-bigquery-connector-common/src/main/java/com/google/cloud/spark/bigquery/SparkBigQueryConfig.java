@@ -167,6 +167,9 @@ public class SparkBigQueryConfig
 
   public static final String GPN_ATTRIBUTION = "GPN";
 
+  public static final String BIG_NUMERIC_FIELDS_PRECISION = "bigNumericFieldsPrecision";
+  public static final String BIG_NUMERIC_FIELDS_SCALE = "bigNumericFieldsScale";
+
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
   // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
@@ -245,6 +248,8 @@ public class SparkBigQueryConfig
   private boolean allowMapTypeConversion = ALLOW_MAP_TYPE_CONVERSION_DEFAULT;
   private long bigQueryJobTimeoutInMinutes = BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT;
   private com.google.common.base.Optional<String> gpn;
+  private com.google.common.base.Optional<Integer> bigNumericFieldsPrecision = empty();
+  private com.google.common.base.Optional<Integer> bigNumericFieldsScale = empty();
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -611,6 +616,11 @@ public class SparkBigQueryConfig
 
     config.snapshotTimeMillis =
         getOption(options, "snapshotTimeMillis").transform(Long::valueOf).orNull();
+    config.bigNumericFieldsPrecision =
+        getAnyOption(globalOptions, options, BIG_NUMERIC_FIELDS_PRECISION)
+            .transform(Integer::valueOf);
+    config.bigNumericFieldsScale =
+        getAnyOption(globalOptions, options, BIG_NUMERIC_FIELDS_SCALE).transform(Integer::valueOf);
 
     return config;
   }
@@ -1072,6 +1082,14 @@ public class SparkBigQueryConfig
 
   public OptionalLong getSnapshotTimeMillis() {
     return snapshotTimeMillis == null ? OptionalLong.empty() : OptionalLong.of(snapshotTimeMillis);
+  }
+
+  public Optional<Integer> getBigNumericFieldsPrecision() {
+    return bigNumericFieldsPrecision.toJavaUtil();
+  }
+
+  public Optional<Integer> getBigNumericFieldsScale() {
+    return bigNumericFieldsScale.toJavaUtil();
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {

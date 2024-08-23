@@ -914,6 +914,26 @@ word-break:break-word
      </td>
      <td>Read</td>
    </tr>
+  <tr>
+     <td><code>bigNumericFieldsPrecision</code>
+     </td>
+     <td>A config to specify the precision to use while reading all the BigNumeric fields of a table.
+          Please note that there might be data loss if the actual data's precision is more than what is specified.
+          By default this is not set and precision from the field is used.
+         <br/> (Optional)
+     </td>
+     <td>Read</td>
+   </tr>
+  <tr>
+     <td><code>bigNumericFieldsScale</code>
+     </td>
+     <td>A config to specify the scale to use while reading all the BigNumeric fields of a table.
+          Please note that there might be data loss if the actual data's scale is more than what is specified.
+          By default this is not set and scale from the field is used.
+         <br/> (Optional)
+     </td>
+     <td>Read</td>
+   </tr>
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter
