@@ -15,62 +15,60 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.empty;
-import static com.google.common.base.Optional.fromJavaUtil;
-
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import java.io.Serializable;
 
 public class SchemaConvertersConfiguration implements Serializable {
 
   private final boolean allowMapTypeConversion;
-  private Optional<Integer> bigNumericFieldsPrecision = empty();
-  private Optional<Integer> bigNumericFieldsScale = empty();
+  private int bigNumericDefaultPrecision;
+  private int bigNumericDefaultScale;
 
   private SchemaConvertersConfiguration(
-      boolean allowMapTypeConversion,
-      Optional<Integer> bigNumericFieldsPrecision,
-      Optional<Integer> bigNumericFieldsScale) {
+      boolean allowMapTypeConversion, int bigNumericDefaultPrecision, int bigNumericDefaultScale) {
     this.allowMapTypeConversion = allowMapTypeConversion;
-    this.bigNumericFieldsPrecision = bigNumericFieldsPrecision;
-    this.bigNumericFieldsScale = bigNumericFieldsScale;
+    this.bigNumericDefaultPrecision = bigNumericDefaultPrecision;
+    this.bigNumericDefaultScale = bigNumericDefaultScale;
   }
 
   public static SchemaConvertersConfiguration from(SparkBigQueryConfig config) {
     return SchemaConvertersConfiguration.of(
         config.getAllowMapTypeConversion(),
-        fromJavaUtil(config.getBigNumericFieldsPrecision()),
-        fromJavaUtil(config.getBigNumericFieldsScale()));
+        config.getBigNumericDefaultPrecision(),
+        config.getBigNumericDefaultScale());
   }
 
   public static SchemaConvertersConfiguration of(boolean allowMapTypeConversion) {
-    return new SchemaConvertersConfiguration(allowMapTypeConversion, empty(), empty());
+    return new SchemaConvertersConfiguration(
+        allowMapTypeConversion,
+        BigQueryUtil.DEFAULT_BIG_NUMERIC_PRECISION,
+        BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
   }
 
   public static SchemaConvertersConfiguration of(
-      boolean allowMapTypeConversion,
-      Optional<Integer> bigNumericFieldsPrecision,
-      Optional<Integer> bigNumericFieldsScale) {
+      boolean allowMapTypeConversion, int bigNumericDefaultPrecision, int bigNumericDefaultScale) {
     return new SchemaConvertersConfiguration(
-        allowMapTypeConversion, bigNumericFieldsPrecision, bigNumericFieldsScale);
+        allowMapTypeConversion, bigNumericDefaultPrecision, bigNumericDefaultScale);
   }
 
   public static SchemaConvertersConfiguration createDefault() {
     return new SchemaConvertersConfiguration(
-        SparkBigQueryConfig.ALLOW_MAP_TYPE_CONVERSION_DEFAULT, empty(), empty());
+        SparkBigQueryConfig.ALLOW_MAP_TYPE_CONVERSION_DEFAULT,
+        BigQueryUtil.DEFAULT_BIG_NUMERIC_PRECISION,
+        BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
   }
 
   public boolean getAllowMapTypeConversion() {
     return allowMapTypeConversion;
   }
 
-  public Optional<Integer> getBigNumericFieldsPrecision() {
-    return bigNumericFieldsPrecision;
+  public int getBigNumericDefaultPrecision() {
+    return bigNumericDefaultPrecision;
   }
 
-  public Optional<Integer> getBigNumericFieldsScale() {
-    return bigNumericFieldsScale;
+  public int getBigNumericDefaultScale() {
+    return bigNumericDefaultScale;
   }
 
   @Override
@@ -79,14 +77,14 @@ public class SchemaConvertersConfiguration implements Serializable {
     if (o == null || getClass() != o.getClass()) return false;
     SchemaConvertersConfiguration that = (SchemaConvertersConfiguration) o;
     return Objects.equal(allowMapTypeConversion, that.allowMapTypeConversion)
-        && Objects.equal(bigNumericFieldsPrecision, that.bigNumericFieldsPrecision)
-        && Objects.equal(bigNumericFieldsScale, that.bigNumericFieldsScale);
+        && Objects.equal(bigNumericDefaultPrecision, that.bigNumericDefaultPrecision)
+        && Objects.equal(bigNumericDefaultScale, that.bigNumericDefaultScale);
   }
 
   @Override
   public int hashCode() {
     return Objects.hashCode(
-        allowMapTypeConversion, bigNumericFieldsPrecision, bigNumericFieldsScale);
+        allowMapTypeConversion, bigNumericDefaultPrecision, bigNumericDefaultScale);
   }
 
   @Override

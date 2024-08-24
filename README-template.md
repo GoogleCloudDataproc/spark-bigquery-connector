@@ -917,9 +917,9 @@ word-break:break-word
   <tr>
      <td><code>bigNumericFieldsPrecision</code>
      </td>
-     <td>A config to specify the precision to use while reading all the BigNumeric fields of a table.
+     <td>An alternative default precision for BigNumeric fields, as the BigQuery default is too wide for Spark. Values can be between 1 and 38.
+          This default is used only when the field has an unparameterized BigNumeric type.
           Please note that there might be data loss if the actual data's precision is more than what is specified.
-          By default this is not set and precision from the field is used.
          <br/> (Optional)
      </td>
      <td>Read</td>
@@ -927,9 +927,9 @@ word-break:break-word
   <tr>
      <td><code>bigNumericFieldsScale</code>
      </td>
-     <td>A config to specify the scale to use while reading all the BigNumeric fields of a table.
+     <td>An alternative default scale for BigNumeric fields. Values can be between 0 and 38, and less than bigNumericFieldsPrecision.
+          This default is used only when the field has an unparameterized BigNumeric type.
           Please note that there might be data loss if the actual data's scale is more than what is specified.
-          By default this is not set and scale from the field is used.
          <br/> (Optional)
      </td>
      <td>Read</td>

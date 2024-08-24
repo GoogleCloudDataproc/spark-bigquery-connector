@@ -15,10 +15,6 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import static com.google.cloud.bigquery.connector.common.BigQueryUtil.DEFAULT_BIG_NUMERIC_PRECISION;
-import static com.google.cloud.bigquery.connector.common.BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE;
-import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
-
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.FieldList;
@@ -377,16 +373,13 @@ public class SchemaConverters {
       return createDecimalTypeFromNumericField(
           field,
           LegacySQLTypeName.NUMERIC,
-          Optional.ofNullable(field.getPrecision()).map(Long::intValue),
-          Optional.ofNullable(field.getScale()).map(Long::intValue),
           BigQueryUtil.DEFAULT_NUMERIC_PRECISION,
           BigQueryUtil.DEFAULT_NUMERIC_SCALE);
     } else if (LegacySQLTypeName.BIGNUMERIC.equals(field.getType())) {
-      Optional<Integer> fieldPrecision =
-          firstPresent(
-              configuration.getBigNumericFieldsPrecision().toJavaUtil(),
-              Optional.ofNullable(field.getPrecision()).map(Long::intValue));
-      int precision = fieldPrecision.orElse(BigQueryUtil.DEFAULT_BIG_NUMERIC_PRECISION);
+      int precision =
+          Optional.ofNullable(field.getPrecision())
+              .map(Long::intValue)
+              .orElse(configuration.getBigNumericDefaultPrecision());
       if (precision > DecimalType.MAX_PRECISION()) {
         throw new IllegalArgumentException(
             String.format(
@@ -394,11 +387,10 @@ public class SchemaConverters {
                     + "If your data is within Spark's precision, you can set it using bigNumericFieldsPrecision",
                 precision, DecimalType.MAX_PRECISION()));
       }
-      Optional<Integer> fieldScale =
-          firstPresent(
-              configuration.getBigNumericFieldsScale().toJavaUtil(),
-              Optional.ofNullable(field.getScale()).map(Long::intValue));
-      int scale = fieldScale.orElse(BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
+      int scale =
+          Optional.ofNullable(field.getScale())
+              .map(Long::intValue)
+              .orElse(configuration.getBigNumericDefaultScale());
       if (scale > DecimalType.MAX_SCALE()) {
         throw new IllegalArgumentException(
             String.format(
@@ -409,10 +401,8 @@ public class SchemaConverters {
       return createDecimalTypeFromNumericField(
           field,
           LegacySQLTypeName.BIGNUMERIC,
-          fieldPrecision,
-          fieldScale,
-          DEFAULT_BIG_NUMERIC_PRECISION,
-          DEFAULT_BIG_NUMERIC_SCALE);
+          configuration.getBigNumericDefaultPrecision(),
+          configuration.getBigNumericDefaultScale());
     } else if (LegacySQLTypeName.STRING.equals(field.getType())) {
       return DataTypes.StringType;
     } else if (LegacySQLTypeName.BOOLEAN.equals(field.getType())) {
@@ -446,33 +436,30 @@ public class SchemaConverters {
 
   @VisibleForTesting
   static DecimalType createDecimalTypeFromNumericField(
-      Field field,
-      LegacySQLTypeName expectedType,
-      Optional<Integer> fieldPrecision,
-      Optional<Integer> fieldScale,
-      int defaultPrecision,
-      int defaultScale) {
+      Field field, LegacySQLTypeName expectedType, int defaultPrecision, int defaultScale) {
     Preconditions.checkArgument(
         field.getType().equals(expectedType),
         "Field %s must be of type NUMERIC, instead it is of type %s",
         field.getName(),
         field.getType());
+    Optional<Integer> precisionOpt = Optional.ofNullable(field.getPrecision()).map(Long::intValue);
+    Optional<Integer> scaleOpt = Optional.ofNullable(field.getScale()).map(Long::intValue);
     // Both exist
-    if (fieldPrecision.isPresent() && fieldScale.isPresent()) {
-      return DataTypes.createDecimalType(fieldPrecision.get(), fieldScale.get());
+    if (precisionOpt.isPresent() && scaleOpt.isPresent()) {
+      return DataTypes.createDecimalType(precisionOpt.get(), scaleOpt.get());
     }
     // Both missing
-    if (!fieldPrecision.isPresent() && !fieldScale.isPresent()) {
+    if (!precisionOpt.isPresent() && !scaleOpt.isPresent()) {
       return DataTypes.createDecimalType(defaultPrecision, defaultScale);
     }
     // Either precision or scale exists, but not both
     int maxLeftOfDotDigits = defaultPrecision - defaultScale;
-    if (fieldPrecision.isPresent()) {
-      Integer precision = fieldPrecision.get().intValue();
+    if (precisionOpt.isPresent()) {
+      Integer precision = precisionOpt.get().intValue();
       return DataTypes.createDecimalType(precision, Math.max(0, precision - maxLeftOfDotDigits));
     }
     // only scale exists
-    Integer scale = fieldScale.get();
+    Integer scale = scaleOpt.get();
     return DataTypes.createDecimalType(scale + maxLeftOfDotDigits, scale);
   }
 
