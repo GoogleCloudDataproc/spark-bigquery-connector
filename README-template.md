@@ -915,7 +915,7 @@ word-break:break-word
      <td>Read</td>
    </tr>
   <tr>
-     <td><code>bigNumericFieldsPrecision</code>
+     <td><code>bigNumericDefaultPrecision</code>
      </td>
      <td>An alternative default precision for BigNumeric fields, as the BigQuery default is too wide for Spark. Values can be between 1 and 38.
           This default is used only when the field has an unparameterized BigNumeric type.
@@ -925,7 +925,7 @@ word-break:break-word
      <td>Read</td>
    </tr>
   <tr>
-     <td><code>bigNumericFieldsScale</code>
+     <td><code>bigNumericDefaultScale</code>
      </td>
      <td>An alternative default scale for BigNumeric fields. Values can be between 0 and 38, and less than bigNumericFieldsPrecision.
           This default is used only when the field has an unparameterized BigNumeric type.
