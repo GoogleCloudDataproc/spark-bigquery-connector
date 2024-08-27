@@ -384,7 +384,7 @@ public class SchemaConverters {
         throw new IllegalArgumentException(
             String.format(
                 "BigNumeric precision is too wide (%d), Spark can only handle decimal types with max precision of %d, "
-                    + "If your data is within Spark's precision, you can set it using bigNumericFieldsPrecision",
+                    + "If your data is within Spark's precision, you can set it using bigNumericDefaultPrecision",
                 precision, DecimalType.MAX_PRECISION()));
       }
       int scale =
@@ -395,7 +395,7 @@ public class SchemaConverters {
         throw new IllegalArgumentException(
             String.format(
                 "BigNumeric scale is too wide (%d), Spark can only handle decimal types with max scale of %d, "
-                    + "If your data is within Spark's scale, you can set it using bigNumericFieldsScale",
+                    + "If your data is within Spark's scale, you can set it using bigNumericDefaultScale",
                 scale, DecimalType.MAX_SCALE()));
       }
       return createDecimalTypeFromNumericField(
