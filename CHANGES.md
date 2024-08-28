@@ -2,6 +2,8 @@
 
 ## Next
 
+* PR #1281 : Configure alternative BigNumeric precision and scale defaults
+
 ## 0.40.0 - 2024-08-05
 
 * PR #1259 : Encode snapshotTimeMillis in view materialization query. Thanks @tom-s-powell !

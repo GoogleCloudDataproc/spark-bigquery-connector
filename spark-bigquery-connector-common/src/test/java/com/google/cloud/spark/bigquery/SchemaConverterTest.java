@@ -484,6 +484,26 @@ public class SchemaConverterTest {
     assertDecimal(numeric().setPrecision(20L).setScale(5L), 20, 5);
   }
 
+  @Test
+  public void testCreateDecimalTypeFromCustomBigNumericField() throws Exception {
+    Field customBigNumeric = Field.newBuilder("foo", LegacySQLTypeName.BIGNUMERIC).build();
+    StructField field =
+        SchemaConverters.from(SchemaConvertersConfiguration.of(false, 38, 10))
+            .convert(customBigNumeric);
+    assertThat(field.dataType()).isEqualTo(DataTypes.createDecimalType(38, 10));
+  }
+
+  @Test
+  public void testCreateDecimalTypeFromCustomBigNumericField_wide() throws Exception {
+    Field customBigNumeric = Field.newBuilder("foo", LegacySQLTypeName.BIGNUMERIC).build();
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          SchemaConverters.from(SchemaConvertersConfiguration.of(false, 40, 10))
+              .convert(customBigNumeric);
+        });
+  }
+
   private Field.Builder numeric() {
     return Field.newBuilder("foo", LegacySQLTypeName.NUMERIC);
   }

@@ -15,31 +15,60 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.common.base.Objects;
 import java.io.Serializable;
 
 public class SchemaConvertersConfiguration implements Serializable {
 
   private final boolean allowMapTypeConversion;
+  private int bigNumericDefaultPrecision;
+  private int bigNumericDefaultScale;
 
-  private SchemaConvertersConfiguration(boolean allowMapTypeConversion) {
+  private SchemaConvertersConfiguration(
+      boolean allowMapTypeConversion, int bigNumericDefaultPrecision, int bigNumericDefaultScale) {
     this.allowMapTypeConversion = allowMapTypeConversion;
+    this.bigNumericDefaultPrecision = bigNumericDefaultPrecision;
+    this.bigNumericDefaultScale = bigNumericDefaultScale;
   }
 
   public static SchemaConvertersConfiguration from(SparkBigQueryConfig config) {
-    return SchemaConvertersConfiguration.of(config.getAllowMapTypeConversion());
+    return SchemaConvertersConfiguration.of(
+        config.getAllowMapTypeConversion(),
+        config.getBigNumericDefaultPrecision(),
+        config.getBigNumericDefaultScale());
   }
 
   public static SchemaConvertersConfiguration of(boolean allowMapTypeConversion) {
-    return new SchemaConvertersConfiguration(allowMapTypeConversion);
+    return new SchemaConvertersConfiguration(
+        allowMapTypeConversion,
+        BigQueryUtil.DEFAULT_BIG_NUMERIC_PRECISION,
+        BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
+  }
+
+  public static SchemaConvertersConfiguration of(
+      boolean allowMapTypeConversion, int bigNumericDefaultPrecision, int bigNumericDefaultScale) {
+    return new SchemaConvertersConfiguration(
+        allowMapTypeConversion, bigNumericDefaultPrecision, bigNumericDefaultScale);
   }
 
   public static SchemaConvertersConfiguration createDefault() {
-    return new SchemaConvertersConfiguration(SparkBigQueryConfig.ALLOW_MAP_TYPE_CONVERSION_DEFAULT);
+    return new SchemaConvertersConfiguration(
+        SparkBigQueryConfig.ALLOW_MAP_TYPE_CONVERSION_DEFAULT,
+        BigQueryUtil.DEFAULT_BIG_NUMERIC_PRECISION,
+        BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
   }
 
   public boolean getAllowMapTypeConversion() {
     return allowMapTypeConversion;
+  }
+
+  public int getBigNumericDefaultPrecision() {
+    return bigNumericDefaultPrecision;
+  }
+
+  public int getBigNumericDefaultScale() {
+    return bigNumericDefaultScale;
   }
 
   @Override
@@ -47,12 +76,15 @@ public class SchemaConvertersConfiguration implements Serializable {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     SchemaConvertersConfiguration that = (SchemaConvertersConfiguration) o;
-    return Objects.equal(allowMapTypeConversion, that.allowMapTypeConversion);
+    return Objects.equal(allowMapTypeConversion, that.allowMapTypeConversion)
+        && Objects.equal(bigNumericDefaultPrecision, that.bigNumericDefaultPrecision)
+        && Objects.equal(bigNumericDefaultScale, that.bigNumericDefaultScale);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(allowMapTypeConversion);
+    return Objects.hashCode(
+        allowMapTypeConversion, bigNumericDefaultPrecision, bigNumericDefaultScale);
   }
 
   @Override

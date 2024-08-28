@@ -46,6 +46,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.MaterializationConfiguration;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
@@ -167,6 +168,9 @@ public class SparkBigQueryConfig
 
   public static final String GPN_ATTRIBUTION = "GPN";
 
+  public static final String BIG_NUMERIC_DEFAULT_PRECISION = "bigNumericDefaultPrecision";
+  public static final String BIG_NUMERIC_DEFAULT_SCALE = "bigNumericDefaultScale";
+
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
   // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
@@ -245,6 +249,8 @@ public class SparkBigQueryConfig
   private boolean allowMapTypeConversion = ALLOW_MAP_TYPE_CONVERSION_DEFAULT;
   private long bigQueryJobTimeoutInMinutes = BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT;
   private com.google.common.base.Optional<String> gpn;
+  private int bigNumericDefaultPrecision;
+  private int bigNumericDefaultScale;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -611,6 +617,14 @@ public class SparkBigQueryConfig
 
     config.snapshotTimeMillis =
         getOption(options, "snapshotTimeMillis").transform(Long::valueOf).orNull();
+    config.bigNumericDefaultPrecision =
+        getAnyOption(globalOptions, options, BIG_NUMERIC_DEFAULT_PRECISION)
+            .transform(Integer::parseInt)
+            .or(BigQueryUtil.DEFAULT_BIG_NUMERIC_PRECISION);
+    config.bigNumericDefaultScale =
+        getAnyOption(globalOptions, options, BIG_NUMERIC_DEFAULT_SCALE)
+            .transform(Integer::parseInt)
+            .or(BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
 
     return config;
   }
@@ -1072,6 +1086,14 @@ public class SparkBigQueryConfig
 
   public OptionalLong getSnapshotTimeMillis() {
     return snapshotTimeMillis == null ? OptionalLong.empty() : OptionalLong.of(snapshotTimeMillis);
+  }
+
+  public int getBigNumericDefaultPrecision() {
+    return bigNumericDefaultPrecision;
+  }
+
+  public int getBigNumericDefaultScale() {
+    return bigNumericDefaultScale;
   }
 
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
