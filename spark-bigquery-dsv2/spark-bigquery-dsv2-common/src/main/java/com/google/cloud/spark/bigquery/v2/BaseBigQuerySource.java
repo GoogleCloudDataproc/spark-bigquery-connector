@@ -15,11 +15,9 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.BigQueryRelationProvider;
 import org.apache.spark.sql.sources.DataSourceRegister;
 
-public abstract class BaseBigQuerySource extends BigQueryRelationProvider
-    implements DataSourceRegister {
+public abstract class BaseBigQuerySource implements DataSourceRegister {
 
   @Override
   public String shortName() {

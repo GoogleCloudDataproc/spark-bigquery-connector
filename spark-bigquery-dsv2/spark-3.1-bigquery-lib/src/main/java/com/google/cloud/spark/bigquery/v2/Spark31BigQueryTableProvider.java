@@ -15,13 +15,21 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.spark.bigquery.InjectorBuilder;
+import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper;
 import com.google.common.collect.ImmutableMap;
+import com.google.inject.Injector;
+import io.openlineage.spark.shade.client.OpenLineage;
+import io.openlineage.spark.shade.client.utils.DatasetIdentifier;
+import io.openlineage.spark.shade.extension.v1.LineageRelationProvider;
 import java.util.Map;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.TableProvider;
 import org.apache.spark.sql.connector.expressions.Transform;
@@ -29,9 +37,10 @@ import org.apache.spark.sql.sources.BaseRelation;
 import org.apache.spark.sql.sources.CreatableRelationProvider;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
+import scala.collection.JavaConverters;
 
 public class Spark31BigQueryTableProvider extends BaseBigQuerySource
-    implements TableProvider, CreatableRelationProvider {
+    implements TableProvider, CreatableRelationProvider, LineageRelationProvider {
 
   private static final Transform[] EMPTY_TRANSFORM_ARRAY = {};
 
@@ -63,5 +72,17 @@ public class Spark31BigQueryTableProvider extends BaseBigQuerySource
       Dataset<Row> data) {
     return new CreatableRelationProviderHelper()
         .createRelation(sqlContext, mode, parameters, data, ImmutableMap.of());
+  }
+
+  @Override
+  public DatasetIdentifier getLineageDatasetIdentifier(
+      String sparkListenerEventName,
+      OpenLineage openLineage,
+      Object sqlContext,
+      Object parameters) {
+    Map<String, String> properties = JavaConverters.mapAsJavaMap((CaseInsensitiveMap) parameters);
+    Injector injector = new InjectorBuilder().withOptions(properties).build();
+    SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
+    return new DatasetIdentifier(BigQueryUtil.friendlyTableName(config.getTableId()), "bigquery");
   }
 }
