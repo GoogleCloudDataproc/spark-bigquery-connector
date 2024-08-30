@@ -233,7 +233,7 @@ public class SparkFilterUtils {
       String left = quote(equalNullSafe.attribute());
       String right = compileValue(equalNullSafe.value());
       return format(
-          "%1$s IS NULL AND %2$s IS NULL OR %1$s IS NOT NULL AND %2$s IS NOT NULL AND %1$s = %2$s",
+          "(%1$s IS NULL AND %2$s IS NULL) OR (%1$s IS NOT NULL AND %2$s IS NOT NULL AND %1$s = %2$s)",
           left, right);
     }
     if (filter instanceof GreaterThan) {
