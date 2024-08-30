@@ -239,14 +239,17 @@ public class BigQueryClient {
       throws IllegalArgumentException {
     TableInfo destinationTable = getTable(destinationTableId);
     Schema tableSchema = destinationTable.getDefinition().getSchema();
-    Preconditions.checkArgument(
+    ComparisonResult schemaWritableResult =
         BigQueryUtil.schemaWritable(
             schema, // sourceSchema
             tableSchema, // destinationSchema
             false, // regardFieldOrder
-            enableModeCheckForSchemaFields),
+            enableModeCheckForSchemaFields);
+    Preconditions.checkArgument(
+        schemaWritableResult.valuesAreEqual(),
         new BigQueryConnectorException.InvalidSchemaException(
-            "Destination table's schema is not compatible with dataframe's schema"));
+            "Destination table's schema is not compatible with dataframe's schema. "
+                + schemaWritableResult.makeMessage()));
     return createTempTable(destinationTableId, schema);
   }
 

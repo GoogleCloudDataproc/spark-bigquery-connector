@@ -58,6 +58,11 @@ public class BigQueryUtilTest {
   private static final String FULLY_QUALIFIED_TABLE =
       "test.org:test-project.test_dataset.test_table";
 
+  private static void checkFailureMessage(ComparisonResult result, String message) {
+    assertThat(result.valuesAreEqual()).isFalse();
+    assertThat(result.makeMessage()).isEqualTo(message);
+  }
+
   @Test
   public void testParseFullyQualifiedTable() {
     TableId tableId = BigQueryUtil.parseTableId(FULLY_QUALIFIED_TABLE);
@@ -183,8 +188,9 @@ public class BigQueryUtilTest {
             Field.newBuilder("foo", StandardSQLTypeName.INT64).build(),
             Field.newBuilder("bar", StandardSQLTypeName.STRING).build());
 
-    assertThat(BigQueryUtil.schemaWritable(s1, s2, true, true)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, true, true)).isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true))
+        .isEqualTo(ComparisonResult.equal());
   }
 
   @Test
@@ -198,8 +204,10 @@ public class BigQueryUtilTest {
             Field.newBuilder("bar", StandardSQLTypeName.STRING).build(),
             Field.newBuilder("foo", StandardSQLTypeName.INT64).build());
 
-    assertThat(BigQueryUtil.schemaWritable(s1, s2, true, true)).isFalse();
-    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, true, true))
+        .isEqualTo(ComparisonResult.differentNoDescription());
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true))
+        .isEqualTo(ComparisonResult.equal());
   }
 
   @Test
@@ -207,7 +215,7 @@ public class BigQueryUtilTest {
     Field f1 = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
     Field f2 =
         Field.newBuilder("foo", StandardSQLTypeName.INT64).setMode(Field.Mode.NULLABLE).build();
-    assertThat(BigQueryUtil.fieldWritable(f1, f2, true)).isTrue();
+    assertThat(BigQueryUtil.fieldWritable(f1, f2, true)).isEqualTo(ComparisonResult.equal());
   }
 
   @Test
@@ -216,17 +224,52 @@ public class BigQueryUtilTest {
         Schema.of(
             Field.newBuilder("foo", StandardSQLTypeName.INT64).build(),
             Field.newBuilder("bar", StandardSQLTypeName.STRING).build());
-    assertThat(BigQueryUtil.schemaWritable(s, null, false, true)).isFalse();
+    assertThat(BigQueryUtil.schemaWritable(s, null, false, true))
+        .isEqualTo(ComparisonResult.differentNoDescription());
     // two nulls
-    assertThat(BigQueryUtil.schemaWritable(null, null, false, true)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(null, null, false, true))
+        .isEqualTo(ComparisonResult.equal());
   }
 
   @Test
   public void testFieldWritableWithNulls() {
     Field f = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
-    assertThat(BigQueryUtil.fieldWritable(f, null, true)).isFalse();
+    checkFailureMessage(
+        BigQueryUtil.fieldWritable(f, null, true), "Field not found in destination: foo");
     // two nulls
-    assertThat(BigQueryUtil.fieldWritable(null, null, true)).isTrue();
+    assertThat(BigQueryUtil.fieldWritable(null, null, true)).isEqualTo(ComparisonResult.equal());
+  }
+
+  @Test
+  public void testRequiredFieldNotFound() {
+    Field f = Field.newBuilder("foo", StandardSQLTypeName.INT64).setMode(Mode.REQUIRED).build();
+    checkFailureMessage(
+        BigQueryUtil.fieldWritable(null, f, true), "Required field not found in source: foo");
+  }
+
+  @Test
+  public void testFieldNameMismatch() {
+    Field src = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
+    Field dest = Field.newBuilder("bar", StandardSQLTypeName.INT64).build();
+    checkFailureMessage(
+        BigQueryUtil.fieldWritable(src, dest, true),
+        "Wrong field name, expected source field name: bar but was: foo");
+  }
+
+  @Test
+  public void testSubfieldsMismatch() {
+    Field src =
+        Field.of(
+            "fooRecord",
+            LegacySQLTypeName.RECORD,
+            Field.of("subfield1", LegacySQLTypeName.STRING),
+            Field.of("subfield2", LegacySQLTypeName.STRING));
+    Field dest =
+        Field.of(
+            "fooRecord", LegacySQLTypeName.RECORD, Field.of("subfield1", LegacySQLTypeName.STRING));
+    checkFailureMessage(
+        BigQueryUtil.fieldWritable(src, dest, true),
+        "Subfields mismatch for: fooRecord, Number of source fields: 2 is larger than number of destination fields: 1");
   }
 
   @Test
@@ -239,7 +282,16 @@ public class BigQueryUtilTest {
             .build();
     Field dest =
         Field.newBuilder("foo", StandardSQLTypeName.INT64).setScale(2L).setPrecision(2L).build();
-    assertThat(BigQueryUtil.fieldWritable(src, dest, true)).isTrue();
+    assertThat(BigQueryUtil.fieldWritable(src, dest, true)).isEqualTo(ComparisonResult.equal());
+  }
+
+  @Test
+  public void testFieldWritable_notTypeWritable() {
+    Field src = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
+    Field dest = Field.newBuilder("foo", StandardSQLTypeName.DATE).build();
+    checkFailureMessage(
+        BigQueryUtil.fieldWritable(src, dest, true),
+        "Incompatible type for field: foo, cannot write source type: INTEGER to destination type: DATE");
   }
 
   @Test
@@ -248,10 +300,40 @@ public class BigQueryUtilTest {
     Field f2 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setMaxLength(2L).build();
     Field f3 = Field.newBuilder("foo", StandardSQLTypeName.INT64).setMaxLength(3L).build();
     Field f4 = Field.newBuilder("foo", StandardSQLTypeName.INT64).build();
-    assertThat(BigQueryUtil.fieldWritable(f1, f2, true)).isTrue();
-    assertThat(BigQueryUtil.fieldWritable(f3, f2, true)).isFalse();
-    assertThat(BigQueryUtil.fieldWritable(f3, f4, true)).isFalse();
-    assertThat(BigQueryUtil.fieldWritable(f4, f2, true)).isFalse();
+    assertThat(BigQueryUtil.fieldWritable(f1, f2, true)).isEqualTo(ComparisonResult.equal());
+    checkFailureMessage(
+        BigQueryUtil.fieldWritable(f3, f2, true),
+        "Incompatible max length for field: foo, cannot write source field with max length: 3 to destination field with max length: 2");
+    checkFailureMessage(
+        BigQueryUtil.fieldWritable(f3, f4, true),
+        "Incompatible max length for field: foo, cannot write source field with max length: 3 to destination field with max length: null");
+    checkFailureMessage(
+        BigQueryUtil.fieldWritable(f4, f2, true),
+        "Incompatible max length for field: foo, cannot write source field with max length: null to destination field with max length: 2");
+  }
+
+  @Test
+  public void testFieldWritableScaleAndPrecision() {
+    Field s5p5 =
+        Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setScale(5L).setPrecision(5L).build();
+    Field s3p7 =
+        Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setScale(3L).setPrecision(7L).build();
+    Field s7p3 =
+        Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setScale(7L).setPrecision(3L).build();
+    Field s3p3 =
+        Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setScale(3L).setPrecision(3L).build();
+    checkFailureMessage(
+        BigQueryUtil.fieldWritable(s5p5, s3p7, true),
+        "Incompatible scale, precision for field: foo, cannot write source field with scale, precision: (5, 5) to destination field with scale, precision: (3, 7)");
+    checkFailureMessage(
+        BigQueryUtil.fieldWritable(s5p5, s7p3, true),
+        "Incompatible scale, precision for field: foo, cannot write source field with scale, precision: (5, 5) to destination field with scale, precision: (7, 3)");
+    checkFailureMessage(
+        BigQueryUtil.fieldWritable(s5p5, s3p3, true),
+        "Incompatible scale, precision for field: foo, cannot write source field with scale, precision: (5, 5) to destination field with scale, precision: (3, 3)");
+    assertThat(BigQueryUtil.fieldWritable(s3p3, s5p5, true)).isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.fieldWritable(s3p3, s3p7, true)).isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.fieldWritable(s3p3, s7p3, true)).isEqualTo(ComparisonResult.equal());
   }
 
   @Test
@@ -266,15 +348,28 @@ public class BigQueryUtilTest {
         Schema.of(
             Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.REPEATED).build());
 
-    assertThat(BigQueryUtil.schemaWritable(s1, s1, false, true)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s2, s2, false, true)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s3, s3, false, true)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s1, s3, false, true)).isFalse();
-    assertThat(BigQueryUtil.schemaWritable(s2, s3, false, true)).isFalse();
-    assertThat(BigQueryUtil.schemaWritable(s2, s1, false, true)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s3, s1, false, true)).isFalse();
-    assertThat(BigQueryUtil.schemaWritable(s3, s2, false, true)).isFalse();
+    assertThat(BigQueryUtil.schemaWritable(s1, s1, false, true))
+        .isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.schemaWritable(s2, s2, false, true))
+        .isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.schemaWritable(s3, s3, false, true))
+        .isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true))
+        .isEqualTo(ComparisonResult.equal());
+    checkFailureMessage(
+        BigQueryUtil.schemaWritable(s1, s3, false, true),
+        "Incompatible mode for field: foo, cannot write source field mode: NULLABLE to destination field mode: REPEATED");
+    checkFailureMessage(
+        BigQueryUtil.schemaWritable(s2, s3, false, true),
+        "Incompatible mode for field: foo, cannot write source field mode: REQUIRED to destination field mode: REPEATED");
+    assertThat(BigQueryUtil.schemaWritable(s2, s1, false, true))
+        .isEqualTo(ComparisonResult.equal());
+    checkFailureMessage(
+        BigQueryUtil.schemaWritable(s3, s1, false, true),
+        "Incompatible mode for field: foo, cannot write source field mode: REPEATED to destination field mode: NULLABLE");
+    checkFailureMessage(
+        BigQueryUtil.schemaWritable(s3, s2, false, true),
+        "Incompatible mode for field: foo, cannot write source field mode: REPEATED to destination field mode: REQUIRED");
   }
 
   @Test
@@ -289,15 +384,24 @@ public class BigQueryUtilTest {
         Schema.of(
             Field.newBuilder("foo", StandardSQLTypeName.STRING).setMode(Mode.REPEATED).build());
 
-    assertThat(BigQueryUtil.schemaWritable(s1, s1, false, false)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s2, s2, false, false)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s3, s3, false, false)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, false)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s1, s3, false, false)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s2, s3, false, false)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s2, s1, false, false)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s3, s1, false, false)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s3, s2, false, false)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s1, s1, false, false))
+        .isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.schemaWritable(s2, s2, false, false))
+        .isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.schemaWritable(s3, s3, false, false))
+        .isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, false))
+        .isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.schemaWritable(s1, s3, false, false))
+        .isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.schemaWritable(s2, s3, false, false))
+        .isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.schemaWritable(s2, s1, false, false))
+        .isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.schemaWritable(s3, s1, false, false))
+        .isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.schemaWritable(s3, s2, false, false))
+        .isEqualTo(ComparisonResult.equal());
   }
 
   @Test
@@ -315,9 +419,13 @@ public class BigQueryUtilTest {
         Schema.of(
             Field.newBuilder("foo1", StandardSQLTypeName.STRING).setMode(Mode.NULLABLE).build());
 
-    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true)).isTrue();
-    assertThat(BigQueryUtil.schemaWritable(s1, s3, false, true)).isFalse();
-    assertThat(BigQueryUtil.schemaWritable(s3, s2, false, true)).isTrue();
+    assertThat(BigQueryUtil.schemaWritable(s1, s2, false, true))
+        .isEqualTo(ComparisonResult.equal());
+    checkFailureMessage(
+        BigQueryUtil.schemaWritable(s1, s3, false, true),
+        "Number of source fields: 2 is larger than number of destination fields: 1");
+    assertThat(BigQueryUtil.schemaWritable(s3, s2, false, true))
+        .isEqualTo(ComparisonResult.equal());
   }
 
   @Test
