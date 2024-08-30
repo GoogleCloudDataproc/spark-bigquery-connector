@@ -56,10 +56,15 @@ public class BigQueryClientFactory implements Serializable {
   private static final Map<BigQueryClientFactory, BigQueryWriteClient> writeClientMap =
       new HashMap<>();
 
-  private final Credentials credentials;
   // using the user agent as HeaderProvider is not serializable
   private final HeaderProvider headerProvider;
   private final BigQueryConfig bqConfig;
+
+  // GoogleCredentials are not compatible with Kryo serialization, so we serialize and deserialize
+  // when needed
+  private final byte[] serializedCredentials;
+  private transient volatile Credentials credentials;
+
   private int cachedHashCode = 0;
 
   @Inject
@@ -69,6 +74,7 @@ public class BigQueryClientFactory implements Serializable {
       BigQueryConfig bqConfig) {
     // using Guava's optional as it is serializable
     this.credentials = bigQueryCredentialsSupplier.getCredentials();
+    this.serializedCredentials = BigQueryUtil.getCredentialsByteArray(credentials);
     this.headerProvider = headerProvider;
     this.bqConfig = bqConfig;
   }
@@ -114,15 +120,19 @@ public class BigQueryClientFactory implements Serializable {
       // Credentials). Subclasses of the abstract class ExternalAccountCredentials do not have the
       // hashCode method defined on them and hence we get the byte array of the
       // ExternalAccountCredentials first and then compare their hashCodes.
-      if (credentials instanceof ExternalAccountCredentials) {
+      if (getCredentials() instanceof ExternalAccountCredentials) {
         cachedHashCode =
             Objects.hashCode(
-                Arrays.hashCode(BigQueryUtil.getCredentialsByteArray(credentials)),
+                Arrays.hashCode(serializedCredentials),
                 headerProvider,
                 bqConfig.getClientCreationHashCode());
       } else {
         cachedHashCode =
-            Objects.hashCode(credentials, headerProvider, bqConfig.getClientCreationHashCode());
+            Objects.hashCode(
+                getCredentials(),
+                headerProvider,
+                bqConfig.getClientCreationHashCode(),
+                identityTokenSupplier);
       }
     }
     return cachedHashCode;
@@ -148,10 +158,21 @@ public class BigQueryClientFactory implements Serializable {
       // ExternalAccountCredentials do not have an equals method defined on them and hence we
       // serialize and compare byte arrays if either of the credentials are instances of
       // ExternalAccountCredentials
-      return BigQueryUtil.areCredentialsEqual(credentials, that.credentials);
+      return BigQueryUtil.areCredentialsEqual(getCredentials(), that.getCredentials());
     }
 
     return false;
+  }
+
+  private Credentials getCredentials() {
+    if (credentials == null) {
+      synchronized (BigQueryClientFactory.class) {
+        if (credentials == null) {
+          credentials = BigQueryUtil.getCredentialsFromByteArray(serializedCredentials);
+        }
+      }
+    }
+    return credentials;
   }
 
   private BigQueryReadClient createBigQueryReadClient(
@@ -178,7 +199,7 @@ public class BigQueryClientFactory implements Serializable {
       BigQueryReadSettings.Builder clientSettings =
           BigQueryReadSettings.newBuilder()
               .setTransportChannelProvider(transportBuilder.build())
-              .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
+              .setCredentialsProvider(FixedCredentialsProvider.create(getCredentials()));
 
       bqConfig
           .getCreateReadSessionTimeoutInSeconds()
@@ -211,7 +232,7 @@ public class BigQueryClientFactory implements Serializable {
       BigQueryWriteSettings.Builder clientSettings =
           BigQueryWriteSettings.newBuilder()
               .setTransportChannelProvider(transportBuilder.build())
-              .setCredentialsProvider(FixedCredentialsProvider.create(credentials));
+              .setCredentialsProvider(FixedCredentialsProvider.create(getCredentials()));
       return BigQueryWriteClient.create(clientSettings.build());
     } catch (IOException e) {
       throw new BigQueryConnectorException("Error creating BigQueryWriteClient", e);

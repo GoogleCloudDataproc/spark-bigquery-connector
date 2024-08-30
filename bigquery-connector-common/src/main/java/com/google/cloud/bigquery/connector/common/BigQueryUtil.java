@@ -164,6 +164,16 @@ public class BigQueryUtil {
     return byteArrayOutputStream.toByteArray();
   }
 
+  static Credentials getCredentialsFromByteArray(byte[] byteArray) {
+    try {
+      ObjectInputStream objectInputStream =
+          new ObjectInputStream(new ByteArrayInputStream(byteArray));
+      return (Credentials) objectInputStream.readObject();
+    } catch (IOException | ClassNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   // returns the first present optional, empty if all parameters are empty
   public static <T> Optional<T> firstPresent(Optional<T>... optionals) {
     for (Optional<T> o : optionals) {
