@@ -2,8 +2,9 @@
 
 ## Next
 
-* PR #1281 : Configure alternative BigNumeric precision and scale defaults
 * Issue #1175: Add details to schema mismatch message
+* PR #1281 : Configure alternative BigNumeric precision and scale defaults
+* PR #1284: Making BigQueryClientFactory Kryo serializable. Thanks @tom-s-powell !
 
 ## 0.40.0 - 2024-08-05
 
