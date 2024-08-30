@@ -922,7 +922,7 @@ word-break:break-word
           Please note that there might be data loss if the actual data's precision is more than what is specified.
          <br/> (Optional)
      </td>
-     <td>Read</td>
+     <td>Read/Write</td>
    </tr>
   <tr>
      <td><code>bigNumericDefaultScale</code>
@@ -932,7 +932,7 @@ word-break:break-word
           Please note that there might be data loss if the actual data's scale is more than what is specified.
          <br/> (Optional)
      </td>
-     <td>Read</td>
+     <td>Read/Write</td>
    </tr>
 </table>
 
