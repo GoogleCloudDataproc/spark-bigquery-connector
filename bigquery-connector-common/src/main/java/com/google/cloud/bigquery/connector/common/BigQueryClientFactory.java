@@ -66,7 +66,6 @@ public class BigQueryClientFactory implements Serializable {
   private transient volatile Credentials credentials;
 
   private int cachedHashCode = 0;
-  private IdentityTokenSupplier identityTokenSupplier;
 
   @Inject
   public BigQueryClientFactory(
@@ -130,10 +129,7 @@ public class BigQueryClientFactory implements Serializable {
       } else {
         cachedHashCode =
             Objects.hashCode(
-                getCredentials(),
-                headerProvider,
-                bqConfig.getClientCreationHashCode(),
-                identityTokenSupplier);
+                getCredentials(), headerProvider, bqConfig.getClientCreationHashCode());
       }
     }
     return cachedHashCode;
