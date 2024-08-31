@@ -393,18 +393,18 @@ public class BigQueryUtil {
     if ((!sourceScaleLessThanEqualsDestScale) || (!sourcePrecisionLessThanEqualsDestPrecision)) {
       return ComparisonResult.differentWithDescription(
           ImmutableList.of(
-              "Incompatible scale, precision for field: " + destinationField.getName(),
-              "cannot write source field with scale, precision: "
-                  + formatScaleAndPrecision(sourceField)
-                  + " to destination field with scale, precision: "
-                  + formatScaleAndPrecision(destinationField)));
+              "Incompatible precision, scale for field: " + destinationField.getName(),
+              "cannot write source field with precision, scale: "
+                  + formatPrecisionAndScale(sourceField)
+                  + " to destination field with precision, scale: "
+                  + formatPrecisionAndScale(destinationField)));
     }
 
     return ComparisonResult.equal();
   }
 
-  private static String formatScaleAndPrecision(Field field) {
-    return String.format("(%s, %s)", field.getScale(), field.getPrecision());
+  private static String formatPrecisionAndScale(Field field) {
+    return String.format("(%s, %s)", field.getPrecision(), field.getScale());
   }
 
   // allowing widening narrow numeric into bignumeric

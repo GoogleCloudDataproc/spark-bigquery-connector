@@ -314,26 +314,26 @@ public class BigQueryUtilTest {
 
   @Test
   public void testFieldWritableScaleAndPrecision() {
-    Field s5p5 =
-        Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setScale(5L).setPrecision(5L).build();
-    Field s3p7 =
-        Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setScale(3L).setPrecision(7L).build();
-    Field s7p3 =
-        Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setScale(7L).setPrecision(3L).build();
-    Field s3p3 =
-        Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setScale(3L).setPrecision(3L).build();
+    Field p5s5 =
+        Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setPrecision(5L).setScale(5L).build();
+    Field p7s3 =
+        Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setPrecision(7L).setScale(3L).build();
+    Field p3s7 =
+        Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setPrecision(3L).setScale(7L).build();
+    Field p3s3 =
+        Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setPrecision(3L).setScale(3L).build();
     checkFailureMessage(
-        BigQueryUtil.fieldWritable(s5p5, s3p7, true),
-        "Incompatible scale, precision for field: foo, cannot write source field with scale, precision: (5, 5) to destination field with scale, precision: (3, 7)");
+        BigQueryUtil.fieldWritable(p5s5, p7s3, true),
+        "Incompatible precision, scale for field: foo, cannot write source field with precision, scale: (5, 5) to destination field with precision, scale: (7, 3)");
     checkFailureMessage(
-        BigQueryUtil.fieldWritable(s5p5, s7p3, true),
-        "Incompatible scale, precision for field: foo, cannot write source field with scale, precision: (5, 5) to destination field with scale, precision: (7, 3)");
+        BigQueryUtil.fieldWritable(p5s5, p3s7, true),
+        "Incompatible precision, scale for field: foo, cannot write source field with precision, scale: (5, 5) to destination field with precision, scale: (3, 7)");
     checkFailureMessage(
-        BigQueryUtil.fieldWritable(s5p5, s3p3, true),
-        "Incompatible scale, precision for field: foo, cannot write source field with scale, precision: (5, 5) to destination field with scale, precision: (3, 3)");
-    assertThat(BigQueryUtil.fieldWritable(s3p3, s5p5, true)).isEqualTo(ComparisonResult.equal());
-    assertThat(BigQueryUtil.fieldWritable(s3p3, s3p7, true)).isEqualTo(ComparisonResult.equal());
-    assertThat(BigQueryUtil.fieldWritable(s3p3, s7p3, true)).isEqualTo(ComparisonResult.equal());
+        BigQueryUtil.fieldWritable(p5s5, p3s3, true),
+        "Incompatible precision, scale for field: foo, cannot write source field with precision, scale: (5, 5) to destination field with precision, scale: (3, 3)");
+    assertThat(BigQueryUtil.fieldWritable(p3s3, p5s5, true)).isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.fieldWritable(p3s3, p7s3, true)).isEqualTo(ComparisonResult.equal());
+    assertThat(BigQueryUtil.fieldWritable(p3s3, p3s7, true)).isEqualTo(ComparisonResult.equal());
   }
 
   @Test
