@@ -26,6 +26,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.ComparisonResult;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsRequest;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
@@ -152,14 +153,17 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     if (bigQueryClient.tableExists(destinationTableId)) {
       TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
       Schema tableSchema = destinationTable.getDefinition().getSchema();
-      Preconditions.checkArgument(
+      ComparisonResult schemaWritableResult =
           BigQueryUtil.schemaWritable(
               bigQuerySchema, // sourceSchema
               tableSchema, // destinationSchema
               false, // regardFieldOrder
-              enableModeCheckForSchemaFields),
+              enableModeCheckForSchemaFields);
+      Preconditions.checkArgument(
+          schemaWritableResult.valuesAreEqual(),
           new BigQueryConnectorException.InvalidSchemaException(
-              "Destination table's schema is not compatible with dataframe's schema"));
+              "Destination table's schema is not compatible with dataframe's schema. "
+                  + schemaWritableResult.makeMessage()));
       switch (saveMode) {
         case Append:
           if (writeAtLeastOnce) {

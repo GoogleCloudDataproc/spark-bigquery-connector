@@ -251,22 +251,24 @@ public class BigQueryUtil {
    * @param sourceSchema the first schema to compare
    * @param destinationSchema the second schema to compare
    * @param regardFieldOrder whether to regard the field order in the comparison
-   * @return true is the two schema equal each other, false otherwise
+   * @return {@link ComparisonResult#equal()} is the two schema equal each other, {@link
+   *     ComparisonResult#differentWithDescription(List)} otherwise
    */
-  public static boolean schemaWritable(
+  public static ComparisonResult schemaWritable(
       Schema sourceSchema,
       Schema destinationSchema,
       boolean regardFieldOrder,
       boolean enableModeCheckForSchemaFields) {
     if (sourceSchema == destinationSchema) {
-      return true;
+      return ComparisonResult.equal();
     }
     // if both are null we would have caught it earlier
     if (sourceSchema == null || destinationSchema == null) {
-      return false;
+      return ComparisonResult.differentNoDescription();
     }
     if (regardFieldOrder) {
-      return sourceSchema.equals(destinationSchema);
+      boolean equalsResult = sourceSchema.equals(destinationSchema);
+      return ComparisonResult.fromEqualsResult(equalsResult);
     }
     // compare field by field
     return fieldListWritable(
@@ -296,48 +298,113 @@ public class BigQueryUtil {
    * @param destinationField the field into which the source is to be written
    * @param enableModeCheckForSchemaFields if true, both the fields' mode checks are compared,
    *     skipped otherwise
-   * @return true if the source field is writable into destination field, false otherwise
+   * @return {@link ComparisonResult#equal()} if the source field is writable into destination
+   *     field, {@link ComparisonResult#differentWithDescription(List)} otherwise
    */
   @VisibleForTesting
-  static boolean fieldWritable(
+  static ComparisonResult fieldWritable(
       Field sourceField, Field destinationField, boolean enableModeCheckForSchemaFields) {
     if (sourceField == destinationField) {
-      return true;
+      return ComparisonResult.equal();
     }
 
-    // if the destination field is NULLABLE or REPEATED and there is no matching field in the source
-    // then it is
-    // supported
-    // but if the destination field is REQUIRED then we do need source field to write into it..
+    /* If the destination field is NULLABLE or REPEATED and there is no matching field in the source then it is supported
+    but if the destination field is REQUIRED then we do need source field to write into it. */
     if (sourceField == null) {
-      return destinationField.getMode() != Mode.REQUIRED;
+      if (destinationField.getMode() == Mode.REQUIRED) {
+        return ComparisonResult.differentWithDescription(
+            ImmutableList.of("Required field not found in source: " + destinationField.getName()));
+      } else {
+        return ComparisonResult.equal();
+      }
     }
 
     // cannot write if the destination table doesn't have the field
     if (destinationField == null) {
-      return false;
+      return ComparisonResult.differentWithDescription(
+          ImmutableList.of("Field not found in destination: " + sourceField.getName()));
     }
 
-    if (!fieldListWritable(
-        sourceField.getSubFields(),
-        destinationField.getSubFields(),
-        enableModeCheckForSchemaFields)) {
-      return false;
+    if (!Objects.equal(sourceField.getName(), destinationField.getName())) {
+      return ComparisonResult.differentWithDescription(
+          ImmutableList.of(
+              "Wrong field name",
+              "expected source field name: "
+                  + destinationField.getName()
+                  + " but was: "
+                  + sourceField.getName()));
     }
 
-    return Objects.equal(sourceField.getName(), destinationField.getName())
-        && typeWriteable(sourceField.getType(), destinationField.getType())
-        && (!enableModeCheckForSchemaFields
-            || isModeWritable(
-                nullableIfNull(sourceField.getMode()), nullableIfNull(destinationField.getMode())))
-        && ((sourceField.getMaxLength() == null && destinationField.getMaxLength() == null)
-            || (sourceField.getMaxLength() != null
-                && destinationField.getMaxLength() != null
-                && sourceField.getMaxLength() <= destinationField.getMaxLength()))
-        && ((sourceField.getScale() == destinationField.getScale())
-            || (getScale(sourceField) <= getScale(destinationField)))
-        && ((sourceField.getPrecision() == destinationField.getPrecision())
+    ComparisonResult subFieldsResult =
+        fieldListWritable(
+            sourceField.getSubFields(),
+            destinationField.getSubFields(),
+            enableModeCheckForSchemaFields);
+    if (!subFieldsResult.valuesAreEqual()) {
+      return ComparisonResult.differentWithDescription(
+          ImmutableList.of(
+              "Subfields mismatch for: " + destinationField.getName(),
+              subFieldsResult.makeMessage()));
+    }
+
+    if (!typeWriteable(sourceField.getType(), destinationField.getType())) {
+      return ComparisonResult.differentWithDescription(
+          ImmutableList.of(
+              "Incompatible type for field: " + destinationField.getName(),
+              "cannot write source type: "
+                  + sourceField.getType()
+                  + " to destination type: "
+                  + destinationField.getType()));
+    }
+    if (enableModeCheckForSchemaFields
+        && !isModeWritable(
+            nullableIfNull(sourceField.getMode()), nullableIfNull(destinationField.getMode()))) {
+      return ComparisonResult.differentWithDescription(
+          ImmutableList.of(
+              "Incompatible mode for field: " + destinationField.getName(),
+              "cannot write source field mode: "
+                  + nullableIfNull(sourceField.getMode()).name()
+                  + " to destination field mode: "
+                  + nullableIfNull(destinationField.getMode()).name()));
+    }
+
+    boolean sourceAndDestMaxLengthNull =
+        (sourceField.getMaxLength() == null && destinationField.getMaxLength() == null);
+    boolean sourceMaxLenLessThanEqualsDestMaxLen =
+        (sourceField.getMaxLength() != null
+            && destinationField.getMaxLength() != null
+            && sourceField.getMaxLength() <= destinationField.getMaxLength());
+    if ((!sourceAndDestMaxLengthNull) && (!sourceMaxLenLessThanEqualsDestMaxLen)) {
+      return ComparisonResult.differentWithDescription(
+          ImmutableList.of(
+              "Incompatible max length for field: " + destinationField.getName(),
+              "cannot write source field with max length: "
+                  + sourceField.getMaxLength()
+                  + " to destination field with max length: "
+                  + destinationField.getMaxLength()));
+    }
+
+    boolean sourceScaleLessThanEqualsDestScale =
+        ((sourceField.getScale() == destinationField.getScale())
+            || (getScale(sourceField) <= getScale(destinationField)));
+    boolean sourcePrecisionLessThanEqualsDestPrecision =
+        ((sourceField.getPrecision() == destinationField.getPrecision())
             || (getPrecision(sourceField) <= getPrecision(destinationField)));
+    if ((!sourceScaleLessThanEqualsDestScale) || (!sourcePrecisionLessThanEqualsDestPrecision)) {
+      return ComparisonResult.differentWithDescription(
+          ImmutableList.of(
+              "Incompatible precision, scale for field: " + destinationField.getName(),
+              "cannot write source field with precision, scale: "
+                  + formatPrecisionAndScale(sourceField)
+                  + " to destination field with precision, scale: "
+                  + formatPrecisionAndScale(destinationField)));
+    }
+
+    return ComparisonResult.equal();
+  }
+
+  private static String formatPrecisionAndScale(Field field) {
+    return String.format("(%s, %s)", field.getPrecision(), field.getScale());
   }
 
   // allowing widening narrow numeric into bignumeric
@@ -396,22 +463,27 @@ public class BigQueryUtil {
   }
 
   @VisibleForTesting
-  static boolean fieldListWritable(
+  static ComparisonResult fieldListWritable(
       FieldList sourceFieldList,
       FieldList destinationFieldList,
       boolean enableModeCheckForSchemaFields) {
     if (sourceFieldList == destinationFieldList) {
-      return true;
+      return ComparisonResult.equal();
     }
 
     // if both are null we would have caught it earlier
     if (sourceFieldList == null || destinationFieldList == null) {
-      return false;
+      return ComparisonResult.differentNoDescription();
     }
 
     // cannot write of the source has more fields than the destination table.
     if (sourceFieldList.size() > destinationFieldList.size()) {
-      return false;
+      return ComparisonResult.differentWithDescription(
+          ImmutableList.of(
+              "Number of source fields: "
+                  + sourceFieldList.size()
+                  + " is larger than number of destination fields: "
+                  + destinationFieldList.size()));
     }
 
     Map<String, Field> sourceFieldsMap =
@@ -423,12 +495,13 @@ public class BigQueryUtil {
     for (Map.Entry<String, Field> e : destinationFieldsMap.entrySet()) {
       Field f1 = sourceFieldsMap.get(e.getKey());
       Field f2 = e.getValue();
-      if (!fieldWritable(f1, f2, enableModeCheckForSchemaFields)) {
-        return false;
+      ComparisonResult result = fieldWritable(f1, f2, enableModeCheckForSchemaFields);
+      if (!result.valuesAreEqual()) {
+        return result;
       }
     }
 
-    return true;
+    return ComparisonResult.equal();
   }
 
   static Field.Mode nullableIfNull(Field.Mode mode) {

@@ -3,6 +3,7 @@
 ## Next
 
 * PR #1281 : Configure alternative BigNumeric precision and scale defaults
+* Issue #1175: Add details to schema mismatch message
 
 ## 0.40.0 - 2024-08-05
 
