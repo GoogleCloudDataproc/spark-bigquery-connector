@@ -2,6 +2,8 @@
 
 ## Next
 
+* PR #1265 : Add additional parentheses for EqualNullSafe filter generation. Thanks @tom-s-powell !
+* PR #1267 : Implement OpenLineage spark-extension-interfaces
 * PR #1281 : Configure alternative BigNumeric precision and scale defaults
 * Issue #1175: Add details to schema mismatch message
 * BigQuery API has been upgraded to version 2.42.2
