@@ -29,7 +29,8 @@ public class IdentityTokenSupplier implements Serializable {
 
       return Optional.ofNullable(idTokenCredentials.refreshAccessToken().getTokenValue());
     } catch (IOException | IllegalArgumentException ex) {
-      log.info("Unable to obtain identity token", ex);
+      log.info("Unable to obtain identity token");
+      log.debug("Exception while fetching identity token", ex);
     }
     return Optional.empty();
   }
