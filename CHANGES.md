@@ -4,6 +4,10 @@
 
 * PR #1281 : Configure alternative BigNumeric precision and scale defaults
 * Issue #1175: Add details to schema mismatch message
+* BigQuery API has been upgraded to version 2.42.2
+* BigQuery Storage API has been upgraded to version 3.9.0
+* GAX has been upgraded to version 2.52.0
+* Netty has been upgraded to version 4.1.113.Final
 
 ## 0.40.0 - 2024-08-05
 

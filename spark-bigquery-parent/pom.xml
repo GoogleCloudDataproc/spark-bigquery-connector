@@ -51,21 +51,22 @@
         <gpg.skip>true</gpg.skip>
         <revision>0.0.1-SNAPSHOT</revision>
 
+        <!-- avro 1.12.0 is compiled with java 11 -->
         <avro.version>1.11.3</avro.version>
         <!--arrow 16.1.0 breaks Java 8 support
         https://github.com/apache/arrow/issues/41717 -->
         <arrow.version>16.0.0</arrow.version>
-        <gax.version>2.51.0</gax.version>
-        <google-auth.version>1.24.0</google-auth.version>
-        <google-cloud-bigquery.version>2.42.0</google-cloud-bigquery.version>
-        <google-cloud-bigquerystorage.version>3.8.0</google-cloud-bigquerystorage.version>
-        <google-cloud-dataproc.version>4.44.0</google-cloud-dataproc.version>
-        <google-cloud-storage.version>2.41.0</google-cloud-storage.version>
+        <gax.version>2.52.0</gax.version>
+        <google-auth.version>1.24.1</google-auth.version>
+        <google-cloud-bigquery.version>2.42.2</google-cloud-bigquery.version>
+        <google-cloud-bigquerystorage.version>3.9.0</google-cloud-bigquerystorage.version>
+        <google-cloud-dataproc.version>4.45.0</google-cloud-dataproc.version>
+        <google-cloud-storage.version>2.42.0</google-cloud-storage.version>
         <google-truth.version>1.4.4</google-truth.version>
-        <grpc.version>1.65.1</grpc.version>
-        <guava.version>33.2.1-jre</guava.version>
+        <grpc.version>1.66.0</grpc.version>
+        <guava.version>33.3.0-jre</guava.version>
         <jackson.version>2.17.2</jackson.version>
-        <netty.version>4.1.112.Final</netty.version>
+        <netty.version>4.1.113.Final</netty.version>
         <openlineage-spark.version>1.19.0</openlineage-spark.version>
         <paranamer.version>2.8</paranamer.version>
         <!-- Don't upgrade protobuf until bigquerystorage is compatible with 4.x version of proto.
