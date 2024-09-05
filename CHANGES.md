@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.41.0 - 2024-09-05
 
 * PR #1265 : Add additional parentheses for EqualNullSafe filter generation. Thanks @tom-s-powell !
 * PR #1267 : Implement OpenLineage spark-extension-interfaces
