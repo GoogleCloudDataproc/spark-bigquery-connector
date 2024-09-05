@@ -51,7 +51,8 @@
         <gpg.skip>true</gpg.skip>
         <revision>0.0.1-SNAPSHOT</revision>
 
-        <avro.version>1.12.0</avro.version>
+        <!-- avro 1.12.0 is compiled with java 11 -->
+        <avro.version>1.11.3</avro.version>
         <!--arrow 16.1.0 breaks Java 8 support
         https://github.com/apache/arrow/issues/41717 -->
         <arrow.version>16.0.0</arrow.version>
