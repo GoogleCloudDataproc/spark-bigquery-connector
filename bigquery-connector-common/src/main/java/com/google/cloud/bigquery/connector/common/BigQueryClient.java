@@ -604,9 +604,8 @@ public class BigQueryClient {
 
   public long calculateTableSize(TableInfo tableInfo, Optional<String> filter) {
     TableDefinition.Type type = tableInfo.getDefinition().getType();
-    if (type == TableDefinition.Type.TABLE && !filter.isPresent()) {
-      return tableInfo.getNumRows().longValue();
-    } else if (type == TableDefinition.Type.EXTERNAL && !filter.isPresent()) {
+    if ((type == TableDefinition.Type.EXTERNAL || type == TableDefinition.Type.TABLE)
+        && !filter.isPresent()) {
       String table = fullTableName(tableInfo.getTableId());
       return getNumberOfRows(String.format("SELECT COUNT(*) from `%s`", table));
     } else if (type == TableDefinition.Type.VIEW
