@@ -2665,18 +2665,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testDirectWriteCountAfterWrite() throws InterruptedException {
-    assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
-    testCountAfterWrite_internal();
-  }
-
-  @Test
-  public void testIndirectWriteCountAfterWrite() throws InterruptedException {
-    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
-    testCountAfterWrite_internal();
-  }
-
-  private void testCountAfterWrite_internal() throws InterruptedException {
+  public void testCountAfterWrite() {
     IntegrationTestUtils.runQuery(
         String.format("CREATE TABLE `%s.%s` (name STRING, age INT64)", testDataset, testTable));
     Dataset<Row> read1Df = spark.read().format("bigquery").load(fullTableName());
