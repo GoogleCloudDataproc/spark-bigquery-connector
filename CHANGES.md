@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Next
+* Issue #1290: Stopped using metadata for optimized count path
 
 ## 0.41.0 - 2024-09-05
 
