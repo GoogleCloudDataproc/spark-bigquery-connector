@@ -48,6 +48,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.catalyst.util.DateTimeUtils;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.Metadata;
@@ -199,19 +200,14 @@ public class SparkBigQueryUtil {
     if (sparkValue instanceof Long) {
       return ((Number) sparkValue).longValue();
     }
-    // need to return timestamp in epoch microseconds
-    java.sql.Timestamp timestamp = (java.sql.Timestamp) sparkValue;
-    long epochMillis = timestamp.getTime();
-    int micros = (timestamp.getNanos() / 1000) % 1000;
-    return epochMillis * 1000 + micros;
+    return DateTimeUtils.anyToMicros(sparkValue);
   }
 
   public static int sparkDateToBigQuery(Object sparkValue) {
     if (sparkValue instanceof Number) {
       return ((Number) sparkValue).intValue();
     }
-    java.sql.Date sparkDate = (java.sql.Date) sparkValue;
-    return (int) sparkDate.toLocalDate().toEpochDay();
+    return DateTimeUtils.anyToDays(sparkValue);
   }
 
   public static String getTableNameFromOptions(Map<String, String> options) {
