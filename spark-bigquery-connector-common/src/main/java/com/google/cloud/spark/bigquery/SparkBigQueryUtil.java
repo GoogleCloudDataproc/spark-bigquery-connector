@@ -32,6 +32,8 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +41,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import javax.validation.constraints.NotNull;
 import org.apache.hadoop.conf.Configuration;
@@ -48,7 +51,6 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.catalyst.util.DateTimeUtils;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.Metadata;
@@ -59,6 +61,9 @@ import scala.Option;
 public class SparkBigQueryUtil {
 
   private static final String SPARK_YARN_TAGS = "spark.yarn.tags";
+
+  private static final long MICROS_PER_SECOND = TimeUnit.SECONDS.toMicros(1);
+  private static final long MIN_SECONDS = Math.floorDiv(Long.MIN_VALUE, MICROS_PER_SECOND);
 
   static final Properties BUILD_PROPERTIES = loadBuildProperties();
 
@@ -200,14 +205,39 @@ public class SparkBigQueryUtil {
     if (sparkValue instanceof Long) {
       return ((Number) sparkValue).longValue();
     }
-    return DateTimeUtils.anyToMicros(sparkValue);
+
+    if (sparkValue instanceof Instant) {
+      Instant instant = (Instant) sparkValue;
+      long epochSeconds = instant.getEpochSecond();
+      if (epochSeconds == MIN_SECONDS) {
+        long us = Math.multiplyExact(epochSeconds + 1, MICROS_PER_SECOND);
+        return Math.addExact(
+            us, TimeUnit.NANOSECONDS.toMicros(instant.getNano()) - MICROS_PER_SECOND);
+      } else {
+        long us = Math.multiplyExact(epochSeconds, MICROS_PER_SECOND);
+        return Math.addExact(us, TimeUnit.NANOSECONDS.toMicros(instant.getNano()));
+      }
+    }
+
+    // need to return timestamp in epoch microseconds
+    java.sql.Timestamp timestamp = (java.sql.Timestamp) sparkValue;
+    long epochMillis = timestamp.getTime();
+    int micros = (timestamp.getNanos() / 1000) % 1000;
+    return epochMillis * 1000 + micros;
   }
 
   public static int sparkDateToBigQuery(Object sparkValue) {
     if (sparkValue instanceof Number) {
       return ((Number) sparkValue).intValue();
     }
-    return DateTimeUtils.anyToDays(sparkValue);
+
+    if (sparkValue instanceof LocalDate) {
+      LocalDate localDate = (LocalDate) sparkValue;
+      return Math.toIntExact(localDate.toEpochDay());
+    }
+
+    java.sql.Date sparkDate = (java.sql.Date) sparkValue;
+    return (int) sparkDate.toLocalDate().toEpochDay();
   }
 
   public static String getTableNameFromOptions(Map<String, String> options) {
