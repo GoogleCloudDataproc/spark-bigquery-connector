@@ -25,6 +25,11 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.TimeZone;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
@@ -149,5 +154,24 @@ public class SparkBigQueryUtilTest {
     assertThat(labels).hasSize(2);
     assertThat(labels).containsEntry("dataproc_job_id", "d8f27392957446dbbd7dc28df568e4eb");
     assertThat(labels).containsEntry("dataproc_job_uuid", "df379ef3-eeda-3234-8941-e1a36a1959a3");
+  }
+
+  @Test
+  public void testSparkDateToBigQuery() {
+    assertThat(SparkBigQueryUtil.sparkDateToBigQuery(16929L)).isEqualTo(16929L);
+    assertThat(SparkBigQueryUtil.sparkDateToBigQuery(Date.valueOf("2016-05-08"))).isEqualTo(16929);
+    assertThat(SparkBigQueryUtil.sparkDateToBigQuery(LocalDate.of(2016, 5, 8))).isEqualTo(16929);
+  }
+
+  @Test
+  public void testSparkTimestampToBigQuery() {
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    assertThat(SparkBigQueryUtil.sparkTimestampToBigQuery(10L)).isEqualTo(10L);
+    assertThat(
+            SparkBigQueryUtil.sparkTimestampToBigQuery(Timestamp.valueOf("2016-05-08 00:00:01.01")))
+        .isEqualTo(1462665601010000L);
+    assertThat(
+            SparkBigQueryUtil.sparkTimestampToBigQuery(Instant.parse("2016-05-08T00:00:01.010Z")))
+        .isEqualTo(1462665601010000L);
   }
 }
