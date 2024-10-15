@@ -2664,6 +2664,23 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .isEqualTo(bq.getTable(testDataset.toString(), testTable).getDescription());
   }
 
+  @Test
+  public void testCountAfterWrite() {
+    IntegrationTestUtils.runQuery(
+        String.format("CREATE TABLE `%s.%s` (name STRING, age INT64)", testDataset, testTable));
+    Dataset<Row> read1Df = spark.read().format("bigquery").load(fullTableName());
+    assertThat(read1Df.count()).isEqualTo(0L);
+
+    Dataset<Row> dfToWrite =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create("foo", 10), RowFactory.create("bar", 20)),
+            new StructType().add("name", DataTypes.StringType).add("age", DataTypes.IntegerType));
+    writeToBigQueryAvroFormat(dfToWrite, SaveMode.Append, "false");
+
+    Dataset<Row> read2Df = spark.read().format("bigquery").load(fullTableName());
+    assertThat(read2Df.count()).isEqualTo(2L);
+  }
+
   private TableResult insertAndGetTimestampNTZToBigQuery(LocalDateTime time, String format)
       throws InterruptedException {
     Preconditions.checkArgument(timeStampNTZType.isPresent(), "timestampNTZType not present");
