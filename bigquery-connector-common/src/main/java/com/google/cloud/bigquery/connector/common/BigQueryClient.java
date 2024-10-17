@@ -598,25 +598,35 @@ public class BigQueryClient {
     }
   }
 
-  public long calculateTableSize(TableId tableId, Optional<String> filter) {
-    return calculateTableSize(getTable(tableId), filter);
+  public long calculateTableSize(
+      TableId tableId, Optional<String> filter, OptionalLong snapshotTimeMillis) {
+    return calculateTableSize(getTable(tableId), filter, snapshotTimeMillis);
   }
 
-  public long calculateTableSize(TableInfo tableInfo, Optional<String> filter) {
+  public long calculateTableSize(
+      TableInfo tableInfo, Optional<String> filter, OptionalLong snapshotTimeMillis) {
     TableDefinition.Type type = tableInfo.getDefinition().getType();
-    if (type == TableDefinition.Type.TABLE && !filter.isPresent()) {
+    if (type == TableDefinition.Type.TABLE && filter.isEmpty() && snapshotTimeMillis.isEmpty()) {
       return tableInfo.getNumRows().longValue();
-    } else if (type == TableDefinition.Type.EXTERNAL && !filter.isPresent()) {
+    } else if (type == TableDefinition.Type.EXTERNAL
+        && filter.isEmpty()
+        && snapshotTimeMillis.isEmpty()) {
       String table = fullTableName(tableInfo.getTableId());
       return getNumberOfRows(String.format("SELECT COUNT(*) from `%s`", table));
     } else if (type == TableDefinition.Type.VIEW
         || type == TableDefinition.Type.MATERIALIZED_VIEW
         || ((type == TableDefinition.Type.TABLE || type == TableDefinition.Type.EXTERNAL)
-            && filter.isPresent())) {
+            && (filter.isPresent() || snapshotTimeMillis.isPresent()))) {
       // run a query
       String table = fullTableName(tableInfo.getTableId());
+      String timeTravelClause =
+          snapshotTimeMillis.isPresent()
+              ? String.format(
+                  "FOR SYSTEM TIME AS OF TIMESTAMP_MILLIS(%d)", snapshotTimeMillis.getAsLong())
+              : "";
       String whereClause = filter.map(f -> "WHERE " + f).orElse("");
-      return getNumberOfRows(String.format("SELECT COUNT(*) from `%s` %s", table, whereClause));
+      return getNumberOfRows(
+          String.format("SELECT COUNT(*) from `%s` %s %s", table, timeTravelClause, whereClause));
     } else {
       throw new IllegalArgumentException(
           String.format(
