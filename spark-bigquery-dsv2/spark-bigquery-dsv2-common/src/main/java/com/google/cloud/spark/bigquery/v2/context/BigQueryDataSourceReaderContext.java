@@ -339,7 +339,9 @@ public class BigQueryDataSourceReaderContext {
 
   Stream<InputPartitionContext<InternalRow>> createEmptyProjectionPartitions() {
     Optional<String> filter = getCombinedFilter();
-    long rowCount = bigQueryClient.calculateTableSize(tableId, filter, readSessionCreatorConfig.getSnapshotTimeMillis());
+    long rowCount =
+        bigQueryClient.calculateTableSize(
+            tableId, filter, readSessionCreatorConfig.getSnapshotTimeMillis());
     logger.info("Used optimized BQ count(*) path. Count: " + rowCount);
     int partitionsCount = readSessionCreatorConfig.getDefaultParallelism();
     int partitionSize = (int) (rowCount / partitionsCount);
