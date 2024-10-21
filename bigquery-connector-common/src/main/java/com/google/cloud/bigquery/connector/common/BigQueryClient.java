@@ -606,11 +606,11 @@ public class BigQueryClient {
   public long calculateTableSize(
       TableInfo tableInfo, Optional<String> filter, OptionalLong snapshotTimeMillis) {
     TableDefinition.Type type = tableInfo.getDefinition().getType();
-    if (type == TableDefinition.Type.TABLE && filter.isEmpty() && snapshotTimeMillis.isEmpty()) {
+    if (type == TableDefinition.Type.TABLE && !filter.isPresent() && !snapshotTimeMillis.isPresent()) {
       return tableInfo.getNumRows().longValue();
     } else if (type == TableDefinition.Type.EXTERNAL
-        && filter.isEmpty()
-        && snapshotTimeMillis.isEmpty()) {
+        && !filter.isPresent()
+        && !snapshotTimeMillis.isPresent()) {
       String table = fullTableName(tableInfo.getTableId());
       return getNumberOfRows(String.format("SELECT COUNT(*) from `%s`", table));
     } else if (type == TableDefinition.Type.VIEW
