@@ -743,7 +743,7 @@ public class BigQueryUtil {
             .filter(field -> partitionField.equals(field.getName()))
             .map(field -> field.getType())
             .findFirst();
-    // Using timestamp_trunc on a DATE filed results in $cast_to_DATETIME which prevents pruning
+    // Using timestamp_trunc on a DATE field results in $cast_to_DATETIME which prevents pruning
     // when required_partition_filter is set, as it is not considered a monotonic function
     if (partitionFieldType.isPresent() && partitionFieldType.get().equals(LegacySQLTypeName.DATE)) {
       extractedPartitionedSource =
