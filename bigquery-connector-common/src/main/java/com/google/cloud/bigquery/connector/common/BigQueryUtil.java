@@ -735,12 +735,24 @@ public class BigQueryUtil {
       TimePartitioning timePartitioning) {
     TimePartitioning.Type partitionType = timePartitioning.getType();
     String partitionField = timePartitioning.getField();
+    FieldList allFields = destinationDefinition.getSchema().getFields();
+    Optional<LegacySQLTypeName> partitionFieldType =
+        allFields.stream()
+            .filter(field -> partitionField.equals(field.getName()))
+            .map(field -> field.getType())
+            .findFirst();
+    // Using timestamp_trunc on a DATE field results in $cast_to_DATETIME which prevents pruning
+    // when required_partition_filter is set, as it is not considered a monotonic function
+    String truncFuntion =
+        (partitionFieldType.isPresent() && partitionFieldType.get().equals(LegacySQLTypeName.DATE))
+            ? "date_trunc"
+            : "timestamp_trunc";
     String extractedPartitionedSource =
-        String.format("timestamp_trunc(`%s`, %s)", partitionField, partitionType.toString());
+        String.format("%s(`%s`, %s)", truncFuntion, partitionField, partitionType.toString());
     String extractedPartitionedTarget =
         String.format(
-            "timestamp_trunc(`%s`.`%s`, %s)", "target", partitionField, partitionType.toString());
-    FieldList allFields = destinationDefinition.getSchema().getFields();
+            "%s(`target`.`%s`, %s)", truncFuntion, partitionField, partitionType.toString());
+
     String commaSeparatedFields =
         allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
 
