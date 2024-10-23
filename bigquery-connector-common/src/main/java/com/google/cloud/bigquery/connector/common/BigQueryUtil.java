@@ -735,8 +735,6 @@ public class BigQueryUtil {
       TimePartitioning timePartitioning) {
     TimePartitioning.Type partitionType = timePartitioning.getType();
     String partitionField = timePartitioning.getField();
-    String extractedPartitionedSource;
-    String extractedPartitionedTarget;
     FieldList allFields = destinationDefinition.getSchema().getFields();
     Optional<LegacySQLTypeName> partitionFieldType =
         allFields.stream()
@@ -745,19 +743,15 @@ public class BigQueryUtil {
             .findFirst();
     // Using timestamp_trunc on a DATE field results in $cast_to_DATETIME which prevents pruning
     // when required_partition_filter is set, as it is not considered a monotonic function
-    if (partitionFieldType.isPresent() && partitionFieldType.get().equals(LegacySQLTypeName.DATE)) {
-      extractedPartitionedSource =
-          String.format("date_trunc(`%s`, %s)", partitionField, partitionType.toString());
-      extractedPartitionedTarget =
-          String.format(
-              "date_trunc(`%s`.`%s`, %s)", "target", partitionField, partitionType.toString());
-    } else {
-      extractedPartitionedSource =
-          String.format("timestamp_trunc(`%s`, %s)", partitionField, partitionType.toString());
-      extractedPartitionedTarget =
-          String.format(
-              "timestamp_trunc(`%s`.`%s`, %s)", "target", partitionField, partitionType.toString());
-    }
+    String truncFuntion =
+        (partitionFieldType.isPresent() && partitionFieldType.get().equals(LegacySQLTypeName.DATE))
+            ? "date_trunc"
+            : "timestamp_trunc";
+    String extractedPartitionedSource =
+        String.format("%s(`%s`, %s)", truncFuntion, partitionField, partitionType.toString());
+    String extractedPartitionedTarget =
+        String.format(
+            "%s(`target`.`%s`, %s)", truncFuntion, partitionField, partitionType.toString());
 
     String commaSeparatedFields =
         allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
