@@ -35,6 +35,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.stream.Collectors;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Dataset;
@@ -130,7 +131,11 @@ public class DirectBigQueryRelation extends BigQueryRelation
               BigQueryUtil.emptyIfNeeded(compiledFilter));
       return (RDD<Row>)
           generateEmptyRowRDD(
-              actualTable, readSessionCreator.isInputTableAView(table) ? "" : compiledFilter);
+              actualTable,
+              readSessionCreator.isInputTableAView(table) ? "" : compiledFilter,
+              readSessionCreator.isInputTableAView(table)
+                  ? OptionalLong.empty()
+                  : options.getSnapshotTimeMillis());
     } else if (requiredColumns.length == 0) {
       log.debug("Not using optimized empty projection");
     }
@@ -182,11 +187,13 @@ public class DirectBigQueryRelation extends BigQueryRelation
     }
   }
 
-  private RDD<?> generateEmptyRowRDD(TableInfo tableInfo, String filter) {
+  private RDD<?> generateEmptyRowRDD(
+      TableInfo tableInfo, String filter, OptionalLong snapshotTimeMillis) {
     emptyRowRDDsCreated += 1;
     Optional<String> optionalFilter =
         (filter.length() == 0) ? Optional.empty() : Optional.of(filter);
-    long numberOfRows = bigQueryClient.calculateTableSize(tableInfo, optionalFilter);
+    long numberOfRows =
+        bigQueryClient.calculateTableSize(tableInfo, optionalFilter, snapshotTimeMillis);
 
     Function1<Object, InternalRow> objectToInternalRowConverter =
         new ObjectToInternalRowConverter();
