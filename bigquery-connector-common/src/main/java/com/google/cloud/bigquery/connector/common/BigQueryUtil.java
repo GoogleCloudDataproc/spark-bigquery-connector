@@ -47,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.grpc.Status;
+import io.grpc.Status.Code;
 import io.grpc.StatusRuntimeException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -82,6 +83,9 @@ public class BigQueryUtil {
           "HTTP/2 error code: INTERNAL_ERROR",
           "Connection closed with unknown cause",
           "Received unexpected EOS on DATA frame from server");
+
+  static final String READ_SESSION_EXPIRED_ERROR_MESSAGE = "session expired at";
+
   private static final String PROJECT_PATTERN = "\\S+";
   private static final String DATASET_PATTERN = "\\w+";
   // Allow all non-whitespace beside ':' and '.'.
@@ -114,6 +118,19 @@ public class BigQueryUtil {
       return statusRuntimeException.getStatus().getCode() == Status.Code.INTERNAL
           && INTERNAL_ERROR_MESSAGES.stream()
               .anyMatch(message -> statusRuntimeException.getMessage().contains(message));
+    }
+    return false;
+  }
+
+  public static boolean isReadSessionExpired(Throwable cause) {
+    return getCausalChain(cause).stream().anyMatch(BigQueryUtil::isReadSessionExpiredInternalError);
+  }
+
+  static boolean isReadSessionExpiredInternalError(Throwable t) {
+    if (t instanceof StatusRuntimeException) {
+      StatusRuntimeException statusRuntimeException = (StatusRuntimeException) t;
+      return statusRuntimeException.getStatus().getCode() == Code.FAILED_PRECONDITION
+          && statusRuntimeException.getMessage().contains(READ_SESSION_EXPIRED_ERROR_MESSAGE);
     }
     return false;
   }
