@@ -311,7 +311,19 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
         newConnection(this, builder);
         retries++;
       } else {
-        stopWithError(t);
+        if (BigQueryUtil.isReadSessionExpired(t)) {
+          RuntimeException runtimeException =
+              new RuntimeException(
+                  "Read session expired after 6 hours. Dataframes on BigQuery tables cannot be "
+                      + "operated on beyond this time-limit. Your options: "
+                      + "(1) try finishing within 6 hours, "
+                      + "(2) use Spark dataframe caching, "
+                      + "(3) read from a newly created BigQuery dataframe.",
+                  t);
+          stopWithError(runtimeException);
+        } else {
+          stopWithError(t);
+        }
       }
     }
 

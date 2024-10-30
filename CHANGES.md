@@ -2,6 +2,7 @@
 
 ## Next
 * Issue #1290: Stopped using metadata for optimized count path
+* PR #1311 : Improve read session expired error message
 
 ## 0.41.0 - 2024-09-05
 
