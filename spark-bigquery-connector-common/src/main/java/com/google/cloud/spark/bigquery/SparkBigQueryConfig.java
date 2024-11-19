@@ -605,6 +605,7 @@ public class SparkBigQueryConfig
 
     config.partitionOverwriteModeValue =
         getAnyOption(globalOptions, options, partitionOverwriteModeProperty)
+            .transform(String::toUpperCase)
             .transform(PartitionOverwriteMode::valueOf)
             .or(PartitionOverwriteMode.STATIC);
 
