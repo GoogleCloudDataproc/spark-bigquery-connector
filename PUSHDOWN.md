@@ -1,4 +1,4 @@
-#Spark to BigQuery Query Pushdown Usage Instructions and Technical Details
+# Spark to BigQuery Query Pushdown Usage Instructions and Technical Details
 
 Query Pushdown is an advanced optimization technique in which Spark transformations/actions (hereby referred to as “Spark operations”) performed for reading data into Spark from BigQuery are translated into SQL queries and pushed down to BigQuery from the open-source [spark-bigquery-connector](https://github.com/GoogleCloudDataproc/spark-bigquery-connector) (hereby referred to as “connector”) enabling improved read performance. With BigQuery as the data source for Spark, the connector can push large and complex Spark SQL queries to be processed in BigQuery thus bringing the computation next to the data and reducing the I/O overhead. This capability combines the robust query-processing of BigQuery with the computational capabilities of Spark and its ecosystem.
 
