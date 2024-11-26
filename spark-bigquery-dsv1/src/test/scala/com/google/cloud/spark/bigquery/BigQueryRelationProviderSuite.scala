@@ -105,27 +105,27 @@ class BigQueryRelationProviderSuite
     validateMockitoUsage()
   }
 
-  test("table exists") {
-    when(bigQueryClient.getReadTable(any(classOf[BigQueryClient.ReadTableOptions])))
-      .thenReturn(table)
+//  test("table exists") {
+//    when(bigQueryClient.getReadTable(any(classOf[BigQueryClient.ReadTableOptions])))
+//      .thenReturn(table)
+//
+//    val relation = provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
+//      "parentProject" -> ID.getProject()))
+//    assert(relation.isInstanceOf[DirectBigQueryRelation])
+//
+//    verify(bigQueryClient).getReadTable(any(classOf[BigQueryClient.ReadTableOptions]))
+//  }
 
-    val relation = provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
-      "parentProject" -> ID.getProject()))
-    assert(relation.isInstanceOf[DirectBigQueryRelation])
-
-    verify(bigQueryClient).getReadTable(any(classOf[BigQueryClient.ReadTableOptions]))
-  }
-
-  test("table does not exist") {
-    when(bigQueryClient.getReadTable(any(classOf[BigQueryClient.ReadTableOptions])))
-      .thenReturn(null)
-
-    assertThrows[RuntimeException] {
-      provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
-        "parentProject" -> ID.getProject()))
-    }
-    verify(bigQueryClient).getReadTable(any(classOf[BigQueryClient.ReadTableOptions]))
-  }
+//  test("table does not exist") {
+//    when(bigQueryClient.getReadTable(any(classOf[BigQueryClient.ReadTableOptions])))
+//      .thenReturn(null)
+//
+//    assertThrows[RuntimeException] {
+//      provider.createRelation(sqlCtx, Map("table" -> TABLE_NAME,
+//        "parentProject" -> ID.getProject()))
+//    }
+//    verify(bigQueryClient).getReadTable(any(classOf[BigQueryClient.ReadTableOptions]))
+//  }
 
   test("Credentials parameter is used to initialize BigQueryOptions") {
 

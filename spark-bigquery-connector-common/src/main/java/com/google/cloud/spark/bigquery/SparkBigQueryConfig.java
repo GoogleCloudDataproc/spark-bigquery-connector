@@ -171,6 +171,8 @@ public class SparkBigQueryConfig
   public static final String BIG_NUMERIC_DEFAULT_PRECISION = "bigNumericDefaultPrecision";
   public static final String BIG_NUMERIC_DEFAULT_SCALE = "bigNumericDefaultScale";
 
+  private static final String DATAPROC_SYSTEM_BUCKET_CONFIGURATION = "fs.gs.system.bucket";
+
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
   // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
@@ -398,7 +400,10 @@ public class SparkBigQueryConfig
             .orNull();
     config.defaultParallelism = defaultParallelism;
     config.temporaryGcsBucket =
-        stripPrefix(getAnyOption(globalOptions, options, "temporaryGcsBucket"));
+        stripPrefix(getAnyOption(globalOptions, options, "temporaryGcsBucket"))
+            .or(
+                com.google.common.base.Optional.fromNullable(
+                    hadoopConfiguration.get(DATAPROC_SYSTEM_BUCKET_CONFIGURATION)));
     config.persistentGcsBucket =
         stripPrefix(getAnyOption(globalOptions, options, "persistentGcsBucket"));
     config.persistentGcsPath = getOption(options, "persistentGcsPath");

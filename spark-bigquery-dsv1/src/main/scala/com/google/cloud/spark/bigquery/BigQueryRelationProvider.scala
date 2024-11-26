@@ -17,9 +17,9 @@ package com.google.cloud.spark.bigquery
 
 import java.util.Optional
 import com.google.cloud.bigquery.TableDefinition
-import com.google.cloud.bigquery.TableDefinition.Type.{EXTERNAL, MATERIALIZED_VIEW, TABLE, VIEW, SNAPSHOT}
-import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryClientModule, LoggingBigQueryTracerFactory, BigQueryUtil}
-import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation
+import com.google.cloud.bigquery.TableDefinition.Type.{EXTERNAL, MATERIALIZED_VIEW, SNAPSHOT, TABLE, VIEW}
+import com.google.cloud.bigquery.connector.common.{BigQueryClient, BigQueryClientFactory, BigQueryClientModule, BigQueryUtil, LoggingBigQueryTracerFactory}
+import com.google.cloud.spark.bigquery.direct.{DirectBigQueryRelation, DirectBigQueryRelationUtils}
 import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper
 import com.google.common.collect.ImmutableMap
 import com.google.inject.{Guice, Injector}
@@ -71,29 +71,9 @@ class BigQueryRelationProvider(
                                         sqlContext: SQLContext,
                                         parameters: Map[String, String],
                                         schema: Option[StructType] = None): BigQueryRelation = {
-    val injector = getGuiceInjectorCreator().createGuiceInjector(sqlContext, parameters, schema)
-    val opts = injector.getInstance(classOf[SparkBigQueryConfig])
-    val bigQueryClient = injector.getInstance(classOf[BigQueryClient])
-    val tableInfo = bigQueryClient.getReadTable(opts.toReadTableOptions)
-    val tableName = BigQueryUtil.friendlyTableName(opts.getTableId)
-    val bigQueryReadClientFactory = injector.getInstance(classOf[BigQueryClientFactory])
-    val bigQueryTracerFactory = injector.getInstance(classOf[LoggingBigQueryTracerFactory])
-    val table = Option(tableInfo)
-      .getOrElse(sys.error(s"Table $tableName not found"))
-    table.getDefinition[TableDefinition].getType match {
-      case TABLE | EXTERNAL | SNAPSHOT => new DirectBigQueryRelation(opts, table, bigQueryClient, bigQueryReadClientFactory, bigQueryTracerFactory, sqlContext)
-      case VIEW | MATERIALIZED_VIEW => if (opts.isViewsEnabled) {
-        new DirectBigQueryRelation(opts, table, bigQueryClient, bigQueryReadClientFactory, bigQueryTracerFactory, sqlContext)
-      } else {
-        sys.error(
-          s"""Views were not enabled. You can enable views by setting
-             |'${SparkBigQueryConfig.VIEWS_ENABLED_OPTION}' to true.
-             |Notice additional cost may occur."""
-            .stripMargin.replace('\n', ' '))
-      }
-      case unsupported => throw new UnsupportedOperationException(
-        s"The type of table $tableName is currently not supported: $unsupported")
-    }
+    val schemaOptional = Optional.ofNullable(schema.orNull)
+    DirectBigQueryRelationUtils.createDirectBigQueryRelation(
+      sqlContext, parameters.asJava, schemaOptional, DataSourceVersion.V1)
   }
 
   // to allow write support
@@ -106,12 +86,6 @@ class BigQueryRelationProvider(
     new CreatableRelationProviderHelper()
       .createRelation(sqlContext, mode, parameters, data, customDefaults)
   }
-
-  def createSparkBigQueryConfig(sqlContext: SQLContext,
-                                parameters: Map[String, String],
-                                schema: Option[StructType] = None): SparkBigQueryConfig = {
-    SparkBigQueryUtil.createSparkBigQueryConfig(sqlContext, parameters, schema, DataSourceVersion.V1)
-    }
 
   override def shortName: String = "bigquery"
 }
