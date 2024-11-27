@@ -3,7 +3,8 @@
 ## Next
 * Issue #1290: Stopped using metadata for optimized count path
 * Issue #1317: Improving OpenLineage 1.24.0+ compatibility
-* PR #1311 : Improve read session expired error message
+* PR #1311: Improve read session expired error message
+* PR #1320: Set the `temporaryGcsBucket` to default to `fs.gs.system.bucket` if exists, negating the need to set it in Dataproc clusters.
 
 ## 0.41.0 - 2024-09-05
 
