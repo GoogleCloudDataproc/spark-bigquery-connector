@@ -86,9 +86,9 @@ import org.threeten.bp.Duration;
 
 public class SparkBigQueryConfig
     implements BigQueryConfig,
-    BigQueryClient.CreateTableOptions,
-    BigQueryClient.LoadDataOptions,
-    Serializable {
+        BigQueryClient.CreateTableOptions,
+        BigQueryClient.LoadDataOptions,
+        Serializable {
 
   public static final int MAX_TRACE_ID_LENGTH = 256;
 
@@ -719,19 +719,19 @@ public class SparkBigQueryConfig
   public Credentials createCredentials() {
 
     return new BigQueryCredentialsSupplier(
-        accessTokenProviderFQCN.toJavaUtil(),
-        accessTokenProviderConfig.toJavaUtil(),
-        accessToken.toJavaUtil(),
-        credentialsKey.toJavaUtil(),
-        credentialsFile.toJavaUtil(),
-        loggedInUserName,
-        loggedInUserGroups,
-        impersonationServiceAccountsForUsers.toJavaUtil(),
-        impersonationServiceAccountsForGroups.toJavaUtil(),
-        impersonationServiceAccount.toJavaUtil(),
-        sparkBigQueryProxyAndHttpConfig.getProxyUri(),
-        sparkBigQueryProxyAndHttpConfig.getProxyUsername(),
-        sparkBigQueryProxyAndHttpConfig.getProxyPassword())
+            accessTokenProviderFQCN.toJavaUtil(),
+            accessTokenProviderConfig.toJavaUtil(),
+            accessToken.toJavaUtil(),
+            credentialsKey.toJavaUtil(),
+            credentialsFile.toJavaUtil(),
+            loggedInUserName,
+            loggedInUserGroups,
+            impersonationServiceAccountsForUsers.toJavaUtil(),
+            impersonationServiceAccountsForGroups.toJavaUtil(),
+            impersonationServiceAccount.toJavaUtil(),
+            sparkBigQueryProxyAndHttpConfig.getProxyUri(),
+            sparkBigQueryProxyAndHttpConfig.getProxyUsername(),
+            sparkBigQueryProxyAndHttpConfig.getProxyPassword())
         .getCredentials();
   }
 
