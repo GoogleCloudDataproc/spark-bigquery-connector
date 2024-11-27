@@ -2,6 +2,7 @@
 
 ## Next
 * Issue #1290: Stopped using metadata for optimized count path
+* Issue #1317: Improving OpenLineage 1.24.0+ compatibility
 * PR #1311 : Improve read session expired error message
 
 ## 0.41.0 - 2024-09-05
