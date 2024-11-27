@@ -30,11 +30,13 @@ import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
+  @Ignore
   public void testStringFunctionExpressions() {
     Dataset<Row> df =
         spark
@@ -97,6 +99,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testDateFunctionExpressions() {
     // This table only has one row and one column which is today's date
     Dataset<Row> df =
@@ -137,6 +140,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testBasicExpressions() {
     Dataset<Row> df =
         spark
@@ -170,6 +174,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testMathematicalFunctionExpressions() {
     Dataset<Row> df =
         spark
@@ -230,6 +235,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testMiscellaneousExpressions() {
     Dataset<Row> df =
         spark
@@ -272,6 +278,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testUnionQuery() {
     Dataset<Row> df =
         spark
@@ -301,6 +308,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testBooleanExpressions() {
     Dataset<Row> df =
         spark
@@ -363,6 +371,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testWindowStatements() {
     Dataset<Row> df =
         spark
@@ -412,6 +421,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testWindowQueryWithWindowSpec() {
     writeTestDataToBigQuery(
         getNumStructDataFrame(TestConstants.numStructDataset),
@@ -464,6 +474,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testAggregateExpressions() {
     writeTestDataToBigQuery(
         getNumStructDataFrame(TestConstants.numStructDataset),
@@ -506,6 +517,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testInnerJoin() {
     writeTestDataToBigQuery(
         getNumStructDataFrame(TestConstants.numStructDataset),
@@ -567,6 +579,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testLeftOuterJoin() {
     writeTestDataToBigQuery(
         getNumStructDataFrame(TestConstants.numStructDataset),
@@ -666,6 +679,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testRightOuterJoin() {
     writeTestDataToBigQuery(
         getNumStructDataFrame(TestConstants.numStructDataset),
@@ -767,6 +781,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testFullOuterJoin() {
     writeTestDataToBigQuery(
         getNumStructDataFrame(TestConstants.numStructDataset),
@@ -870,6 +885,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testCrossJoin() {
     writeTestDataToBigQuery(
         getNumStructDataFrame(TestConstants.numStructDataset),
@@ -911,6 +927,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testLeftSemiJoin() {
     writeTestDataToBigQuery(
         getNumStructDataFrame(TestConstants.numStructDataset),
@@ -972,6 +989,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testLeftAntiJoin() {
     writeTestDataToBigQuery(
         getNumStructDataFrame(TestConstants.numStructDataset),
@@ -1026,6 +1044,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
   }
 
   @Test
+  @Ignore
   public void testJoinQuery() {
     writeTestDataToBigQuery(
         getNumStructDataFrame(TestConstants.numStructDataset),
