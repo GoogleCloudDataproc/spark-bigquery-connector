@@ -86,9 +86,9 @@ import org.threeten.bp.Duration;
 
 public class SparkBigQueryConfig
     implements BigQueryConfig,
-        BigQueryClient.CreateTableOptions,
-        BigQueryClient.LoadDataOptions,
-        Serializable {
+    BigQueryClient.CreateTableOptions,
+    BigQueryClient.LoadDataOptions,
+    Serializable {
 
   public static final int MAX_TRACE_ID_LENGTH = 256;
 
@@ -170,8 +170,6 @@ public class SparkBigQueryConfig
 
   public static final String BIG_NUMERIC_DEFAULT_PRECISION = "bigNumericDefaultPrecision";
   public static final String BIG_NUMERIC_DEFAULT_SCALE = "bigNumericDefaultScale";
-
-  private static final String DATAPROC_SYSTEM_BUCKET_CONFIGURATION = "fs.gs.system.bucket";
 
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
@@ -400,10 +398,7 @@ public class SparkBigQueryConfig
             .orNull();
     config.defaultParallelism = defaultParallelism;
     config.temporaryGcsBucket =
-        stripPrefix(getAnyOption(globalOptions, options, "temporaryGcsBucket"))
-            .or(
-                com.google.common.base.Optional.fromNullable(
-                    hadoopConfiguration.get(DATAPROC_SYSTEM_BUCKET_CONFIGURATION)));
+        stripPrefix(getAnyOption(globalOptions, options, "temporaryGcsBucket"));
     config.persistentGcsBucket =
         stripPrefix(getAnyOption(globalOptions, options, "persistentGcsBucket"));
     config.persistentGcsPath = getOption(options, "persistentGcsPath");
@@ -610,6 +605,7 @@ public class SparkBigQueryConfig
 
     config.partitionOverwriteModeValue =
         getAnyOption(globalOptions, options, partitionOverwriteModeProperty)
+            .transform(String::toUpperCase)
             .transform(PartitionOverwriteMode::valueOf)
             .or(PartitionOverwriteMode.STATIC);
 
@@ -723,19 +719,19 @@ public class SparkBigQueryConfig
   public Credentials createCredentials() {
 
     return new BigQueryCredentialsSupplier(
-            accessTokenProviderFQCN.toJavaUtil(),
-            accessTokenProviderConfig.toJavaUtil(),
-            accessToken.toJavaUtil(),
-            credentialsKey.toJavaUtil(),
-            credentialsFile.toJavaUtil(),
-            loggedInUserName,
-            loggedInUserGroups,
-            impersonationServiceAccountsForUsers.toJavaUtil(),
-            impersonationServiceAccountsForGroups.toJavaUtil(),
-            impersonationServiceAccount.toJavaUtil(),
-            sparkBigQueryProxyAndHttpConfig.getProxyUri(),
-            sparkBigQueryProxyAndHttpConfig.getProxyUsername(),
-            sparkBigQueryProxyAndHttpConfig.getProxyPassword())
+        accessTokenProviderFQCN.toJavaUtil(),
+        accessTokenProviderConfig.toJavaUtil(),
+        accessToken.toJavaUtil(),
+        credentialsKey.toJavaUtil(),
+        credentialsFile.toJavaUtil(),
+        loggedInUserName,
+        loggedInUserGroups,
+        impersonationServiceAccountsForUsers.toJavaUtil(),
+        impersonationServiceAccountsForGroups.toJavaUtil(),
+        impersonationServiceAccount.toJavaUtil(),
+        sparkBigQueryProxyAndHttpConfig.getProxyUri(),
+        sparkBigQueryProxyAndHttpConfig.getProxyUsername(),
+        sparkBigQueryProxyAndHttpConfig.getProxyPassword())
         .getCredentials();
   }
 
