@@ -87,6 +87,14 @@ class BigQueryRelationProvider(
       .createRelation(sqlContext, mode, parameters, data, customDefaults)
   }
 
+  // This method is kept here as OpenLineage uses it.
+  def createSparkBigQueryConfig(sqlContext: SQLContext,
+                                parameters: Map[String, String],
+                                schema: Option[StructType] = None): SparkBigQueryConfig = {
+    SparkBigQueryUtil.createSparkBigQueryConfig(
+      sqlContext, parameters, schema, DataSourceVersion.V1)
+  }
+
   override def shortName: String = "bigquery"
 }
 
