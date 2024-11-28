@@ -2,7 +2,8 @@
 
 ## Next
 * Issue #1290: Stopped using metadata for optimized count path
-* PR #1311 : Improve read session expired error message
+* PR #1311: Improve read session expired error message
+* PR #1319: Improve Spark 3.x spark-sql CLI integration
 
 ## 0.41.0 - 2024-09-05
 
