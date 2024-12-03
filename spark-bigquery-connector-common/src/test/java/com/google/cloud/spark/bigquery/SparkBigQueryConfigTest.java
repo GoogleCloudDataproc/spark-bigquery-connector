@@ -1182,4 +1182,22 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getIntermediateFormat())
         .isEqualTo(SparkBigQueryConfig.IntermediateFormat.PARQUET_LIST_INFERENCE_ENABLED);
   }
+
+  @Test
+  public void testSystemBucketAsDefaultTemporaryGcsBucket() {
+    Configuration hadoopConfiguration = new Configuration();
+    hadoopConfiguration.set("fs.gs.system.bucket", "foo");
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(defaultOptions),
+            emptyMap, // allConf
+            hadoopConfiguration,
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getTemporaryGcsBucket()).hasValue("foo");
+  }
 }
