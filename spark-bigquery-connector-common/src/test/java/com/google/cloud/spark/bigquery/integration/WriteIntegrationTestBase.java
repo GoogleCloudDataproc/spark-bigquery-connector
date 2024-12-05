@@ -1612,7 +1612,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s TIMESTAMP) "
-                + "PARTITION BY timestamp_trunc(order_date_time, HOUR) OPTIONS (require_partition_filter = true)"
+                + "PARTITION BY timestamp_trunc(order_date_time, HOUR) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, TIMESTAMP '2023-09-28 1:00:00 UTC'), "
                 + "(2, TIMESTAMP '2023-09-28 10:00:00 UTC'), (3, TIMESTAMP '2023-09-28 10:30:00 UTC')]) ",
             testDataset, testTable, orderId, orderDateTime));
@@ -1656,7 +1656,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s TIMESTAMP) "
-                + "PARTITION BY DATE(order_date_time) OPTIONS (require_partition_filter = true)"
+                + "PARTITION BY DATE(order_date_time) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, TIMESTAMP '2023-09-28 1:00:00 UTC'), "
                 + "(2, TIMESTAMP '2023-09-29 10:00:00 UTC'), (3, TIMESTAMP '2023-09-29 17:00:00 UTC')])",
             testDataset, testTable, orderId, orderDateTime));
@@ -1700,7 +1700,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s TIMESTAMP) "
-                + "PARTITION BY timestamp_trunc(order_date_time, MONTH) OPTIONS (require_partition_filter = true)"
+                + "PARTITION BY timestamp_trunc(order_date_time, MONTH) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, TIMESTAMP '2023-09-28 1:00:00 UTC'), "
                 + "(2, TIMESTAMP '2023-10-20 10:00:00 UTC'), (3, TIMESTAMP '2023-10-25 12:00:00 UTC')])",
             testDataset, testTable, orderId, orderDateTime));
@@ -1744,7 +1744,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s TIMESTAMP) "
-                + "PARTITION BY timestamp_trunc(order_date_time, YEAR) OPTIONS (require_partition_filter = true)"
+                + "PARTITION BY timestamp_trunc(order_date_time, YEAR) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, TIMESTAMP '2022-09-28 1:00:00 UTC'), "
                 + "(2, TIMESTAMP '2023-10-20 10:00:00 UTC'), (2, TIMESTAMP '2023-10-25 12:00:00 UTC')])",
             testDataset, testTable, orderId, orderDateTime));
@@ -1788,7 +1788,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATE) "
-                + "PARTITION BY order_date OPTIONS (require_partition_filter = true)"
+                + "PARTITION BY order_date OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATE('2023-09-28')), (2, DATE('2023-09-29'))])",
             testDataset, testTable, orderId, orderDate));
 
@@ -1828,7 +1828,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATE) "
-                + "PARTITION BY DATE_TRUNC(order_date, MONTH) OPTIONS (require_partition_filter = true)"
+                + "PARTITION BY DATE_TRUNC(order_date, MONTH) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATE('2023-09-28')), "
                 + "(2, DATE('2023-10-29')), (2, DATE('2023-10-28'))])",
             testDataset, testTable, orderId, orderDate));
@@ -1869,7 +1869,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATE) "
-                + "PARTITION BY DATE_TRUNC(order_date, YEAR) OPTIONS (require_partition_filter = true)"
+                + "PARTITION BY DATE_TRUNC(order_date, YEAR) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATE('2022-09-28')), "
                 + "(2, DATE('2023-10-29')), (2, DATE('2023-11-28'))])",
             testDataset, testTable, orderId, orderDate));
@@ -1910,7 +1910,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     IntegrationTestUtils.runQuery(
         String.format(
-            "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) OPTIONS (require_partition_filter = true)"
+            "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) OPTIONS (require_partition_filter = true) "
                 + "PARTITION BY timestamp_trunc(order_date_time, HOUR) "
                 + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
                 + "(2, DATETIME '2023-09-28 10:00:00'), (3, DATETIME '2023-09-28 10:30:00')])",
@@ -1953,7 +1953,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                + "PARTITION BY timestamp_trunc(order_date_time, DAY) OPTIONS (require_partition_filter = true)"
+                + "PARTITION BY timestamp_trunc(order_date_time, DAY) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
                 + "(2, DATETIME '2023-09-29 10:00:00'), (3, DATETIME '2023-09-29 17:30:00')])",
             testDataset, testTable, orderId, orderDateTime));
@@ -1995,7 +1995,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                + "PARTITION BY timestamp_trunc(order_date_time, MONTH) OPTIONS (require_partition_filter = true)"
+                + "PARTITION BY timestamp_trunc(order_date_time, MONTH) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
                 + "(2, DATETIME '2023-10-29 10:00:00'), (3, DATETIME '2023-10-29 17:30:00')])",
             testDataset, testTable, orderId, orderDateTime));
@@ -2037,7 +2037,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                + "PARTITION BY timestamp_trunc(order_date_time, YEAR) OPTIONS (require_partition_filter = true)"
+                + "PARTITION BY timestamp_trunc(order_date_time, YEAR) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATETIME '2022-09-28 1:00:00'), "
                 + "(2, DATETIME '2023-10-29 10:00:00'), (3, DATETIME '2023-11-29 17:30:00')])",
             testDataset, testTable, orderId, orderDateTime));
@@ -2116,7 +2116,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
-                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10))"
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
                 + "AS SELECT * FROM UNNEST([(1, 1000), "
                 + "(8, 1005), ( 21, 1010), (83, 1020)])",
             testDataset, testTable, orderId, orderCount));
