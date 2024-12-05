@@ -1579,7 +1579,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(head.get(head.fieldIndex("timestamp1"))).isEqualTo(timestamp1);
   }
 
-  protected Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(Dataset<Row> df) {
+  protected Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(
+      Dataset<Row> df, boolean isPartitioned) {
     df.write()
         .format("bigquery")
         .mode(SaveMode.Overwrite)
@@ -1591,10 +1592,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .save();
 
-    IntegrationTestUtils.runQuery(
-        String.format(
-            "ALTER TABLE %s.%s SET OPTIONS (require_partition_filter = false)",
-            testDataset, testTable));
+    if (isPartitioned) {
+      IntegrationTestUtils.runQuery(
+          String.format(
+              "ALTER TABLE %s.%s SET OPTIONS (require_partition_filter = false)",
+              testDataset, testTable));
+    }
 
     return spark
         .read()
@@ -1626,7 +1629,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1670,7 +1673,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1714,7 +1717,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1758,7 +1761,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1801,7 +1804,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDate, DataTypes.DateType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1842,7 +1845,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDate, DataTypes.DateType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1883,7 +1886,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDate, DataTypes.DateType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1925,7 +1928,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1967,7 +1970,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2009,7 +2012,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2051,7 +2054,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2091,7 +2094,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, false);
     assertThat(result.count()).isEqualTo(2);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2132,7 +2135,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(5);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2179,7 +2182,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(2);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2214,7 +2217,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(2);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2249,7 +2252,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2288,7 +2291,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
 
     List<Row> rows = result.collectAsList();
