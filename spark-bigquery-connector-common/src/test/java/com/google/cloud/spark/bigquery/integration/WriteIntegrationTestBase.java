@@ -1913,8 +1913,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     IntegrationTestUtils.runQuery(
         String.format(
-            "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) OPTIONS (require_partition_filter = true) "
-                + "PARTITION BY timestamp_trunc(order_date_time, HOUR) "
+            "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
+                + "PARTITION BY timestamp_trunc(order_date_time, HOUR) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
                 + "(2, DATETIME '2023-09-28 10:00:00'), (3, DATETIME '2023-09-28 10:30:00')])",
             testDataset, testTable, orderId, orderDateTime));
