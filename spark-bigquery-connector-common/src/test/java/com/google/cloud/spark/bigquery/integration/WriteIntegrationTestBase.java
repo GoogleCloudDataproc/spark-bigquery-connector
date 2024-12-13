@@ -2119,7 +2119,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
-                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) OPTIONS (require_partition_filter = true)"
                 + "AS SELECT * FROM UNNEST([(1, 1000), "
                 + "(8, 1005), ( 21, 1010), (83, 1020)])",
             testDataset, testTable, orderId, orderCount));
@@ -2170,7 +2170,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
-                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) OPTIONS (require_partition_filter = true)"
                 + "AS SELECT * FROM UNNEST([(1, 1000), "
                 + "(2, 1005), ( 150, 1010)])",
             testDataset, testTable, orderId, orderCount));
@@ -2205,7 +2205,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
-                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) OPTIONS (require_partition_filter = true)"
                 + "AS SELECT * FROM UNNEST([(1, 1000), "
                 + "(2, 1005), ( -1, 1010)])",
             testDataset, testTable, orderId, orderCount));
@@ -2240,7 +2240,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
-                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) OPTIONS (require_partition_filter = true)"
                 + "AS SELECT * FROM UNNEST([(1, 1000), "
                 + "(11, 1005), ( 100, 1010)])",
             testDataset, testTable, orderId, orderCount));
@@ -2279,7 +2279,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
-                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) OPTIONS (require_partition_filter = true)"
                 + "AS SELECT * FROM UNNEST([(NULL, 1000), "
                 + "(11, 1005)])",
             testDataset, testTable, orderId, orderCount));

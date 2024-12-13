@@ -78,6 +78,7 @@ public class BigQueryUtil {
   public static final int DEFAULT_BIG_NUMERIC_PRECISION = 76;
   public static final int DEFAULT_BIG_NUMERIC_SCALE = 38;
   private static final int NO_VALUE = -1;
+  private static final String BIGQUERY_INTEGER_MIN_VALUE = "-9223372036854775808";
   static final ImmutableSet<String> INTERNAL_ERROR_MESSAGES =
       ImmutableSet.of(
           "HTTP/2 error code: INTERNAL_ERROR",
@@ -714,37 +715,6 @@ public class BigQueryUtil {
         : noNewLinesQuery;
   }
 
-  static String getMergeQueryForPartitionedTable(
-      String destinationTableName,
-      String temporaryTableName,
-      StandardTableDefinition destinationDefinition,
-      String extractedPartitionedSource,
-      String extractedPartitionedTarget) {
-    FieldList allFields = destinationDefinition.getSchema().getFields();
-    String commaSeparatedFields =
-        allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
-    String booleanInjectedColumn = "_" + Long.toString(1234567890123456789L);
-
-    String queryFormat =
-        "MERGE `%s` AS target\n"
-            + "USING (SELECT * FROM `%s` CROSS JOIN UNNEST([true, false])  %s) AS source\n"
-            + "ON %s = %s AND %s\n"
-            + "WHEN MATCHED THEN DELETE\n"
-            + "WHEN NOT MATCHED AND NOT %s THEN\n"
-            + "INSERT(%s) VALUES(%s)";
-    return String.format(
-        queryFormat,
-        destinationTableName,
-        temporaryTableName,
-        booleanInjectedColumn,
-        extractedPartitionedSource,
-        extractedPartitionedTarget,
-        booleanInjectedColumn,
-        booleanInjectedColumn,
-        commaSeparatedFields,
-        commaSeparatedFields);
-  }
-
   static String getQueryForTimePartitionedTable(
       String destinationTableName,
       String temporaryTableName,
@@ -829,12 +799,32 @@ public class BigQueryUtil {
             end,
             interval);
 
-    return getMergeQueryForPartitionedTable(
+    FieldList allFields = destinationDefinition.getSchema().getFields();
+    String commaSeparatedFields =
+        allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
+    String booleanInjectedColumn = "_" + Long.toString(1234567890123456789L);
+
+    String queryFormat =
+        "MERGE `%s` AS target\n"
+            + "USING (SELECT * FROM `%s` CROSS JOIN UNNEST([true, false])  %s) AS source\n"
+            + "ON %s = %s AND %s AND (target.%s >= %s OR target.%s IS NULL )\n"
+            + "WHEN MATCHED THEN DELETE\n"
+            + "WHEN NOT MATCHED AND NOT %s THEN\n"
+            + "INSERT(%s) VALUES(%s)";
+    return String.format(
+        queryFormat,
         destinationTableName,
         temporaryTableName,
-        destinationDefinition,
+        booleanInjectedColumn,
         extractedPartitionedSource,
-        extractedPartitionedTarget);
+        extractedPartitionedTarget,
+        booleanInjectedColumn,
+        partitionField,
+        BIGQUERY_INTEGER_MIN_VALUE,
+        partitionField,
+        booleanInjectedColumn,
+        commaSeparatedFields,
+        commaSeparatedFields);
   }
 
   // based on https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#jobconfiguration, it
