@@ -78,7 +78,7 @@ public class BigQueryUtil {
   public static final int DEFAULT_BIG_NUMERIC_PRECISION = 76;
   public static final int DEFAULT_BIG_NUMERIC_SCALE = 38;
   private static final int NO_VALUE = -1;
-  private static final String BIGQUERY_INTEGER_MIN_VALUE = "-9223372036854775808";
+  private static final long BIGQUERY_INTEGER_MIN_VALUE = Long.MIN_VALUE;
   static final ImmutableSet<String> INTERNAL_ERROR_MESSAGES =
       ImmutableSet.of(
           "HTTP/2 error code: INTERNAL_ERROR",
@@ -807,7 +807,7 @@ public class BigQueryUtil {
     String queryFormat =
         "MERGE `%s` AS target\n"
             + "USING (SELECT * FROM `%s` CROSS JOIN UNNEST([true, false])  %s) AS source\n"
-            + "ON %s = %s AND %s AND (target.%s >= %s OR target.%s IS NULL )\n"
+            + "ON %s = %s AND %s AND (target.%s >= %d OR target.%s IS NULL )\n"
             + "WHEN MATCHED THEN DELETE\n"
             + "WHEN NOT MATCHED AND NOT %s THEN\n"
             + "INSERT(%s) VALUES(%s)";
