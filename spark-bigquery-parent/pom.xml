@@ -71,7 +71,6 @@
         <!-- Don't upgrade protobuf until bigquerystorage is compatible with 4.x version of proto.
         Ref : https://github.com/protocolbuffers/protobuf/issues/16452-->
         <protobuf.version>3.25.3</protobuf.version>
-        <zstd.version>1.5.6-8</zstd.version>
         <deploy.skip>true</deploy.skip>
         <nexus.remote.skip>false</nexus.remote.skip>
         <shade.skip>true</shade.skip>
@@ -109,7 +108,8 @@
             <dependency>
                 <groupId>com.github.luben</groupId>
                 <artifactId>zstd-jni</artifactId>
-                <version>${zstd.version}</version>
+                <!-- provided dependency, please don't change the version-->
+                <version>1.4.9-1</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
