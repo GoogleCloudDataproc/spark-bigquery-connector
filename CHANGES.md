@@ -5,6 +5,12 @@
 * Issue #1317: Improving OpenLineage 1.24.0+ compatibility
 * PR #1311: Improve read session expired error message
 * PR #1320: Set the `temporaryGcsBucket` to default to `fs.gs.system.bucket` if exists, negating the need to set it in Dataproc clusters.
+* BigQuery API has been upgraded to version 2.45.0
+* BigQuery Storage API has been upgraded to version 3.11.0
+* GAX has been upgraded to version 2.59.0
+* Netty has been upgraded to version 4.1.115.Final
+* Arrow has been upgraded to version 17.0.0
+
 
 ## 0.41.0 - 2024-09-05
 
