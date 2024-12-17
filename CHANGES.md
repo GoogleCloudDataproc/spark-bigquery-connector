@@ -22,6 +22,7 @@
 * BigQuery Storage API has been upgraded to version 3.9.0
 * GAX has been upgraded to version 2.52.0
 * Netty has been upgraded to version 4.1.113.Final
+* Avro has been upgraded to version 1.11.4
 
 ## 0.40.0 - 2024-08-05
 
