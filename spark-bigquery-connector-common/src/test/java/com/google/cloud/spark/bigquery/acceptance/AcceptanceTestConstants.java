@@ -19,7 +19,7 @@ import com.google.common.base.Preconditions;
 
 public class AcceptanceTestConstants {
 
-  public static final String REGION = "us-west4";
+  public static final String REGION = "us-west1";
   public static final String DATAPROC_ENDPOINT = REGION + "-dataproc.googleapis.com:443";
   public static final String PROJECT_ID =
       Preconditions.checkNotNull(
