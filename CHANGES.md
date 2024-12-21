@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.41.1 - 2024-12-20
 * Issue #1290: Stopped using metadata for optimized count path
 * Issue #1317: Improving OpenLineage 1.24.0+ compatibility
