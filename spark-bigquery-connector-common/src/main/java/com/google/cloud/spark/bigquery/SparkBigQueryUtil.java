@@ -344,7 +344,7 @@ public class SparkBigQueryUtil {
     return SparkBigQueryConfig.from(
         ImmutableMap.copyOf(optionsMap),
         globalOptions,
-        spark.sparkContext().hadoopConfiguration(),
+        spark.sessionState().newHadoopConf(),
         ImmutableMap.of(),
         defaultParallelism,
         spark.sqlContext().conf(),
