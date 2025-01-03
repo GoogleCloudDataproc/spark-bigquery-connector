@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.dataproc.v1.Job;
 import com.google.cloud.storage.*;
 import com.google.common.io.ByteStreams;
 import java.io.*;
@@ -36,6 +37,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.Comparator;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class AcceptanceTestUtils {
@@ -177,5 +179,25 @@ public class AcceptanceTestUtils {
 
   public static String generateClusterName(String testId) {
     return String.format("sbc-acceptance-%s", testId);
+  }
+
+  public static String getDriverOutput(Job job) {
+    BlobId outputPrefix = BlobId.fromGsUtilUri(job.getDriverOutputResourceUri());
+    return StreamSupport.stream(
+            storage
+                .list(
+                    outputPrefix.getBucket(), Storage.BlobListOption.prefix(outputPrefix.getName()))
+                .iterateAll()
+                .spliterator(),
+            false)
+        .sorted(Comparator.comparing(Blob::getName))
+        .map(AcceptanceTestUtils::downloadBlobToString)
+        .collect(Collectors.joining("\n"));
+  }
+
+  private static String downloadBlobToString(Blob blob) {
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    blob.downloadTo(output);
+    return new String(output.toByteArray(), StandardCharsets.UTF_8);
   }
 }

@@ -76,7 +76,8 @@ public class SparkBigQueryConfigTest {
                 new SQLConf(),
                 SPARK_VERSION,
                 Optional.empty(), /* tableIsMandatory */
-                true));
+                true,
+                "current_database"));
   }
 
   @Test
@@ -93,7 +94,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             SPARK_VERSION,
             Optional.empty(), /* tableIsMandatory */
-            true);
+            true,
+            "current_database");
     assertThat(config.getTableId()).isEqualTo(TableId.of("dataset", "table"));
     assertThat(config.getFilter()).isEqualTo(Optional.empty());
     assertThat(config.getSchema()).isEqualTo(Optional.empty());
@@ -198,7 +200,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             SPARK_VERSION,
             Optional.empty(), /* tableIsMandatory */
-            true);
+            true,
+            "current_database");
     assertThat(config.getTableId()).isEqualTo(TableId.of("test_p", "test_d", "test_t"));
     assertThat(config.getFilter()).isEqualTo(Optional.of("test > 0"));
     assertThat(config.getSchema()).isEqualTo(Optional.empty());
@@ -272,7 +275,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             SPARK_VERSION,
             Optional.empty(), /* tableIsMandatory */
-            true);
+            true,
+            "current_database");
     RangePartitioning.Range expectedRange =
         RangePartitioning.Range.newBuilder().setStart(1L).setEnd(20L).setInterval(2L).build();
     assertThat(config.getTableId()).isEqualTo(TableId.of("test_p", "test_d", "test_t"));
@@ -301,7 +305,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             SPARK_VERSION,
             Optional.empty(), /* tableIsMandatory */
-            true);
+            true,
+            "current_database");
     assertThat(config.getCacheExpirationTimeInMinutes()).isEqualTo(0);
   }
 
@@ -330,7 +335,8 @@ public class SparkBigQueryConfigTest {
                     new SQLConf(),
                     SPARK_VERSION,
                     Optional.empty(), /* tableIsMandatory */
-                    true));
+                    true,
+                    "current_database"));
 
     assertThat(exception)
         .hasMessageThat()
@@ -364,7 +370,8 @@ public class SparkBigQueryConfigTest {
                     new SQLConf(),
                     SPARK_VERSION,
                     Optional.empty(), /* tableIsMandatory */
-                    true));
+                    true,
+                    "current_database"));
 
     assertThat(exception)
         .hasMessageThat()
@@ -400,7 +407,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             SPARK_VERSION,
             Optional.empty(), /* tableIsMandatory */
-            true);
+            true,
+            "current_database");
 
     assertThat(config.isViewsEnabled()).isTrue();
     assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("bucket"));
@@ -428,7 +436,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             SPARK_VERSION,
             Optional.empty(), /* tableIsMandatory */
-            true);
+            true,
+            "current_database");
 
     assertThat(config.getTableId().getTable()).isEqualTo("table$20201010");
     assertThat(config.getTableIdWithoutThePartition().getTable()).isEqualTo("table");
@@ -452,7 +461,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             SPARK_VERSION,
             Optional.empty(), /* tableIsMandatory */
-            true);
+            true,
+            "current_database");
 
     assertThat(config.getTableIdWithoutThePartition().getTable())
         .isEqualTo(config.getTableId().getTable());
@@ -541,7 +551,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             SPARK_VERSION,
             Optional.empty(), /* tableIsMandatory */
-            true);
+            true,
+            "current_database");
 
     assertThat(config.getWriteMethod()).isEqualTo(SparkBigQueryConfig.WriteMethod.INDIRECT);
   }
@@ -594,7 +605,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getCredentialsFile()).isEqualTo(Optional.of("hadoop_cfile"));
   }
 
@@ -610,7 +622,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getCredentialsFile()).isEqualTo(Optional.of("cfile"));
   }
 
@@ -626,7 +639,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getCredentialsFile().isPresent()).isFalse();
   }
 
@@ -642,7 +656,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getTableId().getProject()).isEqualTo("hadoop_project");
   }
 
@@ -658,7 +673,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getTableId().getProject()).isEqualTo("pid");
   }
 
@@ -674,7 +690,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getTableId().getProject()).isNull();
   }
 
@@ -690,7 +707,8 @@ public class SparkBigQueryConfigTest {
           new SQLConf(),
           sparkVersion,
           /* schema */ Optional.empty(),
-          /* tableIsMandatory */ true);
+          /* tableIsMandatory */ true,
+          "current_database");
       fail("Should throw Exception");
     } catch (Exception e) {
       assertThat(e.getMessage())
@@ -710,7 +728,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getReadDataFormat()).isEqualTo(DataFormat.ARROW);
   }
 
@@ -726,7 +745,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getReadDataFormat()).isEqualTo(DataFormat.AVRO);
   }
 
@@ -743,7 +763,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("foo"));
   }
 
@@ -761,7 +782,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("foo"));
   }
 
@@ -777,7 +799,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("bar"));
   }
 
@@ -793,7 +816,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getMaterializationProject()).isEqualTo(Optional.empty());
   }
 
@@ -809,7 +833,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.of(3));
   }
 
@@ -825,7 +850,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.of(3));
   }
 
@@ -841,7 +867,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.of(10));
   }
 
@@ -857,7 +884,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getMaxParallelism()).isEqualTo(OptionalInt.empty());
   }
 
@@ -873,7 +901,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getLoadSchemaUpdateOptions())
         .contains(JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION);
   }
@@ -890,7 +919,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getLoadSchemaUpdateOptions())
         .contains(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION);
   }
@@ -908,7 +938,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getLoadSchemaUpdateOptions())
         .containsAtLeast(
             JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION,
@@ -927,7 +958,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getLoadSchemaUpdateOptions()).isEmpty();
   }
 
@@ -958,7 +990,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getPersistentGcsPath()).isEqualTo(Optional.of("/persistent/path"));
   }
 
@@ -974,7 +1007,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getPersistentGcsBucket()).isEqualTo(Optional.of("foo"));
   }
 
@@ -990,7 +1024,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getPersistentGcsBucket()).isEqualTo(Optional.of("foo"));
   }
 
@@ -1006,7 +1041,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("foo"));
   }
 
@@ -1022,7 +1058,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getTemporaryGcsBucket()).isEqualTo(Optional.of("foo"));
   }
 
@@ -1038,7 +1075,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getChannelPoolSize()).isEqualTo(4);
   }
 
@@ -1054,7 +1092,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getFlowControlWindowBytes()).isEqualTo(Optional.of(12345));
   }
 
@@ -1073,7 +1112,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
 
     Exception e = assertThrows(Exception.class, () -> config.createCredentials());
     assertThat(e.getMessage()).contains("Failed to create Credentials from key");
@@ -1092,7 +1132,8 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
 
     ImpersonatedCredentials credentials = (ImpersonatedCredentials) config.createCredentials();
     assertThat(credentials.getAccount()).isEqualTo(sa);
@@ -1117,7 +1158,8 @@ public class SparkBigQueryConfigTest {
                       new SQLConf(),
                       sparkVersion,
                       /* schema */ Optional.empty(),
-                      /* tableIsMandatory */ true);
+                      /* tableIsMandatory */ true,
+                      "current_database");
 
               ImpersonatedCredentials credentials =
                   (ImpersonatedCredentials) config.createCredentials();
@@ -1146,7 +1188,8 @@ public class SparkBigQueryConfigTest {
                       new SQLConf(),
                       sparkVersion,
                       /* schema */ Optional.empty(),
-                      /* tableIsMandatory */ true);
+                      /* tableIsMandatory */ true,
+                      "current_database");
 
               ImpersonatedCredentials credentials =
                   (ImpersonatedCredentials) config.createCredentials();
@@ -1178,8 +1221,63 @@ public class SparkBigQueryConfigTest {
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
-            /* tableIsMandatory */ true);
+            /* tableIsMandatory */ true,
+            "current_database");
     assertThat(config.getIntermediateFormat())
         .isEqualTo(SparkBigQueryConfig.IntermediateFormat.PARQUET_LIST_INFERENCE_ENABLED);
+  }
+
+  @Test
+  public void testParseTableFromCurrentDataset() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            ImmutableMap.of("path", "file:/path/to/foo"),
+            ImmutableMap.of("spark.sql.warehouse.dir", "file:/path/to"), // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true,
+            "current_database");
+    assertThat(config.getTableId().getDataset()).isEqualTo("current_database");
+    assertThat(config.getTableId().getTable()).isEqualTo("foo");
+  }
+
+  @Test
+  public void testParseTableFromCurrentDatasetWithExtraSlash() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            ImmutableMap.of("path", "file:/path/to/foo"),
+            ImmutableMap.of("spark.sql.warehouse.dir", "file:/path/to/"), // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true,
+            "current_database");
+    assertThat(config.getTableId().getDataset()).isEqualTo("current_database");
+    assertThat(config.getTableId().getTable()).isEqualTo("foo");
+  }
+
+  @Test
+  public void testParseTableFromCustomDataset() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            ImmutableMap.of("path", "file:/path/foo.db/bar"),
+            ImmutableMap.of("spark.sql.warehouse.dir", "file:/path"), // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true,
+            "current_database");
+    assertThat(config.getTableId().getDataset()).isEqualTo("foo");
+    assertThat(config.getTableId().getTable()).isEqualTo("bar");
   }
 }

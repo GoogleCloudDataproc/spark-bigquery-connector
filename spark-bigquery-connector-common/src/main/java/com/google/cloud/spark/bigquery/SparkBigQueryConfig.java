@@ -28,19 +28,14 @@ import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUt
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.removePrefixFromMapKeys;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableIdFromHivePath;
 import static com.google.cloud.spark.bigquery.SparkBigQueryUtil.scalaMapToJavaMap;
 import static java.lang.String.format;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
-import com.google.cloud.bigquery.FormatOptions;
-import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.ParquetOptions;
-import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
-import com.google.cloud.bigquery.RangePartitioning;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
@@ -277,7 +272,8 @@ public class SparkBigQueryConfig
         spark.sqlContext().conf(),
         spark.version(),
         schema,
-        tableIsMandatory);
+        tableIsMandatory,
+        spark.catalog().currentDatabase());
   }
 
   @VisibleForTesting
@@ -290,7 +286,8 @@ public class SparkBigQueryConfig
       SQLConf sqlConf,
       String sparkVersion,
       Optional<StructType> schema,
-      boolean tableIsMandatory) {
+      boolean tableIsMandatory,
+      String currentDatabase) {
     SparkBigQueryConfig config = new SparkBigQueryConfig();
 
     ImmutableMap<String, String> options = toLowerCaseKeysMap(optionsInput);
@@ -335,6 +332,11 @@ public class SparkBigQueryConfig
         // it is a query in practice
         config.query = com.google.common.base.Optional.of(tableParamStr);
         config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
+      } else if (tableParamStr.contains(":/")) {
+        // A path to a file:/ or hdfs:// has been given, thinking it's a Hive table
+        // spark.sql.warehouse.dir always have a value
+        String warehouseDir = getAnyOption(globalOptions, options, "spark.sql.warehouse.dir").get();
+        config.tableId = parseTableIdFromHivePath(tableParamStr, warehouseDir, currentDatabase);
       } else {
         config.tableId =
             parseTableId(tableParamStr, datasetParam, projectParam, datePartitionParam);

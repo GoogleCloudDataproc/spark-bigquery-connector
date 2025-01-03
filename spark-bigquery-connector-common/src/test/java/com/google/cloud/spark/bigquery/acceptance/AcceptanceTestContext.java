@@ -15,6 +15,8 @@
  */
 package com.google.cloud.spark.bigquery.acceptance;
 
+import java.util.UUID;
+
 public class AcceptanceTestContext {
 
   final String testId;
@@ -22,8 +24,8 @@ public class AcceptanceTestContext {
   final String connectorJarUri;
   final String testBaseGcsDir;
   final String bqDataset;
-  final String bqTable;
-  final String bqStreamTable;
+  String bqTable = "";
+  String bqStreamTable = "";
 
   public AcceptanceTestContext(
       String testId, String clusterId, String testBaseGcsDir, String connectorJarUri) {
@@ -31,9 +33,13 @@ public class AcceptanceTestContext {
     this.clusterId = clusterId;
     this.testBaseGcsDir = testBaseGcsDir;
     this.connectorJarUri = connectorJarUri;
-    this.bqDataset = "bq_acceptance_test_dataset_" + testId.replace("-", "_");
-    this.bqTable = "bq_acceptance_test_table_" + testId.replace("-", "_");
-    this.bqStreamTable = "bq_write_stream_test_table_" + testId.replace("-", "_");
+    this.bqDataset = "spark_bigquery_acceptance_" + randomSuffix();
+    refreshTableNames();
+  }
+
+  public void refreshTableNames() {
+    this.bqTable = "test_" + randomSuffix();
+    this.bqStreamTable = "test_stream_" + randomSuffix();
   }
 
   public String getScriptUri(String testName) {
@@ -42,5 +48,11 @@ public class AcceptanceTestContext {
 
   public String getResultsDirUri(String testName) {
     return testBaseGcsDir + "/" + testName + "/results";
+  }
+
+  private static String randomSuffix() {
+    UUID uuid = UUID.randomUUID();
+    return Long.toHexString(uuid.getMostSignificantBits())
+        + Long.toHexString(uuid.getLeastSignificantBits());
   }
 }

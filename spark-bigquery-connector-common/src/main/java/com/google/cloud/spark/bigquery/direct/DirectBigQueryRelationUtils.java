@@ -51,7 +51,7 @@ public class DirectBigQueryRelationUtils {
     TableInfo tableInfo = bigQueryClient.getReadTable(config.toReadTableOptions());
     String tableName = friendlyTableName(config.getTableId());
     if (tableInfo == null) {
-      throw new IllegalArgumentException("Table " + tableName + "not found");
+      throw new IllegalArgumentException("Table " + tableName + " not found");
     }
     TableDefinition.Type tableType = tableInfo.getDefinition().getType();
     if (tableType.equals(TableDefinition.Type.TABLE)

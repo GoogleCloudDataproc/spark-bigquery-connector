@@ -45,7 +45,8 @@ public class BigQueryRelationTest {
                 new SQLConf(),
                 "1.2.3",
                 Optional.empty(), /* tableIsMandatory */
-                true),
+                true,
+                "current_database"),
             TableInfo.of(
                 TableId.of("should", "not_be", "seen"), ViewDefinition.of("SELECT foo FROM bar")),
             null);
@@ -66,7 +67,8 @@ public class BigQueryRelationTest {
                 new SQLConf(),
                 "1.2.3",
                 Optional.empty(), /* tableIsMandatory */
-                true),
+                true,
+                "current_database"),
             TableInfo.of(
                 TableId.of("project", "dataset", "_bqc_UUID"),
                 StandardTableDefinition.of(Schema.of(Field.of("foo", LegacySQLTypeName.STRING)))),

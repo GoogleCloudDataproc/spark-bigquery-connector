@@ -68,8 +68,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BigQueryUtil {
+
+  private static final Logger logger = LoggerFactory.getLogger(BigQueryUtil.class);
 
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
@@ -101,6 +105,10 @@ public class BigQueryUtil {
   private static final Pattern QUALIFIED_TABLE_REGEX =
       Pattern.compile(
           format("^(((%s)[:.])?(%s)\\.)?(%s)$$", PROJECT_PATTERN, DATASET_PATTERN, TABLE_PATTERN));
+
+  /** Regex for an optionally fully qualified table in a custom database. */
+  private static final Pattern QUALIFIED_TABLE_FROM_CUSTOM_DATABASE_REGEX =
+      Pattern.compile("(.*/)([\\w_]+).db/([\\w_]+)");
 
   // Based on
   // https://cloud.google.com/bigquery/docs/reference/storage/rpc/google.cloud.bigquery.storage.v1#google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions
@@ -203,6 +211,26 @@ public class BigQueryUtil {
     return firstPresent(parsedProject, project)
         .map(p -> TableId.of(p, actualDataset, tableAndPartition))
         .orElse(TableId.of(actualDataset, tableAndPartition));
+  }
+
+  public static TableId parseTableIdFromHivePath(
+      String path, String warehouseDir, String currentDatabase) {
+    logger.debug(
+        "Parsing table from path, using warehouseDir: {} and currentDatabase: {}",
+        warehouseDir,
+        currentDatabase);
+    Matcher matcher = QUALIFIED_TABLE_FROM_CUSTOM_DATABASE_REGEX.matcher(path);
+    if (matcher.matches()) {
+      String prefix = warehouseDir.endsWith("/") ? warehouseDir : warehouseDir + "/";
+      if (matcher.group(1).equals(prefix)) {
+        return TableId.of(matcher.group(2), matcher.group(3));
+      } else {
+        throw new IllegalArgumentException("Path " + path + " does not start with " + warehouseDir);
+      }
+    }
+    // otherwise, using the current database
+    String tableName = path.substring(path.lastIndexOf('/') + 1);
+    return TableId.of(currentDatabase, tableName);
   }
 
   public static String friendlyTableName(TableId tableId) {

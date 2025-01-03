@@ -799,6 +799,49 @@ public class BigQueryUtilTest {
   }
 
   @Test
+  public void testParseTableIdFromHivePath_CustomDatabase() {
+    String path = "file:/home/user/spark-warehouse/foo.db/bar";
+    String warehouseDir = "file:/home/user/spark-warehouse";
+    String currentDatabase = "default"; // Simulate default database
+
+    TableId tableId = BigQueryUtil.parseTableIdFromHivePath(path, warehouseDir, currentDatabase);
+    assertThat(tableId).isEqualTo(TableId.of("foo", "bar")); // Assert foo.bar
+  }
+
+  @Test
+  public void testParseTableIdFromHivePath_LeadingSlash() {
+    String path = "file:/home/user/spark-warehouse/foo.db/bar";
+    String warehouseDir = "file:/home/user/spark-warehouse/";
+    String currentDatabase = "default";
+
+    TableId tableId = BigQueryUtil.parseTableIdFromHivePath(path, warehouseDir, currentDatabase);
+    assertThat(tableId).isEqualTo(TableId.of("foo", "bar"));
+  }
+
+  @Test
+  public void testParseTableIdFromHivePath_DefaultDatabaseInDefaultLocation() {
+    String path = "file:/home/user/spark-warehouse/mytable";
+    String warehouseDir = "file:/home/user/spark-warehouse";
+    String currentDatabase = "default"; // Simulate default database
+
+    TableId tableId = BigQueryUtil.parseTableIdFromHivePath(path, warehouseDir, currentDatabase);
+    assertThat(tableId).isEqualTo(TableId.of("default", "mytable")); // Assert foo.bar
+  }
+
+  @Test
+  public void testParseTableIdFromHivePath_InvalidPath() {
+    String invalidPath = "file:/wrong/path/foo.db/bar"; // Incorrect warehouse path
+    String warehouseDir = "file:/home/user/spark-warehouse";
+    String currentDatabase = "default";
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          BigQueryUtil.parseTableIdFromHivePath(invalidPath, warehouseDir, currentDatabase);
+        });
+  }
+
+  @Test
   public void testSanitizeLabelValue() {
     // testing to lower case transformation, and character handling
     assertThat(BigQueryUtil.sanitizeLabelValue("Foo-bar*")).isEqualTo("foo-bar_");

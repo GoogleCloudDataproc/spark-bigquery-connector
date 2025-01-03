@@ -350,6 +350,7 @@ public class SparkBigQueryUtil {
         spark.sqlContext().conf(),
         spark.version(),
         Optional.ofNullable(schema.getOrElse(null)),
-        true);
+        true,
+        spark.catalog().currentDatabase());
   }
 }

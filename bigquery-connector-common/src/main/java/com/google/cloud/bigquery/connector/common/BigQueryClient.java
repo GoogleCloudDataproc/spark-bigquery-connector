@@ -407,6 +407,7 @@ public class BigQueryClient {
   }
 
   public TableInfo getReadTable(ReadTableOptions options) {
+    log.debug("Getting table metadata");
     Optional<String> query = options.query();
     // first, let check if this is a query
     if (query.isPresent()) {
@@ -417,6 +418,7 @@ public class BigQueryClient {
     }
 
     TableInfo table = getTable(options.tableId());
+    log.debug("Calling getTable() for table id {}, got {}", options.tableId(), table);
     if (table == null) {
       return null;
     }

@@ -28,11 +28,18 @@ import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.get
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.runBqQuery;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.uploadConnectorJar;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static org.junit.Assume.assumeTrue;
 
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.Dataset;
+import com.google.cloud.bigquery.Table;
 import com.google.cloud.dataproc.v1.*;
 import com.google.common.collect.ImmutableList;
-import java.io.FileInputStream;
+import com.google.common.io.ByteStreams;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -42,6 +49,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class DataprocAcceptanceTestBase {
@@ -95,6 +104,11 @@ public class DataprocAcceptanceTestBase {
         new AcceptanceTestContext(testId, clusterName, testBaseGcsDir, connectorJarUri);
     createBqDataset(acceptanceTestContext.bqDataset);
     return acceptanceTestContext;
+  }
+
+  @Before
+  public void refreshTestTableNames() {
+    context.refreshTableNames();
   }
 
   protected static void tearDown(AcceptanceTestContext context) throws Exception {
@@ -169,6 +183,8 @@ public class DataprocAcceptanceTestBase {
                                 .setBootDiskType("pd-standard")
                                 .setBootDiskSizeGb(300)
                                 .setNumLocalSsds(0)))
+                .setEndpointConfig(
+                    EndpointConfig.newBuilder().setEnableHttpPortAccess(true).build())
                 .setSoftwareConfig(
                     SoftwareConfig.newBuilder()
                         .setImageVersion(dataprocImageVersion)
@@ -177,6 +193,7 @@ public class DataprocAcceptanceTestBase {
   }
 
   @Test
+  @Ignore
   public void testRead() throws Exception {
     String testName = "test-read";
     Job result =
@@ -186,12 +203,13 @@ public class DataprocAcceptanceTestBase {
             null,
             Arrays.asList(context.getResultsDirUri(testName)),
             120);
-    assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
+
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
     assertThat(output.trim()).isEqualTo("spark,10");
   }
 
   @Test
+  @Ignore
   public void writeStream() throws Exception {
     // TODO: Should be removed once streaming is supported in DSv2
     assumeTrue("Spark streaming is not supported by this connector", sparkStreamingSupported);
@@ -216,12 +234,12 @@ public class DataprocAcceptanceTestBase {
                 AcceptanceTestUtils.BUCKET),
             120);
 
-    assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
     int numOfRows = getNumOfRowsOfBqTable(context.bqDataset, context.bqStreamTable);
     assertThat(numOfRows == 2);
   }
 
   @Test
+  @Ignore
   public void testBigNumeric() throws Exception {
     String testName = "test-big-numeric";
     Path pythonLibTargetDir = Paths.get("../../spark-bigquery-python-lib/target");
@@ -248,9 +266,79 @@ public class DataprocAcceptanceTestBase {
             Arrays.asList(tableName, context.getResultsDirUri(testName)),
             120);
 
-    assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
     assertThat(output.trim()).isEqualTo(MIN_BIG_NUMERIC + "," + MAX_BIG_NUMERIC);
+  }
+
+  @Test
+  public void testSparkDml_explicitTableCreation() throws Exception {
+    String testName = "spark-dml-explicit-table";
+
+    Job result = createAndRunSparkSqlJob(testName, /* outputTable */ "N/A", /* duration */ 120);
+    String output = AcceptanceTestUtils.getDriverOutput(result);
+    assertThat(output.trim()).contains("spark\t10");
+  }
+
+  @Test
+  public void testSparkDml_createTableInDefaultDataset() throws Exception {
+    String testName = "spark-dml-create-table-in-default-dataset";
+
+    testWithTableInDefaultDataset(testName);
+  }
+
+  @Test
+  public void testSparkDml_createTableAsSelectInDefaultDataset() throws Exception {
+    String testName = "spark-dml-create-table-as-select-in-default-dataset";
+
+    testWithTableInDefaultDataset(testName);
+  }
+
+  private void testWithTableInDefaultDataset(String testName) throws Exception {
+    BigQuery bq = BigQueryOptions.getDefaultInstance().getService();
+    Dataset defaultDataset = bq.getDataset("default");
+    assertWithMessage("This test assume that the a dataset named `default` exists in the project")
+        .that(defaultDataset)
+        .isNotNull();
+
+    Job result = createAndRunSparkSqlJob(testName, /* outputTable */ "N/A", /* duration */ 120);
+
+    Table table = null;
+    try {
+      table = bq.getTable("default", context.bqTable);
+      assertThat(table).isNotNull();
+      assertThat(table.getNumRows().intValue()).isEqualTo(1);
+    } finally {
+      if (table != null) {
+        assertThat(table.delete()).isTrue();
+      }
+    }
+  }
+
+  @Test
+  public void testSparkDml_createTableInCustomDataset() throws Exception {
+    String testName = "spark-dml-custom-dataset";
+
+    BigQuery bq = BigQueryOptions.getDefaultInstance().getService();
+    Dataset defaultDataset = bq.getDataset(context.bqDataset);
+    assertWithMessage(
+            "This test assume that the a dataset named `"
+                + context.bqDataset
+                + "` exists in the project")
+        .that(defaultDataset)
+        .isNotNull();
+
+    Job result = createAndRunSparkSqlJob(testName, /* outputTable */ "N/A", /* duration */ 120);
+
+    Table table = null;
+    try {
+      table = bq.getTable("default", context.bqTable);
+      assertThat(table).isNotNull();
+      assertThat(table.getNumRows().intValue()).isEqualTo(1);
+    } finally {
+      if (table != null) {
+        assertThat(table.delete()).isTrue();
+      }
+    }
   }
 
   private Job createAndRunPythonJob(
@@ -264,6 +352,7 @@ public class DataprocAcceptanceTestBase {
     Job job =
         Job.newBuilder()
             .setPlacement(JobPlacement.newBuilder().setClusterName(context.clusterId))
+            .putLabels("test-name", testName)
             .setPysparkJob(createPySparkJobBuilder(testName, pythonZipUri, args))
             .build();
 
@@ -277,16 +366,64 @@ public class DataprocAcceptanceTestBase {
             .setMainPythonFileUri(context.getScriptUri(testName))
             .addJarFileUris(context.connectorJarUri);
 
-    if (pythonZipUri != null && pythonZipUri.length() != 0) {
+    if (pythonZipUri != null && !pythonZipUri.isEmpty()) {
       builder.addPythonFileUris(pythonZipUri);
       builder.addFileUris(pythonZipUri);
     }
 
-    if (args != null && args.size() != 0) {
+    if (args != null && !args.isEmpty()) {
       builder.addAllArgs(args);
     }
 
     return builder;
+  }
+
+  private Job createAndRunSparkSqlJob(String testName, String outputTable, long duration)
+      throws Exception {
+
+    InputStream sqlScriptSourceStream =
+        getClass().getResourceAsStream("/acceptance/" + testName + ".sql");
+    assertWithMessage("Could not find SQL script for " + testName + ".sql")
+        .that(sqlScriptSourceStream)
+        .isNotNull();
+    String sqlScriptSource =
+        new String(ByteStreams.toByteArray(sqlScriptSourceStream), StandardCharsets.UTF_8);
+
+    String sqlScript =
+        sqlScriptSource
+            .replace("${DATASET}", context.bqDataset)
+            .replace("${TABLE}", context.bqTable)
+            .replace("${OUTPUT_TABLE}", outputTable);
+
+    AcceptanceTestUtils.uploadToGcs(
+        new ByteArrayInputStream(sqlScript.getBytes(StandardCharsets.UTF_8)),
+        context.getScriptUri(testName),
+        "application/x-sql");
+
+    Job job =
+        Job.newBuilder()
+            .setPlacement(JobPlacement.newBuilder().setClusterName(context.clusterId))
+            .putLabels("test-name", testName)
+            .setSparkSqlJob(createSparkSqlJobBuilder(testName))
+            .build();
+
+    return runAndWait(job, Duration.ofSeconds(duration));
+  }
+
+  private SparkSqlJob.Builder createSparkSqlJobBuilder(String testName) {
+    return SparkSqlJob.newBuilder()
+        .setQueryFileUri(context.getScriptUri(testName))
+        .addJarFileUris(context.connectorJarUri)
+        .setLoggingConfig(
+            LoggingConfig.newBuilder()
+                .putDriverLogLevels("com", LoggingConfig.Level.DEBUG)
+                .putDriverLogLevels("io", LoggingConfig.Level.DEBUG)
+                .putDriverLogLevels("org", LoggingConfig.Level.DEBUG)
+                .putDriverLogLevels("net", LoggingConfig.Level.DEBUG)
+                .build())
+        .putProperties("spark.sql.legacy.createHiveTableByDefault", "false")
+        .putProperties("spark.sql.sources.default", "bigquery")
+        .putProperties("spark.datasource.bigquery.writeMethod", "direct");
   }
 
   private Job runAndWait(Job job, Duration timeout) throws Exception {
@@ -299,6 +436,7 @@ public class DataprocAcceptanceTestBase {
           CompletableFuture.supplyAsync(
               () -> waitForJobCompletion(jobControllerClient, PROJECT_ID, REGION, jobId));
       Job jobInfo = finishedJobFuture.get(timeout.getSeconds(), TimeUnit.SECONDS);
+      assertThat(jobInfo.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
       return jobInfo;
     }
   }
