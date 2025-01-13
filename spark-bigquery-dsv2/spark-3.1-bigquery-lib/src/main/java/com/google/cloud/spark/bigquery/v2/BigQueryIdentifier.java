@@ -27,6 +27,10 @@ public class BigQueryIdentifier implements Identifier {
     this.tableId = tableId;
   }
 
+  public static BigQueryIdentifier of(TableId tableId) {
+    return new BigQueryIdentifier(tableId);
+  }
+
   @Override
   public String[] namespace() {
     return tableId.getProject() == null
