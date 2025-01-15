@@ -204,7 +204,7 @@ public class DirectBigQueryRelation extends BigQueryRelation
     SaveMode mode = overwrite ? SaveMode.Overwrite : SaveMode.Append;
     BigQueryInsertableRelationBase bigQueryInsertableRelation =
         new CreatableRelationProviderHelper()
-            .createBigQueryInsertableRelation(sqlContext, data, mode, options);
+            .createBigQueryInsertableRelation(sqlContext, data.schema(), mode, options);
     bigQueryInsertableRelation.insert(data, overwrite);
   }
 

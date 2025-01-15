@@ -17,7 +17,6 @@ package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.cloud.spark.bigquery.integration.SparkBigQueryIntegrationTestBase.TestDataset;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,8 +32,7 @@ import org.junit.Test;
 import org.junit.rules.ExternalResource;
 
 public class OpenLineageIntegrationTestBase {
-  @ClassRule
-  public static TestDataset testDataset = new SparkBigQueryIntegrationTestBase.TestDataset();
+  @ClassRule public static TestDataset testDataset = new TestDataset();
 
   @ClassRule public static CustomSessionFactory sessionFactory = new CustomSessionFactory();
 
