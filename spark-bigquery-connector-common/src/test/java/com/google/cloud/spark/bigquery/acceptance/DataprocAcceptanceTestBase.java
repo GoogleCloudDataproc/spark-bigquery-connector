@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 
 public class DataprocAcceptanceTestBase {
-
+  private static final long TIMEOUT_IN_SECONDS = 180;
   protected static final ClusterProperty DISABLE_CONSCRYPT =
       ClusterProperty.of("dataproc:dataproc.conscrypt.provider.enable", "false", "nc");
   protected static final ImmutableList<ClusterProperty> DISABLE_CONSCRYPT_LIST =
@@ -184,8 +184,7 @@ public class DataprocAcceptanceTestBase {
             testName,
             "read_shakespeare.py",
             null,
-            Arrays.asList(context.getResultsDirUri(testName)),
-            120);
+            Arrays.asList(context.getResultsDirUri(testName)));
     assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
     assertThat(output.trim()).isEqualTo("spark,10");
@@ -213,8 +212,7 @@ public class DataprocAcceptanceTestBase {
                 context.testBaseGcsDir + "/" + testName + "/json/",
                 context.bqDataset,
                 context.bqStreamTable,
-                AcceptanceTestUtils.BUCKET),
-            120);
+                AcceptanceTestUtils.BUCKET));
 
     assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
     int numOfRows = getNumOfRowsOfBqTable(context.bqDataset, context.bqStreamTable);
@@ -245,8 +243,7 @@ public class DataprocAcceptanceTestBase {
             testName,
             "big_numeric.py",
             zipFileUri,
-            Arrays.asList(tableName, context.getResultsDirUri(testName)),
-            120);
+            Arrays.asList(tableName, context.getResultsDirUri(testName)));
 
     assertThat(result.getStatus().getState()).isEqualTo(JobStatus.State.DONE);
     String output = AcceptanceTestUtils.getCsv(context.getResultsDirUri(testName));
@@ -254,8 +251,7 @@ public class DataprocAcceptanceTestBase {
   }
 
   private Job createAndRunPythonJob(
-      String testName, String pythonFile, String pythonZipUri, List<String> args, long duration)
-      throws Exception {
+      String testName, String pythonFile, String pythonZipUri, List<String> args) throws Exception {
     AcceptanceTestUtils.uploadToGcs(
         getClass().getResourceAsStream("/acceptance/" + pythonFile),
         context.getScriptUri(testName),
@@ -267,7 +263,7 @@ public class DataprocAcceptanceTestBase {
             .setPysparkJob(createPySparkJobBuilder(testName, pythonZipUri, args))
             .build();
 
-    return runAndWait(job, Duration.ofSeconds(duration));
+    return runAndWait(job, Duration.ofSeconds(TIMEOUT_IN_SECONDS));
   }
 
   private PySparkJob.Builder createPySparkJobBuilder(

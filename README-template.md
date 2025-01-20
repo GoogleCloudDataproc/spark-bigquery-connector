@@ -573,7 +573,8 @@ word-break:break-word
    <td>The GCS bucket that temporarily holds the data before it is loaded to
        BigQuery. Required unless set in the Spark configuration
        (<code>spark.conf.set(...)</code>).
-       <br/><i>Not supported by the `DIRECT` write method.</i>
+       <br/>Defaults to the `fs.gs.system.bucket` if exists, for example on Google Cloud Dataproc clusters, starting version 0.42.0.
+       <br/><i>Supported only by the `INDIRECT` write method.</i>
    </td>
    <td>Write</td>
   </tr>
@@ -583,7 +584,7 @@ word-break:break-word
    <td>The GCS bucket that holds the data before it is loaded to
        BigQuery. If informed, the data won't be deleted after write data
        into BigQuery.
-       <br/><i>Not supported by the `DIRECT` write method.</i>
+       <br/><i>Supported only by the `INDIRECT` write method.</i>
    </td>
    <td>Write</td>
   </tr>

@@ -1579,7 +1579,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(head.get(head.fieldIndex("timestamp1"))).isEqualTo(timestamp1);
   }
 
-  protected Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(Dataset<Row> df) {
+  protected Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(
+      Dataset<Row> df, boolean isPartitioned) {
     df.write()
         .format("bigquery")
         .mode(SaveMode.Overwrite)
@@ -1590,6 +1591,13 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             "spark.sql.sources.partitionOverwriteMode", PartitionOverwriteMode.DYNAMIC.toString())
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .save();
+
+    if (isPartitioned) {
+      IntegrationTestUtils.runQuery(
+          String.format(
+              "ALTER TABLE %s.%s SET OPTIONS (require_partition_filter = false)",
+              testDataset, testTable));
+    }
 
     return spark
         .read()
@@ -1607,9 +1615,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s TIMESTAMP) "
-                + "PARTITION BY timestamp_trunc(order_date_time, HOUR) "
+                + "PARTITION BY timestamp_trunc(order_date_time, HOUR) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, TIMESTAMP '2023-09-28 1:00:00 UTC'), "
-                + "(2, TIMESTAMP '2023-09-28 10:00:00 UTC'), (3, TIMESTAMP '2023-09-28 10:30:00 UTC')])",
+                + "(2, TIMESTAMP '2023-09-28 10:00:00 UTC'), (3, TIMESTAMP '2023-09-28 10:30:00 UTC')]) ",
             testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
@@ -1621,7 +1629,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1651,7 +1659,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s TIMESTAMP) "
-                + "PARTITION BY DATE(order_date_time) "
+                + "PARTITION BY DATE(order_date_time) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, TIMESTAMP '2023-09-28 1:00:00 UTC'), "
                 + "(2, TIMESTAMP '2023-09-29 10:00:00 UTC'), (3, TIMESTAMP '2023-09-29 17:00:00 UTC')])",
             testDataset, testTable, orderId, orderDateTime));
@@ -1665,7 +1673,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1695,7 +1703,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s TIMESTAMP) "
-                + "PARTITION BY timestamp_trunc(order_date_time, MONTH) "
+                + "PARTITION BY timestamp_trunc(order_date_time, MONTH) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, TIMESTAMP '2023-09-28 1:00:00 UTC'), "
                 + "(2, TIMESTAMP '2023-10-20 10:00:00 UTC'), (3, TIMESTAMP '2023-10-25 12:00:00 UTC')])",
             testDataset, testTable, orderId, orderDateTime));
@@ -1709,7 +1717,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1739,7 +1747,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s TIMESTAMP) "
-                + "PARTITION BY timestamp_trunc(order_date_time, YEAR) "
+                + "PARTITION BY timestamp_trunc(order_date_time, YEAR) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, TIMESTAMP '2022-09-28 1:00:00 UTC'), "
                 + "(2, TIMESTAMP '2023-10-20 10:00:00 UTC'), (2, TIMESTAMP '2023-10-25 12:00:00 UTC')])",
             testDataset, testTable, orderId, orderDateTime));
@@ -1753,7 +1761,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1783,7 +1791,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATE) "
-                + "PARTITION BY order_date "
+                + "PARTITION BY order_date OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATE('2023-09-28')), (2, DATE('2023-09-29'))])",
             testDataset, testTable, orderId, orderDate));
 
@@ -1796,7 +1804,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDate, DataTypes.DateType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1823,7 +1831,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATE) "
-                + "PARTITION BY DATE_TRUNC(order_date, MONTH) "
+                + "PARTITION BY DATE_TRUNC(order_date, MONTH) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATE('2023-09-28')), "
                 + "(2, DATE('2023-10-29')), (2, DATE('2023-10-28'))])",
             testDataset, testTable, orderId, orderDate));
@@ -1837,7 +1845,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDate, DataTypes.DateType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1864,7 +1872,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATE) "
-                + "PARTITION BY DATE_TRUNC(order_date, YEAR) "
+                + "PARTITION BY DATE_TRUNC(order_date, YEAR) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATE('2022-09-28')), "
                 + "(2, DATE('2023-10-29')), (2, DATE('2023-11-28'))])",
             testDataset, testTable, orderId, orderDate));
@@ -1878,7 +1886,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDate, DataTypes.DateType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1906,7 +1914,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                + "PARTITION BY timestamp_trunc(order_date_time, HOUR) "
+                + "PARTITION BY timestamp_trunc(order_date_time, HOUR) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
                 + "(2, DATETIME '2023-09-28 10:00:00'), (3, DATETIME '2023-09-28 10:30:00')])",
             testDataset, testTable, orderId, orderDateTime));
@@ -1920,7 +1928,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1948,7 +1956,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                + "PARTITION BY timestamp_trunc(order_date_time, DAY) "
+                + "PARTITION BY timestamp_trunc(order_date_time, DAY) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
                 + "(2, DATETIME '2023-09-29 10:00:00'), (3, DATETIME '2023-09-29 17:30:00')])",
             testDataset, testTable, orderId, orderDateTime));
@@ -1962,7 +1970,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -1990,7 +1998,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                + "PARTITION BY timestamp_trunc(order_date_time, MONTH) "
+                + "PARTITION BY timestamp_trunc(order_date_time, MONTH) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-28 1:00:00'), "
                 + "(2, DATETIME '2023-10-29 10:00:00'), (3, DATETIME '2023-10-29 17:30:00')])",
             testDataset, testTable, orderId, orderDateTime));
@@ -2004,7 +2012,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2032,7 +2040,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
-                + "PARTITION BY timestamp_trunc(order_date_time, YEAR) "
+                + "PARTITION BY timestamp_trunc(order_date_time, YEAR) OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, DATETIME '2022-09-28 1:00:00'), "
                 + "(2, DATETIME '2023-10-29 10:00:00'), (3, DATETIME '2023-11-29 17:30:00')])",
             testDataset, testTable, orderId, orderDateTime));
@@ -2046,7 +2054,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2086,7 +2094,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, false);
     assertThat(result.count()).isEqualTo(2);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2111,7 +2119,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
-                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) OPTIONS (require_partition_filter = true)"
                 + "AS SELECT * FROM UNNEST([(1, 1000), "
                 + "(8, 1005), ( 21, 1010), (83, 1020)])",
             testDataset, testTable, orderId, orderCount));
@@ -2127,7 +2135,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(5);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2162,7 +2170,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
-                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) OPTIONS (require_partition_filter = true)"
                 + "AS SELECT * FROM UNNEST([(1, 1000), "
                 + "(2, 1005), ( 150, 1010)])",
             testDataset, testTable, orderId, orderCount));
@@ -2174,7 +2182,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(2);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2197,7 +2205,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
-                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) OPTIONS (require_partition_filter = true)"
                 + "AS SELECT * FROM UNNEST([(1, 1000), "
                 + "(2, 1005), ( -1, 1010)])",
             testDataset, testTable, orderId, orderCount));
@@ -2209,7 +2217,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(2);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2232,7 +2240,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
-                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) OPTIONS (require_partition_filter = true)"
                 + "AS SELECT * FROM UNNEST([(1, 1000), "
                 + "(11, 1005), ( 100, 1010)])",
             testDataset, testTable, orderId, orderCount));
@@ -2244,7 +2252,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2271,7 +2279,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
-                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) OPTIONS (require_partition_filter = true)"
                 + "AS SELECT * FROM UNNEST([(NULL, 1000), "
                 + "(11, 1005)])",
             testDataset, testTable, orderId, orderCount));
@@ -2283,7 +2291,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df);
+    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
 
     List<Row> rows = result.collectAsList();
@@ -2662,6 +2670,23 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(readDF.count()).isAtLeast(1);
     assertThat(initialDescription)
         .isEqualTo(bq.getTable(testDataset.toString(), testTable).getDescription());
+  }
+
+  @Test
+  public void testCountAfterWrite() {
+    IntegrationTestUtils.runQuery(
+        String.format("CREATE TABLE `%s.%s` (name STRING, age INT64)", testDataset, testTable));
+    Dataset<Row> read1Df = spark.read().format("bigquery").load(fullTableName());
+    assertThat(read1Df.count()).isEqualTo(0L);
+
+    Dataset<Row> dfToWrite =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create("foo", 10), RowFactory.create("bar", 20)),
+            new StructType().add("name", DataTypes.StringType).add("age", DataTypes.IntegerType));
+    writeToBigQueryAvroFormat(dfToWrite, SaveMode.Append, "false");
+
+    Dataset<Row> read2Df = spark.read().format("bigquery").load(fullTableName());
+    assertThat(read2Df.count()).isEqualTo(2L);
   }
 
   private TableResult insertAndGetTimestampNTZToBigQuery(LocalDateTime time, String format)

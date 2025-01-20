@@ -15,8 +15,10 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getPartitionFields;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryForRangePartitionedTable;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryForTimePartitionedTable;
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.isBigQueryNativeTable;
 
 import com.google.cloud.BaseServiceException;
 import com.google.cloud.RetryOption;
@@ -606,13 +608,25 @@ public class BigQueryClient {
   public long calculateTableSize(
       TableInfo tableInfo, Optional<String> filter, OptionalLong snapshotTimeMillis) {
     TableDefinition.Type type = tableInfo.getDefinition().getType();
-    if (type == TableDefinition.Type.TABLE
+
+    if ((type == TableDefinition.Type.EXTERNAL || type == TableDefinition.Type.TABLE)
         && !filter.isPresent()
         && !snapshotTimeMillis.isPresent()) {
-      return tableInfo.getNumRows().longValue();
-    } else if (type == TableDefinition.Type.EXTERNAL
-        && !filter.isPresent()
-        && !snapshotTimeMillis.isPresent()) {
+      if (isBigQueryNativeTable(tableInfo)
+          && tableInfo.getRequirePartitionFilter() != null
+          && tableInfo.getRequirePartitionFilter()) {
+        List<String> partitioningFields = getPartitionFields(tableInfo);
+        if (partitioningFields.isEmpty()) {
+          throw new IllegalStateException(
+              "Could not find partitioning columns for table requiring partition filter: "
+                  + tableInfo.getTableId());
+        }
+        String table = fullTableName(tableInfo.getTableId());
+        return getNumberOfRows(
+            String.format(
+                "SELECT COUNT(*) from `%s` WHERE %s IS NOT NULL",
+                table, partitioningFields.get(0)));
+      }
       String table = fullTableName(tableInfo.getTableId());
       return getNumberOfRows(String.format("SELECT COUNT(*) from `%s`", table));
     } else if (type == TableDefinition.Type.VIEW

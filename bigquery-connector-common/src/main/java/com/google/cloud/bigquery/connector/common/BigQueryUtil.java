@@ -47,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.grpc.Status;
+import io.grpc.Status.Code;
 import io.grpc.StatusRuntimeException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -77,11 +78,15 @@ public class BigQueryUtil {
   public static final int DEFAULT_BIG_NUMERIC_PRECISION = 76;
   public static final int DEFAULT_BIG_NUMERIC_SCALE = 38;
   private static final int NO_VALUE = -1;
+  private static final long BIGQUERY_INTEGER_MIN_VALUE = Long.MIN_VALUE;
   static final ImmutableSet<String> INTERNAL_ERROR_MESSAGES =
       ImmutableSet.of(
           "HTTP/2 error code: INTERNAL_ERROR",
           "Connection closed with unknown cause",
           "Received unexpected EOS on DATA frame from server");
+
+  static final String READ_SESSION_EXPIRED_ERROR_MESSAGE = "session expired at";
+
   private static final String PROJECT_PATTERN = "\\S+";
   private static final String DATASET_PATTERN = "\\w+";
   // Allow all non-whitespace beside ':' and '.'.
@@ -114,6 +119,19 @@ public class BigQueryUtil {
       return statusRuntimeException.getStatus().getCode() == Status.Code.INTERNAL
           && INTERNAL_ERROR_MESSAGES.stream()
               .anyMatch(message -> statusRuntimeException.getMessage().contains(message));
+    }
+    return false;
+  }
+
+  public static boolean isReadSessionExpired(Throwable cause) {
+    return getCausalChain(cause).stream().anyMatch(BigQueryUtil::isReadSessionExpiredInternalError);
+  }
+
+  static boolean isReadSessionExpiredInternalError(Throwable t) {
+    if (t instanceof StatusRuntimeException) {
+      StatusRuntimeException statusRuntimeException = (StatusRuntimeException) t;
+      return statusRuntimeException.getStatus().getCode() == Code.FAILED_PRECONDITION
+          && statusRuntimeException.getMessage().contains(READ_SESSION_EXPIRED_ERROR_MESSAGE);
     }
     return false;
   }
@@ -697,37 +715,6 @@ public class BigQueryUtil {
         : noNewLinesQuery;
   }
 
-  static String getMergeQueryForPartitionedTable(
-      String destinationTableName,
-      String temporaryTableName,
-      StandardTableDefinition destinationDefinition,
-      String extractedPartitionedSource,
-      String extractedPartitionedTarget) {
-    FieldList allFields = destinationDefinition.getSchema().getFields();
-    String commaSeparatedFields =
-        allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
-    String booleanInjectedColumn = "_" + Long.toString(1234567890123456789L);
-
-    String queryFormat =
-        "MERGE `%s` AS target\n"
-            + "USING (SELECT * FROM `%s` CROSS JOIN UNNEST([true, false])  %s) AS source\n"
-            + "ON %s = %s AND %s\n"
-            + "WHEN MATCHED THEN DELETE\n"
-            + "WHEN NOT MATCHED AND NOT %s THEN\n"
-            + "INSERT(%s) VALUES(%s)";
-    return String.format(
-        queryFormat,
-        destinationTableName,
-        temporaryTableName,
-        booleanInjectedColumn,
-        extractedPartitionedSource,
-        extractedPartitionedTarget,
-        booleanInjectedColumn,
-        booleanInjectedColumn,
-        commaSeparatedFields,
-        commaSeparatedFields);
-  }
-
   static String getQueryForTimePartitionedTable(
       String destinationTableName,
       String temporaryTableName,
@@ -735,12 +722,24 @@ public class BigQueryUtil {
       TimePartitioning timePartitioning) {
     TimePartitioning.Type partitionType = timePartitioning.getType();
     String partitionField = timePartitioning.getField();
+    FieldList allFields = destinationDefinition.getSchema().getFields();
+    Optional<LegacySQLTypeName> partitionFieldType =
+        allFields.stream()
+            .filter(field -> partitionField.equals(field.getName()))
+            .map(field -> field.getType())
+            .findFirst();
+    // Using timestamp_trunc on a DATE field results in $cast_to_DATETIME which prevents pruning
+    // when required_partition_filter is set, as it is not considered a monotonic function
+    String truncFuntion =
+        (partitionFieldType.isPresent() && partitionFieldType.get().equals(LegacySQLTypeName.DATE))
+            ? "date_trunc"
+            : "timestamp_trunc";
     String extractedPartitionedSource =
-        String.format("timestamp_trunc(`%s`, %s)", partitionField, partitionType.toString());
+        String.format("%s(`%s`, %s)", truncFuntion, partitionField, partitionType.toString());
     String extractedPartitionedTarget =
         String.format(
-            "timestamp_trunc(`%s`.`%s`, %s)", "target", partitionField, partitionType.toString());
-    FieldList allFields = destinationDefinition.getSchema().getFields();
+            "%s(`target`.`%s`, %s)", truncFuntion, partitionField, partitionType.toString());
+
     String commaSeparatedFields =
         allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
 
@@ -800,12 +799,32 @@ public class BigQueryUtil {
             end,
             interval);
 
-    return getMergeQueryForPartitionedTable(
+    FieldList allFields = destinationDefinition.getSchema().getFields();
+    String commaSeparatedFields =
+        allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
+    String booleanInjectedColumn = "_" + Long.toString(1234567890123456789L);
+
+    String queryFormat =
+        "MERGE `%s` AS target\n"
+            + "USING (SELECT * FROM `%s` CROSS JOIN UNNEST([true, false])  %s) AS source\n"
+            + "ON %s = %s AND %s AND (target.%s >= %d OR target.%s IS NULL )\n"
+            + "WHEN MATCHED THEN DELETE\n"
+            + "WHEN NOT MATCHED AND NOT %s THEN\n"
+            + "INSERT(%s) VALUES(%s)";
+    return String.format(
+        queryFormat,
         destinationTableName,
         temporaryTableName,
-        destinationDefinition,
+        booleanInjectedColumn,
         extractedPartitionedSource,
-        extractedPartitionedTarget);
+        extractedPartitionedTarget,
+        booleanInjectedColumn,
+        partitionField,
+        BIGQUERY_INTEGER_MIN_VALUE,
+        partitionField,
+        booleanInjectedColumn,
+        commaSeparatedFields,
+        commaSeparatedFields);
   }
 
   // based on https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#jobconfiguration, it
