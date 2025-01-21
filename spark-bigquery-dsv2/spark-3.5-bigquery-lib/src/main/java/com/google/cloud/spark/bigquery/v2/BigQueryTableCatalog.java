@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Injector;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
@@ -48,9 +49,11 @@ public class BigQueryTableCatalog implements TableCatalog {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryTableCatalog.class);
   private static final String[] DEFAULT_NAMESPACE = {"default"};
 
-  TableProvider tableProvider;
-  BigQueryClient bigQueryClient;
-  SchemaConverters schemaConverters;
+  private static Map<String, Table> identifierToTableMapping = new HashMap<>();
+
+  private TableProvider tableProvider;
+  private BigQueryClient bigQueryClient;
+  private SchemaConverters schemaConverters;
 
   @Override
   public void initialize(String name, CaseInsensitiveStringMap caseInsensitiveStringMap) {
@@ -99,10 +102,14 @@ public class BigQueryTableCatalog implements TableCatalog {
   @Override
   public Table loadTable(Identifier identifier) throws NoSuchTableException {
     logger.debug("loading table [{}])", format(identifier));
-    ImmutableMap<String, String> properties =
-        ImmutableMap.of("dataset", identifier.namespace()[0], "table", identifier.name());
-    // TODO: reuse injector
-    return Spark3Util.createBigQueryTableInstance(Spark35BigQueryTable::new, null, properties);
+    return identifierToTableMapping.computeIfAbsent(
+        identifier.toString(),
+        ignored ->
+            // TODO: reuse injector
+            Spark3Util.createBigQueryTableInstance(
+                Spark35BigQueryTable::new,
+                null,
+                ImmutableMap.of("dataset", identifier.namespace()[0], "table", identifier.name())));
   }
 
   @Override
@@ -125,20 +132,40 @@ public class BigQueryTableCatalog implements TableCatalog {
       Map<String, String> properties)
       throws TableAlreadyExistsException, NoSuchNamespaceException {
     logger.debug("creating table [{}])", format(identifier));
+    if (tableExplicitlySet(properties)) {
+      logger.debug("Mapping Spark table to BigQuery table)");
+      // As the table is mapped to an actual table in BigQuery, we are relying on the BigQuery
+      // schema
+      return identifierToTableMapping.computeIfAbsent(
+          identifier.toString(),
+          ignored ->
+              Spark3Util.createBigQueryTableInstance(
+                  Spark35BigQueryTable::new, /* schema */ null, properties));
+    }
     Schema schema = schemaConverters.toBigQuerySchema(structType);
     bigQueryClient.createTable(
         toTableId(identifier),
         schema,
         BigQueryClient.CreateTableOptions.of(
             Optional.empty(), ImmutableMap.of(), Optional.empty()));
-    ImmutableMap<String, String> getTableProperties =
-        ImmutableMap.<String, String>builder()
-            .put("dataset", identifier.namespace()[0])
-            .put("table", identifier.name())
-            .putAll(properties)
-            .build();
+    ImmutableMap.Builder<String, String> getTableProperties =
+        ImmutableMap.<String, String>builder().putAll(properties);
+    // if the user provided an alternative table we do not want to ignore it
+    if (!tableExplicitlySet(properties)) {
+      getTableProperties.put("dataset", identifier.namespace()[0]).put("table", identifier.name());
+    }
     // TODO: Use the table constructor directly using the catalog's injector
-    return tableProvider.getTable(structType, transforms, getTableProperties);
+    return tableProvider.getTable(structType, transforms, getTableProperties.buildKeepingLast());
+  }
+
+  private static boolean tableExplicitlySet(Map<String, String> properties) {
+    if (properties.containsKey("table")) {
+      return true;
+    }
+    if (properties.containsKey("path")) {
+      return true;
+    }
+    return false;
   }
 
   @Override
@@ -151,8 +178,12 @@ public class BigQueryTableCatalog implements TableCatalog {
   public boolean dropTable(Identifier identifier) {
     logger.debug("dropping table [{}])", format(identifier));
     TableId tableId = toTableId(identifier);
-    if (bigQueryClient.tableExists(tableId)) {
-      return bigQueryClient.deleteTable(tableId);
+    if (!bigQueryClient.tableExists(tableId)) {
+      return false;
+    }
+    if (bigQueryClient.deleteTable(tableId)) {
+      identifierToTableMapping.remove(identifier.toString());
+      return true;
     }
     return false;
   }

@@ -20,14 +20,17 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.QueryJobConfiguration;
-import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableId;
+import java.util.List;
+
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-
 
 public class CatalogIntegrationTest {
 
@@ -112,6 +115,36 @@ public class CatalogIntegrationTest {
       Table table = bigquery.getTable(TableId.of(dataset, testTable));
       assertThat(table).isNotNull();
       assertThat(selectCountStarFrom(dataset, testTable)).isEqualTo(1L);
+    }
+  }
+
+  @Test
+  public void testCreateTableWithExplicitTargetInDefaultNamespace() throws Exception {
+    internalTestCreateTableWithExplicitTarget(DEFAULT_NAMESPACE);
+  }
+
+  @Test
+  public void testCreateTableWithExplicitTargetInCustomNamespace() throws Exception {
+    internalTestCreateTableWithExplicitTarget(testDataset.testDataset);
+  }
+
+  private void internalTestCreateTableWithExplicitTarget(String dataset)
+      throws InterruptedException {
+    assertThat(bigquery.getDataset(DatasetId.of(dataset))).isNotNull();
+    try (SparkSession spark = createSparkSession()) {
+      spark.sql(
+          "CREATE TABLE "
+              + fullTableName(dataset)
+              + " OPTIONS (table='bigquery-public-data.samples.shakespeare')");
+      List<Row> result = spark.sql(
+              "SELECT word, SUM(word_count) FROM "
+                      + fullTableName(dataset)
+                      + " WHERE word='spark' GROUP BY word;")
+              .collectAsList();
+      assertThat(result).hasSize(1);
+      Row resultRow = result.get(0);
+      assertThat(resultRow.getString(0)).isEqualTo("spark");
+      assertThat(resultRow.getLong(1)).isEqualTo(10L);
     }
   }
 
