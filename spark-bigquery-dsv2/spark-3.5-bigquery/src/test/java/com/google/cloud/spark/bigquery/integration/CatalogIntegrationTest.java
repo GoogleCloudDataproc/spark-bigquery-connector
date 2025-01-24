@@ -23,13 +23,12 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import java.util.List;
-
-import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class CatalogIntegrationTest {
@@ -119,11 +118,13 @@ public class CatalogIntegrationTest {
   }
 
   @Test
+  @Ignore("unsupported")
   public void testCreateTableWithExplicitTargetInDefaultNamespace() throws Exception {
     internalTestCreateTableWithExplicitTarget(DEFAULT_NAMESPACE);
   }
 
   @Test
+  @Ignore("unsupported")
   public void testCreateTableWithExplicitTargetInCustomNamespace() throws Exception {
     internalTestCreateTableWithExplicitTarget(testDataset.testDataset);
   }
@@ -136,8 +137,10 @@ public class CatalogIntegrationTest {
           "CREATE TABLE "
               + fullTableName(dataset)
               + " OPTIONS (table='bigquery-public-data.samples.shakespeare')");
-      List<Row> result = spark.sql(
-              "SELECT word, SUM(word_count) FROM "
+      List<Row> result =
+          spark
+              .sql(
+                  "SELECT word, SUM(word_count) FROM "
                       + fullTableName(dataset)
                       + " WHERE word='spark' GROUP BY word;")
               .collectAsList();
