@@ -45,10 +45,12 @@ public class IntermediateDataCleaner extends Thread {
 
   public void deletePath() {
     try {
+      logger.info("Deleting path " + path + " if it exists");
       FileSystem fs = path.getFileSystem(conf);
       if (pathExists(fs, path)) {
         fs.delete(path, true);
       }
+      logger.info("Path " + path + " no longer exists)");
     } catch (Exception e) {
       logger.error("Failed to delete path " + path, e);
     }
