@@ -15,23 +15,29 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.spark.bigquery.InjectorBuilder;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.base.Preconditions;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Injector;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 import org.apache.spark.sql.catalyst.analysis.NoSuchNamespaceException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
@@ -49,7 +55,8 @@ public class BigQueryTableCatalog implements TableCatalog {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryTableCatalog.class);
   private static final String[] DEFAULT_NAMESPACE = {"default"};
 
-  private static Map<String, Table> identifierToTableMapping = new HashMap<>();
+  private static final Cache<String, Table> identifierToTableCache =
+      CacheBuilder.newBuilder().expireAfterWrite(30, TimeUnit.MINUTES).maximumSize(1000).build();
 
   private TableProvider tableProvider;
   private BigQueryClient bigQueryClient;
@@ -57,9 +64,7 @@ public class BigQueryTableCatalog implements TableCatalog {
 
   @Override
   public void initialize(String name, CaseInsensitiveStringMap caseInsensitiveStringMap) {
-    logger.info("Initializing [{}])", name);
-    // SparkBigQueryConfig config = SparkBigQueryConfig.from(ImmutableMap.of(), ImmutableMap.of(),
-    // DataSourceVersion.V2, SparkSession.active(), Optional.empty(), false);
+    logger.info("Initializing BigQuery table catalog [{}])", name);
     Injector injector = new InjectorBuilder().withTableIsMandatory(false).build();
     tableProvider =
         StreamSupport.stream(ServiceLoader.load(DataSourceRegister.class).spliterator(), false)
@@ -89,27 +94,43 @@ public class BigQueryTableCatalog implements TableCatalog {
     Preconditions.checkNotNull(namespace, "namespace cannot be null");
     Preconditions.checkArgument(namespace.length == 1, "BigQuery supports only one namespace");
     logger.debug("list tables [{}])", namespace[0]);
-    return StreamSupport.stream(
-            bigQueryClient
-                .listTables(DatasetId.of(namespace[0]), TableDefinition.Type.TABLE)
-                .spliterator(),
-            false)
-        .map(com.google.cloud.bigquery.Table::getTableId)
-        .map(BigQueryIdentifier::of)
-        .toArray(BigQueryIdentifier[]::new);
+    DatasetId datasetId = DatasetId.of(namespace[0]);
+    try {
+      return StreamSupport.stream(
+              bigQueryClient.listTables(datasetId, TableDefinition.Type.TABLE).spliterator(), false)
+          .map(com.google.cloud.bigquery.Table::getTableId)
+          .map(BigQueryIdentifier::of)
+          .toArray(BigQueryIdentifier[]::new);
+    } catch (BigQueryException e) {
+      if (e.getCause() != null && e.getCause() instanceof GoogleJsonResponseException) {
+        GoogleJsonResponseException gsre = (GoogleJsonResponseException) e.getCause();
+        if (gsre.getStatusCode() == 404) {
+          // the dataset does not exist
+          logger.debug("Dataset does not exist", e);
+          throw new NoSuchNamespaceException(namespace);
+        }
+      }
+      throw new BigQueryConnectorException(
+          "Error listing tables  in " + Arrays.toString(namespace), e);
+    }
   }
 
   @Override
   public Table loadTable(Identifier identifier) throws NoSuchTableException {
     logger.debug("loading table [{}])", format(identifier));
-    return identifierToTableMapping.computeIfAbsent(
-        identifier.toString(),
-        ignored ->
-            // TODO: reuse injector
-            Spark3Util.createBigQueryTableInstance(
-                Spark35BigQueryTable::new,
-                null,
-                ImmutableMap.of("dataset", identifier.namespace()[0], "table", identifier.name())));
+    try {
+      return identifierToTableCache.get(
+          identifier.toString(),
+          () ->
+              // TODO: reuse injector
+              Spark3Util.createBigQueryTableInstance(
+                  Spark35BigQueryTable::new,
+                  null,
+                  ImmutableMap.of(
+                      "dataset", identifier.namespace()[0], "table", identifier.name())));
+    } catch (ExecutionException e) {
+      throw new BigQueryConnectorException("Problem loaing table " + identifier, e);
+    }
   }
 
   @Override
@@ -136,11 +157,15 @@ public class BigQueryTableCatalog implements TableCatalog {
       logger.debug("Mapping Spark table to BigQuery table)");
       // As the table is mapped to an actual table in BigQuery, we are relying on the BigQuery
       // schema
-      return identifierToTableMapping.computeIfAbsent(
-          identifier.toString(),
-          ignored ->
-              Spark3Util.createBigQueryTableInstance(
-                  Spark35BigQueryTable::new, /* schema */ null, properties));
+      try {
+        return identifierToTableCache.get(
+            identifier.toString(),
+            () ->
+                Spark3Util.createBigQueryTableInstance(
+                    Spark35BigQueryTable::new, /* schema */ null, properties));
+      } catch (ExecutionException e) {
+        throw new BigQueryConnectorException("Error creating table " + identifier, e);
+      }
     }
     Schema schema = schemaConverters.toBigQuerySchema(structType);
     bigQueryClient.createTable(
@@ -182,7 +207,7 @@ public class BigQueryTableCatalog implements TableCatalog {
       return false;
     }
     if (bigQueryClient.deleteTable(tableId)) {
-      identifierToTableMapping.remove(identifier.toString());
+      identifierToTableCache.invalidate(identifier.toString());
       return true;
     }
     return false;
