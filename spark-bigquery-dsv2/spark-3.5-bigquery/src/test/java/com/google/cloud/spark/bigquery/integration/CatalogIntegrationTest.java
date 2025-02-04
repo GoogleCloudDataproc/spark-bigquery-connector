@@ -179,8 +179,7 @@ public class CatalogIntegrationTest {
         .config("spark.sql.sources.default", "bigquery")
         .config("spark.datasource.bigquery.writeMethod", "direct")
         .config("spark.sql.defaultCatalog", "bigquery")
-        .config(
-            "spark.sql.catalog.bigquery", "com.google.cloud.spark.bigquery.v2.BigQueryTableCatalog")
+        .config("spark.sql.catalog.bigquery", "com.google.cloud.spark.bigquery.BigQueryCatalog")
         .getOrCreate();
   }
 }

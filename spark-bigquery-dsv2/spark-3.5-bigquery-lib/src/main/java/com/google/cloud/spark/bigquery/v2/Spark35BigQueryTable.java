@@ -23,7 +23,7 @@ import org.apache.spark.sql.connector.write.WriteBuilder;
 import org.apache.spark.sql.types.StructType;
 
 public class Spark35BigQueryTable extends Spark34BigQueryTable {
-  protected Spark35BigQueryTable(Injector injector, Supplier<StructType> schemaSupplier) {
+  public Spark35BigQueryTable(Injector injector, Supplier<StructType> schemaSupplier) {
     super(injector, schemaSupplier);
   }
 

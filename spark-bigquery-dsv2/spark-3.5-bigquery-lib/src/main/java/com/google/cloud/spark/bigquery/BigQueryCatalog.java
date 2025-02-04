@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.v2;
+package com.google.cloud.spark.bigquery;
 
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.cloud.bigquery.BigQueryException;
@@ -23,10 +23,9 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
-import com.google.cloud.spark.bigquery.InjectorBuilder;
-import com.google.cloud.spark.bigquery.SchemaConverters;
-import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
-import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.v2.BigQueryIdentifier;
+import com.google.cloud.spark.bigquery.v2.Spark35BigQueryTable;
+import com.google.cloud.spark.bigquery.v2.Spark3Util;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -42,7 +41,11 @@ import java.util.stream.StreamSupport;
 import org.apache.spark.sql.catalyst.analysis.NoSuchNamespaceException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.apache.spark.sql.catalyst.analysis.TableAlreadyExistsException;
-import org.apache.spark.sql.connector.catalog.*;
+import org.apache.spark.sql.connector.catalog.Identifier;
+import org.apache.spark.sql.connector.catalog.Table;
+import org.apache.spark.sql.connector.catalog.TableCatalog;
+import org.apache.spark.sql.connector.catalog.TableChange;
+import org.apache.spark.sql.connector.catalog.TableProvider;
 import org.apache.spark.sql.connector.expressions.Transform;
 import org.apache.spark.sql.sources.DataSourceRegister;
 import org.apache.spark.sql.types.StructType;
@@ -50,9 +53,9 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BigQueryTableCatalog implements TableCatalog {
+public class BigQueryCatalog implements TableCatalog {
 
-  private static final Logger logger = LoggerFactory.getLogger(BigQueryTableCatalog.class);
+  private static final Logger logger = LoggerFactory.getLogger(BigQueryCatalog.class);
   private static final String[] DEFAULT_NAMESPACE = {"default"};
 
   private static final Cache<String, Table> identifierToTableCache =

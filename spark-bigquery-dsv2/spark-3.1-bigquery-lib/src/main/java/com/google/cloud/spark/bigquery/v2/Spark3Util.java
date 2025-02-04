@@ -34,7 +34,7 @@ import org.apache.spark.sql.types.StructType;
 
 public class Spark3Util {
 
-  static Table createBigQueryTableInstance(
+  public static Table createBigQueryTableInstance(
       BigQueryTableCreator bigQueryTableCreator,
       StructType sparkProvidedSchema,
       Map<String, String> properties) {
