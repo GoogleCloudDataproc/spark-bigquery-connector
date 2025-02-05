@@ -6,6 +6,7 @@
 * BigQuery Storage API has been upgraded to version 3.11.2
 * GAX has been upgraded to version 2.60.0
 * Netty has been upgraded to version 4.1.117.Final
+* Guava has been upgraded to version 33.4.0-jre
 * Avro has been upgraded to version 1.12.0
 
 ## 0.41.1 - 2024-12-20

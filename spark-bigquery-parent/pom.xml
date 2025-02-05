@@ -63,7 +63,7 @@
         <google-cloud-storage.version>2.48.1</google-cloud-storage.version>
         <google-truth.version>1.4.4</google-truth.version>
         <grpc.version>1.70.0</grpc.version>
-        <guava.version>33.3.4-jre</guava.version>
+        <guava.version>33.4.0-jre</guava.version>
         <jackson.version>2.18.2</jackson.version>
         <netty.version>4.1.117.Final</netty.version>
         <openlineage-spark.version>1.27.0</openlineage-spark.version>
