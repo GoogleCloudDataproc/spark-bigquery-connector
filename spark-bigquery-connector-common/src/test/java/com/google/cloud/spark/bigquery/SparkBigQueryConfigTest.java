@@ -1200,4 +1200,25 @@ public class SparkBigQueryConfigTest {
             /* tableIsMandatory */ true);
     assertThat(config.getTemporaryGcsBucket()).hasValue("foo");
   }
+
+  @Test
+  public void testLoadFromQueryConfig() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            asDataSourceOptionsMap(
+                ImmutableMap.of( //
+                    "query", "SELECT * FROM foo", //
+                    "materializationDataset", "materializationDataset" //
+                    )),
+            emptyMap, // allConf
+            new Configuration(),
+            emptyMap, // customDefaults
+            1,
+            new SQLConf(),
+            sparkVersion,
+            /* schema */ Optional.empty(),
+            /* tableIsMandatory */ true);
+    assertThat(config.getTableId()).isNotNull();
+    assertThat(config.getTableId().getTable()).isEqualTo("QUERY");
+  }
 }

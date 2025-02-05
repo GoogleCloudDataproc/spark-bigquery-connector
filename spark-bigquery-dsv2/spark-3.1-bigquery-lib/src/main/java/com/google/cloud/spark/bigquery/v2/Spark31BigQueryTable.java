@@ -53,7 +53,9 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
   public Spark31BigQueryTable(Injector injector, Supplier<StructType> schemaSupplier) {
     this.injector = injector;
     this.schemaSupplier = schemaSupplier;
-    this.tableId = injector.getInstance(SparkBigQueryConfig.class).getTableId();
+    SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
+    // if this is a real table then use it
+    this.tableId = config.getQuery().isPresent() ? null : config.getTableId();
   }
 
   @Override
@@ -72,7 +74,7 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
             injector.getInstance(SparkSession.class),
             Optional.ofNullable(schemaSupplier.get()),
             true /* tableIsMandatory */,
-            Optional.of(tableId));
+            Optional.ofNullable(tableId));
     Injector readerInjector =
         injector.createChildInjector(
             new BigQueryDataSourceReaderModule(Optional.of(tableScanConfig)));
