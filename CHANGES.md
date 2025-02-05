@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Next
+* PR #1335: Adding indirect write GCS cleanup logs
 
 ## 0.41.1 - 2024-12-20
 * Issue #1290: Stopped using metadata for optimized count path
