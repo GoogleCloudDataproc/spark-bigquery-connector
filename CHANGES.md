@@ -2,6 +2,11 @@
 
 ## Next
 * PR #1335: Adding indirect write GCS cleanup logs
+* BigQuery API has been upgraded to version 2.47.0
+* BigQuery Storage API has been upgraded to version 3.11.2
+* GAX has been upgraded to version 2.60.0
+* Netty has been upgraded to version 4.1.117.Final
+* Avro has been upgraded to version 1.12.0
 
 ## 0.41.1 - 2024-12-20
 * Issue #1290: Stopped using metadata for optimized count path
