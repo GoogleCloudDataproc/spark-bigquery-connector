@@ -52,7 +52,7 @@
         <revision>0.0.1-SNAPSHOT</revision>
 
         <!-- avro 1.12.0 is compiled with java 11 -->
-        <avro.version>1.12.0</avro.version>
+        <avro.version>1.11.4</avro.version>
         <!-- arrow 18.0.0 removed the support for java 8 -->
         <arrow.version>17.0.0</arrow.version>
         <gax.version>2.60.0</gax.version>
