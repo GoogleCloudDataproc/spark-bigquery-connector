@@ -268,6 +268,24 @@ public class SparkBigQueryConfig
       SparkSession spark,
       Optional<StructType> schema,
       boolean tableIsMandatory) {
+    return from(
+        options,
+        customDefaults,
+        dataSourceVersion,
+        spark,
+        schema,
+        tableIsMandatory,
+        Optional.empty());
+  }
+
+  public static SparkBigQueryConfig from(
+      Map<String, String> options,
+      ImmutableMap<String, String> customDefaults,
+      DataSourceVersion dataSourceVersion,
+      SparkSession spark,
+      Optional<StructType> schema,
+      boolean tableIsMandatory,
+      Optional<TableId> overrideTableId) {
     Map<String, String> optionsMap = new HashMap<>(options);
     dataSourceVersion.updateOptionsMap(optionsMap);
     return SparkBigQueryConfig.from(
@@ -279,7 +297,8 @@ public class SparkBigQueryConfig
         spark.sqlContext().conf(),
         spark.version(),
         schema,
-        tableIsMandatory);
+        tableIsMandatory,
+        overrideTableId);
   }
 
   @VisibleForTesting
@@ -293,6 +312,31 @@ public class SparkBigQueryConfig
       String sparkVersion,
       Optional<StructType> schema,
       boolean tableIsMandatory) {
+    return from(
+        optionsInput,
+        originalGlobalOptions,
+        hadoopConfiguration,
+        customDefaults,
+        defaultParallelism,
+        sqlConf,
+        sparkVersion,
+        schema,
+        tableIsMandatory,
+        Optional.empty());
+  }
+
+  @VisibleForTesting
+  public static SparkBigQueryConfig from(
+      Map<String, String> optionsInput,
+      ImmutableMap<String, String> originalGlobalOptions,
+      Configuration hadoopConfiguration,
+      ImmutableMap<String, String> customDefaults,
+      int defaultParallelism,
+      SQLConf sqlConf,
+      String sparkVersion,
+      Optional<StructType> schema,
+      boolean tableIsMandatory,
+      Optional<TableId> overrideTableId) {
     SparkBigQueryConfig config = new SparkBigQueryConfig();
 
     ImmutableMap<String, String> options = toLowerCaseKeysMap(optionsInput);
@@ -314,9 +358,6 @@ public class SparkBigQueryConfig
         com.google.common.base.Optional.fromNullable(
                 hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY))
             .toJavaUtil();
-    Optional<String> tableParam =
-        getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
-            .toJavaUtil();
     Optional<String> datasetParam = getOption(options, "dataset").or(fallbackDataset).toJavaUtil();
     Optional<String> projectParam =
         firstPresent(getOption(options, "project").toJavaUtil(), fallbackProject);
@@ -327,28 +368,36 @@ public class SparkBigQueryConfig
     config.partitionRangeEnd = getOption(options, "partitionRangeEnd").transform(Long::parseLong);
     config.partitionRangeInterval =
         getOption(options, "partitionRangeInterval").transform(Long::parseLong);
-    Optional<String> datePartitionParam = getOption(options, DATE_PARTITION_PARAM).toJavaUtil();
-    datePartitionParam.ifPresent(
-        date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
-    // checking for query
-    if (tableParam.isPresent()) {
-      String tableParamStr = tableParam.get().trim();
-      if (isQuery(tableParamStr)) {
-        // it is a query in practice
-        config.query = com.google.common.base.Optional.of(tableParamStr);
-        config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
-      } else {
-        config.tableId =
-            parseTableId(tableParamStr, datasetParam, projectParam, datePartitionParam);
-      }
+    if (overrideTableId.isPresent()) {
+      config.tableId = overrideTableId.get();
     } else {
-      // no table has been provided, it is either a query or an error
-      config.query = getOption(options, "query").transform(String::trim);
-      if (config.query.isPresent()) {
-        config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
-      } else if (tableIsMandatory) {
-        // No table nor query were set. We cannot go further.
-        throw new IllegalArgumentException("No table has been specified");
+      // checking for query
+      Optional<String> tableParam =
+          getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
+              .toJavaUtil();
+      Optional<String> datePartitionParam = getOption(options, DATE_PARTITION_PARAM).toJavaUtil();
+      datePartitionParam.ifPresent(
+          date ->
+              validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
+      if (tableParam.isPresent()) {
+        String tableParamStr = tableParam.get().trim();
+        if (isQuery(tableParamStr)) {
+          // it is a query in practice
+          config.query = com.google.common.base.Optional.of(tableParamStr);
+          config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
+        } else {
+          config.tableId =
+              parseTableId(tableParamStr, datasetParam, projectParam, datePartitionParam);
+        }
+      } else {
+        // no table has been provided, it is either a query or an error
+        config.query = getOption(options, "query").transform(String::trim);
+        if (config.query.isPresent()) {
+          config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
+        } else if (tableIsMandatory) {
+          // No table nor query were set. We cannot go further.
+          throw new IllegalArgumentException("No table has been specified");
+        }
       }
     }
 

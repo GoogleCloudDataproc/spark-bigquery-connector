@@ -26,9 +26,9 @@ import org.apache.spark.sql.connector.write.WriteBuilder;
 import org.apache.spark.sql.sources.Filter;
 
 public class BigQueryWriteBuilder implements WriteBuilder, SupportsOverwrite {
-  private Injector injector;
-  private LogicalWriteInfo info;
-  private SaveMode mode;
+  protected final Injector injector;
+  protected final LogicalWriteInfo info;
+  protected final SaveMode mode;
 
   public BigQueryWriteBuilder(Injector injector, LogicalWriteInfo info, SaveMode mode) {
     this.injector = injector;

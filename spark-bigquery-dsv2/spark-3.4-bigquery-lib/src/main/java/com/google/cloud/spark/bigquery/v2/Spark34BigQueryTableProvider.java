@@ -25,11 +25,11 @@ public class Spark34BigQueryTableProvider extends Spark33BigQueryTableProvider {
   @Override
   public Table getTable(
       StructType schema, Transform[] partitioning, Map<String, String> properties) {
-    return Spark3Util.createBigQueryTableInstance(Spark33BigQueryTable::new, schema, properties);
+    return Spark3Util.createBigQueryTableInstance(Spark34BigQueryTable::new, schema, properties);
   }
 
   @Override
   protected Table getBigQueryTableInternal(Map<String, String> properties) {
-    return Spark3Util.createBigQueryTableInstance(Spark33BigQueryTable::new, null, properties);
+    return Spark3Util.createBigQueryTableInstance(Spark34BigQueryTable::new, null, properties);
   }
 }

@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
@@ -47,10 +48,14 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
 
   protected Injector injector;
   protected Supplier<StructType> schemaSupplier;
+  protected TableId tableId;
 
   public Spark31BigQueryTable(Injector injector, Supplier<StructType> schemaSupplier) {
     this.injector = injector;
     this.schemaSupplier = schemaSupplier;
+    SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
+    // if this is a real table then use it
+    this.tableId = config.getQuery().isPresent() ? null : config.getTableId();
   }
 
   @Override
@@ -67,8 +72,9 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
             ImmutableMap.of(),
             injector.getInstance(DataSourceVersion.class),
             injector.getInstance(SparkSession.class),
-            Optional.ofNullable(schemaSupplier.get()), /*tableIsMandatory*/
-            true);
+            Optional.ofNullable(schemaSupplier.get()),
+            true /* tableIsMandatory */,
+            Optional.ofNullable(tableId));
     Injector readerInjector =
         injector.createChildInjector(
             new BigQueryDataSourceReaderModule(Optional.of(tableScanConfig)));
