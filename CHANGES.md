@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Next
+* PR #1333: Initial implementation of a BigQuery backed Spark Catalog
 * PR #1335: Adding indirect write GCS cleanup logs
 * BigQuery API has been upgraded to version 2.47.0
 * BigQuery Storage API has been upgraded to version 3.11.2
