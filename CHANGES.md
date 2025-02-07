@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.42.0 - 2025-02-06
 * PR #1333: Initial implementation of a BigQuery backed Spark Catalog
 * PR #1335: Adding indirect write GCS cleanup logs
