@@ -66,6 +66,7 @@ public class BigQueryClientFactory implements Serializable {
   private transient volatile Credentials credentials;
 
   private int cachedHashCode = 0;
+  private IdentityTokenSupplier identityTokenSupplier;
 
   @Inject
   public BigQueryClientFactory(
