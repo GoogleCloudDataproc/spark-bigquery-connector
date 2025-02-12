@@ -1,5 +1,8 @@
 # Release Notes
 
+## Next
+Issue #1254: fix getting partitioning fields for pseudo columns
+
 ## 0.36.4 - 2024-07-24
 * PR #1261: Adding IdentityToken header in readRows call
 
