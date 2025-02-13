@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.36.5 - 2025-02-13
 Issue #1254: fix getting partitioning fields for pseudo columns
 
 ## 0.36.4 - 2024-07-24
