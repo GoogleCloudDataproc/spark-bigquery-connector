@@ -122,6 +122,14 @@ public class BigQueryCatalog implements TableCatalog {
   public Table loadTable(Identifier identifier) throws NoSuchTableException {
     logger.debug("loading table [{}])", format(identifier));
     TableId tableId = toTableId(identifier);
+    Map config = tableId.getProject() != null ?
+            ImmutableMap.of(
+              "project", tableId.getProject(),
+              "dataset", tableId.getDataset(),
+              "table", tableId.getTable()) :
+            ImmutableMap.of(
+              "dataset", tableId.getDataset(),
+              "table", tableId.getTable());
     try {
       return identifierToTableCache.get(
           identifier.toString(),
@@ -129,11 +137,7 @@ public class BigQueryCatalog implements TableCatalog {
               // TODO: reuse injector
               Spark3Util.createBigQueryTableInstance(
                   Spark35BigQueryTable::new,
-                  null,
-                  ImmutableMap.of(
-                          "project", tableId.getProject(),
-                          "dataset", tableId.getDataset(),
-                          "table", tableId.getTable())));
+                  null, config));
     } catch (ExecutionException e) {
       throw new BigQueryConnectorException("Problem loaing table " + identifier, e);
     }
