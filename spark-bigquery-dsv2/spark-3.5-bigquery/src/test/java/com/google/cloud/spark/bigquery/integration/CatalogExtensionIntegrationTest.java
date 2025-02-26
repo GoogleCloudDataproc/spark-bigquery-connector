@@ -35,12 +35,12 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class CatalogIntegrationTest extends CatalogIntegrationTestBase {
+public class CatalogExtensionIntegrationTest extends CatalogIntegrationTestBase {
 
   @Override
   protected SparkSession createSparkSession() {
     return SparkSession.builder()
-        .appName("catalog test")
+        .appName("catalog extension test")
         .master("local[*]")
         .config("spark.sql.legacy.createHiveTableByDefault", "false")
         .config("spark.sql.sources.default", "bigquery")
