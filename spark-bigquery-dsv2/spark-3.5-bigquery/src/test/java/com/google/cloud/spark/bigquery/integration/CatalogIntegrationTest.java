@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.DatasetId;
@@ -23,6 +24,9 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import java.util.List;
+
+
+import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.junit.After;
@@ -115,6 +119,17 @@ public class CatalogIntegrationTest {
       assertThat(table).isNotNull();
       assertThat(selectCountStarFrom(dataset, testTable)).isEqualTo(1L);
     }
+  }
+
+  @Test
+  public void testLoadingNonexistentTable() throws Exception {
+    String table = String.format("`foo`.`bar_%s`",System.nanoTime() );
+    AnalysisException thrown = assertThrows(AnalysisException.class, () -> {
+      try (SparkSession spark = createSparkSession()) {
+        spark.sql("SELECT something FROM " + table + ";");
+      }
+    });
+    assertThat(thrown.getMessage()).startsWith("[TABLE_OR_VIEW_NOT_FOUND] The table or view "+table+" cannot be found.");
   }
 
   @Test

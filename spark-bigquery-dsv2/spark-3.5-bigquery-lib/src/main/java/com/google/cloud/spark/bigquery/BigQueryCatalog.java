@@ -122,6 +122,9 @@ public class BigQueryCatalog implements TableCatalog {
   public Table loadTable(Identifier identifier) throws NoSuchTableException {
     logger.debug("loading table [{}])", format(identifier));
     try {
+      if(!tableExists(identifier)) {
+        throw new NoSuchBigQueryTableException(identifier);
+      }
       return identifierToTableCache.get(
           identifier.toString(),
           () ->
@@ -132,7 +135,7 @@ public class BigQueryCatalog implements TableCatalog {
                   ImmutableMap.of(
                       "dataset", identifier.namespace()[0], "table", identifier.name())));
     } catch (ExecutionException e) {
-      throw new BigQueryConnectorException("Problem loaing table " + identifier, e);
+      throw new BigQueryConnectorException("Problem loading table " + identifier, e);
     }
   }
 

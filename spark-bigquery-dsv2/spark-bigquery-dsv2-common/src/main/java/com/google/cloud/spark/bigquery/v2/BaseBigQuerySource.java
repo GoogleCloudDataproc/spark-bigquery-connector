@@ -19,8 +19,10 @@ import org.apache.spark.sql.sources.DataSourceRegister;
 
 public abstract class BaseBigQuerySource implements DataSourceRegister {
 
+  public static final String BIGQUERY_PROVIDER_NAME = "bigquery";
+
   @Override
   public String shortName() {
-    return "bigquery";
+    return BIGQUERY_PROVIDER_NAME;
   }
 }
