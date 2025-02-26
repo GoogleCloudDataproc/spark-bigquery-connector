@@ -45,8 +45,7 @@ public class CatalogExtensionIntegrationTest extends CatalogIntegrationTestBase 
         .config("spark.sql.legacy.createHiveTableByDefault", "false")
         .config("spark.sql.sources.default", "bigquery")
         .config("spark.datasource.bigquery.writeMethod", "direct")
-        .config("spark.sql.defaultCatalog", "bigquery")
-        .config("spark.sql.catalog.bigquery", "com.google.cloud.spark.bigquery.BigQueryCatalog")
+        .config("spark.sql.catalog.spark_catalog", "com.google.cloud.spark.bigquery.BigQueryCatalogExtension")
         .getOrCreate();
   }
 }

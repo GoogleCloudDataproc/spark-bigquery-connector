@@ -41,6 +41,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.analysis.NamespaceAlreadyExistsException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchFunctionException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchNamespaceException;
@@ -59,27 +60,30 @@ import org.apache.spark.sql.connector.catalog.TableChange;
 import org.apache.spark.sql.connector.catalog.TableProvider;
 import org.apache.spark.sql.connector.catalog.functions.UnboundFunction;
 import org.apache.spark.sql.connector.expressions.Transform;
+import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.sources.DataSourceRegister;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BigQuerySessionCatalog implements CatalogExtension {
+public class BigQueryCatalogExtension implements CatalogExtension {
 
-  private static final Logger logger = LoggerFactory.getLogger(BigQuerySessionCatalog.class);
+  private static final Logger logger = LoggerFactory.getLogger(BigQueryCatalogExtension.class);
   private static final String[] DEFAULT_NAMESPACE = new String[] {"default"};
 
   private final BigQueryCatalog bigQueryCatalog = new BigQueryCatalog();
   private String name = "default";
   private CatalogPlugin sessionCatalog;
+  private boolean isBigQueryTheDefaultProvider = false;
 
   @Override
   public void initialize(String name, CaseInsensitiveStringMap options) {
     logger.info("Initializing BigQuery session catalog [{}])", name);
     bigQueryCatalog.initialize(name, options);
     this.name = name;
-
+    SQLConf sqlConf = SparkSession.active().sqlContext().conf();
+    this.isBigQueryTheDefaultProvider = sqlConf.defaultDataSourceName().equals(BaseBigQuerySource.BIGQUERY_PROVIDER_NAME);
   }
 
   @Override
@@ -154,12 +158,16 @@ delegateAsSupportsNamespaces().alterNamespace(namespace, changes);
   @Override
   public Table createTable(Identifier ident, StructType schema, Transform[] partitions, Map<String, String> properties) throws TableAlreadyExistsException, NoSuchNamespaceException {
     String provider = properties.get("provider");
-    if (BaseBigQuerySource.BIGQUERY_PROVIDER_NAME.equalsIgnoreCase(provider)) {
+    if (isBigQuery(provider)) {
       return bigQueryCatalog.createTable(ident, schema, partitions, properties);
     } else {
       // delegate to the session catalog
       return delegateAsTableCatalog().createTable(ident, schema, partitions, properties);
     }
+  }
+
+  private  boolean isBigQuery(String provider) {
+    return isBigQueryTheDefaultProvider|| BaseBigQuerySource.BIGQUERY_PROVIDER_NAME.equals(provider);
   }
 
   @Override
