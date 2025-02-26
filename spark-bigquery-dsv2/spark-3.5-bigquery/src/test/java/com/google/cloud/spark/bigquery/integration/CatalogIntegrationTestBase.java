@@ -24,8 +24,6 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import java.util.List;
-
-
 import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -123,13 +121,17 @@ public abstract class CatalogIntegrationTestBase {
 
   @Test
   public void testLoadingNonexistentTable() throws Exception {
-    String table = String.format("`foo`.`bar_%s`",System.nanoTime() );
-    AnalysisException thrown = assertThrows(AnalysisException.class, () -> {
-      try (SparkSession spark = createSparkSession()) {
-        spark.sql("SELECT something FROM " + table + ";");
-      }
-    });
-    assertThat(thrown.getMessage()).startsWith("[TABLE_OR_VIEW_NOT_FOUND] The table or view "+table+" cannot be found.");
+    String table = String.format("`foo`.`bar_%s`", System.nanoTime());
+    AnalysisException thrown =
+        assertThrows(
+            AnalysisException.class,
+            () -> {
+              try (SparkSession spark = createSparkSession()) {
+                spark.sql("SELECT something FROM " + table + ";");
+              }
+            });
+    assertThat(thrown.getMessage())
+        .startsWith("[TABLE_OR_VIEW_NOT_FOUND] The table or view " + table + " cannot be found.");
   }
 
   @Test

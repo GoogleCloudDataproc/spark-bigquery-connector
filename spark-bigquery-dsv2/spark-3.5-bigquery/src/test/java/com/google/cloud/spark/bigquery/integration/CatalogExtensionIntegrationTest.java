@@ -15,25 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertThrows;
-
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.DatasetId;
-import com.google.cloud.bigquery.QueryJobConfiguration;
-import com.google.cloud.bigquery.Table;
-import com.google.cloud.bigquery.TableId;
-import java.util.List;
-
-
-import org.apache.spark.sql.AnalysisException;
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Test;
 
 public class CatalogExtensionIntegrationTest extends CatalogIntegrationTestBase {
 
@@ -45,7 +27,9 @@ public class CatalogExtensionIntegrationTest extends CatalogIntegrationTestBase 
         .config("spark.sql.legacy.createHiveTableByDefault", "false")
         .config("spark.sql.sources.default", "bigquery")
         .config("spark.datasource.bigquery.writeMethod", "direct")
-        .config("spark.sql.catalog.spark_catalog", "com.google.cloud.spark.bigquery.BigQueryCatalogExtension")
+        .config(
+            "spark.sql.catalog.spark_catalog",
+            "com.google.cloud.spark.bigquery.BigQueryCatalogExtension")
         .getOrCreate();
   }
 }

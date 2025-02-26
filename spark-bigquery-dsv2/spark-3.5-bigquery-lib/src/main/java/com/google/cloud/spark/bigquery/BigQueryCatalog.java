@@ -122,7 +122,7 @@ public class BigQueryCatalog implements TableCatalog {
   public Table loadTable(Identifier identifier) throws NoSuchTableException {
     logger.debug("loading table [{}])", format(identifier));
     try {
-      if(!tableExists(identifier)) {
+      if (!tableExists(identifier)) {
         throw new NoSuchBigQueryTableException(identifier);
       }
       return identifierToTableCache.get(

@@ -15,32 +15,8 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.cloud.bigquery.BigQueryException;
-import com.google.cloud.bigquery.DatasetId;
-import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.TableDefinition;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.connector.common.BigQueryClient;
-import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.spark.bigquery.v2.BaseBigQuerySource;
-import com.google.cloud.spark.bigquery.v2.BigQueryIdentifier;
-import com.google.cloud.spark.bigquery.v2.Spark35BigQueryTable;
-import com.google.cloud.spark.bigquery.v2.Spark3Util;
-import com.google.common.base.Preconditions;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.ImmutableMap;
-import com.google.inject.Injector;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
-import java.util.ServiceLoader;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.StreamSupport;
-
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.analysis.NamespaceAlreadyExistsException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchFunctionException;
@@ -57,11 +33,9 @@ import org.apache.spark.sql.connector.catalog.SupportsNamespaces;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.TableCatalog;
 import org.apache.spark.sql.connector.catalog.TableChange;
-import org.apache.spark.sql.connector.catalog.TableProvider;
 import org.apache.spark.sql.connector.catalog.functions.UnboundFunction;
 import org.apache.spark.sql.connector.expressions.Transform;
 import org.apache.spark.sql.internal.SQLConf;
-import org.apache.spark.sql.sources.DataSourceRegister;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 import org.slf4j.Logger;
@@ -83,7 +57,8 @@ public class BigQueryCatalogExtension implements CatalogExtension {
     bigQueryCatalog.initialize(name, options);
     this.name = name;
     SQLConf sqlConf = SparkSession.active().sqlContext().conf();
-    this.isBigQueryTheDefaultProvider = sqlConf.defaultDataSourceName().equals(BaseBigQuerySource.BIGQUERY_PROVIDER_NAME);
+    this.isBigQueryTheDefaultProvider =
+        sqlConf.defaultDataSourceName().equals(BaseBigQuerySource.BIGQUERY_PROVIDER_NAME);
   }
 
   @Override
@@ -122,22 +97,26 @@ public class BigQueryCatalogExtension implements CatalogExtension {
   }
 
   @Override
-  public Map<String, String> loadNamespaceMetadata(String[] namespace) throws NoSuchNamespaceException {
+  public Map<String, String> loadNamespaceMetadata(String[] namespace)
+      throws NoSuchNamespaceException {
     return delegateAsSupportsNamespaces().loadNamespaceMetadata(namespace);
   }
 
   @Override
-  public void createNamespace(String[] namespace, Map<String, String> metadata) throws NamespaceAlreadyExistsException {
+  public void createNamespace(String[] namespace, Map<String, String> metadata)
+      throws NamespaceAlreadyExistsException {
     delegateAsSupportsNamespaces().createNamespace(namespace, metadata);
   }
 
   @Override
-  public void alterNamespace(String[] namespace, NamespaceChange... changes) throws NoSuchNamespaceException {
-delegateAsSupportsNamespaces().alterNamespace(namespace, changes);
+  public void alterNamespace(String[] namespace, NamespaceChange... changes)
+      throws NoSuchNamespaceException {
+    delegateAsSupportsNamespaces().alterNamespace(namespace, changes);
   }
 
   @Override
-  public boolean dropNamespace(String[] namespace, boolean cascade) throws NoSuchNamespaceException, NonEmptyNamespaceException {
+  public boolean dropNamespace(String[] namespace, boolean cascade)
+      throws NoSuchNamespaceException, NonEmptyNamespaceException {
     return delegateAsSupportsNamespaces().dropNamespace(namespace, cascade);
   }
 
@@ -156,7 +135,9 @@ delegateAsSupportsNamespaces().alterNamespace(namespace, changes);
   }
 
   @Override
-  public Table createTable(Identifier ident, StructType schema, Transform[] partitions, Map<String, String> properties) throws TableAlreadyExistsException, NoSuchNamespaceException {
+  public Table createTable(
+      Identifier ident, StructType schema, Transform[] partitions, Map<String, String> properties)
+      throws TableAlreadyExistsException, NoSuchNamespaceException {
     String provider = properties.get("provider");
     if (isBigQuery(provider)) {
       return bigQueryCatalog.createTable(ident, schema, partitions, properties);
@@ -166,8 +147,9 @@ delegateAsSupportsNamespaces().alterNamespace(namespace, changes);
     }
   }
 
-  private  boolean isBigQuery(String provider) {
-    return isBigQueryTheDefaultProvider|| BaseBigQuerySource.BIGQUERY_PROVIDER_NAME.equals(provider);
+  private boolean isBigQuery(String provider) {
+    return isBigQueryTheDefaultProvider
+        || BaseBigQuerySource.BIGQUERY_PROVIDER_NAME.equals(provider);
   }
 
   @Override
@@ -181,16 +163,17 @@ delegateAsSupportsNamespaces().alterNamespace(namespace, changes);
   }
 
   @Override
-  public void renameTable(Identifier oldIdent, Identifier newIdent) throws NoSuchTableException, TableAlreadyExistsException {
-
-  }
+  public void renameTable(Identifier oldIdent, Identifier newIdent)
+      throws NoSuchTableException, TableAlreadyExistsException {}
 
   private TableCatalog delegateAsTableCatalog() {
     return (TableCatalog) sessionCatalog;
   }
+
   private FunctionCatalog delegateAsFunctionCatalog() {
     return (FunctionCatalog) sessionCatalog;
   }
+
   private SupportsNamespaces delegateAsSupportsNamespaces() {
     return (SupportsNamespaces) sessionCatalog;
   }

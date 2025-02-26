@@ -21,15 +21,15 @@ import scala.Option;
 
 public class NoSuchBigQueryTableException extends NoSuchTableException {
 
-    public NoSuchBigQueryTableException(String db, String table) {
-        super(db, table);
-    }
+  public NoSuchBigQueryTableException(String db, String table) {
+    super(db, table);
+  }
 
-    public NoSuchBigQueryTableException(Identifier tableIdent) {
-        super(tableIdent);
-    }
+  public NoSuchBigQueryTableException(Identifier tableIdent) {
+    super(tableIdent);
+  }
 
-    public NoSuchBigQueryTableException(String message, Option<Throwable> cause) {
-        super(message, cause);
-    }
+  public NoSuchBigQueryTableException(String message, Option<Throwable> cause) {
+    super(message, cause);
+  }
 }
