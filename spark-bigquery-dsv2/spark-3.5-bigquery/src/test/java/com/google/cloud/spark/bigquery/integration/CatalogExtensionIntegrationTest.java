@@ -15,9 +15,36 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.common.truth.Truth.assertThat;
+
+import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableId;
+import java.util.List;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.junit.Test;
 
 public class CatalogExtensionIntegrationTest extends CatalogIntegrationTestBase {
+
+  @Test
+  public void testCreateGlobalTemporaryView() throws Exception {
+    String dataset = testDataset.testDataset;
+    String view = "test_view_" + System.nanoTime();
+
+    try (SparkSession spark = createSparkSession()) {
+      // prepare the table
+      spark.sql("CREATE TABLE " + fullTableName(dataset) + " AS SELECT 1 AS id, 'foo' AS data;");
+      Table table = bigquery.getTable(TableId.of(dataset, testTable));
+      assertThat(table).isNotNull();
+      assertThat(selectCountStarFrom(dataset, testTable)).isEqualTo(1L);
+
+      spark.sql(
+          String.format(
+              "CREATE GLOBAL TEMPORARY VIEW %s AS select * from %s", view, fullTableName(dataset)));
+      List<Row> result = spark.sql("SELECT * FROM global_temp." + view).collectAsList();
+      assertThat(result).hasSize(1);
+    }
+  }
 
   @Override
   protected SparkSession createSparkSession() {

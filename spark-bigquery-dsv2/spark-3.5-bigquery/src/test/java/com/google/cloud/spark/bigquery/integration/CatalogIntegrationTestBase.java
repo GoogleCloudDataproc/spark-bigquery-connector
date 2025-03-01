@@ -40,7 +40,7 @@ public abstract class CatalogIntegrationTestBase {
 
   BigQuery bigquery = IntegrationTestUtils.getBigquery();
 
-  private String testTable;
+  protected String testTable;
 
   @Before
   public void renameTestTable() {
@@ -168,7 +168,7 @@ public abstract class CatalogIntegrationTestBase {
     }
   }
 
-  private String fullTableName(String dataset) {
+  protected String fullTableName(String dataset) {
     return dataset.equals(DEFAULT_NAMESPACE)
         ? "`" + testTable + "`"
         : "`" + dataset + "`.`" + testTable + "`";
@@ -176,7 +176,7 @@ public abstract class CatalogIntegrationTestBase {
 
   // this is needed as with direct write the table's metadata can e updated only after few minutes.
   // Queries take pending data into account though.
-  private long selectCountStarFrom(String dataset, String table) throws InterruptedException {
+  protected long selectCountStarFrom(String dataset, String table) throws InterruptedException {
     return bigquery
         .query(
             QueryJobConfiguration.of(

@@ -22,8 +22,10 @@ import org.apache.spark.sql.catalyst.analysis.NamespaceAlreadyExistsException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchFunctionException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchNamespaceException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
+import org.apache.spark.sql.catalyst.analysis.NoSuchViewException;
 import org.apache.spark.sql.catalyst.analysis.NonEmptyNamespaceException;
 import org.apache.spark.sql.catalyst.analysis.TableAlreadyExistsException;
+import org.apache.spark.sql.catalyst.analysis.ViewAlreadyExistsException;
 import org.apache.spark.sql.connector.catalog.CatalogExtension;
 import org.apache.spark.sql.connector.catalog.CatalogPlugin;
 import org.apache.spark.sql.connector.catalog.FunctionCatalog;
@@ -33,6 +35,9 @@ import org.apache.spark.sql.connector.catalog.SupportsNamespaces;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.TableCatalog;
 import org.apache.spark.sql.connector.catalog.TableChange;
+import org.apache.spark.sql.connector.catalog.View;
+import org.apache.spark.sql.connector.catalog.ViewCatalog;
+import org.apache.spark.sql.connector.catalog.ViewChange;
 import org.apache.spark.sql.connector.catalog.functions.UnboundFunction;
 import org.apache.spark.sql.connector.expressions.Transform;
 import org.apache.spark.sql.internal.SQLConf;
@@ -41,7 +46,7 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BigQueryCatalogExtension implements CatalogExtension {
+public class BigQueryCatalogExtension implements CatalogExtension, ViewCatalog {
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryCatalogExtension.class);
   private static final String[] DEFAULT_NAMESPACE = new String[] {"default"};
@@ -166,6 +171,68 @@ public class BigQueryCatalogExtension implements CatalogExtension {
   public void renameTable(Identifier oldIdent, Identifier newIdent)
       throws NoSuchTableException, TableAlreadyExistsException {}
 
+  @Override
+  public Identifier[] listViews(String... namespace) throws NoSuchNamespaceException {
+    return delegateAsViewCatalog().listViews(namespace);
+  }
+
+  @Override
+  public View loadView(Identifier ident) throws NoSuchViewException {
+    return delegateAsViewCatalog().loadView(ident);
+  }
+
+  @Override
+  public void invalidateView(Identifier ident) {
+    delegateAsViewCatalog().invalidateView(ident);
+  }
+
+  @Override
+  public boolean viewExists(Identifier ident) {
+    return delegateAsViewCatalog().viewExists(ident);
+  }
+
+  @Override
+  public View createView(
+      Identifier ident,
+      String sql,
+      String currentCatalog,
+      String[] currentNamespace,
+      StructType schema,
+      String[] queryColumnNames,
+      String[] columnAliases,
+      String[] columnComments,
+      Map<String, String> properties)
+      throws ViewAlreadyExistsException, NoSuchNamespaceException {
+    return delegateAsViewCatalog()
+        .createView(
+            ident,
+            sql,
+            currentCatalog,
+            currentNamespace,
+            schema,
+            queryColumnNames,
+            columnAliases,
+            columnComments,
+            properties);
+  }
+
+  @Override
+  public View alterView(Identifier ident, ViewChange... changes)
+      throws NoSuchViewException, IllegalArgumentException {
+    return delegateAsViewCatalog().alterView(ident, changes);
+  }
+
+  @Override
+  public boolean dropView(Identifier ident) {
+    return delegateAsViewCatalog().dropView(ident);
+  }
+
+  @Override
+  public void renameView(Identifier oldIdent, Identifier newIdent)
+      throws NoSuchViewException, ViewAlreadyExistsException {
+    delegateAsViewCatalog().renameView(oldIdent, newIdent);
+  }
+
   private TableCatalog delegateAsTableCatalog() {
     return (TableCatalog) sessionCatalog;
   }
@@ -176,5 +243,9 @@ public class BigQueryCatalogExtension implements CatalogExtension {
 
   private SupportsNamespaces delegateAsSupportsNamespaces() {
     return (SupportsNamespaces) sessionCatalog;
+  }
+
+  private ViewCatalog delegateAsViewCatalog() {
+    return (ViewCatalog) sessionCatalog;
   }
 }
