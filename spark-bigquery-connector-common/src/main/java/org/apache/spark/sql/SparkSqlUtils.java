@@ -18,12 +18,11 @@ package org.apache.spark.sql;
 import com.google.common.collect.Streams;
 import java.util.List;
 import java.util.ServiceLoader;
-
-import org.apache.spark.sql.catalyst.catalog.CatalogTable;
-import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.catalog.CatalogTable;
 import org.apache.spark.sql.catalyst.catalog.GlobalTempViewManager;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
+import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.V1Table;
 import org.apache.spark.sql.types.StructType;
 

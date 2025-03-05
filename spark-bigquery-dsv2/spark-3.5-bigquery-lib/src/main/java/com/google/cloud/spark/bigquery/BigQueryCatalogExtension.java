@@ -56,7 +56,6 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
-import scala.Some;
 
 public class BigQueryCatalogExtension implements CatalogExtension, ViewCatalog, SQLConfHelper {
 
@@ -177,9 +176,9 @@ public class BigQueryCatalogExtension implements CatalogExtension, ViewCatalog, 
   @Override
   public Table loadTable(Identifier ident) throws NoSuchTableException {
     try {
-//      if(inGlobalTempDatabase(ident.namespace())) {
-//        return toTemporaryView(ident);
-//      }
+      //      if(inGlobalTempDatabase(ident.namespace())) {
+      //        return toTemporaryView(ident);
+      //      }
       if (bigQueryCatalog.namespaceExists(ident.namespace())) {
         return bigQueryCatalog.loadTable(ident);
       }
@@ -190,28 +189,30 @@ public class BigQueryCatalogExtension implements CatalogExtension, ViewCatalog, 
   }
 
   private Table toTemporaryView(Identifier ident) throws NoSuchTableException {
-    String name =  conf().caseSensitiveAnalysis() ? ident.name() : ident.name().toLowerCase(Locale.ROOT);
-    Option<TemporaryViewRelation> temporaryViewRelationOption = globalTempViewManager.get().get(name);
-    if(temporaryViewRelationOption.isEmpty()) {
+    String name =
+        conf().caseSensitiveAnalysis() ? ident.name() : ident.name().toLowerCase(Locale.ROOT);
+    Option<TemporaryViewRelation> temporaryViewRelationOption =
+        globalTempViewManager.get().get(name);
+    if (temporaryViewRelationOption.isEmpty()) {
       throw new NoSuchTableException(ident);
     }
     CatalogTable tableMeta = temporaryViewRelationOption.get().tableMeta();
-   // CatalogTable catalogTable =
+    // CatalogTable catalogTable =
     return null;
-//    new  org.apache.spark.sql.catalog.Table(
-//            /* name */ tableMeta.identifier().table(),
-//            /* catalog */ null,
-//            /* namespace */ new String[] {tableMeta.identifier().database().get() },
-//            /* description */ tableMeta.comment().isDefined() ? tableMeta.comment().get() : null,
-//            /* tableType */ "TEMPORARY",
-//            /* isTemporary */ true);
-
+    //    new  org.apache.spark.sql.catalog.Table(
+    //            /* name */ tableMeta.identifier().table(),
+    //            /* catalog */ null,
+    //            /* namespace */ new String[] {tableMeta.identifier().database().get() },
+    //            /* description */ tableMeta.comment().isDefined() ? tableMeta.comment().get() :
+    // null,
+    //            /* tableType */ "TEMPORARY",
+    //            /* isTemporary */ true);
 
   }
 
   private boolean inGlobalTempDatabase(String[] namespace) {
-   return globalTempViewManager.isPresent()
-            && globalTempViewManager.get().database().equals(namespace[0]);
+    return globalTempViewManager.isPresent()
+        && globalTempViewManager.get().database().equals(namespace[0]);
   }
 
   @Override
