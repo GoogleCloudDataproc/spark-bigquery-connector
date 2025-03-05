@@ -16,9 +16,15 @@
 package org.apache.spark.sql;
 
 import com.google.common.collect.Streams;
+import java.util.List;
 import java.util.ServiceLoader;
+
+import org.apache.spark.sql.catalyst.catalog.CatalogTable;
+import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.catalog.GlobalTempViewManager;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
+import org.apache.spark.sql.connector.catalog.V1Table;
 import org.apache.spark.sql.types.StructType;
 
 public abstract class SparkSqlUtils {
@@ -47,4 +53,11 @@ public abstract class SparkSqlUtils {
   public abstract InternalRow rowToInternalRow(Row row);
 
   public abstract ExpressionEncoder<Row> createExpressionEncoder(StructType schema);
+
+  public abstract List<String> listViewNames(
+      GlobalTempViewManager globalTempViewManager, String pattern);
+
+  public Table createTable(CatalogTable catalogTable) {
+    return V1Table.apply(catalogTable);
+  }
 }

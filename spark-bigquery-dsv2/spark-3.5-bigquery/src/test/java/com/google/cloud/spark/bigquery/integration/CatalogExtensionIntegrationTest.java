@@ -43,6 +43,26 @@ public class CatalogExtensionIntegrationTest extends CatalogIntegrationTestBase 
               "CREATE GLOBAL TEMPORARY VIEW %s AS select * from %s", view, fullTableName(dataset)));
       List<Row> result = spark.sql("SELECT * FROM global_temp." + view).collectAsList();
       assertThat(result).hasSize(1);
+      spark.catalog().listTables("global_temp").show();
+    }
+  }
+
+  @Test
+  public void foo() throws Exception {
+    String dataset = testDataset.testDataset;
+    String view = "test_view_" + System.nanoTime();
+    try (SparkSession spark =
+        SparkSession.builder()
+            .appName("catalog extension test")
+            .master("local[*]")
+            .config("spark.sql.legacy.createHiveTableByDefault", "false")
+            .config("spark.sql.sources.default", "bigquery")
+            .config("spark.datasource.bigquery.writeMethod", "direct")
+            .getOrCreate(); ) {
+      spark.read().format("bigquery").load("davidrab.demo").createGlobalTempView("vdemo");
+      List<Row> result = spark.sql("SELECT * FROM global_temp.vdemo").collectAsList();
+      assertThat(result).hasSize(2);
+      spark.catalog().listTables("global_temp").show();
     }
   }
 
