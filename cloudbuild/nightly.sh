@@ -28,7 +28,7 @@ function checkenv() {
 readonly M2REPO="/workspace/.repository"
 readonly DATE="$(date +%Y%m%d)"
 readonly REVISION="0.0.${DATE}"
-readonly BUILD_OPTS='-Xss1g -Xmx20g -XX:MaxMetaspaceSize=10g -XX:ReservedCodeCacheSize=2g -Dsun.zip.disableMemoryMapping=true -DtrimStackTrace=false'
+export   BUILD_OPTS='-Xss1g -Xmx20g -XX:MaxMetaspaceSize=10g -XX:ReservedCodeCacheSize=2g -Dsun.zip.disableMemoryMapping=true -DtrimStackTrace=false'
 readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=${M2REPO} -Drevision=${REVISION}"
 readonly BUCKET="spark-lib-nightly-snapshots"
 
@@ -39,10 +39,11 @@ case $STEP in
   build)
     checkenv
     # Build
-    $MVN ${BUILD_OPTS} -T 1C install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2
+    $MVN -T 1C install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2
     #coverage report
-    $MVN ${BUILD_OPTS} -T 1C test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2
+    $MVN -T 1C test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2
     # Run integration tests
+    unset MAVEN_OPTS
     $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5
     # Run acceptance tests
     $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5
