@@ -18,6 +18,8 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.common.truth.Truth.assertThat;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -26,6 +28,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.json.JSONObject;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -48,6 +51,12 @@ public class OpenLineageIntegrationTestBase {
   @Before
   public void createTestTable() {
     testTable = "test_" + System.nanoTime();
+  }
+
+  @After
+  public void clearLineageFile() throws FileNotFoundException {
+    PrintWriter pw = new PrintWriter(lineageFile);
+    pw.close();
   }
 
   protected static class CustomSessionFactory extends ExternalResource {
@@ -73,6 +82,9 @@ public class OpenLineageIntegrationTestBase {
   }
 
   private List<JSONObject> parseEventLogs(File file) throws Exception {
+    // Adding a 1-second cushion, as it takes some time for all OpenLineage events to be emitted and
+    // saved to the file
+    Thread.sleep(1000);
     List<JSONObject> eventList;
     try (Scanner scanner = new Scanner(file)) {
       eventList = new ArrayList<>();
@@ -97,6 +109,39 @@ public class OpenLineageIntegrationTestBase {
     String fullTableName = testDataset.toString() + "." + testTable;
     Dataset<Row> readDF =
         spark.read().format("bigquery").option("table", TestConstants.SHAKESPEARE_TABLE).load();
+    readDF.createOrReplaceTempView("words");
+    Dataset<Row> writeDF =
+        spark.sql("SELECT word, SUM(word_count) AS word_count FROM words GROUP BY word");
+    writeDF
+        .write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("table", fullTableName)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", "direct")
+        .save();
+    List<JSONObject> eventList = parseEventLogs(lineageFile);
+    assertThat(eventList)
+        .isNotEmpty(); // check if there is at least one event with both input and output
+    eventList.forEach(
+        (event) -> { // check if each of these events have the correct input and output
+          assertThat(getFieldName(event, "inputs")).matches(TestConstants.SHAKESPEARE_TABLE);
+          assertThat(getFieldName(event, "outputs")).matches(fullTableName);
+        });
+  }
+
+  @Test
+  public void testLineageEventWithQueryInput() throws Exception {
+    String fullTableName = testDataset.toString() + "." + testTable;
+    Dataset<Row> readDF =
+        spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", true)
+            .option("materializationDataset", testDataset.toString())
+            .option("query", "SELECT * FROM `bigquery-public-data.samples.shakespeare`")
+            .load();
+
     readDF.createOrReplaceTempView("words");
     Dataset<Row> writeDF =
         spark.sql("SELECT word, SUM(word_count) AS word_count FROM words GROUP BY word");
