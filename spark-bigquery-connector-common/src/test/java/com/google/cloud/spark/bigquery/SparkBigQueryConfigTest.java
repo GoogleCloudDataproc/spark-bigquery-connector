@@ -103,8 +103,6 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getIntermediateFormat())
         .isEqualTo(SparkBigQueryConfig.DEFAULT_INTERMEDIATE_FORMAT);
     assertThat(config.getReadDataFormat()).isEqualTo(SparkBigQueryConfig.DEFAULT_READ_DATA_FORMAT);
-    assertThat(config.getMaterializationProject()).isEqualTo(Optional.empty());
-    assertThat(config.getMaterializationDataset()).isEqualTo(Optional.empty());
     assertThat(config.getPartitionField()).isEqualTo(Optional.empty());
     assertThat(config.getPartitionExpirationMs()).isEqualTo(OptionalLong.empty());
     assertThat(config.getPartitionRequireFilter()).isEqualTo(Optional.empty());
@@ -113,7 +111,6 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getClusteredFields()).isEqualTo(Optional.empty());
     assertThat(config.getCreateDisposition()).isEqualTo(Optional.empty());
     assertThat(config.getLoadSchemaUpdateOptions()).isEqualTo(ImmutableList.of());
-    assertThat(config.getMaterializationExpirationTimeInMinutes()).isEqualTo(24 * 60);
     assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
     assertThat(config.isUseAvroLogicalTypes()).isFalse();
     assertThat(config.getDecimalTargetTypes()).isEmpty();
@@ -153,9 +150,6 @@ public class SparkBigQueryConfigTest {
                 .put("maxParallelism", "99")
                 .put("preferredMinParallelism", "10")
                 .put("viewsEnabled", "true")
-                .put("viewMaterializationProject", "vmp")
-                .put("viewMaterializationDataset", "vmd")
-                .put("materializationExpirationTimeInMinutes", "100")
                 .put("readDataFormat", "ARROW")
                 .put("optimizedEmptyProjection", "false")
                 .put("createDisposition", "CREATE_NEVER")
@@ -208,8 +202,6 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getIntermediateFormat())
         .isEqualTo(SparkBigQueryConfig.IntermediateFormat.ORC);
     assertThat(config.getReadDataFormat()).isEqualTo(DataFormat.ARROW);
-    assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("vmp"));
-    assertThat(config.getMaterializationDataset()).isEqualTo(Optional.of("vmd"));
     assertThat(config.getPartitionType()).isEqualTo(Optional.of(TimePartitioning.Type.HOUR));
     assertThat(config.getPartitionField()).isEqualTo(Optional.of("some_field"));
     assertThat(config.getPartitionExpirationMs()).isEqualTo(OptionalLong.of(999));
@@ -222,7 +214,6 @@ public class SparkBigQueryConfigTest {
             ImmutableList.of(
                 JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION,
                 JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION));
-    assertThat(config.getMaterializationExpirationTimeInMinutes()).isEqualTo(100);
     assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
     assertThat(config.isUseAvroLogicalTypes()).isTrue();
     assertThat(config.getDecimalTargetTypes()).isEqualTo(ImmutableList.of("NUMERIC", "BIGNUMERIC"));
@@ -744,7 +735,6 @@ public class SparkBigQueryConfigTest {
             sparkVersion,
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
-    assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("foo"));
   }
 
   @Test
@@ -762,7 +752,6 @@ public class SparkBigQueryConfigTest {
             sparkVersion,
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
-    assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("foo"));
   }
 
   @Test
@@ -778,7 +767,6 @@ public class SparkBigQueryConfigTest {
             sparkVersion,
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
-    assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("bar"));
   }
 
   @Test
@@ -794,7 +782,6 @@ public class SparkBigQueryConfigTest {
             sparkVersion,
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
-    assertThat(config.getMaterializationProject()).isEqualTo(Optional.empty());
   }
 
   @Test
@@ -1205,11 +1192,7 @@ public class SparkBigQueryConfigTest {
   public void testLoadFromQueryConfig() {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
-            asDataSourceOptionsMap(
-                ImmutableMap.of( //
-                    "query", "SELECT * FROM foo", //
-                    "materializationDataset", "materializationDataset" //
-                    )),
+            asDataSourceOptionsMap(ImmutableMap.of("query", "SELECT * FROM foo")),
             emptyMap, // allConf
             new Configuration(),
             emptyMap, // customDefaults

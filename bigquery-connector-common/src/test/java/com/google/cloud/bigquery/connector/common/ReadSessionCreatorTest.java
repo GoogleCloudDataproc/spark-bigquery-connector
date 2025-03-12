@@ -334,7 +334,7 @@ public class ReadSessionCreatorTest {
     when(bigQueryClient.createSql(
             view.getTableId(), ImmutableList.of(), new String[0], OptionalLong.of(1234567890L)))
         .thenReturn(query);
-    when(bigQueryClient.materializeViewToTable(query, view.getTableId(), 120)).thenReturn(table);
+    when(bigQueryClient.materializeViewToTable(query, view.getTableId())).thenReturn(table);
     mockBigQueryRead.reset();
     mockBigQueryRead.addResponse(
         ReadSession.newBuilder().addStreams(ReadStream.newBuilder().setName("0")).build());

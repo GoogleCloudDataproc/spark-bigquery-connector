@@ -39,8 +39,6 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final String parentProjectId;
   private final boolean useParentProjectForMetadataOperations;
   private final boolean viewsEnabled;
-  private final Optional<String> materializationProject;
-  private final Optional<String> materializationDataset;
   private final int bigQueryClientConnectTimeout;
   private final int bigQueryClientReadTimeout;
   private final RetrySettings bigQueryClientRetrySettings;
@@ -72,8 +70,6 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.useParentProjectForMetadataOperations =
         bigQueryConfig.useParentProjectForMetadataOperations();
     this.viewsEnabled = bigQueryConfig.isViewsEnabled();
-    this.materializationProject = bigQueryConfig.getMaterializationProject();
-    this.materializationDataset = bigQueryConfig.getMaterializationDataset();
     this.bigQueryClientConnectTimeout = bigQueryConfig.getBigQueryClientConnectTimeout();
     this.bigQueryClientReadTimeout = bigQueryConfig.getBigQueryClientReadTimeout();
     this.bigQueryClientRetrySettings = bigQueryConfig.getBigQueryClientRetrySettings();
@@ -152,16 +148,6 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   @Override
   public boolean isViewsEnabled() {
     return viewsEnabled;
-  }
-
-  @Override
-  public Optional<String> getMaterializationProject() {
-    return materializationProject;
-  }
-
-  @Override
-  public Optional<String> getMaterializationDataset() {
-    return materializationDataset;
   }
 
   @Override
@@ -246,8 +232,6 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
         && Objects.equal(parentProjectId, that.parentProjectId)
         && Objects.equal(
             useParentProjectForMetadataOperations, that.useParentProjectForMetadataOperations)
-        && Objects.equal(materializationProject, that.materializationProject)
-        && Objects.equal(materializationDataset, that.materializationDataset)
         && Objects.equal(bigQueryClientRetrySettings, that.bigQueryClientRetrySettings)
         && Objects.equal(bigQueryProxyConfig, that.bigQueryProxyConfig)
         && Objects.equal(bigQueryStorageGrpcEndpoint, that.bigQueryStorageGrpcEndpoint)
@@ -267,8 +251,6 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
         parentProjectId,
         useParentProjectForMetadataOperations,
         viewsEnabled,
-        materializationProject,
-        materializationDataset,
         bigQueryClientConnectTimeout,
         bigQueryClientReadTimeout,
         bigQueryClientRetrySettings,

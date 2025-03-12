@@ -90,7 +90,6 @@ public class BigQueryRDDFactory {
     TableInfo actualTable =
         bigQueryClient.materializeQueryToTable(
             sql,
-            options.getMaterializationExpirationTimeInMinutes(),
             // Label to add to Query Job indicating that it was invoked as part of query pushdown
             ImmutableMap.<String, String>builder()
                 .put(QUERY_JOB_LABEL, QUERY_PUSHDOWN_JOB_LABEL_VALUE)

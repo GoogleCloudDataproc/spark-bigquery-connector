@@ -51,10 +51,6 @@ public interface BigQueryConfig {
 
   boolean isViewsEnabled();
 
-  Optional<String> getMaterializationProject();
-
-  Optional<String> getMaterializationDataset();
-
   int getBigQueryClientConnectTimeout();
 
   int getBigQueryClientReadTimeout();
