@@ -90,6 +90,7 @@ public class SparkBigQueryConfig
         Serializable {
 
   public static final int MAX_TRACE_ID_LENGTH = 256;
+  public static final TableId QUERY_DUMMUY_TABLE_ID = TableId.of("QUERY", "QUERY");
 
   public enum WriteMethod {
     DIRECT,
@@ -339,6 +340,9 @@ public class SparkBigQueryConfig
     ImmutableMap<String, String> globalOptions = normalizeConf(originalGlobalOptions);
     config.sparkBigQueryProxyAndHttpConfig =
         SparkBigQueryProxyAndHttpConfig.from(options, globalOptions, hadoopConfiguration);
+    // Issue #247
+    // we need those parameters in case a read from query is issued
+    config.viewsEnabled = getAnyBooleanOption(globalOptions, options, VIEWS_ENABLED_OPTION, false);
     // get the table details
     Optional<String> fallbackProject =
         com.google.common.base.Optional.fromNullable(
@@ -370,7 +374,7 @@ public class SparkBigQueryConfig
         if (isQuery(tableParamStr)) {
           // it is a query in practice
           config.query = com.google.common.base.Optional.of(tableParamStr);
-          config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
+          config.tableId = QUERY_DUMMUY_TABLE_ID;
         } else {
           config.tableId =
               parseTableId(tableParamStr, datasetParam, projectParam, datePartitionParam);
@@ -379,7 +383,7 @@ public class SparkBigQueryConfig
         // no table has been provided, it is either a query or an error
         config.query = getOption(options, "query").transform(String::trim);
         if (config.query.isPresent()) {
-          config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
+          config.tableId = QUERY_DUMMUY_TABLE_ID;
         } else if (tableIsMandatory) {
           // No table nor query were set. We cannot go further.
           throw new IllegalArgumentException("No table has been specified");

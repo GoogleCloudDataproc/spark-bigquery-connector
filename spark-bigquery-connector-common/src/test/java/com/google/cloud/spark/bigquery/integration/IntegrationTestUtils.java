@@ -61,8 +61,6 @@ public class IntegrationTestUtils {
   private static BigQueryClient getBigQueryClient() {
     return new BigQueryClient(
         getBigquery(),
-        Optional.empty(),
-        Optional.empty(),
         destinationTableCache,
         ImmutableMap.of(),
         SparkBigQueryConfig.DEFAULT_JOB_PRIORITY,

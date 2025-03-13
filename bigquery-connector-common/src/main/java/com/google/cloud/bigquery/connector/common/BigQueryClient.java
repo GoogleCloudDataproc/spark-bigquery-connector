@@ -948,7 +948,7 @@ public class BigQueryClient {
         throw BigQueryUtil.convertToBigQueryException(completedJobInfo.getStatus().getError());
       }
       return bigQueryClient.getTable(
-          ((QueryJobConfiguration) jobInfo.getConfiguration()).getDestinationTable());
+          ((QueryJobConfiguration) completedJobInfo.getConfiguration()).getDestinationTable());
     }
 
     Job waitForJob(Job job) {

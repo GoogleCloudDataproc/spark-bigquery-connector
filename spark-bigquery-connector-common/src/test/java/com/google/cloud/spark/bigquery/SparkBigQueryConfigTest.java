@@ -1203,5 +1203,6 @@ public class SparkBigQueryConfigTest {
             /* tableIsMandatory */ true);
     assertThat(config.getTableId()).isNotNull();
     assertThat(config.getTableId().getTable()).isEqualTo("QUERY");
+    assertThat(config.getTableId().getDataset()).isEqualTo("QUERY");
   }
 }
