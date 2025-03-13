@@ -3,6 +3,10 @@
 ## Next
 * CVE-2025-24970, CVE-2025-25193: Upgrading netty to version 4.1.119.Final
 * PR #1284: Making BigQueryClientFactory Kryo serializable. Thanks @tom-s-powell !
+* BigQuery API has been upgraded to version 2.48.1
+* BigQuery Storage API has been upgraded to version 3.11.4
+* GAX has been upgraded to version 2.63.1
+* gRPC has been upgraded to version 1.70.0
 
 ## 0.42.0 - 2025-02-06
 * PR #1333: Initial implementation of a BigQuery backed Spark Catalog
