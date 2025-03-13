@@ -259,7 +259,7 @@ note there are a few caveats:
   `spark.conf.set("viewsEnabled", "true")`.
 
 **Notice:** Before version 0.43.0 of the connector, the following configurations
-are required: 
+are required:
 * By default, the materialized views are created in the same project and
   dataset. Those can be configured by the optional `materializationProject`
   and `materializationDataset` options, respectively. These options can also
@@ -268,7 +268,7 @@ are required:
   the `materializationDataset` should be in same location as the view.
 
 Starting version 0.43.0 those configurations are **redundant** and are ignored.
-It is highly recommended to upgrade to this version or a later one to enjoy 
+It is highly recommended to upgrade to this version or a later one to enjoy
 simpler configuration when using views or loading from queries.
 
 ### Writing data to BigQuery
