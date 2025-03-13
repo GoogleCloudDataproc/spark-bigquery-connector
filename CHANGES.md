@@ -2,6 +2,8 @@
 
 ## Next
 
+* PR #1212: Support OpenLineage in spark-3.x-bigquery connectors
+
 ## 0.34.0 - 2023-10-31
 
 * PR #1057: Enable async writes for greater throughput
