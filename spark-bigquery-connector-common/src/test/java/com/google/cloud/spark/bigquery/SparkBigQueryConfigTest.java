@@ -739,34 +739,38 @@ public class SparkBigQueryConfigTest {
 
   @Test
   public void testGetAnyOptionWithFallbackBothConfigsExist() {
+    Configuration hadoopConfigurationWithGcsProject = new Configuration();
+    hadoopConfigurationWithGcsProject.set("fs.gs.project.id", "bar");
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
-            asDataSourceOptionsMap(
-                withParameters(
-                    "materializationProject", "foo", "viewMaterializationProject", "bar")),
+            asDataSourceOptionsMap(withParameter("project", "foo")),
             defaultGlobalOptions, // allConf
-            new Configuration(),
+            hadoopConfigurationWithGcsProject,
             emptyMap, // customDefaults
             1,
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
+    assertThat(config.getTableId().getProject()).isEqualTo("foo");
   }
 
   @Test
-  public void testGetAnyOptionWithFallbackOnlyOldConfigExist() {
+  public void testGetAnyOptionWithFallbackOnlyFallbackExists() {
+    Configuration hadoopConfigurationWithGcsProject = new Configuration();
+    hadoopConfigurationWithGcsProject.set("fs.gs.project.id", "bar");
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
-            asDataSourceOptionsMap(withParameter("viewMaterializationProject", "bar")),
+            asDataSourceOptionsMap(parameters),
             defaultGlobalOptions, // allConf
-            new Configuration(),
+            hadoopConfigurationWithGcsProject,
             emptyMap, // customDefaults
             1,
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
+    assertThat(config.getTableId().getProject()).isEqualTo("bar");
   }
 
   @Test
@@ -782,6 +786,7 @@ public class SparkBigQueryConfigTest {
             sparkVersion,
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
+    assertThat(config.getTableId().getProject()).isNull();
   }
 
   @Test

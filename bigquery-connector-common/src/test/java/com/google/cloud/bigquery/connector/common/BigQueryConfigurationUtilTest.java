@@ -73,29 +73,7 @@ public class BigQueryConfigurationUtilTest {
     assertThat(result.getDataset()).isEqualTo("dataset");
     assertThat(result.getTable()).isEqualTo("table");
   }
-  /*
-    @Test
-    public void testParseSimpleTableId_fallbackProjectIgnored() {
-      TableId result =
-          BigQueryConfigurationUtil.parseSimpleTableId(
-                  ImmutableMap.of("materializationProject", "fallback"),
-              ImmutableMap.of("table", "table", "dataset", "dataset", "project", "project"));
-      assertThat(result.getProject()).isEqualTo("project");
-      assertThat(result.getDataset()).isEqualTo("dataset");
-      assertThat(result.getTable()).isEqualTo("table");
-    }
 
-    @Test
-    public void testParseSimpleTableId_fallbackProjectUsed() {
-      TableId result =
-          BigQueryConfigurationUtil.parseSimpleTableId(
-                  ImmutableMap.of("materializationProject", "fallback"),
-              ImmutableMap.of("table", "table", "dataset", "dataset"));
-      assertThat(result.getProject()).isEqualTo("fallback");
-      assertThat(result.getDataset()).isEqualTo("dataset");
-      assertThat(result.getTable()).isEqualTo("table");
-    }
-  */
   @Test
   public void testParseSimpleTableId_missingDataset() {
     assertThrows(
