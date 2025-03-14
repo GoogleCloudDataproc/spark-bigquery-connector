@@ -878,6 +878,10 @@ public class BigQueryClient {
       createTable(tableId, bigQuerySchema, options);
     }
   }
+  /** Returns true f the dataset exists, false otherwise. */
+  public boolean datasetExists(DatasetId datasetId) {
+    return bigQuery.getDataset(datasetId) != null;
+  }
 
   public interface ReadTableOptions {
     TableId tableId();
