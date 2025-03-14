@@ -726,7 +726,7 @@ public class SparkBigQueryConfigTest {
 
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
-            asDataSourceOptionsMap(withParameter("materializationProject", "foo")),
+            asDataSourceOptionsMap(withParameter("project", "foo")),
             defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
@@ -735,6 +735,7 @@ public class SparkBigQueryConfigTest {
             sparkVersion,
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
+    assertThat(config.getTableId().getProject()).isEqualTo("foo");
   }
 
   @Test
