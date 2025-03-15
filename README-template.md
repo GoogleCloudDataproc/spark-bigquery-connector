@@ -189,7 +189,6 @@ SELECT query on BigQuery and fetch its results directly to a Spark Dataframe.
 This is easily done as described in the following code sample:
 ```
 spark.conf.set("viewsEnabled","true")
-spark.conf.set("materializationDataset","<dataset>")
 
 sql = """
   SELECT tag, COUNT(*) c
@@ -236,16 +235,8 @@ efficiently then running joins on Spark or use other BigQuery features such as
 [BigQuery ML](https://cloud.google.com/bigquery-ml/docs)
 and more.
 
-In order to use this feature the following configurations MUST be set:
-* `viewsEnabled` must be set to `true`.
-* `materializationDataset` must be set to a dataset where the GCP user has table
-  creation permission. `materializationProject` is optional.
-
-**Note:** As mentioned in the [BigQuery documentation](https://cloud.google.com/bigquery/docs/writing-results#temporary_and_permanent_tables),
-the queried tables must be in the same location as the `materializationDataset`.
-Also, if the tables in the `SQL statement` are from projects other than the
-`parentProject` then use the fully qualified table name i.e.
-`[project].[dataset].[table]`.
+In order to use this feature the `viewsEnabled` configurations MUST be set to
+`true`. This can also be done globally as shown in the example above.
 
 **Important:** This feature is implemented by running the query on BigQuery and
 saving the result into a temporary table, of which Spark will read the results
@@ -262,16 +253,23 @@ note there are a few caveats:
   read performance, even before running any `collect()` or `count()` action.
 * The materialization process can also incur additional costs to your BigQuery
   bill.
-* By default, the materialized views are created in the same project and
-  dataset. Those can be configured by the optional `materializationProject`
-  and `materializationDataset` options, respectively. These options can also
-  be globally set by calling `spark.conf.set(...)` before reading the views.
 * Reading from views is **disabled** by default. In order to enable it,
   either set the viewsEnabled option when reading the specific view
   (`.option("viewsEnabled", "true")`) or set it globally by calling
   `spark.conf.set("viewsEnabled", "true")`.
+
+**Notice:** Before version 0.43.0 of the connector, the following configurations
+are required:
+* By default, the materialized views are created in the same project and
+  dataset. Those can be configured by the optional `materializationProject`
+  and `materializationDataset` options, respectively. These options can also
+  be globally set by calling `spark.conf.set(...)` before reading the views.
 * As mentioned in the [BigQuery documentation](https://cloud.google.com/bigquery/docs/writing-results#temporary_and_permanent_tables),
   the `materializationDataset` should be in same location as the view.
+
+Starting version 0.43.0 those configurations are **redundant** and are ignored.
+It is highly recommended to upgrade to this version or a later one to enjoy
+simpler configuration when using views or loading from queries.
 
 ### Writing data to BigQuery
 
@@ -425,35 +423,6 @@ word-break:break-word
        the <a href="#reading-from-views">relevant section</a> before activating
        this option.
        <br/>(Optional. Defaults to <code>false</code>)
-   </td>
-   <td>Read</td>
-  </tr>
-  <tr valign="top">
-   <td><code>materializationProject</code>
-   </td>
-   <td>The project id where the materialized view is going to be created
-       <br/>(Optional. Defaults to view's project id)
-   </td>
-   <td>Read</td>
-  </tr>
-  <tr valign="top">
-   <td><code>materializationDataset</code>
-   </td>
-   <td>The dataset where the materialized view is going to be created. This
-   dataset should be in same location as the view or the queried tables.
-       <br/>(Optional. Defaults to view's dataset)
-   </td>
-   <td>Read</td>
-  </tr>
-  <tr valign="top">
-   <td><code>materializationExpirationTimeInMinutes</code>
-   </td>
-   <td>The expiration time of the temporary table holding the materialized data
-       of a view or a query, in minutes. Notice that the connector may re-use
-       the temporary table due to the use of local cache and in order to reduce
-       BigQuery computation, so very low values may cause errors. The value must
-       be a positive integer.
-       <br/>(Optional. Defaults to 1440, or 24 hours)
    </td>
    <td>Read</td>
   </tr>

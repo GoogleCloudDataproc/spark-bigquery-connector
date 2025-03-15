@@ -1201,7 +1201,6 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .read()
             .format("bigquery")
             .option("viewsEnabled", "true")
-            .option("materializationDataset", testDataset.toString())
             .load(String.format("SELECT jf.value FROM `%s.%s`", testDataset.toString(), testTable));
     // collecting the data to validate its content
     List<String> result =
@@ -1245,7 +1244,6 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .read()
             .format("bigquery")
             .option("viewsEnabled", "true")
-            .option("materializationDataset", testDataset.toString())
             .load(String.format("SELECT jf.value FROM `%s.%s`", testDataset.toString(), testTable));
     // collecting the data to validate its content
     List<String> result =
@@ -1301,12 +1299,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     // validating by querying a sub-field of the json
     Dataset<Row> resultDF =
-        spark
-            .read()
-            .format("bigquery")
-            .option("viewsEnabled", "true")
-            .option("materializationDataset", testDataset.toString())
-            .load(sql);
+        spark.read().format("bigquery").option("viewsEnabled", "true").load(sql);
     // collecting the data to validate its content
     Row result = resultDF.head();
     assertThat(result.getLong(0)).isEqualTo(3L);

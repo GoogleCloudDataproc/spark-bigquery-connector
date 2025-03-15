@@ -377,8 +377,6 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .format("bigquery")
             .option("table", "bigquery-public-data:bigqueryml_ncaa.cume_games_view")
             .option("viewsEnabled", "true")
-            .option("viewMaterializationProject", PROJECT_ID)
-            .option("viewMaterializationDataset", testDataset.toString())
             .load();
 
     assertThat(df.count()).isGreaterThan(1);

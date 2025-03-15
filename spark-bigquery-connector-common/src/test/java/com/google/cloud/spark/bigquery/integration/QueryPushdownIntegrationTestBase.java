@@ -36,12 +36,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
   @Test
   public void testStringFunctionExpressions() {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("materializationDataset", testDataset.toString())
-            .load(TestConstants.SHAKESPEARE_TABLE);
+    Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
     df =
         df.selectExpr(
                 "word",
@@ -103,7 +98,6 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
         spark
             .read()
             .format("bigquery")
-            .option("materializationDataset", testDataset.toString())
             .load("bigquery-public-data.google_political_ads.last_updated");
 
     df.createOrReplaceTempView("last_updated");
@@ -138,12 +132,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
   @Test
   public void testBasicExpressions() {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("materializationDataset", testDataset.toString())
-            .load(TestConstants.SHAKESPEARE_TABLE);
+    Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
 
     df.createOrReplaceTempView("shakespeare");
 
@@ -171,12 +160,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
   @Test
   public void testMathematicalFunctionExpressions() {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("materializationDataset", testDataset.toString())
-            .load(TestConstants.SHAKESPEARE_TABLE);
+    Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
     df =
         df.selectExpr(
                 "word",
@@ -231,12 +215,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
   @Test
   public void testMiscellaneousExpressions() {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("materializationDataset", testDataset.toString())
-            .load(TestConstants.SHAKESPEARE_TABLE);
+    Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
     df.createOrReplaceTempView("shakespeare");
     df =
         df.selectExpr(
@@ -273,12 +252,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
   @Test
   public void testUnionQuery() {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("materializationDataset", testDataset.toString())
-            .load(TestConstants.SHAKESPEARE_TABLE);
+    Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
 
     df.createOrReplaceTempView("shakespeare");
     Dataset<Row> words_with_word_count_100 =
@@ -302,12 +276,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
   @Test
   public void testBooleanExpressions() {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("materializationDataset", testDataset.toString())
-            .load(TestConstants.SHAKESPEARE_TABLE);
+    Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
 
     df.createOrReplaceTempView("shakespeare");
 
@@ -364,12 +333,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
   @Test
   public void testWindowStatements() {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("materializationDataset", testDataset.toString())
-            .load(TestConstants.SHAKESPEARE_TABLE);
+    Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
 
     df.createOrReplaceTempView("shakespeare");
 
@@ -421,11 +385,7 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
         getNumStructDataFrame(TestConstants.numStructDatasetForWindow),
         testDataset.toString() + "." + testTable);
     Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("materializationDataset", testDataset.toString())
-            .load(testDataset.toString() + "." + testTable);
+        spark.read().format("bigquery").load(testDataset.toString() + "." + testTable);
     df.createOrReplaceTempView("numStructDF");
     /*
      +----+----+----+--------------------+
@@ -1099,10 +1059,6 @@ public class QueryPushdownIntegrationTestBase extends SparkBigQueryIntegrationTe
 
   /** Method to read the test table of schema NumStruct, in test dataset */
   protected Dataset<Row> readTestDataFromBigQuery(String table) {
-    return spark
-        .read()
-        .format("bigquery")
-        .option("materializationDataset", testDataset.toString())
-        .load(table);
+    return spark.read().format("bigquery").load(table);
   }
 }

@@ -19,6 +19,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.cloud.bigquery.TableId;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
 
@@ -31,7 +32,9 @@ public class BigQueryConfigurationUtilTest {
   public void testParseSimpleTableId_tableOnly() {
     TableId result =
         BigQueryConfigurationUtil.parseSimpleTableId(
-            EMPTY_GLOBAL_OPTIONS, ImmutableMap.of("table", "project.dataset.table"));
+            ImmutableMap.of("table", "project.dataset.table"),
+            Optional.absent(),
+            Optional.absent());
     assertThat(result.getProject()).isEqualTo("project");
     assertThat(result.getDataset()).isEqualTo("dataset");
     assertThat(result.getTable()).isEqualTo("table");
@@ -41,7 +44,7 @@ public class BigQueryConfigurationUtilTest {
   public void testParseSimpleTableId_pathOnly() {
     TableId result =
         BigQueryConfigurationUtil.parseSimpleTableId(
-            EMPTY_GLOBAL_OPTIONS, ImmutableMap.of("path", "project.dataset.table"));
+            ImmutableMap.of("path", "project.dataset.table"), Optional.absent(), Optional.absent());
     assertThat(result.getProject()).isEqualTo("project");
     assertThat(result.getDataset()).isEqualTo("dataset");
     assertThat(result.getTable()).isEqualTo("table");
@@ -51,7 +54,9 @@ public class BigQueryConfigurationUtilTest {
   public void testParseSimpleTableId_tableAndDataset() {
     TableId result =
         BigQueryConfigurationUtil.parseSimpleTableId(
-            EMPTY_GLOBAL_OPTIONS, ImmutableMap.of("table", "table", "dataset", "dataset"));
+            ImmutableMap.of("table", "table", "dataset", "dataset"),
+            Optional.absent(),
+            Optional.absent());
     assertThat(result.getProject()).isNull();
     assertThat(result.getDataset()).isEqualTo("dataset");
     assertThat(result.getTable()).isEqualTo("table");
@@ -61,53 +66,10 @@ public class BigQueryConfigurationUtilTest {
   public void testParseSimpleTableId_allParams() {
     TableId result =
         BigQueryConfigurationUtil.parseSimpleTableId(
-            EMPTY_GLOBAL_OPTIONS,
-            ImmutableMap.of("table", "table", "dataset", "dataset", "project", "project"));
+            ImmutableMap.of("table", "table", "dataset", "dataset", "project", "project"),
+            Optional.absent(),
+            Optional.absent());
     assertThat(result.getProject()).isEqualTo("project");
-    assertThat(result.getDataset()).isEqualTo("dataset");
-    assertThat(result.getTable()).isEqualTo("table");
-  }
-
-  @Test
-  public void testParseSimpleTableId_fallbackDatasetIgnored() {
-    TableId result =
-        BigQueryConfigurationUtil.parseSimpleTableId(
-            ImmutableMap.of("materializationDataset", "fallback"),
-            ImmutableMap.of("table", "table", "dataset", "dataset"));
-    assertThat(result.getProject()).isNull();
-    assertThat(result.getDataset()).isEqualTo("dataset");
-    assertThat(result.getTable()).isEqualTo("table");
-  }
-
-  @Test
-  public void testParseSimpleTableId_fallbackDatasetUsed() {
-    TableId result =
-        BigQueryConfigurationUtil.parseSimpleTableId(
-            ImmutableMap.of("materializationDataset", "fallback"),
-            ImmutableMap.of("table", "table"));
-    assertThat(result.getProject()).isNull();
-    assertThat(result.getDataset()).isEqualTo("fallback");
-    assertThat(result.getTable()).isEqualTo("table");
-  }
-
-  @Test
-  public void testParseSimpleTableId_fallbackProjectIgnored() {
-    TableId result =
-        BigQueryConfigurationUtil.parseSimpleTableId(
-            ImmutableMap.of("materializationProject", "fallback"),
-            ImmutableMap.of("table", "table", "dataset", "dataset", "project", "project"));
-    assertThat(result.getProject()).isEqualTo("project");
-    assertThat(result.getDataset()).isEqualTo("dataset");
-    assertThat(result.getTable()).isEqualTo("table");
-  }
-
-  @Test
-  public void testParseSimpleTableId_fallbackProjectUsed() {
-    TableId result =
-        BigQueryConfigurationUtil.parseSimpleTableId(
-            ImmutableMap.of("materializationProject", "fallback"),
-            ImmutableMap.of("table", "table", "dataset", "dataset"));
-    assertThat(result.getProject()).isEqualTo("fallback");
     assertThat(result.getDataset()).isEqualTo("dataset");
     assertThat(result.getTable()).isEqualTo("table");
   }
@@ -119,7 +81,7 @@ public class BigQueryConfigurationUtilTest {
         IllegalArgumentException.class,
         () -> {
           BigQueryConfigurationUtil.parseSimpleTableId(
-              EMPTY_GLOBAL_OPTIONS, ImmutableMap.of("table", "table"));
+              ImmutableMap.of("table", "table"), Optional.absent(), Optional.absent());
         });
   }
 }

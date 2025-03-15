@@ -47,7 +47,6 @@ import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
-import com.google.cloud.bigquery.connector.common.MaterializationConfiguration;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
@@ -91,6 +90,7 @@ public class SparkBigQueryConfig
         Serializable {
 
   public static final int MAX_TRACE_ID_LENGTH = 256;
+  public static final TableId QUERY_DUMMUY_TABLE_ID = TableId.of("QUERY", "QUERY");
 
   public enum WriteMethod {
     DIRECT,
@@ -202,8 +202,6 @@ public class SparkBigQueryConfig
   DataFormat readDataFormat = DEFAULT_READ_DATA_FORMAT;
   boolean combinePushedDownFilters = true;
   boolean viewsEnabled = false;
-  com.google.common.base.Optional<String> materializationProject = empty();
-  com.google.common.base.Optional<String> materializationDataset = empty();
   com.google.common.base.Optional<String> partitionField = empty();
   Long partitionExpirationMs = null;
   com.google.common.base.Optional<Boolean> partitionRequireFilter = empty();
@@ -217,7 +215,6 @@ public class SparkBigQueryConfig
   boolean useAvroLogicalTypes = false;
   List<String> decimalTargetTypes = Collections.emptyList();
   List<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = Collections.emptyList();
-  int materializationExpirationTimeInMinutes;
   int maxReadRowsRetries = 3;
   boolean pushAllFilters = true;
   boolean enableModeCheckForSchemaFields = true;
@@ -346,19 +343,12 @@ public class SparkBigQueryConfig
     // Issue #247
     // we need those parameters in case a read from query is issued
     config.viewsEnabled = getAnyBooleanOption(globalOptions, options, VIEWS_ENABLED_OPTION, false);
-    MaterializationConfiguration materializationConfiguration =
-        MaterializationConfiguration.from(globalOptions, options);
-    config.materializationProject = materializationConfiguration.getMaterializationProject();
-    config.materializationDataset = materializationConfiguration.getMaterializationDataset();
-    config.materializationExpirationTimeInMinutes =
-        materializationConfiguration.getMaterializationExpirationTimeInMinutes();
     // get the table details
-    com.google.common.base.Optional<String> fallbackDataset = config.materializationDataset;
     Optional<String> fallbackProject =
         com.google.common.base.Optional.fromNullable(
                 hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY))
             .toJavaUtil();
-    Optional<String> datasetParam = getOption(options, "dataset").or(fallbackDataset).toJavaUtil();
+    Optional<String> datasetParam = getOption(options, "dataset").toJavaUtil();
     Optional<String> projectParam =
         firstPresent(getOption(options, "project").toJavaUtil(), fallbackProject);
     config.partitionType =
@@ -384,7 +374,7 @@ public class SparkBigQueryConfig
         if (isQuery(tableParamStr)) {
           // it is a query in practice
           config.query = com.google.common.base.Optional.of(tableParamStr);
-          config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
+          config.tableId = QUERY_DUMMUY_TABLE_ID;
         } else {
           config.tableId =
               parseTableId(tableParamStr, datasetParam, projectParam, datePartitionParam);
@@ -393,7 +383,7 @@ public class SparkBigQueryConfig
         // no table has been provided, it is either a query or an error
         config.query = getOption(options, "query").transform(String::trim);
         if (config.query.isPresent()) {
-          config.tableId = parseTableId("QUERY", datasetParam, projectParam, datePartitionParam);
+          config.tableId = QUERY_DUMMUY_TABLE_ID;
         } else if (tableIsMandatory) {
           // No table nor query were set. We cannot go further.
           throw new IllegalArgumentException("No table has been specified");
@@ -937,16 +927,6 @@ public class SparkBigQueryConfig
     return viewsEnabled;
   }
 
-  @Override
-  public Optional<String> getMaterializationProject() {
-    return materializationProject.toJavaUtil();
-  }
-
-  @Override
-  public Optional<String> getMaterializationDataset() {
-    return materializationDataset.toJavaUtil();
-  }
-
   public Optional<String> getPartitionField() {
     return partitionField.toJavaUtil();
   }
@@ -997,10 +977,6 @@ public class SparkBigQueryConfig
 
   public ImmutableList<JobInfo.SchemaUpdateOption> getLoadSchemaUpdateOptions() {
     return ImmutableList.copyOf(loadSchemaUpdateOptions);
-  }
-
-  public int getMaterializationExpirationTimeInMinutes() {
-    return materializationExpirationTimeInMinutes;
   }
 
   public int getMaxReadRowsRetries() {
@@ -1154,9 +1130,6 @@ public class SparkBigQueryConfig
   public ReadSessionCreatorConfig toReadSessionCreatorConfig() {
     return new ReadSessionCreatorConfigBuilder()
         .setViewsEnabled(viewsEnabled)
-        .setMaterializationProject(materializationProject.toJavaUtil())
-        .setMaterializationDataset(materializationDataset.toJavaUtil())
-        .setMaterializationExpirationTimeInMinutes(materializationExpirationTimeInMinutes)
         .setReadDataFormat(readDataFormat)
         .setMaxReadRowsRetries(maxReadRowsRetries)
         .setViewEnabledParamName(VIEWS_ENABLED_OPTION)
@@ -1199,11 +1172,6 @@ public class SparkBigQueryConfig
       @Override
       public String viewEnabledParamName() {
         return SparkBigQueryConfig.VIEWS_ENABLED_OPTION;
-      }
-
-      @Override
-      public int expirationTimeInMinutes() {
-        return SparkBigQueryConfig.this.getMaterializationExpirationTimeInMinutes();
       }
     };
   }

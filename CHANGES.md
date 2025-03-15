@@ -3,6 +3,7 @@
 ## Next
 * CVE-2025-24970, CVE-2025-25193: Upgrading netty to version 4.1.119.Final
 * PR #1284: Making BigQueryClientFactory Kryo serializable. Thanks @tom-s-powell !
+* PR #1345: `materializationDataset` is no longer needed to read from views or queries.
 
 ## 0.42.0 - 2025-02-06
 * PR #1333: Initial implementation of a BigQuery backed Spark Catalog

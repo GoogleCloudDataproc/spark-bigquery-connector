@@ -58,14 +58,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -83,24 +80,18 @@ public class BigQueryClient {
 
   private final BigQuery bigQuery;
   private final Cache<String, TableInfo> destinationTableCache;
-  private final Optional<String> materializationProject;
-  private final Optional<String> materializationDataset;
   private final JobConfigurationFactory jobConfigurationFactory;
   private final Optional<BigQueryJobCompletionListener> jobCompletionListener;
   private final long bigQueryJobTimeoutInMinutes;
 
   public BigQueryClient(
       BigQuery bigQuery,
-      Optional<String> materializationProject,
-      Optional<String> materializationDataset,
       Cache<String, TableInfo> destinationTableCache,
       Map<String, String> labels,
       Priority queryJobPriority,
       Optional<BigQueryJobCompletionListener> jobCompletionListener,
       long bigQueryJobTimeoutInMinutes) {
     this.bigQuery = bigQuery;
-    this.materializationProject = materializationProject;
-    this.materializationDataset = materializationDataset;
     this.destinationTableCache = destinationTableCache;
     this.jobConfigurationFactory = new JobConfigurationFactory(labels, queryJobPriority);
     this.jobCompletionListener = jobCompletionListener;
@@ -256,8 +247,8 @@ public class BigQueryClient {
   }
 
   public TableId createTempTableId(TableId destinationTableId) {
-    String tempProject = materializationProject.orElseGet(destinationTableId::getProject);
-    String tempDataset = materializationDataset.orElseGet(destinationTableId::getDataset);
+    String tempProject = destinationTableId.getProject();
+    String tempDataset = destinationTableId.getDataset();
     String tableName = destinationTableId.getTable() + System.nanoTime();
     TableId tempTableId =
         tempProject == null
@@ -413,7 +404,7 @@ public class BigQueryClient {
       // in this case, let's materialize it and use it as the table
       validateViewsEnabled(options);
       String sql = query.get();
-      return materializeQueryToTable(sql, options.expirationTimeInMinutes());
+      return materializeQueryToTable(sql);
     }
 
     TableInfo table = getTable(options.tableId());
@@ -490,16 +481,6 @@ public class BigQueryClient {
     return StreamSupport.stream(allTables.spliterator(), false)
         .filter(table -> allowedTypes.contains(table.getDefinition().getType()))
         .collect(ImmutableList.toImmutableList());
-  }
-
-  TableId createDestinationTable(
-      Optional<String> referenceProject, Optional<String> referenceDataset) {
-    String project = materializationProject.orElse(referenceProject.orElse(null));
-    String dataset = materializationDataset.orElse(referenceDataset.orElse(null));
-    String name =
-        String.format(
-            "_bqc_%s", UUID.randomUUID().toString().toLowerCase(Locale.ENGLISH).replace("-", ""));
-    return project == null ? TableId.of(dataset, name) : TableId.of(project, dataset, name);
   }
 
   public Table update(TableInfo table) {
@@ -651,54 +632,36 @@ public class BigQueryClient {
    * Runs the provided query on BigQuery and saves the result in a temporary table.
    *
    * @param querySql the query to be run
-   * @param expirationTimeInMinutes the time in minutes until the table is expired and auto-deleted
    * @return a reference to the table
    */
-  public TableInfo materializeQueryToTable(String querySql, int expirationTimeInMinutes) {
-    TableId tableId = createDestinationTable(Optional.empty(), Optional.empty());
-    return materializeTable(querySql, tableId, expirationTimeInMinutes);
+  public TableInfo materializeQueryToTable(String querySql) {
+    return materializeTable(querySql);
   }
 
   /**
    * Runs the provided query on BigQuery and saves the result in a temporary table.
    *
    * @param querySql the query to be run
-   * @param expirationTimeInMinutes the time in minutes until the table is expired and auto-deleted
    * @param additionalQueryJobLabels the labels to insert on the query job
    * @return a reference to the table
    */
   public TableInfo materializeQueryToTable(
-      String querySql, int expirationTimeInMinutes, Map<String, String> additionalQueryJobLabels) {
-    TableId destinationTableId = createDestinationTable(Optional.empty(), Optional.empty());
+      String querySql, Map<String, String> additionalQueryJobLabels) {
     TempTableBuilder tableBuilder =
-        new TempTableBuilder(
-            this,
-            querySql,
-            destinationTableId,
-            expirationTimeInMinutes,
-            jobConfigurationFactory,
-            additionalQueryJobLabels);
+        new TempTableBuilder(this, querySql, jobConfigurationFactory, additionalQueryJobLabels);
 
     return materializeTable(querySql, tableBuilder);
   }
 
   /**
-   * Runs the provided query on BigQuery and saves the result in a temporary table. This method is
-   * intended to be used to materialize views, so the view location (based on its TableId) is taken
-   * as a location for the temporary table, removing the need to set the materializationProject and
-   * materializationDataset properties
+   * Runs the provided query on BigQuery and saves the result in a temporary table.
    *
    * @param querySql the query to be run
    * @param viewId the view the query came from
-   * @param expirationTimeInMinutes the time in hours until the table is expired and auto-deleted
    * @return a reference to the table
    */
-  public TableInfo materializeViewToTable(
-      String querySql, TableId viewId, int expirationTimeInMinutes) {
-    TableId tableId =
-        createDestinationTable(
-            Optional.ofNullable(viewId.getProject()), Optional.ofNullable(viewId.getDataset()));
-    return materializeTable(querySql, tableId, expirationTimeInMinutes);
+  public TableInfo materializeViewToTable(String querySql, TableId viewId) {
+    return materializeTable(querySql);
   }
 
   public Schema getQueryResultSchema(
@@ -719,18 +682,11 @@ public class BigQueryClient {
     return queryStatistics.getSchema();
   }
 
-  private TableInfo materializeTable(
-      String querySql, TableId destinationTableId, int expirationTimeInMinutes) {
+  private TableInfo materializeTable(String querySql) {
     try {
       return destinationTableCache.get(
           querySql,
-          new TempTableBuilder(
-              this,
-              querySql,
-              destinationTableId,
-              expirationTimeInMinutes,
-              jobConfigurationFactory,
-              Collections.emptyMap()));
+          new TempTableBuilder(this, querySql, jobConfigurationFactory, Collections.emptyMap()));
     } catch (Exception e) {
       throw new BigQueryConnectorException(
           BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
@@ -887,8 +843,6 @@ public class BigQueryClient {
     boolean viewsEnabled();
 
     String viewEnabledParamName();
-
-    int expirationTimeInMinutes();
   }
 
   public interface LoadDataOptions {
@@ -961,22 +915,16 @@ public class BigQueryClient {
   static class TempTableBuilder implements Callable<TableInfo> {
     final BigQueryClient bigQueryClient;
     final String querySql;
-    final TableId tempTable;
-    final int expirationTimeInMinutes;
     final JobConfigurationFactory jobConfigurationFactory;
     final Map<String, String> additionalQueryJobLabels;
 
     TempTableBuilder(
         BigQueryClient bigQueryClient,
         String querySql,
-        TableId tempTable,
-        int expirationTimeInMinutes,
         JobConfigurationFactory jobConfigurationFactory,
         Map<String, String> additionalQueryJobLabels) {
       this.bigQueryClient = bigQueryClient;
       this.querySql = querySql;
-      this.tempTable = tempTable;
-      this.expirationTimeInMinutes = expirationTimeInMinutes;
       this.jobConfigurationFactory = jobConfigurationFactory;
       this.additionalQueryJobLabels = additionalQueryJobLabels;
     }
@@ -987,28 +935,20 @@ public class BigQueryClient {
     }
 
     TableInfo createTableFromQuery() {
-      log.info("DestinationTable is {}", tempTable);
+      log.info("Materializing the query into a temporary table");
       JobInfo jobInfo =
           JobInfo.of(
               jobConfigurationFactory
                   .createQueryJobConfigurationBuilder(querySql, additionalQueryJobLabels)
-                  .setDestinationTable(tempTable)
                   .build());
 
-      log.info("running query {}", querySql);
+      log.info("running query [{}]", querySql);
       JobInfo completedJobInfo = bigQueryClient.waitForJob(bigQueryClient.create(jobInfo));
       if (completedJobInfo.getStatus().getError() != null) {
         throw BigQueryUtil.convertToBigQueryException(completedJobInfo.getStatus().getError());
       }
-      // Registering a cleanup job
-      CLEANUP_JOBS.add(() -> bigQueryClient.deleteTable(tempTable));
-      // add expiration time to the table
-      TableInfo createdTable = bigQueryClient.getTable(tempTable);
-      long expirationTime =
-          createdTable.getCreationTime() + TimeUnit.MINUTES.toMillis(expirationTimeInMinutes);
-      Table updatedTable =
-          bigQueryClient.update(createdTable.toBuilder().setExpirationTime(expirationTime).build());
-      return updatedTable;
+      return bigQueryClient.getTable(
+          ((QueryJobConfiguration) completedJobInfo.getConfiguration()).getDestinationTable());
     }
 
     Job waitForJob(Job job) {
