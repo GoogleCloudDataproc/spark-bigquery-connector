@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.42.1 - 2025-03-17
 * CVE-2025-24970, CVE-2025-25193: Upgrading netty to version 4.1.119.Final
 * PR #1284: Making BigQueryClientFactory Kryo serializable. Thanks @tom-s-powell !
