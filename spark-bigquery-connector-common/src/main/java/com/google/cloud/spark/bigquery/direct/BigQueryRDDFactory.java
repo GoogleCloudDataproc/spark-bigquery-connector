@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import java.lang.reflect.Constructor;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -93,7 +94,7 @@ public class BigQueryRDDFactory {
             // Label to add to Query Job indicating that it was invoked as part of query pushdown
             ImmutableMap.<String, String>builder()
                 .put(QUERY_JOB_LABEL, QUERY_PUSHDOWN_JOB_LABEL_VALUE)
-                .build());
+                .build(), Collections.emptyMap());
 
     TableDefinition actualTableDefinition = actualTable.getDefinition();
 

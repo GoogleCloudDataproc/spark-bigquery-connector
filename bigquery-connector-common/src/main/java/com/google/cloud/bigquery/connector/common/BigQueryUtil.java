@@ -890,7 +890,7 @@ public class BigQueryUtil {
   }
 
   public static Map<String, QueryParameterValue> parseQueryParameters(Map<String, String> options) {
-    String queryParametersJson = options.get("queryParameters");
+    String queryParametersJson = options.get("queryparameters");
     if (queryParametersJson == null) {
       return Collections.emptyMap();
     }

@@ -28,7 +28,6 @@ import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUt
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.removePrefixFromMapKeys;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
-import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseQueryParameters;
 import static com.google.cloud.spark.bigquery.SparkBigQueryUtil.scalaMapToJavaMap;
 import static java.lang.String.format;
 
@@ -804,6 +803,10 @@ public class SparkBigQueryConfig
     return query.toJavaUtil();
   }
 
+  public Map<String, QueryParameterValue> getQueryParameters() {
+    return queryParameters;
+  }
+
   @Override
   public String getParentProjectId() {
     return parentProjectId;
@@ -1176,6 +1179,11 @@ public class SparkBigQueryConfig
       @Override
       public String viewEnabledParamName() {
         return SparkBigQueryConfig.VIEWS_ENABLED_OPTION;
+      }
+
+      @Override
+      public Map<String, QueryParameterValue> queryParameters() {
+        return SparkBigQueryConfig.this.getQueryParameters();
       }
     };
   }
