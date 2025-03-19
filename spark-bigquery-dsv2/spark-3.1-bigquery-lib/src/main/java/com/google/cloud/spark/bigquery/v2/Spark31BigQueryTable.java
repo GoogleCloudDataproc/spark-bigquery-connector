@@ -109,10 +109,12 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
   @Override
   public Map<String, String> properties() {
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
-    return ImmutableMap.<String, String>builder()
-        .put("openlineage.dataset.name", BigQueryUtil.friendlyTableName(config.getTableId()))
-        .put("openlineage.dataset.namespace", "bigquery")
-        .put("openlineage.dataset.storageDatasetFacet.storageLayer", "bigquery")
-        .build();
+    ImmutableMap.Builder<String, String> propertiesBuilder =
+        ImmutableMap.<String, String>builder()
+            .put("openlineage.dataset.name", BigQueryUtil.friendlyTableName(config.getTableId()))
+            .put("openlineage.dataset.namespace", "bigquery")
+            .put("openlineage.dataset.storageDatasetFacet.storageLayer", "bigquery");
+    config.getQuery().ifPresent(query -> propertiesBuilder.put("openlineage.dataset.query", query));
+    return propertiesBuilder.build();
   }
 }
