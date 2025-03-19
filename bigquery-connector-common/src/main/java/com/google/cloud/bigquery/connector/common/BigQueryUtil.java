@@ -31,8 +31,10 @@ import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.HivePartitioningOptions;
 import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -46,6 +48,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import io.grpc.Status;
 import io.grpc.Status.Code;
 import io.grpc.StatusRuntimeException;
@@ -59,6 +63,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -881,5 +887,74 @@ public class BigQueryUtil {
   public static boolean isBigQueryNativeTable(TableInfo table) {
     return table.getDefinition().getType() == TableDefinition.Type.TABLE
         && !isBigLakeManagedTable(table);
+  }
+
+  public static Map<String, QueryParameterValue> parseQueryParameters(Map<String, String> options) {
+    String queryParametersJson = options.get("queryParameters");
+    if (queryParametersJson == null) {
+      return Collections.emptyMap();
+    }
+
+    Map<String, QueryParameterValue> parsedParameters = new HashMap<>();
+    Gson gson = new Gson();
+
+    try {
+      Map<String, Map<String, String>> parametersMap = gson.fromJson(
+          queryParametersJson, Map.class);
+
+      if (parametersMap != null) {
+        for (Map.Entry<String, Map<String, String>> entry : parametersMap.entrySet()) {
+          String paramName = entry.getKey();
+          Map<String, String> paramValueMap = entry.getValue();
+
+          if (paramValueMap != null && paramValueMap.containsKey("value") && paramValueMap.containsKey("type")) {
+            String valueStr = paramValueMap.get("value");
+            String typeStr = paramValueMap.get("type");
+
+            StandardSQLTypeName type = null;
+            QueryParameterValue paramValue = null;
+
+            try {
+              type = StandardSQLTypeName.valueOf(typeStr);
+            } catch (IllegalArgumentException e) {
+              System.err.println("Warning: Unknown query parameter type: " + typeStr + " for parameter: " + paramName + ". Skipping.");
+              continue;
+            }
+
+            switch (type) {
+              case INT64:
+                try {
+                  paramValue = QueryParameterValue.int64(Long.parseLong(valueStr));
+                } catch (NumberFormatException e) {
+                  System.err.println("Warning: Invalid INT64 value: " + valueStr + " for parameter: " + paramName + ". Skipping.");
+                  continue;
+                }
+                break;
+              case STRING:
+                paramValue = QueryParameterValue.string(valueStr);
+                break;
+              case BOOL:
+                paramValue = QueryParameterValue.bool(Boolean.parseBoolean(valueStr));
+                break;
+              default:
+                System.err.println("Warning: Unsupported query parameter type: " + type + " for parameter: " + paramName + ". Skipping.");
+                continue;
+            }
+            if (paramValue != null) {
+              parsedParameters.put(paramName, paramValue);
+            }
+
+          } else {
+            System.err.println("Warning: Invalid query parameter format for parameter: " + paramName + ". Skipping.");
+          }
+        }
+      }
+
+    } catch (JsonSyntaxException e) {
+      System.err.println("Warning: Failed to parse queryParameters JSON: " + e.getMessage());
+      return Collections.emptyMap();
+    }
+
+    return Collections.unmodifiableMap(parsedParameters);
   }
 }

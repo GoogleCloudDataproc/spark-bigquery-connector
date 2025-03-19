@@ -39,6 +39,7 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDefinition;
@@ -648,7 +649,7 @@ public class BigQueryClient {
   public TableInfo materializeQueryToTable(
       String querySql, Map<String, String> additionalQueryJobLabels) {
     TempTableBuilder tableBuilder =
-        new TempTableBuilder(this, querySql, jobConfigurationFactory, additionalQueryJobLabels);
+        new TempTableBuilder(this, querySql, jobConfigurationFactory, additionalQueryJobLabels, Collections.emptyMap());
 
     return materializeTable(querySql, tableBuilder);
   }
@@ -686,7 +687,7 @@ public class BigQueryClient {
     try {
       return destinationTableCache.get(
           querySql,
-          new TempTableBuilder(this, querySql, jobConfigurationFactory, Collections.emptyMap()));
+          new TempTableBuilder(this, querySql, jobConfigurationFactory, Collections.emptyMap(),Collections.emptyMap()));
     } catch (Exception e) {
       throw new BigQueryConnectorException(
           BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
@@ -917,16 +918,19 @@ public class BigQueryClient {
     final String querySql;
     final JobConfigurationFactory jobConfigurationFactory;
     final Map<String, String> additionalQueryJobLabels;
+    final Map<String, StandardSQLTypeName> parameters;
 
     TempTableBuilder(
         BigQueryClient bigQueryClient,
         String querySql,
         JobConfigurationFactory jobConfigurationFactory,
-        Map<String, String> additionalQueryJobLabels) {
+        Map<String, String> additionalQueryJobLabels,
+        Map<String, StandardSQLTypeName> parameters) {
       this.bigQueryClient = bigQueryClient;
       this.querySql = querySql;
       this.jobConfigurationFactory = jobConfigurationFactory;
       this.additionalQueryJobLabels = additionalQueryJobLabels;
+      this.parameters = parameters;
     }
 
     @Override
@@ -936,10 +940,13 @@ public class BigQueryClient {
 
     TableInfo createTableFromQuery() {
       log.info("Materializing the query into a temporary table");
+      QueryJobConfiguration.Builder queryJobConfigurationBuilder = jobConfigurationFactory
+          .createQueryJobConfigurationBuilder(querySql, additionalQueryJobLabels);
+
+      //parameters.entrySet().stream().forEach();
       JobInfo jobInfo =
           JobInfo.of(
-              jobConfigurationFactory
-                  .createQueryJobConfigurationBuilder(querySql, additionalQueryJobLabels)
+              queryJobConfigurationBuilder
                   .build());
 
       log.info("running query [{}]", querySql);

@@ -33,6 +33,7 @@ import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.HivePartitioningOptions;
 import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
@@ -45,9 +46,12 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -946,5 +950,122 @@ public class BigQueryUtilTest {
         BigQueryUtil.getCredentialsFromByteArray(BigQueryUtil.getCredentialsByteArray(expected));
 
     assertThat(credentials).isEqualTo(expected);
+  }
+  @Test
+  public void testParseQueryParameters_validParameters() {
+    Map<String, String> options = ImmutableMap.of(
+        "queryParameters",
+        "{\n"
+            + "  \"corpus\": {\"value\": \"romeoandjuliet\", \"type\": \"STRING\"},\n"
+            + "  \"min_word_count\": {\"value\": \"250\", \"type\": \"INT64\"},\n"
+            + "  \"is_debug\": {\"value\": \"true\", \"type\": \"BOOL\"}\n"
+            + "}"
+    );
+
+    Map<String, QueryParameterValue> params = BigQueryUtil.parseQueryParameters(options);
+    assertThat(params).hasSize(3);
+
+    QueryParameterValue corpusParam = params.get("corpus");
+    assertThat(corpusParam).isNotNull();
+    assertThat(corpusParam.getValue()).isEqualTo("romeoandjuliet");
+    assertThat(corpusParam.getType()).isEqualTo(StandardSQLTypeName.STRING);
+
+    QueryParameterValue minWordCountParam = params.get("min_word_count");
+    assertThat(minWordCountParam).isNotNull();
+    assertThat(minWordCountParam.getValue()).isEqualTo("250");
+    assertThat(minWordCountParam.getType()).isEqualTo(StandardSQLTypeName.INT64);
+
+    QueryParameterValue isDebugParam = params.get("is_debug");
+    assertThat(isDebugParam).isNotNull();
+    assertThat(isDebugParam.getValue()).isEqualTo("true");
+    assertThat(isDebugParam.getType()).isEqualTo(StandardSQLTypeName.BOOL);
+  }
+
+  @Test
+  public void testParseQueryParameters_missingQueryParametersOption() {
+    Map<String, String> options = ImmutableMap.of("query", "SELECT * FROM table");
+    Map<String, QueryParameterValue> params = BigQueryUtil.parseQueryParameters(options);
+    assertThat(params).isEmpty();
+  }
+
+  @Test
+  public void testParseQueryParameters_invalidJson() {
+    Map<String, String> options = ImmutableMap.of("queryParameters", "invalid json string");
+    Map<String, QueryParameterValue> params = BigQueryUtil.parseQueryParameters(options);
+    assertThat(params).isEmpty();
+  }
+
+  @Test
+  public void testParseQueryParameters_invalidParameterFormat() {
+    Map<String, String> options = ImmutableMap.of(
+        "queryParameters",
+        "{\n"
+            + "  \"corpus\": {\"value\": \"romeoandjuliet\"}\n" // Missing type
+            + "}"
+    );
+    Map<String, QueryParameterValue> params = BigQueryUtil.parseQueryParameters(options);
+    assertThat(params).isEmpty(); // Should skip and return empty map because of invalid format
+  }
+
+  @Test
+  public void testParseQueryParameters_invalidInt64Value() {
+    Map<String, String> options = ImmutableMap.of(
+        "queryParameters",
+        "{\n"
+            + "  \"min_word_count\": {\"value\": \"abc\", \"type\": \"INT64\"}\n"
+            + "}"
+    );
+    Map<String, QueryParameterValue> params = BigQueryUtil.parseQueryParameters(options);
+    assertThat(params).isEmpty(); // Should skip and return empty map because of invalid INT64 value
+  }
+
+  @Test
+  public void testParseQueryParameters_unknownType() {
+    Map<String, String> options = ImmutableMap.of(
+        "queryParameters",
+        "{\n"
+            + "  \"unknown_param\": {\"value\": \"some_value\", \"type\": \"UNKNOWN_TYPE\"}\n"
+            + "}"
+    );
+    Map<String, QueryParameterValue> params = BigQueryUtil.parseQueryParameters(options);
+    assertThat(params).isEmpty(); // Should skip and return empty map because of unknown type
+  }
+
+  @Test
+  public void testParseQueryParameters_emptyParameters() {
+    Map<String, String> options = ImmutableMap.of(
+        "queryParameters",
+        "{}"
+    );
+    Map<String, QueryParameterValue> params = BigQueryUtil.parseQueryParameters(options);
+    assertThat(params).isEmpty();
+  }
+
+  @Test
+  public void testParseQueryParameters_mixedValidAndInvalidParameters() {
+    Map<String, String> options = ImmutableMap.of(
+        "queryParameters",
+        "{\n"
+            + "  \"valid_string\": {\"value\": \"test\", \"type\": \"STRING\"},\n"
+            + "  \"invalid_int\": {\"value\": \"abc\", \"type\": \"INT64\"},\n"
+            + "  \"valid_bool\": {\"value\": \"false\", \"type\": \"BOOL\"},\n"
+            + "  \"invalid_format\": {\"value\": \"test\"}\n"
+            + "}"
+    );
+    Map<String, QueryParameterValue> params = BigQueryUtil.parseQueryParameters(options);
+    assertThat(params).hasSize(2); // Only valid_string and valid_bool should be parsed
+
+    QueryParameterValue validStringParam = params.get("valid_string");
+    assertThat(validStringParam).isNotNull();
+    assertThat(validStringParam.getValue()).isEqualTo("test");
+    assertThat(validStringParam.getType()).isEqualTo(StandardSQLTypeName.STRING);
+
+    QueryParameterValue validBoolParam = params.get("valid_bool");
+    assertThat(validBoolParam).isNotNull();
+    assertThat(validBoolParam.getValue()).isEqualTo("false");
+    assertThat(validBoolParam.getType()).isEqualTo(StandardSQLTypeName.BOOL);
+
+    assertThat(params.containsKey("invalid_int")).isFalse();
+    assertThat(params.containsKey("invalid_format")).isFalse();
   }
 }

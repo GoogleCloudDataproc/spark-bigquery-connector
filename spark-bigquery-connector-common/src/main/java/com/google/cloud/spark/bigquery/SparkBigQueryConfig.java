@@ -28,6 +28,7 @@ import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUt
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.removePrefixFromMapKeys;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.firstPresent;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseTableId;
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.parseQueryParameters;
 import static com.google.cloud.spark.bigquery.SparkBigQueryUtil.scalaMapToJavaMap;
 import static java.lang.String.format;
 
@@ -38,6 +39,7 @@ import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.ParquetOptions;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
+import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
@@ -250,6 +252,7 @@ public class SparkBigQueryConfig
   private com.google.common.base.Optional<String> gpn;
   private int bigNumericDefaultPrecision;
   private int bigNumericDefaultScale;
+  private Map<String, QueryParameterValue> queryParameters = Collections.emptyMap();
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -670,6 +673,7 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, BIG_NUMERIC_DEFAULT_SCALE)
             .transform(Integer::parseInt)
             .or(BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
+    config.queryParameters = BigQueryUtil.parseQueryParameters(options);
 
     return config;
   }
