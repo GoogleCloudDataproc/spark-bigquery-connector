@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.34.1 - 2025-03-23
 
 * PR #1212: Support OpenLineage in spark-3.x-bigquery connectors
 
