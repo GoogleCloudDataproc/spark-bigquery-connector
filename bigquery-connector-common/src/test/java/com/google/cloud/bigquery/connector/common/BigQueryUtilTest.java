@@ -1101,21 +1101,29 @@ public class BigQueryUtilTest {
     assertThat(result.isEmpty()).isTrue();
     assertThat(result.isNamed()).isFalse();
     assertThat(result.isPositional()).isFalse();
-    // Check that getting parameters throws if not applicable (optional based on desired strictness)
-    assertThrows(IllegalStateException.class, result::getNamedParameters);
-    assertThrows(IllegalStateException.class, result::getPositionalParameters);
+
+    // Check that getting parameters returns empty collections
+    assertThat(result.getNamedParameters()).isNotNull(); // Or check specific type if known
+    assertThat(result.getNamedParameters()).isEmpty();
+    assertThat(result.getPositionalParameters()).isNotNull(); // Or check specific type if known
+    assertThat(result.getPositionalParameters()).isEmpty();
   }
 
   @Test
   public void testParseParameters_EmptyOptionsMap() {
     Map<String, String> options = Collections.emptyMap();
+
     BigQueryUtil.ParsedQueryParameters result = BigQueryUtil.parseQueryParameters(options);
 
     assertThat(result.isEmpty()).isTrue();
     assertThat(result.isNamed()).isFalse();
     assertThat(result.isPositional()).isFalse();
-    assertThrows(IllegalStateException.class, result::getNamedParameters);
-    assertThrows(IllegalStateException.class, result::getPositionalParameters);
+
+    assertThat(result.getNamedParameters()).isNotNull();
+    assertThat(result.getNamedParameters()).isEmpty();
+
+    assertThat(result.getPositionalParameters()).isNotNull();
+    assertThat(result.getPositionalParameters()).isEmpty();
   }
 
   // --- Error Cases: Mixing ---
