@@ -162,6 +162,7 @@ public class SparkBigQueryConfig
   static final Boolean ALLOW_MAP_TYPE_CONVERSION_DEFAULT = true;
   public static final String partitionOverwriteModeProperty =
       "spark.sql.sources.partitionOverwriteMode";
+
   public PartitionOverwriteMode partitionOverwriteModeValue = PartitionOverwriteMode.STATIC;
   public static final String BIGQUERY_JOB_TIMEOUT_IN_MINUTES = "bigQueryJobTimeoutInMinutes";
   static final long BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT = 6 * 60; // 6 hrs

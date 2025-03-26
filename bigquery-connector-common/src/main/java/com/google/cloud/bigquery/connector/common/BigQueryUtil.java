@@ -928,12 +928,10 @@ public class BigQueryUtil {
     }
 
     public boolean isNamed() {
-      // True if Named parameters were provided in the options
       return originallyIntendedNamed;
     }
 
     public boolean isPositional() {
-      // True if Positional parameters were provided in the options
       return originallyIntendedPositional;
     }
 
@@ -941,7 +939,6 @@ public class BigQueryUtil {
       if (!isNamed()) {
         return Collections.emptyMap();
       }
-      // Return the map, which might be empty if all named parameters failed parsing
       return namedParameters;
     }
 
@@ -949,12 +946,10 @@ public class BigQueryUtil {
       if (!isPositional()) {
         return Collections.emptyList();
       }
-      // Return the list, which might be empty if all positional parameters failed parsing
       return positionalParameters;
     }
 
     public boolean isEmpty() {
-      // Check if no parameter options were specified at all
       return !originallyIntendedNamed && !originallyIntendedPositional;
     }
   }
@@ -971,7 +966,6 @@ public class BigQueryUtil {
    */
   public static ParsedQueryParameters parseQueryParameters(Map<String, String> options) {
     Map<String, QueryParameterValue> namedParameters = new HashMap<>();
-    // Use a temporary map for positional parameters to handle potential gaps and sorting
     Map<Integer, QueryParameterValue> positionalParametersTemp = new TreeMap<>();
 
     boolean foundNamedPrefix = false;
@@ -1100,7 +1094,6 @@ public class BigQueryUtil {
               + "': '"
               + typeValueString
               + "'. Expected 'TYPE:value' with non-empty TYPE before ':'."); // Slightly refined
-      // message
     }
 
     String typeStr = typeValueString.substring(0, colonIndex).trim().toUpperCase(Locale.ROOT);

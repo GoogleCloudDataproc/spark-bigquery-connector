@@ -20,7 +20,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows; // Assuming JUnit 4 style based on original
 
 import com.google.inject.ProvisionException;
-import org.apache.spark.sql.AnalysisException; // Import for potential Spark-level errors
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;

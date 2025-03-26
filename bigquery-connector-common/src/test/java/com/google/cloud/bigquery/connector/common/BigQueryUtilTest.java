@@ -951,7 +951,6 @@ public class BigQueryUtilTest {
 
     assertThat(credentials).isEqualTo(expected);
   }
-  // --- Success Cases: Named Parameters ---
 
   @Test
   public void testParseNamedParameters_SuccessAllTypes() {
@@ -1088,8 +1087,6 @@ public class BigQueryUtilTest {
     assertThat(params.get(0)).isEqualTo(QueryParameterValue.float64(1.0));
   }
 
-  // --- No Parameter Cases ---
-
   @Test
   public void testParseParameters_NoParameterOptions() {
     Map<String, String> options = new HashMap<>();
@@ -1102,7 +1099,6 @@ public class BigQueryUtilTest {
     assertThat(result.isNamed()).isFalse();
     assertThat(result.isPositional()).isFalse();
 
-    // Check that getting parameters returns empty collections
     assertThat(result.getNamedParameters()).isNotNull(); // Or check specific type if known
     assertThat(result.getNamedParameters()).isEmpty();
     assertThat(result.getPositionalParameters()).isNotNull(); // Or check specific type if known
@@ -1126,7 +1122,6 @@ public class BigQueryUtilTest {
     assertThat(result.getPositionalParameters()).isEmpty();
   }
 
-  // --- Error Cases: Mixing ---
 
   @Test
   public void testParseParameters_ErrorMixedNamedAndPositional() {
@@ -1143,7 +1138,6 @@ public class BigQueryUtilTest {
 
   @Test
   public void testParseParameters_ErrorMixedPositionalAndNamed() {
-    // Test the other order of discovery
     Map<String, String> options = new HashMap<>();
     options.put("PositionalParameters.1", "INT64:100");
     options.put("NamedParameters.name", "STRING:test");
@@ -1157,7 +1151,6 @@ public class BigQueryUtilTest {
 
   @Test
   public void testParseParameters_ErrorInvalidFormatMissingValue() {
-    // Test failure for INT64
     Map<String, String> optionsInt = Collections.singletonMap("NamedParameters.badInt", "INT64:");
     IllegalArgumentException eInt =
         assertThrows(
@@ -1303,7 +1296,6 @@ public class BigQueryUtilTest {
 
   @Test
   public void testParsePositionalParameters_ErrorOnlyGap() {
-    // Test case where only index 2 is provided, missing 1
     Map<String, String> options = new HashMap<>();
     options.put("PositionalParameters.2", "STRING:only two");
 
