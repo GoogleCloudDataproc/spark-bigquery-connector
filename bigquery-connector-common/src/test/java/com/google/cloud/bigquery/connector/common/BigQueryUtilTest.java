@@ -46,7 +46,6 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;
@@ -480,7 +479,7 @@ public class BigQueryUtilTest {
 
   @Test
   public void testVerifySerialization() {
-    int[] source = new int[]{1, 2, 3};
+    int[] source = new int[] {1, 2, 3};
     int[] copy = BigQueryUtil.verifySerialization(source);
     assertThat(copy).isEqualTo(source);
   }
@@ -655,15 +654,15 @@ public class BigQueryUtilTest {
   @Test
   public void testGetPrecision() throws Exception {
     assertThat(
-        BigQueryUtil.getPrecision(
-            Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setPrecision(5L).build()))
+            BigQueryUtil.getPrecision(
+                Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setPrecision(5L).build()))
         .isEqualTo(5);
     assertThat(
-        BigQueryUtil.getPrecision(Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).build()))
+            BigQueryUtil.getPrecision(Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).build()))
         .isEqualTo(38);
     assertThat(
-        BigQueryUtil.getPrecision(
-            Field.newBuilder("foo", StandardSQLTypeName.BIGNUMERIC).build()))
+            BigQueryUtil.getPrecision(
+                Field.newBuilder("foo", StandardSQLTypeName.BIGNUMERIC).build()))
         .isEqualTo(76);
     assertThat(BigQueryUtil.getPrecision(Field.newBuilder("foo", StandardSQLTypeName.BOOL).build()))
         .isEqualTo(-1);
@@ -672,13 +671,13 @@ public class BigQueryUtilTest {
   @Test
   public void testGetScale() throws Exception {
     assertThat(
-        BigQueryUtil.getScale(
-            Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setScale(5L).build()))
+            BigQueryUtil.getScale(
+                Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).setScale(5L).build()))
         .isEqualTo(5);
     assertThat(BigQueryUtil.getScale(Field.newBuilder("foo", StandardSQLTypeName.NUMERIC).build()))
         .isEqualTo(9);
     assertThat(
-        BigQueryUtil.getScale(Field.newBuilder("foo", StandardSQLTypeName.BIGNUMERIC).build()))
+            BigQueryUtil.getScale(Field.newBuilder("foo", StandardSQLTypeName.BIGNUMERIC).build()))
         .isEqualTo(38);
     assertThat(BigQueryUtil.getScale(Field.newBuilder("foo", StandardSQLTypeName.BOOL).build()))
         .isEqualTo(-1);
@@ -813,8 +812,8 @@ public class BigQueryUtilTest {
     assertThat(BigQueryUtil.sanitizeLabelValue("Foo-bar*")).isEqualTo("foo-bar_");
     // testing Strings longer than 63 characters
     assertThat(
-        BigQueryUtil.sanitizeLabelValue(
-            "1234567890123456789012345678901234567890123456789012345678901234567890"))
+            BigQueryUtil.sanitizeLabelValue(
+                "1234567890123456789012345678901234567890123456789012345678901234567890"))
         .isEqualTo("123456789012345678901234567890123456789012345678901234567890123");
   }
 
@@ -962,14 +961,15 @@ public class BigQueryUtilTest {
     options.put("NamedParameters.intParam", "INT64:1234567890");
     options.put("NamedParameters.boolPropT", "BOOL:true");
     options.put("NamedParameters.boolPropF", "BOOL:false");
-    options.put("NamedParameters.boolPropCase",
-        "BOOL:TRUE"); // Test case insensitivity of bool value
+    options.put(
+        "NamedParameters.boolPropCase", "BOOL:TRUE"); // Test case insensitivity of bool value
     options.put("NamedParameters.floatParam", "FLOAT64:123.456");
     options.put("NamedParameters.numericParam", "NUMERIC:987654321.123456789");
     options.put("NamedParameters.dateParam", "DATE:2023-10-27");
     options.put("NamedParameters.jsonParam", "JSON:{\"key\": \"value\", \"arr\": [1, 2]}");
     options.put("NamedParameters.geoParam", "GEOGRAPHY:POINT(1 2)");
-    options.put("namedparameters.caseinsensitiveprefix",
+    options.put(
+        "namedparameters.caseinsensitiveprefix",
         "STRING:prefix works"); // Test prefix case insensitivity
 
     BigQueryUtil.ParsedQueryParameters result = BigQueryUtil.parseQueryParameters(options);
@@ -986,17 +986,17 @@ public class BigQueryUtilTest {
     assertThat(params.get("intParam")).isEqualTo(QueryParameterValue.int64(1234567890L));
     assertThat(params.get("boolPropT")).isEqualTo(QueryParameterValue.bool(true));
     assertThat(params.get("boolPropF")).isEqualTo(QueryParameterValue.bool(false));
-    assertThat(params.get("boolPropCase")).isEqualTo(
-        QueryParameterValue.bool(true)); // Boolean.parseBoolean handles case
+    assertThat(params.get("boolPropCase"))
+        .isEqualTo(QueryParameterValue.bool(true)); // Boolean.parseBoolean handles case
     assertThat(params.get("floatParam")).isEqualTo(QueryParameterValue.float64(123.456));
-    assertThat(params.get("numericParam")).isEqualTo(
-        QueryParameterValue.numeric(new BigDecimal("987654321.123456789")));
+    assertThat(params.get("numericParam"))
+        .isEqualTo(QueryParameterValue.numeric(new BigDecimal("987654321.123456789")));
     assertThat(params.get("dateParam")).isEqualTo(QueryParameterValue.date("2023-10-27"));
-    assertThat(params.get("jsonParam")).isEqualTo(
-        QueryParameterValue.json("{\"key\": \"value\", \"arr\": [1, 2]}"));
+    assertThat(params.get("jsonParam"))
+        .isEqualTo(QueryParameterValue.json("{\"key\": \"value\", \"arr\": [1, 2]}"));
     assertThat(params.get("geoParam")).isEqualTo(QueryParameterValue.geography("POINT(1 2)"));
-    assertThat(params.get("caseinsensitiveprefix")).isEqualTo(
-        QueryParameterValue.string("prefix works")); // Note: key retains original case
+    assertThat(params.get("caseinsensitiveprefix"))
+        .isEqualTo(QueryParameterValue.string("prefix works")); // Note: key retains original case
   }
 
   @Test
@@ -1019,18 +1019,18 @@ public class BigQueryUtilTest {
     assertThat(result.isNamed()).isTrue();
     Map<String, QueryParameterValue> params = result.getNamedParameters();
     assertThat(params).hasSize(2);
-    assertThat(params.get("withSpaces")).isEqualTo(
-        QueryParameterValue.string("  leading and trailing spaces  ")); // String keeps spaces
-    assertThat(params.get("numWithSpaces")).isEqualTo(
-        QueryParameterValue.int64(123L)); // Numeric parsing trims spaces
+    assertThat(params.get("withSpaces"))
+        .isEqualTo(
+            QueryParameterValue.string("  leading and trailing spaces  ")); // String keeps spaces
+    assertThat(params.get("numWithSpaces"))
+        .isEqualTo(QueryParameterValue.int64(123L)); // Numeric parsing trims spaces
   }
 
   @Test
   public void testParseNamedParameters_DuplicateKeysDifferentCase() {
     Map<String, String> options = new HashMap<>();
     options.put("NamedParameters.myValue", "STRING:first");
-    options.put("NamedParameters.myvalue",
-        "STRING:second");
+    options.put("NamedParameters.myvalue", "STRING:second");
 
     BigQueryUtil.ParsedQueryParameters result = BigQueryUtil.parseQueryParameters(options);
     assertThat(result.isNamed()).isTrue();
@@ -1072,8 +1072,8 @@ public class BigQueryUtilTest {
 
     // Verify order and values
     assertThat(params.get(0)).isEqualTo(QueryParameterValue.string("value1")); // Index 0 = Param 1
-    assertThat(params.get(1)).isEqualTo(QueryParameterValue.int64(99L));      // Index 1 = Param 2
-    assertThat(params.get(2)).isEqualTo(QueryParameterValue.bool(false));     // Index 2 = Param 3
+    assertThat(params.get(1)).isEqualTo(QueryParameterValue.int64(99L)); // Index 1 = Param 2
+    assertThat(params.get(2)).isEqualTo(QueryParameterValue.bool(false)); // Index 2 = Param 3
   }
 
   @Test
@@ -1104,7 +1104,6 @@ public class BigQueryUtilTest {
     // Check that getting parameters throws if not applicable (optional based on desired strictness)
     assertThrows(IllegalStateException.class, result::getNamedParameters);
     assertThrows(IllegalStateException.class, result::getPositionalParameters);
-
   }
 
   @Test
@@ -1127,8 +1126,9 @@ public class BigQueryUtilTest {
     options.put("NamedParameters.name", "STRING:test");
     options.put("PositionalParameters.1", "INT64:100");
 
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
 
     assertThat(e.getMessage()).contains("Cannot mix NamedParameters.* and PositionalParameters.*");
   }
@@ -1140,8 +1140,9 @@ public class BigQueryUtilTest {
     options.put("PositionalParameters.1", "INT64:100");
     options.put("NamedParameters.name", "STRING:test");
 
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
 
     assertThat(e.getMessage()).contains("Cannot mix NamedParameters.* and PositionalParameters.*");
   }
@@ -1150,10 +1151,11 @@ public class BigQueryUtilTest {
   public void testParseParameters_ErrorInvalidFormatMissingValue() {
     // Test failure for INT64
     Map<String, String> optionsInt = Collections.singletonMap("NamedParameters.badInt", "INT64:");
-    IllegalArgumentException eInt = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(optionsInt));
-    assertThat(eInt.getMessage()).contains(
-        "Failed to parse value '' for type INT64 for identifier: 'badInt'");
+    IllegalArgumentException eInt =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(optionsInt));
+    assertThat(eInt.getMessage())
+        .contains("Failed to parse value '' for type INT64 for identifier: 'badInt'");
   }
 
   @Test
@@ -1161,39 +1163,43 @@ public class BigQueryUtilTest {
     Map<String, String> options = new HashMap<>();
     options.put("NamedParameters.nullValue", null); // Map allows null values
 
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
-    assertThat(e.getMessage()).contains(
-        "Parameter value string cannot be null for identifier: nullValue");
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
+    assertThat(e.getMessage())
+        .contains("Parameter value string cannot be null for identifier: nullValue");
   }
-
 
   @Test
   public void testParseParameters_ErrorUnknownType() {
-    Map<String, String> options = Collections.singletonMap("NamedParameters.bad",
-        "INTEGER:123"); // INTEGER is not StandardSQLTypeName
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
-    assertThat(e.getMessage()).contains(
-        "Unknown query parameter type: 'INTEGER' for identifier: 'bad'");
+    Map<String, String> options =
+        Collections.singletonMap(
+            "NamedParameters.bad", "INTEGER:123"); // INTEGER is not StandardSQLTypeName
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
+    assertThat(e.getMessage())
+        .contains("Unknown query parameter type: 'INTEGER' for identifier: 'bad'");
   }
 
   @Test
   public void testParseParameters_ErrorUnsupportedTypeArray() {
     Map<String, String> options = Collections.singletonMap("NamedParameters.bad", "ARRAY:[1, 2]");
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
-    assertThat(e.getMessage()).contains(
-        "Unsupported query parameter type: ARRAY for identifier: 'bad'");
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
+    assertThat(e.getMessage())
+        .contains("Unsupported query parameter type: ARRAY for identifier: 'bad'");
   }
 
   @Test
   public void testParseParameters_ErrorUnsupportedTypeStruct() {
     Map<String, String> options = Collections.singletonMap("NamedParameters.bad", "STRUCT:foo");
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
-    assertThat(e.getMessage()).contains(
-        "Unsupported query parameter type: STRUCT for identifier: 'bad'");
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
+    assertThat(e.getMessage())
+        .contains("Unsupported query parameter type: STRUCT for identifier: 'bad'");
   }
 
   // --- Error Cases: Invalid Names/Indices ---
@@ -1201,64 +1207,76 @@ public class BigQueryUtilTest {
   @Test
   public void testParseNamedParameters_ErrorEmptyName() {
     Map<String, String> options = Collections.singletonMap("NamedParameters.", "STRING:test");
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
-    assertThat(e.getMessage()).contains(
-        "Named parameter name cannot be empty. Option key: 'NamedParameters.'");
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
+    assertThat(e.getMessage())
+        .contains("Named parameter name cannot be empty. Option key: 'NamedParameters.'");
   }
 
   @Test
   public void testParsePositionalParameters_ErrorEmptyIndex() {
     Map<String, String> options = Collections.singletonMap("PositionalParameters.", "STRING:test");
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
-    assertThat(e.getMessage()).contains(
-        "Positional parameter index cannot be empty. Option key: 'PositionalParameters.'");
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
+    assertThat(e.getMessage())
+        .contains(
+            "Positional parameter index cannot be empty. Option key: 'PositionalParameters.'");
   }
 
   @Test
   public void testParsePositionalParameters_ErrorNonNumericIndex() {
-    Map<String, String> options = Collections.singletonMap("PositionalParameters.abc",
-        "STRING:test");
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
-    assertThat(e.getMessage()).contains(
-        "Invalid positional parameter index: 'abc' must be an integer. Option key: 'PositionalParameters.abc'");
+    Map<String, String> options =
+        Collections.singletonMap("PositionalParameters.abc", "STRING:test");
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
+    assertThat(e.getMessage())
+        .contains(
+            "Invalid positional parameter index: 'abc' must be an integer. Option key: 'PositionalParameters.abc'");
   }
+
   @Test
   public void testParsePositionalParameters_ErrorZeroIndex() {
     int index = 0;
-    Map<String, String> options = Collections.singletonMap("PositionalParameters." + index, "STRING:test");
+    Map<String, String> options =
+        Collections.singletonMap("PositionalParameters." + index, "STRING:test");
 
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
 
-    assertThat(e.getMessage()).contains(
-        "Invalid positional parameter index: " + index + ". Indices must be 1-based.");
+    assertThat(e.getMessage())
+        .contains("Invalid positional parameter index: " + index + ". Indices must be 1-based.");
   }
 
   @Test
   public void testParsePositionalParameters_ErrorNegativeIndexMinusOne() {
     int index = -1;
-    Map<String, String> options = Collections.singletonMap("PositionalParameters." + index, "STRING:test");
+    Map<String, String> options =
+        Collections.singletonMap("PositionalParameters." + index, "STRING:test");
 
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
 
-    assertThat(e.getMessage()).contains(
-        "Invalid positional parameter index: " + index + ". Indices must be 1-based.");
+    assertThat(e.getMessage())
+        .contains("Invalid positional parameter index: " + index + ". Indices must be 1-based.");
   }
 
   @Test
   public void testParsePositionalParameters_ErrorNegativeIndexMinusTen() {
     int index = -10;
-    Map<String, String> options = Collections.singletonMap("PositionalParameters." + index, "STRING:test");
+    Map<String, String> options =
+        Collections.singletonMap("PositionalParameters." + index, "STRING:test");
 
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
 
-    assertThat(e.getMessage()).contains(
-        "Invalid positional parameter index: " + index + ". Indices must be 1-based.");
+    assertThat(e.getMessage())
+        .contains("Invalid positional parameter index: " + index + ". Indices must be 1-based.");
   }
 
   @Test
@@ -1267,10 +1285,12 @@ public class BigQueryUtilTest {
     options.put("PositionalParameters.1", "STRING:first");
     options.put("PositionalParameters.3", "INT64:100"); // Missing index 2
 
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
-    assertThat(e.getMessage()).contains(
-        "Missing positional parameter for index: 2. Parameters must be contiguous starting from 1.");
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
+    assertThat(e.getMessage())
+        .contains(
+            "Missing positional parameter for index: 2. Parameters must be contiguous starting from 1.");
   }
 
   @Test
@@ -1279,9 +1299,11 @@ public class BigQueryUtilTest {
     Map<String, String> options = new HashMap<>();
     options.put("PositionalParameters.2", "STRING:only two");
 
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> BigQueryUtil.parseQueryParameters(options));
-    assertThat(e.getMessage()).contains(
-        "Missing positional parameter for index: 1. Parameters must be contiguous starting from 1.");
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> BigQueryUtil.parseQueryParameters(options));
+    assertThat(e.getMessage())
+        .contains(
+            "Missing positional parameter for index: 1. Parameters must be contiguous starting from 1.");
   }
 }

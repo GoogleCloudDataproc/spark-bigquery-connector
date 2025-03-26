@@ -251,7 +251,7 @@ public class SparkBigQueryConfig
   private int bigNumericDefaultPrecision;
   private int bigNumericDefaultScale;
   private Map<String, QueryParameterValue> queryNamedParameters = Collections.emptyMap();
-  private List<QueryParameterValue>  queryPositionalParameters = Collections.emptyList();
+  private List<QueryParameterValue> queryPositionalParameters = Collections.emptyList();
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -673,7 +673,8 @@ public class SparkBigQueryConfig
             .transform(Integer::parseInt)
             .or(BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
     config.queryNamedParameters = BigQueryUtil.parseQueryParameters(options).getNamedParameters();
-    config.queryPositionalParameters = BigQueryUtil.parseQueryParameters(options).getPositionalParameters();
+    config.queryPositionalParameters =
+        BigQueryUtil.parseQueryParameters(options).getPositionalParameters();
     return config;
   }
 

@@ -405,7 +405,8 @@ public class BigQueryClient {
       // in this case, let's materialize it and use it as the table
       validateViewsEnabled(options);
       String sql = query.get();
-      return materializeQueryToTable(sql, options.queryNamedParameters(), options.queryPositionalParameters());
+      return materializeQueryToTable(
+          sql, options.queryNamedParameters(), options.queryPositionalParameters());
     }
 
     TableInfo table = getTable(options.tableId());
@@ -447,7 +448,11 @@ public class BigQueryClient {
     if (query.isPresent()) {
       validateViewsEnabled(options);
       String sql = query.get();
-      return getQueryResultSchema(sql, Collections.emptyMap(), options.queryNamedParameters(), options.queryPositionalParameters());
+      return getQueryResultSchema(
+          sql,
+          Collections.emptyMap(),
+          options.queryNamedParameters(),
+          options.queryPositionalParameters());
     }
     TableInfo table = getReadTable(options);
     return table != null ? table.getDefinition().getSchema() : null;
@@ -635,7 +640,10 @@ public class BigQueryClient {
    * @param querySql the query to be run
    * @return a reference to the table
    */
-  public TableInfo materializeQueryToTable(String querySql, Map<String, QueryParameterValue> queryNamedParameters, List<QueryParameterValue> queryPositionalParameters) {
+  public TableInfo materializeQueryToTable(
+      String querySql,
+      Map<String, QueryParameterValue> queryNamedParameters,
+      List<QueryParameterValue> queryPositionalParameters) {
     return materializeTable(querySql, queryNamedParameters, queryPositionalParameters);
   }
 
@@ -647,9 +655,18 @@ public class BigQueryClient {
    * @return a reference to the table
    */
   public TableInfo materializeQueryToTable(
-      String querySql, Map<String, String> additionalQueryJobLabels, Map<String, QueryParameterValue> queryNamedParameters, List<QueryParameterValue> queryPositionalParameters) {
+      String querySql,
+      Map<String, String> additionalQueryJobLabels,
+      Map<String, QueryParameterValue> queryNamedParameters,
+      List<QueryParameterValue> queryPositionalParameters) {
     TempTableBuilder tableBuilder =
-        new TempTableBuilder(this, querySql, jobConfigurationFactory, additionalQueryJobLabels, queryNamedParameters, queryPositionalParameters);
+        new TempTableBuilder(
+            this,
+            querySql,
+            jobConfigurationFactory,
+            additionalQueryJobLabels,
+            queryNamedParameters,
+            queryPositionalParameters);
 
     return materializeTable(querySql, tableBuilder);
   }
@@ -666,11 +683,18 @@ public class BigQueryClient {
   }
 
   public Schema getQueryResultSchema(
-      String querySql, Map<String, String> additionalQueryJobLabels, Map<String, QueryParameterValue> queryNamedParameters, List<QueryParameterValue> queryPositionalParameters) {
+      String querySql,
+      Map<String, String> additionalQueryJobLabels,
+      Map<String, QueryParameterValue> queryNamedParameters,
+      List<QueryParameterValue> queryPositionalParameters) {
     JobInfo jobInfo =
         JobInfo.of(
             jobConfigurationFactory
-                .createParameterizedQueryJobConfigurationBuilder(querySql, additionalQueryJobLabels, queryNamedParameters, queryPositionalParameters)
+                .createParameterizedQueryJobConfigurationBuilder(
+                    querySql,
+                    additionalQueryJobLabels,
+                    queryNamedParameters,
+                    queryPositionalParameters)
                 .setDryRun(true)
                 .build());
 
@@ -683,11 +707,20 @@ public class BigQueryClient {
     return queryStatistics.getSchema();
   }
 
-  private TableInfo materializeTable(String querySql, Map<String, QueryParameterValue> queryNamedParameters, List<QueryParameterValue> queryPositionalParameters) {
+  private TableInfo materializeTable(
+      String querySql,
+      Map<String, QueryParameterValue> queryNamedParameters,
+      List<QueryParameterValue> queryPositionalParameters) {
     try {
       return destinationTableCache.get(
           querySql,
-          new TempTableBuilder(this, querySql, jobConfigurationFactory, Collections.emptyMap(), queryNamedParameters, queryPositionalParameters));
+          new TempTableBuilder(
+              this,
+              querySql,
+              jobConfigurationFactory,
+              Collections.emptyMap(),
+              queryNamedParameters,
+              queryPositionalParameters));
     } catch (Exception e) {
       throw new BigQueryConnectorException(
           BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
@@ -947,13 +980,11 @@ public class BigQueryClient {
 
     TableInfo createTableFromQuery() {
       log.info("Materializing the query into a temporary table");
-      QueryJobConfiguration.Builder queryJobConfigurationBuilder = jobConfigurationFactory
-          .createParameterizedQueryJobConfigurationBuilder(querySql, additionalQueryJobLabels, namedParameters, positionalParameters);
+      QueryJobConfiguration.Builder queryJobConfigurationBuilder =
+          jobConfigurationFactory.createParameterizedQueryJobConfigurationBuilder(
+              querySql, additionalQueryJobLabels, namedParameters, positionalParameters);
 
-      JobInfo jobInfo =
-          JobInfo.of(
-              queryJobConfigurationBuilder
-                  .build());
+      JobInfo jobInfo = JobInfo.of(queryJobConfigurationBuilder.build());
 
       log.info("running query [{}]", querySql);
       JobInfo completedJobInfo = bigQueryClient.waitForJob(bigQueryClient.create(jobInfo));
@@ -1001,11 +1032,15 @@ public class BigQueryClient {
 
     QueryJobConfiguration.Builder createQueryJobConfigurationBuilder(
         String querySql, Map<String, String> additionalQueryJobLabels) {
-        return createParameterizedQueryJobConfigurationBuilder(querySql, additionalQueryJobLabels, Collections.emptyMap(), Collections.emptyList());
+      return createParameterizedQueryJobConfigurationBuilder(
+          querySql, additionalQueryJobLabels, Collections.emptyMap(), Collections.emptyList());
     }
 
     QueryJobConfiguration.Builder createParameterizedQueryJobConfigurationBuilder(
-        String querySql, Map<String, String> additionalQueryJobLabels, Map<String, QueryParameterValue> queryNamedParameters, List<QueryParameterValue> queryPositionalParameters) {
+        String querySql,
+        Map<String, String> additionalQueryJobLabels,
+        Map<String, QueryParameterValue> queryNamedParameters,
+        List<QueryParameterValue> queryPositionalParameters) {
 
       QueryJobConfiguration.Builder builder =
           QueryJobConfiguration.newBuilder(querySql).setPriority(queryJobPriority);

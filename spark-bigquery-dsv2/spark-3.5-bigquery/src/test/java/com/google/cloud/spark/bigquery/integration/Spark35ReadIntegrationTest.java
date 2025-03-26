@@ -19,6 +19,7 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows; // Assuming JUnit 4 style based on original
 
+import com.google.inject.ProvisionException;
 import org.apache.spark.sql.AnalysisException; // Import for potential Spark-level errors
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -85,20 +86,26 @@ public class Spark35ReadIntegrationTest extends ReadIntegrationTestBase {
 
   @Test
   public void testReadWithMixedParametersFails() {
-    IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+    // 1. Expect the ProvisionException that is actually thrown
+    ProvisionException thrown = assertThrows(ProvisionException.class,
         () -> {
           spark
               .read()
               .format("bigquery")
-              .option("query", NAMED_PARAM_QUERY) // Query doesn't matter as much as options
+              .option("query", NAMED_PARAM_QUERY)
               .option("viewsEnabled", "true")
-              .option("NamedParameters.corpus", "STRING:whatever") // A named param option
-              .option("PositionalParameters.1", "INT64:100") // A positional param option
-              .load() // Trigger the read and validation
-              .show(); // This line won't be reached
+              .option("NamedParameters.corpus", "STRING:whatever")
+              .option("PositionalParameters.1", "INT64:100")
+              .load()
+              .show();
         });
 
-    assertThat(thrown)
+    Throwable cause = thrown.getCause();
+
+    assertThat(cause).isNotNull();
+    assertThat(cause).isInstanceOf(IllegalArgumentException.class);
+
+    assertThat(cause)
         .hasMessageThat()
         .contains("Cannot mix NamedParameters.* and PositionalParameters.* options.");
   }
