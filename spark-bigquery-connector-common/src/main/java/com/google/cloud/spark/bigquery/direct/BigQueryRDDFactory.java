@@ -94,7 +94,7 @@ public class BigQueryRDDFactory {
             // Label to add to Query Job indicating that it was invoked as part of query pushdown
             ImmutableMap.<String, String>builder()
                 .put(QUERY_JOB_LABEL, QUERY_PUSHDOWN_JOB_LABEL_VALUE)
-                .build(), Collections.emptyMap());
+                .build(), Collections.emptyMap(), Collections.emptyList());
 
     TableDefinition actualTableDefinition = actualTable.getDefinition();
 

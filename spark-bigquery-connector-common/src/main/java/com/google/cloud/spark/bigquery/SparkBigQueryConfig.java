@@ -162,7 +162,6 @@ public class SparkBigQueryConfig
   static final Boolean ALLOW_MAP_TYPE_CONVERSION_DEFAULT = true;
   public static final String partitionOverwriteModeProperty =
       "spark.sql.sources.partitionOverwriteMode";
-
   public PartitionOverwriteMode partitionOverwriteModeValue = PartitionOverwriteMode.STATIC;
   public static final String BIGQUERY_JOB_TIMEOUT_IN_MINUTES = "bigQueryJobTimeoutInMinutes";
   static final long BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT = 6 * 60; // 6 hrs
@@ -251,7 +250,8 @@ public class SparkBigQueryConfig
   private com.google.common.base.Optional<String> gpn;
   private int bigNumericDefaultPrecision;
   private int bigNumericDefaultScale;
-  private Map<String, QueryParameterValue> queryParameters = Collections.emptyMap();
+  private Map<String, QueryParameterValue> queryNamedParameters = Collections.emptyMap();
+  private List<QueryParameterValue>  queryPositionalParameters = Collections.emptyList();
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -672,8 +672,8 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, BIG_NUMERIC_DEFAULT_SCALE)
             .transform(Integer::parseInt)
             .or(BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
-    config.queryParameters = BigQueryUtil.parseQueryParameters(options);
-
+    config.queryNamedParameters = BigQueryUtil.parseQueryParameters(options).getNamedParameters();
+    config.queryPositionalParameters = BigQueryUtil.parseQueryParameters(options).getPositionalParameters();
     return config;
   }
 
@@ -803,8 +803,12 @@ public class SparkBigQueryConfig
     return query.toJavaUtil();
   }
 
-  public Map<String, QueryParameterValue> getQueryParameters() {
-    return queryParameters;
+  public Map<String, QueryParameterValue> getNamedParameters() {
+    return queryNamedParameters;
+  }
+
+  public List<QueryParameterValue> getPositionalParameters() {
+    return queryPositionalParameters;
   }
 
   @Override
@@ -1182,8 +1186,13 @@ public class SparkBigQueryConfig
       }
 
       @Override
-      public Map<String, QueryParameterValue> queryParameters() {
-        return SparkBigQueryConfig.this.getQueryParameters();
+      public Map<String, QueryParameterValue> queryNamedParameters() {
+        return SparkBigQueryConfig.this.getNamedParameters();
+      }
+
+      @Override
+      public List<QueryParameterValue> queryPositionalParameters() {
+        return SparkBigQueryConfig.this.getPositionalParameters();
       }
     };
   }

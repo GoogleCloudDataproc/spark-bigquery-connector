@@ -59,15 +59,19 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.regex.Matcher;
@@ -98,6 +102,9 @@ public class BigQueryUtil {
   // Allow all non-whitespace beside ':' and '.'.
   // These confuse the qualified table parsing.
   private static final String TABLE_PATTERN = "[\\S&&[^.:]]+";
+
+  private static final String NAMED_PARAM_PREFIX = "namedparameters.";
+  private static final String POSITIONAL_PARAM_PREFIX = "positionalparameters.";
 
   /**
    * Regex for an optionally fully qualified table.
@@ -888,73 +895,244 @@ public class BigQueryUtil {
     return table.getDefinition().getType() == TableDefinition.Type.TABLE
         && !isBigLakeManagedTable(table);
   }
+  /**
+   * Helper class to hold the parsed query parameters, distinguishing between named and positional.
+   */
+  public static class ParsedQueryParameters {
+    private final Map<String, QueryParameterValue> namedParameters;
+    private final List<QueryParameterValue> positionalParameters;
+    private final boolean originallyIntendedNamed;
+    private final boolean originallyIntendedPositional;
 
-  public static Map<String, QueryParameterValue> parseQueryParameters(Map<String, String> options) {
-    String queryParametersJson = options.get("queryparameters");
-    if (queryParametersJson == null) {
-      return Collections.emptyMap();
+
+    private ParsedQueryParameters(
+        Map<String, QueryParameterValue> named,
+        List<QueryParameterValue> positional,
+        boolean originallyNamed,
+        boolean originallyPositional) {
+      this.namedParameters = named != null ? Collections.unmodifiableMap(named) : null;
+      this.positionalParameters = positional != null ? Collections.unmodifiableList(positional) : null;
+      this.originallyIntendedNamed = originallyNamed;
+      this.originallyIntendedPositional = originallyPositional;
     }
 
-    Map<String, QueryParameterValue> parsedParameters = new HashMap<>();
-    Gson gson = new Gson();
+    public static ParsedQueryParameters named(Map<String, QueryParameterValue> params) {
+      return new ParsedQueryParameters(params, null, true, false);
+    }
 
-    try {
-      Map<String, Map<String, String>> parametersMap = gson.fromJson(
-          queryParametersJson, Map.class);
+    public static ParsedQueryParameters positional(List<QueryParameterValue> params) {
+      return new ParsedQueryParameters(null, params, false, true);
+    }
 
-      if (parametersMap != null) {
-        for (Map.Entry<String, Map<String, String>> entry : parametersMap.entrySet()) {
-          String paramName = entry.getKey();
-          Map<String, String> paramValueMap = entry.getValue();
+    public static ParsedQueryParameters empty() {
+      return new ParsedQueryParameters(Collections.emptyMap(), Collections.emptyList(), false, false);
+    }
 
-          if (paramValueMap != null && paramValueMap.containsKey("value") && paramValueMap.containsKey("type")) {
-            String valueStr = paramValueMap.get("value");
-            String typeStr = paramValueMap.get("type");
+    public boolean isNamed() {
+      // True if Named parameters were provided in the options
+      return originallyIntendedNamed;
+    }
 
-            StandardSQLTypeName type = null;
-            QueryParameterValue paramValue = null;
+    public boolean isPositional() {
+      // True if Positional parameters were provided in the options
+      return originallyIntendedPositional;
+    }
 
-            try {
-              type = StandardSQLTypeName.valueOf(typeStr);
-            } catch (IllegalArgumentException e) {
-              System.err.println("Warning: Unknown query parameter type: " + typeStr + " for parameter: " + paramName + ". Skipping.");
-              continue;
-            }
+    public Map<String, QueryParameterValue> getNamedParameters() {
+      if (!isNamed()) {
+        return Collections.emptyMap();
+      }
+      // Return the map, which might be empty if all named parameters failed parsing
+      return namedParameters;
+    }
 
-            switch (type) {
-              case INT64:
-                try {
-                  paramValue = QueryParameterValue.int64(Long.parseLong(valueStr));
-                } catch (NumberFormatException e) {
-                  System.err.println("Warning: Invalid INT64 value: " + valueStr + " for parameter: " + paramName + ". Skipping.");
-                  continue;
-                }
-                break;
-              case STRING:
-                paramValue = QueryParameterValue.string(valueStr);
-                break;
-              case BOOL:
-                paramValue = QueryParameterValue.bool(Boolean.parseBoolean(valueStr));
-                break;
-              default:
-                System.err.println("Warning: Unsupported query parameter type: " + type + " for parameter: " + paramName + ". Skipping.");
-                continue;
-            }
-            if (paramValue != null) {
-              parsedParameters.put(paramName, paramValue);
-            }
+    public List<QueryParameterValue> getPositionalParameters() {
+      if (!isPositional()) {
+        return Collections.emptyList();
+      }
+      // Return the list, which might be empty if all positional parameters failed parsing
+      return positionalParameters;
+    }
 
-          } else {
-            System.err.println("Warning: Invalid query parameter format for parameter: " + paramName + ". Skipping.");
+    public boolean isEmpty() {
+      // Check if no parameter options were specified at all
+      return !originallyIntendedNamed && !originallyIntendedPositional;
+    }
+  }
+  /**
+   * Parses query parameters from Spark options based on NamedParameters.* and PositionalParameters.* prefixes.
+   *
+   * @param options A map containing Spark DataSource options.
+   * @return A ParsedQueryParameters object containing either named or positional parameters, or an empty state.
+   * @throws IllegalArgumentException if both named and positional parameters are specified,
+   *                                  if parameter format is invalid, type is unknown/unsupported,
+   *                                  value parsing fails, positional index is invalid/missing/duplicated.
+   */
+  public static ParsedQueryParameters parseQueryParameters(Map<String, String> options) {
+    Map<String, QueryParameterValue> namedParameters = new HashMap<>();
+    // Use a temporary map for positional parameters to handle potential gaps and sorting
+    Map<Integer, QueryParameterValue> positionalParametersTemp = new TreeMap<>();
+
+    boolean foundNamedPrefix = false;
+    boolean foundPositionalPrefix = false;
+
+    for (Map.Entry<String, String> entry : options.entrySet()) {
+      String key = entry.getKey();
+      String keyLower = key.toLowerCase(Locale.ROOT);
+      String value = entry.getValue();
+
+      if (keyLower.startsWith(NAMED_PARAM_PREFIX)) {
+        foundNamedPrefix = true;
+        if (foundNamedPrefix && foundPositionalPrefix) {
+          throw new IllegalArgumentException(
+              "Cannot mix NamedParameters.* and PositionalParameters.* options.");
+        }
+
+        String paramName = key.substring(NAMED_PARAM_PREFIX.length());
+        if (paramName.isEmpty()) {
+          throw new IllegalArgumentException(
+              "Named parameter name cannot be empty. Option key: '" + key + "'");
+        }
+
+        QueryParameterValue qpv = parseSingleParameterValue(paramName, value);
+        if (namedParameters.containsKey(paramName)) {
+          System.err.println("Warning: Duplicate named parameter definition for '" + paramName + "'. Overwriting.");
+        }
+        namedParameters.put(paramName, qpv);
+
+      } else if (keyLower.startsWith(POSITIONAL_PARAM_PREFIX)) {
+        foundPositionalPrefix = true;
+        if (foundNamedPrefix && foundPositionalPrefix) {
+          throw new IllegalArgumentException(
+              "Cannot mix NamedParameters.* and PositionalParameters.* options.");
+        }
+
+        String indexStr = key.substring(POSITIONAL_PARAM_PREFIX.length());
+        if (indexStr.isEmpty()) {
+          throw new IllegalArgumentException(
+              "Positional parameter index cannot be empty. Option key: '" + key + "'");
+        }
+
+        int index;
+        try {
+          index = Integer.parseInt(indexStr);
+        } catch (NumberFormatException e) {
+          throw new IllegalArgumentException(
+              "Invalid positional parameter index: '" + indexStr + "' must be an integer. Option key: '" + key + "'", e);
+        }
+
+        if (index < 1) {
+          throw new IllegalArgumentException(
+              "Invalid positional parameter index: " + index + ". Indices must be 1-based. Option key: '" + key + "'");
+        }
+
+        QueryParameterValue qpv = parseSingleParameterValue(String.valueOf(index), value);
+        if (positionalParametersTemp.containsKey(index)) {
+          throw new IllegalArgumentException(
+              "Duplicate positional parameter definition for index: " + index + ". Option key: '" + key + "'");
+        }
+        positionalParametersTemp.put(index, qpv);
+      }
+    }
+
+    if (foundNamedPrefix) {
+      return ParsedQueryParameters.named(namedParameters);
+    }
+
+    if (foundPositionalPrefix) {
+      List<QueryParameterValue> positionalParametersList = new ArrayList<>();
+      if (!positionalParametersTemp.isEmpty()) {
+        int maxIndex = ((TreeMap<Integer, QueryParameterValue>) positionalParametersTemp).lastKey();
+        for (int i = 1; i <= maxIndex; i++) {
+          QueryParameterValue qpv = positionalParametersTemp.get(i);
+          if (qpv == null) {
+            throw new IllegalArgumentException(
+                "Missing positional parameter for index: " + i + ". Parameters must be contiguous starting from 1.");
           }
+          positionalParametersList.add(qpv);
         }
       }
-
-    } catch (JsonSyntaxException e) {
-      System.err.println("Warning: Failed to parse queryParameters JSON: " + e.getMessage());
-      return Collections.emptyMap();
+      return ParsedQueryParameters.positional(positionalParametersList);
     }
 
-    return Collections.unmodifiableMap(parsedParameters);
+    return ParsedQueryParameters.empty();
+  }
+
+  /**
+   * Parses a "TYPE:value" string into a QueryParameterValue.
+   *
+   * @param identifier  The name or index (as string) of the parameter, for error messages.
+   * @param typeValueString The combined "TYPE:value" string.
+   * @return The corresponding QueryParameterValue.
+   * @throws IllegalArgumentException if the format is invalid, type is unknown/unsupported, or value parsing fails.
+   */
+  private static QueryParameterValue parseSingleParameterValue(String identifier, String typeValueString) {
+    if (typeValueString == null) {
+      throw new IllegalArgumentException("Parameter value string cannot be null for identifier: " + identifier);
+    }
+    int colonIndex = typeValueString.indexOf(':');
+    if (colonIndex <= 0) {
+      throw new IllegalArgumentException(
+          "Invalid parameter value format for identifier '" + identifier + "': '" + typeValueString
+              + "'. Expected 'TYPE:value' with non-empty TYPE before ':'."); // Slightly refined message
+    }
+
+    String typeStr = typeValueString.substring(0, colonIndex).trim().toUpperCase(Locale.ROOT);
+    String valueStr = typeValueString.substring(colonIndex + 1); // Keep original case, don't trim value yet
+
+    StandardSQLTypeName type;
+    try {
+      type = StandardSQLTypeName.valueOf(typeStr);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          "Unknown query parameter type: '" + typeStr + "' for identifier: '" + identifier + "'. Supported types: "
+              + Arrays.stream(StandardSQLTypeName.values())
+              .map(Enum::name)
+              .collect(Collectors.joining(", ")), e);
+    }
+
+    try {
+      switch (type) {
+        case BOOL:
+          return QueryParameterValue.bool(Boolean.parseBoolean(valueStr));
+        case INT64:
+          return QueryParameterValue.int64(Long.parseLong(valueStr.trim()));
+        case FLOAT64:
+          return QueryParameterValue.float64(Double.parseDouble(valueStr.trim()));
+        case NUMERIC:
+          return QueryParameterValue.numeric(new BigDecimal(valueStr.trim()));
+        case STRING:
+          return QueryParameterValue.string(valueStr);
+        case BYTES:
+          return QueryParameterValue.bytes(Base64.getDecoder().decode(valueStr));
+        case DATE:
+          return QueryParameterValue.date(valueStr.trim());
+        case DATETIME:
+          throw new IllegalArgumentException("DATETIME type is not currently supported.");
+        case GEOGRAPHY:
+          return QueryParameterValue.geography(valueStr.trim());
+        case INTERVAL:
+          throw new IllegalArgumentException("INTERVAL type is not currently supported.");
+        case JSON:
+          return QueryParameterValue.json(valueStr);
+        case TIME:
+          return QueryParameterValue.time(valueStr.trim());
+        case TIMESTAMP:
+          throw new IllegalArgumentException("TIMESTAMP type is not currently supported.");
+        case ARRAY:
+        case STRUCT:
+        case RANGE:
+          throw new IllegalArgumentException(
+              "Unsupported query parameter type: " + type + " for identifier: '" + identifier + "'.");
+        default:
+          // Catch any other unexpected enum values
+          throw new IllegalArgumentException(
+              "Unhandled query parameter type: " + type + " for identifier: '" + identifier + "'.");
+      }
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          "Failed to parse value '" + valueStr + "' for type " + type + " for identifier: '" + identifier
+              + "'. Error: " + e.getMessage(), e);
+    }
   }
 }
