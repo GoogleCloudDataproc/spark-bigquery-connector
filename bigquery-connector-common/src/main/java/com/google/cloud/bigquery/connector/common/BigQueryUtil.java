@@ -44,6 +44,7 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -57,11 +58,9 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -893,6 +892,7 @@ public class BigQueryUtil {
     return table.getDefinition().getType() == TableDefinition.Type.TABLE
         && !isBigLakeManagedTable(table);
   }
+
   /**
    * Helper class to hold the parsed query parameters, distinguishing between named and positional.
    */
@@ -907,7 +907,7 @@ public class BigQueryUtil {
         List<QueryParameterValue> positional,
         boolean originallyNamed,
         boolean originallyPositional) {
-      this.namedParameters = named != null ? Collections.unmodifiableMap(named) : null;
+      this.namedParameters = named != null ? Collections.unmodifiableMap(named) : null; // Store immutable map if non-null, else null.
       this.positionalParameters =
           positional != null ? Collections.unmodifiableList(positional) : null;
       this.originallyIntendedNamed = originallyNamed;
@@ -978,38 +978,40 @@ public class BigQueryUtil {
 
       if (keyLower.startsWith(NAMED_PARAM_PREFIX)) {
         foundNamedPrefix = true;
-        if (foundNamedPrefix && foundPositionalPrefix) {
-          throw new IllegalArgumentException(
-              "Cannot mix NamedParameters.* and PositionalParameters.* options.");
-        }
+        Preconditions.checkArgument(
+            !(foundNamedPrefix && foundPositionalPrefix),
+            new IllegalArgumentException(
+                "Cannot mix NamedParameters.* and PositionalParameters.* options."));
 
         String paramName = key.substring(NAMED_PARAM_PREFIX.length());
-        if (paramName.isEmpty()) {
-          throw new IllegalArgumentException(
-              "Named parameter name cannot be empty. Option key: '" + key + "'");
-        }
+        Preconditions.checkArgument(
+            !paramName.isEmpty(),
+            new IllegalArgumentException(
+                "Named parameter name cannot be empty. Option key: '" + key + "'"));
 
         QueryParameterValue qpv = parseSingleParameterValue(paramName, value);
-        if (namedParameters.containsKey(paramName)) {
-          System.err.println(
-              "Warning: Duplicate named parameter definition for '"
-                  + paramName
-                  + "'. Overwriting.");
-        }
+        Preconditions.checkArgument(
+            !namedParameters.containsKey(paramName),
+            new IllegalArgumentException(
+                "Duplicate named parameter definition for '"
+                    + paramName
+                    + "'. Option key: '"
+                    + key
+                    + "'"));
         namedParameters.put(paramName, qpv);
 
       } else if (keyLower.startsWith(POSITIONAL_PARAM_PREFIX)) {
         foundPositionalPrefix = true;
-        if (foundNamedPrefix && foundPositionalPrefix) {
-          throw new IllegalArgumentException(
-              "Cannot mix NamedParameters.* and PositionalParameters.* options.");
-        }
+        Preconditions.checkArgument(
+            !(foundNamedPrefix && foundPositionalPrefix),
+            new IllegalArgumentException(
+                "Cannot mix NamedParameters.* and PositionalParameters.* options."));
 
         String indexStr = key.substring(POSITIONAL_PARAM_PREFIX.length());
-        if (indexStr.isEmpty()) {
-          throw new IllegalArgumentException(
-              "Positional parameter index cannot be empty. Option key: '" + key + "'");
-        }
+        Preconditions.checkArgument(
+            !indexStr.isEmpty(),
+            new IllegalArgumentException(
+                "Positional parameter index cannot be empty. Option key: '" + key + "'"));
 
         int index;
         try {
@@ -1024,24 +1026,19 @@ public class BigQueryUtil {
               e);
         }
 
-        if (index < 1) {
-          throw new IllegalArgumentException(
-              "Invalid positional parameter index: "
-                  + index
-                  + ". Indices must be 1-based. Option key: '"
-                  + key
-                  + "'");
-        }
-
+        Preconditions.checkArgument(
+            index >= 1,
+            new IllegalArgumentException(
+                "Invalid positional parameter index: "
+                    + index
+                    + ". Indices must be 1-based. Option key: '"
+                    + key
+                    + "'"));
         QueryParameterValue qpv = parseSingleParameterValue(String.valueOf(index), value);
-        if (positionalParametersTemp.containsKey(index)) {
-          throw new IllegalArgumentException(
-              "Duplicate positional parameter definition for index: "
-                  + index
-                  + ". Option key: '"
-                  + key
-                  + "'");
-        }
+        Preconditions.checkArgument(
+            !positionalParametersTemp.containsKey(index),
+            new IllegalArgumentException(
+                "Duplicate positional parameter definition for index: " + index + "."));
         positionalParametersTemp.put(index, qpv);
       }
     }
@@ -1055,14 +1052,14 @@ public class BigQueryUtil {
       if (!positionalParametersTemp.isEmpty()) {
         int maxIndex = ((TreeMap<Integer, QueryParameterValue>) positionalParametersTemp).lastKey();
         for (int i = 1; i <= maxIndex; i++) {
-          QueryParameterValue qpv = positionalParametersTemp.get(i);
-          if (qpv == null) {
-            throw new IllegalArgumentException(
-                "Missing positional parameter for index: "
-                    + i
-                    + ". Parameters must be contiguous starting from 1.");
-          }
-          positionalParametersList.add(qpv);
+          QueryParameterValue currentIndex = positionalParametersTemp.get(i);
+          Preconditions.checkNotNull(
+              currentIndex,
+              new IllegalArgumentException(
+                  "Missing positional parameter for index: "
+                      + i
+                      + ". Parameters must be contiguous starting from 1."));
+          positionalParametersList.add(currentIndex);
         }
       }
       return ParsedQueryParameters.positional(positionalParametersList);
@@ -1082,23 +1079,23 @@ public class BigQueryUtil {
    */
   private static QueryParameterValue parseSingleParameterValue(
       String identifier, String typeValueString) {
-    if (typeValueString == null) {
-      throw new IllegalArgumentException(
-          "Parameter value string cannot be null for identifier: " + identifier);
-    }
+    Preconditions.checkNotNull(
+        typeValueString,
+        new IllegalArgumentException(
+            "Parameter value string cannot be null for identifier: " + identifier));
+
     int colonIndex = typeValueString.indexOf(':');
-    if (colonIndex <= 0) {
-      throw new IllegalArgumentException(
-          "Invalid parameter value format for identifier '"
-              + identifier
-              + "': '"
-              + typeValueString
-              + "'. Expected 'TYPE:value' with non-empty TYPE before ':'."); // Slightly refined
-    }
+    Preconditions.checkArgument(
+        colonIndex > 0,
+        new IllegalArgumentException(
+            "Invalid parameter value format for identifier '"
+                + identifier
+                + "': '"
+                + typeValueString
+                + "'. Expected 'TYPE:value' with non-empty TYPE before ':'."));
 
     String typeStr = typeValueString.substring(0, colonIndex).trim().toUpperCase(Locale.ROOT);
-    String valueStr =
-        typeValueString.substring(colonIndex + 1); // Keep original case, don't trim value yet
+    String valueStr = typeValueString.substring(colonIndex + 1);
 
     StandardSQLTypeName type;
     try {
@@ -1115,60 +1112,6 @@ public class BigQueryUtil {
                   .collect(Collectors.joining(", ")),
           e);
     }
-
-    try {
-      switch (type) {
-        case BOOL:
-          return QueryParameterValue.bool(Boolean.parseBoolean(valueStr));
-        case INT64:
-          return QueryParameterValue.int64(Long.parseLong(valueStr.trim()));
-        case FLOAT64:
-          return QueryParameterValue.float64(Double.parseDouble(valueStr.trim()));
-        case NUMERIC:
-          return QueryParameterValue.numeric(new BigDecimal(valueStr.trim()));
-        case STRING:
-          return QueryParameterValue.string(valueStr);
-        case BYTES:
-          return QueryParameterValue.bytes(Base64.getDecoder().decode(valueStr));
-        case DATE:
-          return QueryParameterValue.date(valueStr.trim());
-        case DATETIME:
-          throw new IllegalArgumentException("DATETIME type is not currently supported.");
-        case GEOGRAPHY:
-          return QueryParameterValue.geography(valueStr.trim());
-        case INTERVAL:
-          throw new IllegalArgumentException("INTERVAL type is not currently supported.");
-        case JSON:
-          return QueryParameterValue.json(valueStr);
-        case TIME:
-          return QueryParameterValue.time(valueStr.trim());
-        case TIMESTAMP:
-          throw new IllegalArgumentException("TIMESTAMP type is not currently supported.");
-        case ARRAY:
-        case STRUCT:
-        case RANGE:
-          throw new IllegalArgumentException(
-              "Unsupported query parameter type: "
-                  + type
-                  + " for identifier: '"
-                  + identifier
-                  + "'.");
-        default:
-          // Catch any other unexpected enum values
-          throw new IllegalArgumentException(
-              "Unhandled query parameter type: " + type + " for identifier: '" + identifier + "'.");
-      }
-    } catch (Exception e) {
-      throw new IllegalArgumentException(
-          "Failed to parse value '"
-              + valueStr
-              + "' for type "
-              + type
-              + " for identifier: '"
-              + identifier
-              + "'. Error: "
-              + e.getMessage(),
-          e);
-    }
+    return QueryParameterValue.newBuilder().setValue(valueStr.trim()).setType(type).build();
   }
 }
