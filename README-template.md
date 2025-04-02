@@ -264,7 +264,7 @@ To use parameterized queries:
 
 The `TYPE` in the `TYPE:value` string specifies the BigQuery Standard SQL data
 type. Supported types currently include: `BOOL`, `INT64`, `FLOAT64`, `NUMERIC`,
-`STRING`, `DATE`, `DATETIME`, `JSON`, `TIME`, `GEOGRAPHY`, `TIMESTAMP`. 
+`STRING`, `DATE`, `DATETIME`, `JSON`, `TIME`, `GEOGRAPHY`, `TIMESTAMP`.
 
 `ARRAY` and `STRUCT` types are not supported as parameters at this time.
 
