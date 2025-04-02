@@ -242,6 +242,32 @@ In order to use this feature the `viewsEnabled` configurations MUST be set to
 saving the result into a temporary table, of which Spark will read the results
 from. This may add additional costs on your BigQuery account.
 
+### Reading From Parameterized Queries
+
+The connector supports executing BigQuery parameterized queries using the
+standard `spark.read.format('bigquery')` API.
+
+To use parameterized queries:
+
+1. Provide the SQL query containing parameters using the
+   `.option("query", "SQL_STRING")` with named (`@param`) or positional (`?`) parameters.
+2. Specify the parameter values using dedicated options:
+  * **Named Parameters:** Use options prefixed with `NamedParameters.`. The
+    parameter name follows the prefix (case-insensitive).
+    * Format: `.option("NamedParameters.<parameter_name>", "TYPE:value")`
+    * Example: `.option("NamedParameters.corpus", "STRING:romeoandjuliet")`
+  * **Positional Parameters:** Use options prefixed with
+    `PositionalParameters.`. The 1-based index follows the prefix.
+    * Format:
+      `.option("PositionalParameters.<parameter_index>", "TYPE:value")`
+    * Example: `.option("PositionalParameters.1", "STRING:romeoandjuliet")`
+
+The `TYPE` in the `TYPE:value` string specifies the BigQuery Standard SQL data
+type. Supported types currently include: `BOOL`, `INT64`, `FLOAT64`, `NUMERIC`,
+`STRING`, `DATE`, `DATETIME`, `JSON`, `TIME`, `GEOGRAPHY`, `TIMESTAMP`. 
+
+`ARRAY` and `STRUCT` types are not supported as parameters at this time.
+
 ### Reading From Views
 
 The connector has a preliminary support for reading from

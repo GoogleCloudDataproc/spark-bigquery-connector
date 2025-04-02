@@ -1018,10 +1018,8 @@ public class BigQueryUtilTest {
     Map<String, QueryParameterValue> params = result.getNamedParameters();
     assertThat(params).hasSize(2);
     assertThat(params.get("withSpaces"))
-        .isEqualTo(
-            QueryParameterValue.string("leading and trailing spaces"));
-    assertThat(params.get("numWithSpaces"))
-        .isEqualTo(QueryParameterValue.int64(123L));
+        .isEqualTo(QueryParameterValue.string("leading and trailing spaces"));
+    assertThat(params.get("numWithSpaces")).isEqualTo(QueryParameterValue.int64(123L));
   }
 
   @Test
@@ -1153,10 +1151,10 @@ public class BigQueryUtilTest {
     options.put("NamedParameters.nullValue", null);
 
     NullPointerException e =
-        assertThrows(
-            NullPointerException.class, () -> BigQueryUtil.parseQueryParameters(options));
+        assertThrows(NullPointerException.class, () -> BigQueryUtil.parseQueryParameters(options));
 
-    assertThat(e).hasMessageThat()
+    assertThat(e)
+        .hasMessageThat()
         .contains("Parameter value string cannot be null for identifier: nullValue");
   }
 

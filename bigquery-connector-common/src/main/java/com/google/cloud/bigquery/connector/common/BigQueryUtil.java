@@ -907,7 +907,10 @@ public class BigQueryUtil {
         List<QueryParameterValue> positional,
         boolean originallyNamed,
         boolean originallyPositional) {
-      this.namedParameters = named != null ? Collections.unmodifiableMap(named) : null; // Store immutable map if non-null, else null.
+      this.namedParameters =
+          named != null
+              ? Collections.unmodifiableMap(named)
+              : null; // Store immutable map if non-null, else null.
       this.positionalParameters =
           positional != null ? Collections.unmodifiableList(positional) : null;
       this.originallyIntendedNamed = originallyNamed;
@@ -1112,6 +1115,11 @@ public class BigQueryUtil {
                   .collect(Collectors.joining(", ")),
           e);
     }
+    Preconditions.checkArgument(
+        type != StandardSQLTypeName.ARRAY && type != StandardSQLTypeName.STRUCT,
+        "Unsupported query parameter type: %s for identifier: '%s'. ARRAY and STRUCT types are not supported as query parameters.",
+        type,
+        identifier);
     return QueryParameterValue.newBuilder().setValue(valueStr.trim()).setType(type).build();
   }
 }
