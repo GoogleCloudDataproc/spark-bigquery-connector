@@ -38,7 +38,6 @@ import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.ParquetOptions;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
-import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
@@ -48,6 +47,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.QueryParameterHelper;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
@@ -251,8 +251,7 @@ public class SparkBigQueryConfig
   private com.google.common.base.Optional<String> gpn;
   private int bigNumericDefaultPrecision;
   private int bigNumericDefaultScale;
-  private Map<String, QueryParameterValue> queryNamedParameters = Collections.emptyMap();
-  private List<QueryParameterValue> queryPositionalParameters = Collections.emptyList();
+  private QueryParameterHelper queryParameterHelper;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -673,9 +672,7 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, BIG_NUMERIC_DEFAULT_SCALE)
             .transform(Integer::parseInt)
             .or(BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
-    config.queryNamedParameters = BigQueryUtil.parseQueryParameters(options).getNamedParameters();
-    config.queryPositionalParameters =
-        BigQueryUtil.parseQueryParameters(options).getPositionalParameters();
+    config.queryParameterHelper = BigQueryUtil.parseQueryParameters(options);
     return config;
   }
 
@@ -805,12 +802,8 @@ public class SparkBigQueryConfig
     return query.toJavaUtil();
   }
 
-  public Map<String, QueryParameterValue> getNamedParameters() {
-    return queryNamedParameters;
-  }
-
-  public List<QueryParameterValue> getPositionalParameters() {
-    return queryPositionalParameters;
+  public QueryParameterHelper getQueryParameterHelper() {
+    return queryParameterHelper;
   }
 
   @Override
@@ -1188,13 +1181,8 @@ public class SparkBigQueryConfig
       }
 
       @Override
-      public Map<String, QueryParameterValue> queryNamedParameters() {
-        return SparkBigQueryConfig.this.getNamedParameters();
-      }
-
-      @Override
-      public List<QueryParameterValue> queryPositionalParameters() {
-        return SparkBigQueryConfig.this.getPositionalParameters();
+      public QueryParameterHelper getQueryParameterHelper() {
+        return SparkBigQueryConfig.this.getQueryParameterHelper();
       }
     };
   }

@@ -37,7 +37,6 @@ import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
-import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
@@ -405,8 +404,7 @@ public class BigQueryClient {
       // in this case, let's materialize it and use it as the table
       validateViewsEnabled(options);
       String sql = query.get();
-      return materializeQueryToTable(
-          sql, options.queryNamedParameters(), options.queryPositionalParameters());
+      return materializeQueryToTable(sql, options.getQueryParameterHelper());
     }
 
     TableInfo table = getTable(options.tableId());
@@ -448,11 +446,7 @@ public class BigQueryClient {
     if (query.isPresent()) {
       validateViewsEnabled(options);
       String sql = query.get();
-      return getQueryResultSchema(
-          sql,
-          Collections.emptyMap(),
-          options.queryNamedParameters(),
-          options.queryPositionalParameters());
+      return getQueryResultSchema(sql, Collections.emptyMap(), options.getQueryParameterHelper());
     }
     TableInfo table = getReadTable(options);
     return table != null ? table.getDefinition().getSchema() : null;
@@ -641,10 +635,8 @@ public class BigQueryClient {
    * @return a reference to the table
    */
   public TableInfo materializeQueryToTable(
-      String querySql,
-      Map<String, QueryParameterValue> queryNamedParameters,
-      List<QueryParameterValue> queryPositionalParameters) {
-    return materializeTable(querySql, queryNamedParameters, queryPositionalParameters);
+      String querySql, QueryParameterHelper queryParameterHelper) {
+    return materializeTable(querySql, queryParameterHelper);
   }
 
   /**
@@ -657,16 +649,14 @@ public class BigQueryClient {
   public TableInfo materializeQueryToTable(
       String querySql,
       Map<String, String> additionalQueryJobLabels,
-      Map<String, QueryParameterValue> queryNamedParameters,
-      List<QueryParameterValue> queryPositionalParameters) {
+      QueryParameterHelper queryParameterHelper) {
     TempTableBuilder tableBuilder =
         new TempTableBuilder(
             this,
             querySql,
             jobConfigurationFactory,
             additionalQueryJobLabels,
-            queryNamedParameters,
-            queryPositionalParameters);
+            queryParameterHelper);
 
     return materializeTable(querySql, tableBuilder);
   }
@@ -679,22 +669,18 @@ public class BigQueryClient {
    * @return a reference to the table
    */
   public TableInfo materializeViewToTable(String querySql, TableId viewId) {
-    return materializeTable(querySql, Collections.emptyMap(), Collections.emptyList());
+    return materializeTable(querySql, QueryParameterHelper.none());
   }
 
   public Schema getQueryResultSchema(
       String querySql,
       Map<String, String> additionalQueryJobLabels,
-      Map<String, QueryParameterValue> queryNamedParameters,
-      List<QueryParameterValue> queryPositionalParameters) {
+      QueryParameterHelper queryParameterHelper) {
     JobInfo jobInfo =
         JobInfo.of(
             jobConfigurationFactory
                 .createParameterizedQueryJobConfigurationBuilder(
-                    querySql,
-                    additionalQueryJobLabels,
-                    queryNamedParameters,
-                    queryPositionalParameters)
+                    querySql, additionalQueryJobLabels, queryParameterHelper)
                 .setDryRun(true)
                 .build());
 
@@ -707,10 +693,7 @@ public class BigQueryClient {
     return queryStatistics.getSchema();
   }
 
-  private TableInfo materializeTable(
-      String querySql,
-      Map<String, QueryParameterValue> queryNamedParameters,
-      List<QueryParameterValue> queryPositionalParameters) {
+  private TableInfo materializeTable(String querySql, QueryParameterHelper queryParameterHelper) {
     try {
       return destinationTableCache.get(
           querySql,
@@ -719,8 +702,7 @@ public class BigQueryClient {
               querySql,
               jobConfigurationFactory,
               Collections.emptyMap(),
-              queryNamedParameters,
-              queryPositionalParameters));
+              queryParameterHelper));
     } catch (Exception e) {
       throw new BigQueryConnectorException(
           BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
@@ -878,9 +860,7 @@ public class BigQueryClient {
 
     String viewEnabledParamName();
 
-    Map<String, QueryParameterValue> queryNamedParameters();
-
-    List<QueryParameterValue> queryPositionalParameters();
+    QueryParameterHelper getQueryParameterHelper();
   }
 
   public interface LoadDataOptions {
@@ -955,22 +935,19 @@ public class BigQueryClient {
     final String querySql;
     final JobConfigurationFactory jobConfigurationFactory;
     final Map<String, String> additionalQueryJobLabels;
-    final Map<String, QueryParameterValue> namedParameters;
-    final List<QueryParameterValue> positionalParameters;
+    final QueryParameterHelper queryParameterHelper;
 
     TempTableBuilder(
         BigQueryClient bigQueryClient,
         String querySql,
         JobConfigurationFactory jobConfigurationFactory,
         Map<String, String> additionalQueryJobLabels,
-        Map<String, QueryParameterValue> namedParameters,
-        List<QueryParameterValue> positionalParameters) {
+        QueryParameterHelper queryParameterHelper) {
       this.bigQueryClient = bigQueryClient;
       this.querySql = querySql;
       this.jobConfigurationFactory = jobConfigurationFactory;
       this.additionalQueryJobLabels = additionalQueryJobLabels;
-      this.namedParameters = namedParameters;
-      this.positionalParameters = positionalParameters;
+      this.queryParameterHelper = queryParameterHelper;
     }
 
     @Override
@@ -982,7 +959,7 @@ public class BigQueryClient {
       log.info("Materializing the query into a temporary table");
       QueryJobConfiguration.Builder queryJobConfigurationBuilder =
           jobConfigurationFactory.createParameterizedQueryJobConfigurationBuilder(
-              querySql, additionalQueryJobLabels, namedParameters, positionalParameters);
+              querySql, additionalQueryJobLabels, queryParameterHelper);
 
       JobInfo jobInfo = JobInfo.of(queryJobConfigurationBuilder.build());
 
@@ -1033,27 +1010,19 @@ public class BigQueryClient {
     QueryJobConfiguration.Builder createQueryJobConfigurationBuilder(
         String querySql, Map<String, String> additionalQueryJobLabels) {
       return createParameterizedQueryJobConfigurationBuilder(
-          querySql, additionalQueryJobLabels, Collections.emptyMap(), Collections.emptyList());
+          querySql, additionalQueryJobLabels, QueryParameterHelper.none());
     }
 
     QueryJobConfiguration.Builder createParameterizedQueryJobConfigurationBuilder(
         String querySql,
         Map<String, String> additionalQueryJobLabels,
-        Map<String, QueryParameterValue> queryNamedParameters,
-        List<QueryParameterValue> queryPositionalParameters) {
+        QueryParameterHelper queryParameterHelper) {
 
       QueryJobConfiguration.Builder builder =
           QueryJobConfiguration.newBuilder(querySql).setPriority(queryJobPriority);
 
-      queryNamedParameters.forEach(
-          (paramName, paramValue) -> {
-            builder.addNamedParameter(paramName, paramValue);
-          });
+      queryParameterHelper.configureBuilder(builder);
 
-      queryPositionalParameters.forEach(
-          (paramValue) -> {
-            builder.addPositionalParameter(paramValue);
-          });
       Map<String, String> allLabels = new HashMap<>(additionalQueryJobLabels);
 
       if (labels != null && !labels.isEmpty()) {
