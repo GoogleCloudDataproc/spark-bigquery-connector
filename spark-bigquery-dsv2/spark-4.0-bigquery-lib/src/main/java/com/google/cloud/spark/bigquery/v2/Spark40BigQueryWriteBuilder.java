@@ -15,15 +15,14 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
-import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper;
 import com.google.inject.Injector;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.connector.write.LogicalWriteInfo;
 import org.apache.spark.sql.connector.write.V1Write;
 import org.apache.spark.sql.connector.write.Write;
-import org.apache.spark.sql.sources.InsertableRelation;
 
-public class Spark40BigQueryWriteBuilder extends Spark35BigQueryWriteBuilder implements Write, V1Write {
+public class Spark40BigQueryWriteBuilder extends Spark35BigQueryWriteBuilder
+    implements Write, V1Write {
 
   public Spark40BigQueryWriteBuilder(Injector injector, LogicalWriteInfo info, SaveMode mode) {
     super(injector, info, mode);
