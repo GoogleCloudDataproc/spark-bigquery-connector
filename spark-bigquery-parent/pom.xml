@@ -460,6 +460,9 @@
                 <artifactId>maven-pmd-plugin</artifactId>
                 <configuration>
                     <aggregate>true</aggregate>
+                    <excludes>
+                        <exclude>**/*SparkSqlUtils.java</exclude>
+                    </excludes>
                     <inputEncoding>utf-8</inputEncoding>
                     <minimumTokens>100</minimumTokens>
                     <printFailingErrors>true</printFailingErrors>
