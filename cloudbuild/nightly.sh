@@ -81,6 +81,9 @@ case $STEP in
     gsutil cp "${M2REPO}/com/google/cloud/spark/spark-3.5-bigquery/${BUILD_REVISION}/spark-3.5-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
     gsutil cp "gs://${BUCKET}/spark-3.5-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.5-bigquery-nightly-snapshot.jar"
 
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-4.0-bigquery/${BUILD_REVISION}/spark-4.0-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-4.0-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-4.0-bigquery-nightly-snapshot.jar"
+
     gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-metrics/${BUILD_REVISION}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}"
     gsutil cp "gs://${BUCKET}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-metrics-nightly-snapshot.jar"
 
