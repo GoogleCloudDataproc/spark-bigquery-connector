@@ -47,6 +47,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.QueryParameterHelper;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
@@ -250,6 +251,7 @@ public class SparkBigQueryConfig
   private com.google.common.base.Optional<String> gpn;
   private int bigNumericDefaultPrecision;
   private int bigNumericDefaultScale;
+  private QueryParameterHelper queryParameterHelper;
 
   @VisibleForTesting
   SparkBigQueryConfig() {
@@ -670,7 +672,7 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, BIG_NUMERIC_DEFAULT_SCALE)
             .transform(Integer::parseInt)
             .or(BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
-
+    config.queryParameterHelper = BigQueryUtil.parseQueryParameters(options);
     return config;
   }
 
@@ -798,6 +800,10 @@ public class SparkBigQueryConfig
 
   public Optional<String> getQuery() {
     return query.toJavaUtil();
+  }
+
+  public QueryParameterHelper getQueryParameterHelper() {
+    return queryParameterHelper;
   }
 
   @Override
@@ -1172,6 +1178,11 @@ public class SparkBigQueryConfig
       @Override
       public String viewEnabledParamName() {
         return SparkBigQueryConfig.VIEWS_ENABLED_OPTION;
+      }
+
+      @Override
+      public QueryParameterHelper getQueryParameterHelper() {
+        return SparkBigQueryConfig.this.getQueryParameterHelper();
       }
     };
   }

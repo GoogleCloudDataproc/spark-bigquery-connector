@@ -27,6 +27,8 @@ import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.ParameterMode;
+import com.google.cloud.bigquery.connector.common.QueryParameterHelper;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
@@ -93,7 +95,8 @@ public class BigQueryRDDFactory {
             // Label to add to Query Job indicating that it was invoked as part of query pushdown
             ImmutableMap.<String, String>builder()
                 .put(QUERY_JOB_LABEL, QUERY_PUSHDOWN_JOB_LABEL_VALUE)
-                .build());
+                .build(),
+            new QueryParameterHelper(ParameterMode.NONE, null, null));
 
     TableDefinition actualTableDefinition = actualTable.getDefinition();
 
