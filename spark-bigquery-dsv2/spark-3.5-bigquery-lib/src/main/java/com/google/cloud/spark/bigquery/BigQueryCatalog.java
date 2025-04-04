@@ -16,11 +16,7 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.cloud.bigquery.BigQueryException;
-import com.google.cloud.bigquery.DatasetId;
-import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.TableDefinition;
-import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.spark.bigquery.v2.BigQueryIdentifier;
@@ -29,23 +25,17 @@ import com.google.cloud.spark.bigquery.v2.Spark3Util;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Injector;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Optional;
-import java.util.ServiceLoader;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
-import org.apache.spark.sql.catalyst.analysis.NoSuchNamespaceException;
-import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
-import org.apache.spark.sql.catalyst.analysis.TableAlreadyExistsException;
-import org.apache.spark.sql.connector.catalog.Identifier;
+import org.apache.spark.sql.catalyst.analysis.*;
+import org.apache.spark.sql.connector.catalog.*;
 import org.apache.spark.sql.connector.catalog.Table;
-import org.apache.spark.sql.connector.catalog.TableCatalog;
-import org.apache.spark.sql.connector.catalog.TableChange;
-import org.apache.spark.sql.connector.catalog.TableProvider;
 import org.apache.spark.sql.connector.expressions.Transform;
 import org.apache.spark.sql.sources.DataSourceRegister;
 import org.apache.spark.sql.types.StructType;
@@ -53,14 +43,18 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BigQueryCatalog implements TableCatalog {
+public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryCatalog.class);
   private static final String[] DEFAULT_NAMESPACE = {"default"};
 
   private static final Cache<String, Table> identifierToTableCache =
       CacheBuilder.newBuilder().expireAfterWrite(30, TimeUnit.MINUTES).maximumSize(1000).build();
-
+  private final LoadingCache<String[], Boolean> datasetExistenceCache =
+      CacheBuilder.newBuilder()
+          .maximumSize(1000)
+          .expireAfterWrite(15, TimeUnit.MINUTES)
+          .build(CacheLoader.from(this::bigQueryDatasetExists));
   private TableProvider tableProvider;
   private BigQueryClient bigQueryClient;
   private SchemaConverters schemaConverters;
@@ -122,6 +116,9 @@ public class BigQueryCatalog implements TableCatalog {
   public Table loadTable(Identifier identifier) throws NoSuchTableException {
     logger.debug("loading table [{}])", format(identifier));
     try {
+      if (!tableExists(identifier)) {
+        throw new NoSuchBigQueryTableException(identifier);
+      }
       return identifierToTableCache.get(
           identifier.toString(),
           () ->
@@ -146,6 +143,15 @@ public class BigQueryCatalog implements TableCatalog {
   public boolean tableExists(Identifier identifier) {
     logger.debug("checking existence of table [{}])", format(identifier));
     return bigQueryClient.tableExists(toTableId(identifier));
+  }
+
+  TableInfo loadBigQueryTable(Identifier identifier) {
+    return bigQueryClient.getTable(toTableId(identifier));
+  }
+
+  Optional<com.google.api.services.bigquery.model.Table> loadBigQueryRestTable(
+      Identifier identifier) {
+    return bigQueryClient.getRestTable(toTableId(identifier));
   }
 
   @Override
@@ -240,5 +246,44 @@ public class BigQueryCatalog implements TableCatalog {
     }
     throw new IllegalArgumentException(
         "The identifier [" + identifier + "] is not recognized by BigQuery");
+  }
+
+  @Override
+  public String[][] listNamespaces() throws NoSuchNamespaceException {
+    return new String[0][];
+  }
+
+  @Override
+  public String[][] listNamespaces(String[] namespace) throws NoSuchNamespaceException {
+    return new String[0][];
+  }
+
+  @Override
+  public boolean namespaceExists(String[] namespace) {
+    return datasetExistenceCache.getUnchecked(namespace);
+  }
+
+  private boolean bigQueryDatasetExists(String[] dataset) {
+    return bigQueryClient.datasetExists(DatasetId.of(dataset[0]));
+  }
+
+  @Override
+  public Map<String, String> loadNamespaceMetadata(String[] namespace)
+      throws NoSuchNamespaceException {
+    return Collections.emptyMap();
+  }
+
+  @Override
+  public void createNamespace(String[] namespace, Map<String, String> metadata)
+      throws NamespaceAlreadyExistsException {}
+
+  @Override
+  public void alterNamespace(String[] namespace, NamespaceChange... changes)
+      throws NoSuchNamespaceException {}
+
+  @Override
+  public boolean dropNamespace(String[] namespace, boolean cascade)
+      throws NoSuchNamespaceException, NonEmptyNamespaceException {
+    return false;
   }
 }
