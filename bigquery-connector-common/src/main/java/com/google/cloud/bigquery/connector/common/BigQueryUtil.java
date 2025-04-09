@@ -915,86 +915,120 @@ public class BigQueryUtil {
 
       if (keyLower.startsWith(NAMED_PARAM_PREFIX)) {
         Preconditions.checkArgument(
-            currentMode != ParameterMode.POSITIONAL,
+            currentMode == ParameterMode.NAMED || currentMode == ParameterMode.NONE,
             "Cannot mix NamedParameters.* and PositionalParameters.* options.");
         currentMode = ParameterMode.NAMED;
 
-        String paramName = key.substring(NAMED_PARAM_PREFIX.length());
-        Preconditions.checkArgument(
-            !paramName.isEmpty(),
-            String.format("Named parameter name cannot be empty. Option key: '%s'", key));
-
-        QueryParameterValue qpv = parseSingleParameterValue(paramName, value);
-        Preconditions.checkArgument(
-            !namedParameters.containsKey(paramName),
-            String.format(
-                "Duplicate named parameter definition for '%s'. Option key: '%s'", paramName, key));
-        namedParameters.put(paramName, qpv);
-
+        processNamedParameter(key, value, namedParameters);
       } else if (keyLower.startsWith(POSITIONAL_PARAM_PREFIX)) {
         Preconditions.checkArgument(
-            currentMode != ParameterMode.NAMED,
+            currentMode == ParameterMode.POSITIONAL || currentMode == ParameterMode.NONE,
             "Cannot mix NamedParameters.* and PositionalParameters.* options.");
         currentMode = ParameterMode.POSITIONAL;
-
-        String indexStr = key.substring(POSITIONAL_PARAM_PREFIX.length());
-        Preconditions.checkArgument(
-            !indexStr.isEmpty(),
-            String.format("Positional parameter index cannot be empty. Option key: '%s'", key));
-
-        int index;
-        try {
-          index = Integer.parseInt(indexStr);
-        } catch (NumberFormatException e) {
-          throw new IllegalArgumentException(
-              String.format(
-                  "Invalid positional parameter index: '%s' must be an integer. Option key: '%s'",
-                  indexStr, key),
-              e);
-        }
-
-        Preconditions.checkArgument(
-            index >= 1,
-            String.format(
-                "Invalid positional parameter index: %d. Indices must be 1-based. Option key:"
-                    + " '%s'",
-                index, key));
-
-        QueryParameterValue qpv = parseSingleParameterValue(String.valueOf(index), value);
-        Preconditions.checkArgument(
-            !positionalParametersTemp.containsKey(index),
-            String.format(
-                "Duplicate positional parameter definition for index: %d. Option key: '%s'",
-                index, key));
-        positionalParametersTemp.put(index, qpv);
+        processPositionalParameter(key, value, positionalParametersTemp);
       }
     }
 
-    // Construct the final result based on the detected mode
     switch (currentMode) {
       case NAMED:
         return QueryParameterHelper.named(namedParameters);
       case POSITIONAL:
-        List<QueryParameterValue> positionalParametersList = new ArrayList<>();
-        if (!positionalParametersTemp.isEmpty()) {
-          int maxIndex =
-              ((TreeMap<Integer, QueryParameterValue>) positionalParametersTemp).lastKey();
-          for (int i = 1; i <= maxIndex; i++) {
-            QueryParameterValue currentParam = positionalParametersTemp.get(i);
-            Preconditions.checkNotNull(
-                currentParam,
-                String.format(
-                    "Missing positional parameter for index: %d. Parameters must be contiguous"
-                        + " starting from 1.",
-                    i));
-            positionalParametersList.add(currentParam);
-          }
-        }
-        return QueryParameterHelper.positional(positionalParametersList);
+        List<QueryParameterValue> positionalList =
+            buildPositionalParameterList(positionalParametersTemp);
+        return QueryParameterHelper.positional(positionalList);
       case NONE:
-      default: // Default case handles NONE
+      default:
         return QueryParameterHelper.none();
     }
+  }
+
+  /**
+   * Processes a single named parameter option, adding it to the map. Performs validation checks
+   * specific to named parameters.
+   */
+  private static void processNamedParameter(
+      String key, String value, Map<String, QueryParameterValue> namedParams) {
+
+    String paramName = key.substring(NAMED_PARAM_PREFIX.length());
+    Preconditions.checkArgument(
+        !paramName.isEmpty(),
+        String.format("Named parameter name cannot be empty. Option key: '%s'", key));
+
+    QueryParameterValue qpv = parseSingleParameterValue(paramName, value); // Identifier is name
+
+    // Check for duplicates *before* putting
+    Preconditions.checkArgument(
+        !namedParams.containsKey(paramName),
+        String.format(
+            "Duplicate named parameter definition for '%s'. Option key: '%s'", paramName, key));
+
+    namedParams.put(paramName, qpv);
+  }
+
+  /**
+   * Processes a single positional parameter option, adding it to the temporary map. Performs
+   * parsing and validation checks specific to positional parameters.
+   */
+  private static void processPositionalParameter(
+      String key, String value, Map<Integer, QueryParameterValue> positionalParamsTemp) {
+
+    String indexStr = key.substring(POSITIONAL_PARAM_PREFIX.length());
+    Preconditions.checkArgument(
+        !indexStr.isEmpty(),
+        String.format("Positional parameter index cannot be empty. Option key: '%s'", key));
+
+    int index;
+    try {
+      index = Integer.parseInt(indexStr);
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid positional parameter index: '%s' must be an integer. Option key: '%s'",
+              indexStr, key),
+          e);
+    }
+
+    Preconditions.checkArgument(
+        index >= 1,
+        String.format(
+            "Invalid positional parameter index: %d. Indices must be 1-based. Option key: '%s'",
+            index, key));
+
+    QueryParameterValue qpv =
+        parseSingleParameterValue(String.valueOf(index), value); // Identifier is index
+
+    Preconditions.checkArgument(
+        !positionalParamsTemp.containsKey(index),
+        String.format(
+            "Duplicate positional parameter definition for index: %d. Option key: '%s'",
+            index, key));
+
+    positionalParamsTemp.put(index, qpv);
+  }
+
+  /**
+   * Builds the final ordered list of positional parameters from the temporary map, checking for
+   * contiguous indices starting from 1.
+   *
+   * @param positionalParamsTemp Sorted map of index to parameter value.
+   * @return Unmodifiable list of positional parameters in order.
+   * @throws NullPointerException if a gap is found (via Preconditions.checkNotNull).
+   */
+  private static List<QueryParameterValue> buildPositionalParameterList(
+      Map<Integer, QueryParameterValue> positionalParamsTemp) {
+    List<QueryParameterValue> positionalList = new ArrayList<>();
+    int maxIndex = ((TreeMap<Integer, QueryParameterValue>) positionalParamsTemp).lastKey();
+
+    for (int i = 1; i <= maxIndex; i++) {
+      QueryParameterValue currentParam = positionalParamsTemp.get(i);
+      Preconditions.checkNotNull(
+          currentParam,
+          String.format(
+              "Missing positional parameter for index: %d. Parameters must be contiguous starting from 1.",
+              i));
+      positionalList.add(currentParam);
+    }
+    return positionalList;
   }
 
   /**
@@ -1021,10 +1055,7 @@ public class BigQueryUtil {
             identifier, typeValueString));
 
     String typeStr = typeValueString.substring(0, colonIndex).trim().toUpperCase(Locale.ROOT);
-    String valueStr =
-        (colonIndex + 1 < typeValueString.length())
-            ? typeValueString.substring(colonIndex + 1)
-            : "";
+    String valueStr = typeValueString.substring(colonIndex + 1);
 
     StandardSQLTypeName type;
     try {

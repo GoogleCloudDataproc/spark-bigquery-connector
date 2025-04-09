@@ -956,7 +956,6 @@ public class BigQueryUtilTest {
   @Test
   public void testParseNamedParameters_SuccessAllTypes() {
     Map<String, String> options = new HashMap<>();
-    options.put("query", "SELECT ...");
     options.put("NamedParameters.strParam", "STRING:hello world");
     options.put("NamedParameters.intParam", "INT64:1234567890");
     options.put("NamedParameters.boolPropT", "BOOL:true");
@@ -964,6 +963,9 @@ public class BigQueryUtilTest {
     options.put("NamedParameters.boolPropCase", "BOOL:TRUE");
     options.put("NamedParameters.floatParam", "FLOAT64:123.456");
     options.put("NamedParameters.numericParam", "NUMERIC:987654321.123456789");
+    options.put(
+        "NamedParameters.bignumericParam",
+        "BIGNUMERIC:123456789012345678901234567890.123456789123456789");
     options.put("NamedParameters.dateParam", "DATE:2023-10-27");
     options.put("NamedParameters.jsonParam", "JSON:{\"key\": \"value\", \"arr\": [1, 2]}");
     options.put("NamedParameters.geoParam", "GEOGRAPHY:POINT(1 2)");
@@ -978,7 +980,7 @@ public class BigQueryUtilTest {
 
     assertThat(result.getNamedParameters()).isPresent();
     ImmutableMap<String, QueryParameterValue> params = result.getNamedParameters().get();
-    assertThat(params).hasSize(11);
+    assertThat(params).hasSize(12);
 
     assertThat(params.get("strParam")).isEqualTo(QueryParameterValue.string("hello world"));
     assertThat(params.get("intParam")).isEqualTo(QueryParameterValue.int64(1234567890L));
@@ -988,6 +990,10 @@ public class BigQueryUtilTest {
     assertThat(params.get("floatParam")).isEqualTo(QueryParameterValue.float64(123.456));
     assertThat(params.get("numericParam"))
         .isEqualTo(QueryParameterValue.numeric(new BigDecimal("987654321.123456789")));
+    assertThat(params.get("bignumericParam"))
+        .isEqualTo(
+            QueryParameterValue.bigNumeric(
+                new BigDecimal("123456789012345678901234567890.123456789123456789")));
     assertThat(params.get("dateParam")).isEqualTo(QueryParameterValue.date("2023-10-27"));
     assertThat(params.get("jsonParam"))
         .isEqualTo(QueryParameterValue.json("{\"key\": \"value\", \"arr\": [1, 2]}"));
@@ -1043,7 +1049,7 @@ public class BigQueryUtilTest {
   }
 
   @Test
-  public void testParseNamedParameters_ErrorDuplicateKeysIdentical() {
+  public void testParseNamedParameters_IdenticalKeys() {
     Map<String, String> options = new HashMap<>();
     options.put("NamedParameters.myValue", "STRING:first");
     options.put("NamedParameters.myValue", "STRING:second");
@@ -1058,7 +1064,6 @@ public class BigQueryUtilTest {
   @Test
   public void testParsePositionalParameters_Success() {
     Map<String, String> options = new HashMap<>();
-    options.put("query", "SELECT ... WHERE col1 = ? AND col2 = ? AND col3 = ?");
     options.put("PositionalParameters.1", "STRING:value1");
     options.put("PositionalParameters.3", "BOOL:false"); // Intentionally out of order for input map
     options.put("positionalparameters.2", "INT64:99"); // Test prefix case insensitivity

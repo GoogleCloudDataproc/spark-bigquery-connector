@@ -244,7 +244,7 @@ from. This may add additional costs on your BigQuery account.
 
 ### Reading From Parameterized Queries
 
-The connector supports executing BigQuery parameterized queries using the
+The connector supports executing [BigQuery parameterized queries](https://cloud.google.com/bigquery/docs/parameterized-queries) using the
 standard `spark.read.format('bigquery')` API.
 
 To use parameterized queries:

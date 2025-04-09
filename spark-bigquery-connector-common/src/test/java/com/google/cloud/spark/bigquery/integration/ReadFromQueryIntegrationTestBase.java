@@ -294,7 +294,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
               spark
                   .read()
                   .format("bigquery")
-                  .option("query", queryForFailure) // Use hardcoded query
+                  .option("query", queryForFailure)
                   .option("viewsEnabled", "true")
                   .option("NamedParameters.corpus", "STRING:whatever")
                   .option("PositionalParameters.1", "INT64:100")

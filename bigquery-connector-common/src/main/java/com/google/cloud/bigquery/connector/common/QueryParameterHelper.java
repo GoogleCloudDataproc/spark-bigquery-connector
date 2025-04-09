@@ -41,35 +41,34 @@ public final class QueryParameterHelper implements Serializable {
 
   public QueryParameterHelper(
       ParameterMode mode,
-      Map<String, QueryParameterValue> namedParameters,
-      List<QueryParameterValue> positionalParameters) {
+      ImmutableMap<String, QueryParameterValue> named,
+      ImmutableList<QueryParameterValue> positional) {
     this.mode = mode;
 
-    // Using Guava:
-    this.namedParameters =
-        namedParameters != null
-            ? ImmutableMap.copyOf(namedParameters)
-            : ImmutableMap.<String, QueryParameterValue>of(); // Explicit type for empty map
-    this.positionalParameters =
-        positionalParameters != null
-            ? ImmutableList.copyOf(positionalParameters)
-            : ImmutableList.<QueryParameterValue>of(); // Explicit type for empty list
+    this.namedParameters = named;
+    this.positionalParameters = positional;
   }
 
   static QueryParameterHelper none() {
-    return new QueryParameterHelper(ParameterMode.NONE, null, null);
+    return new QueryParameterHelper(ParameterMode.NONE, ImmutableMap.of(), ImmutableList.of());
   }
 
   static QueryParameterHelper named(Map<String, QueryParameterValue> namedParameters) {
     Preconditions.checkNotNull(
-        namedParameters, "namedParameters map cannot be null for named mode");
-    return new QueryParameterHelper(ParameterMode.NAMED, namedParameters, null);
+        namedParameters, "Input named parameters map cannot be null for named mode");
+    return new QueryParameterHelper(
+        ParameterMode.NAMED, ImmutableMap.copyOf(namedParameters), ImmutableList.of());
   }
 
   static QueryParameterHelper positional(List<QueryParameterValue> positionalParameters) {
     Preconditions.checkNotNull(
-        positionalParameters, "positionalParameters list cannot be null for positional mode");
-    return new QueryParameterHelper(ParameterMode.POSITIONAL, null, positionalParameters);
+        positionalParameters,
+        "Input positional parameters list cannot be null for positional mode");
+
+    return new QueryParameterHelper(
+        ParameterMode.POSITIONAL,
+        ImmutableMap.of(), // Pass empty immutable map
+        ImmutableList.copyOf(positionalParameters));
   }
 
   public ParameterMode getMode() {
@@ -104,22 +103,15 @@ public final class QueryParameterHelper implements Serializable {
   public QueryJobConfiguration.Builder configureBuilder(QueryJobConfiguration.Builder builder) {
     Preconditions.checkNotNull(builder, "QueryJobConfiguration.Builder cannot be null");
 
-    switch (this.mode) {
-      case NAMED:
-        this.namedParameters.forEach(
-            (paramName, paramValue) -> {
-              builder.addNamedParameter(paramName, paramValue);
-            });
-        break;
-      case POSITIONAL:
-        this.positionalParameters.forEach(
-            (paramValue) -> {
-              builder.addPositionalParameter(paramValue);
-            });
-        break;
-      case NONE:
-        break;
-    }
+    this.namedParameters.forEach(
+        (paramName, paramValue) -> {
+          builder.addNamedParameter(paramName, paramValue);
+        });
+    this.positionalParameters.forEach(
+        (paramValue) -> {
+          builder.addPositionalParameter(paramValue);
+        });
+
     return builder;
   }
 }
