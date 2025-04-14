@@ -39,4 +39,9 @@ public class Spark35BigQueryWriteBuilder extends BigQueryWriteBuilder implements
     return new CreatableRelationProviderHelper()
         .createBigQueryInsertableRelationFromInjector(info.schema(), mode, injector);
   }
+
+  @Override
+  public WriteBuilder truncate() {
+    return new Spark35BigQueryWriteBuilder(injector, info, SaveMode.Overwrite);
+  }
 }
