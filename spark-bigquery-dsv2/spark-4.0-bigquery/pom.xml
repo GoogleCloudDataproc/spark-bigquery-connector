@@ -13,6 +13,10 @@
   <version>${revision}-preview</version>
   <name>BigQuery DataSource v2 for Spark 4.0</name>
   <properties>
+    <java.source.version>17</java.source.version>
+    <java.target.version>17</java.target.version>
+    <toolchain.jdk.version>[17,18)</toolchain.jdk.version>
+    <scala.binary.version>2.13</scala.binary.version>
     <spark.version>4.0.0-preview2</spark.version>
     <shade.skip>false</shade.skip>
   </properties>
