@@ -15,6 +15,6 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-public class Spark40CatalogIntegrationTest extends CatalogIntegrationTestBase {
+public class Spark35CatalogIntegrationTest extends CatalogIntegrationTestBase {
   // all tests from superclass
 }

@@ -10,7 +10,7 @@
   </parent>
 
   <artifactId>spark-4.0-bigquery</artifactId>
-  <version>${revision}</version>
+  <version>${revision}-preview</version>
   <name>BigQuery DataSource v2 for Spark 4.0</name>
   <properties>
     <spark.version>4.0.0-preview2</spark.version>
