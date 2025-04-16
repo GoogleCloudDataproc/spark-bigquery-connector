@@ -83,6 +83,8 @@
         <java.source.version>1.8</java.source.version>
         <java.target.version>1.8</java.target.version>
         <toolchain.jdk.version>[1.8,9)</toolchain.jdk.version>
+        <!-- empty on purpose -->
+        <argLine> </argLine>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -385,7 +387,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>3.2.5</version>
+                    <version>3.5.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -440,6 +442,9 @@
                 <configuration>
                     <source>${java.source.version}</source>
                     <target>${java.target.version}</target>
+                    <jdkToolchain>
+                        <version>${toolchain.jdk.version}</version>
+                    </jdkToolchain>
                 </configuration>
             </plugin>
             <plugin>
@@ -451,6 +456,9 @@
                         <exclude>**/*AcceptanceTest.java</exclude>
                         <exclude>**/*IntegrationTest.java</exclude>
                     </excludes>
+                    <jdkToolchain>
+                        <version>${toolchain.jdk.version}</version>
+                    </jdkToolchain>
                 </configuration>
             </plugin>
             <plugin>
@@ -829,6 +837,9 @@
                             <includes>
                                 <include>**/*IntegrationTest.java</include>
                             </includes>
+                            <jdkToolchain>
+                                <version>${toolchain.jdk.version}</version>
+                            </jdkToolchain>
                         </configuration>
                         <executions>
                             <execution>
