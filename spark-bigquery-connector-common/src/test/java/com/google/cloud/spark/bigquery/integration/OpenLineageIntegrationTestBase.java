@@ -108,7 +108,6 @@ public class OpenLineageIntegrationTestBase {
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .option("writeMethod", "direct")
         .save();
-    Thread.sleep(3000);
     List<JSONObject> eventList = parseEventLogs(lineageFile);
     assertThat(eventList)
         .isNotEmpty(); // check if there is at least one event with both input and output
