@@ -2,7 +2,7 @@ steps:
   # 1. Create a Docker image containing hadoop-connectors repo
   - name: 'gcr.io/cloud-builders/docker'
     id: 'docker-build'
-    args: ['-D-', 'build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit', '-f', 'cloudbuild/Dockerfile', '.']
+    args: ['build', '--tag=gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit', '-f', 'cloudbuild/Dockerfile', '.']
 
 # 2. Fetch maven and dependencies
   - name: 'gcr.io/$PROJECT_ID/dataproc-spark-bigquery-connector-presubmit'
