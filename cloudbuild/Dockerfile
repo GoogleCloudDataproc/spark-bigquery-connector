@@ -1,6 +1,6 @@
 # This Dockerfile creates an image for running presubmit tests.
 # Uses modern apt key management AND creates the necessary directory.
-FROM openjdk:17
+FROM eclipse-temurin:17
 
 # Install dependencies needed for adding repo and cleanup
 # (Separating this step is good practice)
