@@ -26,7 +26,8 @@ function checkenv() {
 
 unset MAVEN_OPTS
 readonly BUILD_OPTS='-Xss1g -Xmx20g -XX:MaxMetaspaceSize=10g -XX:ReservedCodeCacheSize=2g -Dsun.zip.disableMemoryMapping=true -DtrimStackTrace=false'
-readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository"
+readonly MVN_NT="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository"
+readonly MVN="${MVN_NT} -t toolchains.xml"
 readonly STEP=$1
 
 cd /workspace
@@ -35,6 +36,8 @@ case $STEP in
   # Download maven and all the dependencies
   init)
     checkenv
+    $MVN_NT toolchains:generate-jdk-toolchains-xml -Dtoolchain.file=toolchains.xml
+    cat toolchains.xml
     export MAVEN_OPTS=${BUILD_OPTS}
 
     $MVN -T 1C install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5
