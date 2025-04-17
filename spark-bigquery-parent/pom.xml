@@ -77,14 +77,15 @@
         <!-- checkstyle
         <checkstyle.header.file>${reactor.project.basedir}/java.header</checkstyle.header.file>
         -->
-        <!--
-        Compiler configuration
-        -->
-        <java.source.version>1.8</java.source.version>
-        <java.target.version>1.8</java.target.version>
-        <toolchain.jdk.version>[1.8,9)</toolchain.jdk.version>
-        <!-- empty on purpose -->
-        <argLine> </argLine>
+        <!-- default release JDK version is 8 to support previous versions of Spark and Dataproc -->
+        <maven.compiler.release>8</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- for integration tests -->
+        <argLine>
+            --add-exports java.base/sun.util.calendar=ALL-UNNAMED
+            --add-opens java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED
+            --add-opens java.base/sun.nio.ch=ALL-UNNAMED
+        </argLine>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -128,11 +129,11 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                    <groupId>com.google.auth</groupId>
-                    <artifactId>google-auth-library-bom</artifactId>
-                    <version>${google-auth.version}</version>
-                    <type>pom</type>
-                    <scope>import</scope>
+                <groupId>com.google.auth</groupId>
+                <artifactId>google-auth-library-bom</artifactId>
+                <version>${google-auth.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>com.google.cloud</groupId>
@@ -175,6 +176,11 @@
                         <artifactId>util-hadoop</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.google.cloud.bigquery.metastore</groupId>
+                <artifactId>iceberg-bigquery-catalog-${iceberg.version}</artifactId>
+                <version>${iceberg-bigquery-catalog.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.errorprone</groupId>
@@ -358,6 +364,11 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <groupId>net.alchim31.maven</groupId>
+                    <artifactId>scala-maven-plugin</artifactId>
+                    <version>4.9.5</version>
+                </plugin>
+                <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>0.8.11</version>
@@ -415,11 +426,6 @@
                     <version>3.5.3</version>
                 </plugin>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-toolchains-plugin</artifactId>
-                    <version>3.2.0</version>
-                </plugin>
-                <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>build-helper-maven-plugin</artifactId>
                     <version>3.5.0</version>
@@ -439,13 +445,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
-                <configuration>
-                    <source>${java.source.version}</source>
-                    <target>${java.target.version}</target>
-                    <jdkToolchain>
-                        <version>${toolchain.jdk.version}</version>
-                    </jdkToolchain>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -456,9 +455,6 @@
                         <exclude>**/*AcceptanceTest.java</exclude>
                         <exclude>**/*IntegrationTest.java</exclude>
                     </excludes>
-                    <jdkToolchain>
-                        <version>${toolchain.jdk.version}</version>
-                    </jdkToolchain>
                 </configuration>
             </plugin>
             <plugin>
@@ -777,17 +773,6 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-toolchains-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>select-jdk-toolchain</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.3.0</version>
@@ -837,9 +822,6 @@
                             <includes>
                                 <include>**/*IntegrationTest.java</include>
                             </includes>
-                            <jdkToolchain>
-                                <version>${toolchain.jdk.version}</version>
-                            </jdkToolchain>
                         </configuration>
                         <executions>
                             <execution>
