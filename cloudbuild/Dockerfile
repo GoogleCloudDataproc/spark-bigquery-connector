@@ -1,9 +1,21 @@
 # This Dockerfile creates an image for running presubmit tests.
+# Uses modern apt key management AND creates the necessary directory.
 FROM openjdk:17
 
+# Install dependencies needed for adding repo and cleanup
+# (Separating this step is good practice)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    gnupg \
+    apt-transport-https \
+    ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Add Google Cloud SDK repository and install CLI
 RUN \
-  # Create directory for apt keyrings if it doesn't exist
+  # Create directories for keyrings AND sources list (THE FIX)
   mkdir -p /usr/share/keyrings && \
+  mkdir -p /etc/apt/sources.list.d && \
   # Download the key, dearmor it, and save to the keyring directory
   curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
   gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg && \
