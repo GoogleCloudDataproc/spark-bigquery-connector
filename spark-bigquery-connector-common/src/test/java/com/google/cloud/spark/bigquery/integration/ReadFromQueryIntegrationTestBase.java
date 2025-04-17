@@ -21,12 +21,14 @@ import static org.junit.Assert.assertThrows;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.DatasetId;
+import com.google.cloud.bigquery.JobConfiguration;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.spark.bigquery.events.BigQueryJobCompletedEvent;
 import com.google.common.collect.ImmutableList;
+import com.google.inject.ProvisionException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -209,6 +211,108 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             throw e;
           }
         });
+  }
+
+  @Test
+  public void testReadWithNamedParameters() {
+    listener.reset();
+    String namedParamQuery =
+        "SELECT word, word_count FROM `bigquery-public-data.samples.shakespeare`"
+            + " WHERE corpus = @corpus AND word_count >= @min_word_count ORDER BY word_count DESC";
+
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("query", namedParamQuery)
+            .option("viewsEnabled", "true")
+            .option("NamedParameters.corpus", "STRING:romeoandjuliet")
+            .option("NamedParameters.min_word_count", "INT64:250")
+            .load();
+
+    StructType expectedSchema =
+        DataTypes.createStructType(
+            ImmutableList.of(
+                DataTypes.createStructField("word", DataTypes.StringType, true),
+                DataTypes.createStructField("word_count", DataTypes.LongType, true)));
+    assertThat(df.schema()).isEqualTo(expectedSchema);
+
+    assertThat(df.count()).isGreaterThan(0L);
+
+    List<JobInfo> jobInfos = listener.getJobInfos();
+    assertThat(jobInfos).hasSize(1);
+    JobInfo jobInfo = jobInfos.iterator().next();
+    assertThat(jobInfo.getConfiguration().getType()).isEqualTo(JobConfiguration.Type.QUERY);
+    QueryJobConfiguration queryConfig = jobInfo.getConfiguration();
+    assertThat(queryConfig.getQuery()).isEqualTo(namedParamQuery);
+  }
+
+  @Test
+  public void testReadWithPositionalParameters() {
+    listener.reset();
+    String positionalParamQuery =
+        "SELECT word, word_count FROM `bigquery-public-data.samples.shakespeare`"
+            + " WHERE corpus = ? AND word_count >= ? ORDER BY word_count DESC";
+
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("query", positionalParamQuery) // Use hardcoded query
+            .option("viewsEnabled", "true")
+            .option("PositionalParameters.1", "STRING:romeoandjuliet")
+            .option("PositionalParameters.2", "INT64:250")
+            .load();
+
+    StructType expectedSchema =
+        DataTypes.createStructType(
+            ImmutableList.of(
+                DataTypes.createStructField("word", DataTypes.StringType, true),
+                DataTypes.createStructField("word_count", DataTypes.LongType, true)));
+    assertThat(df.schema()).isEqualTo(expectedSchema);
+
+    assertThat(df.count()).isGreaterThan(0L);
+
+    List<JobInfo> jobInfos = listener.getJobInfos();
+    assertThat(jobInfos).hasSize(1);
+    JobInfo jobInfo = jobInfos.iterator().next();
+    assertThat(jobInfo.getConfiguration().getType()).isEqualTo(JobConfiguration.Type.QUERY);
+    QueryJobConfiguration queryConfig = jobInfo.getConfiguration();
+    assertThat(queryConfig.getQuery()).isEqualTo(positionalParamQuery);
+  }
+
+  @Test
+  public void testReadWithMixedParametersFails() {
+    String queryForFailure =
+        "SELECT word, word_count FROM `bigquery-public-data.samples.shakespeare`"
+            + " WHERE corpus = @corpus AND word_count >= @min_word_count ORDER BY word_count DESC";
+
+    Exception thrown =
+        assertThrows(
+            Exception.class,
+            () -> {
+              spark
+                  .read()
+                  .format("bigquery")
+                  .option("query", queryForFailure)
+                  .option("viewsEnabled", "true")
+                  .option("NamedParameters.corpus", "STRING:whatever")
+                  .option("PositionalParameters.1", "INT64:100")
+                  .load()
+                  .show();
+            });
+
+    Throwable cause = thrown;
+    if (cause instanceof ProvisionException && cause.getCause() != null) {
+      cause = cause.getCause();
+    }
+
+    assertThat(cause).isInstanceOf(IllegalArgumentException.class);
+    assertThat(cause)
+        .hasMessageThat()
+        .contains("Cannot mix NamedParameters.* and PositionalParameters.* options.");
+
+    assertThat(listener.getJobInfos()).isEmpty();
   }
 }
 

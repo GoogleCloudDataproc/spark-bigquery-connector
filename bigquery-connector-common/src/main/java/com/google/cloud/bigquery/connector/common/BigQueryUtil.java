@@ -31,8 +31,10 @@ import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.HivePartitioningOptions;
 import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -42,6 +44,7 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -59,9 +62,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.regex.Matcher;
@@ -92,6 +98,9 @@ public class BigQueryUtil {
   // Allow all non-whitespace beside ':' and '.'.
   // These confuse the qualified table parsing.
   private static final String TABLE_PATTERN = "[\\S&&[^.:]]+";
+
+  private static final String NAMED_PARAM_PREFIX = "namedparameters.";
+  private static final String POSITIONAL_PARAM_PREFIX = "positionalparameters.";
 
   /**
    * Regex for an optionally fully qualified table.
@@ -881,5 +890,195 @@ public class BigQueryUtil {
   public static boolean isBigQueryNativeTable(TableInfo table) {
     return table.getDefinition().getType() == TableDefinition.Type.TABLE
         && !isBigLakeManagedTable(table);
+  }
+
+  /**
+   * Parses query parameters from Spark options based on NamedParameters.* and
+   * PositionalParameters.* prefixes.
+   *
+   * @param options A map containing Spark DataSource options.
+   * @return A QueryParameterHelper object containing either named or positional parameters, or an
+   *     empty state (ParameterMode.NONE).
+   * @throws IllegalArgumentException if both named and positional parameters are specified, if
+   *     parameter format is invalid, type is unknown/unsupported, value parsing fails, positional
+   *     index is invalid/missing/duplicated, or positional parameters are not contiguous from 1.
+   */
+  public static QueryParameterHelper parseQueryParameters(Map<String, String> options) {
+    Map<String, QueryParameterValue> namedParameters = new HashMap<>();
+    Map<Integer, QueryParameterValue> positionalParametersTemp = new TreeMap<>();
+    ParameterMode currentMode = ParameterMode.NONE;
+
+    for (Map.Entry<String, String> entry : options.entrySet()) {
+      String key = entry.getKey();
+      String keyLower = key.toLowerCase(Locale.ROOT);
+      String value = entry.getValue();
+
+      if (keyLower.startsWith(NAMED_PARAM_PREFIX)) {
+        Preconditions.checkArgument(
+            currentMode == ParameterMode.NAMED || currentMode == ParameterMode.NONE,
+            "Cannot mix NamedParameters.* and PositionalParameters.* options.");
+        currentMode = ParameterMode.NAMED;
+
+        processNamedParameter(key, value, namedParameters);
+      } else if (keyLower.startsWith(POSITIONAL_PARAM_PREFIX)) {
+        Preconditions.checkArgument(
+            currentMode == ParameterMode.POSITIONAL || currentMode == ParameterMode.NONE,
+            "Cannot mix NamedParameters.* and PositionalParameters.* options.");
+        currentMode = ParameterMode.POSITIONAL;
+        processPositionalParameter(key, value, positionalParametersTemp);
+      }
+    }
+
+    switch (currentMode) {
+      case NAMED:
+        return QueryParameterHelper.named(namedParameters);
+      case POSITIONAL:
+        List<QueryParameterValue> positionalList =
+            buildPositionalParameterList(positionalParametersTemp);
+        return QueryParameterHelper.positional(positionalList);
+      case NONE:
+      default:
+        return QueryParameterHelper.none();
+    }
+  }
+
+  /**
+   * Processes a single named parameter option, adding it to the map. Performs validation checks
+   * specific to named parameters.
+   */
+  private static void processNamedParameter(
+      String key, String value, Map<String, QueryParameterValue> namedParams) {
+
+    String paramName = key.substring(NAMED_PARAM_PREFIX.length());
+    Preconditions.checkArgument(
+        !paramName.isEmpty(),
+        String.format("Named parameter name cannot be empty. Option key: '%s'", key));
+
+    QueryParameterValue qpv = parseSingleParameterValue(paramName, value); // Identifier is name
+
+    // Check for duplicates *before* putting
+    Preconditions.checkArgument(
+        !namedParams.containsKey(paramName),
+        String.format(
+            "Duplicate named parameter definition for '%s'. Option key: '%s'", paramName, key));
+
+    namedParams.put(paramName, qpv);
+  }
+
+  /**
+   * Processes a single positional parameter option, adding it to the temporary map. Performs
+   * parsing and validation checks specific to positional parameters.
+   */
+  private static void processPositionalParameter(
+      String key, String value, Map<Integer, QueryParameterValue> positionalParamsTemp) {
+
+    String indexStr = key.substring(POSITIONAL_PARAM_PREFIX.length());
+    Preconditions.checkArgument(
+        !indexStr.isEmpty(),
+        String.format("Positional parameter index cannot be empty. Option key: '%s'", key));
+
+    int index;
+    try {
+      index = Integer.parseInt(indexStr);
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid positional parameter index: '%s' must be an integer. Option key: '%s'",
+              indexStr, key),
+          e);
+    }
+
+    Preconditions.checkArgument(
+        index >= 1,
+        String.format(
+            "Invalid positional parameter index: %d. Indices must be 1-based. Option key: '%s'",
+            index, key));
+
+    QueryParameterValue qpv =
+        parseSingleParameterValue(String.valueOf(index), value); // Identifier is index
+
+    Preconditions.checkArgument(
+        !positionalParamsTemp.containsKey(index),
+        String.format(
+            "Duplicate positional parameter definition for index: %d. Option key: '%s'",
+            index, key));
+
+    positionalParamsTemp.put(index, qpv);
+  }
+
+  /**
+   * Builds the final ordered list of positional parameters from the temporary map, checking for
+   * contiguous indices starting from 1.
+   *
+   * @param positionalParamsTemp Sorted map of index to parameter value.
+   * @return Unmodifiable list of positional parameters in order.
+   * @throws NullPointerException if a gap is found (via Preconditions.checkNotNull).
+   */
+  private static List<QueryParameterValue> buildPositionalParameterList(
+      Map<Integer, QueryParameterValue> positionalParamsTemp) {
+    List<QueryParameterValue> positionalList = new ArrayList<>();
+    int maxIndex = ((TreeMap<Integer, QueryParameterValue>) positionalParamsTemp).lastKey();
+
+    for (int i = 1; i <= maxIndex; i++) {
+      QueryParameterValue currentParam = positionalParamsTemp.get(i);
+      Preconditions.checkNotNull(
+          currentParam,
+          String.format(
+              "Missing positional parameter for index: %d. Parameters must be contiguous starting from 1.",
+              i));
+      positionalList.add(currentParam);
+    }
+    return positionalList;
+  }
+
+  /**
+   * Parses a "TYPE:value" string into a QueryParameterValue.
+   *
+   * @param identifier The name or index (as string) of the parameter, for error messages.
+   * @param typeValueString The combined "TYPE:value" string.
+   * @return The corresponding QueryParameterValue.
+   * @throws IllegalArgumentException if the format is invalid, type is unknown/unsupported, or
+   *     value parsing fails.
+   */
+  private static QueryParameterValue parseSingleParameterValue(
+      String identifier, String typeValueString) {
+    Preconditions.checkNotNull(
+        typeValueString,
+        String.format("Parameter value string cannot be null for identifier: %s", identifier));
+
+    int colonIndex = typeValueString.indexOf(':');
+    Preconditions.checkArgument(
+        colonIndex > 0,
+        String.format(
+            "Invalid parameter value format for identifier '%s': '%s'. Expected 'TYPE:value' with"
+                + " non-empty TYPE before ':'.",
+            identifier, typeValueString));
+
+    String typeStr = typeValueString.substring(0, colonIndex).trim().toUpperCase(Locale.ROOT);
+    String valueStr = typeValueString.substring(colonIndex + 1);
+
+    StandardSQLTypeName type;
+    try {
+      type = StandardSQLTypeName.valueOf(typeStr);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Unknown query parameter type: '%s' for identifier: '%s'. Supported types: %s",
+              typeStr,
+              identifier,
+              Arrays.stream(StandardSQLTypeName.values())
+                  .map(Enum::name)
+                  .collect(Collectors.joining(", "))),
+          e);
+    }
+
+    Preconditions.checkArgument(
+        type != StandardSQLTypeName.ARRAY && type != StandardSQLTypeName.STRUCT,
+        String.format(
+            "Unsupported query parameter type: %s for identifier: '%s'. ARRAY and STRUCT types are"
+                + " not currently supported as query parameters.",
+            type, identifier));
+
+    return QueryParameterValue.newBuilder().setValue(valueStr.trim()).setType(type).build();
   }
 }
