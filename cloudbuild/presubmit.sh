@@ -36,7 +36,7 @@ case $STEP in
   init)
     checkenv
     export MAVEN_OPTS=${BUILD_OPTS}
-    $MVN -T 1C install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    $MVN install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
     exit
     ;;
 
