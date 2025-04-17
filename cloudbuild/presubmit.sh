@@ -37,14 +37,19 @@ case $STEP in
     checkenv
     export MAVEN_OPTS=${BUILD_OPTS}
 
-    $MVN -T 1C install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    $MVN -T 1C install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5
+    export JAVA_HOME=${JAVA17_HOME}
+    $MVN -T 1C install -DskipTests -Pdsv2_4.0
     exit
     ;;
 
   # Run unit tests
   unittest)
     export MAVEN_OPTS=${BUILD_OPTS}
-    $MVN -T 1C test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    $MVN -T 1C test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5
+    export JAVA_HOME=${JAVA17_HOME}
+    $MVN -T 1C install -DskipTests -Pdsv2_4.0
+
     # Upload test coverage report to Codecov
     bash <(curl -s https://codecov.io/bash) -K -F "${STEP}"
     ;;
@@ -86,7 +91,8 @@ case $STEP in
 
   # Run integration tests
   integrationtest-4.0)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_4.0
+     export JAVA_HOME=${JAVA17_HOME}
+     $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_4.0
     ;;
 
   upload-it-to-codecov)

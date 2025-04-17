@@ -31,3 +31,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Toolchains plugin will select the correct JDK based on toolchains.xml
 # Setting it to 8 to match your original base image's default
 ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+ENV JAVA8_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+ENV JAVA11_HOME=/usr/lib/jvm/temurin-11-jdk-amd64
+ENV JAVA17_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
