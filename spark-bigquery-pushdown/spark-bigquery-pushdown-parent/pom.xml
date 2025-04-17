@@ -106,9 +106,6 @@
             </goals>
           </execution>
         </executions>
-        <configuration>
-          <scalaVersion>${scala.binary.version}</scalaVersion>
-        </configuration>
       </plugin>
       <!-- enable scalatest -->
       <plugin>
