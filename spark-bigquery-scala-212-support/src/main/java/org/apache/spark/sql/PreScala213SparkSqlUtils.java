@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.analysis.SimpleAnalyzer$;
+import org.apache.spark.sql.catalyst.catalog.GlobalTempViewManager;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.catalyst.expressions.Attribute;
@@ -55,6 +56,11 @@ public class PreScala213SparkSqlUtils extends SparkSqlUtils {
                 JavaConverters.asScalaIteratorConverter(attributes.iterator()).asScala().toSeq(),
                 SimpleAnalyzer$.MODULE$);
     return expressionEncoder;
+  }
+
+  @Override
+  public List<String> listViewNames(GlobalTempViewManager globalTempViewManager, String pattern) {
+    return JavaConverters.seqAsJavaList(globalTempViewManager.listViewNames(pattern));
   }
 
   // `toAttributes` is protected[sql] starting spark 3.2.0, so we need this call to be in the same
