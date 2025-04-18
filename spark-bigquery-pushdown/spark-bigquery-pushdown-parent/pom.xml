@@ -15,8 +15,12 @@
 
   <packaging>pom</packaging>
   <properties>
-    <scala.binary.version>2.11</scala.binary.version>
-    <spark.version>3.5.0</spark.version>
+    <maven.compiler.release></maven.compiler.release>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <scala.binary.version>2.12</scala.binary.version>
+    <scala.version>2.12.18</scala.version>
+    <spark.version>3.1.0</spark.version>
   </properties>
   <licenses>
     <license>
@@ -98,6 +102,9 @@
       <plugin>
         <groupId>net.alchim31.maven</groupId>
         <artifactId>scala-maven-plugin</artifactId>
+        <configuration>
+          <scalaVersion>${scala.version}</scalaVersion>
+        </configuration>
         <executions>
           <execution>
             <goals>
