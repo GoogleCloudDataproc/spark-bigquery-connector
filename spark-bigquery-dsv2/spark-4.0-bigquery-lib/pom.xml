@@ -17,6 +17,7 @@
     <spark.version>4.0.0-preview2</spark.version>
     <scala.binary.version>2.13</scala.binary.version>
     <shade.skip>true</shade.skip>
+    <toolchain.jdk.version>[17,18)</toolchain.jdk.version>
   </properties>
   <licenses>
     <license>

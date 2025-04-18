@@ -82,6 +82,7 @@
         <!-- default release JDK version is 8 to support previous versions of Spark and Dataproc -->
         <maven.compiler.release>8</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <toolchain.jdk.version>[1.8,9)</toolchain.jdk.version>
         <!-- for integration tests -->
         <argLine>
             --add-exports java.base/sun.util.calendar=ALL-UNNAMED
@@ -447,6 +448,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
+                <configuration>
+                    <jdkToolchain>
+                        <version>${toolchain.jdk.version}</version>
+                    </jdkToolchain>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -457,6 +463,9 @@
                         <exclude>**/*AcceptanceTest.java</exclude>
                         <exclude>**/*IntegrationTest.java</exclude>
                     </excludes>
+                    <jdkToolchain>
+                        <version>${toolchain.jdk.version}</version>
+                    </jdkToolchain>
                 </configuration>
             </plugin>
             <plugin>
@@ -775,6 +784,17 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-toolchains-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>select-jdk-toolchain</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.3.0</version>
@@ -824,6 +844,9 @@
                             <includes>
                                 <include>**/*IntegrationTest.java</include>
                             </includes>
+                            <jdkToolchain>
+                                <version>${toolchain.jdk.version}</version>
+                            </jdkToolchain>
                         </configuration>
                         <executions>
                             <execution>

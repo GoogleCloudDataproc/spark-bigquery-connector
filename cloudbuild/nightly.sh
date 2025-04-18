@@ -29,7 +29,9 @@ readonly M2REPO="/workspace/.repository"
 readonly DATE="$(date +%Y%m%d)"
 readonly REVISION="0.0.${DATE}"
 export   BUILD_OPTS='-Xss1g -Xmx20g -XX:MaxMetaspaceSize=10g -XX:ReservedCodeCacheSize=2g -Dsun.zip.disableMemoryMapping=true -DtrimStackTrace=false'
-readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=${M2REPO} -Drevision=${REVISION}"
+readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository"
+readonly MVN_NT="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository"
+readonly MVN="${MVN_NT} -t toolchains.xml"
 readonly BUCKET="spark-lib-nightly-snapshots"
 
 mkdir -p ${M2REPO}
@@ -38,6 +40,8 @@ cd /workspace
 case $STEP in
   build)
     checkenv
+    $MVN_NT toolchains:generate-jdk-toolchains-xml -Dtoolchain.file=toolchains.xml
+    cat toolchains.xml
     # Build
     $MVN -T 1C install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
     #coverage report

@@ -1,29 +1,36 @@
 # This Dockerfile creates an image for running presubmit tests.
-# Uses modern apt key management AND creates the necessary directory.
-FROM eclipse-temurin:17
+FROM ubuntu:22.04
 
-# Install dependencies needed for adding repo and cleanup
-# (Separating this step is good practice)
+# Set noninteractive frontend for apt to avoid prompts during build
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install prerequisites, JDKs, and Google Cloud CLI in a single RUN command
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gnupg \
-    apt-transport-https \
-    ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+    ca-certificates \
+    # Add Adoptium repository and key
+    && curl -s https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor -o /usr/share/keyrings/adoptium.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb jammy main" | tee /etc/apt/sources.list.d/adoptium.list \
+    # Add Google Cloud SDK repository and key
+    && curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee /etc/apt/sources.list.d/google-cloud-sdk.list \
+    # Update package list again after adding new repos
+    && apt-get update \
+    # Install JDKs and Google Cloud CLI
+    && apt-get install -y --no-install-recommends \
+        openjdk-8-jdk \
+        temurin-11-jdk \
+        temurin-17-jdk \
+        google-cloud-cli \
+    # Clean up apt cache and lists
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Add Google Cloud SDK repository and install CLI
-RUN \
-  # Create directories for keyrings AND sources list (THE FIX)
-  mkdir -p /usr/share/keyrings && \
-  mkdir -p /etc/apt/sources.list.d && \
-  # Download the key, dearmor it, and save to the keyring directory
-  curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
-  gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg && \
-  # Add the repository, pointing to the key using signed-by
-  echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
-  tee /etc/apt/sources.list.d/google-cloud-sdk.list && \
-  # Update package list and install the CLI
-  apt-get update && \
-  apt-get install -y google-cloud-cli && \
-  # Clean up apt cache
-  rm -rf /var/lib/apt/lists/*
+# Set a default JAVA_HOME (optional, mainly for processes outside toolchains)
+# Toolchains plugin will select the correct JDK based on toolchains.xml
+# Setting it to 17 so we can use toolchain on lower JDKs
+ENV JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
+ENV JAVA8_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+ENV JAVA11_HOME=/usr/lib/jvm/temurin-11-jdk-amd64
+ENV JAVA17_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
