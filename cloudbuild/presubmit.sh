@@ -36,7 +36,6 @@ case $STEP in
   init)
     checkenv
     export MAVEN_OPTS=${BUILD_OPTS}
-    readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository"
     readonly MVN_NT="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository"
     readonly MVN="${MVN_NT} -t toolchains.xml"
     exit
