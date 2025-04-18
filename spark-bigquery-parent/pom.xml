@@ -1008,7 +1008,10 @@
         </profile>
         <profile>
             <activation>
-                <jdk>[11,99)</jdk>
+                <property>
+                    <name>toolchain.jdk.version</name>
+                    <value>[17,18)</value>
+                </property>
             </activation>
             <properties>
                 <!-- for integration tests, running on JDK 11 and above -->
