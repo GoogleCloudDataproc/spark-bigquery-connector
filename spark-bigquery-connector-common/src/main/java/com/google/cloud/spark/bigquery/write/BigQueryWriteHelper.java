@@ -88,7 +88,7 @@ public class BigQueryWriteHelper {
     this.config = config;
     this.data = data;
     this.tableInfo = tableInfo;
-    this.conf = sqlContext.sparkContext().hadoopConfiguration();
+    this.conf = sqlContext.sparkSession().sessionState().newHadoopConf();
     this.gcsPath =
         SparkBigQueryUtil.createGcsPath(config, conf, sqlContext.sparkContext().applicationId());
     this.createTemporaryPathDeleter =
