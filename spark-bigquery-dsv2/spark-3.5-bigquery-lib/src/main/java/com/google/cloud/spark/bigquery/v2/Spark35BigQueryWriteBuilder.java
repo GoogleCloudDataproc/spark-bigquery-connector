@@ -22,6 +22,7 @@ import org.apache.spark.sql.connector.write.LogicalWriteInfo;
 import org.apache.spark.sql.connector.write.V1Write;
 import org.apache.spark.sql.connector.write.Write;
 import org.apache.spark.sql.sources.InsertableRelation;
+import org.apache.spark.sql.connector.write.WriteBuilder;
 
 public class Spark35BigQueryWriteBuilder extends BigQueryWriteBuilder implements Write, V1Write {
 
