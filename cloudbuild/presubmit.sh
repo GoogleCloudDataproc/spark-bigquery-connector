@@ -41,9 +41,9 @@ case $STEP in
 
     export MAVEN_OPTS=${BUILD_OPTS}
     export JAVA_HOME=${JAVA8_HOME}
-    $MVN -T 1C install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2
+    $MVN -X install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2
     export JAVA_HOME=${JAVA17_HOME}
-    $MVN -T 1C install -DskipTests -Pdsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    $MVN -X install -DskipTests -Pdsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
     exit
     ;;
 
