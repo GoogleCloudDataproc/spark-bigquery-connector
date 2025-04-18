@@ -12,7 +12,7 @@
     <artifactId>spark-bigquery-dsv2-common</artifactId>
     <name>BigQuery DataSource v2 implementation common implementation</name>
     <properties>
-        <spark.version>2.4.0</spark.version>
+        <spark.version>3.5.0</spark.version>
     </properties>
     <licenses>
         <license>
