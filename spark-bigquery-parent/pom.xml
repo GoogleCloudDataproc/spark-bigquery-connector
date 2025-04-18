@@ -83,6 +83,13 @@
         <maven.compiler.release>8</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <toolchain.jdk.version>[1.8,9)</toolchain.jdk.version>
+        <!-- for integration tests, running on JDK 11 and above -->
+        <jdk11plus.argLine>
+            --add-exports java.base/sun.util.calendar=ALL-UNNAMED
+            --add-opens java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED
+            --add-opens java.base/sun.nio.ch=ALL-UNNAMED
+        </jdk11plus.argLine>
+        <scala.skipTests>false</scala.skipTests>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -1014,12 +1021,7 @@
                 </property>
             </activation>
             <properties>
-                <!-- for integration tests, running on JDK 11 and above -->
-                <argLine>
-                    --add-exports java.base/sun.util.calendar=ALL-UNNAMED
-                    --add-opens java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED
-                    --add-opens java.base/sun.nio.ch=ALL-UNNAMED
-                </argLine>
+                <argLine>${jdk11plus.argLine}</argLine>
             </properties>
         </profile>
     </profiles>

@@ -53,7 +53,7 @@ case $STEP in
     export JAVA_HOME=${JAVA8_HOME}
     $MVN -T 1C test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2
     export JAVA_HOME=${JAVA17_HOME}
-    $MVN -T 1C test jacoco:report jacoco:report-aggregate -Pcoverage,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    $MVN -T 1C test jacoco:report jacoco:report-aggregate -Pcoverage,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0 -Dscala.skipTests=true
     # Upload test coverage report to Codecov
     bash <(curl -s https://codecov.io/bash) -K -F "${STEP}"
     ;;

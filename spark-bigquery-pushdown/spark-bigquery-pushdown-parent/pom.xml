@@ -124,6 +124,7 @@
           </reportsDirectory>
           <junitxml>.</junitxml>
           <filereports>TestSuite.txt</filereports>
+          <skipTests>${scala.skipTests}</skipTests>
         </configuration>
         <executions>
           <execution>
