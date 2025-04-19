@@ -1013,16 +1013,5 @@
                 </plugins>
             </build>
         </profile>
-        <profile>
-            <activation>
-                <property>
-                    <name>toolchain.jdk.version</name>
-                    <value>[17,18)</value>
-                </property>
-            </activation>
-            <properties>
-                <argLine>${jdk11plus.argLine}</argLine>
-            </properties>
-        </profile>
     </profiles>
 </project>
