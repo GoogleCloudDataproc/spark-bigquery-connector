@@ -15,8 +15,8 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import com.google.inject.Inject;
 import java.util.Optional;
-import javax.inject.Inject;
 
 public class LoggingBigQueryTracerFactory implements BigQueryTracerFactory {
   private final int logIntervalPowerOf2;

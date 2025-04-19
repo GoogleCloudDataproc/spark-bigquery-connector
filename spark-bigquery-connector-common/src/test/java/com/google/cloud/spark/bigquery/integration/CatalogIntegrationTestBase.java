@@ -31,7 +31,7 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class CatalogIntegrationTest {
+public class CatalogIntegrationTestBase {
 
   public static final String DEFAULT_NAMESPACE = "default";
   @ClassRule public static TestDataset testDataset = new TestDataset();

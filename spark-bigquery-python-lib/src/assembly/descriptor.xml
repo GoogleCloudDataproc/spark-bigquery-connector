@@ -1,4 +1,5 @@
 <assembly>
+    <id>python-support-lib</id>
     <includeBaseDirectory>false</includeBaseDirectory>
     <formats>
         <format>zip</format>
