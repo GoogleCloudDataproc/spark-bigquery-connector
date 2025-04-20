@@ -354,7 +354,7 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-4.0-bigquery</artifactId>
-          <version>${project.version}</version>
+          <version>${project.version}-preview</version>
         </dependency>
       </dependencies>
     </profile>
