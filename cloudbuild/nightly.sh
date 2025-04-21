@@ -42,14 +42,26 @@ case $STEP in
     $MVN_NT toolchains:generate-jdk-toolchains-xml -Dtoolchain.file=toolchains.xml
     cat toolchains.xml
     # Build
-    $MVN -T 1C install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    export JAVA_HOME=${JAVA8_HOME}
+    $MVN -T 1C install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2
+    export JAVA_HOME=${JAVA17_HOME}
+    $MVN -T 1C install -DskipTests -Dscala.skipTests=true -Pdsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
     #coverage report
-    $MVN -T 1C test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    export JAVA_HOME=${JAVA8_HOME}
+    $MVN -T 1C test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2
+    export JAVA_HOME=${JAVA17_HOME}
+    $MVN -T 1C test jacoco:report jacoco:report-aggregate -Pcoverage,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0 -Dscala.skipTests=true
     # Run integration tests
     unset MAVEN_OPTS
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    export JAVA_HOME=${JAVA8_HOME}
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2
+    export JAVA_HOME=${JAVA17_HOME}
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
     # Run acceptance tests
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    export JAVA_HOME=${JAVA8_HOME}
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2
+    export JAVA_HOME=${JAVA17_HOME}
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
     # Upload test coverage report to Codecov
     bash <(curl -s https://codecov.io/bash) -K -F "nightly"
 

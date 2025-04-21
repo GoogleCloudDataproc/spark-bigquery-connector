@@ -64,8 +64,6 @@
         <google-truth.version>1.4.4</google-truth.version>
         <grpc.version>1.71.0</grpc.version>
         <guava.version>33.4.0-jre</guava.version>
-        <iceberg.version>1.6.1</iceberg.version>
-        <iceberg-bigquery-catalog.version>1.0.0</iceberg-bigquery-catalog.version>
         <jackson.version>2.18.3</jackson.version>
         <netty.version>4.1.119.Final</netty.version>
         <openlineage-spark.version>1.27.0</openlineage-spark.version>
@@ -180,11 +178,6 @@
                         <artifactId>util-hadoop</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>com.google.cloud.bigquery.metastore</groupId>
-                <artifactId>iceberg-bigquery-catalog-${iceberg.version}</artifactId>
-                <version>${iceberg-bigquery-catalog.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.errorprone</groupId>

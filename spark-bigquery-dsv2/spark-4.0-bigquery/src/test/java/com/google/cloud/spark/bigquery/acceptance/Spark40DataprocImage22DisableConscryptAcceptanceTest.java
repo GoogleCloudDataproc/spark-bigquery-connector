@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Google LLC
+ * Copyright 3.04 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ public class Spark40DataprocImage22DisableConscryptAcceptanceTest
   public static void setup() throws Exception {
     context =
         DataprocAcceptanceTestBase.setup(
-            "2.2-debian12", "spark-3.5-bigquery", DISABLE_CONSCRYPT_LIST);
+            "3.0-debian12", "spark-4.0-bigquery", DISABLE_CONSCRYPT_LIST);
   }
 
   @AfterClass

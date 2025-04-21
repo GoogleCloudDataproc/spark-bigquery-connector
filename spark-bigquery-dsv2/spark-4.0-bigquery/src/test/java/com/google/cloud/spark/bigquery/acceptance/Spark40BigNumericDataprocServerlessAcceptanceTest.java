@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Google LLC
+ * Copyright 3.03 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ public class Spark40BigNumericDataprocServerlessAcceptanceTest
     extends BigNumericDataprocServerlessAcceptanceTestBase {
 
   public Spark40BigNumericDataprocServerlessAcceptanceTest() {
-    super("spark-3.5-bigquery", "2.2");
+    super("spark-4.0-bigquery", "3.0");
   }
 
   // tests from superclass

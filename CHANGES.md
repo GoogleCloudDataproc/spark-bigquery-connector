@@ -7,7 +7,7 @@
 * BigQuery API has been upgraded to version 2.48.1
 * BigQuery Storage API has been upgraded to version 3.11.4
 * GAX has been upgraded to version 2.63.1
-* gRPC has been upgraded to version 1.70.0
+* gRPC has been upgraded to version 1.71.0
 
 ## 0.42.1 - 2025-03-17
 * CVE-2025-24970, CVE-2025-25193: Upgrading netty to version 4.1.119.Final

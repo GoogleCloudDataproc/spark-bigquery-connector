@@ -117,9 +117,6 @@
       <plugin>
         <groupId>net.alchim31.maven</groupId>
         <artifactId>scala-maven-plugin</artifactId>
-        <configuration>
-          <scalaVersion>${scala.version}</scalaVersion>
-        </configuration>
         <executions>
           <execution>
             <goals>
@@ -128,6 +125,9 @@
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <scalaVersion>${scala.version}</scalaVersion>
+        </configuration>
       </plugin>
       <!-- enable scalatest -->
       <plugin>
