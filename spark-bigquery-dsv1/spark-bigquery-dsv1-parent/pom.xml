@@ -13,8 +13,12 @@
   <name>BigQuery DataSource v1 implementation common settings</name>
   <packaging>pom</packaging>
   <properties>
-    <scala.binary.version>2.11</scala.binary.version>
-    <spark.version>2.4.0</spark.version>
+    <maven.compiler.release></maven.compiler.release>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <scala.binary.version>2.12</scala.binary.version>
+    <scala.version>2.12.18</scala.version>
+    <spark.version>3.1.0</spark.version>
   </properties>
   <licenses>
     <license>
@@ -113,7 +117,6 @@
       <plugin>
         <groupId>net.alchim31.maven</groupId>
         <artifactId>scala-maven-plugin</artifactId>
-        <version>4.4.0</version>
         <executions>
           <execution>
             <goals>
@@ -123,7 +126,7 @@
           </execution>
         </executions>
         <configuration>
-          <scalaVersion>${scala.binary.version}</scalaVersion>
+          <scalaVersion>${scala.version}</scalaVersion>
         </configuration>
       </plugin>
       <!-- enable scalatest -->
@@ -136,6 +139,7 @@
           </reportsDirectory>
           <junitxml>.</junitxml>
           <filereports>TestSuite.txt</filereports>
+          <skipTests>${scala.skipTests}</skipTests>
         </configuration>
         <executions>
           <execution>

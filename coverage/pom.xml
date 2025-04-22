@@ -319,6 +319,45 @@
         </dependency>
       </dependencies>
     </profile>
+    <profile>
+      <id>dsv2_3.4</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.4-bigquery</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>dsv2_3.5</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.5-bigquery</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>dsv2_4.0</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-4.0-bigquery</artifactId>
+          <version>${project.version}-preview</version>
+        </dependency>
+      </dependencies>
+    </profile>
   </profiles>
 </project>
 

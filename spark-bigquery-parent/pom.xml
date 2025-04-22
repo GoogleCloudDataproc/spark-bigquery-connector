@@ -55,19 +55,19 @@
         <avro.version>1.11.4</avro.version>
         <!-- arrow 18.0.0 removed the support for java 8 -->
         <arrow.version>17.0.0</arrow.version>
-        <gax.version>2.60.0</gax.version>
-        <google-auth.version>1.31.0</google-auth.version>
-        <google-cloud-bigquery.version>2.47.0</google-cloud-bigquery.version>
-        <google-cloud-bigquerystorage.version>3.11.2</google-cloud-bigquerystorage.version>
-        <google-cloud-dataproc.version>4.54.0</google-cloud-dataproc.version>
-        <google-cloud-storage.version>2.48.1</google-cloud-storage.version>
+        <gax.version>2.63.1</gax.version>
+        <google-auth.version>1.33.1</google-auth.version>
+        <google-cloud-bigquery.version>2.48.1</google-cloud-bigquery.version>
+        <google-cloud-bigquerystorage.version>3.11.4</google-cloud-bigquerystorage.version>
+        <google-cloud-dataproc.version>4.56.0</google-cloud-dataproc.version>
+        <google-cloud-storage.version>2.49.0</google-cloud-storage.version>
         <google-truth.version>1.4.4</google-truth.version>
-        <grpc.version>1.70.0</grpc.version>
+        <grpc.version>1.71.0</grpc.version>
         <guava.version>33.4.0-jre</guava.version>
-        <jackson.version>2.18.2</jackson.version>
+        <jackson.version>2.18.3</jackson.version>
         <netty.version>4.1.119.Final</netty.version>
         <openlineage-spark.version>1.27.0</openlineage-spark.version>
-        <paranamer.version>2.8</paranamer.version>
+        <paranamer.version>2.8.3</paranamer.version>
         <!-- Don't upgrade protobuf until bigquerystorage is compatible with 4.x version of proto.
         Ref : https://github.com/protocolbuffers/protobuf/issues/16452-->
         <protobuf.version>3.25.6</protobuf.version>
@@ -77,6 +77,17 @@
         <!-- checkstyle
         <checkstyle.header.file>${reactor.project.basedir}/java.header</checkstyle.header.file>
         -->
+        <!-- default release JDK version is 8 to support previous versions of Spark and Dataproc -->
+        <maven.compiler.release>8</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <toolchain.jdk.version>[1.8,9)</toolchain.jdk.version>
+        <!-- for integration tests, running on JDK 11 and above -->
+        <jdk11plus.argLine>
+            --add-exports java.base/sun.util.calendar=ALL-UNNAMED
+            --add-opens java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED
+            --add-opens java.base/sun.nio.ch=ALL-UNNAMED
+        </jdk11plus.argLine>
+        <scala.skipTests>false</scala.skipTests>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -120,11 +131,11 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                    <groupId>com.google.auth</groupId>
-                    <artifactId>google-auth-library-bom</artifactId>
-                    <version>${google-auth.version}</version>
-                    <type>pom</type>
-                    <scope>import</scope>
+                <groupId>com.google.auth</groupId>
+                <artifactId>google-auth-library-bom</artifactId>
+                <version>${google-auth.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>com.google.cloud</groupId>
@@ -205,7 +216,7 @@
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
-                <version>1.16.0</version>
+                <version>1.18.0</version>
             </dependency>
             <dependency>
                 <groupId>commons-lang</groupId>
@@ -293,7 +304,12 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.26.0</version>
+                <version>1.27.1</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.18.0</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
@@ -345,6 +361,11 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <groupId>net.alchim31.maven</groupId>
+                    <artifactId>scala-maven-plugin</artifactId>
+                    <version>4.9.5</version>
+                </plugin>
+                <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>0.8.11</version>
@@ -374,7 +395,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>3.2.5</version>
+                    <version>3.5.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -394,12 +415,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.5.1</version>
+                    <version>3.6.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.2.3</version>
+                    <version>3.5.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -420,10 +441,11 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.14.0</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <jdkToolchain>
+                        <version>${toolchain.jdk.version}</version>
+                    </jdkToolchain>
                 </configuration>
             </plugin>
             <plugin>
@@ -435,6 +457,9 @@
                         <exclude>**/*AcceptanceTest.java</exclude>
                         <exclude>**/*IntegrationTest.java</exclude>
                     </excludes>
+                    <jdkToolchain>
+                        <version>${toolchain.jdk.version}</version>
+                    </jdkToolchain>
                 </configuration>
             </plugin>
             <plugin>
@@ -602,7 +627,7 @@
                             <pattern>autovalue</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.autovalue</shadedPattern>
                         </relocation>
-                       <relocation>
+                        <relocation>
                             <pattern>avro.shaded</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.avro.shaded</shadedPattern>
                         </relocation>
@@ -690,7 +715,8 @@
                         </relocation>
                         <relocation>
                             <pattern>org.eclipse.collections</pattern>
-                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.eclipse.collections</shadedPattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.eclipse.collections
+                            </shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>org.json</pattern>
@@ -710,7 +736,8 @@
                         </relocation>
                         <relocation>
                             <pattern>io.openlineage.spark.shade</pattern>
-                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.io.openlineage.spark.shade</shadedPattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.io.openlineage.spark.shade
+                            </shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>META-INF/native/libnetty</pattern>
@@ -748,6 +775,18 @@
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-toolchains-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>select-jdk-toolchain</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -802,6 +841,9 @@
                             <includes>
                                 <include>**/*IntegrationTest.java</include>
                             </includes>
+                            <jdkToolchain>
+                                <version>${toolchain.jdk.version}</version>
+                            </jdkToolchain>
                         </configuration>
                         <executions>
                             <execution>
@@ -917,7 +959,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.1.0</version>
+                        <version>3.2.7</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -935,7 +977,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>3.3.0</version>
+                        <version>3.3.1</version>
                         <configuration>
                             <forceCreation>true</forceCreation>
                         </configuration>
@@ -951,7 +993,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>3.4.1</version>
+                        <version>3.11.2</version>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>

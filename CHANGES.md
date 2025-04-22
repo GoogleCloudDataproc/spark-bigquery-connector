@@ -1,6 +1,13 @@
 # Release Notes
 
 ## Next
+* Added new connector, `spark-4.0-bigquery` aimed to be used in Spark 4.0. Like Spark 4.0, this connector requires at
+  least Java 17 runtime. It is currently in preview mode.
+* PR #1349: Add parameterized query support
+* BigQuery API has been upgraded to version 2.48.1
+* BigQuery Storage API has been upgraded to version 3.11.4
+* GAX has been upgraded to version 2.63.1
+* gRPC has been upgraded to version 1.71.0
 
 ## 0.42.1 - 2025-03-17
 * CVE-2025-24970, CVE-2025-25193: Upgrading netty to version 4.1.119.Final

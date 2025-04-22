@@ -35,3 +35,6 @@ AdAdHocITSuite.scala
 
 # Visual Studio IDE
 .vscode/
+
+# toolchains file
+toolchains.xml

@@ -22,7 +22,7 @@ import javax.annotation.CheckForNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /*
- * This class is adapted from MemoizingSupplier of Googles’ Guava library.
+ * This class is adapted from MemoizingSupplier of Google's Guava library.
  * A separate class is added to be able to access initialized variable to check if the value is already built.
  */
 public class LazyInitializationSupplier<T extends @Nullable Object> implements Supplier<T> {
