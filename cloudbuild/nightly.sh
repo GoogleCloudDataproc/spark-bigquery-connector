@@ -29,7 +29,7 @@ readonly M2REPO="/workspace/.repository"
 readonly DATE="$(date +%Y%m%d)"
 readonly REVISION="0.0.${DATE}"
 export   BUILD_OPTS='-Xss1g -Xmx20g -XX:MaxMetaspaceSize=10g -XX:ReservedCodeCacheSize=2g -Dsun.zip.disableMemoryMapping=true -DtrimStackTrace=false'
-readonly MVN_NT="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository"
+readonly MVN_NT="/mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=${M2REPO} -Drevision=${REVISION}"
 readonly MVN="${MVN_NT} -t toolchains.xml"
 readonly BUCKET="spark-lib-nightly-snapshots"
 
