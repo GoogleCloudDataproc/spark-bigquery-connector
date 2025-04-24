@@ -36,17 +36,6 @@
         <url>git@github.com:GoogleCloudDataproc/spark-bigquery-connector.git</url>
     </scm>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
-
     <properties>
         <gpg.skip>true</gpg.skip>
         <revision>0.0.1-SNAPSHOT</revision>
@@ -813,6 +802,13 @@
                 </configuration>
             </plugin>
         </plugins>
+        <extensions>
+            <extension>
+            <groupId>com.google.cloud.artifactregistry</groupId>
+            <artifactId>artifactregistry-maven-wagon</artifactId>
+            <version>2.2.0</version>
+            </extension>
+        </extensions>
     </build>
     <reporting>
         <plugins>
@@ -938,7 +934,33 @@
             </reporting>
         </profile>
         <profile>
+            <id>release-nightly</id>
+            <properties>
+                <deploy.skip>false</deploy.skip>
+            </properties>
+            <distributionManagement>
+                <snapshotRepository>
+                  <id>artifact-registry</id>
+                  <url>artifactregistry://us-maven.pkg.dev/cloud-dataproc-ci/connectors</url>
+                </snapshotRepository>
+                <repository>
+                  <id>artifact-registry</id>
+                  <url>artifactregistry://us-maven.pkg.dev/cloud-dataproc-ci/connectors</url>
+                </repository>
+              </distributionManagement>
+        </profile>
+        <profile>
             <id>release</id>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>ossrh</id>
+                    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+                </snapshotRepository>
+                <repository>
+                    <id>ossrh</id>
+                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+                </repository>
+            </distributionManagement>
             <properties>
                 <gpg.skip>false</gpg.skip>
             </properties>
