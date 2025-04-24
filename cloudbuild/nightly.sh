@@ -71,6 +71,8 @@ case $STEP in
     ;;
 
   copy-to-gcs)
+    # Remove when sending the review.
+    if false; then
     # Get the REVISION variable from the previous step
     readonly BUILD_REVISION="$(cat /workspace/revision.txt)"
 
@@ -102,8 +104,15 @@ case $STEP in
     gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-metrics/${BUILD_REVISION}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}"
     gsutil cp "gs://${BUCKET}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-metrics-nightly-snapshot.jar"
 
+    fi
     exit
     ;;
+
+  deploy)
+    $MVN deploy
+    exit
+    ;;
+
 
   *)
     echo "Unknown step $STEP"

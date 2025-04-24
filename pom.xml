@@ -21,6 +21,17 @@
     </license>
   </licenses>
 
+  <distributionManagement>
+    <snapshotRepository>
+      <id>artifact-registry</id>
+      <url>artifactregistry://us-maven.pkg.dev/cloud-dataproc-ci/connectors</url>
+    </snapshotRepository>
+    <repository>
+      <id>artifact-registry</id>
+      <url>artifactregistry://us-maven.pkg.dev/cloud-dataproc-ci/connectors</url>
+    </repository>
+  </distributionManagement>
+
   <developers>
     <developer>
       <organization>Google Inc.</organization>
@@ -304,4 +315,15 @@
       </modules>
     </profile>
   </profiles>
+
+  <build>
+    <extensions>
+      <extension>
+        <groupId>com.google.cloud.artifactregistry</groupId>
+        <artifactId>artifactregistry-maven-wagon</artifactId>
+        <version>2.2.0</version>
+      </extension>
+    </extensions>
+  </build>
+
 </project>
