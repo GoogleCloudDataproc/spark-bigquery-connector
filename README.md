@@ -279,7 +279,7 @@ set the `writeMethod` option to `direct`, as shown below:
 df.write \
   .format("bigquery") \
   .option("writeMethod", "direct") \
-  .option("withAtLeastOnce", "true")
+  .option("writeAtLeastOnce", "true")
   .save("dataset.table")
 ```
 
