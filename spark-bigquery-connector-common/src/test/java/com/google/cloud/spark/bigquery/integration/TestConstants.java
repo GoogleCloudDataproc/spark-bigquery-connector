@@ -72,6 +72,10 @@ public class TestConstants {
   static final String PUBLIC_DATA_WIKIPEDIA_PAGEVIEWS_2021 =
       "bigquery-public-data.wikipedia.pageviews_2021";
   static final long SHAKESPEARE_TABLE_NUM_ROWS = 164656L;
+  static final String PROJECT_ID =
+      Preconditions.checkNotNull(
+          System.getenv("GOOGLE_CLOUD_PROJECT"),
+          "Please set the GOOGLE_CLOUD_PROJECT env variable");
   static final String TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
   static final String BIGLAKE_CONNECTION_ID_ENV_VARIABLE = "BIGLAKE_CONNECTION_ID";
   static final String TEMPORARY_GCS_BUCKET =

@@ -13,8 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.integration;
+package com.google.cloud.spark.bigquery;
 
-public class Spark35CatalogIntegrationTest extends CatalogIntegrationTestBase {
-  // all tests from superclass
+import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
+import org.apache.spark.sql.connector.catalog.Identifier;
+import scala.Option;
+
+public class NoSuchBigQueryTableException extends NoSuchTableException {
+
+  public NoSuchBigQueryTableException(String db, String table) {
+    super(db, table);
+  }
+
+  public NoSuchBigQueryTableException(Identifier tableIdent) {
+    super(tableIdent);
+  }
+
+  public NoSuchBigQueryTableException(String message, Option<Throwable> cause) {
+    super(message, cause);
+  }
 }

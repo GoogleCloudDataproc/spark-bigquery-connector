@@ -79,6 +79,10 @@ public class IntegrationTestUtils {
     getBigQueryClient().query(query);
   }
 
+  public static void runQuery(String query, Object... args) {
+    getBigQueryClient().query(String.format(query, args));
+  }
+
   public static Iterable<Table> listTables(DatasetId datasetId, TableDefinition.Type... types) {
     return getBigQueryClient().listTables(datasetId, types);
   }

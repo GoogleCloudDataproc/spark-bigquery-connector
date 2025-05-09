@@ -13,6 +13,9 @@
   <version>${revision}</version>
   <name>BigQuery DataSource v2 for Spark 3.5</name>
   <properties>
+    <argLine>${jdk11plus.argLine}</argLine>
+    <toolchain.jdk.version>[11,12)</toolchain.jdk.version>
+    <scala.binary.version>2.13</scala.binary.version>
     <spark.version>3.5.0</spark.version>
     <shade.skip>false</shade.skip>
   </properties>
@@ -31,7 +34,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
-      <artifactId>spark-avro_2.12</artifactId>
+      <artifactId>spark-avro_${scala.binary.version}</artifactId>
       <version>${spark.version}</version>
       <scope>test</scope>
     </dependency>
