@@ -84,6 +84,9 @@ public class BigQueryClient {
   private static final List<Runnable> CLEANUP_JOBS = new ArrayList<>();
 
   private final BigQuery bigQuery;
+  // The rest client is generated directly from the API, and therefore returns more metadata than
+  // the
+  // google-cloud-bigquery client above,
   private final Bigquery bigqueryRestClient;
   private final Cache<String, TableInfo> destinationTableCache;
   private final JobConfigurationFactory jobConfigurationFactory;
