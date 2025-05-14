@@ -16,28 +16,21 @@
 package com.google.cloud.spark.bigquery;
 
 import static java.lang.String.format;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.cloud.bigquery.connector.common.GcpUtil;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.io.CharStreams;
-import com.google.common.io.Closeables;
 import com.google.gson.JsonObject;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.Optional;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import scala.util.Properties;
 
 /** Provides the versions of the client environment in an anonymous way. */
 public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvider {
 
+  // getGcpZone() and not getGcpRegion for backwards compatibility
   @VisibleForTesting
-  static String GCP_REGION_PART = getGcpRegion().map(region -> " region/" + region).orElse("");
+  static String GCP_REGION_PART =
+      GcpUtil.getGcpZone().map(region -> " region/" + region).orElse("");
 
   @VisibleForTesting
   static String DATAPROC_IMAGE_PART =
@@ -60,38 +53,6 @@ public class SparkBigQueryConnectorUserAgentProvider implements UserAgentProvide
   public SparkBigQueryConnectorUserAgentProvider(String dataSourceVersion, Optional<String> gpn) {
     this.dataSourceVersion = dataSourceVersion;
     this.gpn = gpn;
-  }
-
-  // Queries the GCE metadata server
-  @VisibleForTesting
-  static Optional<String> getGcpRegion() {
-    RequestConfig config =
-        RequestConfig.custom()
-            .setConnectTimeout(100)
-            .setConnectionRequestTimeout(100)
-            .setSocketTimeout(100)
-            .build();
-    CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(config).build();
-    HttpGet httpGet =
-        new HttpGet("http://metadata.google.internal/computeMetadata/v1/instance/zone");
-    httpGet.addHeader("Metadata-Flavor", "Google");
-    try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
-      if (response.getStatusLine().getStatusCode() == 200) {
-        String body =
-            CharStreams.toString(new InputStreamReader(response.getEntity().getContent(), UTF_8));
-        return Optional.of(body.substring(body.lastIndexOf('/') + 1));
-      } else {
-        return Optional.empty();
-      }
-    } catch (Exception e) {
-      return Optional.empty();
-    } finally {
-      try {
-        Closeables.close(httpClient, true);
-      } catch (IOException e) {
-        // nothing to do
-      }
-    }
   }
 
   @Override

@@ -15,8 +15,13 @@
 
   <packaging>pom</packaging>
   <properties>
-    <scala.binary.version>2.11</scala.binary.version>
-    <spark.version>2.4.0</spark.version>
+    <maven.compiler.release></maven.compiler.release>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <toolchain.jdk.version>[1.8,9)</toolchain.jdk.version>
+    <scala.binary.version>2.12</scala.binary.version>
+    <scala.version>2.12.18</scala.version>
+    <spark.version>3.1.0</spark.version>
   </properties>
   <licenses>
     <license>
@@ -172,6 +177,28 @@
           </execution>
         </executions>
       </plugin>
+      <!--
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.5.0</version>
+        <executions>
+          <execution>
+            <id>enforce-java</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[1.8,9)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      -->
       <!-- generating empty javadoc jar, for Maven Central publishing -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
