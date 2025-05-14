@@ -20,6 +20,10 @@ import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryFo
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryForTimePartitionedTable;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.isBigQueryNativeTable;
 
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.bigquery.Bigquery;
+import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.cloud.BaseServiceException;
 import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.BigQuery;
@@ -54,6 +58,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -79,6 +84,10 @@ public class BigQueryClient {
   private static final List<Runnable> CLEANUP_JOBS = new ArrayList<>();
 
   private final BigQuery bigQuery;
+  // The rest client is generated directly from the API, and therefore returns more metadata than
+  // the
+  // google-cloud-bigquery client above,
+  private final Bigquery bigqueryRestClient;
   private final Cache<String, TableInfo> destinationTableCache;
   private final JobConfigurationFactory jobConfigurationFactory;
   private final Optional<BigQueryJobCompletionListener> jobCompletionListener;
@@ -92,10 +101,35 @@ public class BigQueryClient {
       Optional<BigQueryJobCompletionListener> jobCompletionListener,
       long bigQueryJobTimeoutInMinutes) {
     this.bigQuery = bigQuery;
+    this.bigqueryRestClient = createRestClient(bigQuery);
     this.destinationTableCache = destinationTableCache;
     this.jobConfigurationFactory = new JobConfigurationFactory(labels, queryJobPriority);
     this.jobCompletionListener = jobCompletionListener;
     this.bigQueryJobTimeoutInMinutes = bigQueryJobTimeoutInMinutes;
+  }
+
+  static Bigquery createRestClient(BigQuery bigQuery) {
+    try {
+      // Initialize client that will be used to send requests. This client only needs to be created
+      // once, and can be reused for multiple requests
+      HttpCredentialsAdapter httpCredentialsAdapter =
+          new HttpCredentialsAdapter(bigQuery.getOptions().getCredentials());
+      Bigquery.Builder client =
+          new Bigquery.Builder(
+                  GoogleNetHttpTransport.newTrustedTransport(),
+                  GsonFactory.getDefaultInstance(),
+                  httpRequest -> {
+                    httpCredentialsAdapter.initialize(httpRequest);
+                    httpRequest.setThrowExceptionOnExecuteError(false);
+                  })
+              .setApplicationName(bigQuery.getOptions().getUserAgent());
+      return client.build();
+    } catch (GeneralSecurityException gse) {
+      throw new BigQueryConnectorException(
+          "Failed to create new trusted transport for BigQuery REST client", gse);
+    } catch (IOException ioe) {
+      throw new UncheckedIOException(ioe);
+    }
   }
 
   public static synchronized void runCleanupJobs() {
@@ -849,6 +883,31 @@ public class BigQueryClient {
     if (!tableExists(tableId)) {
       createTable(tableId, bigQuerySchema, options);
     }
+  }
+
+  /**
+   * Retrieves the table's metadata from the REST client, may contain more information than the
+   * regular one
+   */
+  public Optional<com.google.api.services.bigquery.model.Table> getRestTable(TableId tableId) {
+    try {
+      // tableId.getProject() may be null, so we replacing it with the default project id
+      String project =
+          Optional.ofNullable(tableId.getProject())
+              .orElseGet(() -> bigQuery.getOptions().getProjectId());
+      return Optional.ofNullable(
+          bigqueryRestClient
+              .tables()
+              .get(project, tableId.getDataset(), tableId.getTable())
+              .execute());
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  /** Returns true f the dataset exists, false otherwise. */
+  public boolean datasetExists(DatasetId datasetId) {
+    return bigQuery.getDataset(datasetId) != null;
   }
 
   public interface ReadTableOptions {

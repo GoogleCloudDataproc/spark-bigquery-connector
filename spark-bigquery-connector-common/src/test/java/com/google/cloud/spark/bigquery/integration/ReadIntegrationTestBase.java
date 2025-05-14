@@ -22,7 +22,6 @@ import static org.junit.Assume.assumeTrue;
 
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.sql.Timestamp;
@@ -75,10 +74,6 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
           .put("corpus like '%kinghenryiv'", ImmutableList.of("'", "'And", "'Anon"))
           .put("corpus like '%king%'", ImmutableList.of("'", "'A", "'Affectionate"))
           .build();
-  protected final String PROJECT_ID =
-      Preconditions.checkNotNull(
-          System.getenv("GOOGLE_CLOUD_PROJECT"),
-          "Please set the GOOGLE_CLOUD_PROJECT env variable in order to read views");
 
   private static final StructType SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT =
       new StructType(
@@ -580,9 +575,11 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testReadFromTableSnapshot() {
-    String snapshot = String.format("%s.%s.%s_snapshot", PROJECT_ID, testDataset, testTable);
+    String snapshot =
+        String.format("%s.%s.%s_snapshot", TestConstants.PROJECT_ID, testDataset, testTable);
     String allTypes =
-        String.format("%s.%s.%s", PROJECT_ID, testDataset, TestConstants.ALL_TYPES_TABLE_NAME);
+        String.format(
+            "%s.%s.%s", TestConstants.PROJECT_ID, testDataset, TestConstants.ALL_TYPES_TABLE_NAME);
     IntegrationTestUtils.runQuery(
         String.format("CREATE SNAPSHOT TABLE `%s` CLONE `%s`", snapshot, allTypes));
     Row[] allTypesRows =
