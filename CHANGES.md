@@ -3,6 +3,8 @@
 ## Next
 * Added new connector, `spark-4.0-bigquery` aimed to be used in Spark 4.0. Like Spark 4.0, this connector requires at
   least Java 17 runtime. It is currently in preview mode.
+
+## 0.42.2 - 2025-05-16
 * PR #1347: Get lineage out of query. Thanks @ddebowczyk92
 * PR #1349: Add parameterized query support
 * BigQuery API has been upgraded to version 2.48.1
