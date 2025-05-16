@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.42.2 - 2025-05-16
 * PR #1347: Get lineage out of query. Thanks @ddebowczyk92
 * PR #1349: Add parameterized query support
 * BigQuery API has been upgraded to version 2.48.1
