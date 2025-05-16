@@ -13,8 +13,10 @@
   <version>${revision}</version>
   <name>Connector code for BigQuery DataSource v2 for Spark 3.5</name>
   <properties>
+    <!--
     <argLine>${jdk11plus.argLine}</argLine>
     <toolchain.jdk.version>[11,12)</toolchain.jdk.version>
+    -->
     <spark.version>3.5.0</spark.version>
     <scala.binary.version>2.13</scala.binary.version>
     <shade.skip>true</shade.skip>
