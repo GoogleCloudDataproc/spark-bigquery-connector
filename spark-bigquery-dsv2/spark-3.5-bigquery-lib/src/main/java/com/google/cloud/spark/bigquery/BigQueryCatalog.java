@@ -133,6 +133,15 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
   @Override
   public Table loadTable(Identifier identifier) throws NoSuchTableException {
     logger.debug("loading table [{}])", format(identifier));
+    TableId tableId = toTableId(identifier);
+    Map config = tableId.getProject() != null ?
+            ImmutableMap.of(
+              "project", tableId.getProject(),
+              "dataset", tableId.getDataset(),
+              "table", tableId.getTable()) :
+            ImmutableMap.of(
+              "dataset", tableId.getDataset(),
+              "table", tableId.getTable());
     try {
       if (!tableExists(identifier)) {
         throw new NoSuchBigQueryTableException(identifier);
@@ -143,9 +152,7 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
               // TODO: reuse injector
               Spark3Util.createBigQueryTableInstance(
                   Spark35BigQueryTable::new,
-                  null,
-                  ImmutableMap.of(
-                      "dataset", identifier.namespace()[0], "table", identifier.name())));
+                  null, config));
     } catch (ExecutionException e) {
       throw new BigQueryConnectorException("Problem loaing table " + identifier, e);
     }
