@@ -164,26 +164,6 @@
           <artifactId>spark-bigquery_2.12</artifactId>
           <version>${project.version}</version>
         </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>spark-bigquery-pushdown-common_2.12</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>spark-2.4-bigquery-pushdown_2.12</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>spark-3.1-bigquery-pushdown_2.12</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>spark-3.2-bigquery-pushdown_2.12</artifactId>
-          <version>${project.version}</version>
-        </dependency>
       </dependencies>
     </profile>
     <profile>
@@ -200,21 +180,6 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-bigquery_2.13</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>spark-bigquery-pushdown-common_2.13</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>spark-3.2-bigquery-pushdown_2.13</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>spark-3.3-bigquery-pushdown_2.13</artifactId>
           <version>${project.version}</version>
         </dependency>
       </dependencies>
@@ -250,16 +215,6 @@
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>spark-2.4-bigquery-pushdown_2.12</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>spark-bigquery-pushdown-common_2.12</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
           <artifactId>spark-bigquery-dsv2-common</artifactId>
           <version>${project.version}</version>
         </dependency>
@@ -279,16 +234,6 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-bigquery-dsv2-common</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>spark-bigquery-pushdown-common_2.12</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>spark-3.1-bigquery-pushdown_2.12</artifactId>
           <version>${project.version}</version>
         </dependency>
       </dependencies>
