@@ -12,11 +12,10 @@ import org.apache.spark.sql.sources.RelationProvider;
 import org.apache.spark.sql.sources.SchemaRelationProvider;
 import org.apache.spark.sql.sources.StreamSinkProvider;
 import org.apache.spark.sql.streaming.OutputMode;
-import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.JavaConverters;
+import scala.collection.Seq;
 import scala.collection.immutable.Map;
-import scala.collection.immutable.Seq;
 
 public class Scala212BigQueryRelationProvider extends BigQueryRelationProviderBase
     implements RelationProvider,
@@ -39,11 +38,6 @@ public class Scala212BigQueryRelationProvider extends BigQueryRelationProviderBa
   }
 
   @Override
-  public boolean supportsDataType(DataType dt) {
-    return super.supportsDataType(dt);
-  }
-
-  @Override
   public BaseRelation createRelation(SQLContext sqlContext, Map<String, String> parameters) {
     return super.createRelation(sqlContext, asJava(parameters));
   }
@@ -63,7 +57,7 @@ public class Scala212BigQueryRelationProvider extends BigQueryRelationProviderBa
     return super.createSink(sqlContext, asJava(parameters), asJava(partitionColumns), outputMode);
   }
 
-  private java.util.List<String> asJava(Seq<String, String> seq) {
+  private java.util.List<String> asJava(Seq<String> seq) {
     return JavaConverters.seqAsJavaListConverter(seq).asJava();
   }
 
