@@ -144,11 +144,28 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
               Spark3Util.createBigQueryTableInstance(
                   Spark35BigQueryTable::new,
                   null,
-                  ImmutableMap.of(
-                      "dataset", identifier.namespace()[0], "table", identifier.name())));
+                  toLoadProperties(identifier)));
     } catch (ExecutionException e) {
-      throw new BigQueryConnectorException("Problem loaing table " + identifier, e);
+      throw new BigQueryConnectorException("Problem loading table " + identifier, e);
     }
+  }
+
+  Map<String, String> toLoadProperties(Identifier identifier) {
+    ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
+    switch (identifier.namespace().length) {
+      case 1:
+        result.put("dataset", identifier.namespace()[0]);
+        break;
+      case 2:
+        result.put("project", identifier.namespace()[0]);
+        result.put("dataset", identifier.namespace()[1]);
+        break;
+      default:
+        throw new IllegalArgumentException(
+            "The identifier [" + identifier + "] is not recognized by BigQuery");
+    }
+    result.put("table", identifier.name());
+    return result.build();
   }
 
   @Override

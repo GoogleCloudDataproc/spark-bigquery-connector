@@ -23,6 +23,8 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import java.util.List;
+
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.junit.After;
@@ -169,6 +171,14 @@ public class CatalogIntegrationTestBase {
         .next()
         .get(0)
         .getLongValue();
+  }
+
+  @Test
+  public void testReadFromDifferentBigQueryProject() throws Exception {
+    try (SparkSession spark = createSparkSession()) {
+      List<Row> df = spark.sql("SELECT * from `bigquery-public-data`.`samples`.`shakespeare` WHERE word='spark'").collectAsList();
+      assertThat(df).hasSize(9);
+    }
   }
 
   private static SparkSession createSparkSession() {
