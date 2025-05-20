@@ -142,9 +142,7 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
           () ->
               // TODO: reuse injector
               Spark3Util.createBigQueryTableInstance(
-                  Spark35BigQueryTable::new,
-                  null,
-                  toLoadProperties(identifier)));
+                  Spark35BigQueryTable::new, null, toLoadProperties(identifier)));
     } catch (ExecutionException e) {
       throw new BigQueryConnectorException("Problem loading table " + identifier, e);
     }
