@@ -15,16 +15,14 @@
  */
 package com.google.cloud.spark.bigquery.examples;
 
-// Static import for the helper methods if you use the BigQueryDataFrames utility class
-import static com.google.cloud.spark.bigquery.BigQueryDataFrames.bigquery;
-
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
 public class Shakespeare {
   public static void main(String[] args) {
-    SparkSession spark = SparkSession.builder()
+    SparkSession spark =
+        SparkSession.builder()
             .appName("spark-bigquery-demo-java")
             // .master("local[*]") // Uncomment for local testing if not set by spark-submit
             .getOrCreate();
@@ -36,17 +34,19 @@ public class Shakespeare {
     if (bucket == null || bucket.isEmpty()) {
       // Fallback or error if the bucket is not configured
       // For the example, let's assume a default or throw an error.
-      // System.err.println("GCS system bucket 'fs.gs.system.bucket' not configured. Please set it for temporary data.");
+      // System.err.println("GCS system bucket 'fs.gs.system.bucket' not configured. Please set it
+      // for temporary data.");
       // For local testing, you might set a default:
       // bucket = "your-gcs-bucket"; // Replace with your actual bucket
       // Or make it a required argument.
       // For this direct translation, we'll just set it via conf if null for the example to proceed,
       // but in production, this should be properly configured.
-      if (args.length > 0 && args[0] != null && !args[0].isEmpty()){
+      if (args.length > 0 && args[0] != null && !args[0].isEmpty()) {
         bucket = args[0]; // Expect bucket as first argument if not in Hadoop conf
       } else {
         System.err.println("Usage: Shakespeare <temporaryGcsBucket>");
-        System.err.println("Falling back to trying to read 'temporaryGcsBucket' from spark conf or hadoop conf.");
+        System.err.println(
+            "Falling back to trying to read 'temporaryGcsBucket' from spark conf or hadoop conf.");
         // If still not found, the connector might throw an error later if it needs it.
       }
     }
@@ -57,20 +57,18 @@ public class Shakespeare {
       spark.conf().set("temporaryGcsBucket", bucket);
     }
 
-
     // Load data in from BigQuery.
     // Using the static helper method from BigQueryDataFrames for the .bigquery() syntax
-    Dataset<Row> wordsDF = bigquery(spark.read())
-            .bigquery("bigquery-public-data.samples.shakespeare")
-            .cache();
+    Dataset<Row> wordsDF =
+        spark.read().format("bigquery").load("bigquery-public-data.samples.shakespeare").cache();
 
     wordsDF.show();
     wordsDF.printSchema();
     wordsDF.createOrReplaceTempView("words");
 
     // Perform word count.
-    Dataset<Row> wordCountDF = spark.sql(
-            "SELECT word, SUM(word_count) AS word_count FROM words GROUP BY word");
+    Dataset<Row> wordCountDF =
+        spark.sql("SELECT word, SUM(word_count) AS word_count FROM words GROUP BY word");
     wordCountDF.show();
 
     // Saving the data to BigQuery
@@ -81,11 +79,14 @@ public class Shakespeare {
     if (args.length > 1 && args[1] != null && !args[1].isEmpty()) {
       outputTable = args[1]; // Expect output table as second argument
     } else {
-      System.err.println("Defaulting output table to: " + outputTable + ". Provide as second arg if needed.");
+      System.err.println(
+          "Defaulting output table to: " + outputTable + ". Provide as second arg if needed.");
     }
 
-    bigquery(wordCountDF.write())
-            .bigquery(outputTable); // The table string here is just the table name, dataset.table
+    wordCountDF
+        .write()
+        .format("bigquery")
+        .save(outputTable); // The table string here is just the table name, dataset.table
     // Project can be inherited from default-project-id or Spark conf.
 
     System.out.println("Word count results written to BigQuery table: " + outputTable);

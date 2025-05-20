@@ -15,27 +15,29 @@
  */
 package com.google.cloud.spark.bigquery;
 
+import com.google.cloud.bigquery.connector.common.BigQueryClientModule;
+import com.google.common.collect.ImmutableMap;
+import com.google.inject.Guice;
 import com.google.inject.Injector;
-
 import java.util.Map;
 import java.util.Optional;
+import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.types.StructType;
 
 // Interface for GuiceInjectorCreator
 interface GuiceInjectorCreator {
-    default Injector createGuiceInjector(
-            SQLContext sqlContext,
-            Map<String, String> parameters,
-            Optional<StructType> schema) {
-        org.apache.spark.sql.SparkSession spark = sqlContext.sparkSession();
-        return Guice.createInjector(
-                new BigQueryClientModule(),
-                new SparkBigQueryConnectorModule(
-                        spark,
-                        parameters,
-                        ImmutableMap.of(), // Assuming empty java.util.Map for the third param
-                        schema,
-                        DataSourceVersion.V1,
-                        true, // tableIsMandatory
-                        java.util.Optional.empty()));
-    }
+  default Injector createGuiceInjector(
+      SQLContext sqlContext, Map<String, String> parameters, Optional<StructType> schema) {
+    org.apache.spark.sql.SparkSession spark = sqlContext.sparkSession();
+    return Guice.createInjector(
+        new BigQueryClientModule(),
+        new SparkBigQueryConnectorModule(
+            spark,
+            parameters,
+            ImmutableMap.of(), // Assuming empty java.util.Map for the third param
+            schema,
+            DataSourceVersion.V1,
+            true, // tableIsMandatory
+            java.util.Optional.empty()));
+  }
 }

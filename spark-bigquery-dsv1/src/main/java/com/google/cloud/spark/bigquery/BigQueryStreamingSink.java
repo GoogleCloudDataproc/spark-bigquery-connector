@@ -15,15 +15,20 @@
  */
 package com.google.cloud.spark.bigquery;
 
-
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import java.util.List;
+import java.util.Map;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.execution.streaming.Sink;
+import org.apache.spark.sql.streaming.OutputMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Map;
-
 // Note: Scala case classes have auto-generated equals, hashCode, toString, and constructor.
-// For Java, you'd typically use a regular class and implement these if needed, or use records (Java 14+).
+// For Java, you'd typically use a regular class and implement these if needed, or use records (Java
+// 14+).
 public class BigQueryStreamingSink implements Sink {
 
   private static final Logger log = LoggerFactory.getLogger(BigQueryStreamingSink.class);
@@ -38,12 +43,12 @@ public class BigQueryStreamingSink implements Sink {
   private volatile long latestBatchId = -1L;
 
   public BigQueryStreamingSink(
-          SQLContext sqlContext,
-          Map<String, String> parameters,
-          List<String> partitionColumns, // Changed from Seq<String>
-          OutputMode outputMode,
-          SparkBigQueryConfig opts,
-          BigQueryClient bigQueryClient) {
+      SQLContext sqlContext,
+      Map<String, String> parameters,
+      List<String> partitionColumns, // Changed from Seq<String>
+      OutputMode outputMode,
+      SparkBigQueryConfig opts,
+      BigQueryClient bigQueryClient) {
     this.sqlContext = sqlContext;
     this.parameters = parameters;
     this.partitionColumns = partitionColumns;
@@ -71,14 +76,33 @@ public class BigQueryStreamingSink implements Sink {
   }
 
   // Getters if needed for the fields (like in Scala case classes)
-  public SQLContext getSqlContext() { return sqlContext; }
-  public Map<String, String> getParameters() { return parameters; }
-  public List<String> getPartitionColumns() { return partitionColumns; }
-  public OutputMode getOutputMode() { return outputMode; }
-  public SparkBigQueryConfig getOpts() { return opts; }
-  public BigQueryClient getBigQueryClient() { return bigQueryClient; }
-  public long getLatestBatchId() { return latestBatchId; }
+  public SQLContext getSqlContext() {
+    return sqlContext;
+  }
 
+  public Map<String, String> getParameters() {
+    return parameters;
+  }
+
+  public List<String> getPartitionColumns() {
+    return partitionColumns;
+  }
+
+  public OutputMode getOutputMode() {
+    return outputMode;
+  }
+
+  public SparkBigQueryConfig getOpts() {
+    return opts;
+  }
+
+  public BigQueryClient getBigQueryClient() {
+    return bigQueryClient;
+  }
+
+  public long getLatestBatchId() {
+    return latestBatchId;
+  }
 
   // If this class were to be used in contexts requiring equals/hashCode (e.g., collections):
   @Override
@@ -87,30 +111,38 @@ public class BigQueryStreamingSink implements Sink {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     BigQueryStreamingSink that = (BigQueryStreamingSink) o;
-    return latestBatchId == that.latestBatchId &&
-            java.util.Objects.equals(sqlContext, that.sqlContext) &&
-            java.util.Objects.equals(parameters, that.parameters) &&
-            java.util.Objects.equals(partitionColumns, that.partitionColumns) &&
-            java.util.Objects.equals(outputMode, that.outputMode) &&
-            java.util.Objects.equals(opts, that.opts) &&
-            java.util.Objects.equals(bigQueryClient, that.bigQueryClient);
+    return latestBatchId == that.latestBatchId
+        && java.util.Objects.equals(sqlContext, that.sqlContext)
+        && java.util.Objects.equals(parameters, that.parameters)
+        && java.util.Objects.equals(partitionColumns, that.partitionColumns)
+        && java.util.Objects.equals(outputMode, that.outputMode)
+        && java.util.Objects.equals(opts, that.opts)
+        && java.util.Objects.equals(bigQueryClient, that.bigQueryClient);
   }
 
   @Override
   public int hashCode() {
-    return java.util.Objects.hash(sqlContext, parameters, partitionColumns, outputMode, opts, bigQueryClient, latestBatchId);
+    return java.util.Objects.hash(
+        sqlContext, parameters, partitionColumns, outputMode, opts, bigQueryClient, latestBatchId);
   }
 
   @Override
   public String toString() {
-    return "BigQueryStreamingSink(" +
-            "sqlContext=" + sqlContext +
-            ", parameters=" + parameters +
-            ", partitionColumns=" + partitionColumns +
-            ", outputMode=" + outputMode +
-            ", opts=" + opts +
-            ", bigQueryClient=" + bigQueryClient +
-            ", latestBatchId=" + latestBatchId +
-            ')';
+    return "BigQueryStreamingSink("
+        + "sqlContext="
+        + sqlContext
+        + ", parameters="
+        + parameters
+        + ", partitionColumns="
+        + partitionColumns
+        + ", outputMode="
+        + outputMode
+        + ", opts="
+        + opts
+        + ", bigQueryClient="
+        + bigQueryClient
+        + ", latestBatchId="
+        + latestBatchId
+        + ')';
   }
 }

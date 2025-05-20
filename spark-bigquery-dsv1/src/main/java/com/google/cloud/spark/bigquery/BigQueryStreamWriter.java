@@ -20,7 +20,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.spark2.Spark2DataFrameToRDDConverter;
 import com.google.cloud.spark.bigquery.spark3.Spark3DataFrameToRDDConverter;
 import com.google.cloud.spark.bigquery.write.BigQueryWriteHelper;
-import org.apache.spark.api.java.JavaRDD;
+import java.util.Optional;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -31,8 +31,6 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
-
 public final class BigQueryStreamWriter {
 
   private static final Logger log = LoggerFactory.getLogger(BigQueryStreamWriter.class);
@@ -40,19 +38,19 @@ public final class BigQueryStreamWriter {
   private BigQueryStreamWriter() {}
 
   /**
-   * Convert streaming dataframe to fixed dataframe by
-   * Getting partitioned RDD and mapping to Row dataframe
+   * Convert streaming dataframe to fixed dataframe by Getting partitioned RDD and mapping to Row
+   * dataframe
    *
-   * @param data       Streaming dataframe
+   * @param data Streaming dataframe
    * @param sqlContext Spark SQLContext
-   * @param opts       Spark BigQuery Options
+   * @param opts Spark BigQuery Options
    */
   public static void writeBatch(
-          Dataset<Row> data,
-          SQLContext sqlContext,
-          OutputMode outputMode,
-          SparkBigQueryConfig opts,
-          BigQueryClient bigQueryClient) {
+      Dataset<Row> data,
+      SQLContext sqlContext,
+      OutputMode outputMode,
+      SparkBigQueryConfig opts,
+      BigQueryClient bigQueryClient) {
     StructType schema = data.schema();
     String sparkVersion = sqlContext.sparkSession().version();
 
@@ -66,16 +64,15 @@ public final class BigQueryStreamWriter {
     Table table = bigQueryClient.getTable(opts.getTableId()); // returns Table, not Optional<Table>
     SaveMode saveMode = getSaveMode(outputMode);
 
-    BigQueryWriteHelper helper = new BigQueryWriteHelper(
+    BigQueryWriteHelper helper =
+        new BigQueryWriteHelper(
             bigQueryClient, sqlContext, saveMode, opts, dataFrame, Optional.ofNullable(table));
     helper.writeDataFrameToBigQuery();
   }
 
   /**
-   * Convert Output mode to save mode
-   * Complete => Truncate
-   * Append => Append (Default)
-   * Update => Not yet supported
+   * Convert Output mode to save mode Complete => Truncate Append => Append (Default) Update => Not
+   * yet supported
    *
    * @param outputMode
    * @throws UnsupportedOperationException
