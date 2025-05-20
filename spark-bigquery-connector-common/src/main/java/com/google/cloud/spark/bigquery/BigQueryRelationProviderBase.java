@@ -42,36 +42,29 @@ import org.apache.spark.sql.sources.StreamSinkProvider;
 import org.apache.spark.sql.streaming.OutputMode;
 import org.apache.spark.sql.types.StructType;
 
-public class BigQueryRelationProvider
-    implements RelationProvider,
-        CreatableRelationProvider,
-        SchemaRelationProvider,
-        DataSourceRegister,
-        StreamSinkProvider {
+public class  BigQueryRelationProviderBase
+    implements DataSourceRegister {
 
   private final Supplier<GuiceInjectorCreator> getGuiceInjectorCreator;
 
-  public BigQueryRelationProvider(Supplier<GuiceInjectorCreator> getGuiceInjectorCreator) {
+  public BigQueryRelationProviderBase(Supplier<GuiceInjectorCreator> getGuiceInjectorCreator) {
     this.getGuiceInjectorCreator = getGuiceInjectorCreator;
     BigQueryUtilScala.validateScalaVersionCompatibility();
   }
 
-  public BigQueryRelationProvider() {
+  public BigQueryRelationProviderBase() {
     this(() -> new GuiceInjectorCreator() {}); // Default creator
   }
 
-  @Override
-  public BaseRelation createRelation(SQLContext sqlContext, Map<String, String> parameters) {
+   public BaseRelation createRelation(SQLContext sqlContext, Map<String, String> parameters) {
     return createRelationInternal(sqlContext, parameters, Optional.empty());
   }
 
-  @Override
   public BaseRelation createRelation(
       SQLContext sqlContext, Map<String, String> parameters, StructType schema) {
     return createRelationInternal(sqlContext, parameters, Optional.of(schema));
   }
 
-  @Override
   public Sink createSink(
       SQLContext sqlContext,
       Map<String, String> parameters,
@@ -143,8 +136,7 @@ public class BigQueryRelationProvider
     }
   }
 
-  @Override
-  public BaseRelation createRelation(
+   public BaseRelation createRelation(
       SQLContext sqlContext, SaveMode mode, Map<String, String> parameters, Dataset<Row> data) {
     ImmutableMap<String, String> customDefaults = ImmutableMap.of();
     return new CreatableRelationProviderHelper()
