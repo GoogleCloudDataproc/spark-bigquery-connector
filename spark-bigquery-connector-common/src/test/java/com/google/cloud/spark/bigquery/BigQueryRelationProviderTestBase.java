@@ -31,6 +31,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation;
 import com.google.common.base.Throwables; // For getting root cause
 import com.google.inject.Binder;
@@ -39,10 +40,14 @@ import com.google.inject.Injector;
 import com.google.inject.Module;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Supplier;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.sources.BaseRelation;
+import org.apache.spark.sql.types.StructType;
 import org.junit.After;
 import org.junit.Assert; // For fail()
 import org.junit.Before;
@@ -50,7 +55,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class BigQueryRelationProviderTest {
+public abstract class BigQueryRelationProviderTestBase {
 
   private static final TableId ID = TableId.of("testproject", "test_dataset", "test_table");
   private static final String TABLE_NAME_FULL = "testproject:test_dataset.test_table";
@@ -70,7 +75,7 @@ public class BigQueryRelationProviderTest {
   @Mock private BigQueryClient bigQueryClient;
   @Mock private BigQueryClientFactory bigQueryReadClientFactory;
 
-  private BigQueryRelationProvider provider;
+  private BigQueryRelationProviderBase provider;
 
   @Mock private Table tableMock;
 
@@ -84,7 +89,7 @@ public class BigQueryRelationProviderTest {
     when(config.getTableId()).thenReturn(ID);
     when(config.toReadTableOptions()).thenReturn(readTableOptions);
 
-    Injector injector =
+    final Injector injector =
         Guice.createInjector(
             new Module() {
               @Override
@@ -102,8 +107,15 @@ public class BigQueryRelationProviderTest {
               }
             });
 
-    GuiceInjectorCreator injectorCreator = (sqlCtx, params, schemaOpt) -> injector;
-    provider = new BigQueryRelationProvider(() -> injectorCreator);
+    GuiceInjectorCreator injectorCreator =
+        new GuiceInjectorCreator() {
+          @Override
+          public Injector createGuiceInjector(
+              SQLContext sqlContext, Map<String, String> parameters, Optional<StructType> schema) {
+            return injector;
+          }
+        };
+    provider = createProvider(() -> injectorCreator);
 
     when(tableMock.getTableId()).thenReturn(TABLE_INFO.getTableId());
     when(tableMock.getDefinition()).thenReturn(TABLE_INFO.getDefinition());
@@ -176,7 +188,7 @@ public class BigQueryRelationProviderTest {
 
   @Test
   public void credentialsParameterIsUsedToInitializeBigQueryOptions() {
-    BigQueryRelationProvider defaultProvider = new BigQueryRelationProvider();
+    BigQueryRelationProviderBase defaultProvider = createProvider();
     String invalidCredentials = Base64.encodeBase64String("{}".getBytes());
 
     Map<String, String> params = new HashMap<>();
@@ -198,8 +210,12 @@ public class BigQueryRelationProviderTest {
                   || rootCauseMessage.contains("Failed to create Credentials from key")
                   || directMessage.contains("Invalid credentials")
                   || rootCauseMessage.contains("Invalid credentials"))
-          .named("Exception message content check for invalid credentials")
           .isTrue();
     }
   }
+
+  abstract BigQueryRelationProviderBase createProvider(
+      Supplier<GuiceInjectorCreator> injectorCreator);
+
+  abstract BigQueryRelationProviderBase createProvider();
 }
