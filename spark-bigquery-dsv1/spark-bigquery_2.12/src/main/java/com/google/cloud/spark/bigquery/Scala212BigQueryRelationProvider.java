@@ -1,5 +1,6 @@
 package com.google.cloud.spark.bigquery;
 
+import java.util.function.Supplier;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
@@ -13,31 +14,60 @@ import org.apache.spark.sql.sources.StreamSinkProvider;
 import org.apache.spark.sql.streaming.OutputMode;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
+import scala.collection.JavaConverters;
 import scala.collection.immutable.Map;
 import scala.collection.immutable.Seq;
 
-public class Scala212BigQueryRelationProvider extends BigQueryRelationProviderBase implements RelationProvider, CreatableRelationProvider, SchemaRelationProvider, StreamSinkProvider {
-    @Override
-    public BaseRelation createRelation(SQLContext sqlContext, SaveMode mode, Map<String, String> parameters, Dataset<Row> data) {
-        return null;
-    }
+public class Scala212BigQueryRelationProvider extends BigQueryRelationProviderBase
+    implements RelationProvider,
+        CreatableRelationProvider,
+        SchemaRelationProvider,
+        StreamSinkProvider {
 
-    @Override
-    public boolean supportsDataType(DataType dt) {
-        return CreatableRelationProvider.super.supportsDataType(dt);
-    }
+  public Scala212BigQueryRelationProvider() {
+    super();
+  }
 
-    @Override
-    public BaseRelation createRelation(SQLContext sqlContext, Map<String, String> parameters) {
-        return null;
-    }
+  public Scala212BigQueryRelationProvider(Supplier<GuiceInjectorCreator> getGuiceInjectorCreator) {
+    super(getGuiceInjectorCreator);
+  }
 
-    @Override
-    public BaseRelation createRelation(SQLContext sqlContext, Map<String, String> parameters, StructType schema) {
-        return null;
-    }
+  @Override
+  public BaseRelation createRelation(
+      SQLContext sqlContext, SaveMode mode, Map<String, String> parameters, Dataset<Row> data) {
+    return super.createRelation(sqlContext, mode, asJava(parameters), data);
+  }
 
-    @Override
-    public Sink createSink(SQLContext sqlContext, Map<String, String> parameters, Seq<String> partitionColumns, OutputMode outputMode) {
-        return null;
-    }
+  @Override
+  public boolean supportsDataType(DataType dt) {
+    return super.supportsDataType(dt);
+  }
+
+  @Override
+  public BaseRelation createRelation(SQLContext sqlContext, Map<String, String> parameters) {
+    return super.createRelation(sqlContext, asJava(parameters));
+  }
+
+  @Override
+  public BaseRelation createRelation(
+      SQLContext sqlContext, Map<String, String> parameters, StructType schema) {
+    return super.createRelation(sqlContext, asJava(parameters), schema);
+  }
+
+  @Override
+  public Sink createSink(
+      SQLContext sqlContext,
+      Map<String, String> parameters,
+      Seq<String> partitionColumns,
+      OutputMode outputMode) {
+    return super.createSink(sqlContext, asJava(parameters), asJava(partitionColumns), outputMode);
+  }
+
+  private java.util.List<String> asJava(Seq<String, String> seq) {
+    return JavaConverters.seqAsJavaListConverter(seq).asJava();
+  }
+
+  private java.util.Map<String, String> asJava(Map<String, String> map) {
+    return JavaConverters.mapAsJavaMapConverter(map).asJava();
+  }
+}

@@ -17,10 +17,10 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
-import com.google.cloud.spark.bigquery.spark2.Spark2DataFrameToRDDConverter;
-import com.google.cloud.spark.bigquery.spark3.Spark3DataFrameToRDDConverter;
 import com.google.cloud.spark.bigquery.write.BigQueryWriteHelper;
+import com.google.common.collect.Streams;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -75,8 +75,8 @@ public final class BigQueryStreamWriter {
    * yet supported
    *
    * @param outputMode
-   * @throws UnsupportedOperationException
    * @return SaveMode
+   * @throws UnsupportedOperationException
    */
   private static SaveMode getSaveMode(OutputMode outputMode) {
     if (outputMode.equals(OutputMode.Complete())) { // Use .equals() for object comparison
@@ -89,12 +89,15 @@ public final class BigQueryStreamWriter {
   }
 
   public static DataFrameToRDDConverter dataFrameToRDDConverterFactory(String sparkVersion) {
-    // Character comparison for major version
-    int version = sparkVersion.charAt(0) - '0';
-    if (version < 3) {
-      return new Spark2DataFrameToRDDConverter();
-    } else {
-      return new Spark3DataFrameToRDDConverter();
-    }
+    ServiceLoader<DataFrameToRDDConverter> serviceLoader =
+        ServiceLoader.load(DataFrameToRDDConverter.class);
+    return Streams.stream(serviceLoader.iterator())
+        .filter(converter -> converter.supports(sparkVersion))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "Could not find an implementation of "
+                        + DataFrameToRDDConverter.class.getCanonicalName()));
   }
 }

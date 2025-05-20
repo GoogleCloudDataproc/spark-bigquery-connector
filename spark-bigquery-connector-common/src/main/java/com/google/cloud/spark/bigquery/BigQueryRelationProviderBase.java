@@ -34,16 +34,11 @@ import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.execution.streaming.Sink;
 import org.apache.spark.sql.sources.BaseRelation;
-import org.apache.spark.sql.sources.CreatableRelationProvider;
 import org.apache.spark.sql.sources.DataSourceRegister;
-import org.apache.spark.sql.sources.RelationProvider;
-import org.apache.spark.sql.sources.SchemaRelationProvider;
-import org.apache.spark.sql.sources.StreamSinkProvider;
 import org.apache.spark.sql.streaming.OutputMode;
 import org.apache.spark.sql.types.StructType;
 
-public class  BigQueryRelationProviderBase
-    implements DataSourceRegister {
+public class BigQueryRelationProviderBase implements DataSourceRegister {
 
   private final Supplier<GuiceInjectorCreator> getGuiceInjectorCreator;
 
@@ -56,7 +51,7 @@ public class  BigQueryRelationProviderBase
     this(() -> new GuiceInjectorCreator() {}); // Default creator
   }
 
-   public BaseRelation createRelation(SQLContext sqlContext, Map<String, String> parameters) {
+  public BaseRelation createRelation(SQLContext sqlContext, Map<String, String> parameters) {
     return createRelationInternal(sqlContext, parameters, Optional.empty());
   }
 
@@ -136,7 +131,7 @@ public class  BigQueryRelationProviderBase
     }
   }
 
-   public BaseRelation createRelation(
+  public BaseRelation createRelation(
       SQLContext sqlContext, SaveMode mode, Map<String, String> parameters, Dataset<Row> data) {
     ImmutableMap<String, String> customDefaults = ImmutableMap.of();
     return new CreatableRelationProviderHelper()
