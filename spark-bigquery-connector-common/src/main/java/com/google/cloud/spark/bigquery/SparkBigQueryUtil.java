@@ -333,11 +333,10 @@ public class SparkBigQueryUtil {
 
   public static SparkBigQueryConfig createSparkBigQueryConfig(
       SQLContext sqlContext,
-      scala.collection.immutable.Map<String, String> options,
-      Option<StructType> schema,
+      Map<String, String> options,
+      Optional<StructType> schema,
       DataSourceVersion dataSourceVersion) {
-    java.util.Map<String, String> optionsMap = new HashMap<>(mapAsJavaMap(options));
-    dataSourceVersion.updateOptionsMap(optionsMap);
+    dataSourceVersion.updateOptionsMap(options);
     SparkSession spark = sqlContext.sparkSession();
     ImmutableMap<String, String> globalOptions =
         ImmutableMap.copyOf(mapAsJavaMap(spark.conf().getAll()));
@@ -345,14 +344,26 @@ public class SparkBigQueryUtil {
         spark.sparkContext().isStopped() ? 1 : spark.sparkContext().defaultParallelism();
 
     return SparkBigQueryConfig.from(
-        ImmutableMap.copyOf(optionsMap),
+        ImmutableMap.copyOf(options),
         globalOptions,
         spark.sparkContext().hadoopConfiguration(),
         ImmutableMap.of(),
         defaultParallelism,
         spark.sqlContext().conf(),
         spark.version(),
-        Optional.ofNullable(schema.getOrElse(null)),
+        schema,
         true);
+  }
+
+  public static SparkBigQueryConfig createSparkBigQueryConfig(
+      SQLContext sqlContext,
+      scala.collection.immutable.Map<String, String> options,
+      Option<StructType> schema,
+      DataSourceVersion dataSourceVersion) {
+    return createSparkBigQueryConfig(
+        sqlContext,
+        new HashMap<>(mapAsJavaMap(options)),
+        Optional.ofNullable(schema.getOrElse(null)),
+        dataSourceVersion);
   }
 }

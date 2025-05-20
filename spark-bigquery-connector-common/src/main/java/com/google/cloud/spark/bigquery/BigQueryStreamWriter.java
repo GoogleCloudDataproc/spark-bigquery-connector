@@ -15,7 +15,7 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.write.BigQueryWriteHelper;
 import com.google.common.collect.Streams;
@@ -61,7 +61,8 @@ public final class BigQueryStreamWriter {
 
     // Create fixed dataframe
     Dataset<Row> dataFrame = sqlContext.createDataFrame(rowRdd, schema);
-    Table table = bigQueryClient.getTable(opts.getTableId()); // returns Table, not Optional<Table>
+    TableInfo table =
+        bigQueryClient.getTable(opts.getTableId()); // returns Table, not Optional<Table>
     SaveMode saveMode = getSaveMode(outputMode);
 
     BigQueryWriteHelper helper =

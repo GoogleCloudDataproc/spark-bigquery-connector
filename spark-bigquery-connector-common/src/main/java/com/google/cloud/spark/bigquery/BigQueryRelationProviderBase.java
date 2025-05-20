@@ -25,6 +25,7 @@ import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation;
 import com.google.cloud.spark.bigquery.write.CreatableRelationProviderHelper;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Injector;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -63,20 +64,14 @@ public class BigQueryRelationProviderBase implements DataSourceRegister {
   public Sink createSink(
       SQLContext sqlContext,
       Map<String, String> parameters,
-      scala.collection.Seq<String> partitionColumns, // Scala Seq
+      List<String> partitionColumns, // Scala Seq
       OutputMode outputMode) {
     Injector injector =
         getGuiceInjectorCreator.get().createGuiceInjector(sqlContext, parameters, Optional.empty());
     SparkBigQueryConfig opts = injector.getInstance(SparkBigQueryConfig.class);
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
     return new BigQueryStreamingSink(
-        sqlContext,
-        parameters,
-        scala.collection.JavaConverters.seqAsJavaListConverter(partitionColumns)
-            .asJava(), // Convert Scala Seq to Java List
-        outputMode,
-        opts,
-        bigQueryClient);
+        sqlContext, parameters, partitionColumns, outputMode, opts, bigQueryClient);
   }
 
   protected BigQueryRelation createRelationInternal(
