@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
+import com.google.common.collect.Streams;
 import java.util.List;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -180,6 +181,15 @@ public class CatalogIntegrationTestBase {
                   "SELECT * from `bigquery-public-data`.`samples`.`shakespeare` WHERE word='spark'")
               .collectAsList();
       assertThat(df).hasSize(9);
+    }
+  }
+
+  @Test
+  public void testListNamespaces() throws Exception {
+    try (SparkSession spark = createSparkSession()) {
+      List<Row> databases = spark.sql("SHOW DATABASES").collectAsList();
+      int bigQueryDatasetCount = (int) Streams.stream(bigquery.listDatasets().iterateAll()).count();
+      assertThat(databases).hasSize(bigQueryDatasetCount);
     }
   }
 

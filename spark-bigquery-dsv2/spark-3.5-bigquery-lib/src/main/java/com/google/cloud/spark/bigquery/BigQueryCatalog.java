@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery;
 
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableDefinition;
@@ -33,6 +34,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Streams;
 import com.google.inject.Injector;
 import java.util.Arrays;
 import java.util.Collections;
@@ -283,12 +285,31 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
 
   @Override
   public String[][] listNamespaces() throws NoSuchNamespaceException {
-    return new String[0][];
+    return Streams.stream(bigQueryClient.listDatasets())
+        .map(Dataset::getDatasetId)
+        .map(this::toNamespace)
+        .toArray(String[][]::new);
   }
 
+  private String[] toNamespace(DatasetId datasetId) {
+    return datasetId.getProject() == null
+        ? new String[] {datasetId.getDataset()}
+        : new String[] {datasetId.getProject(), datasetId.getDataset()};
+  }
+
+  // based on JDBCTableCatalog.listNamespaces(namespace)
   @Override
   public String[][] listNamespaces(String[] namespace) throws NoSuchNamespaceException {
-    return new String[0][];
+    switch (namespace.length) {
+      case 0:
+        return listNamespaces();
+      case 1:
+        if (namespaceExists(namespace)) {
+          return new String[0][];
+        }
+    }
+    // unsupported case
+    throw new NoSuchNamespaceException(namespace);
   }
 
   @Override

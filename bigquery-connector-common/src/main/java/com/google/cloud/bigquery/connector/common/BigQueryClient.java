@@ -505,7 +505,11 @@ public class BigQueryClient {
     return bigQuery.getOptions().getProjectId();
   }
 
-  Iterable<Dataset> listDatasets(String projectId) {
+  public Iterable<Dataset> listDatasets() {
+    return listDatasetsForProject(getProjectId());
+  }
+
+  public Iterable<Dataset> listDatasetsForProject(String projectId) {
     return bigQuery.listDatasets(projectId).iterateAll();
   }
 
