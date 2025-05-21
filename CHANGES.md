@@ -4,7 +4,7 @@
 * Added new connector, `spark-4.0-bigquery` aimed to be used in Spark 4.0. Like Spark 4.0, this connector requires at
   least Java 17 runtime. It is currently in preview mode.
 * PR #1367: Query Pushdown is no longer supported.
-* PR #1369: Catalog table load now support loading from another project
+* PR #1369: Catalog enhancements
 
 ## 0.42.2 - 2025-05-16
 * PR #1347: Get lineage out of query. Thanks @ddebowczyk92
