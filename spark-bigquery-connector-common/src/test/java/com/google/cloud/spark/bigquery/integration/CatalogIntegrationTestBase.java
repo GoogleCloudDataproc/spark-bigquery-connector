@@ -18,13 +18,14 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
-import com.google.common.collect.Streams;
 import java.util.List;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Before;
@@ -186,10 +187,61 @@ public class CatalogIntegrationTestBase {
 
   @Test
   public void testListNamespaces() throws Exception {
+    String database =
+        String.format("show_databases_test_%s_%s", System.currentTimeMillis(), System.nanoTime());
+    DatasetId datasetId = DatasetId.of(database);
+    bigquery.create(Dataset.newBuilder(datasetId).build());
     try (SparkSession spark = createSparkSession()) {
       List<Row> databases = spark.sql("SHOW DATABASES").collectAsList();
-      int bigQueryDatasetCount = (int) Streams.stream(bigquery.listDatasets().iterateAll()).count();
-      assertThat(databases).hasSize(bigQueryDatasetCount);
+      assertThat(databases).contains(RowFactory.create(database));
+    } finally {
+      bigquery.delete(datasetId);
+    }
+  }
+
+  @Test
+  public void testCreateNamespace() throws Exception {
+    String database =
+        String.format("create_database_test_%s_%s", System.currentTimeMillis(), System.nanoTime());
+    DatasetId datasetId = DatasetId.of(database);
+    try (SparkSession spark = createSparkSession()) {
+      spark.sql("CREATE DATABASE " + database + ";");
+      Dataset dataset = bigquery.getDataset(datasetId);
+      assertThat(dataset).isNotNull();
+    } finally {
+      bigquery.delete(datasetId);
+    }
+  }
+
+  @Test
+  public void testCreateNamespaceWithLocation() throws Exception {
+    String database =
+        String.format("create_database_test_%s_%s", System.currentTimeMillis(), System.nanoTime());
+    DatasetId datasetId = DatasetId.of(database);
+    try (SparkSession spark = createSparkSession()) {
+      spark.sql(
+          "CREATE DATABASE "
+              + database
+              + " COMMENT 'foo' WITH DBPROPERTIES (bigquery_location = 'us-east1');");
+      Dataset dataset = bigquery.getDataset(datasetId);
+      assertThat(dataset).isNotNull();
+      assertThat(dataset.getLocation()).isEqualTo("us-east1");
+      assertThat(dataset.getDescription()).isEqualTo("foo");
+    } finally {
+      bigquery.delete(datasetId);
+    }
+  }
+
+  @Test
+  public void testDropDatabase() {
+    String database =
+        String.format("drop_database_test_%s_%s", System.currentTimeMillis(), System.nanoTime());
+    DatasetId datasetId = DatasetId.of(database);
+    bigquery.create(Dataset.newBuilder(datasetId).build());
+    try (SparkSession spark = createSparkSession()) {
+      spark.sql("DROP DATABASE " + database + ";");
+      Dataset dataset = bigquery.getDataset(datasetId);
+      assertThat(dataset).isNull();
     }
   }
 

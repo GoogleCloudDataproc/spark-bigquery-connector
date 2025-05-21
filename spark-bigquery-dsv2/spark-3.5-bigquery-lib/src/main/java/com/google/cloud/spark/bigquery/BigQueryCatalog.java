@@ -19,6 +19,7 @@ import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
+import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -37,7 +38,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import com.google.inject.Injector;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
@@ -292,9 +292,19 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
   }
 
   private String[] toNamespace(DatasetId datasetId) {
-    return datasetId.getProject() == null
-        ? new String[] {datasetId.getDataset()}
-        : new String[] {datasetId.getProject(), datasetId.getDataset()};
+    return new String[] {datasetId.getDataset()};
+  }
+
+  private DatasetId toDatasetId(String[] namespace) {
+    switch (namespace.length) {
+      case 1:
+        return DatasetId.of(namespace[0]);
+      case 2:
+        return DatasetId.of(namespace[0], namespace[1]);
+      default:
+        throw new IllegalArgumentException(
+            "The identifier [" + Arrays.toString(namespace) + "] is not recognized by BigQuery");
+    }
   }
 
   // based on JDBCTableCatalog.listNamespaces(namespace)
@@ -317,19 +327,32 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
     return datasetExistenceCache.getUnchecked(namespace);
   }
 
-  private boolean bigQueryDatasetExists(String[] dataset) {
-    return bigQueryClient.datasetExists(DatasetId.of(dataset[0]));
+  private boolean bigQueryDatasetExists(String[] namespace) {
+    return bigQueryClient.datasetExists(toDatasetId(namespace));
   }
 
   @Override
   public Map<String, String> loadNamespaceMetadata(String[] namespace)
       throws NoSuchNamespaceException {
-    return Collections.emptyMap();
+    DatasetInfo dataset = bigQueryClient.getDataset(toDatasetId(namespace));
+    ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
+    result.put("bigquery_location", dataset.getLocation());
+    result.put("creationTime", dataset.getCreationTime().toString());
+    Optional.ofNullable(dataset.getDescription())
+        .ifPresent(description -> result.put("comment", description));
+    return result.build();
   }
 
   @Override
   public void createNamespace(String[] namespace, Map<String, String> metadata)
-      throws NamespaceAlreadyExistsException {}
+      throws NamespaceAlreadyExistsException {
+    Preconditions.checkArgument(
+        namespace.length == 1, "BigQuery does not support nested namespaces");
+    if (namespaceExists(namespace)) {
+      throw new NamespaceAlreadyExistsException(namespace);
+    }
+    bigQueryClient.createDataset(DatasetId.of(namespace[0]), metadata);
+  }
 
   @Override
   public void alterNamespace(String[] namespace, NamespaceChange... changes)
@@ -338,6 +361,12 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
   @Override
   public boolean dropNamespace(String[] namespace, boolean cascade)
       throws NoSuchNamespaceException, NonEmptyNamespaceException {
-    return false;
+    if (!namespaceExists(namespace)) {
+      throw new NoSuchNamespaceException(namespace);
+    }
+    if (!cascade && listTables(namespace).length > 0) {
+      throw new NonEmptyNamespaceException(namespace);
+    }
+    return bigQueryClient.deleteDataset(toDatasetId(namespace), cascade);
   }
 }
