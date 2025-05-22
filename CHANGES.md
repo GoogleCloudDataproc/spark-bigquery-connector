@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.42.3 - 2025-05-22
 * PR #1369: Catalog enhancements
 * PR #1370: Add backwards compatibility for OpenLineage prior to version 1.18.0.
 
