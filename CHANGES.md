@@ -2,6 +2,7 @@
 
 ## Next
 * PR #1369: Catalog enhancements
+* PR #1370: Add backwards compatibility for OpenLineage prior to version 1.18.0.
 
 ## 0.42.2 - 2025-05-16
 * PR #1347: Get lineage out of query. Thanks @ddebowczyk92
