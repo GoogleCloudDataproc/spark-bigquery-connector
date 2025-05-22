@@ -15,12 +15,6 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import org.apache.spark.rdd.RDD;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-
-public interface DataFrameToRDDConverter {
-  RDD<Row> convertToRDD(Dataset<Row> data);
-
-  boolean supports(String sparkVersion);
+public class DefaultSource extends Scala213BigQueryRelationProvider {
+  // empty
 }

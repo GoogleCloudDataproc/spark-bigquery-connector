@@ -59,6 +59,11 @@ public class Spark2DataFrameToRDDConverter implements DataFrameToRDDConverter {
     return rowRdd;
   }
 
+  @Override
+  public boolean supports(String sparkVersion) {
+    return sparkVersion.compareTo("3") < 0;
+  }
+
   static class EncodingIterator implements Iterator<Row> {
     private Iterator<InternalRow> internalIterator;
     private ExpressionEncoder<Row> expressionEncoder;
