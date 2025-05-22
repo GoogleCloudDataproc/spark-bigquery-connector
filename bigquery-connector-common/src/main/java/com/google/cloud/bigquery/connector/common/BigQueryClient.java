@@ -31,6 +31,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
+import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.EncryptionConfiguration;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
@@ -505,7 +506,11 @@ public class BigQueryClient {
     return bigQuery.getOptions().getProjectId();
   }
 
-  Iterable<Dataset> listDatasets(String projectId) {
+  public Iterable<Dataset> listDatasets() {
+    return listDatasetsForProject(getProjectId());
+  }
+
+  public Iterable<Dataset> listDatasetsForProject(String projectId) {
     return bigQuery.listDatasets(projectId).iterateAll();
   }
 
@@ -908,6 +913,27 @@ public class BigQueryClient {
   /** Returns true f the dataset exists, false otherwise. */
   public boolean datasetExists(DatasetId datasetId) {
     return bigQuery.getDataset(datasetId) != null;
+  }
+
+  public void createDataset(DatasetId datasetId, Map<String, String> metadata) {
+    DatasetInfo.Builder datasetInfo = DatasetInfo.newBuilder(datasetId);
+    if (metadata != null && !metadata.isEmpty()) {
+      Optional.ofNullable(metadata.get("bigquery_location")).ifPresent(datasetInfo::setLocation);
+      Optional.ofNullable(metadata.get("comment")).ifPresent(datasetInfo::setDescription);
+    }
+    bigQuery.create(datasetInfo.build());
+  }
+
+  public boolean deleteDataset(DatasetId datasetId, boolean cascade) {
+    BigQuery.DatasetDeleteOption[] options =
+        cascade
+            ? new BigQuery.DatasetDeleteOption[] {BigQuery.DatasetDeleteOption.deleteContents()}
+            : new BigQuery.DatasetDeleteOption[] {};
+    return bigQuery.delete(datasetId, options);
+  }
+
+  public DatasetInfo getDataset(DatasetId datasetId) {
+    return bigQuery.getDataset(datasetId);
   }
 
   public interface ReadTableOptions {

@@ -15,41 +15,22 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdown;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
-import java.util.ServiceLoader;
 import org.apache.spark.sql.SparkSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BigQueryConnectorUtils {
 
+  private static Logger logger = LoggerFactory.getLogger(BigQueryConnectorUtils.class);
+
   private BigQueryConnectorUtils() {}
 
-  private static Supplier<SparkBigQueryPushdown> sparkBigQueryPushdownSupplier =
-      Suppliers.memoize(BigQueryConnectorUtils::createSparkBigQueryPushdown);
-
   public static void enablePushdownSession(SparkSession spark) {
-    SparkBigQueryPushdown sparkBigQueryPushdown = sparkBigQueryPushdownSupplier.get();
-    sparkBigQueryPushdown.enable(spark);
+    logger.warn(
+        "Full query pushdown is no longer supported. Column projection and row filtering (predicate pushdown) are supported like before.");
   }
 
   public static void disablePushdownSession(SparkSession spark) {
-    SparkBigQueryPushdown sparkBigQueryPushdown = sparkBigQueryPushdownSupplier.get();
-    sparkBigQueryPushdown.disable(spark);
-  }
-
-  static SparkBigQueryPushdown createSparkBigQueryPushdown() {
-    // We won't have two spark versions in the same process, so the actual session does not matter
-    String sparkVersion = SparkSession.active().version();
-    ServiceLoader<SparkBigQueryPushdown> loader = ServiceLoader.load(SparkBigQueryPushdown.class);
-    for (SparkBigQueryPushdown p : loader) {
-      if (p.supportsSparkVersion(sparkVersion)) {
-        return p;
-      }
-    }
-    throw new IllegalStateException(
-        String.format(
-            "Could not find an implementation of %s that supports Spark version %s",
-            SparkBigQueryPushdown.class.getName(), sparkVersion));
+    // no op;
   }
 }

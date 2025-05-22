@@ -24,32 +24,8 @@
   </licenses>
   <dependencies>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>spark-2.4-bigquery-pushdown_${scala.binary.version}
-      </artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>spark-3.1-bigquery-pushdown_${scala.binary.version}
-      </artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
       <groupId>io.openlineage</groupId>
       <artifactId>openlineage-spark_${scala.binary.version}</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>spark-3.2-bigquery-pushdown_${scala.binary.version}
-      </artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>spark-3.3-bigquery-pushdown_${scala.binary.version}
-      </artifactId>
-      <version>${project.version}</version>
     </dependency>
   </dependencies>
   <build>

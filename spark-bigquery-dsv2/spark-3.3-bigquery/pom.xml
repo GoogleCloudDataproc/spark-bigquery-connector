@@ -35,17 +35,5 @@
       <version>${spark.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>spark-3.3-bigquery-pushdown_2.12
-      </artifactId>
-      <version>${project.parent.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>spark-3.3-bigquery-pushdown_2.13
-      </artifactId>
-      <version>${project.parent.version}</version>
-    </dependency>
   </dependencies>
 </project>
