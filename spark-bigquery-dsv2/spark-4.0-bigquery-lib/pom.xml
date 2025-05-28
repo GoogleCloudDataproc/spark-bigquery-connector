@@ -14,7 +14,7 @@
   <name>Connector code for BigQuery DataSource v2 for Spark 4.0</name>
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
-    <spark.version>4.0.0-preview2</spark.version>
+    <spark.version>4.0.0</spark.version>
     <scala.binary.version>2.13</scala.binary.version>
     <shade.skip>true</shade.skip>
     <toolchain.jdk.version>[17,18)</toolchain.jdk.version>

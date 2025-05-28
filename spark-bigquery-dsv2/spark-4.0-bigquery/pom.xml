@@ -15,7 +15,7 @@
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
     <scala.binary.version>2.13</scala.binary.version>
-    <spark.version>4.0.0-preview2</spark.version>
+    <spark.version>4.0.0</spark.version>
     <shade.skip>false</shade.skip>
     <toolchain.jdk.version>[17,18)</toolchain.jdk.version>
     <argLine>${jdk11plus.argLine}</argLine>
