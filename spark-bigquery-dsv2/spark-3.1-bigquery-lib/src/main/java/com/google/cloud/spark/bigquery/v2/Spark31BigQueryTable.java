@@ -117,11 +117,14 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
       propertiesBuilder.put("openlineage.dataset.query", config.getQuery().get());
     } else {
       TableId configTableId = config.getTableId();
-      TableId tableId = configTableId.getProject() != null
+      TableId tableId =
+          configTableId.getProject() != null
               ? configTableId
-              : TableId.of(config.getParentProjectId(), configTableId.getDataset(), configTableId.getTable());
-      propertiesBuilder.put(
-          "openlineage.dataset.name", BigQueryUtil.friendlyTableName(tableId));
+              : TableId.of(
+                  config.getParentProjectId(),
+                  configTableId.getDataset(),
+                  configTableId.getTable());
+      propertiesBuilder.put("openlineage.dataset.name", BigQueryUtil.friendlyTableName(tableId));
     }
     return propertiesBuilder.build();
   }
