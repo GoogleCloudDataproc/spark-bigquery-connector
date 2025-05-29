@@ -685,8 +685,12 @@ public class BigQueryClient {
    */
   public TableInfo materializeQueryToTable(
       String querySql, int expirationTimeInMinutes, QueryParameterHelper queryParameterHelper) {
-    TableId tableId = createDestinationTable(Optional.empty(), Optional.empty());
+    Optional<TableId> tableId = materializationDataset.map(ignored -> createDestinationTableWithoutReference());
     return materializeTable(querySql, tableId, expirationTimeInMinutes, queryParameterHelper);
+  }
+
+  TableId createDestinationTableWithoutReference() {
+    return createDestinationTable(Optional.empty(), Optional.empty());
   }
 
   TableId createDestinationTable(
@@ -711,7 +715,7 @@ public class BigQueryClient {
       int expirationTimeInMinutes,
       Map<String, String> additionalQueryJobLabels,
       QueryParameterHelper queryParameterHelper) {
-    TableId destinationTableId = createDestinationTable(Optional.empty(), Optional.empty());
+    Optional<TableId> destinationTableId = materializationDataset.map(ignored -> createDestinationTableWithoutReference());
     TempTableBuilder tableBuilder =
         new TempTableBuilder(
             this,
@@ -741,7 +745,7 @@ public class BigQueryClient {
         createDestinationTable(
             Optional.ofNullable(viewId.getProject()), Optional.ofNullable(viewId.getDataset()));
     return materializeTable(
-        querySql, tableId, expirationTimeInMinutes, QueryParameterHelper.none());
+        querySql, Optional.of(tableId), expirationTimeInMinutes, QueryParameterHelper.none());
   }
 
   public Schema getQueryResultSchema(
@@ -767,7 +771,7 @@ public class BigQueryClient {
 
   private TableInfo materializeTable(
       String querySql,
-      TableId destinationTableId,
+      Optional<TableId> destinationTableId,
       int expirationTimeInMinutes,
       QueryParameterHelper queryParameterHelper) {
     try {
@@ -1059,7 +1063,7 @@ public class BigQueryClient {
   static class TempTableBuilder implements Callable<TableInfo> {
     final BigQueryClient bigQueryClient;
     final String querySql;
-    final TableId tempTable;
+    final Optional<TableId> tempTable;
     final int expirationTimeInMinutes;
     final JobConfigurationFactory jobConfigurationFactory;
     final Map<String, String> additionalQueryJobLabels;
@@ -1068,7 +1072,7 @@ public class BigQueryClient {
     TempTableBuilder(
         BigQueryClient bigQueryClient,
         String querySql,
-        TableId tempTable,
+        Optional<TableId> tempTable,
         int expirationTimeInMinutes,
         JobConfigurationFactory jobConfigurationFactory,
         Map<String, String> additionalQueryJobLabels,
@@ -1088,10 +1092,15 @@ public class BigQueryClient {
     }
 
     TableInfo createTableFromQuery() {
-      log.info("DestinationTable is {}", tempTable);
+      if (tempTable.isPresent()) {
+        log.info("DestinationTable is {}", tempTable.get());
+      } else {
+        log.info("DestinationTable is automatically generated");
+      }
       QueryJobConfiguration.Builder queryJobConfigurationBuilder =
           jobConfigurationFactory.createParameterizedQueryJobConfigurationBuilder(
               querySql, additionalQueryJobLabels, queryParameterHelper);
+      tempTable.ifPresent(queryJobConfigurationBuilder::setDestinationTable);
 
       JobInfo jobInfo = JobInfo.of(queryJobConfigurationBuilder.build());
 
@@ -1100,15 +1109,20 @@ public class BigQueryClient {
       if (completedJobInfo.getStatus().getError() != null) {
         throw BigQueryUtil.convertToBigQueryException(completedJobInfo.getStatus().getError());
       }
-      // Registering a cleanup job
-      CLEANUP_JOBS.add(() -> bigQueryClient.deleteTable(tempTable));
-      // add expiration time to the table
-      TableInfo createdTable = bigQueryClient.getTable(tempTable);
-      long expirationTime =
-          createdTable.getCreationTime() + TimeUnit.MINUTES.toMillis(expirationTimeInMinutes);
-      Table updatedTable =
-          bigQueryClient.update(createdTable.toBuilder().setExpirationTime(expirationTime).build());
-      return updatedTable;
+      if(tempTable.isPresent()) {
+        // Registering a cleanup job
+        CLEANUP_JOBS.add(() -> bigQueryClient.deleteTable(tempTable.get()));
+        // add expiration time to the table
+        TableInfo createdTable = bigQueryClient.getTable(tempTable.get());
+        long expirationTime =
+                createdTable.getCreationTime() + TimeUnit.MINUTES.toMillis(expirationTimeInMinutes);
+        Table updatedTable =
+                bigQueryClient.update(createdTable.toBuilder().setExpirationTime(expirationTime).build());
+        return updatedTable;
+      }
+      // temp table was auto generated
+      return bigQueryClient.getTable(
+              ((QueryJobConfiguration) completedJobInfo.getConfiguration()).getDestinationTable());
     }
 
     Job waitForJob(Job job) {
