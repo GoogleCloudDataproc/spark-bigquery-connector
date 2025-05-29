@@ -74,7 +74,13 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
   }
 
   private void testReadFromQueryInternal(String query) {
-    Dataset<Row> df = spark.read().format("bigquery").option("viewsEnabled", true).load(query);
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", true)
+            .option("materializationDataset", testDataset.toString())
+            .load(query);
 
     validateResult(df);
     // validate event publishing
@@ -119,7 +125,13 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
             random, random);
     Dataset<Row> df =
-        spark.read().format("bigquery").option("viewsEnabled", true).option("query", query).load();
+        spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", true)
+            .option("materializationDataset", testDataset.toString())
+            .option("query", query)
+            .load();
 
     StructType expectedSchema =
         DataTypes.createStructType(
@@ -171,7 +183,12 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     assertThrows(
         RuntimeException.class,
         () -> {
-          spark.read().format("bigquery").option("viewsEnabled", true).load(badSql);
+          spark
+              .read()
+              .format("bigquery")
+              .option("viewsEnabled", true)
+              .option("materializationDataset", testDataset.toString())
+              .load(badSql);
         });
   }
 
@@ -187,6 +204,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             .read()
             .format("bigquery")
             .option("viewsEnabled", true)
+            .option("materializationDataset", testDataset.toString())
             .option("queryJobPriority", "batch")
             .load(query);
 
@@ -204,6 +222,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
                 .read()
                 .format("bigquery")
                 .option("viewsEnabled", true)
+                .option("materializationDataset", testDataset.toString())
                 .option("bigQueryJobTimeoutInMinutes", "1")
                 .load(query)
                 .show();

@@ -160,4 +160,22 @@ public class BigQueryConfigurationUtil {
         projectParam.toJavaUtil(), /* datePartition */
         java.util.Optional.empty());
   }
+
+  public static TableId parseSimpleTableId(
+      Map<String, String> options,
+      java.util.Optional<String> fallbackProject,
+      java.util.Optional<String> fallbackDataset) {
+    return parseSimpleTableId(
+        options, Optional.fromJavaUtil(fallbackProject), Optional.fromJavaUtil(fallbackDataset));
+  }
+
+  public static TableId parseSimpleTableId(
+      ImmutableMap<String, String> globalOptions, Map<String, String> options) {
+    MaterializationConfiguration materializationConfiguration =
+        MaterializationConfiguration.from(globalOptions, options);
+    return parseSimpleTableId(
+        options,
+        materializationConfiguration.getMaterializationProject(),
+        materializationConfiguration.getMaterializationDataset());
+  }
 }

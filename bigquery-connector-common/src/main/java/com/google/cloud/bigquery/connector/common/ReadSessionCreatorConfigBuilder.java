@@ -26,6 +26,9 @@ import java.util.OptionalLong;
 public class ReadSessionCreatorConfigBuilder {
 
   private boolean viewsEnabled;
+  private Optional<String> materializationProject = Optional.empty();
+  private Optional<String> materializationDataset = Optional.empty();
+  private int materializationExpirationTimeInMinutes = 120;
   private DataFormat readDataFormat = DataFormat.ARROW;
   private int maxReadRowsRetries = 10;
   private String viewEnabledParamName = "";
@@ -50,6 +53,27 @@ public class ReadSessionCreatorConfigBuilder {
   @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setViewsEnabled(boolean viewsEnabled) {
     this.viewsEnabled = viewsEnabled;
+    return this;
+  }
+
+  @CanIgnoreReturnValue
+  public ReadSessionCreatorConfigBuilder setMaterializationProject(
+      Optional<String> materializationProject) {
+    this.materializationProject = materializationProject;
+    return this;
+  }
+
+  @CanIgnoreReturnValue
+  public ReadSessionCreatorConfigBuilder setMaterializationDataset(
+      Optional<String> materializationDataset) {
+    this.materializationDataset = materializationDataset;
+    return this;
+  }
+
+  @CanIgnoreReturnValue
+  public ReadSessionCreatorConfigBuilder setMaterializationExpirationTimeInMinutes(
+      int materializationExpirationTimeInMinutes) {
+    this.materializationExpirationTimeInMinutes = materializationExpirationTimeInMinutes;
     return this;
   }
 
@@ -176,6 +200,9 @@ public class ReadSessionCreatorConfigBuilder {
   public ReadSessionCreatorConfig build() {
     return new ReadSessionCreatorConfig(
         viewsEnabled,
+        materializationProject,
+        materializationDataset,
+        materializationExpirationTimeInMinutes,
         readDataFormat,
         maxReadRowsRetries,
         viewEnabledParamName,

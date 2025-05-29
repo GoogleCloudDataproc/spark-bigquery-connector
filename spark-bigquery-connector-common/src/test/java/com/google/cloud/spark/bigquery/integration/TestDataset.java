@@ -41,6 +41,7 @@ public class TestDataset extends ExternalResource {
             TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE,
             testDataset,
             TestConstants.ALL_TYPES_TABLE_NAME));
+    IntegrationTestUtils.createView(testDataset, TestConstants.ALL_TYPES_VIEW_NAME);
     IntegrationTestUtils.createView(testDataset, TestConstants.SHAKESPEARE_VIEW);
     IntegrationTestUtils.runQuery(
         String.format(

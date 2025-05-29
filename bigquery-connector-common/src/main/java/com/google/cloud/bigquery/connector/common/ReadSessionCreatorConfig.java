@@ -25,6 +25,9 @@ import java.util.OptionalLong;
 public class ReadSessionCreatorConfig {
   private final boolean viewsEnabled;
   private final String viewEnabledParamName;
+  private final Optional<String> materializationProject;
+  private final Optional<String> materializationDataset;
+  private final int materializationExpirationTimeInMinutes;
   private final DataFormat readDataFormat;
   private final int maxReadRowsRetries;
   private final OptionalInt maxParallelism;
@@ -46,6 +49,9 @@ public class ReadSessionCreatorConfig {
 
   ReadSessionCreatorConfig(
       boolean viewsEnabled,
+      Optional<String> materializationProject,
+      Optional<String> materializationDataset,
+      int materializationExpirationTimeInMinutes,
       DataFormat readDataFormat,
       int maxReadRowsRetries,
       String viewEnabledParamName,
@@ -67,6 +73,9 @@ public class ReadSessionCreatorConfig {
       OptionalLong snapshotTimeMillis) {
     this.viewsEnabled = viewsEnabled;
     this.viewEnabledParamName = viewEnabledParamName;
+    this.materializationProject = materializationProject;
+    this.materializationDataset = materializationDataset;
+    this.materializationExpirationTimeInMinutes = materializationExpirationTimeInMinutes;
     this.readDataFormat = readDataFormat;
     this.maxReadRowsRetries = maxReadRowsRetries;
     this.maxParallelism = maxParallelism;
@@ -93,6 +102,18 @@ public class ReadSessionCreatorConfig {
 
   public String getViewEnabledParamName() {
     return viewEnabledParamName;
+  }
+
+  public Optional<String> getMaterializationProject() {
+    return materializationProject;
+  }
+
+  public Optional<String> getMaterializationDataset() {
+    return materializationDataset;
+  }
+
+  public int getMaterializationExpirationTimeInMinutes() {
+    return materializationExpirationTimeInMinutes;
   }
 
   public DataFormat getReadDataFormat() {

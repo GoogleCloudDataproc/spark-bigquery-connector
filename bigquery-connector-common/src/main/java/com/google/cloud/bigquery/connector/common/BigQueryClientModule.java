@@ -133,6 +133,8 @@ public class BigQueryClientModule implements com.google.inject.Module {
             .build();
     return new BigQueryClient(
         options.build().getService(),
+        config.getMaterializationProject(),
+        config.getMaterializationDataset(),
         destinationTableCache,
         bigQueryJobLabels,
         config.getQueryJobPriority(),
