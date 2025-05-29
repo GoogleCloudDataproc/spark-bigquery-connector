@@ -25,12 +25,14 @@ public class TestDataset extends ExternalResource {
 
   @Override
   public Statement apply(Statement base, Description description) {
+    // using hex string to shorten the dataset name
     this.testDataset =
         String.format(
-            "spark_bigquery_%d_%d_%s",
+            "spark_bq_%x_%x_%x_%x",
             System.currentTimeMillis(),
             System.nanoTime(),
-            Integer.toHexString(description.getTestClass().hashCode()));
+            description.getClassName().hashCode(),
+            description.getMethodName().hashCode());
     return super.apply(base, description);
   }
 
