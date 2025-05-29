@@ -64,10 +64,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -460,7 +462,7 @@ public class BigQueryClient {
       validateViewsEnabled(options);
       String sql = query.get();
       return materializeQueryToTable(
-          sql, options.options.expirationTimeInMinutes(), getQueryParameterHelper());
+          sql, options.expirationTimeInMinutes(), options.getQueryParameterHelper());
     }
 
     TableInfo table = getTable(options.tableId());
@@ -696,7 +698,8 @@ public class BigQueryClient {
    */
   public TableInfo materializeQueryToTable(
       String querySql, int expirationTimeInMinutes, QueryParameterHelper queryParameterHelper) {
-    return materializeTable(querySql, queryParameterHelper);
+    TableId tableId = createDestinationTable(Optional.empty(), Optional.empty());
+    return materializeTable(querySql, tableId, expirationTimeInMinutes, queryParameterHelper);
   }
 
   TableId createDestinationTable(
