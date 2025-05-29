@@ -84,14 +84,7 @@ public class Spark31BigQueryTableProvider extends BaseBigQuerySource
     Map<String, String> properties = JavaConverters.mapAsJavaMap((CaseInsensitiveMap) parameters);
     Injector injector = new InjectorBuilder().withOptions(properties).build();
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
-    TableId configTableId = config.getTableId();
-    TableId tableId =
-        configTableId.getProject() != null
-            ? configTableId
-            : TableId.of(
-                config.getParentProjectId(),
-                configTableId.getDataset(),
-                configTableId.getProject());
+    TableId tableId = config.getTableIdWithExplicitProject();
     return new DatasetIdentifier(BigQueryUtil.friendlyTableName(tableId), "bigquery");
   }
 }
