@@ -52,7 +52,7 @@ public class BigQueryConfigurationUtilTest {
     TableId result =
         BigQueryConfigurationUtil.parseSimpleTableId(
             EMPTY_GLOBAL_OPTIONS, ImmutableMap.of("table", "project.dataset.table"));
-    assertThat(result.getProject()).isNull();
+    assertThat(result.getProject()).isEqualTo("project");
     assertThat(result.getDataset()).isEqualTo("dataset");
     assertThat(result.getTable()).isEqualTo("table");
   }
