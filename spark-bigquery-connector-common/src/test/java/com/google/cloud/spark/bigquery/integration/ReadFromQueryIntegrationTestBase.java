@@ -162,21 +162,16 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     // a different table created due to the destination table cache
     String random = String.valueOf(System.nanoTime());
     String query =
-            String.format(
-                    "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
-                    random, random);
+        String.format(
+            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
+            random, random);
     Dataset<Row> df =
-            spark
-                    .read()
-                    .format("bigquery")
-                    .option("viewsEnabled", true)
-                    .option("query", query)
-                    .load();
+        spark.read().format("bigquery").option("viewsEnabled", true).option("query", query).load();
     StructType expectedSchema =
-            DataTypes.createStructType(
-                    ImmutableList.of(
-                            DataTypes.createStructField("corpus", DataTypes.StringType, true),
-                            DataTypes.createStructField("word_count", DataTypes.LongType, true)));
+        DataTypes.createStructType(
+            ImmutableList.of(
+                DataTypes.createStructField("corpus", DataTypes.StringType, true),
+                DataTypes.createStructField("word_count", DataTypes.LongType, true)));
     assertThat(df.schema()).isEqualTo(expectedSchema);
     validateResult(df);
   }
@@ -270,7 +265,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             .format("bigquery")
             .option("query", namedParamQuery)
             .option("viewsEnabled", "true")
-                .option("materializationDataset", testDataset.toString())
+            .option("materializationDataset", testDataset.toString())
             .option("NamedParameters.corpus", "STRING:romeoandjuliet")
             .option("NamedParameters.min_word_count", "INT64:250")
             .load();
@@ -304,7 +299,8 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             .read()
             .format("bigquery")
             .option("query", positionalParamQuery) // Use hardcoded query
-            .option("viewsEnabled", "true").option("materializationDataset", testDataset.toString())
+            .option("viewsEnabled", "true")
+            .option("materializationDataset", testDataset.toString())
             .option("PositionalParameters.1", "STRING:romeoandjuliet")
             .option("PositionalParameters.2", "INT64:250")
             .load();
@@ -341,7 +337,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
                   .format("bigquery")
                   .option("query", queryForFailure)
                   .option("viewsEnabled", "true")
-                      .option("materializationDataset", testDataset.toString())
+                  .option("materializationDataset", testDataset.toString())
                   .option("NamedParameters.corpus", "STRING:whatever")
                   .option("PositionalParameters.1", "INT64:100")
                   .load()
