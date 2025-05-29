@@ -293,7 +293,7 @@ public class SparkBigQueryConfig
         spark.sparkContext().hadoopConfiguration(),
         customDefaults,
         spark.sparkContext().defaultParallelism(),
-        spark.sqlContext().conf(),
+        spark.sessionState().conf(),
         spark.version(),
         schema,
         tableIsMandatory,
