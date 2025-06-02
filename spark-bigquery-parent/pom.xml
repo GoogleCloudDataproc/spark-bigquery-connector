@@ -272,23 +272,10 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-compression</artifactId>
+                <artifactId>arrow-bom</artifactId>
                 <version>${arrow.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-memory-netty</artifactId>
-                <version>${arrow.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-vector</artifactId>
-                <version>${arrow.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-memory-core</artifactId>
-                <version>${arrow.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
