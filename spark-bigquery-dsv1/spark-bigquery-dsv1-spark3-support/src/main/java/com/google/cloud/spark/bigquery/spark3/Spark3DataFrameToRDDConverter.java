@@ -49,6 +49,11 @@ public class Spark3DataFrameToRDDConverter implements DataFrameToRDDConverter {
     return rowRdd;
   }
 
+  @Override
+  public boolean supports(String sparkVersion) {
+    return sparkVersion.compareTo("3") >= 0;
+  }
+
   private AbstractFunction1<Iterator<InternalRow>, Iterator<Row>> getIteratorMapper(
       final Deserializer<Row> deserializer) {
 

@@ -11,7 +11,15 @@
 
   <artifactId>spark-bigquery-dsv1</artifactId>
   <name>BigQuery DataSource v1 implementation</name>
-  <packaging>pom</packaging>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_2.13</artifactId>
+            <version>4.0.0-preview2</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+    <packaging>pom</packaging>
   <modules>
     <module>spark-bigquery-dsv1-spark2-support</module>
     <module>spark-bigquery-dsv1-spark3-support</module>

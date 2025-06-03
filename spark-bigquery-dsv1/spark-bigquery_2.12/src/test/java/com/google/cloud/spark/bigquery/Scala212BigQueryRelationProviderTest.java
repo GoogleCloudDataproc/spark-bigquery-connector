@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Google Inc. All Rights Reserved.
+ * Copyright 2025 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,12 +15,17 @@
  */
 package com.google.cloud.spark.bigquery;
 
-import org.apache.spark.rdd.RDD;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
+import java.util.function.Supplier;
 
-public interface DataFrameToRDDConverter {
-  RDD<Row> convertToRDD(Dataset<Row> data);
+public class Scala212BigQueryRelationProviderTest extends BigQueryRelationProviderTestBase {
 
-  boolean supports(String sparkVersion);
+  @Override
+  BigQueryRelationProviderBase createProvider(Supplier<GuiceInjectorCreator> injectorCreator) {
+    return new Scala212BigQueryRelationProvider(injectorCreator);
+  }
+
+  @Override
+  BigQueryRelationProviderBase createProvider() {
+    return new Scala212BigQueryRelationProvider();
+  }
 }
