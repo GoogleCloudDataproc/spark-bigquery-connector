@@ -133,12 +133,6 @@ public class BigQueryRelationProviderBase implements DataSourceRegister {
         .createRelation(sqlContext, mode, parameters, data, customDefaults);
   }
 
-  public SparkBigQueryConfig createSparkBigQueryConfig(
-      SQLContext sqlContext, Map<String, String> parameters, Optional<StructType> schema) {
-    return SparkBigQueryUtil.createSparkBigQueryConfig(
-        sqlContext, parameters, schema, DataSourceVersion.V1);
-  }
-
   @Override
   public String shortName() {
     return "bigquery";
