@@ -29,9 +29,7 @@ public class TestDataset extends ExternalResource {
     this.testDataset =
         String.format(
             "spark_bq_%x_%x_%x",
-            System.currentTimeMillis(),
-            System.nanoTime(),
-            description.getClassName().hashCode());
+            System.currentTimeMillis(), System.nanoTime(), description.getClassName().hashCode());
     return super.apply(base, description);
   }
 
