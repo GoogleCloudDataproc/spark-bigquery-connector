@@ -126,7 +126,8 @@ public class OpenLineageIntegrationTestBase {
     eventList.forEach(
         (event) -> { // check if each of these events have the correct input and output
           assertThat(getFieldName(event, "inputs")).matches(TestConstants.SHAKESPEARE_TABLE);
-          assertThat(getFieldName(event, "outputs")).matches(fullTableName);
+          assertThat(getFieldName(event, "outputs"))
+              .matches(TestConstants.PROJECT_ID + "." + fullTableName);
         });
   }
 
@@ -159,7 +160,8 @@ public class OpenLineageIntegrationTestBase {
     eventList.forEach(
         (event) -> { // check if each of these events have the correct input and output
           assertThat(getFieldName(event, "inputs")).matches(TestConstants.SHAKESPEARE_TABLE);
-          assertThat(getFieldName(event, "outputs")).matches(fullTableName);
+          assertThat(getFieldName(event, "outputs"))
+              .matches(TestConstants.PROJECT_ID + "." + fullTableName);
         });
   }
 }
