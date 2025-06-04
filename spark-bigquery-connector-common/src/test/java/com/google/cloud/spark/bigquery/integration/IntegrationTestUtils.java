@@ -28,6 +28,7 @@ import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.SchemaConverters;
@@ -75,8 +76,8 @@ public class IntegrationTestUtils {
     bq.create(DatasetInfo.of(datasetId));
   }
 
-  public static void runQuery(String query) {
-    getBigQueryClient().query(query);
+  public static TableResult runQuery(String query) {
+    return getBigQueryClient().query(query);
   }
 
   public static void runQuery(String query, Object... args) {
