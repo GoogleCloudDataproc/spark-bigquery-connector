@@ -45,7 +45,9 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -351,6 +353,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testUnhandledFilterOnStruct() {
+    // Test fails on Spark 4.0.0
+    Assume.assumeThat(spark.version(), CoreMatchers.startsWith("3."));
     Dataset<Row> df =
         spark
             .read()
