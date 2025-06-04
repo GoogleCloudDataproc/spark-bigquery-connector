@@ -44,6 +44,7 @@
         <avro.version>1.11.4</avro.version>
         <!-- arrow 18.0.0 removed the support for java 8 -->
         <arrow.version>17.0.0</arrow.version>
+        <arrow.spark4.version>18.3.0</arrow.spark4.version>
         <gax.version>2.63.1</gax.version>
         <google-auth.version>1.33.1</google-auth.version>
         <google-cloud-bigquery.version>2.48.1</google-cloud-bigquery.version>
@@ -272,22 +273,14 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-compression</artifactId>
+                <artifactId>arrow-bom</artifactId>
                 <version>${arrow.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-memory-netty</artifactId>
-                <version>${arrow.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-vector</artifactId>
-                <version>${arrow.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-memory-core</artifactId>
+                <artifactId>arrow-memory-netty-buffer-patch</artifactId>
                 <version>${arrow.version}</version>
             </dependency>
             <dependency>

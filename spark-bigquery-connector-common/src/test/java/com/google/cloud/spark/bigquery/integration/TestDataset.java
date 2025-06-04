@@ -16,11 +16,22 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import org.junit.rules.ExternalResource;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 
 public class TestDataset extends ExternalResource {
 
-  String testDataset =
-      String.format("spark_bigquery_%d_%d", System.currentTimeMillis(), System.nanoTime());
+  String testDataset;
+
+  @Override
+  public Statement apply(Statement base, Description description) {
+    // using hex string to shorten the dataset name
+    this.testDataset =
+        String.format(
+            "spark_bq_%x_%x_%x",
+            System.currentTimeMillis(), System.nanoTime(), description.getClassName().hashCode());
+    return super.apply(base, description);
+  }
 
   @Override
   protected void before() throws Throwable {

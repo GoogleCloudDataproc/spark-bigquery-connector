@@ -21,4 +21,6 @@ import org.apache.spark.sql.Row;
 
 public interface DataFrameToRDDConverter {
   RDD<Row> convertToRDD(Dataset<Row> data);
+
+  boolean supports(String sparkVersion);
 }

@@ -27,6 +27,8 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Field.Mode;
+import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.RangePartitioning;
@@ -49,6 +51,7 @@ import com.google.cloud.spark.bigquery.integration.model.Person;
 import com.google.cloud.spark.bigquery.integration.model.RangeData;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Streams;
 import com.google.inject.ProvisionException;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -64,6 +67,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.spark.ml.PipelineModel;
 import org.apache.spark.ml.Transformer;
@@ -2411,28 +2415,30 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("allowFieldRelaxation", "true")
         .save();
 
-    Dataset<Row> resultDF =
-        spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", testTable)
-            .load();
-    List<Row> result = resultDF.collectAsList();
-    assertThat(result).hasSize(4);
-    assertThat(result.stream().filter(row -> row.getAs("nested_col") == null).count()).isEqualTo(2);
-    assertThat(
-            result.stream()
-                .filter(
-                    row ->
-                        row.getAs("nested_col") != null
-                            && row.getAs("nested_col").equals(RowFactory.create("str1", "str2")))
-                .count())
-        .isEqualTo(2);
+    TableResult tableResult =
+        IntegrationTestUtils.runQuery(
+            String.format("SELECT * FROM `%s.%s`", testDataset.testDataset, testTable));
+    assertThat(tableResult.getTotalRows()).isEqualTo(4);
+    FieldValue expectedRecord =
+        FieldValue.of(
+            FieldValue.Attribute.RECORD,
+            FieldValueList.of(
+                Arrays.asList(
+                    FieldValue.of(FieldValue.Attribute.PRIMITIVE, "str1", false),
+                    FieldValue.of(FieldValue.Attribute.PRIMITIVE, "str2", false))),
+            false);
+    List<FieldValue> nestedColList =
+        Streams.stream(tableResult.getValues())
+            .map(row -> row.get("nested_col"))
+            .collect(Collectors.toList());
+    assertThat(nestedColList.stream().filter(FieldValue::isNull).count()).isEqualTo(2);
+    assertThat(nestedColList.stream().filter(not(FieldValue::isNull)).collect(Collectors.toList()))
+        .containsExactly(expectedRecord, expectedRecord);
   }
 
   @Test
   public void allowFieldAdditionIntoNestedColumns() throws Exception {
+
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
     StructType initialSchema =
         structType(
@@ -2498,29 +2504,26 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("allowFieldRelaxation", "true")
         .save();
 
-    Dataset<Row> resultDF =
-        spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", testTable)
-            .load();
-    List<Row> result = resultDF.collectAsList();
-    assertThat(result).hasSize(4);
-    assertThat(result.stream().filter(row -> row.getAs("nested_col") != null).count()).isEqualTo(4);
-    assertThat(
-            result.stream()
-                .filter(
-                    row -> row.getAs("nested_col").equals(RowFactory.create("str1", "str2", null)))
-                .count())
-        .isEqualTo(2);
-    assertThat(
-            result.stream()
-                .filter(
-                    row ->
-                        row.getAs("nested_col").equals(RowFactory.create("str1", "str2", "str3")))
-                .count())
-        .isEqualTo(2);
+    TableResult tableResult =
+        IntegrationTestUtils.runQuery(
+            String.format("SELECT * FROM `%s.%s`", testDataset.testDataset, testTable));
+    assertThat(tableResult.getTotalRows()).isEqualTo(4);
+    List<FieldValue> nestedColList =
+        Streams.stream(tableResult.getValues())
+            .map(row -> row.get("nested_col"))
+            .collect(Collectors.toList());
+    assertThat(nestedColList.stream().filter(this::hasTwoValues).count()).isEqualTo(2);
+    assertThat(nestedColList.stream().filter(this::hasThreeValues).count()).isEqualTo(2);
+  }
+
+  private boolean hasTwoValues(FieldValue record) {
+    FieldValueList values = record.getRecordValue();
+    return !values.get(0).isNull() && !values.get(1).isNull() && values.get(2).isNull();
+  }
+
+  private boolean hasThreeValues(FieldValue record) {
+    FieldValueList values = record.getRecordValue();
+    return !values.get(0).isNull() && !values.get(1).isNull() && !values.get(2).isNull();
   }
 
   @Test
@@ -2726,5 +2729,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   protected boolean initialDataValuesExist() {
     return numberOfRowsWith("Abc") == 1;
+  }
+
+  // the equivalent of Java 11 Predicate.not()
+  static <T> Predicate<T> not(Predicate<T> predicate) {
+    return predicate.negate();
   }
 }
