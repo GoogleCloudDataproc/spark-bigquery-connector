@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.InjectorBuilder;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
@@ -83,6 +84,7 @@ public class Spark31BigQueryTableProvider extends BaseBigQuerySource
     Map<String, String> properties = JavaConverters.mapAsJavaMap((CaseInsensitiveMap) parameters);
     Injector injector = new InjectorBuilder().withOptions(properties).build();
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
-    return new DatasetIdentifier(BigQueryUtil.friendlyTableName(config.getTableId()), "bigquery");
+    TableId tableId = config.getTableIdWithExplicitProject();
+    return new DatasetIdentifier(BigQueryUtil.friendlyTableName(tableId), "bigquery");
   }
 }

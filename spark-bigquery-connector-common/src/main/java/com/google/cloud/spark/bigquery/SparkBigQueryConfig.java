@@ -33,6 +33,7 @@ import static java.lang.String.format;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
+import com.google.cloud.ServiceOptions;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.ParquetOptions;
@@ -783,6 +784,16 @@ public class SparkBigQueryConfig
 
   public TableId getTableId() {
     return tableId;
+  }
+
+  /** Always populate the project id, even if it is null. */
+  public TableId getTableIdWithExplicitProject() {
+    if (tableId.getProject() != null) {
+      return tableId;
+    }
+    return TableId.of(
+        // if the table was not set, this is the used project
+        ServiceOptions.getDefaultProjectId(), tableId.getDataset(), tableId.getTable());
   }
 
   /** Returns the table id, without the added partition id if it exists. */

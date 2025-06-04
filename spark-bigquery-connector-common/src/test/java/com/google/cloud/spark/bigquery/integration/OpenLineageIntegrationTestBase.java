@@ -106,7 +106,8 @@ public class OpenLineageIntegrationTestBase {
 
   @Test
   public void testLineageEvent() throws Exception {
-    String fullTableName = testDataset.toString() + "." + testTable;
+    String fullTableName =
+        TestConstants.PROJECT_ID + "." + testDataset.toString() + "." + testTable;
     Dataset<Row> readDF =
         spark.read().format("bigquery").option("table", TestConstants.SHAKESPEARE_TABLE).load();
     readDF.createOrReplaceTempView("words");
@@ -132,7 +133,8 @@ public class OpenLineageIntegrationTestBase {
 
   @Test
   public void testLineageEventWithQueryInput() throws Exception {
-    String fullTableName = testDataset.toString() + "." + testTable;
+    String fullTableName =
+        TestConstants.PROJECT_ID + "." + testDataset.toString() + "." + testTable;
     Dataset<Row> readDF =
         spark
             .read()
