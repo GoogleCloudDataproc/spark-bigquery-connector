@@ -106,7 +106,8 @@ public class OpenLineageIntegrationTestBase {
 
   @Test
   public void testLineageEvent() throws Exception {
-    String fullTableName = testDataset.toString() + "." + testTable;
+    String fullTableName =
+        TestConstants.PROJECT_ID + "." + testDataset.toString() + "." + testTable;
     Dataset<Row> readDF =
         spark.read().format("bigquery").option("table", TestConstants.SHAKESPEARE_TABLE).load();
     readDF.createOrReplaceTempView("words");
@@ -126,14 +127,14 @@ public class OpenLineageIntegrationTestBase {
     eventList.forEach(
         (event) -> { // check if each of these events have the correct input and output
           assertThat(getFieldName(event, "inputs")).matches(TestConstants.SHAKESPEARE_TABLE);
-          assertThat(getFieldName(event, "outputs"))
-              .matches(TestConstants.PROJECT_ID + "." + fullTableName);
+          assertThat(getFieldName(event, "outputs")).matches(fullTableName);
         });
   }
 
   @Test
   public void testLineageEventWithQueryInput() throws Exception {
-    String fullTableName = testDataset.toString() + "." + testTable;
+    String fullTableName =
+        TestConstants.PROJECT_ID + "." + testDataset.toString() + "." + testTable;
     Dataset<Row> readDF =
         spark
             .read()
@@ -160,8 +161,7 @@ public class OpenLineageIntegrationTestBase {
     eventList.forEach(
         (event) -> { // check if each of these events have the correct input and output
           assertThat(getFieldName(event, "inputs")).matches(TestConstants.SHAKESPEARE_TABLE);
-          assertThat(getFieldName(event, "outputs"))
-              .matches(TestConstants.PROJECT_ID + "." + fullTableName);
+          assertThat(getFieldName(event, "outputs")).matches(fullTableName);
         });
   }
 }
