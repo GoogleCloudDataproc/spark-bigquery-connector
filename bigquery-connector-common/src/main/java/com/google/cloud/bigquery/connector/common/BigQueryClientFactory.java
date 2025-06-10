@@ -15,7 +15,6 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
-import autovalue.shaded.com.google.auto.common.Visibility;
 import com.google.api.core.ApiFunction;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.grpc.ChannelPoolSettings;
