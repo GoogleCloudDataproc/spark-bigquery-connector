@@ -23,6 +23,7 @@ import com.google.api.gax.rpc.HeaderProvider;
 import com.google.api.gax.rpc.UnaryCallSettings;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.ExternalAccountCredentials;
+import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadSettings;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
@@ -37,6 +38,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -166,6 +168,13 @@ public class BigQueryClientFactory implements Serializable {
       synchronized (BigQueryClientFactory.class) {
         if (credentials == null) {
           credentials = BigQueryUtil.getCredentialsFromByteArray(serializedCredentials);
+        }
+        if (credentials instanceof ImpersonatedCredentials) {
+          // ImpersonatedCredentials does not serialize the internal calendar object, so we're
+          // mimicking the builder's behaviour
+          credentials =
+              ((ImpersonatedCredentials) credentials)
+                  .createWithCustomCalendar(Calendar.getInstance());
         }
       }
     }
