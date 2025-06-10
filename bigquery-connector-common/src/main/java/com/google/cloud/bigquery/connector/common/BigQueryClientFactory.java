@@ -165,16 +165,16 @@ public class BigQueryClientFactory implements Serializable {
 
   Credentials getCredentials() {
     if (credentials == null) {
-      synchronized (BigQueryClientFactory.class) {
+      synchronized (this) {
         if (credentials == null) {
           credentials = BigQueryUtil.getCredentialsFromByteArray(serializedCredentials);
-        }
-        if (credentials instanceof ImpersonatedCredentials) {
-          // ImpersonatedCredentials does not serialize the internal calendar object, so we're
-          // mimicking the builder's behaviour
-          credentials =
-              ((ImpersonatedCredentials) credentials)
-                  .createWithCustomCalendar(Calendar.getInstance());
+          if (credentials instanceof ImpersonatedCredentials) {
+            // ImpersonatedCredentials does not serialize the internal calendar object, so we're
+            // mimicking the builder's behaviour
+            credentials =
+                ((ImpersonatedCredentials) credentials)
+                    .createWithCustomCalendar(Calendar.getInstance());
+          }
         }
       }
     }
