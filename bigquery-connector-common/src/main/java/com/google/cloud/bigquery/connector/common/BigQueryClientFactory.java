@@ -15,6 +15,7 @@
  */
 package com.google.cloud.bigquery.connector.common;
 
+import autovalue.shaded.com.google.auto.common.Visibility;
 import com.google.api.core.ApiFunction;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.grpc.ChannelPoolSettings;
@@ -30,6 +31,7 @@ import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
 import com.google.inject.Inject;
 import io.grpc.ManagedChannelBuilder;
@@ -163,6 +165,7 @@ public class BigQueryClientFactory implements Serializable {
     return false;
   }
 
+  @VisibleForTesting
   Credentials getCredentials() {
     if (credentials == null) {
       synchronized (this) {
