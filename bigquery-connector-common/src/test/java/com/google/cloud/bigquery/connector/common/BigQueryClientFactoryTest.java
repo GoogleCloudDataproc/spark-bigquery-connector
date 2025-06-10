@@ -21,26 +21,34 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.api.gax.rpc.FixedHeaderProvider;
 import com.google.api.gax.rpc.HeaderProvider;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.URI;
 import java.security.PrivateKey;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.Test;
+import org.mockito.Answers;
 
 public class BigQueryClientFactoryTest {
   private static final String CLIENT_EMAIL =
@@ -443,6 +451,88 @@ public class BigQueryClientFactoryTest {
     int hashCode1 = factory.hashCode();
     int hashCode2 = factory.hashCode();
     assertThat(hashCode2).isEqualTo(hashCode1);
+  }
+
+  // A minimal valid-looking service account JSON structure.
+  // Replace with a path to a real (test) service account key file for more robust testing.
+  // IMPORTANT: Do NOT commit real private keys.
+  private static final String MINIMAL_SERVICE_ACCOUNT_JSON_CONTENT =
+      "{\n"
+          + "  \"type\": \"service_account\",\n"
+          + "  \"project_id\": \"test-project\",\n"
+          + "  \"private_key_id\": \"abcdef1234567890abcdef1234567890abcdef12\",\n"
+          + "  \"private_key\": \"-----BEGIN PRIVATE KEY-----\\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC3gQ+pGblTjFcK\\n-----END PRIVATE KEY-----\\n\",\n"
+          + "  \"client_email\": \"test-sa@test-project.iam.gserviceaccount.com\",\n"
+          + "  \"client_id\": \"123456789012345678901\",\n"
+          + "  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n"
+          + "  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n"
+          + "  \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\n"
+          + "  \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/test-sa%40test-project.iam.gserviceaccount.com\"\n"
+          + "}";
+
+  @Test
+  public void testGetCredentials_ImpersonatedCredentials_calendarNotNullAfterDeserialization()
+      throws Exception {
+
+    // 1. Mock dependencies and make them serializable
+    HeaderProvider headerProvider = mock(HeaderProvider.class, withSettings().serializable());
+    BigQueryConfig bqConfig =
+        mock(
+            BigQueryConfig.class,
+            withSettings().serializable().defaultAnswer(Answers.RETURNS_DEEP_STUBS));
+    BigQueryCredentialsSupplier credentialsSupplier =
+        mock(BigQueryCredentialsSupplier.class, withSettings().serializable());
+
+    // 2. Create source credentials for ImpersonatedCredentials (can be a simple serializable mock)
+    GoogleCredentials sourceCredentials =
+        mock(GoogleCredentials.class, withSettings().serializable());
+    when(sourceCredentials.createScopedRequired()).thenReturn(false);
+
+    // 3. Create original ImpersonatedCredentials
+    ImpersonatedCredentials originalCredentials =
+        ImpersonatedCredentials.newBuilder()
+            .setSourceCredentials(sourceCredentials)
+            .setTargetPrincipal("dummy-target@example.com") // Dummy principal is fine
+            .setScopes(Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"))
+            .build();
+
+    when(credentialsSupplier.getCredentials()).thenReturn(originalCredentials);
+
+    // 4. Create and serialize BigQueryClientFactory
+    BigQueryClientFactory factory =
+        new BigQueryClientFactory(credentialsSupplier, headerProvider, bqConfig);
+
+    byte[] serializedFactory;
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+      oos.writeObject(factory);
+      serializedFactory = baos.toByteArray();
+    }
+
+    // 5. Deserialize BigQueryClientFactory
+    BigQueryClientFactory deserializedFactory;
+    try (ByteArrayInputStream bais = new ByteArrayInputStream(serializedFactory);
+        ObjectInputStream ois = new ObjectInputStream(bais)) {
+      deserializedFactory = (BigQueryClientFactory) ois.readObject();
+    }
+
+    // 6. Get credentials from deserialized factory
+    Credentials credentialsFromFactory = deserializedFactory.getCredentials();
+
+    // 7. Assertions using Google Truth
+    assertThat(credentialsFromFactory).isInstanceOf(ImpersonatedCredentials.class);
+
+    ImpersonatedCredentials deserializedImpersonatedCredentials =
+        (ImpersonatedCredentials) credentialsFromFactory;
+
+    // The core assertion: verify the calendar is not null after deserialization
+    // and the factory's getCredentials() logic has run.
+    // Accessing the calendar field via reflection as it's not public
+    java.lang.reflect.Field calendarField =
+        ImpersonatedCredentials.class.getDeclaredField("calendar");
+    calendarField.setAccessible(true);
+    Calendar calendar = (Calendar) calendarField.get(deserializedImpersonatedCredentials);
+    assertThat(calendar).isNotNull();
   }
 
   private ServiceAccountCredentials createServiceAccountCredentials(String clientId) {

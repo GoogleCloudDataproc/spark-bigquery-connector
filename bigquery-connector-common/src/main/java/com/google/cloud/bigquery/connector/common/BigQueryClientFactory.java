@@ -163,7 +163,7 @@ public class BigQueryClientFactory implements Serializable {
     return false;
   }
 
-  private Credentials getCredentials() {
+  Credentials getCredentials() {
     if (credentials == null) {
       synchronized (BigQueryClientFactory.class) {
         if (credentials == null) {
