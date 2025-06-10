@@ -452,7 +452,7 @@ public class BigQueryClientFactoryTest {
     int hashCode2 = factory.hashCode();
     assertThat(hashCode2).isEqualTo(hashCode1);
   }
-  
+
   @Test
   public void testGetCredentials_ImpersonatedCredentials_calendarNotNullAfterDeserialization()
       throws Exception {
