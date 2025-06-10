@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Next
+* PR #1380: Fixed ImpersonatedCredentials serialization
 
 ## 0.42.3 - 2025-05-22
 * PR #1369: Catalog enhancements
