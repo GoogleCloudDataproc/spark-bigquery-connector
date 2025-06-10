@@ -452,24 +452,7 @@ public class BigQueryClientFactoryTest {
     int hashCode2 = factory.hashCode();
     assertThat(hashCode2).isEqualTo(hashCode1);
   }
-
-  // A minimal valid-looking service account JSON structure.
-  // Replace with a path to a real (test) service account key file for more robust testing.
-  // IMPORTANT: Do NOT commit real private keys.
-  private static final String MINIMAL_SERVICE_ACCOUNT_JSON_CONTENT =
-      "{\n"
-          + "  \"type\": \"service_account\",\n"
-          + "  \"project_id\": \"test-project\",\n"
-          + "  \"private_key_id\": \"abcdef1234567890abcdef1234567890abcdef12\",\n"
-          + "  \"private_key\": \"-----BEGIN PRIVATE KEY-----\\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC3gQ+pGblTjFcK\\n-----END PRIVATE KEY-----\\n\",\n"
-          + "  \"client_email\": \"test-sa@test-project.iam.gserviceaccount.com\",\n"
-          + "  \"client_id\": \"123456789012345678901\",\n"
-          + "  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n"
-          + "  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n"
-          + "  \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\n"
-          + "  \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/test-sa%40test-project.iam.gserviceaccount.com\"\n"
-          + "}";
-
+  
   @Test
   public void testGetCredentials_ImpersonatedCredentials_calendarNotNullAfterDeserialization()
       throws Exception {
