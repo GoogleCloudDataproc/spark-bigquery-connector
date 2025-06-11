@@ -604,6 +604,16 @@ public class BigQueryClientFactoryTest {
     }
 
     @Override
+    public Optional<String> getMaterializationProject() {
+      return Optional.empty();
+    }
+
+    @Override
+    public Optional<String> getMaterializationDataset() {
+      return Optional.empty();
+    }
+
+    @Override
     public int getBigQueryClientConnectTimeout() {
       return 0;
     }
