@@ -684,6 +684,7 @@ public class SparkBigQueryConfig
   private static ImmutableList<String> splitOnComma(String value) {
     return Splitter.on(",")
         .trimResults()
+        .omitEmptyStrings()
         .splitToStream(value)
         .collect(ImmutableList.toImmutableList());
   }
