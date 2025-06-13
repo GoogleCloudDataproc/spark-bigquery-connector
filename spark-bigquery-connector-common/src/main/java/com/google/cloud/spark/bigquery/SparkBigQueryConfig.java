@@ -56,6 +56,7 @@ import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -191,6 +192,7 @@ public class SparkBigQueryConfig
   com.google.common.base.Optional<String> credentialsKey;
   com.google.common.base.Optional<String> credentialsFile;
   com.google.common.base.Optional<String> accessToken;
+  com.google.common.base.Optional<ImmutableList<String>> credentialsScopes;
   com.google.common.base.Optional<String> filter = empty();
   com.google.common.base.Optional<StructType> schema = empty();
   Integer maxParallelism = null;
@@ -211,7 +213,7 @@ public class SparkBigQueryConfig
   com.google.common.base.Optional<Long> partitionRangeStart = empty();
   com.google.common.base.Optional<Long> partitionRangeEnd = empty();
   com.google.common.base.Optional<Long> partitionRangeInterval = empty();
-  com.google.common.base.Optional<String[]> clusteredFields = empty();
+  com.google.common.base.Optional<ImmutableList<String>> clusteredFields = empty();
   com.google.common.base.Optional<JobInfo.CreateDisposition> createDisposition = empty();
   boolean optimizedEmptyProjection = true;
   boolean useAvroLogicalTypes = false;
@@ -429,7 +431,9 @@ public class SparkBigQueryConfig
                 com.google.common.base.Optional.fromNullable(
                         hadoopConfiguration.get(GCS_CONFIG_CREDENTIALS_FILE_PROPERTY))
                     .toJavaUtil()));
-    config.accessToken = getAnyOption(globalOptions, options, "gcpAccessToken");
+    config.credentialsScopes =
+        getAnyOption(globalOptions, options, "credentialsScopes")
+            .transform(SparkBigQueryConfig::splitOnComma);
     config.filter = getOption(options, "filter");
     config.schema = fromJavaUtil(schema);
     config.maxParallelism =
@@ -497,7 +501,8 @@ public class SparkBigQueryConfig
         getOption(options, "partitionExpirationMs").transform(Long::valueOf).orNull();
     config.partitionRequireFilter =
         getOption(options, "partitionRequireFilter").transform(Boolean::valueOf);
-    config.clusteredFields = getOption(options, "clusteredFields").transform(s -> s.split(","));
+    config.clusteredFields =
+        getOption(options, "clusteredFields").transform(SparkBigQueryConfig::splitOnComma);
 
     config.createDisposition =
         getOption(options, "createDisposition")
@@ -520,11 +525,10 @@ public class SparkBigQueryConfig
       loadSchemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION);
     }
     config.loadSchemaUpdateOptions = Collections.unmodifiableList(loadSchemaUpdateOptions.build());
-    com.google.common.base.Optional<String[]> decimalTargetTypes =
-        getOption(options, "decimalTargetTypes").transform(s -> s.split(","));
-    if (decimalTargetTypes.isPresent()) {
-      config.decimalTargetTypes = Arrays.asList(decimalTargetTypes.get());
-    }
+    config.decimalTargetTypes =
+        getOption(options, "decimalTargetTypes")
+            .transform(SparkBigQueryConfig::splitOnComma)
+            .or(ImmutableList.of());
     config.bigQueryStorageGrpcEndpoint =
         getAnyOption(globalOptions, options, "bigQueryStorageGrpcEndpoint");
     config.bigQueryHttpEndpoint = getAnyOption(globalOptions, options, "bigQueryHttpEndpoint");
@@ -677,6 +681,13 @@ public class SparkBigQueryConfig
     return config;
   }
 
+  private static ImmutableList<String> splitOnComma(String value) {
+    return Splitter.on(",")
+        .trimResults()
+        .splitToStream(value)
+        .collect(ImmutableList.toImmutableList());
+  }
+
   // strip gs:// prefix if exists
   private static com.google.common.base.Optional<String> stripPrefix(
       com.google.common.base.Optional<String> bucket) {
@@ -776,6 +787,7 @@ public class SparkBigQueryConfig
             impersonationServiceAccountsForUsers.toJavaUtil(),
             impersonationServiceAccountsForGroups.toJavaUtil(),
             impersonationServiceAccount.toJavaUtil(),
+            credentialsScopes.toJavaUtil(),
             sparkBigQueryProxyAndHttpConfig.getProxyUri(),
             sparkBigQueryProxyAndHttpConfig.getProxyUsername(),
             sparkBigQueryProxyAndHttpConfig.getProxyPassword())
@@ -875,6 +887,11 @@ public class SparkBigQueryConfig
   @Override
   public Optional<String> getAccessToken() {
     return accessToken.toJavaUtil();
+  }
+
+  @Override
+  public Optional<ImmutableList<String>> getCredentialsScopes() {
+    return credentialsScopes.toJavaUtil();
   }
 
   public Optional<String> getFilter() {

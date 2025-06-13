@@ -24,6 +24,7 @@ import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.common.collect.ImmutableList;
 import com.google.gson.stream.MalformedJsonException;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -87,6 +88,7 @@ public class BigQueryCredentialsSupplierTest {
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
+                Optional.empty(),
                 Optional.empty())
             .getCredentials();
 
@@ -99,6 +101,7 @@ public class BigQueryCredentialsSupplierTest {
                 Optional.empty(),
                 null,
                 null,
+                Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
@@ -138,6 +141,7 @@ public class BigQueryCredentialsSupplierTest {
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
+                Optional.empty(),
                 Optional.empty())
             .getCredentials();
 
@@ -150,6 +154,7 @@ public class BigQueryCredentialsSupplierTest {
                 Optional.empty(),
                 null,
                 null,
+                Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
@@ -193,6 +198,7 @@ public class BigQueryCredentialsSupplierTest {
                         Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
+                        Optional.empty(),
                         optionalProxyURI,
                         Optional.empty(),
                         optionalProxyPassword)
@@ -210,6 +216,7 @@ public class BigQueryCredentialsSupplierTest {
                         Optional.empty(),
                         null,
                         null,
+                        Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
@@ -249,6 +256,7 @@ public class BigQueryCredentialsSupplierTest {
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
+                Optional.empty(),
                 Optional.empty())
             .getCredentials();
 
@@ -261,6 +269,7 @@ public class BigQueryCredentialsSupplierTest {
                 Optional.of(credentialsFile.getAbsolutePath()),
                 null,
                 null,
+                Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
@@ -305,6 +314,7 @@ public class BigQueryCredentialsSupplierTest {
                         Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
+                        Optional.empty(),
                         optionalProxyURI,
                         Optional.empty(),
                         optionalProxyPassword)
@@ -322,6 +332,7 @@ public class BigQueryCredentialsSupplierTest {
                         Optional.of(credentialsFile.getAbsolutePath()),
                         null,
                         null,
+                        Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
@@ -370,6 +381,7 @@ public class BigQueryCredentialsSupplierTest {
             Optional.ofNullable(userMappings),
             Optional.ofNullable(groupMappings),
             Optional.ofNullable(globalImpersonated),
+            Optional.empty(),
             Optional.empty(),
             Optional.empty(),
             Optional.empty())
@@ -490,6 +502,7 @@ public class BigQueryCredentialsSupplierTest {
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
+            Optional.empty(),
             Optional.empty());
     Credentials credentials = supplier.getCredentials();
     assertThat(credentials).isEqualTo(GoogleCredentials.getApplicationDefault());
@@ -509,6 +522,7 @@ public class BigQueryCredentialsSupplierTest {
                   Optional.of("/no/such/file"),
                   null,
                   null,
+                  Optional.empty(),
                   Optional.empty(),
                   Optional.empty(),
                   Optional.empty(),
@@ -539,9 +553,38 @@ public class BigQueryCredentialsSupplierTest {
                   Optional.empty(),
                   Optional.empty(),
                   Optional.empty(),
+                  Optional.empty(),
                   Optional.empty());
             });
     assertThat(e.getMessage()).isEqualTo("Failed to create Credentials from key");
     assertThat(e.getCause()).isInstanceOf(MalformedJsonException.class);
+  }
+
+  @Test
+  public void testCustomScopes() throws Exception {
+      String json = createServiceAccountJson("key");
+      String credentialsKey =
+              Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+
+      BigQueryCredentialsSupplier supplier =
+              new BigQueryCredentialsSupplier(
+                      Optional.empty(),
+                      Optional.empty(),
+                      Optional.empty(),
+                      Optional.of(credentialsKey),
+                      Optional.empty(),
+                      null,
+                      null,
+                      Optional.empty(),
+                      Optional.empty(),
+                      Optional.empty(),
+                      Optional.of(ImmutableList.of("http://www.googleapis.com/foo/bar")),
+                      Optional.empty(),
+                      Optional.empty(),
+                      Optional.empty());
+      Credentials credentials = supplier.getCredentials();
+      assertThat(credentials).isInstanceOf(ServiceAccountCredentials.class);
+      ServiceAccountCredentials sac = (ServiceAccountCredentials) credentials;
+      assertThat(sac.getScopes()).containsExactly("http://www.googleapis.com/foo/bar");
   }
 }

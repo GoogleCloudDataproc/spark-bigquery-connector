@@ -19,6 +19,7 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Optional;
@@ -36,6 +37,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final Optional<String> impersonationServiceAccount;
   private final Optional<Map<String, String>> impersonationServiceAccountsForUsers;
   private final Optional<Map<String, String>> impersonationServiceAccountsForGroups;
+  private final Optional<ImmutableList<String>> credentialsScopes;
   private final String parentProjectId;
   private final boolean useParentProjectForMetadataOperations;
   private final boolean viewsEnabled;
@@ -66,6 +68,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.impersonationServiceAccountsForGroups =
         bigQueryConfig.getImpersonationServiceAccountsForGroups();
     this.impersonationServiceAccount = bigQueryConfig.getImpersonationServiceAccount();
+    this.credentialsScopes = bigQueryConfig.getCredentialsScopes();
     this.parentProjectId = bigQueryConfig.getParentProjectId();
     this.useParentProjectForMetadataOperations =
         bigQueryConfig.useParentProjectForMetadataOperations();
@@ -133,6 +136,11 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   @Override
   public Optional<String> getImpersonationServiceAccount() {
     return impersonationServiceAccount;
+  }
+
+  @Override
+  public Optional<ImmutableList<String>> getCredentialsScopes() {
+    return credentialsScopes;
   }
 
   @Override
