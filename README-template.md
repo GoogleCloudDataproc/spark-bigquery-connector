@@ -931,6 +931,16 @@ word-break:break-word
      </td>
      <td>Read/Write</td>
    </tr>
+  <tr>
+     <td><code>credentialsScopes</code>
+     </td>
+     <td>Replaces the scopes of the Google Credentials if the credentials type supports that.
+         If scope replacement is not supported then it does nothing.
+         <br/>The value should be a comma separated list of valid scopes.
+         <br/> (Optional)
+     </td>
+     <td>Read/Write</td>
+   </tr>
 </table>
 
 Options can also be set outside of the code, using the `--conf` parameter of `spark-submit` or `--properties` parameter

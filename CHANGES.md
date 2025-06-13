@@ -7,6 +7,7 @@
 * PR #1369: Catalog enhancements
 * PR #1374: Ensure TableId includes project ID if not explicitly set
 * PR #1380: Fixed ImpersonatedCredentials serialization
+* PR #1381: Added the option to set custom credentials scopes
 
 ## 0.42.2 - 2025-05-16
 * PR #1347: Get lineage out of query. Thanks @ddebowczyk92

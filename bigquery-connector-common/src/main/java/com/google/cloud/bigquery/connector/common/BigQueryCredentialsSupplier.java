@@ -55,10 +55,11 @@ public class BigQueryCredentialsSupplier {
       Optional<Map<String, String>> impersonationServiceAccountsForUsers,
       Optional<Map<String, String>> impersonationServiceAccountsForGroups,
       Optional<String> impersonationServiceAccount,
+      Optional<ImmutableList<String>> credentialsScopes,
       Optional<URI> proxyUri,
       Optional<String> proxyUsername,
       Optional<String> proxyPassword) {
-    Credentials credentials;
+    GoogleCredentials credentials;
     if (accessTokenProviderFQCN.isPresent()) {
       AccessTokenProvider accessTokenProvider =
           accessTokenProviderConfig
@@ -82,7 +83,7 @@ public class BigQueryCredentialsSupplier {
     } else {
       credentials = createDefaultCredentials();
     }
-    Optional<Credentials> impersonatedCredentials =
+    Optional<GoogleCredentials> impersonatedCredentials =
         createCredentialsFromImpersonation(
             loggedInUserName,
             loggedInUserGroups,
@@ -93,14 +94,15 @@ public class BigQueryCredentialsSupplier {
             proxyUri,
             proxyUsername,
             proxyPassword);
-    this.credentials = impersonatedCredentials.orElse(credentials);
+    credentials = impersonatedCredentials.orElse(credentials);
+    this.credentials = credentialsScopes.map(credentials::createScoped).orElse(credentials);
   }
 
-  private static Credentials createCredentialsFromAccessToken(String accessToken) {
+  private static GoogleCredentials createCredentialsFromAccessToken(String accessToken) {
     return GoogleCredentials.create(new AccessToken(accessToken, null));
   }
 
-  private static Optional<Credentials> createCredentialsFromImpersonation(
+  private static Optional<GoogleCredentials> createCredentialsFromImpersonation(
       String loggedInUserName,
       Set<String> loggedInUserGroups,
       Optional<Map<String, String>> impersonationServiceAccountsForUsers,
@@ -153,7 +155,7 @@ public class BigQueryCredentialsSupplier {
                 .findFirst());
   }
 
-  private static Credentials createCredentialsFromKey(
+  private static GoogleCredentials createCredentialsFromKey(
       String key,
       Optional<URI> proxyUri,
       Optional<String> proxyUsername,
@@ -173,7 +175,7 @@ public class BigQueryCredentialsSupplier {
     }
   }
 
-  private static Credentials createCredentialsFromFile(
+  private static GoogleCredentials createCredentialsFromFile(
       String file,
       Optional<URI> proxyUri,
       Optional<String> proxyUsername,
@@ -192,7 +194,7 @@ public class BigQueryCredentialsSupplier {
     }
   }
 
-  public static Credentials createDefaultCredentials() {
+  public static GoogleCredentials createDefaultCredentials() {
     try {
       return GoogleCredentials.getApplicationDefault();
     } catch (IOException e) {

@@ -48,6 +48,7 @@ public class CustomCredentialsIntegrationTest {
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
+            Optional.empty(),
             Optional.empty());
     Credentials credentials = credentialsSupplier.getCredentials();
     assertThat(credentials).isInstanceOf(AccessTokenProviderCredentials.class);
@@ -78,6 +79,7 @@ public class CustomCredentialsIntegrationTest {
             Optional.empty(),
             null,
             null,
+            Optional.empty(),
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),

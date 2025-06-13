@@ -70,6 +70,7 @@ public class BigQueryClientModule implements com.google.inject.Module {
         config.getImpersonationServiceAccountsForUsers(),
         config.getImpersonationServiceAccountsForGroups(),
         config.getImpersonationServiceAccount(),
+        config.getCredentialsScopes(),
         proxyConfig.getProxyUri(),
         proxyConfig.getProxyUsername(),
         proxyConfig.getProxyPassword());
