@@ -562,29 +562,29 @@ public class BigQueryCredentialsSupplierTest {
 
   @Test
   public void testCustomScopes() throws Exception {
-      String json = createServiceAccountJson("key");
-      String credentialsKey =
-              Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+    String json = createServiceAccountJson("key");
+    String credentialsKey =
+        Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
 
-      BigQueryCredentialsSupplier supplier =
-              new BigQueryCredentialsSupplier(
-                      Optional.empty(),
-                      Optional.empty(),
-                      Optional.empty(),
-                      Optional.of(credentialsKey),
-                      Optional.empty(),
-                      null,
-                      null,
-                      Optional.empty(),
-                      Optional.empty(),
-                      Optional.empty(),
-                      Optional.of(ImmutableList.of("http://www.googleapis.com/foo/bar")),
-                      Optional.empty(),
-                      Optional.empty(),
-                      Optional.empty());
-      Credentials credentials = supplier.getCredentials();
-      assertThat(credentials).isInstanceOf(ServiceAccountCredentials.class);
-      ServiceAccountCredentials sac = (ServiceAccountCredentials) credentials;
-      assertThat(sac.getScopes()).containsExactly("http://www.googleapis.com/foo/bar");
+    BigQueryCredentialsSupplier supplier =
+        new BigQueryCredentialsSupplier(
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.of(credentialsKey),
+            Optional.empty(),
+            null,
+            null,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.of(ImmutableList.of("http://www.googleapis.com/foo/bar")),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty());
+    Credentials credentials = supplier.getCredentials();
+    assertThat(credentials).isInstanceOf(ServiceAccountCredentials.class);
+    ServiceAccountCredentials sac = (ServiceAccountCredentials) credentials;
+    assertThat(sac.getScopes()).containsExactly("http://www.googleapis.com/foo/bar");
   }
 }
