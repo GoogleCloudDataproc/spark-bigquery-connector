@@ -95,7 +95,7 @@ public class BigQueryUtil {
 
   private static final String PROJECT_PATTERN = "\\S+";
   private static final String DATASET_PATTERN = "\\w+";
-  // Allow all non-whitespace beside ':' and '.'.
+  // Allow any character except ':' and '.', which are used as delimiters in qualified names.
   // These confuse the qualified table parsing.
   private static final String TABLE_PATTERN = "[^.:]+";
 
