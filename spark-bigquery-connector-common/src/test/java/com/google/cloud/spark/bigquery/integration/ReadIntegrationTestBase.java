@@ -624,7 +624,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
       String tableIdForConnector =
           String.format(
-              "%s:%s.%s", TestConstants.PROJECT_ID, testDataset.toString(), tableNameWithSpaces);
+              "%s.%s.%s", TestConstants.PROJECT_ID, testDataset.toString(), tableNameWithSpaces);
 
       Dataset<Row> df = spark.read().format("bigquery").load(tableIdForConnector);
 
