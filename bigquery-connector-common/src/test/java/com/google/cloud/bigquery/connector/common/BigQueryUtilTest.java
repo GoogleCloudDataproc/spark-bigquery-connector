@@ -150,6 +150,34 @@ public class BigQueryUtilTest {
   }
 
   @Test
+  public void testParseTableIdWithSpaces() {
+    // 1. Unqualified table name with spaces, relying on default dataset and project
+    TableId tableId1 =
+            BigQueryUtil.parseTableId(
+                    "my cool table", Optional.of("default_dataset"), Optional.of("default-project"));
+    assertThat(tableId1)
+            .isEqualTo(TableId.of("default-project", "default_dataset", "my cool table"));
+
+    // 2. Partially qualified table name with spaces
+    TableId tableId2 =
+            BigQueryUtil.parseTableId(
+                    "my_dataset.my other table", Optional.empty(), Optional.of("default-project"));
+    assertThat(tableId2).isEqualTo(TableId.of("default-project", "my_dataset", "my other table"));
+
+    // 3. Fully qualified table name with spaces
+    TableId tableId3 = BigQueryUtil.parseTableId("my-project.my_dataset.a table with spaces");
+    assertThat(tableId3).isEqualTo(TableId.of("my-project", "my_dataset", "a table with spaces"));
+
+    // 4. Fully qualified table with spaces, ignoring provided defaults
+    TableId tableId4 =
+            BigQueryUtil.parseTableId(
+                    "my-project.my_dataset.a table with spaces",
+                    Optional.of("other_dataset"),
+                    Optional.of("other-project"));
+    assertThat(tableId4).isEqualTo(TableId.of("my-project", "my_dataset", "a table with spaces"));
+  }
+
+  @Test
   public void testUnparsableTable() {
     assertThrows(IllegalArgumentException.class, () -> BigQueryUtil.parseTableId("foo:bar:baz"));
   }

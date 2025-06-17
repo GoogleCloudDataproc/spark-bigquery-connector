@@ -607,6 +607,52 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assertThat(snapshotRows).isEqualTo(allTypesRows);
   }
 
+  @Test
+  public void testReadFromTableWithSpacesInName() {
+    String tableNameWithSpaces = testTable + " with spaces";
+
+    String tableIdForBqSql = String.format("`%s`.`%s`.`%s`",
+            TestConstants.PROJECT_ID,
+            testDataset.toString(),
+            tableNameWithSpaces);
+    try {
+      IntegrationTestUtils.runQuery(String.format(
+              "CREATE TABLE %s (id INT64, data STRING) AS " +
+                      "SELECT * FROM UNNEST([(1, 'foo'), (2, 'bar'), (3, 'baz')])",
+              tableIdForBqSql));
+
+      String tableIdForConnector = String.format("%s:%s.%s",
+              TestConstants.PROJECT_ID,
+              testDataset.toString(),
+              tableNameWithSpaces);
+
+      Dataset<Row> df = spark.read()
+              .format("bigquery")
+              .load(tableIdForConnector);
+
+      StructType expectedSchema = new StructType()
+              .add("id", DataTypes.LongType, true)
+              .add("data", DataTypes.StringType, true);
+
+      assertThat(df.schema()).isEqualTo(expectedSchema);
+      assertThat(df.count()).isEqualTo(3);
+
+      Dataset<Row> filteredDf = spark.read()
+              .format("bigquery")
+              .option("filter", "id > 1")
+              .load(tableIdForConnector);
+
+      assertThat(filteredDf.count()).isEqualTo(2);
+
+      List<Row> rows = filteredDf.sort("id").collectAsList();
+      assertThat(rows.get(0).getLong(0)).isEqualTo(2);
+      assertThat(rows.get(0).getString(1)).isEqualTo("bar");
+
+    } finally {
+      IntegrationTestUtils.runQuery(String.format("DROP TABLE IF EXISTS %s", tableIdForBqSql));
+    }
+  }
+
   /**
    * Setting the CreateReadSession timeout to 1000 seconds, which should create the read session
    * since the timeout is more and data is less

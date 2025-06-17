@@ -97,7 +97,7 @@ public class BigQueryUtil {
   private static final String DATASET_PATTERN = "\\w+";
   // Allow all non-whitespace beside ':' and '.'.
   // These confuse the qualified table parsing.
-  private static final String TABLE_PATTERN = "[\\S&&[^.:]]+";
+  private static final String TABLE_PATTERN = "[^.:]+";
 
   private static final String NAMED_PARAM_PREFIX = "namedparameters.";
   private static final String POSITIONAL_PARAM_PREFIX = "positionalparameters.";

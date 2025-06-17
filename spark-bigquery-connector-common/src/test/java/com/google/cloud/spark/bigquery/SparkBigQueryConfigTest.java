@@ -476,6 +476,31 @@ public class SparkBigQueryConfigTest {
   }
 
   @Test
+  public void testQueryMatchingWithSpacedTables() {
+    assertThat(SparkBigQueryConfig.isQuery("my table")).isFalse();
+    assertThat(SparkBigQueryConfig.isQuery("dataset.my table")).isFalse();
+    assertThat(SparkBigQueryConfig.isQuery("project.dataset.my table")).isFalse();
+    assertThat(SparkBigQueryConfig.isQuery("project.my dataset.my table")).isFalse();
+
+    assertThat(SparkBigQueryConfig.isQuery("`project.dataset.my table`")).isFalse();
+
+    assertThat(SparkBigQueryConfig.isQuery("dataset.table_from_somewhere")).isFalse();
+    assertThat(SparkBigQueryConfig.isQuery("dataset.show_all_unions")).isFalse();
+
+    assertThat(SparkBigQueryConfig.isQuery("from")).isFalse();
+    assertThat(SparkBigQueryConfig.isQuery("where")).isFalse();
+    assertThat(SparkBigQueryConfig.isQuery("dataset.from")).isFalse();
+
+    // Positive cases: These are all valid queries.
+    assertThat(SparkBigQueryConfig.isQuery("select * from `dataset.my table`")).isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("select field from `project.dataset.my table` where id > 10")).isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("WITH subset AS (SELECT * FROM `dataset.my table`)\nSELECT * FROM subset")).isTrue();
+
+    assertThat(SparkBigQueryConfig.isQuery("/* Query for marketing */ SELECT * FROM my_table")).isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("\n-- Query for marketing\nSELECT * FROM my_table")).isTrue();
+  }
+
+  @Test
   public void testJobLabelOverride() {
     ImmutableMap<String, String> globalOptions =
         ImmutableMap.<String, String>builder()
