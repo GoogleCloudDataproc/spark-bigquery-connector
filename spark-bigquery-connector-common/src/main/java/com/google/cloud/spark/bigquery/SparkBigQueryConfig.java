@@ -146,7 +146,7 @@ public class SparkBigQueryConfig
   private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
   private static final Pattern QUICK_LOWERCASE_QUERY_PATTERN = Pattern.compile("(?i)^\\s*(select|with|\\()\\b[\\s\\S]*");
   private static final Pattern HAS_WHITESPACE_PATTERN = Pattern.compile("\\s");
-  private static final Pattern SQL_KEYWORD_PATTERN =       Pattern.compile("(?i)\\b(select|from|where|join|group by|order by|union all)\\b");
+  private static final Pattern SQL_KEYWORD_PATTERN = Pattern.compile("(?i)\\b(select|from|where|join|group by|order by|union all)\\b");
   // Both MIN values correspond to the lower possible value that will actually make the code work.
   // 0 or less would make code hang or other bad side effects.
   public static final int MIN_BUFFERED_RESPONSES_PER_STREAM = 1;
@@ -731,6 +731,11 @@ public class SparkBigQueryConfig
       return false;
     }
     String potentialQuery = tableParamStr.trim();
+
+    // If the string is quoted with backticks, it is recognized as a table identifier, not a query.
+    if (potentialQuery.startsWith("`") && potentialQuery.endsWith("`")) {
+      return false;
+    }
 
     // Check for common query-starting keyword.
     if (QUICK_LOWERCASE_QUERY_PATTERN.matcher(potentialQuery).matches()) {

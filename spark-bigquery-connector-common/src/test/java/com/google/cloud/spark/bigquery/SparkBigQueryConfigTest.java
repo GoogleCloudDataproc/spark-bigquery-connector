@@ -491,13 +491,17 @@ public class SparkBigQueryConfigTest {
     assertThat(SparkBigQueryConfig.isQuery("where")).isFalse();
     assertThat(SparkBigQueryConfig.isQuery("dataset.from")).isFalse();
 
-    // Positive cases: These are all valid queries.
     assertThat(SparkBigQueryConfig.isQuery("select * from `dataset.my table`")).isTrue();
     assertThat(SparkBigQueryConfig.isQuery("select field from `project.dataset.my table` where id > 10")).isTrue();
     assertThat(SparkBigQueryConfig.isQuery("WITH subset AS (SELECT * FROM `dataset.my table`)\nSELECT * FROM subset")).isTrue();
 
     assertThat(SparkBigQueryConfig.isQuery("/* Query for marketing */ SELECT * FROM my_table")).isTrue();
     assertThat(SparkBigQueryConfig.isQuery("\n-- Query for marketing\nSELECT * FROM my_table")).isTrue();
+
+    assertThat(SparkBigQueryConfig.isQuery("orders from 2023")).isTrue();
+    assertThat(SparkBigQueryConfig.isQuery("`orders from 2023`")).isFalse();
+    assertThat(SparkBigQueryConfig.isQuery("`my_project.my_dataset.sales group by product`"))
+            .isFalse();
   }
 
   @Test

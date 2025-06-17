@@ -207,7 +207,12 @@ public class BigQueryUtil {
       Optional<String> dataset,
       Optional<String> project,
       Optional<String> datePartition) {
-    Matcher matcher = QUALIFIED_TABLE_REGEX.matcher(rawTable);
+    String effectiveTable = rawTable.trim();
+    if (effectiveTable.startsWith("`") && effectiveTable.endsWith("`")) {
+      effectiveTable = effectiveTable.substring(1, effectiveTable.length() - 1);
+    }
+
+    Matcher matcher = QUALIFIED_TABLE_REGEX.matcher(effectiveTable);
     if (!matcher.matches()) {
       throw new IllegalArgumentException(
           format("Invalid Table ID '%s'. Must match '%s'", rawTable, QUALIFIED_TABLE_REGEX));

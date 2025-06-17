@@ -175,6 +175,16 @@ import com.google.cloud.spark.bigquery._
 val df = spark.read.bigquery("bigquery-public-data.samples.shakespeare")
 ```
 
+The connector supports reading from tables that contain spaces in their names. 
+
+**Note on ambiguous table names**: If a table name contains both spaces and a SQL keyword (e.g., "from", "where", "join"), it may be misinterpreted as a SQL query. To resolve this ambiguity, quote the table identifier with backticks \`. For example:
+
+```
+df = spark.read \
+  .format("bigquery") \
+  .load("`my_project.my_dataset.orders from 2023`")
+```
+
 For more information, see additional code samples in
 [Python](examples/python/shakespeare.py),
 [Scala](spark-bigquery-dsv1/src/main/scala/com/google/cloud/spark/bigquery/examples/Shakespeare.scala)
