@@ -158,19 +158,19 @@ public class BigQueryUtilTest {
   @Test
   public void testParseAmbiguousTableWithSpaces() {
     TableId tableId =
-            BigQueryUtil.parseTableId(
-                    "orders from 2023", Optional.of("default_dataset"), Optional.of("default-project"));
+        BigQueryUtil.parseTableId(
+            "orders from 2023", Optional.of("default_dataset"), Optional.of("default-project"));
     assertThat(tableId)
-            .isEqualTo(TableId.of("default-project", "default_dataset", "orders from 2023"));
+        .isEqualTo(TableId.of("default-project", "default_dataset", "orders from 2023"));
   }
 
   @Test
-  public void testParseAmbiguousTableWithBackticks(){
+  public void testParseAmbiguousTableWithBackticks() {
     TableId tableId =
-            BigQueryUtil.parseTableId(
-                    "`orders from 2023`", Optional.of("default_dataset"), Optional.of("default-project"));
+        BigQueryUtil.parseTableId(
+            "`orders from 2023`", Optional.of("default_dataset"), Optional.of("default-project"));
     assertThat(tableId)
-            .isEqualTo(TableId.of("default-project", "default_dataset", "orders from 2023"));
+        .isEqualTo(TableId.of("default-project", "default_dataset", "orders from 2023"));
   }
 
   @Test

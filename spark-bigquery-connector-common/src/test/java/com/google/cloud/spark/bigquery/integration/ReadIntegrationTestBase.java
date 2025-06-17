@@ -611,36 +611,33 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   public void testReadFromTableWithSpacesInName() {
     String tableNameWithSpaces = testTable + " with spaces";
 
-    String tableIdForBqSql = String.format("`%s`.`%s`.`%s`",
-            TestConstants.PROJECT_ID,
-            testDataset.toString(),
-            tableNameWithSpaces);
+    String tableIdForBqSql =
+        String.format(
+            "`%s`.`%s`.`%s`",
+            TestConstants.PROJECT_ID, testDataset.toString(), tableNameWithSpaces);
     try {
-      IntegrationTestUtils.runQuery(String.format(
-              "CREATE TABLE %s (id INT64, data STRING) AS " +
-                      "SELECT * FROM UNNEST([(1, 'foo'), (2, 'bar'), (3, 'baz')])",
+      IntegrationTestUtils.runQuery(
+          String.format(
+              "CREATE TABLE %s (id INT64, data STRING) AS "
+                  + "SELECT * FROM UNNEST([(1, 'foo'), (2, 'bar'), (3, 'baz')])",
               tableIdForBqSql));
 
-      String tableIdForConnector = String.format("%s:%s.%s",
-              TestConstants.PROJECT_ID,
-              testDataset.toString(),
-              tableNameWithSpaces);
+      String tableIdForConnector =
+          String.format(
+              "%s:%s.%s", TestConstants.PROJECT_ID, testDataset.toString(), tableNameWithSpaces);
 
-      Dataset<Row> df = spark.read()
-              .format("bigquery")
-              .load(tableIdForConnector);
+      Dataset<Row> df = spark.read().format("bigquery").load(tableIdForConnector);
 
-      StructType expectedSchema = new StructType()
+      StructType expectedSchema =
+          new StructType()
               .add("id", DataTypes.LongType, true)
               .add("data", DataTypes.StringType, true);
 
       assertThat(df.schema()).isEqualTo(expectedSchema);
       assertThat(df.count()).isEqualTo(3);
 
-      Dataset<Row> filteredDf = spark.read()
-              .format("bigquery")
-              .option("filter", "id > 1")
-              .load(tableIdForConnector);
+      Dataset<Row> filteredDf =
+          spark.read().format("bigquery").option("filter", "id > 1").load(tableIdForConnector);
 
       assertThat(filteredDf.count()).isEqualTo(2);
 

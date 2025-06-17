@@ -144,9 +144,11 @@ public class SparkBigQueryConfig
   private static final String CONF_PREFIX = "spark.datasource.bigquery.";
   private static final int DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT = 60 * 1000;
   private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
-  private static final Pattern QUICK_LOWERCASE_QUERY_PATTERN = Pattern.compile("(?i)^\\s*(select|with|\\()\\b[\\s\\S]*");
+  private static final Pattern QUICK_LOWERCASE_QUERY_PATTERN =
+      Pattern.compile("(?i)^\\s*(select|with|\\()\\b[\\s\\S]*");
   private static final Pattern HAS_WHITESPACE_PATTERN = Pattern.compile("\\s");
-  private static final Pattern SQL_KEYWORD_PATTERN = Pattern.compile("(?i)\\b(select|from|where|join|group by|order by|union all)\\b");
+  private static final Pattern SQL_KEYWORD_PATTERN =
+      Pattern.compile("(?i)\\b(select|from|where|join|group by|order by|union all)\\b");
   // Both MIN values correspond to the lower possible value that will actually make the code work.
   // 0 or less would make code hang or other bad side effects.
   public static final int MIN_BUFFERED_RESPONSES_PER_STREAM = 1;
@@ -743,8 +745,8 @@ public class SparkBigQueryConfig
     }
 
     // Might be a query with a leading comment, OR could be a table name with spaces.
-    return HAS_WHITESPACE_PATTERN.matcher(potentialQuery).find() &&
-              SQL_KEYWORD_PATTERN.matcher(potentialQuery).find();
+    return HAS_WHITESPACE_PATTERN.matcher(potentialQuery).find()
+        && SQL_KEYWORD_PATTERN.matcher(potentialQuery).find();
   }
 
   private static void validateDateFormat(
