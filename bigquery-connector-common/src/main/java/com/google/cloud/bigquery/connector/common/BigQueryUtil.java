@@ -208,7 +208,7 @@ public class BigQueryUtil {
       Optional<String> project,
       Optional<String> datePartition) {
     String effectiveTable = rawTable.trim();
-    if (effectiveTable.startsWith("`") && effectiveTable.endsWith("`")) {
+    if (effectiveTable.length() >= 2 && effectiveTable.startsWith("`") && effectiveTable.endsWith("`")) {
       effectiveTable = effectiveTable.substring(1, effectiveTable.length() - 1);
     }
 
