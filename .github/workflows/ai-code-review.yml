@@ -36,10 +36,10 @@ jobs:
           github_repository: ${{ github.repository }}
           github_pull_request_number: ${{ github.event.pull_request.number }}
           git_commit_hash: ${{ github.event.pull_request.head.sha }}
-          model: "gemini-1.5-pro"
+          model: "gemini-2.5-pro"
           pull_request_diff: |-
             ${{ steps.get_diff.outputs.pull_request_diff }}
           pull_request_chunk_size: "3500"
           extra_prompt: |-
-            Sempre responda em português brasileiro!
+            Validate your answers, always respond in English!
           log_level: "DEBUG"
