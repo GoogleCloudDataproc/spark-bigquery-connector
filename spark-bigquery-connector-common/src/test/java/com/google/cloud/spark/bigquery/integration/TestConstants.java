@@ -32,7 +32,6 @@ import static org.apache.spark.sql.types.DataTypes.ShortType;
 import static org.apache.spark.sql.types.DataTypes.StringType;
 import static org.apache.spark.sql.types.DataTypes.TimestampType;
 
-import com.google.cloud.ServiceOptions;
 import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
 import com.google.cloud.spark.bigquery.integration.model.NumStruct;
 import com.google.cloud.spark.bigquery.integration.model.StringStruct;
@@ -44,7 +43,6 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -75,8 +73,9 @@ public class TestConstants {
       "bigquery-public-data.wikipedia.pageviews_2021";
   static final long SHAKESPEARE_TABLE_NUM_ROWS = 164656L;
   static final String PROJECT_ID =
-      Optional.ofNullable(System.getenv("GOOGLE_CLOUD_PROJECT"))
-          .orElse(ServiceOptions.getDefaultProjectId());
+      Preconditions.checkNotNull(
+          System.getenv("GOOGLE_CLOUD_PROJECT"),
+          "Please set the GOOGLE_CLOUD_PROJECT env variable");
   static final String TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
   static final String BIGLAKE_CONNECTION_ID_ENV_VARIABLE = "BIGLAKE_CONNECTION_ID";
   static final String TEMPORARY_GCS_BUCKET =
