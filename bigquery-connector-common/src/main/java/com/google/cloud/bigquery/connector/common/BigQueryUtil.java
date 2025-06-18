@@ -95,9 +95,9 @@ public class BigQueryUtil {
 
   private static final String PROJECT_PATTERN = "\\S+";
   private static final String DATASET_PATTERN = "\\w+";
-  // Allow all non-whitespace beside ':' and '.'.
+  // Allow any character except ':' and '.', which are used as delimiters in qualified names.
   // These confuse the qualified table parsing.
-  private static final String TABLE_PATTERN = "[\\S&&[^.:]]+";
+  private static final String TABLE_PATTERN = "[^.:]+";
 
   private static final String NAMED_PARAM_PREFIX = "namedparameters.";
   private static final String POSITIONAL_PARAM_PREFIX = "positionalparameters.";
@@ -207,7 +207,14 @@ public class BigQueryUtil {
       Optional<String> dataset,
       Optional<String> project,
       Optional<String> datePartition) {
-    Matcher matcher = QUALIFIED_TABLE_REGEX.matcher(rawTable);
+    String effectiveTable = rawTable.trim();
+    if (effectiveTable.length() >= 2
+        && effectiveTable.startsWith("`")
+        && effectiveTable.endsWith("`")) {
+      effectiveTable = effectiveTable.substring(1, effectiveTable.length() - 1);
+    }
+
+    Matcher matcher = QUALIFIED_TABLE_REGEX.matcher(effectiveTable);
     if (!matcher.matches()) {
       throw new IllegalArgumentException(
           format("Invalid Table ID '%s'. Must match '%s'", rawTable, QUALIFIED_TABLE_REGEX));

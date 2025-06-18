@@ -143,9 +143,11 @@ public class SparkBigQueryConfig
   private static final String CONF_PREFIX = "spark.datasource.bigquery.";
   private static final int DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT = 60 * 1000;
   private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
-  private static final Pattern LOWERCASE_QUERY_PATTERN =
-      Pattern.compile("^(select|with)\\b[\\s\\S]*");
+  private static final Pattern QUICK_LOWERCASE_QUERY_PATTERN =
+      Pattern.compile("(?i)^\\s*(select|with|\\()\\b[\\s\\S]*");
   private static final Pattern HAS_WHITESPACE_PATTERN = Pattern.compile("\\s");
+  private static final Pattern SQL_KEYWORD_PATTERN =
+      Pattern.compile("(?i)\\b(select|from|where|join|group by|order by|union all)\\b");
   // Both MIN values correspond to the lower possible value that will actually make the code work.
   // 0 or less would make code hang or other bad side effects.
   public static final int MIN_BUFFERED_RESPONSES_PER_STREAM = 1;
@@ -726,11 +728,24 @@ public class SparkBigQueryConfig
 
   @VisibleForTesting
   static boolean isQuery(String tableParamStr) {
-    // A potential query will start with (select|with) or contain a whitespace in between. This
-    // assumes good intentions. Queries like "/**/select'asdf'" although valid won't pass this test.
-    String potentialQuery = tableParamStr.toLowerCase().trim();
-    return LOWERCASE_QUERY_PATTERN.matcher(potentialQuery).matches()
-        || HAS_WHITESPACE_PATTERN.matcher(potentialQuery).find();
+    if (tableParamStr == null || tableParamStr.trim().isEmpty()) {
+      return false;
+    }
+    String potentialQuery = tableParamStr.trim();
+
+    // If the string is quoted with backticks, it is recognized as a table identifier, not a query.
+    if (potentialQuery.startsWith("`") && potentialQuery.endsWith("`")) {
+      return false;
+    }
+
+    // Check for common query-starting keyword.
+    if (QUICK_LOWERCASE_QUERY_PATTERN.matcher(potentialQuery).matches()) {
+      return true;
+    }
+
+    // Might be a query with a leading comment, OR could be a table name with spaces.
+    return HAS_WHITESPACE_PATTERN.matcher(potentialQuery).find()
+        && SQL_KEYWORD_PATTERN.matcher(potentialQuery).find();
   }
 
   private static void validateDateFormat(
