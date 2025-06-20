@@ -326,9 +326,9 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     return spark
         .read()
         .format("bigquery")
-        .option("dataset", testDataset.toString())
-        .option("table", TestConstants.SHAKESPEARE_VIEW)
         .option("viewsEnabled", "true")
+        .option("viewMaterializationProject", System.getenv("GOOGLE_CLOUD_PROJECT"))
+        .option("viewMaterializationDataset", testDataset.toString())
         .option("readDataFormat", dataFormat)
         .load();
   }
