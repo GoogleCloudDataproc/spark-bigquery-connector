@@ -3,6 +3,7 @@
 ## Next
 * PR #1380: Fixed ImpersonatedCredentials serialization
 * PR #1381: Added the option to set custom credentials scopes
+* PR #1384: Support reading from BigQuery tables with spaces in their names
 
 ## 0.42.3 - 2025-05-22
 * PR #1369: Catalog enhancements
