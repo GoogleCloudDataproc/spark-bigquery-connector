@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.42.4 - 2025-06-20
 * PR #1380: Fixed ImpersonatedCredentials serialization
 * PR #1381: Added the option to set custom credentials scopes
