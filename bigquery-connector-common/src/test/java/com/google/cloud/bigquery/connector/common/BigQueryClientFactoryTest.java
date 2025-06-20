@@ -34,6 +34,7 @@ import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -666,6 +667,11 @@ public class BigQueryClientFactoryTest {
     @Override
     public long getBigQueryJobTimeoutInMinutes() {
       return 6 * 60;
+    }
+
+    @Override
+    public Optional<ImmutableList<String>> getCredentialsScopes() {
+      return Optional.empty();
     }
 
     @Override

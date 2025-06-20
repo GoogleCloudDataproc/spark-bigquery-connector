@@ -18,6 +18,7 @@ package com.google.cloud.bigquery.connector.common;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Optional;
@@ -78,6 +79,8 @@ public interface BigQueryConfig {
   Priority getQueryJobPriority();
 
   long getBigQueryJobTimeoutInMinutes();
+
+  Optional<ImmutableList<String>> getCredentialsScopes();
 
   default int getClientCreationHashCode() {
     return Objects.hashCode(
