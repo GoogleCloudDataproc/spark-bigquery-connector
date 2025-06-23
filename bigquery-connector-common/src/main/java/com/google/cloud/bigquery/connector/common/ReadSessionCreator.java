@@ -266,7 +266,8 @@ public class ReadSessionCreator {
           bigQueryClient.createSql(
               table.getTableId(), requiredColumns, filters, config.getSnapshotTimeMillis());
       log.debug("querySql is {}", querySql);
-      return bigQueryClient.materializeViewToTable(querySql, table.getTableId());
+      return bigQueryClient.materializeViewToTable(
+          querySql, table.getTableId(), config.getMaterializationExpirationTimeInMinutes());
     } else {
       // not regular table or a view
       throw new BigQueryConnectorException(
