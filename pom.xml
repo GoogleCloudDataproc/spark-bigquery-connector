@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.google.cloud.spark</groupId>
@@ -80,6 +80,7 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
+        <module>spark-bigquery-scala-212-support</module>
         <module>spark-bigquery-dsv1/spark-bigquery-dsv1-parent</module>
         <module>spark-bigquery-dsv1/spark-bigquery-dsv1-spark2-support</module>
         <module>spark-bigquery-dsv1/spark-bigquery-dsv1-spark3-support</module>
@@ -96,6 +97,7 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
+        <module>spark-bigquery-scala-212-support</module>
         <module>spark-bigquery-dsv1/spark-bigquery-dsv1-parent</module>
         <module>spark-bigquery-dsv1/spark-bigquery-dsv1-spark2-support</module>
         <module>spark-bigquery-dsv1/spark-bigquery-dsv1-spark3-support</module>
