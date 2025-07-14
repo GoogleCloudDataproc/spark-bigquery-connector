@@ -24,6 +24,11 @@
   </licenses>
   <dependencies>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>spark-bigquery-scala-212-support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.openlineage</groupId>
       <artifactId>openlineage-spark_${scala.binary.version}</artifactId>
     </dependency>
