@@ -98,11 +98,10 @@ case $STEP in
     ;;
 
   deploy)
-    $MVN deploy:deploy -DskipTests -Dscala.skipTests=true -Prelease-nightly,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
-
+    # TODO: Re-enable deployment for nightly builds.
+    # $MVN deploy:deploy -DskipTests -Dscala.skipTests=true -Prelease-nightly,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
     exit
     ;;
-
 
   *)
     echo "Unknown step $STEP"
