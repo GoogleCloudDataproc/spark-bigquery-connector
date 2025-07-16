@@ -4,6 +4,8 @@
 <!--- comment -->
 <!--- comment2 --->
 <!--- comment3 --->
+<!--- comment5 --->
+<!--- comment7 --->
 
 The connector supports reading [Google BigQuery](https://cloud.google.com/bigquery/) tables into Spark's DataFrames, and writing DataFrames back into BigQuery.
 This is done by using the [Spark SQL Data Source API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources) to communicate with BigQuery.
