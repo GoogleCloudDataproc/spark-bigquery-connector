@@ -47,7 +47,7 @@
         <arrow.spark4.version>18.3.0</arrow.spark4.version>
         <gax.version>2.63.1</gax.version>
         <google-auth.version>1.33.1</google-auth.version>
-        <google-cloud-bigquery.version>2.48.1</google-cloud-bigquery.version>
+        <google-cloud-bigquery.version>2.53.0</google-cloud-bigquery.version>
         <google-cloud-bigquerystorage.version>3.11.4</google-cloud-bigquerystorage.version>
         <google-cloud-dataproc.version>4.56.0</google-cloud-dataproc.version>
         <google-cloud-storage.version>2.49.0</google-cloud-storage.version>
