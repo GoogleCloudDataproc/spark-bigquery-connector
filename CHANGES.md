@@ -8,6 +8,8 @@
 * PR #1374: Ensure TableId includes project ID if not explicitly set
 * PR #1380: Fixed ImpersonatedCredentials serialization
 * PR #1381: Added the option to set custom credentials scopes
+* PR #1395: Added option to specify BigQuery reservation for connector-created jobs.
+* BigQuery API has been upgraded to version 2.53.0.
 
 ## 0.42.2 - 2025-05-16
 * PR #1347: Get lineage out of query. Thanks @ddebowczyk92
