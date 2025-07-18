@@ -78,6 +78,8 @@ public interface BigQueryConfig {
 
   Priority getQueryJobPriority();
 
+  Optional<String> getReservation();
+
   long getBigQueryJobTimeoutInMinutes();
 
   Optional<ImmutableList<String>> getCredentialsScopes();

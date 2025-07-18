@@ -31,6 +31,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryJobCompletionListener;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
@@ -66,6 +67,7 @@ public class IntegrationTestUtils {
         ImmutableMap.of(),
         SparkBigQueryConfig.DEFAULT_JOB_PRIORITY,
         Optional.empty(),
+        Optional.<BigQueryJobCompletionListener>empty(),
         6 * 60);
   }
 

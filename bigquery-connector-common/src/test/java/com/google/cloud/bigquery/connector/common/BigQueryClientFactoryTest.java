@@ -645,6 +645,11 @@ public class BigQueryClientFactoryTest {
     }
 
     @Override
+    public Optional<String> getReservation() {
+      return Optional.empty();
+    }
+
+    @Override
     public Optional<Long> getCreateReadSessionTimeoutInSeconds() {
       return Optional.empty();
     }
