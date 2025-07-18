@@ -1121,9 +1121,7 @@ public class BigQueryClient {
 
       builder.setLabels(allLabels);
 
-      if (reservation.isPresent()) {
-        builder.setReservation(reservation.get());
-      }
+      reservation.ifPresent(builder::setReservation);
 
       return builder;
     }
@@ -1135,9 +1133,8 @@ public class BigQueryClient {
       if (labels != null && !labels.isEmpty()) {
         builder.setLabels(labels);
       }
-      if (reservation.isPresent()) {
-        builder.setReservation(reservation.get());
-      }
+
+      reservation.ifPresent(builder::setReservation);
       return builder;
     }
   }
