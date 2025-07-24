@@ -22,6 +22,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.sql.Timestamp;
@@ -76,6 +77,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
           .put("corpus like '%kinghenryiv'", ImmutableList.of("'", "'And", "'Anon"))
           .put("corpus like '%king%'", ImmutableList.of("'", "'A", "'Affectionate"))
           .build();
+  protected final String PROJECT_ID =
+      Preconditions.checkNotNull(
+          System.getenv("GOOGLE_CLOUD_PROJECT"),
+          "Please set the GOOGLE_CLOUD_PROJECT env variable in order to read views");
 
   private static final StructType SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT =
       new StructType(
@@ -376,6 +381,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .format("bigquery")
             .option("table", "bigquery-public-data:bigqueryml_ncaa.cume_games_view")
             .option("viewsEnabled", "true")
+            .option("viewMaterializationProject", PROJECT_ID)
+            .option("viewMaterializationDataset", testDataset.toString())
             .load();
 
     assertThat(df.count()).isGreaterThan(1);

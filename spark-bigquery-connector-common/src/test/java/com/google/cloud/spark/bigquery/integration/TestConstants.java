@@ -125,6 +125,7 @@ public class TestConstants {
   static final String NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent";
   static final String STRUCT_COLUMN_ORDER_TEST_TABLE_NAME = "struct_column_order";
   static final String ALL_TYPES_TABLE_NAME = "all_types";
+  static final String ALL_TYPES_VIEW_NAME = "all_types_view";
   static final String SHAKESPEARE_VIEW = "shakespeare_view";
   static final String DIFF_IN_SCHEMA_SRC_TABLE_NAME = "src_table";
   static final String DIFF_IN_SCHEMA_SRC_TABLE_NAME_WITH_DESCRIPTION = "src_table_with_description";
