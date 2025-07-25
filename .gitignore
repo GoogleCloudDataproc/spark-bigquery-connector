@@ -38,3 +38,8 @@ AdAdHocITSuite.scala
 
 # toolchains file
 toolchains.xml
+
+# Emacs
+*~
+\#*\#
+.\#*
