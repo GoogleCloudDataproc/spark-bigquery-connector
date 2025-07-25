@@ -137,6 +137,31 @@ public class SparkBigQueryConfigTest {
   }
 
   @Test
+  public void testReservation() {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options =
+        new DataSourceOptions(
+            ImmutableMap.<String, String>builder()
+                .put("table", "test_t")
+                .put("dataset", "test_d")
+                .put("project", "test_p")
+                .put("reservation", "my_reservation")
+                .build());
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            options.asMap(),
+            defaultGlobalOptions,
+            hadoopConfiguration,
+            ImmutableMap.of(),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(), /* tableIsMandatory */
+            true);
+    assertThat(config.getReservation()).isEqualTo(Optional.of("my_reservation"));
+  }
+
+  @Test
   public void testConfigFromOptions() {
     Configuration hadoopConfiguration = new Configuration();
     DataSourceOptions options =
