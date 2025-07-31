@@ -958,6 +958,7 @@
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>false</autoPublish>
                             <checksums>all</checksums>
+                            <skipPublishing>${nexus.remote.skip}</skipPublishing>
                         </configuration>
                     </plugin>
                     <plugin>
