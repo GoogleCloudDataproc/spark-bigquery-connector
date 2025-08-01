@@ -248,6 +248,7 @@ public class SparkBigQueryConfig
   private Map<String, String> bigQueryTableLabels = Collections.emptyMap();
   private com.google.common.base.Optional<Long> createReadSessionTimeoutInSeconds;
   private QueryJobConfiguration.Priority queryJobPriority = DEFAULT_JOB_PRIORITY;
+  private com.google.common.base.Optional<String> reservation = empty();
 
   private com.google.common.base.Optional<String> destinationTableKmsKeyName = empty();
 
@@ -647,6 +648,8 @@ public class SparkBigQueryConfig
             .transform(String::toUpperCase)
             .transform(Priority::valueOf)
             .or(DEFAULT_JOB_PRIORITY);
+
+    config.reservation = getAnyOption(globalOptions, options, "reservation");
 
     config.destinationTableKmsKeyName =
         getAnyOption(globalOptions, options, "destinationTableKmsKeyName");
@@ -1100,6 +1103,10 @@ public class SparkBigQueryConfig
   @Override
   public Priority getQueryJobPriority() {
     return queryJobPriority;
+  }
+
+  public Optional<String> getReservation() {
+    return reservation.toJavaUtil();
   }
 
   @Override

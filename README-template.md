@@ -505,6 +505,14 @@ word-break:break-word
    <td>Read</td>
   </tr>
   <tr valign="top">
+   <td><code>reservation</code>
+   </td>
+   <td>Can be used to specify the slot reservation to run connector-created query and load jobs against (BigQuery docs)[https://cloud.google.com/bigquery/docs/reservations-assignments#reservation].
+       <br/>(Optional)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr valign="top">
    <td><code>bigQueryTableLabel</code>
    </td>
    <td>Can be used to add labels to the table while writing to a table. Multiple

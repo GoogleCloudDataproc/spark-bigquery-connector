@@ -99,12 +99,14 @@ public class BigQueryClient {
       Cache<String, TableInfo> destinationTableCache,
       Map<String, String> labels,
       Priority queryJobPriority,
+      Optional<String> reservation,
       Optional<BigQueryJobCompletionListener> jobCompletionListener,
       long bigQueryJobTimeoutInMinutes) {
     this.bigQuery = bigQuery;
     this.bigqueryRestClient = createRestClient(bigQuery);
     this.destinationTableCache = destinationTableCache;
-    this.jobConfigurationFactory = new JobConfigurationFactory(labels, queryJobPriority);
+    this.jobConfigurationFactory =
+        new JobConfigurationFactory(labels, queryJobPriority, reservation);
     this.jobCompletionListener = jobCompletionListener;
     this.bigQueryJobTimeoutInMinutes = bigQueryJobTimeoutInMinutes;
   }
@@ -533,7 +535,6 @@ public class BigQueryClient {
   public Job createAndWaitFor(JobConfiguration jobConfiguration) {
     JobInfo jobInfo = JobInfo.of(jobConfiguration);
     Job job = bigQuery.create(jobInfo);
-    Job returnedJob = null;
 
     log.info("Submitted job {}. jobId: {}", jobConfiguration, job.getJobId());
     try {
@@ -547,7 +548,8 @@ public class BigQueryClient {
         throw new BigQueryException(
             BaseHttpServiceException.UNKNOWN_CODE,
             String.format(
-                "Failed to run the job [%s], due to '%s'", completedJob.getStatus().getError()));
+                "Failed to run the job [%s], due to '%s'",
+                job, completedJob.getStatus().getError()));
       }
       return completedJob;
     } catch (InterruptedException e) {
@@ -1086,10 +1088,13 @@ public class BigQueryClient {
   static class JobConfigurationFactory {
     private final ImmutableMap<String, String> labels;
     private final Priority queryJobPriority;
+    private final Optional<String> reservation;
 
-    public JobConfigurationFactory(Map<String, String> labels, Priority queryJobPriority) {
+    public JobConfigurationFactory(
+        Map<String, String> labels, Priority queryJobPriority, Optional<String> reservation) {
       this.labels = ImmutableMap.copyOf(labels);
       this.queryJobPriority = queryJobPriority;
+      this.reservation = reservation;
     }
 
     QueryJobConfiguration.Builder createQueryJobConfigurationBuilder(
@@ -1115,6 +1120,9 @@ public class BigQueryClient {
       }
 
       builder.setLabels(allLabels);
+
+      reservation.ifPresent(builder::setReservation);
+
       return builder;
     }
 
@@ -1125,6 +1133,8 @@ public class BigQueryClient {
       if (labels != null && !labels.isEmpty()) {
         builder.setLabels(labels);
       }
+
+      reservation.ifPresent(builder::setReservation);
       return builder;
     }
   }
