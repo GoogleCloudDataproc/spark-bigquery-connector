@@ -8,6 +8,10 @@
 * PR #1374: Ensure TableId includes project ID if not explicitly set
 * PR #1380: Fixed ImpersonatedCredentials serialization
 * PR #1381: Added the option to set custom credentials scopes
+* BigQuery API has been upgraded to version 2.54.0
+* BigQuery Storage API has been upgraded to version 3.16.1
+* GAX has been upgraded to version 2.68.2
+* gRPC has been upgraded to version 1.74.0
 
 ## 0.42.2 - 2025-05-16
 * PR #1347: Get lineage out of query. Thanks @ddebowczyk92
