@@ -10,6 +10,7 @@
 
     <artifactId>spark-bigquery-connector-common</artifactId>
     <name>Spark BigQuery Connector Common Library</name>
+    <packaging>jar</packaging>
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
