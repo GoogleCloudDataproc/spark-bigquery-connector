@@ -20,7 +20,10 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.Table;
 import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -51,6 +54,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import scala.collection.immutable.HashMap;
 
 public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
@@ -103,6 +107,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   protected final boolean userProvidedSchemaAllowed;
 
   protected List<String> gcsObjectsToClean = new ArrayList<>();
+
+  BigQuery bigQuery = BigQueryOptions.getDefaultInstance().getService();
 
   public ReadIntegrationTestBase() {
     this(true, Optional.empty());
@@ -806,5 +812,20 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assertThat(rows.size()).isEqualTo(2);
     assertThat(rows.get(0).getLong(0)).isEqualTo(101);
     assertThat(rows.get(1).getLong(0)).isEqualTo(102);
+  }
+
+  @Test
+  public void testExecuteCommand() throws Exception {
+    Dataset<Row> output =
+        spark.executeCommand(
+            "bigquery",
+            String.format(
+                "CREATE TABLE %s.%s AS SELECT 1 AS `id`, 'foo' AS `name`",
+                testDataset.testDataset, testTable),
+            new HashMap<>());
+    assertThat(output.count()).isEqualTo(0L);
+    Table table = bigQuery.getTable(testDataset.testDataset, testTable);
+    assertThat(table).isNotNull();
+    assertThat(table.getDefinition().getSchema().getFields()).hasSize(2);
   }
 }
