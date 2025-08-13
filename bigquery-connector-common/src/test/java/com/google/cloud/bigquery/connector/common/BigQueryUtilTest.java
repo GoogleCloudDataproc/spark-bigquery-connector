@@ -1352,7 +1352,7 @@ public class BigQueryUtilTest {
     when(mockResult.getSchema()).thenReturn(null);
 
     // Act
-    String[] actual = BigQueryUtil.formatTableResult(mockResult);
+    String[] actual = BigQueryUtil.formatTableResult(mockResult, /* withHeader */ false);
 
     // Assert: The result should be an empty array
     assertThat(actual).isEmpty();
@@ -1371,7 +1371,7 @@ public class BigQueryUtilTest {
     when(mockResult.iterateAll()).thenReturn(Collections.emptyList());
 
     // Act
-    String[] actual = BigQueryUtil.formatTableResult(mockResult);
+    String[] actual = BigQueryUtil.formatTableResult(mockResult, /* withHeader */ true);
 
     // Assert: The result should contain only the tab-separated header
     String[] expected = {"id\tname"};
@@ -1389,7 +1389,7 @@ public class BigQueryUtilTest {
     when(mockResult.iterateAll()).thenReturn(Collections.emptyList());
 
     // Act
-    String[] actual = BigQueryUtil.formatTableResult(mockResult);
+    String[] actual = BigQueryUtil.formatTableResult(mockResult, /* withHeader */ true);
 
     // Assert: The result should be an array with a single empty string for the header
     String[] expected = {""};
@@ -1445,11 +1445,10 @@ public class BigQueryUtilTest {
     when(mockResult.iterateAll()).thenReturn(rows);
 
     // Act
-    String[] actual = BigQueryUtil.formatTableResult(mockResult);
+    String[] actual = BigQueryUtil.formatTableResult(mockResult, /* withHeader */ false);
 
     // Assert: The output should be a correctly formatted string array
     String[] expected = {
-      "id\tname\tscore", // Header
       "1\tAlice\t95.5", // Row 1
       "2\tNULL\t88.0", // Row 2 with NULL
       "3\tBob\t72.25" // Row 3

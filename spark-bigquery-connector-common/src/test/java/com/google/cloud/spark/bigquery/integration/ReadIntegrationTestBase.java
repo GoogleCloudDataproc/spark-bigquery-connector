@@ -823,7 +823,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
                 "CREATE TABLE %s.%s AS SELECT 1 AS `id`, 'foo' AS `name`",
                 testDataset.testDataset, testTable),
             new HashMap<>());
-    assertThat(output.count()).isEqualTo(1L);
+    assertThat(output.count()).isEqualTo(0L);
     Table table = bigQuery.getTable(testDataset.testDataset, testTable);
     assertThat(table).isNotNull();
     assertThat(table.getDefinition().getSchema().getFields()).hasSize(2);

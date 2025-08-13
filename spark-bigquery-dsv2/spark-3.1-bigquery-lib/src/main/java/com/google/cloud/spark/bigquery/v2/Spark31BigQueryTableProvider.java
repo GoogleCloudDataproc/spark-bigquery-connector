@@ -109,6 +109,6 @@ public class Spark31BigQueryTableProvider extends BaseBigQuerySource
         new InjectorBuilder().withTableIsMandatory(false).withOptions(options).build();
     BigQueryClient bqClient = injector.getInstance(BigQueryClient.class);
     TableResult result = bqClient.query(command);
-    return formatTableResult(result);
+    return formatTableResult(result, /* withHeader */ false);
   }
 }

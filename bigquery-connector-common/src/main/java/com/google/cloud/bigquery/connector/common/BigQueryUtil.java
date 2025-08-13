@@ -1096,7 +1096,7 @@ public class BigQueryUtil {
    * Formats a BigQuery TableResult into a human-readable string array. Each element in the array
    * represents a row, with columns separated by tabs. The first element is the header row.
    */
-  public static String[] formatTableResult(TableResult result) {
+  public static String[] formatTableResult(TableResult result, boolean withHeader) {
     List<String> resultList = new ArrayList<>();
     Schema schema = result.getSchema();
     if (schema == null) {
@@ -1106,7 +1106,9 @@ public class BigQueryUtil {
     FieldList fields = schema.getFields();
 
     // Header row
-    resultList.add(fields.stream().map(Field::getName).collect(Collectors.joining("\t")));
+    if(withHeader) {
+      resultList.add(fields.stream().map(Field::getName).collect(Collectors.joining("\t")));
+    }
 
     // Data rows
     for (FieldValueList row : result.iterateAll()) {

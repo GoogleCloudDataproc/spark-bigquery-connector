@@ -376,9 +376,9 @@ df.writeStream \
 ### Running SQL on BigQuery
 
 The connector supports Spark's [SparkSession#executeCommand](https://archive.apache.org/dist/spark/docs/3.0.0/api/java/org/apache/spark/sql/SparkSession.html#executeCommand-java.lang.String-java.lang.String-scala.collection.immutable.Map-)
-with the Spark-X.Y-bigquery connectors. It can be used any arbitrary DDL/DML StandardSQL on BigQuery as a BigQuery query
-job. `SELECT` statements are not supported, as those are supported by reading from query as shown above. It can be used
-as follows:
+with the Spark-X.Y-bigquery connectors. It can be used to run any arbitrary DDL/DML StandardSQL statement on BigQuery as
+a query job. `SELECT` statements are not supported, as those are supported by reading from query as shown above. It can
+be used as follows:
 ```
 spark.executeCommand("bigquery", SQL, options)
 ```
