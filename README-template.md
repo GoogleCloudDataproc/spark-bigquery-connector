@@ -380,9 +380,11 @@ with the Spark-X.Y-bigquery connectors. It can be used to run any arbitrary DDL/
 a query job. `SELECT` statements are not supported, as those are supported by reading from query as shown above. It can
 be used as follows:
 ```
-spark.executeCommand("bigquery", SQL, options)
+spark.executeCommand("bigquery", sql, options)
 ```
-Notice that apart from the authentication options no other options are supported by this functionality.
+Notice the following:
+* Notice that apart from the authentication options no other options are supported by this functionality.
+* This API is available only in the Scala/Java API. PySpark does not provide it.
 
 ### Properties
 
