@@ -29,6 +29,8 @@ import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.HivePartitioningOptions;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.QueryParameterValue;
@@ -39,6 +41,7 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
@@ -1087,5 +1090,41 @@ public class BigQueryUtil {
             type, identifier));
 
     return QueryParameterValue.newBuilder().setValue(valueStr.trim()).setType(type).build();
+  }
+
+  /**
+   * Formats a BigQuery TableResult into a human-readable string array. Each element in the array
+   * represents a row, with columns separated by tabs. The first element is the header row.
+   */
+  public static String[] formatTableResult(TableResult result) {
+    List<String> resultList = new ArrayList<>();
+    Schema schema = result.getSchema();
+    if (schema == null) {
+      // Some commands, like DDL, may not return a schema or rows
+      return new String[0];
+    }
+    FieldList fields = schema.getFields();
+
+    // Header row
+    resultList.add(fields.stream().map(Field::getName).collect(Collectors.joining("\t")));
+
+    // Data rows
+    for (FieldValueList row : result.iterateAll()) {
+      String formattedRow =
+          fields.stream()
+              .map(field -> row.get(field.getName()))
+              .map(BigQueryUtil::fieldValueToString)
+              .collect(Collectors.joining("\t"));
+      resultList.add(formattedRow);
+    }
+
+    return resultList.toArray(new String[0]);
+  }
+
+  private static String fieldValueToString(FieldValue fieldValue) {
+    if (null == fieldValue || fieldValue.isNull()) {
+      return "NULL";
+    }
+    return String.valueOf(fieldValue.getValue());
   }
 }

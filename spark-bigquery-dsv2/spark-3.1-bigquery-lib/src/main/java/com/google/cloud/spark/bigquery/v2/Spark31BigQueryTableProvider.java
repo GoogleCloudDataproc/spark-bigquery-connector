@@ -15,7 +15,11 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import static com.google.cloud.bigquery.connector.common.BigQueryUtil.formatTableResult;
+
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.InjectorBuilder;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
@@ -25,12 +29,14 @@ import com.google.inject.Injector;
 import io.openlineage.spark.shade.client.OpenLineage;
 import io.openlineage.spark.shade.client.utils.DatasetIdentifier;
 import io.openlineage.spark.shade.extension.v1.LineageRelationProvider;
+import java.util.Locale;
 import java.util.Map;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap;
+import org.apache.spark.sql.connector.ExternalCommandRunner;
 import org.apache.spark.sql.connector.catalog.Table;
 import org.apache.spark.sql.connector.catalog.TableProvider;
 import org.apache.spark.sql.connector.expressions.Transform;
@@ -41,7 +47,10 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 import scala.collection.JavaConverters;
 
 public class Spark31BigQueryTableProvider extends BaseBigQuerySource
-    implements TableProvider, CreatableRelationProvider, LineageRelationProvider {
+    implements TableProvider,
+        CreatableRelationProvider,
+        LineageRelationProvider,
+        ExternalCommandRunner {
 
   private static final Transform[] EMPTY_TRANSFORM_ARRAY = {};
 
@@ -86,5 +95,20 @@ public class Spark31BigQueryTableProvider extends BaseBigQuerySource
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
     TableId tableId = config.getTableIdWithExplicitProject();
     return new DatasetIdentifier(BigQueryUtil.friendlyTableName(tableId), "bigquery");
+  }
+
+  @Override
+  public String[] executeCommand(String command, CaseInsensitiveStringMap options) {
+    String trimmedCommand = command.trim().toUpperCase(Locale.ROOT);
+    if (trimmedCommand.startsWith("SELECT") || trimmedCommand.startsWith("WITH")) {
+      throw new IllegalArgumentException(
+          "SELECT and WITH statements are not supported for EXECUTE IMMEDIATE. "
+              + "Please use spark.read.format(\"bigquery\").load(command) instead.");
+    }
+    Injector injector =
+        new InjectorBuilder().withTableIsMandatory(false).withOptions(options).build();
+    BigQueryClient bqClient = injector.getInstance(BigQueryClient.class);
+    TableResult result = bqClient.query(command);
+    return formatTableResult(result);
   }
 }

@@ -19,6 +19,8 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.UserCredentials;
@@ -30,6 +32,8 @@ import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.HivePartitioningOptions;
 import com.google.cloud.bigquery.LegacySQLTypeName;
@@ -40,6 +44,7 @@ import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
@@ -1338,5 +1343,118 @@ public class BigQueryUtilTest {
     assertThat(e.getMessage())
         .contains(
             "Missing positional parameter for index: 1. Parameters must be contiguous starting from 1.");
+  }
+
+  @Test
+  public void formatTableResult_whenSchemaIsNull_returnsEmptyArray() {
+    // Arrange: Mock a TableResult that returns a null schema
+    TableResult mockResult = mock(TableResult.class);
+    when(mockResult.getSchema()).thenReturn(null);
+
+    // Act
+    String[] actual = BigQueryUtil.formatTableResult(mockResult);
+
+    // Assert: The result should be an empty array
+    assertThat(actual).isEmpty();
+  }
+
+  @Test
+  public void formatTableResult_whenNoRows_returnsHeaderOnly() {
+    // Arrange: Mock a schema with fields but no data rows
+    TableResult mockResult = mock(TableResult.class);
+    // Create a real Schema instance instead of mocking it
+    Schema realSchema =
+        Schema.of(
+            Field.of("id", LegacySQLTypeName.INTEGER), Field.of("name", LegacySQLTypeName.STRING));
+
+    when(mockResult.getSchema()).thenReturn(realSchema);
+    when(mockResult.iterateAll()).thenReturn(Collections.emptyList());
+
+    // Act
+    String[] actual = BigQueryUtil.formatTableResult(mockResult);
+
+    // Assert: The result should contain only the tab-separated header
+    String[] expected = {"id\tname"};
+    assertThat(actual).isEqualTo(expected);
+  }
+
+  @Test
+  public void formatTableResult_whenSchemaIsEmpty_returnsEmptyHeader() {
+    // Arrange: Mock a schema with an empty field list
+    TableResult mockResult = mock(TableResult.class);
+    // Create a real Schema instance with no fields
+    Schema realSchema = Schema.of();
+
+    when(mockResult.getSchema()).thenReturn(realSchema);
+    when(mockResult.iterateAll()).thenReturn(Collections.emptyList());
+
+    // Act
+    String[] actual = BigQueryUtil.formatTableResult(mockResult);
+
+    // Assert: The result should be an array with a single empty string for the header
+    String[] expected = {""};
+    assertThat(actual).isEqualTo(expected);
+  }
+
+  @Test
+  public void formatTableResult_whenHasRowsWithDataAndNulls_returnsFormattedTable() {
+    // Arrange: Set up a full table result with multiple rows, data, and nulls.
+    TableResult mockResult = mock(TableResult.class);
+
+    // 1. Define the schema's fields and create a real Schema instance
+    Field idField = Field.of("id", LegacySQLTypeName.INTEGER);
+    Field nameField = Field.of("name", LegacySQLTypeName.STRING);
+    Field scoreField = Field.of("score", LegacySQLTypeName.FLOAT);
+    Schema realSchema = Schema.of(idField, nameField, scoreField);
+    // Get FieldList from the real schema, which is needed to construct FieldValueList
+    FieldList fieldList = realSchema.getFields();
+
+    // 2. Create data rows
+    // Row 1: All values present
+    FieldValueList row1 =
+        FieldValueList.of(
+            Arrays.asList(
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "1"),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "Alice"),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "95.5")),
+            fieldList);
+
+    // Row 2: Contains a null value for the 'name' field
+    FieldValueList row2 =
+        FieldValueList.of(
+            Arrays.asList(
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "2"),
+                FieldValue.of(
+                    FieldValue.Attribute.PRIMITIVE, null), // This will be formatted as "NULL"
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "88.0")),
+            fieldList);
+
+    // Row 3: All values present
+    FieldValueList row3 =
+        FieldValueList.of(
+            Arrays.asList(
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "3"),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "Bob"),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "72.25")),
+            fieldList);
+
+    List<FieldValueList> rows = Arrays.asList(row1, row2, row3);
+
+    // 3. Configure the mocks
+    when(mockResult.getSchema()).thenReturn(realSchema);
+    when(mockResult.iterateAll()).thenReturn(rows);
+
+    // Act
+    String[] actual = BigQueryUtil.formatTableResult(mockResult);
+
+    // Assert: The output should be a correctly formatted string array
+    String[] expected = {
+      "id\tname\tscore", // Header
+      "1\tAlice\t95.5", // Row 1
+      "2\tNULL\t88.0", // Row 2 with NULL
+      "3\tBob\t72.25" // Row 3
+    };
+
+    assertThat(actual).isEqualTo(expected);
   }
 }

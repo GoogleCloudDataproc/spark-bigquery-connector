@@ -373,6 +373,17 @@ df.writeStream \
 
 **Important:** The connector does not configure the GCS connector, in order to avoid conflict with another GCS connector, if exists. In order to use the write capabilities of the connector, please configure the GCS connector on your cluster as explained [here](https://github.com/GoogleCloudPlatform/bigdata-interop/tree/master/gcs).
 
+### Running SQL on BigQuery
+
+The connector supports Spark's [SparkSession#executeCommand](https://archive.apache.org/dist/spark/docs/3.0.0/api/java/org/apache/spark/sql/SparkSession.html#executeCommand-java.lang.String-java.lang.String-scala.collection.immutable.Map-)
+with the Spark-X.Y-bigquery connectors. It can be used any arbitrary DDL/DML StandardSQL on BigQuery as a BigQuery query
+job. `SELECT` statements are not supported, as those are supported by reading from query as shown above. It can be used
+as follows:
+```
+spark.executeCommand("bigquery", SQL, options)
+```
+Notice that apart from the authentication options no other options are supported by this functionality.
+
 ### Properties
 
 The API Supports a number of options to configure the read
