@@ -52,11 +52,13 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.Timestamp;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.UUID;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -70,7 +72,7 @@ public class ReadSessionCreatorTest {
   BigQueryClient bigQueryClient = mock(BigQueryClient.class);
   UnaryCallable<CreateReadSessionRequest, ReadSession> createReadSessionCall =
       mock(UnaryCallable.class);
-  BigQueryReadClient readClient = BigQueryReadClient.create(stub);
+  BigQueryReadClient readClient = createMockBigQueryReadClient(stub);
   BigQueryClientFactory bigQueryReadClientFactory = mock(BigQueryClientFactory.class);
   TableInfo table =
       TableInfo.newBuilder(
@@ -491,5 +493,18 @@ public class ReadSessionCreatorTest {
         creator, expected2, ImmutableList.of("foo", "bar"), Optional.of("filter1"));
     testCacheHitScenario(
         creator, expected3, ImmutableList.of("foo", "bar"), Optional.of("filter2"));
+  }
+
+  private static BigQueryReadClient createMockBigQueryReadClient(EnhancedBigQueryReadStub stub) {
+    try {
+      BigQueryReadClient client = BigQueryReadClient.create(stub);
+      // settings is null, causing NPE in some of the tests
+      FieldUtils.writeField(client, "settings", BigQueryReadSettings.newBuilder().build(), true);
+      return client;
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 }

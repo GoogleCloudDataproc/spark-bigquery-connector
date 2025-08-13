@@ -11,6 +11,7 @@
 
   <artifactId>bigquery-connector-common</artifactId>
   <name>BigQuery Connector Common Library</name>
+  <packaging>jar</packaging>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
@@ -138,6 +139,11 @@
       <artifactId>gson</artifactId>
       <version>2.9.1</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -147,6 +153,14 @@
         <version>3.2.0</version>
         <executions>
           <execution>
+            <id>default-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>test-jar</id>
             <goals>
               <goal>test-jar</goal>
             </goals>
