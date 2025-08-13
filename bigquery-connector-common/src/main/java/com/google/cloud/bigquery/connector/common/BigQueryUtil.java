@@ -1106,7 +1106,7 @@ public class BigQueryUtil {
     FieldList fields = schema.getFields();
 
     // Header row
-    if(withHeader) {
+    if (withHeader) {
       resultList.add(fields.stream().map(Field::getName).collect(Collectors.joining("\t")));
     }
 
