@@ -9,7 +9,11 @@
 * PR #1380: Fixed ImpersonatedCredentials serialization
 * PR #1381: Added the option to set custom credentials scopes
 * PR #1395: Added option to specify BigQuery reservation for connector-created jobs (bigQueryJobReservation).
-* BigQuery API has been upgraded to version 2.53.0.
+* PR #1411: Added Support for [SparkSession#executeCommand](https://archive.apache.org/dist/spark/docs/3.0.0/api/java/org/apache/spark/sql/SparkSession.html#executeCommand-java.lang.String-java.lang.String-scala.collection.immutable.Map-)
+* BigQuery API has been upgraded to version 2.54.0
+* BigQuery Storage API has been upgraded to version 3.16.1
+* GAX has been upgraded to version 2.68.2
+* gRPC has been upgraded to version 1.74.0
 
 ## 0.42.2 - 2025-05-16
 * PR #1347: Get lineage out of query. Thanks @ddebowczyk92
