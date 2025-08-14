@@ -144,9 +144,12 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
                 temporaryTableId.get(), config.getTableId());
         bigQueryClient.waitForJob(queryJob);
+      } else {
+        loadDataToBigQuery(sourceUris, schema);
       }
-      loadDataToBigQuery(sourceUris, schema);
-      updateMetadataIfNeeded();
+      if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE) {
+        updateMetadataIfNeeded();
+      }
       logger.info("Data has been successfully loaded to BigQuery");
     } catch (IOException e) {
       throw new UncheckedIOException(e);
