@@ -62,7 +62,7 @@ gcloud dataproc clusters create "$MY_CLUSTER"
 The latest version of the connector is publicly available in the following links:
 
 | version    | Link                                                                                                                                                                                                                   |
-|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Spark 3.5  | `gs://spark-lib/bigquery/spark-3.5-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.5-bigquery-${next-release-tag}.jar))                                        |
 | Spark 3.4  | `gs://spark-lib/bigquery/spark-3.4-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.4-bigquery-${next-release-tag}.jar))                                        |
 | Spark 3.3  | `gs://spark-lib/bigquery/spark-3.3-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.3-bigquery-${next-release-tag}.jar))                                        |
@@ -80,8 +80,8 @@ The final two connectors are Scala based connectors, please use the jar relevant
 below.
 
 ### Connector to Spark Compatibility Matrix
-| Connector \ Spark                     | 2.3     | 2.4     | 3.0     | 3.1     | 3.2     | 3.3     |3.4      | 3.5     |
-|---------------------------------------|---------|---------|---------|---------|---------|---------|---------|---------|
+| Connector \ Spark                     | 2.3     | 2.4     | 3.0     | 3.1     | 3.2     | 3.3     | 3.4     | 3.5     |
+| ------------------------------------- | ------- | ------- | ------- | ------- | ------- | ------- | ------- | ------- |
 | spark-3.5-bigquery                    |         |         |         |         |         |         |         | &check; |
 | spark-3.4-bigquery                    |         |         |         |         |         |         | &check; | &check; |
 | spark-3.3-bigquery                    |         |         |         |         |         | &check; | &check; | &check; |
@@ -94,7 +94,7 @@ below.
 
 ### Connector to Dataproc Image Compatibility Matrix
 | Connector \ Dataproc Image            | 1.3     | 1.4     | 1.5     | 2.0     | 2.1     | 2.2     | Serverless<br>Image 1.0 | Serverless<br>Image 2.0 | Serverless<br>Image 2.1 | Serverless<br>Image 2.2 |
-|---------------------------------------|---------|---------|---------|---------|---------|---------|-------------------------|-------------------------|-------------------------|-------------------------|
+| ------------------------------------- | ------- | ------- | ------- | ------- | ------- | ------- | ----------------------- | ----------------------- | ----------------------- | ----------------------- |
 | spark-3.5-bigquery                    |         |         |         |         |         | &check; |                         |                         |                         | &check;                 |
 | spark-3.4-bigquery                    |         |         |         |         |         | &check; |                         |                         | &check;                 | &check;                 |
 | spark-3.3-bigquery                    |         |         |         |         | &check; | &check; | &check;                 | &check;                 | &check;                 | &check;                 |
@@ -112,7 +112,7 @@ repository. It can be used using the `--packages` option or the
 `spark.jars.packages` configuration property. Use the following value
 
 | version    | Connector Artifact                                                                 |
-|------------|------------------------------------------------------------------------------------|
+| ---------- | ---------------------------------------------------------------------------------- |
 | Spark 3.5  | `com.google.cloud.spark:spark-3.5-bigquery:${next-release-tag}`                    |
 | Spark 3.4  | `com.google.cloud.spark:spark-3.4-bigquery:${next-release-tag}`                    |
 | Spark 3.3  | `com.google.cloud.spark:spark-3.3-bigquery:${next-release-tag}`                    |
@@ -505,7 +505,7 @@ word-break:break-word
    <td>Read</td>
   </tr>
   <tr valign="top">
-   <td><code>reservation</code>
+   <td><code>bigQueryJobReservation</code>
    </td>
    <td>Can be used to specify the slot reservation to run connector-created query and load jobs against (BigQuery docs)[https://cloud.google.com/bigquery/docs/reservations-assignments#reservation].
        <br/>(Optional)

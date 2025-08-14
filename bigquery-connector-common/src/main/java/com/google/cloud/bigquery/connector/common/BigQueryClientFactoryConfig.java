@@ -53,7 +53,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final int channelPoolSize;
   private final Optional<Integer> flowControlWindowBytes;
   private final QueryJobConfiguration.Priority queryJobPriority;
-  private final Optional<String> reservation;
+  private final Optional<String> bigQueryJobReservation;
   private final long bigQueryJobTimeoutInMinutes;
 
   BigQueryClientFactoryConfig(BigQueryConfig bigQueryConfig, long bigQueryJobTimeoutInMinutes) {
@@ -86,7 +86,7 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.channelPoolSize = bigQueryConfig.getChannelPoolSize();
     this.flowControlWindowBytes = bigQueryConfig.getFlowControlWindowBytes();
     this.queryJobPriority = bigQueryConfig.getQueryJobPriority();
-    this.reservation = bigQueryConfig.getReservation();
+    this.bigQueryJobReservation = bigQueryConfig.getBigQueryJobReservation();
     this.bigQueryJobTimeoutInMinutes = bigQueryJobTimeoutInMinutes;
   }
 
@@ -221,8 +221,8 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   }
 
   @Override
-  public Optional<String> getReservation() {
-    return reservation;
+  public Optional<String> getBigQueryJobReservation() {
+    return bigQueryJobReservation;
   }
 
   public long getBigQueryJobTimeoutInMinutes() {

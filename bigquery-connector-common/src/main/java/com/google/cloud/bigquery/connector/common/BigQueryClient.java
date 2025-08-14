@@ -85,7 +85,8 @@ public class BigQueryClient {
   private static final List<Runnable> CLEANUP_JOBS = new ArrayList<>();
 
   private final BigQuery bigQuery;
-  // The rest client is generated directly from the API, and therefore returns more metadata than
+  // The rest client is generated directly from the API, and therefore returns
+  // more metadata than
   // the
   // google-cloud-bigquery client above,
   private final Bigquery bigqueryRestClient;
@@ -99,33 +100,32 @@ public class BigQueryClient {
       Cache<String, TableInfo> destinationTableCache,
       Map<String, String> labels,
       Priority queryJobPriority,
-      Optional<String> reservation,
+      Optional<String> bigQueryJobReservation,
       Optional<BigQueryJobCompletionListener> jobCompletionListener,
       long bigQueryJobTimeoutInMinutes) {
     this.bigQuery = bigQuery;
     this.bigqueryRestClient = createRestClient(bigQuery);
     this.destinationTableCache = destinationTableCache;
-    this.jobConfigurationFactory =
-        new JobConfigurationFactory(labels, queryJobPriority, reservation);
+    this.jobConfigurationFactory = new JobConfigurationFactory(labels, queryJobPriority, bigQueryJobReservation);
     this.jobCompletionListener = jobCompletionListener;
     this.bigQueryJobTimeoutInMinutes = bigQueryJobTimeoutInMinutes;
   }
 
   static Bigquery createRestClient(BigQuery bigQuery) {
     try {
-      // Initialize client that will be used to send requests. This client only needs to be created
+      // Initialize client that will be used to send requests. This client only needs
+      // to be created
       // once, and can be reused for multiple requests
-      HttpCredentialsAdapter httpCredentialsAdapter =
-          new HttpCredentialsAdapter(bigQuery.getOptions().getCredentials());
-      Bigquery.Builder client =
-          new Bigquery.Builder(
-                  GoogleNetHttpTransport.newTrustedTransport(),
-                  GsonFactory.getDefaultInstance(),
-                  httpRequest -> {
-                    httpCredentialsAdapter.initialize(httpRequest);
-                    httpRequest.setThrowExceptionOnExecuteError(false);
-                  })
-              .setApplicationName(bigQuery.getOptions().getUserAgent());
+      HttpCredentialsAdapter httpCredentialsAdapter = new HttpCredentialsAdapter(
+          bigQuery.getOptions().getCredentials());
+      Bigquery.Builder client = new Bigquery.Builder(
+          GoogleNetHttpTransport.newTrustedTransport(),
+          GsonFactory.getDefaultInstance(),
+          httpRequest -> {
+            httpCredentialsAdapter.initialize(httpRequest);
+            httpRequest.setThrowExceptionOnExecuteError(false);
+          })
+          .setApplicationName(bigQuery.getOptions().getUserAgent());
       return client.build();
     } catch (GeneralSecurityException gse) {
       throw new BigQueryConnectorException(
@@ -157,10 +157,9 @@ public class BigQueryClient {
    */
   public JobInfo waitForJob(Job job) {
     try {
-      Job completedJob =
-          job.waitFor(
-              RetryOption.initialRetryDelay(Duration.ofSeconds(1)),
-              RetryOption.totalTimeout(Duration.ofMinutes(bigQueryJobTimeoutInMinutes)));
+      Job completedJob = job.waitFor(
+          RetryOption.initialRetryDelay(Duration.ofSeconds(1)),
+          RetryOption.totalTimeout(Duration.ofMinutes(bigQueryJobTimeoutInMinutes)));
       if (completedJob == null || completedJob.getStatus().getError() != null) {
         throw new UncheckedIOException(
             new IOException(
@@ -205,39 +204,37 @@ public class BigQueryClient {
    * Creates an empty table in BigQuery.
    *
    * @param tableId The TableId of the table to be created.
-   * @param schema The Schema of the table to be created.
+   * @param schema  The Schema of the table to be created.
    * @return The {@code Table} object representing the table that was created.
-   *     <p>public TableInfo createTable(TableId tableId, Schema schema) { return
-   *     createTable(tableId, schema, Optional.empty()); }
+   *         <p>
+   *         public TableInfo createTable(TableId tableId, Schema schema) { return
+   *         createTable(tableId, schema, Optional.empty()); }
    */
 
   /**
    * Creates an empty table in BigQuery.
    *
    * @param tableId The TableId of the table to be created.
-   * @param schema The Schema of the table to be created.
+   * @param schema  The Schema of the table to be created.
    * @param options Allows configuring the created table
    * @return The {@code Table} object representing the table that was created.
    */
   public TableInfo createTable(TableId tableId, Schema schema, CreateTableOptions options) {
 
-    StandardTableDefinition.Builder tableDefinition =
-        StandardTableDefinition.newBuilder().setSchema(schema);
+    StandardTableDefinition.Builder tableDefinition = StandardTableDefinition.newBuilder().setSchema(schema);
 
     options
         .getClusteredFields()
         .ifPresent(
-            clusteredFields ->
-                tableDefinition.setClustering(
-                    Clustering.newBuilder().setFields(clusteredFields).build()));
+            clusteredFields -> tableDefinition.setClustering(
+                Clustering.newBuilder().setFields(clusteredFields).build()));
 
     TableInfo.Builder tableInfo = TableInfo.newBuilder(tableId, tableDefinition.build());
     options
         .getKmsKeyName()
         .ifPresent(
-            keyName ->
-                tableInfo.setEncryptionConfiguration(
-                    EncryptionConfiguration.newBuilder().setKmsKeyName(keyName).build()));
+            keyName -> tableInfo.setEncryptionConfiguration(
+                EncryptionConfiguration.newBuilder().setKmsKeyName(keyName).build()));
     if (!options.getBigQueryTableLabels().isEmpty()) {
       tableInfo.setLabels(options.getBigQueryTableLabels());
     }
@@ -245,20 +242,23 @@ public class BigQueryClient {
   }
 
   /**
-   * Creates a temporary table with a job to cleanup after application end, and the same location as
-   * the destination table; the temporary table will have the same name as the destination table,
-   * with the current time in milliseconds appended to it; useful for holding temporary data in
+   * Creates a temporary table with a job to cleanup after application end, and
+   * the same location as
+   * the destination table; the temporary table will have the same name as the
+   * destination table,
+   * with the current time in milliseconds appended to it; useful for holding
+   * temporary data in
    * order to overwrite the destination table.
    *
-   * @param destinationTableId The TableId of the eventual destination for the data going into the
-   *     temporary table.
-   * @param schema The Schema of the destination / temporary table.
+   * @param destinationTableId The TableId of the eventual destination for the
+   *                           data going into the
+   *                           temporary table.
+   * @param schema             The Schema of the destination / temporary table.
    * @return The {@code Table} object representing the created temporary table.
    */
   public TableInfo createTempTable(TableId destinationTableId, Schema schema) {
     TableId tempTableId = createTempTableId(destinationTableId);
-    TableInfo tableInfo =
-        TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema)).build();
+    TableInfo tableInfo = TableInfo.newBuilder(tempTableId, StandardTableDefinition.of(schema)).build();
     TableInfo tempTable = bigQuery.create(tableInfo);
     CLEANUP_JOBS.add(() -> deleteTable(tempTable.getTableId()));
     return tempTable;
@@ -269,12 +269,11 @@ public class BigQueryClient {
       throws IllegalArgumentException {
     TableInfo destinationTable = getTable(destinationTableId);
     Schema tableSchema = destinationTable.getDefinition().getSchema();
-    ComparisonResult schemaWritableResult =
-        BigQueryUtil.schemaWritable(
-            schema, // sourceSchema
-            tableSchema, // destinationSchema
-            false, // regardFieldOrder
-            enableModeCheckForSchemaFields);
+    ComparisonResult schemaWritableResult = BigQueryUtil.schemaWritable(
+        schema, // sourceSchema
+        tableSchema, // destinationSchema
+        false, // regardFieldOrder
+        enableModeCheckForSchemaFields);
     Preconditions.checkArgument(
         schemaWritableResult.valuesAreEqual(),
         new BigQueryConnectorException.InvalidSchemaException(
@@ -287,10 +286,9 @@ public class BigQueryClient {
     String tempProject = destinationTableId.getProject();
     String tempDataset = destinationTableId.getDataset();
     String tableName = destinationTableId.getTable() + System.nanoTime();
-    TableId tempTableId =
-        tempProject == null
-            ? TableId.of(tempDataset, tableName)
-            : TableId.of(tempProject, tempDataset, tableName);
+    TableId tempTableId = tempProject == null
+        ? TableId.of(tempDataset, tableName)
+        : TableId.of(tempProject, tempDataset, tableName);
     return tempTableId;
   }
 
@@ -312,25 +310,28 @@ public class BigQueryClient {
     String queryFormat = "SELECT * FROM `%s`";
     String temporaryTableName = fullTableName(sourceTableId);
     String sqlQuery = String.format(queryFormat, temporaryTableName);
-    QueryJobConfiguration queryConfig =
-        jobConfigurationFactory
-            .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
-            .setUseLegacySql(false)
-            .setDestinationTable(destinationTableId)
-            .setWriteDisposition(writeDisposition)
-            .build();
+    QueryJobConfiguration queryConfig = jobConfigurationFactory
+        .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
+        .setUseLegacySql(false)
+        .setDestinationTable(destinationTableId)
+        .setWriteDisposition(writeDisposition)
+        .build();
 
     return create(JobInfo.newBuilder(queryConfig).build());
   }
 
   /**
-   * Overwrites the partitions of the destination table, using the partitions from the given
+   * Overwrites the partitions of the destination table, using the partitions from
+   * the given
    * temporary table, transactionally.
    *
-   * @param temporaryTableId The {@code TableId} representing the temporary-table.
-   * @param destinationTableId The {@code TableId} representing the destination table.
-   * @return The {@code Job} object representing this operation (which can be tracked to wait until
-   *     it has finished successfully).
+   * @param temporaryTableId   The {@code TableId} representing the
+   *                           temporary-table.
+   * @param destinationTableId The {@code TableId} representing the destination
+   *                           table.
+   * @return The {@code Job} object representing this operation (which can be
+   *         tracked to wait until
+   *         it has finished successfully).
    */
   public Job overwriteDestinationWithTemporaryDynamicPartitons(
       TableId temporaryTableId, TableId destinationTableId) {
@@ -344,24 +345,21 @@ public class BigQueryClient {
 
       TimePartitioning timePartitioning = sdt.getTimePartitioning();
       if (timePartitioning != null) {
-        sqlQuery =
-            getQueryForTimePartitionedTable(
-                destinationTableName, temporaryTableName, sdt, timePartitioning);
+        sqlQuery = getQueryForTimePartitionedTable(
+            destinationTableName, temporaryTableName, sdt, timePartitioning);
       } else {
         RangePartitioning rangePartitioning = sdt.getRangePartitioning();
         if (rangePartitioning != null) {
-          sqlQuery =
-              getQueryForRangePartitionedTable(
-                  destinationTableName, temporaryTableName, sdt, rangePartitioning);
+          sqlQuery = getQueryForRangePartitionedTable(
+              destinationTableName, temporaryTableName, sdt, rangePartitioning);
         }
       }
 
       if (sqlQuery != null) {
-        QueryJobConfiguration queryConfig =
-            jobConfigurationFactory
-                .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
-                .setUseLegacySql(false)
-                .build();
+        QueryJobConfiguration queryConfig = jobConfigurationFactory
+            .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
+            .setUseLegacySql(false)
+            .build();
 
         return create(JobInfo.newBuilder(queryConfig).build());
       }
@@ -372,50 +370,57 @@ public class BigQueryClient {
   }
 
   /**
-   * Overwrites the given destination table, with all the data from the given temporary table,
+   * Overwrites the given destination table, with all the data from the given
+   * temporary table,
    * transactionally.
    *
-   * @param temporaryTableId The {@code TableId} representing the temporary-table.
-   * @param destinationTableId The {@code TableId} representing the destination table.
-   * @return The {@code Job} object representing this operation (which can be tracked to wait until
-   *     it has finished successfully).
+   * @param temporaryTableId   The {@code TableId} representing the
+   *                           temporary-table.
+   * @param destinationTableId The {@code TableId} representing the destination
+   *                           table.
+   * @return The {@code Job} object representing this operation (which can be
+   *         tracked to wait until
+   *         it has finished successfully).
    */
   public Job overwriteDestinationWithTemporary(
       TableId temporaryTableId, TableId destinationTableId) {
-    String queryFormat =
-        "MERGE `%s`\n"
-            + "USING (SELECT * FROM `%s`)\n"
-            + "ON FALSE\n"
-            + "WHEN NOT MATCHED THEN INSERT ROW\n"
-            + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
+    String queryFormat = "MERGE `%s`\n"
+        + "USING (SELECT * FROM `%s`)\n"
+        + "ON FALSE\n"
+        + "WHEN NOT MATCHED THEN INSERT ROW\n"
+        + "WHEN NOT MATCHED BY SOURCE THEN DELETE";
 
     String destinationTableName = fullTableName(destinationTableId);
     String temporaryTableName = fullTableName(temporaryTableId);
     String sqlQuery = String.format(queryFormat, destinationTableName, temporaryTableName);
-    QueryJobConfiguration queryConfig =
-        jobConfigurationFactory
-            .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
-            .setUseLegacySql(false)
-            .build();
+    QueryJobConfiguration queryConfig = jobConfigurationFactory
+        .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
+        .setUseLegacySql(false)
+        .build();
 
     return create(JobInfo.newBuilder(queryConfig).build());
   }
 
   /**
-   * Appends all the data from the given temporary table, to the given destination table,
+   * Appends all the data from the given temporary table, to the given destination
+   * table,
    * transactionally.
    *
-   * @param temporaryTableId The {@code TableId} representing the temporary-table.
-   * @param destinationTableId The {@code TableId} representing the destination table.
-   * @return The {@code Job} object representing this operation (which can be tracked to wait until
-   *     it has finished successfully).
+   * @param temporaryTableId   The {@code TableId} representing the
+   *                           temporary-table.
+   * @param destinationTableId The {@code TableId} representing the destination
+   *                           table.
+   * @return The {@code Job} object representing this operation (which can be
+   *         tracked to wait until
+   *         it has finished successfully).
    */
   public Job appendDestinationWithTemporary(TableId temporaryTableId, TableId destinationTableId) {
     return copyData(temporaryTableId, destinationTableId, JobInfo.WriteDisposition.WRITE_APPEND);
   }
 
   /**
-   * Creates a String appropriately formatted for BigQuery Storage Write API representing the given
+   * Creates a String appropriately formatted for BigQuery Storage Write API
+   * representing the given
    * table.
    *
    * @param tableId The {@code TableId} representing the given object.
@@ -423,11 +428,16 @@ public class BigQueryClient {
    */
   public String createTablePathForBigQueryStorage(TableId tableId) {
     Preconditions.checkNotNull(tableId, "tableId cannot be null");
-    // We need the full path for the createWriteStream method. We used to have it by creating the
-    // table and then taking its full tableId, but that caused an issue with the ErrorIfExists
-    // implementation (now the check, done in another place is positive). To solve it, we do what
-    // the BigQuery client does on Table ID with no project - take the BigQuery client own project
-    // ID.  This gives us the same behavior but allows us to defer the table creation to the last
+    // We need the full path for the createWriteStream method. We used to have it by
+    // creating the
+    // table and then taking its full tableId, but that caused an issue with the
+    // ErrorIfExists
+    // implementation (now the check, done in another place is positive). To solve
+    // it, we do what
+    // the BigQuery client does on Table ID with no project - take the BigQuery
+    // client own project
+    // ID. This gives us the same behavior but allows us to defer the table creation
+    // to the last
     // minute.
     String project = tableId.getProject() != null ? tableId.getProject() : getProjectId();
     return String.format(
@@ -459,7 +469,8 @@ public class BigQueryClient {
     if (TableDefinition.Type.VIEW == tableType
         || TableDefinition.Type.MATERIALIZED_VIEW == tableType) {
       validateViewsEnabled(options);
-      // view materialization is done in a lazy manner, so it can occur only when the data is read
+      // view materialization is done in a lazy manner, so it can occur only when the
+      // data is read
       return table;
     }
     // not regular table or a view
@@ -471,10 +482,12 @@ public class BigQueryClient {
   }
 
   /**
-   * Returns the schema of the table/query/view. Uses dryRun to get the query schema instead of
+   * Returns the schema of the table/query/view. Uses dryRun to get the query
+   * schema instead of
    * materializing it.
    *
-   * @param options The {@code ReadTableOptions} options for reading the data source.
+   * @param options The {@code ReadTableOptions} options for reading the data
+   *                source.
    * @return The schema.
    */
   public Schema getReadTableSchema(ReadTableOptions options) {
@@ -585,17 +598,17 @@ public class BigQueryClient {
       ImmutableList<String> requiredColumns,
       String[] filters,
       OptionalLong snapshotTimeMillis) {
-    String columns =
-        requiredColumns.isEmpty()
-            ? "*"
-            : requiredColumns.stream()
-                .map(column -> String.format("`%s`", column))
-                .collect(Collectors.joining(","));
+    String columns = requiredColumns.isEmpty()
+        ? "*"
+        : requiredColumns.stream()
+            .map(column -> String.format("`%s`", column))
+            .collect(Collectors.joining(","));
 
     return createSql(table, columns, filters, snapshotTimeMillis);
   }
 
-  // assuming the SELECT part is properly formatted, can be used to call functions such as COUNT and
+  // assuming the SELECT part is properly formatted, can be used to call functions
+  // such as COUNT and
   // SUM
   String createSql(
       TableId table, String formattedQuery, String[] filters, OptionalLong snapshotTimeMillis) {
@@ -603,11 +616,10 @@ public class BigQueryClient {
 
     String whereClause = createWhereClause(filters).map(clause -> "WHERE " + clause).orElse("");
 
-    String snapshotTimeClause =
-        snapshotTimeMillis.isPresent()
-            ? String.format(
-                "FOR SYSTEM_TIME AS OF TIMESTAMP_MILLIS(%d)", snapshotTimeMillis.getAsLong())
-            : "";
+    String snapshotTimeClause = snapshotTimeMillis.isPresent()
+        ? String.format(
+            "FOR SYSTEM_TIME AS OF TIMESTAMP_MILLIS(%d)", snapshotTimeMillis.getAsLong())
+        : "";
 
     return String.format(
         "SELECT %s FROM `%s` %s %s", formattedQuery, tableName, whereClause, snapshotTimeClause);
@@ -670,7 +682,8 @@ public class BigQueryClient {
   }
 
   /**
-   * Runs the provided query on BigQuery and saves the result in a temporary table.
+   * Runs the provided query on BigQuery and saves the result in a temporary
+   * table.
    *
    * @param querySql the query to be run
    * @return a reference to the table
@@ -681,9 +694,10 @@ public class BigQueryClient {
   }
 
   /**
-   * Runs the provided query on BigQuery and saves the result in a temporary table.
+   * Runs the provided query on BigQuery and saves the result in a temporary
+   * table.
    *
-   * @param querySql the query to be run
+   * @param querySql                 the query to be run
    * @param additionalQueryJobLabels the labels to insert on the query job
    * @return a reference to the table
    */
@@ -691,22 +705,22 @@ public class BigQueryClient {
       String querySql,
       Map<String, String> additionalQueryJobLabels,
       QueryParameterHelper queryParameterHelper) {
-    TempTableBuilder tableBuilder =
-        new TempTableBuilder(
-            this,
-            querySql,
-            jobConfigurationFactory,
-            additionalQueryJobLabels,
-            queryParameterHelper);
+    TempTableBuilder tableBuilder = new TempTableBuilder(
+        this,
+        querySql,
+        jobConfigurationFactory,
+        additionalQueryJobLabels,
+        queryParameterHelper);
 
     return materializeTable(querySql, tableBuilder);
   }
 
   /**
-   * Runs the provided query on BigQuery and saves the result in a temporary table.
+   * Runs the provided query on BigQuery and saves the result in a temporary
+   * table.
    *
    * @param querySql the query to be run
-   * @param viewId the view the query came from
+   * @param viewId   the view the query came from
    * @return a reference to the table
    */
   public TableInfo materializeViewToTable(String querySql, TableId viewId) {
@@ -717,13 +731,12 @@ public class BigQueryClient {
       String querySql,
       Map<String, String> additionalQueryJobLabels,
       QueryParameterHelper queryParameterHelper) {
-    JobInfo jobInfo =
-        JobInfo.of(
-            jobConfigurationFactory
-                .createParameterizedQueryJobConfigurationBuilder(
-                    querySql, additionalQueryJobLabels, queryParameterHelper)
-                .setDryRun(true)
-                .build());
+    JobInfo jobInfo = JobInfo.of(
+        jobConfigurationFactory
+            .createParameterizedQueryJobConfigurationBuilder(
+                querySql, additionalQueryJobLabels, queryParameterHelper)
+            .setDryRun(true)
+            .build());
 
     log.info("running query dryRun {}", querySql);
     JobInfo completedJobInfo = create(jobInfo);
@@ -772,11 +785,10 @@ public class BigQueryClient {
       JobInfo.WriteDisposition writeDisposition,
       Optional<Schema> schema,
       TableId destinationTable) {
-    LoadJobConfiguration.Builder jobConfiguration =
-        jobConfigurationFactory
-            .createLoadJobConfigurationBuilder(destinationTable, sourceUris, formatOptions)
-            .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
-            .setWriteDisposition(writeDisposition);
+    LoadJobConfiguration.Builder jobConfiguration = jobConfigurationFactory
+        .createLoadJobConfigurationBuilder(destinationTable, sourceUris, formatOptions)
+        .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
+        .setWriteDisposition(writeDisposition);
 
     if (schema.isPresent()) {
       jobConfiguration.setSchema(schema.get());
@@ -788,8 +800,7 @@ public class BigQueryClient {
     options.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
 
     if (options.getPartitionField().isPresent() || options.getPartitionType().isPresent()) {
-      TimePartitioning.Builder timePartitionBuilder =
-          TimePartitioning.newBuilder(options.getPartitionTypeOrDefault());
+      TimePartitioning.Builder timePartitionBuilder = TimePartitioning.newBuilder(options.getPartitionTypeOrDefault());
       options.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
       options
           .getPartitionRequireFilter()
@@ -827,11 +838,10 @@ public class BigQueryClient {
     options
         .getKmsKeyName()
         .ifPresent(
-            destinationTableKmsKeyName ->
-                jobConfiguration.setDestinationEncryptionConfiguration(
-                    EncryptionConfiguration.newBuilder()
-                        .setKmsKeyName(destinationTableKmsKeyName)
-                        .build()));
+            destinationTableKmsKeyName -> jobConfiguration.setDestinationEncryptionConfiguration(
+                EncryptionConfiguration.newBuilder()
+                    .setKmsKeyName(destinationTableKmsKeyName)
+                    .build()));
 
     Job finishedJob = null;
     try {
@@ -863,8 +873,8 @@ public class BigQueryClient {
       TimePartitioning.Type partitionType = options.getPartitionTypeOrDefault();
 
       if (e.getMessage()
-              .equals(
-                  String.format("Cannot output %s partitioned data in LegacySQL", partitionType))
+          .equals(
+              String.format("Cannot output %s partitioned data in LegacySQL", partitionType))
           && formatOptions.equals(FormatOptions.parquet())) {
         throw new BigQueryException(
             0,
@@ -893,15 +903,16 @@ public class BigQueryClient {
   }
 
   /**
-   * Retrieves the table's metadata from the REST client, may contain more information than the
+   * Retrieves the table's metadata from the REST client, may contain more
+   * information than the
    * regular one
    */
   public Optional<com.google.api.services.bigquery.model.Table> getRestTable(TableId tableId) {
     try {
-      // tableId.getProject() may be null, so we replacing it with the default project id
-      String project =
-          Optional.ofNullable(tableId.getProject())
-              .orElseGet(() -> bigQuery.getOptions().getProjectId());
+      // tableId.getProject() may be null, so we replacing it with the default project
+      // id
+      String project = Optional.ofNullable(tableId.getProject())
+          .orElseGet(() -> bigQuery.getOptions().getProjectId());
       return Optional.ofNullable(
           bigqueryRestClient
               .tables()
@@ -927,10 +938,9 @@ public class BigQueryClient {
   }
 
   public boolean deleteDataset(DatasetId datasetId, boolean cascade) {
-    BigQuery.DatasetDeleteOption[] options =
-        cascade
-            ? new BigQuery.DatasetDeleteOption[] {BigQuery.DatasetDeleteOption.deleteContents()}
-            : new BigQuery.DatasetDeleteOption[] {};
+    BigQuery.DatasetDeleteOption[] options = cascade
+        ? new BigQuery.DatasetDeleteOption[] { BigQuery.DatasetDeleteOption.deleteContents() }
+        : new BigQuery.DatasetDeleteOption[] {};
     return bigQuery.delete(datasetId, options);
   }
 
@@ -1044,8 +1054,8 @@ public class BigQueryClient {
 
     TableInfo createTableFromQuery() {
       log.info("Materializing the query into a temporary table");
-      QueryJobConfiguration.Builder queryJobConfigurationBuilder =
-          jobConfigurationFactory.createParameterizedQueryJobConfigurationBuilder(
+      QueryJobConfiguration.Builder queryJobConfigurationBuilder = jobConfigurationFactory
+          .createParameterizedQueryJobConfigurationBuilder(
               querySql, additionalQueryJobLabels, queryParameterHelper);
 
       JobInfo jobInfo = JobInfo.of(queryJobConfigurationBuilder.build());
@@ -1088,13 +1098,13 @@ public class BigQueryClient {
   static class JobConfigurationFactory {
     private final ImmutableMap<String, String> labels;
     private final Priority queryJobPriority;
-    private final Optional<String> reservation;
+    private final Optional<String> bigQueryJobReservation;
 
     public JobConfigurationFactory(
-        Map<String, String> labels, Priority queryJobPriority, Optional<String> reservation) {
+        Map<String, String> labels, Priority queryJobPriority, Optional<String> bigQueryJobReservation) {
       this.labels = ImmutableMap.copyOf(labels);
       this.queryJobPriority = queryJobPriority;
-      this.reservation = reservation;
+      this.bigQueryJobReservation = bigQueryJobReservation;
     }
 
     QueryJobConfiguration.Builder createQueryJobConfigurationBuilder(
@@ -1108,8 +1118,7 @@ public class BigQueryClient {
         Map<String, String> additionalQueryJobLabels,
         QueryParameterHelper queryParameterHelper) {
 
-      QueryJobConfiguration.Builder builder =
-          QueryJobConfiguration.newBuilder(querySql).setPriority(queryJobPriority);
+      QueryJobConfiguration.Builder builder = QueryJobConfiguration.newBuilder(querySql).setPriority(queryJobPriority);
 
       queryParameterHelper.configureBuilder(builder);
 
@@ -1121,20 +1130,19 @@ public class BigQueryClient {
 
       builder.setLabels(allLabels);
 
-      reservation.ifPresent(builder::setReservation);
+      bigQueryJobReservation.ifPresent(builder::setBigQueryJobReservation);
 
       return builder;
     }
 
     LoadJobConfiguration.Builder createLoadJobConfigurationBuilder(
         TableId tableId, List<String> sourceUris, FormatOptions formatOptions) {
-      LoadJobConfiguration.Builder builder =
-          LoadJobConfiguration.newBuilder(tableId, sourceUris, formatOptions);
+      LoadJobConfiguration.Builder builder = LoadJobConfiguration.newBuilder(tableId, sourceUris, formatOptions);
       if (labels != null && !labels.isEmpty()) {
         builder.setLabels(labels);
       }
 
-      reservation.ifPresent(builder::setReservation);
+      bigQueryJobReservation.ifPresent(builder::setBigQueryJobReservation);
       return builder;
     }
   }

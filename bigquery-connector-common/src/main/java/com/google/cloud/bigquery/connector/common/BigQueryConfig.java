@@ -78,7 +78,7 @@ public interface BigQueryConfig {
 
   Priority getQueryJobPriority();
 
-  Optional<String> getReservation();
+  Optional<String> getBigQueryJobReservation();
 
   long getBigQueryJobTimeoutInMinutes();
 

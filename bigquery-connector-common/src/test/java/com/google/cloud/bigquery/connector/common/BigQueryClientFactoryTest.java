@@ -52,36 +52,33 @@ import org.junit.Test;
 import org.mockito.Answers;
 
 public class BigQueryClientFactoryTest {
-  private static final String CLIENT_EMAIL =
-      "36680232662-vrd7ji19qe3nelgchd0ah2csanun6bnr@developer.gserviceaccount.com";
+  private static final String CLIENT_EMAIL = "36680232662-vrd7ji19qe3nelgchd0ah2csanun6bnr@developer.gserviceaccount.com";
   private static final String PRIVATE_KEY_ID = "d84a4fefcf50791d4a90f2d7af17469d6282df9d";
   private static final Collection<String> SCOPES = Collections.singletonList("dummy.scope");
   private static final String USER = "user@example.com";
   private static final String PROJECT_ID = "project-id";
 
   private final PrivateKey privateKey = mock(PrivateKey.class);
-  private final BigQueryCredentialsSupplier bigQueryCredentialsSupplier =
-      mock(BigQueryCredentialsSupplier.class);
+  private final BigQueryCredentialsSupplier bigQueryCredentialsSupplier = mock(BigQueryCredentialsSupplier.class);
   private final BigQueryConfig bigQueryConfig = mock(BigQueryConfig.class);
   // initialized in the constructor due dependency on bigQueryConfig
   private final HeaderProvider headerProvider;
-  private final BigQueryProxyConfig bigQueryProxyConfig =
-      new BigQueryProxyConfig() {
-        @Override
-        public Optional<URI> getProxyUri() {
-          return Optional.empty();
-        }
+  private final BigQueryProxyConfig bigQueryProxyConfig = new BigQueryProxyConfig() {
+    @Override
+    public Optional<URI> getProxyUri() {
+      return Optional.empty();
+    }
 
-        @Override
-        public Optional<String> getProxyUsername() {
-          return Optional.empty();
-        }
+    @Override
+    public Optional<String> getProxyUsername() {
+      return Optional.empty();
+    }
 
-        @Override
-        public Optional<String> getProxyPassword() {
-          return Optional.empty();
-        }
-      };
+    @Override
+    public Optional<String> getProxyPassword() {
+      return Optional.empty();
+    }
+  };
 
   public BigQueryClientFactoryTest() {
     when(bigQueryConfig.useParentProjectForMetadataOperations()).thenReturn(false);
@@ -90,8 +87,8 @@ public class BigQueryClientFactoryTest {
 
   @Test
   public void testGetReadClientForSameClientFactory() {
-    BigQueryClientFactory clientFactory =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getChannelPoolSize()).thenReturn(1);
@@ -107,8 +104,8 @@ public class BigQueryClientFactoryTest {
 
   @Test
   public void testGetReadClientWithUserAgent() {
-    BigQueryClientFactory clientFactory =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
@@ -118,8 +115,8 @@ public class BigQueryClientFactoryTest {
     BigQueryReadClient readClient = clientFactory.getBigQueryReadClient();
     assertNotNull(readClient);
 
-    BigQueryClientFactory clientFactory2 =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory2 = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
@@ -131,11 +128,10 @@ public class BigQueryClientFactoryTest {
 
     assertSame(readClient, readClient2);
 
-    BigQueryClientFactory clientFactory3 =
-        new BigQueryClientFactory(
-            bigQueryCredentialsSupplier,
-            HttpUtil.createHeaderProvider(bigQueryConfig, "test-agent-2"),
-            bigQueryConfig);
+    BigQueryClientFactory clientFactory3 = new BigQueryClientFactory(
+        bigQueryCredentialsSupplier,
+        HttpUtil.createHeaderProvider(bigQueryConfig, "test-agent-2"),
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
@@ -151,31 +147,28 @@ public class BigQueryClientFactoryTest {
 
   @Test
   public void testGetReadClientWithBigQueryConfig() {
-    BigQueryClientFactory clientFactory =
-        new BigQueryClientFactory(
-            bigQueryCredentialsSupplier,
-            headerProvider,
-            new TestBigQueryConfig(Optional.of("US:8080")));
+    BigQueryClientFactory clientFactory = new BigQueryClientFactory(
+        bigQueryCredentialsSupplier,
+        headerProvider,
+        new TestBigQueryConfig(Optional.of("US:8080")));
 
     BigQueryReadClient readClient = clientFactory.getBigQueryReadClient();
     assertNotNull(readClient);
 
-    BigQueryClientFactory clientFactory2 =
-        new BigQueryClientFactory(
-            bigQueryCredentialsSupplier,
-            headerProvider,
-            new TestBigQueryConfig(Optional.of("US:8080")));
+    BigQueryClientFactory clientFactory2 = new BigQueryClientFactory(
+        bigQueryCredentialsSupplier,
+        headerProvider,
+        new TestBigQueryConfig(Optional.of("US:8080")));
 
     BigQueryReadClient readClient2 = clientFactory2.getBigQueryReadClient();
     assertNotNull(readClient2);
 
     assertSame(readClient, readClient2);
 
-    BigQueryClientFactory clientFactory3 =
-        new BigQueryClientFactory(
-            bigQueryCredentialsSupplier,
-            headerProvider,
-            new TestBigQueryConfig(Optional.of("EU:8080")));
+    BigQueryClientFactory clientFactory3 = new BigQueryClientFactory(
+        bigQueryCredentialsSupplier,
+        headerProvider,
+        new TestBigQueryConfig(Optional.of("EU:8080")));
 
     BigQueryReadClient readClient3 = clientFactory3.getBigQueryReadClient();
     assertNotNull(readClient3);
@@ -188,8 +181,8 @@ public class BigQueryClientFactoryTest {
   public void testGetReadClientWithServiceAccountCredentials() {
     when(bigQueryCredentialsSupplier.getCredentials())
         .thenReturn(createServiceAccountCredentials("test-client-id"));
-    BigQueryClientFactory clientFactory =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
@@ -201,8 +194,8 @@ public class BigQueryClientFactoryTest {
 
     when(bigQueryCredentialsSupplier.getCredentials())
         .thenReturn(createServiceAccountCredentials("test-client-id"));
-    BigQueryClientFactory clientFactory2 =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory2 = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
@@ -216,8 +209,8 @@ public class BigQueryClientFactoryTest {
 
     when(bigQueryCredentialsSupplier.getCredentials())
         .thenReturn(createServiceAccountCredentials("test-client-id-2"));
-    BigQueryClientFactory clientFactory3 =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory3 = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
@@ -233,8 +226,8 @@ public class BigQueryClientFactoryTest {
 
   @Test
   public void testGetWriteClientForSameClientFactory() {
-    BigQueryClientFactory clientFactory =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
 
@@ -249,8 +242,8 @@ public class BigQueryClientFactoryTest {
 
   @Test
   public void testGetWriteClientWithUserAgent() {
-    BigQueryClientFactory clientFactory =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
@@ -259,8 +252,8 @@ public class BigQueryClientFactoryTest {
     BigQueryWriteClient writeClient = clientFactory.getBigQueryWriteClient();
     assertNotNull(writeClient);
 
-    BigQueryClientFactory clientFactory2 =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory2 = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
@@ -271,11 +264,10 @@ public class BigQueryClientFactoryTest {
 
     assertSame(writeClient, writeClient2);
 
-    BigQueryClientFactory clientFactory3 =
-        new BigQueryClientFactory(
-            bigQueryCredentialsSupplier,
-            HttpUtil.createHeaderProvider(bigQueryConfig, "test-agent-2"),
-            bigQueryConfig);
+    BigQueryClientFactory clientFactory3 = new BigQueryClientFactory(
+        bigQueryCredentialsSupplier,
+        HttpUtil.createHeaderProvider(bigQueryConfig, "test-agent-2"),
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
@@ -290,31 +282,28 @@ public class BigQueryClientFactoryTest {
 
   @Test
   public void testGetWriteClientWithBigQueryConfig() {
-    BigQueryClientFactory clientFactory =
-        new BigQueryClientFactory(
-            bigQueryCredentialsSupplier,
-            headerProvider,
-            new TestBigQueryConfig(Optional.of("US:8080")));
+    BigQueryClientFactory clientFactory = new BigQueryClientFactory(
+        bigQueryCredentialsSupplier,
+        headerProvider,
+        new TestBigQueryConfig(Optional.of("US:8080")));
 
     BigQueryWriteClient writeClient = clientFactory.getBigQueryWriteClient();
     assertNotNull(writeClient);
 
-    BigQueryClientFactory clientFactory2 =
-        new BigQueryClientFactory(
-            bigQueryCredentialsSupplier,
-            headerProvider,
-            new TestBigQueryConfig(Optional.of("US:8080")));
+    BigQueryClientFactory clientFactory2 = new BigQueryClientFactory(
+        bigQueryCredentialsSupplier,
+        headerProvider,
+        new TestBigQueryConfig(Optional.of("US:8080")));
 
     BigQueryWriteClient writeClient2 = clientFactory2.getBigQueryWriteClient();
     assertNotNull(writeClient2);
 
     assertSame(writeClient, writeClient2);
 
-    BigQueryClientFactory clientFactory3 =
-        new BigQueryClientFactory(
-            bigQueryCredentialsSupplier,
-            headerProvider,
-            new TestBigQueryConfig(Optional.of("EU:8080")));
+    BigQueryClientFactory clientFactory3 = new BigQueryClientFactory(
+        bigQueryCredentialsSupplier,
+        headerProvider,
+        new TestBigQueryConfig(Optional.of("EU:8080")));
 
     BigQueryWriteClient writeClient3 = clientFactory3.getBigQueryWriteClient();
     assertNotNull(writeClient3);
@@ -327,8 +316,8 @@ public class BigQueryClientFactoryTest {
   public void testGetWriteClientWithServiceAccountCredentials() throws Exception {
     when(bigQueryCredentialsSupplier.getCredentials())
         .thenReturn(createServiceAccountCredentials("test-client-id"));
-    BigQueryClientFactory clientFactory =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
@@ -339,8 +328,8 @@ public class BigQueryClientFactoryTest {
 
     when(bigQueryCredentialsSupplier.getCredentials())
         .thenReturn(createServiceAccountCredentials("test-client-id"));
-    BigQueryClientFactory clientFactory2 =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory2 = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
@@ -353,8 +342,8 @@ public class BigQueryClientFactoryTest {
 
     when(bigQueryCredentialsSupplier.getCredentials())
         .thenReturn(createServiceAccountCredentials("test-client-id-2"));
-    BigQueryClientFactory clientFactory3 =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory3 = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getClientCreationHashCode()).thenReturn(1234);
@@ -369,20 +358,18 @@ public class BigQueryClientFactoryTest {
 
   @Test
   public void testGetReadClientWithSameAndDifferentBQConfig() {
-    BigQueryClientFactory clientFactory =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
-    BigQueryClientFactory clientFactory2 =
-        new BigQueryClientFactory(
-            bigQueryCredentialsSupplier,
-            headerProvider,
-            new TestBigQueryConfig(Optional.of("EU:8080")));
+    BigQueryClientFactory clientFactory2 = new BigQueryClientFactory(
+        bigQueryCredentialsSupplier,
+        headerProvider,
+        new TestBigQueryConfig(Optional.of("EU:8080")));
 
-    BigQueryClientFactory clientFactory3 =
-        new BigQueryClientFactory(
-            bigQueryCredentialsSupplier,
-            headerProvider,
-            new TestBigQueryConfig(Optional.of("EU:8080")));
+    BigQueryClientFactory clientFactory3 = new BigQueryClientFactory(
+        bigQueryCredentialsSupplier,
+        headerProvider,
+        new TestBigQueryConfig(Optional.of("EU:8080")));
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
     when(bigQueryConfig.getChannelPoolSize()).thenReturn(1);
@@ -403,20 +390,18 @@ public class BigQueryClientFactoryTest {
 
   @Test
   public void testGetWriteClientWithSameAndDifferentBQConfig() {
-    BigQueryClientFactory clientFactory =
-        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+    BigQueryClientFactory clientFactory = new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider,
+        bigQueryConfig);
 
-    BigQueryClientFactory clientFactory2 =
-        new BigQueryClientFactory(
-            bigQueryCredentialsSupplier,
-            headerProvider,
-            new TestBigQueryConfig(Optional.of("EU:8080")));
+    BigQueryClientFactory clientFactory2 = new BigQueryClientFactory(
+        bigQueryCredentialsSupplier,
+        headerProvider,
+        new TestBigQueryConfig(Optional.of("EU:8080")));
 
-    BigQueryClientFactory clientFactory3 =
-        new BigQueryClientFactory(
-            bigQueryCredentialsSupplier,
-            headerProvider,
-            new TestBigQueryConfig(Optional.of("EU:8080")));
+    BigQueryClientFactory clientFactory3 = new BigQueryClientFactory(
+        bigQueryCredentialsSupplier,
+        headerProvider,
+        new TestBigQueryConfig(Optional.of("EU:8080")));
 
     when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
 
@@ -437,17 +422,15 @@ public class BigQueryClientFactoryTest {
   @Test
   public void testHashCodeWithExternalAccountCredentials() throws Exception {
     // Credentials taken from https://google.aip.dev/auth/4117:
-    Credentials credentials =
-        GoogleCredentials.fromStream(
-            getClass().getResourceAsStream("/external-account-credentials.json"));
+    Credentials credentials = GoogleCredentials.fromStream(
+        getClass().getResourceAsStream("/external-account-credentials.json"));
 
     when(bigQueryCredentialsSupplier.getCredentials()).thenReturn(credentials);
 
-    BigQueryClientFactory factory =
-        new BigQueryClientFactory(
-            bigQueryCredentialsSupplier,
-            FixedHeaderProvider.create("foo", "bar"),
-            new TestBigQueryConfig(Optional.empty()));
+    BigQueryClientFactory factory = new BigQueryClientFactory(
+        bigQueryCredentialsSupplier,
+        FixedHeaderProvider.create("foo", "bar"),
+        new TestBigQueryConfig(Optional.empty()));
 
     int hashCode1 = factory.hashCode();
     int hashCode2 = factory.hashCode();
@@ -460,31 +443,28 @@ public class BigQueryClientFactoryTest {
 
     // 1. Mock dependencies and make them serializable
     HeaderProvider headerProvider = mock(HeaderProvider.class, withSettings().serializable());
-    BigQueryConfig bqConfig =
-        mock(
-            BigQueryConfig.class,
-            withSettings().serializable().defaultAnswer(Answers.RETURNS_DEEP_STUBS));
-    BigQueryCredentialsSupplier credentialsSupplier =
-        mock(BigQueryCredentialsSupplier.class, withSettings().serializable());
+    BigQueryConfig bqConfig = mock(
+        BigQueryConfig.class,
+        withSettings().serializable().defaultAnswer(Answers.RETURNS_DEEP_STUBS));
+    BigQueryCredentialsSupplier credentialsSupplier = mock(BigQueryCredentialsSupplier.class,
+        withSettings().serializable());
 
-    // 2. Create source credentials for ImpersonatedCredentials (can be a simple serializable mock)
-    GoogleCredentials sourceCredentials =
-        mock(GoogleCredentials.class, withSettings().serializable());
+    // 2. Create source credentials for ImpersonatedCredentials (can be a simple
+    // serializable mock)
+    GoogleCredentials sourceCredentials = mock(GoogleCredentials.class, withSettings().serializable());
     when(sourceCredentials.createScopedRequired()).thenReturn(false);
 
     // 3. Create original ImpersonatedCredentials
-    ImpersonatedCredentials originalCredentials =
-        ImpersonatedCredentials.newBuilder()
-            .setSourceCredentials(sourceCredentials)
-            .setTargetPrincipal("dummy-target@example.com") // Dummy principal is fine
-            .setScopes(Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"))
-            .build();
+    ImpersonatedCredentials originalCredentials = ImpersonatedCredentials.newBuilder()
+        .setSourceCredentials(sourceCredentials)
+        .setTargetPrincipal("dummy-target@example.com") // Dummy principal is fine
+        .setScopes(Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"))
+        .build();
 
     when(credentialsSupplier.getCredentials()).thenReturn(originalCredentials);
 
     // 4. Create and serialize BigQueryClientFactory
-    BigQueryClientFactory factory =
-        new BigQueryClientFactory(credentialsSupplier, headerProvider, bqConfig);
+    BigQueryClientFactory factory = new BigQueryClientFactory(credentialsSupplier, headerProvider, bqConfig);
 
     byte[] serializedFactory;
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -506,14 +486,12 @@ public class BigQueryClientFactoryTest {
     // 7. Assertions using Google Truth
     assertThat(credentialsFromFactory).isInstanceOf(ImpersonatedCredentials.class);
 
-    ImpersonatedCredentials deserializedImpersonatedCredentials =
-        (ImpersonatedCredentials) credentialsFromFactory;
+    ImpersonatedCredentials deserializedImpersonatedCredentials = (ImpersonatedCredentials) credentialsFromFactory;
 
     // The core assertion: verify the calendar is not null after deserialization
     // and the factory's getCredentials() logic has run.
     // Accessing the calendar field via reflection as it's not public
-    java.lang.reflect.Field calendarField =
-        ImpersonatedCredentials.class.getDeclaredField("calendar");
+    java.lang.reflect.Field calendarField = ImpersonatedCredentials.class.getDeclaredField("calendar");
     calendarField.setAccessible(true);
     Calendar calendar = (Calendar) calendarField.get(deserializedImpersonatedCredentials);
     assertThat(calendar).isNotNull();
@@ -645,7 +623,7 @@ public class BigQueryClientFactoryTest {
     }
 
     @Override
-    public Optional<String> getReservation() {
+    public Optional<String> getBigQueryJobReservation() {
       return Optional.empty();
     }
 
