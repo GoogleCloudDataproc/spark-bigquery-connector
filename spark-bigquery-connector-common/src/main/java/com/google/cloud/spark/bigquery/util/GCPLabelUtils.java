@@ -122,7 +122,7 @@ public class GCPLabelUtils {
   static Optional<String> getClusterName(ImmutableMap<String, String> conf) {
     return getDriverHost(conf)
         .map(host -> host.split("\\.")[0])
-        .map(s -> s.substring(0, s.lastIndexOf("-")));
+        .map(s ->  s.contains("-") ? s.substring(0, s.lastIndexOf("-")) : s);
   }
 
   @VisibleForTesting
