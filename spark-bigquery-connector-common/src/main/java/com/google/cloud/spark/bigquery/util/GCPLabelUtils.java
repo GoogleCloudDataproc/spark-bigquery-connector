@@ -20,6 +20,7 @@ import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.util.Timeout;
+import org.jetbrains.annotations.NotNull;
 
 /** Util to extract values from GCP environment */
 public class GCPLabelUtils {
@@ -46,18 +47,11 @@ public class GCPLabelUtils {
   private static final String GOOGLE = "Google";
   private static final String SPARK_DIST_CLASSPATH = "SPARK_DIST_CLASSPATH";
 
-  enum ResourceType {
-    CLUSTER,
-    BATCH,
-    INTERACTIVE,
-    UNKNOWN
-  }
-
   static {
     ConnectionConfig connectionConfig =
         ConnectionConfig.custom()
-            .setConnectTimeout(Timeout.ofMilliseconds(100))
-            .setSocketTimeout(Timeout.ofMilliseconds(100))
+            .setConnectTimeout(Timeout.ofSeconds(1))
+            .setSocketTimeout(Timeout.ofSeconds(1))
             .build();
     PoolingHttpClientConnectionManager connMan =
         PoolingHttpClientConnectionManagerBuilder.create()
@@ -85,42 +79,38 @@ public class GCPLabelUtils {
   }
 
   static Map<String, String> getGCPLabels(ImmutableMap<String, String> conf) {
-    Map<String, String> gcpLabels = new HashMap<>();
-    ResourceType resource = identifyResource(conf);
-    switch (resource) {
-      case CLUSTER:
-        getClusterName(conf).ifPresent(p -> gcpLabels.put("cluster.name", p));
-        getClusterUUID(conf).ifPresent(p -> gcpLabels.put("cluster.uuid", p));
-        getDataprocJobID(conf).ifPresent(p -> gcpLabels.put("job.id", p));
-        getDataprocJobUUID(conf).ifPresent(p -> gcpLabels.put("job.uuid", p));
-        gcpLabels.put("job.type", "dataproc_job");
-        break;
-      case BATCH:
-        getDataprocBatchID(conf).ifPresent(p -> gcpLabels.put("spark.batch.id", p));
-        getDataprocBatchUUID(conf).ifPresent(p -> gcpLabels.put("spark.batch.uuid", p));
-        gcpLabels.put("job.type", "batch");
-        break;
-      case INTERACTIVE:
-        getDataprocSessionID(conf).ifPresent(p -> gcpLabels.put("spark.session.id", p));
-        getDataprocSessionUUID(conf).ifPresent(p -> gcpLabels.put("spark.session.uuid", p));
-        gcpLabels.put("job.type", "session");
-        break;
-      case UNKNOWN:
-        // do nothing
-        break;
-    }
+    Map<String, String> gcpLabels = getResourceLabels(conf);
     getGCPProjectId(conf).ifPresent(p -> gcpLabels.put("projectId", p));
     getDataprocRegion(conf).ifPresent(p -> gcpLabels.put("region", p));
     return gcpLabels;
   }
 
-  static ResourceType identifyResource(ImmutableMap<String, String> conf) {
-    if ("yarn".equals(conf.getOrDefault(SPARK_MASTER, ""))) return ResourceType.CLUSTER;
-    if (getDataprocBatchID(conf).isPresent()) return ResourceType.BATCH;
-    if (getDataprocSessionID(conf).isPresent()) return ResourceType.INTERACTIVE;
-
-    return ResourceType.UNKNOWN;
-  }
+    private static @NotNull Map<String, String> getResourceLabels(ImmutableMap<String, String> conf) {
+        Map<String, String> resourceLabels = new HashMap<>();
+        if("yarn".equals(conf.getOrDefault(SPARK_MASTER, ""))){
+            getClusterName(conf).ifPresent(p -> resourceLabels.put("cluster.name", p));
+            getClusterUUID(conf).ifPresent(p -> resourceLabels.put("cluster.uuid", p));
+            getDataprocJobID(conf).ifPresent(p -> resourceLabels.put("job.id", p));
+            getDataprocJobUUID(conf).ifPresent(p -> resourceLabels.put("job.uuid", p));
+            resourceLabels.put("job.type", "dataproc_job");
+            return resourceLabels;
+        }
+        Optional<String> dataprocBatchID = getDataprocBatchID(conf);
+        if(dataprocBatchID.isPresent()) {
+            dataprocBatchID.ifPresent(p -> resourceLabels.put("spark.batch.id", p));
+            getDataprocBatchUUID(conf).ifPresent(p -> resourceLabels.put("spark.batch.uuid", p));
+            resourceLabels.put("job.type", "batch");
+            return resourceLabels;
+        }
+        Optional<String> dataprocSessionID = getDataprocSessionID(conf);
+        if(dataprocSessionID.isPresent()) {
+            dataprocSessionID.ifPresent(p -> resourceLabels.put("spark.session.id", p));
+            getDataprocSessionUUID(conf).ifPresent(p -> resourceLabels.put("spark.session.uuid", p));
+            resourceLabels.put("job.type", "session");
+            return resourceLabels;
+        }
+        return resourceLabels;
+    }
 
   private static Optional<String> getDriverHost(ImmutableMap<String, String> conf) {
     return Optional.ofNullable(conf.get(SPARK_DRIVER_HOST));
@@ -199,7 +189,7 @@ public class GCPLabelUtils {
       return Optional.empty();
     }
     return Arrays.stream(yarnTag.split(","))
-        .filter(tag -> tag.contains(tagPrefix))
+        .filter(tag -> tag.startsWith(tagPrefix))
         .findFirst()
         .map(tag -> tag.substring(tagPrefix.length()));
   }

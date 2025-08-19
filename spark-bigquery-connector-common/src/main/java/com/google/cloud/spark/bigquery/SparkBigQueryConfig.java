@@ -636,9 +636,9 @@ public class SparkBigQueryConfig
 
     config.bigQueryJobLabels =
         ImmutableMap.<String, String>builder()
-            .putAll(parseBigQueryLabels(globalOptions, options, BIGQUERY_JOB_LABEL_PREFIX))
             .putAll(GCPLabelUtils.getSparkLabels(originalGlobalOptions))
-            .build();
+            .putAll(parseBigQueryLabels(globalOptions, options, BIGQUERY_JOB_LABEL_PREFIX))
+            .buildKeepingLast();
 
     config.bigQueryTableLabels =
         parseBigQueryLabels(globalOptions, options, BIGQUERY_TABLE_LABEL_PREFIX);
