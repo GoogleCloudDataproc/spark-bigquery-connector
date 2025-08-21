@@ -15,7 +15,4 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import org.junit.Ignore;
-
-@Ignore("OL DatabricksEventFilter throws exception in spark 4")
 public class Spark40OpenLineageIntegrationTest extends OpenLineageIntegrationTestBase {}
