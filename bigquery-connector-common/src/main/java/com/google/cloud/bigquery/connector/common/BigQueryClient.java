@@ -322,15 +322,14 @@ public class BigQueryClient {
   }
 
   public boolean isTablePartitioned(TableId tableId) {
-    TableDefinition tableDefinition = getTable(tableId).getDefinition();
+    TableInfo table = getTable(tableId);
+    if (table == null) {
+      return false;
+    }
+    TableDefinition tableDefinition = table.getDefinition();
     if (tableDefinition instanceof StandardTableDefinition) {
       StandardTableDefinition sdt = (StandardTableDefinition) tableDefinition;
-      TimePartitioning timePartitioning = sdt.getTimePartitioning();
-      if (timePartitioning != null) {
-        return true;
-      }
-      RangePartitioning rangePartitioning = sdt.getRangePartitioning();
-      return rangePartitioning != null;
+      return sdt.getTimePartitioning() != null || sdt.getRangePartitioning() != null;
     }
     return false;
   }
