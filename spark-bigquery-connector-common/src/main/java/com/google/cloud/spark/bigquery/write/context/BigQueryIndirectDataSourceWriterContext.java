@@ -132,7 +132,8 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
       }
       if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE
           && config.getPartitionOverwriteModeValue() == PartitionOverwriteMode.DYNAMIC
-          && bigQueryClient.tableExists(config.getTableId())) {
+          && bigQueryClient.tableExists(config.getTableId())
+          && bigQueryClient.isTablePartitioned(config.getTableId())) {
         temporaryTableId =
             Optional.of(
                 bigQueryClient
