@@ -321,6 +321,19 @@ public class BigQueryClient {
     return create(JobInfo.newBuilder(queryConfig).build());
   }
 
+  public boolean isTablePartitioned(TableId tableId) {
+    TableInfo table = getTable(tableId);
+    if (table == null) {
+      return false;
+    }
+    TableDefinition tableDefinition = table.getDefinition();
+    if (tableDefinition instanceof StandardTableDefinition) {
+      StandardTableDefinition sdt = (StandardTableDefinition) tableDefinition;
+      return sdt.getTimePartitioning() != null || sdt.getRangePartitioning() != null;
+    }
+    return false;
+  }
+
   /**
    * Overwrites the partitions of the destination table, using the partitions from the given
    * temporary table, transactionally.
