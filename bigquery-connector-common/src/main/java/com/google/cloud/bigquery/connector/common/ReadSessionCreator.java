@@ -36,6 +36,7 @@ import com.google.protobuf.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -98,14 +99,16 @@ public class ReadSessionCreator {
     log.info(
         "|creation a read session for table {}, parameters: "
             + "|selectedFields=[{}],"
-            + "|filter=[{}]"
-            + "|snapshotTimeMillis[{}]",
+            + "|filter=[{}],"
+            + "|snapshotTimeMillis[{}],"
+            + "|view=[{}]",
         actualTable.getFriendlyName(),
         String.join(",", selectedFields),
         filter.orElse("None"),
         config.getSnapshotTimeMillis().isPresent()
             ? String.valueOf(config.getSnapshotTimeMillis().getAsLong())
-            : "None");
+            : "None",
+        isInputTableAView(tableDetails));
 
     String tablePath = toTablePath(actualTable.getTableId());
     CreateReadSessionRequest request =
@@ -264,7 +267,7 @@ public class ReadSessionCreator {
       // get it from the view
       String querySql =
           bigQueryClient.createSql(
-              table.getTableId(), requiredColumns, filters, config.getSnapshotTimeMillis());
+              table.getTableId(), requiredColumns, filters, OptionalLong.empty());
       log.debug("querySql is {}", querySql);
       return bigQueryClient.materializeViewToTable(querySql, table.getTableId());
     } else {
