@@ -16,7 +16,6 @@
 package com.google.cloud.bigquery.connector.common;
 
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
-import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import static java.lang.String.format;
 
 import com.google.cloud.bigquery.TableDefinition;
