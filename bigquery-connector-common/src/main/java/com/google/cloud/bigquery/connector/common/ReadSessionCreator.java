@@ -16,7 +16,7 @@
 package com.google.cloud.bigquery.connector.common;
 
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
-import static com.google.cloud.bigquery.connector.common.BigQueryUtil.friendlyTableName;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import static java.lang.String.format;
 
 import com.google.cloud.bigquery.TableDefinition;
@@ -101,7 +101,7 @@ public class ReadSessionCreator {
             + "|selectedFields=[{}],"
             + "|filter=[{}]"
             + "|snapshotTimeMillis[{}]",
-        friendlyTableName(table),
+        BigQueryUtil.friendlyTableName(table),
         String.join(",", selectedFields),
         filter.orElse("None"),
         config.getSnapshotTimeMillis().isPresent()
