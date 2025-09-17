@@ -100,7 +100,7 @@ public class ReadSessionCreator {
             + "|selectedFields=[{}],"
             + "|filter=[{}]"
             + "|snapshotTimeMillis[{}]",
-        actualTable.getFriendlyName(),
+        BigQueryUtil.friendlyTableName(table),
         String.join(",", selectedFields),
         filter.orElse("None"),
         config.getSnapshotTimeMillis().isPresent()
