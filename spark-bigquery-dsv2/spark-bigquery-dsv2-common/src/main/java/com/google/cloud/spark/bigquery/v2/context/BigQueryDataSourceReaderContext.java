@@ -213,13 +213,14 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public DataOrigin getDataOrigin() {
-    if (readTableOptions.query().isPresent()) {
-      return DataOrigin.QUERY;
-    } else if (BigQueryUtil.isBigLakeManagedTable(table)
+    if (BigQueryUtil.isBigLakeManagedTable(table)
         || table.getDefinition().getType() == TableDefinition.Type.EXTERNAL) {
       return DataOrigin.BIGLAKE;
-    } else if (table.getDefinition().getType() == TableDefinition.Type.MATERIALIZED_VIEW) {
+    } else if (table.getDefinition().getType() == TableDefinition.Type.MATERIALIZED_VIEW
+        || table.getDefinition().getType() == TableDefinition.Type.VIEW) {
       return DataOrigin.VIEW;
+    } else if (readTableOptions.query().isPresent()) {
+      return DataOrigin.QUERY;
     } else {
       return DataOrigin.TABLE;
     }
