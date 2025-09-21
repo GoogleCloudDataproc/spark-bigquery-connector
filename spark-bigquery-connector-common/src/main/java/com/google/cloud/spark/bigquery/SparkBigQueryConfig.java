@@ -88,9 +88,9 @@ import org.threeten.bp.Duration;
 
 public class SparkBigQueryConfig
     implements BigQueryConfig,
-        BigQueryClient.CreateTableOptions,
-        BigQueryClient.LoadDataOptions,
-        Serializable {
+    BigQueryClient.CreateTableOptions,
+    BigQueryClient.LoadDataOptions,
+    Serializable {
 
   public static final int MAX_TRACE_ID_LENGTH = 256;
   public static final TableId QUERY_DUMMUY_TABLE_ID = TableId.of("QUERY", "QUERY");
@@ -110,10 +110,8 @@ public class SparkBigQueryConfig
   }
 
   public static final String IMPERSONATION_GLOBAL = "gcpImpersonationServiceAccount";
-  public static final String IMPERSONATION_FOR_USER_PREFIX =
-      "gcpImpersonationServiceAccountForUser.";
-  public static final String IMPERSONATION_FOR_GROUP_PREFIX =
-      "gcpImpersonationServiceAccountForGroup.";
+  public static final String IMPERSONATION_FOR_USER_PREFIX = "gcpImpersonationServiceAccountForUser.";
+  public static final String IMPERSONATION_FOR_GROUP_PREFIX = "gcpImpersonationServiceAccountForGroup.";
 
   public static final String VIEWS_ENABLED_OPTION = "viewsEnabled";
   public static final String USE_AVRO_LOGICAL_TYPES_OPTION = "useAvroLogicalTypes";
@@ -123,34 +121,33 @@ public class SparkBigQueryConfig
   public static final String INTERMEDIATE_FORMAT_OPTION = "intermediateFormat";
   public static final String WRITE_METHOD_PARAM = "writeMethod";
   public static final String WRITE_AT_LEAST_ONCE_OPTION = "writeAtLeastOnce";
-  @VisibleForTesting static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.ARROW;
+  @VisibleForTesting
+  static final DataFormat DEFAULT_READ_DATA_FORMAT = DataFormat.ARROW;
 
   @VisibleForTesting
   static final IntermediateFormat DEFAULT_INTERMEDIATE_FORMAT = IntermediateFormat.PARQUET;
 
   @VisibleForTesting
-  static final CompressionCodec DEFAULT_ARROW_COMPRESSION_CODEC =
-      CompressionCodec.COMPRESSION_UNSPECIFIED;
+  static final CompressionCodec DEFAULT_ARROW_COMPRESSION_CODEC = CompressionCodec.COMPRESSION_UNSPECIFIED;
 
   @VisibleForTesting
-  static final ResponseCompressionCodec DEFAULT_RESPONSE_COMPRESSION_CODEC =
-      ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_UNSPECIFIED;
+  static final ResponseCompressionCodec DEFAULT_RESPONSE_COMPRESSION_CODEC = ResponseCompressionCodec.RESPONSE_COMPRESSION_CODEC_UNSPECIFIED;
 
-  static final String GCS_CONFIG_CREDENTIALS_FILE_PROPERTY =
-      "google.cloud.auth.service.account.json.keyfile";
+  static final String GCS_CONFIG_CREDENTIALS_FILE_PROPERTY = "google.cloud.auth.service.account.json.keyfile";
   static final String GCS_CONFIG_PROJECT_ID_PROPERTY = "fs.gs.project.id";
   private static final String READ_DATA_FORMAT_OPTION = "readDataFormat";
-  private static final ImmutableList<String> PERMITTED_READ_DATA_FORMATS =
-      ImmutableList.of(DataFormat.ARROW.toString(), DataFormat.AVRO.toString());
+  private static final ImmutableList<String> PERMITTED_READ_DATA_FORMATS = ImmutableList.of(DataFormat.ARROW.toString(),
+      DataFormat.AVRO.toString());
   private static final String CONF_PREFIX = "spark.datasource.bigquery.";
   private static final int DEFAULT_BIGQUERY_CLIENT_CONNECT_TIMEOUT = 60 * 1000;
   private static final int DEFAULT_BIGQUERY_CLIENT_READ_TIMEOUT = 60 * 1000;
-  private static final Pattern QUICK_LOWERCASE_QUERY_PATTERN =
-      Pattern.compile("(?i)^\\s*(select|with|\\()\\b[\\s\\S]*");
+  private static final Pattern QUICK_LOWERCASE_QUERY_PATTERN = Pattern
+      .compile("(?i)^\\s*(select|with|\\()\\b[\\s\\S]*");
   private static final Pattern HAS_WHITESPACE_PATTERN = Pattern.compile("\\s");
-  private static final Pattern SQL_KEYWORD_PATTERN =
-      Pattern.compile("(?i)\\b(select|from|where|join|group by|order by|union all)\\b");
-  // Both MIN values correspond to the lower possible value that will actually make the code work.
+  private static final Pattern SQL_KEYWORD_PATTERN = Pattern
+      .compile("(?i)\\b(select|from|where|join|group by|order by|union all)\\b");
+  // Both MIN values correspond to the lower possible value that will actually
+  // make the code work.
   // 0 or less would make code hang or other bad side effects.
   public static final int MIN_BUFFERED_RESPONSES_PER_STREAM = 1;
   public static final int MIN_STREAMS_PER_PARTITION = 1;
@@ -164,8 +161,7 @@ public class SparkBigQueryConfig
   public static final Priority DEFAULT_JOB_PRIORITY = Priority.INTERACTIVE;
   static final String ALLOW_MAP_TYPE_CONVERSION = "allowMapTypeConversion";
   static final Boolean ALLOW_MAP_TYPE_CONVERSION_DEFAULT = true;
-  public static final String partitionOverwriteModeProperty =
-      "spark.sql.sources.partitionOverwriteMode";
+  public static final String partitionOverwriteModeProperty = "spark.sql.sources.partitionOverwriteMode";
 
   public PartitionOverwriteMode partitionOverwriteModeValue = PartitionOverwriteMode.STATIC;
   public static final String BIGQUERY_JOB_TIMEOUT_IN_MINUTES = "bigQueryJobTimeoutInMinutes";
@@ -180,7 +176,8 @@ public class SparkBigQueryConfig
 
   TableId tableId;
   // as the config needs to be Serializable, internally it uses
-  // com.google.common.base.Optional<String> but externally it uses the regular java.util.Optional
+  // com.google.common.base.Optional<String> but externally it uses the regular
+  // java.util.Optional
   com.google.common.base.Optional<String> query = empty();
   String parentProjectId;
   boolean useParentProjectForMetadataOperations;
@@ -231,8 +228,7 @@ public class SparkBigQueryConfig
   private int numPrebufferReadRowsResponses = MIN_BUFFERED_RESPONSES_PER_STREAM;
   private int numStreamsPerPartition = MIN_STREAMS_PER_PARTITION;
   private int channelPoolSize = 1;
-  private com.google.common.base.Optional<Integer> flowControlWindowBytes =
-      com.google.common.base.Optional.absent();
+  private com.google.common.base.Optional<Integer> flowControlWindowBytes = com.google.common.base.Optional.absent();
   private boolean enableReadSessionCaching = true;
   private long readSessionCacheDurationMins = 5L;
   private Long snapshotTimeMillis = null;
@@ -248,6 +244,7 @@ public class SparkBigQueryConfig
   private Map<String, String> bigQueryTableLabels = Collections.emptyMap();
   private com.google.common.base.Optional<Long> createReadSessionTimeoutInSeconds;
   private QueryJobConfiguration.Priority queryJobPriority = DEFAULT_JOB_PRIORITY;
+  private com.google.common.base.Optional<String> bigQueryJobReservation = empty();
 
   private com.google.common.base.Optional<String> destinationTableKmsKeyName = empty();
 
@@ -263,7 +260,8 @@ public class SparkBigQueryConfig
     // empty
   }
 
-  // new higher level method, as spark 3 need to parse the table specific options separately from
+  // new higher level method, as spark 3 need to parse the table specific options
+  // separately from
   // the catalog ones
   public static SparkBigQueryConfig from(
       Map<String, String> options,
@@ -345,37 +343,31 @@ public class SparkBigQueryConfig
 
     ImmutableMap<String, String> options = toLowerCaseKeysMap(optionsInput);
     ImmutableMap<String, String> globalOptions = normalizeConf(originalGlobalOptions);
-    config.sparkBigQueryProxyAndHttpConfig =
-        SparkBigQueryProxyAndHttpConfig.from(options, globalOptions, hadoopConfiguration);
+    config.sparkBigQueryProxyAndHttpConfig = SparkBigQueryProxyAndHttpConfig.from(options, globalOptions,
+        hadoopConfiguration);
     // Issue #247
     // we need those parameters in case a read from query is issued
     config.viewsEnabled = getAnyBooleanOption(globalOptions, options, VIEWS_ENABLED_OPTION, false);
     // get the table details
-    Optional<String> fallbackProject =
-        com.google.common.base.Optional.fromNullable(
-                hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY))
-            .toJavaUtil();
+    Optional<String> fallbackProject = com.google.common.base.Optional.fromNullable(
+        hadoopConfiguration.get(GCS_CONFIG_PROJECT_ID_PROPERTY))
+        .toJavaUtil();
     Optional<String> datasetParam = getOption(options, "dataset").toJavaUtil();
-    Optional<String> projectParam =
-        firstPresent(getOption(options, "project").toJavaUtil(), fallbackProject);
-    config.partitionType =
-        getOption(options, "partitionType").transform(TimePartitioning.Type::valueOf);
-    config.partitionRangeStart =
-        getOption(options, "partitionRangeStart").transform(Long::parseLong);
+    Optional<String> projectParam = firstPresent(getOption(options, "project").toJavaUtil(), fallbackProject);
+    config.partitionType = getOption(options, "partitionType").transform(TimePartitioning.Type::valueOf);
+    config.partitionRangeStart = getOption(options, "partitionRangeStart").transform(Long::parseLong);
     config.partitionRangeEnd = getOption(options, "partitionRangeEnd").transform(Long::parseLong);
-    config.partitionRangeInterval =
-        getOption(options, "partitionRangeInterval").transform(Long::parseLong);
+    config.partitionRangeInterval = getOption(options, "partitionRangeInterval").transform(Long::parseLong);
     if (overrideTableId.isPresent()) {
       config.tableId = overrideTableId.get();
     } else {
       // checking for query
-      Optional<String> tableParam =
-          getOptionFromMultipleParams(options, ImmutableList.of("table", "path"), DEFAULT_FALLBACK)
-              .toJavaUtil();
+      Optional<String> tableParam = getOptionFromMultipleParams(options, ImmutableList.of("table", "path"),
+          DEFAULT_FALLBACK)
+          .toJavaUtil();
       Optional<String> datePartitionParam = getOption(options, DATE_PARTITION_PARAM).toJavaUtil();
       datePartitionParam.ifPresent(
-          date ->
-              validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
+          date -> validateDateFormat(date, config.getPartitionTypeOrDefault(), DATE_PARTITION_PARAM));
       if (tableParam.isPresent()) {
         String tableParamStr = tableParam.get().trim();
         if (isQuery(tableParamStr)) {
@@ -383,8 +375,7 @@ public class SparkBigQueryConfig
           config.query = com.google.common.base.Optional.of(tableParamStr);
           config.tableId = QUERY_DUMMUY_TABLE_ID;
         } else {
-          config.tableId =
-              parseTableId(tableParamStr, datasetParam, projectParam, datePartitionParam);
+          config.tableId = parseTableId(tableParamStr, datasetParam, projectParam, datePartitionParam);
         }
       } else {
         // no table has been provided, it is either a query or an error
@@ -398,13 +389,11 @@ public class SparkBigQueryConfig
       }
     }
 
-    config.parentProjectId =
-        getAnyOption(globalOptions, options, "parentProject").or(defaultBilledProject());
-    config.useParentProjectForMetadataOperations =
-        getAnyBooleanOption(globalOptions, options, "useParentProjectForMetadataOperations", false);
+    config.parentProjectId = getAnyOption(globalOptions, options, "parentProject").or(defaultBilledProject());
+    config.useParentProjectForMetadataOperations = getAnyBooleanOption(globalOptions, options,
+        "useParentProjectForMetadataOperations", false);
     config.accessTokenProviderFQCN = getAnyOption(globalOptions, options, "gcpAccessTokenProvider");
-    config.accessTokenProviderConfig =
-        getAnyOption(globalOptions, options, "gcpAccessTokenProviderConfig");
+    config.accessTokenProviderConfig = getAnyOption(globalOptions, options, "gcpAccessTokenProviderConfig");
     try {
       UserGroupInformation ugiCurrentUser = UserGroupInformation.getCurrentUser();
       config.loggedInUserName = ugiCurrentUser.getShortUserName();
@@ -414,112 +403,87 @@ public class SparkBigQueryConfig
           "Failed to get the UserGroupInformation current user", e);
     }
     config.impersonationServiceAccount = getAnyOption(globalOptions, options, IMPERSONATION_GLOBAL);
-    config.impersonationServiceAccountsForUsers =
-        removePrefixFromMapKeys(
-            getAnyOptionsWithPrefix(
-                globalOptions, options, IMPERSONATION_FOR_USER_PREFIX.toLowerCase()),
-            IMPERSONATION_FOR_USER_PREFIX.toLowerCase());
-    config.impersonationServiceAccountsForGroups =
-        removePrefixFromMapKeys(
-            getAnyOptionsWithPrefix(
-                globalOptions, options, IMPERSONATION_FOR_GROUP_PREFIX.toLowerCase()),
-            IMPERSONATION_FOR_GROUP_PREFIX.toLowerCase());
+    config.impersonationServiceAccountsForUsers = removePrefixFromMapKeys(
+        getAnyOptionsWithPrefix(
+            globalOptions, options, IMPERSONATION_FOR_USER_PREFIX.toLowerCase()),
+        IMPERSONATION_FOR_USER_PREFIX.toLowerCase());
+    config.impersonationServiceAccountsForGroups = removePrefixFromMapKeys(
+        getAnyOptionsWithPrefix(
+            globalOptions, options, IMPERSONATION_FOR_GROUP_PREFIX.toLowerCase()),
+        IMPERSONATION_FOR_GROUP_PREFIX.toLowerCase());
     config.accessToken = getAnyOption(globalOptions, options, "gcpAccessToken");
     config.credentialsKey = getAnyOption(globalOptions, options, "credentials");
-    config.credentialsFile =
-        fromJavaUtil(
-            firstPresent(
-                getAnyOption(globalOptions, options, "credentialsFile").toJavaUtil(),
-                com.google.common.base.Optional.fromNullable(
-                        hadoopConfiguration.get(GCS_CONFIG_CREDENTIALS_FILE_PROPERTY))
-                    .toJavaUtil()));
-    config.credentialsScopes =
-        getAnyOption(globalOptions, options, "credentialsScopes")
-            .transform(SparkBigQueryConfig::splitOnComma);
+    config.credentialsFile = fromJavaUtil(
+        firstPresent(
+            getAnyOption(globalOptions, options, "credentialsFile").toJavaUtil(),
+            com.google.common.base.Optional.fromNullable(
+                hadoopConfiguration.get(GCS_CONFIG_CREDENTIALS_FILE_PROPERTY))
+                .toJavaUtil()));
+    config.credentialsScopes = getAnyOption(globalOptions, options, "credentialsScopes")
+        .transform(SparkBigQueryConfig::splitOnComma);
     config.filter = getOption(options, "filter");
     config.schema = fromJavaUtil(schema);
-    config.maxParallelism =
-        getAnyOption(globalOptions, options, ImmutableList.of("maxParallelism", "parallelism"))
-            .transform(Integer::valueOf)
-            .orNull();
-    config.preferredMinParallelism =
-        getAnyOption(globalOptions, options, "preferredMinParallelism")
-            .transform(Integer::valueOf)
-            .orNull();
+    config.maxParallelism = getAnyOption(globalOptions, options, ImmutableList.of("maxParallelism", "parallelism"))
+        .transform(Integer::valueOf)
+        .orNull();
+    config.preferredMinParallelism = getAnyOption(globalOptions, options, "preferredMinParallelism")
+        .transform(Integer::valueOf)
+        .orNull();
     config.defaultParallelism = defaultParallelism;
-    config.temporaryGcsBucket =
-        stripPrefix(getAnyOption(globalOptions, options, "temporaryGcsBucket"))
-            .or(
-                com.google.common.base.Optional.fromNullable(
-                    hadoopConfiguration.get(DATAPROC_SYSTEM_BUCKET_CONFIGURATION)));
-    config.persistentGcsBucket =
-        stripPrefix(getAnyOption(globalOptions, options, "persistentGcsBucket"));
+    config.temporaryGcsBucket = stripPrefix(getAnyOption(globalOptions, options, "temporaryGcsBucket"))
+        .or(
+            com.google.common.base.Optional.fromNullable(
+                hadoopConfiguration.get(DATAPROC_SYSTEM_BUCKET_CONFIGURATION)));
+    config.persistentGcsBucket = stripPrefix(getAnyOption(globalOptions, options, "persistentGcsBucket"));
     config.persistentGcsPath = getOption(options, "persistentGcsPath");
-    WriteMethod writeMethodDefault =
-        Optional.ofNullable(customDefaults.get(WRITE_METHOD_PARAM))
-            .map(WriteMethod::from)
-            .orElse(DEFAULT_WRITE_METHOD);
-    config.writeMethod =
-        getAnyOption(globalOptions, options, WRITE_METHOD_PARAM)
-            .transform(WriteMethod::from)
-            .or(writeMethodDefault);
-    config.writeAtLeastOnce =
-        getAnyBooleanOption(globalOptions, options, WRITE_AT_LEAST_ONCE_OPTION, false);
+    WriteMethod writeMethodDefault = Optional.ofNullable(customDefaults.get(WRITE_METHOD_PARAM))
+        .map(WriteMethod::from)
+        .orElse(DEFAULT_WRITE_METHOD);
+    config.writeMethod = getAnyOption(globalOptions, options, WRITE_METHOD_PARAM)
+        .transform(WriteMethod::from)
+        .or(writeMethodDefault);
+    config.writeAtLeastOnce = getAnyBooleanOption(globalOptions, options, WRITE_AT_LEAST_ONCE_OPTION, false);
 
-    boolean validateSparkAvro =
-        config.writeMethod == WriteMethod.INDIRECT
-            && Boolean.valueOf(getRequiredOption(options, VALIDATE_SPARK_AVRO_PARAM, () -> "true"));
-    boolean enableListInferenceForParquetMode =
-        getAnyBooleanOption(globalOptions, options, ENABLE_LIST_INFERENCE, false);
-    String intermediateFormatOption =
-        getAnyOption(globalOptions, options, INTERMEDIATE_FORMAT_OPTION)
-            .transform(String::toLowerCase)
-            .or(DEFAULT_INTERMEDIATE_FORMAT.getDataSource());
-    config.intermediateFormat =
-        IntermediateFormat.from(
-            intermediateFormatOption,
-            sparkVersion,
-            sqlConf,
-            validateSparkAvro,
-            enableListInferenceForParquetMode);
-    String readDataFormatParam =
-        getAnyOption(globalOptions, options, READ_DATA_FORMAT_OPTION)
-            .transform(String::toUpperCase)
-            .or(DEFAULT_READ_DATA_FORMAT.toString());
+    boolean validateSparkAvro = config.writeMethod == WriteMethod.INDIRECT
+        && Boolean.valueOf(getRequiredOption(options, VALIDATE_SPARK_AVRO_PARAM, () -> "true"));
+    boolean enableListInferenceForParquetMode = getAnyBooleanOption(globalOptions, options, ENABLE_LIST_INFERENCE,
+        false);
+    String intermediateFormatOption = getAnyOption(globalOptions, options, INTERMEDIATE_FORMAT_OPTION)
+        .transform(String::toLowerCase)
+        .or(DEFAULT_INTERMEDIATE_FORMAT.getDataSource());
+    config.intermediateFormat = IntermediateFormat.from(
+        intermediateFormatOption,
+        sparkVersion,
+        sqlConf,
+        validateSparkAvro,
+        enableListInferenceForParquetMode);
+    String readDataFormatParam = getAnyOption(globalOptions, options, READ_DATA_FORMAT_OPTION)
+        .transform(String::toUpperCase)
+        .or(DEFAULT_READ_DATA_FORMAT.toString());
     if (!PERMITTED_READ_DATA_FORMATS.contains(readDataFormatParam)) {
       throw new IllegalArgumentException(
           format(
               "Data read format '%s' is not supported. Supported formats are '%s'",
               readDataFormatParam, String.join(",", PERMITTED_READ_DATA_FORMATS)));
     }
-    config.useAvroLogicalTypes =
-        getAnyBooleanOption(globalOptions, options, USE_AVRO_LOGICAL_TYPES_OPTION, false);
+    config.useAvroLogicalTypes = getAnyBooleanOption(globalOptions, options, USE_AVRO_LOGICAL_TYPES_OPTION, false);
     config.readDataFormat = DataFormat.valueOf(readDataFormatParam);
-    config.combinePushedDownFilters =
-        getAnyBooleanOption(globalOptions, options, "combinePushedDownFilters", true);
+    config.combinePushedDownFilters = getAnyBooleanOption(globalOptions, options, "combinePushedDownFilters", true);
 
     config.partitionField = getOption(options, "partitionField");
-    config.partitionExpirationMs =
-        getOption(options, "partitionExpirationMs").transform(Long::valueOf).orNull();
-    config.partitionRequireFilter =
-        getOption(options, "partitionRequireFilter").transform(Boolean::valueOf);
-    config.clusteredFields =
-        getOption(options, "clusteredFields").transform(SparkBigQueryConfig::splitOnComma);
+    config.partitionExpirationMs = getOption(options, "partitionExpirationMs").transform(Long::valueOf).orNull();
+    config.partitionRequireFilter = getOption(options, "partitionRequireFilter").transform(Boolean::valueOf);
+    config.clusteredFields = getOption(options, "clusteredFields").transform(SparkBigQueryConfig::splitOnComma);
 
-    config.createDisposition =
-        getOption(options, "createDisposition")
-            .transform(String::toUpperCase)
-            .transform(JobInfo.CreateDisposition::valueOf);
+    config.createDisposition = getOption(options, "createDisposition")
+        .transform(String::toUpperCase)
+        .transform(JobInfo.CreateDisposition::valueOf);
 
-    config.optimizedEmptyProjection =
-        getAnyBooleanOption(globalOptions, options, "optimizedEmptyProjection", true);
+    config.optimizedEmptyProjection = getAnyBooleanOption(globalOptions, options, "optimizedEmptyProjection", true);
 
-    boolean allowFieldAddition =
-        getAnyBooleanOption(globalOptions, options, "allowFieldAddition", false);
-    boolean allowFieldRelaxation =
-        getAnyBooleanOption(globalOptions, options, "allowFieldRelaxation", false);
-    ImmutableList.Builder<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions =
-        ImmutableList.builder();
+    boolean allowFieldAddition = getAnyBooleanOption(globalOptions, options, "allowFieldAddition", false);
+    boolean allowFieldRelaxation = getAnyBooleanOption(globalOptions, options, "allowFieldRelaxation", false);
+    ImmutableList.Builder<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = ImmutableList.builder();
     if (allowFieldAddition) {
       loadSchemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION);
     }
@@ -527,58 +491,46 @@ public class SparkBigQueryConfig
       loadSchemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION);
     }
     config.loadSchemaUpdateOptions = Collections.unmodifiableList(loadSchemaUpdateOptions.build());
-    config.decimalTargetTypes =
-        getOption(options, "decimalTargetTypes")
-            .transform(SparkBigQueryConfig::splitOnComma)
-            .or(ImmutableList.of());
-    config.bigQueryStorageGrpcEndpoint =
-        getAnyOption(globalOptions, options, "bigQueryStorageGrpcEndpoint");
+    config.decimalTargetTypes = getOption(options, "decimalTargetTypes")
+        .transform(SparkBigQueryConfig::splitOnComma)
+        .or(ImmutableList.of());
+    config.bigQueryStorageGrpcEndpoint = getAnyOption(globalOptions, options, "bigQueryStorageGrpcEndpoint");
     config.bigQueryHttpEndpoint = getAnyOption(globalOptions, options, "bigQueryHttpEndpoint");
-    config.encodedCreateReadSessionRequest =
-        getAnyOption(globalOptions, options, "bqEncodedCreateReadSessionRequest");
-    config.numBackgroundThreadsPerStream =
-        getAnyOption(globalOptions, options, "bqBackgroundThreadsPerStream")
-            .transform(Integer::parseInt)
-            .or(0);
+    config.encodedCreateReadSessionRequest = getAnyOption(globalOptions, options, "bqEncodedCreateReadSessionRequest");
+    config.numBackgroundThreadsPerStream = getAnyOption(globalOptions, options, "bqBackgroundThreadsPerStream")
+        .transform(Integer::parseInt)
+        .or(0);
     config.pushAllFilters = getAnyBooleanOption(globalOptions, options, "pushAllFilters", true);
-    config.enableModeCheckForSchemaFields =
-        getAnyBooleanOption(globalOptions, options, "enableModeCheckForSchemaFields", true);
-    config.numPrebufferReadRowsResponses =
-        getAnyOption(globalOptions, options, "bqPrebufferResponsesPerStream")
-            .transform(Integer::parseInt)
-            .or(MIN_BUFFERED_RESPONSES_PER_STREAM);
-    config.flowControlWindowBytes =
-        getAnyOption(globalOptions, options, "bqFlowControlWindowBytes")
-            .transform(Integer::parseInt);
+    config.enableModeCheckForSchemaFields = getAnyBooleanOption(globalOptions, options,
+        "enableModeCheckForSchemaFields", true);
+    config.numPrebufferReadRowsResponses = getAnyOption(globalOptions, options, "bqPrebufferResponsesPerStream")
+        .transform(Integer::parseInt)
+        .or(MIN_BUFFERED_RESPONSES_PER_STREAM);
+    config.flowControlWindowBytes = getAnyOption(globalOptions, options, "bqFlowControlWindowBytes")
+        .transform(Integer::parseInt);
 
-    config.numStreamsPerPartition =
-        getAnyOption(globalOptions, options, "bqNumStreamsPerPartition")
-            .transform(Integer::parseInt)
-            .or(MIN_STREAMS_PER_PARTITION);
+    config.numStreamsPerPartition = getAnyOption(globalOptions, options, "bqNumStreamsPerPartition")
+        .transform(Integer::parseInt)
+        .or(MIN_STREAMS_PER_PARTITION);
     // Calculating the default channel pool size
-    int sparkExecutorCores =
-        Integer.parseInt(globalOptions.getOrDefault("spark.executor.cores", "1"));
+    int sparkExecutorCores = Integer.parseInt(globalOptions.getOrDefault("spark.executor.cores", "1"));
     int defaultChannelPoolSize = sparkExecutorCores * config.numStreamsPerPartition;
 
-    config.channelPoolSize =
-        getAnyOption(globalOptions, options, "bqChannelPoolSize")
-            .transform(Integer::parseInt)
-            .or(defaultChannelPoolSize);
-    config.enableReadSessionCaching =
-        getAnyBooleanOption(globalOptions, options, "enableReadSessionCaching", true);
-    config.readSessionCacheDurationMins =
-        getAnyOption(globalOptions, options, "readSessionCacheDurationMins")
-            .transform(Long::parseLong)
-            .or(5L);
+    config.channelPoolSize = getAnyOption(globalOptions, options, "bqChannelPoolSize")
+        .transform(Integer::parseInt)
+        .or(defaultChannelPoolSize);
+    config.enableReadSessionCaching = getAnyBooleanOption(globalOptions, options, "enableReadSessionCaching", true);
+    config.readSessionCacheDurationMins = getAnyOption(globalOptions, options, "readSessionCacheDurationMins")
+        .transform(Long::parseLong)
+        .or(5L);
     if (!(config.readSessionCacheDurationMins > 0L
         && config.readSessionCacheDurationMins <= 300L)) {
       throw new IllegalArgumentException("readSessionCacheDurationMins should be > 0 and <= 300");
     }
 
-    String arrowCompressionCodecParam =
-        getAnyOption(globalOptions, options, ARROW_COMPRESSION_CODEC_OPTION)
-            .transform(String::toUpperCase)
-            .or(DEFAULT_ARROW_COMPRESSION_CODEC.toString());
+    String arrowCompressionCodecParam = getAnyOption(globalOptions, options, ARROW_COMPRESSION_CODEC_OPTION)
+        .transform(String::toUpperCase)
+        .or(DEFAULT_ARROW_COMPRESSION_CODEC.toString());
 
     try {
       config.arrowCompressionCodec = CompressionCodec.valueOf(arrowCompressionCodecParam);
@@ -589,14 +541,12 @@ public class SparkBigQueryConfig
               arrowCompressionCodecParam, Arrays.toString(CompressionCodec.values())));
     }
 
-    String responseCompressionCodecParam =
-        getAnyOption(globalOptions, options, RESPONSE_COMPRESSION_CODEC_OPTION)
-            .transform(String::toUpperCase)
-            .or(DEFAULT_RESPONSE_COMPRESSION_CODEC.toString());
+    String responseCompressionCodecParam = getAnyOption(globalOptions, options, RESPONSE_COMPRESSION_CODEC_OPTION)
+        .transform(String::toUpperCase)
+        .or(DEFAULT_RESPONSE_COMPRESSION_CODEC.toString());
 
     try {
-      config.responseCompressionCodec =
-          ResponseCompressionCodec.valueOf(responseCompressionCodecParam);
+      config.responseCompressionCodec = ResponseCompressionCodec.valueOf(responseCompressionCodecParam);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(
           format(
@@ -604,81 +554,69 @@ public class SparkBigQueryConfig
               responseCompressionCodecParam, Arrays.toString(ResponseCompressionCodec.values())));
     }
 
-    config.cacheExpirationTimeInMinutes =
-        getAnyOption(globalOptions, options, "cacheExpirationTimeInMinutes")
-            .transform(Integer::parseInt)
-            .or(DEFAULT_CACHE_EXPIRATION_IN_MINUTES);
+    config.cacheExpirationTimeInMinutes = getAnyOption(globalOptions, options, "cacheExpirationTimeInMinutes")
+        .transform(Integer::parseInt)
+        .or(DEFAULT_CACHE_EXPIRATION_IN_MINUTES);
     if (config.cacheExpirationTimeInMinutes < 0) {
       throw new IllegalArgumentException(
           "cacheExpirationTimeInMinutes must have a positive value, the configured value is "
               + config.cacheExpirationTimeInMinutes);
     }
 
-    com.google.common.base.Optional<String> traceApplicationNameParam =
-        getAnyOption(globalOptions, options, "traceApplicationName")
-            .or(com.google.common.base.Optional.fromNullable("traceApplicationName"));
-    config.traceId =
-        traceApplicationNameParam.transform(
-            traceApplicationName -> {
-              String traceJobIdParam =
-                  getAnyOption(globalOptions, options, "traceJobId")
-                      .or(SparkBigQueryUtil.getJobId(sqlConf));
-              String traceIdParam = "Spark:" + traceApplicationName + ":" + traceJobIdParam;
-              if (traceIdParam.length() > MAX_TRACE_ID_LENGTH) {
-                throw new IllegalArgumentException(
-                    String.format(
-                        "trace ID cannot longer than %d. Provided value was [%s]",
-                        MAX_TRACE_ID_LENGTH, traceIdParam));
-              }
-              return traceIdParam;
-            });
+    com.google.common.base.Optional<String> traceApplicationNameParam = getAnyOption(globalOptions, options,
+        "traceApplicationName")
+        .or(com.google.common.base.Optional.fromNullable("traceApplicationName"));
+    config.traceId = traceApplicationNameParam.transform(
+        traceApplicationName -> {
+          String traceJobIdParam = getAnyOption(globalOptions, options, "traceJobId")
+              .or(SparkBigQueryUtil.getJobId(sqlConf));
+          String traceIdParam = "Spark:" + traceApplicationName + ":" + traceJobIdParam;
+          if (traceIdParam.length() > MAX_TRACE_ID_LENGTH) {
+            throw new IllegalArgumentException(
+                String.format(
+                    "trace ID cannot longer than %d. Provided value was [%s]",
+                    MAX_TRACE_ID_LENGTH, traceIdParam));
+          }
+          return traceIdParam;
+        });
 
-    config.bigQueryJobLabels =
-        parseBigQueryLabels(globalOptions, options, BIGQUERY_JOB_LABEL_PREFIX);
-    config.bigQueryTableLabels =
-        parseBigQueryLabels(globalOptions, options, BIGQUERY_TABLE_LABEL_PREFIX);
+    config.bigQueryJobLabels = parseBigQueryLabels(globalOptions, options, BIGQUERY_JOB_LABEL_PREFIX);
+    config.bigQueryTableLabels = parseBigQueryLabels(globalOptions, options, BIGQUERY_TABLE_LABEL_PREFIX);
 
-    config.createReadSessionTimeoutInSeconds =
-        getAnyOption(globalOptions, options, "createReadSessionTimeoutInSeconds")
-            .transform(Long::parseLong);
+    config.createReadSessionTimeoutInSeconds = getAnyOption(globalOptions, options, "createReadSessionTimeoutInSeconds")
+        .transform(Long::parseLong);
 
-    config.queryJobPriority =
-        getAnyOption(globalOptions, options, "queryJobPriority")
-            .transform(String::toUpperCase)
-            .transform(Priority::valueOf)
-            .or(DEFAULT_JOB_PRIORITY);
+    config.queryJobPriority = getAnyOption(globalOptions, options, "queryJobPriority")
+        .transform(String::toUpperCase)
+        .transform(Priority::valueOf)
+        .or(DEFAULT_JOB_PRIORITY);
 
-    config.destinationTableKmsKeyName =
-        getAnyOption(globalOptions, options, "destinationTableKmsKeyName");
+    config.bigQueryJobReservation = getAnyOption(globalOptions, options, "bigQueryJobReservation");
 
-    config.allowMapTypeConversion =
-        getAnyOption(globalOptions, options, ALLOW_MAP_TYPE_CONVERSION)
-            .transform(Boolean::valueOf)
-            .or(ALLOW_MAP_TYPE_CONVERSION_DEFAULT);
+    config.destinationTableKmsKeyName = getAnyOption(globalOptions, options, "destinationTableKmsKeyName");
 
-    config.partitionOverwriteModeValue =
-        getAnyOption(globalOptions, options, partitionOverwriteModeProperty)
-            .transform(String::toUpperCase)
-            .transform(PartitionOverwriteMode::valueOf)
-            .or(PartitionOverwriteMode.STATIC);
+    config.allowMapTypeConversion = getAnyOption(globalOptions, options, ALLOW_MAP_TYPE_CONVERSION)
+        .transform(Boolean::valueOf)
+        .or(ALLOW_MAP_TYPE_CONVERSION_DEFAULT);
 
-    config.bigQueryJobTimeoutInMinutes =
-        getAnyOption(globalOptions, options, BIGQUERY_JOB_TIMEOUT_IN_MINUTES)
-            .transform(Long::valueOf)
-            .or(BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT);
+    config.partitionOverwriteModeValue = getAnyOption(globalOptions, options, partitionOverwriteModeProperty)
+        .transform(String::toUpperCase)
+        .transform(PartitionOverwriteMode::valueOf)
+        .or(PartitionOverwriteMode.STATIC);
+
+    config.bigQueryJobTimeoutInMinutes = getAnyOption(globalOptions, options, BIGQUERY_JOB_TIMEOUT_IN_MINUTES)
+        .transform(Long::valueOf)
+        .or(BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT);
 
     config.gpn = getAnyOption(globalOptions, options, GPN_ATTRIBUTION);
 
-    config.snapshotTimeMillis =
-        getOption(options, "snapshotTimeMillis").transform(Long::valueOf).orNull();
-    config.bigNumericDefaultPrecision =
-        getAnyOption(globalOptions, options, BIG_NUMERIC_DEFAULT_PRECISION)
-            .transform(Integer::parseInt)
-            .or(BigQueryUtil.DEFAULT_BIG_NUMERIC_PRECISION);
-    config.bigNumericDefaultScale =
-        getAnyOption(globalOptions, options, BIG_NUMERIC_DEFAULT_SCALE)
-            .transform(Integer::parseInt)
-            .or(BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
+    config.snapshotTimeMillis = getOption(options, "snapshotTimeMillis").transform(Long::valueOf).orNull();
+    config.bigNumericDefaultPrecision = getAnyOption(globalOptions, options, BIG_NUMERIC_DEFAULT_PRECISION)
+        .transform(Integer::parseInt)
+        .or(BigQueryUtil.DEFAULT_BIG_NUMERIC_PRECISION);
+    config.bigNumericDefaultScale = getAnyOption(globalOptions, options, BIG_NUMERIC_DEFAULT_SCALE)
+        .transform(Integer::parseInt)
+        .or(BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE);
     config.queryParameterHelper = BigQueryUtil.parseQueryParameters(options);
     return config;
   }
@@ -705,7 +643,8 @@ public class SparkBigQueryConfig
   }
 
   @VisibleForTesting
-  // takes only the options with the BIGQUERY_JOB_LABEL_PREFIX prefix, and strip them of this
+  // takes only the options with the BIGQUERY_JOB_LABEL_PREFIX prefix, and strip
+  // them of this
   // prefix.
   // The `options` map overrides the `globalOptions` map.
   static Map<String, String> parseBigQueryLabels(
@@ -715,11 +654,10 @@ public class SparkBigQueryConfig
 
     String lowerCasePrefix = labelPrefix.toLowerCase(Locale.ROOT);
 
-    ImmutableMap<String, String> allOptions =
-        ImmutableMap.<String, String>builder() //
-            .putAll(globalOptions) //
-            .putAll(options) //
-            .buildKeepingLast();
+    ImmutableMap<String, String> allOptions = ImmutableMap.<String, String>builder() //
+        .putAll(globalOptions) //
+        .putAll(options) //
+        .buildKeepingLast();
 
     ImmutableMap.Builder<String, String> result = ImmutableMap.<String, String>builder();
     for (Map.Entry<String, String> entry : allOptions.entrySet()) {
@@ -746,7 +684,8 @@ public class SparkBigQueryConfig
     }
     String potentialQuery = tableParamStr.trim();
 
-    // If the string is quoted with backticks, it is recognized as a table identifier, not a query.
+    // If the string is quoted with backticks, it is recognized as a table
+    // identifier, not a query.
     if (potentialQuery.startsWith("`") && potentialQuery.endsWith("`")) {
       return false;
     }
@@ -756,7 +695,8 @@ public class SparkBigQueryConfig
       return true;
     }
 
-    // Might be a query with a leading comment, OR could be a table name with spaces.
+    // Might be a query with a leading comment, OR could be a table name with
+    // spaces.
     return HAS_WHITESPACE_PATTERN.matcher(potentialQuery).find()
         && SQL_KEYWORD_PATTERN.matcher(potentialQuery).find();
   }
@@ -764,12 +704,11 @@ public class SparkBigQueryConfig
   private static void validateDateFormat(
       String date, TimePartitioning.Type partitionType, String optionName) {
     try {
-      Map<TimePartitioning.Type, DateTimeFormatter> formatterMap =
-          ImmutableMap.<TimePartitioning.Type, DateTimeFormatter>of(
-              TimePartitioning.Type.HOUR, DateTimeFormatter.ofPattern("yyyyMMddHH"), //
-              TimePartitioning.Type.DAY, DateTimeFormatter.BASIC_ISO_DATE, //
-              TimePartitioning.Type.MONTH, DateTimeFormatter.ofPattern("yyyyMM"), //
-              TimePartitioning.Type.YEAR, DateTimeFormatter.ofPattern("yyyy"));
+      Map<TimePartitioning.Type, DateTimeFormatter> formatterMap = ImmutableMap.<TimePartitioning.Type, DateTimeFormatter>of(
+          TimePartitioning.Type.HOUR, DateTimeFormatter.ofPattern("yyyyMMddHH"), //
+          TimePartitioning.Type.DAY, DateTimeFormatter.BASIC_ISO_DATE, //
+          TimePartitioning.Type.MONTH, DateTimeFormatter.ofPattern("yyyyMM"), //
+          TimePartitioning.Type.YEAR, DateTimeFormatter.ofPattern("yyyy"));
       DateTimeFormatter dateTimeFormatter = formatterMap.get(partitionType);
       dateTimeFormatter.parse(date);
     } catch (DateTimeParseException e) {
@@ -779,12 +718,11 @@ public class SparkBigQueryConfig
   }
 
   static ImmutableMap<String, String> normalizeConf(Map<String, String> conf) {
-    Map<String, String> normalizeConf =
-        conf.entrySet().stream()
-            .filter(e -> e.getKey().startsWith(CONF_PREFIX))
-            .collect(
-                Collectors.toMap(
-                    e -> e.getKey().substring(CONF_PREFIX.length()), e -> e.getValue()));
+    Map<String, String> normalizeConf = conf.entrySet().stream()
+        .filter(e -> e.getKey().startsWith(CONF_PREFIX))
+        .collect(
+            Collectors.toMap(
+                e -> e.getKey().substring(CONF_PREFIX.length()), e -> e.getValue()));
     Map<String, String> result = new HashMap<>(conf);
     result.putAll(normalizeConf);
     return ImmutableMap.copyOf(result);
@@ -793,20 +731,20 @@ public class SparkBigQueryConfig
   public Credentials createCredentials() {
 
     return new BigQueryCredentialsSupplier(
-            accessTokenProviderFQCN.toJavaUtil(),
-            accessTokenProviderConfig.toJavaUtil(),
-            accessToken.toJavaUtil(),
-            credentialsKey.toJavaUtil(),
-            credentialsFile.toJavaUtil(),
-            loggedInUserName,
-            loggedInUserGroups,
-            impersonationServiceAccountsForUsers.toJavaUtil(),
-            impersonationServiceAccountsForGroups.toJavaUtil(),
-            impersonationServiceAccount.toJavaUtil(),
-            credentialsScopes.toJavaUtil(),
-            sparkBigQueryProxyAndHttpConfig.getProxyUri(),
-            sparkBigQueryProxyAndHttpConfig.getProxyUsername(),
-            sparkBigQueryProxyAndHttpConfig.getProxyPassword())
+        accessTokenProviderFQCN.toJavaUtil(),
+        accessTokenProviderConfig.toJavaUtil(),
+        accessToken.toJavaUtil(),
+        credentialsKey.toJavaUtil(),
+        credentialsFile.toJavaUtil(),
+        loggedInUserName,
+        loggedInUserGroups,
+        impersonationServiceAccountsForUsers.toJavaUtil(),
+        impersonationServiceAccountsForGroups.toJavaUtil(),
+        impersonationServiceAccount.toJavaUtil(),
+        credentialsScopes.toJavaUtil(),
+        sparkBigQueryProxyAndHttpConfig.getProxyUri(),
+        sparkBigQueryProxyAndHttpConfig.getProxyUsername(),
+        sparkBigQueryProxyAndHttpConfig.getProxyPassword())
         .getCredentials();
   }
 
@@ -1041,7 +979,8 @@ public class SparkBigQueryConfig
     return enableModeCheckForSchemaFields;
   }
 
-  // in order to simplify the configuration, the BigQuery client settings are fixed. If needed
+  // in order to simplify the configuration, the BigQuery client settings are
+  // fixed. If needed
   // we will add configuration properties for them.
 
   @Override
@@ -1102,6 +1041,10 @@ public class SparkBigQueryConfig
     return queryJobPriority;
   }
 
+  public Optional<String> getBigQueryJobReservation() {
+    return bigQueryJobReservation.toJavaUtil();
+  }
+
   @Override
   public Optional<String> getKmsKeyName() {
     return destinationTableKmsKeyName.toJavaUtil();
@@ -1109,8 +1052,7 @@ public class SparkBigQueryConfig
 
   @Override
   public RetrySettings getBigQueryClientRetrySettings() {
-    int maxAttempts =
-        sparkBigQueryProxyAndHttpConfig.getHttpMaxRetry().orElse(DEFAULT_BIGQUERY_CLIENT_RETRIES);
+    int maxAttempts = sparkBigQueryProxyAndHttpConfig.getHttpMaxRetry().orElse(DEFAULT_BIGQUERY_CLIENT_RETRIES);
     return getRetrySettings(maxAttempts);
   }
 
@@ -1239,11 +1181,10 @@ public class SparkBigQueryConfig
     PARQUET_LIST_INFERENCE_ENABLED(
         "parquet", ParquetOptions.newBuilder().setEnableListInference(true).build());
 
-    private static Set<String> PERMITTED_DATA_SOURCES =
-        Stream.of(values())
-            .map(IntermediateFormat::getDataSource)
-            .filter(dataSource -> !dataSource.contains("."))
-            .collect(Collectors.toSet());
+    private static Set<String> PERMITTED_DATA_SOURCES = Stream.of(values())
+        .map(IntermediateFormat::getDataSource)
+        .filter(dataSource -> !dataSource.contains("."))
+        .collect(Collectors.toSet());
 
     private final String dataSource;
     private final FormatOptions formatOptions;
@@ -1281,7 +1222,8 @@ public class SparkBigQueryConfig
         return PARQUET_LIST_INFERENCE_ENABLED;
       }
 
-      // we have made sure that the format exist in the precondition, so findFirst() will
+      // we have made sure that the format exist in the precondition, so findFirst()
+      // will
       // always find an instance
       return Stream.of(values())
           .filter(intermediateFormat -> intermediateFormat.getDataSource().equalsIgnoreCase(format))
@@ -1300,16 +1242,14 @@ public class SparkBigQueryConfig
       if (isSpark24OrAbove(sparkVersion)) {
         String scalaVersion = scala.util.Properties.versionNumberString();
         String scalaShortVersion = scalaVersion.substring(0, scalaVersion.lastIndexOf('.'));
-        avroPackage =
-            String.format("org.apache.spark:spark-avro_%s:%s", scalaShortVersion, sparkVersion);
+        avroPackage = String.format("org.apache.spark:spark-avro_%s:%s", scalaShortVersion, sparkVersion);
       } else {
         avroPackage = "com.databricks:spark-avro_2.11:4.0.0";
       }
-      String message =
-          String.format(
-              "Avro writing is not supported, as the spark-avro has not been found. "
-                  + "Please re-run spark with the --packages %s parameter",
-              avroPackage);
+      String message = String.format(
+          "Avro writing is not supported, as the spark-avro has not been found. "
+              + "Please re-run spark with the --packages %s parameter",
+          avroPackage);
 
       return new IllegalStateException(message, cause);
     }

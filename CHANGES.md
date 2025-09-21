@@ -8,6 +8,7 @@
 * PR #1374: Ensure TableId includes project ID if not explicitly set
 * PR #1380: Fixed ImpersonatedCredentials serialization
 * PR #1381: Added the option to set custom credentials scopes
+* PR #1395: Added option to specify BigQuery reservation for connector-created jobs (bigQueryJobReservation).
 * PR #1411: Added Support for [SparkSession#executeCommand](https://archive.apache.org/dist/spark/docs/3.0.0/api/java/org/apache/spark/sql/SparkSession.html#executeCommand-java.lang.String-java.lang.String-scala.collection.immutable.Map-)
 * BigQuery API has been upgraded to version 2.54.0
 * BigQuery Storage API has been upgraded to version 3.16.1
