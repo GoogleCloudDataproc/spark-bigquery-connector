@@ -103,6 +103,8 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getIntermediateFormat())
         .isEqualTo(SparkBigQueryConfig.DEFAULT_INTERMEDIATE_FORMAT);
     assertThat(config.getReadDataFormat()).isEqualTo(SparkBigQueryConfig.DEFAULT_READ_DATA_FORMAT);
+    assertThat(config.getMaterializationProject()).isEqualTo(Optional.empty());
+    assertThat(config.getMaterializationDataset()).isEqualTo(Optional.empty());
     assertThat(config.getPartitionField()).isEqualTo(Optional.empty());
     assertThat(config.getPartitionExpirationMs()).isEqualTo(OptionalLong.empty());
     assertThat(config.getPartitionRequireFilter()).isEqualTo(Optional.empty());
@@ -150,6 +152,9 @@ public class SparkBigQueryConfigTest {
                 .put("maxParallelism", "99")
                 .put("preferredMinParallelism", "10")
                 .put("viewsEnabled", "true")
+                .put("viewMaterializationProject", "vmp")
+                .put("viewMaterializationDataset", "vmd")
+                .put("materializationExpirationTimeInMinutes", "100")
                 .put("readDataFormat", "ARROW")
                 .put("optimizedEmptyProjection", "false")
                 .put("createDisposition", "CREATE_NEVER")
@@ -202,6 +207,9 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getIntermediateFormat())
         .isEqualTo(SparkBigQueryConfig.IntermediateFormat.ORC);
     assertThat(config.getReadDataFormat()).isEqualTo(DataFormat.ARROW);
+    assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("vmp"));
+    assertThat(config.getMaterializationDataset()).isEqualTo(Optional.of("vmd"));
+    assertThat(config.getMaterializationExpirationTimeInMinutes()).isEqualTo(100);
     assertThat(config.getPartitionType()).isEqualTo(Optional.of(TimePartitioning.Type.HOUR));
     assertThat(config.getPartitionField()).isEqualTo(Optional.of("some_field"));
     assertThat(config.getPartitionExpirationMs()).isEqualTo(OptionalLong.of(999));
@@ -763,7 +771,7 @@ public class SparkBigQueryConfigTest {
 
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
-            asDataSourceOptionsMap(withParameter("project", "foo")),
+            asDataSourceOptionsMap(withParameter("materializationProject", "foo")),
             defaultGlobalOptions, // allConf
             new Configuration(),
             emptyMap, // customDefaults
@@ -772,43 +780,41 @@ public class SparkBigQueryConfigTest {
             sparkVersion,
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
-    assertThat(config.getTableId().getProject()).isEqualTo("foo");
+    assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("foo"));
   }
 
   @Test
   public void testGetAnyOptionWithFallbackBothConfigsExist() {
-    Configuration hadoopConfigurationWithGcsProject = new Configuration();
-    hadoopConfigurationWithGcsProject.set("fs.gs.project.id", "bar");
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
-            asDataSourceOptionsMap(withParameter("project", "foo")),
+            asDataSourceOptionsMap(
+                withParameters(
+                    "materializationProject", "foo", "viewMaterializationProject", "bar")),
             defaultGlobalOptions, // allConf
-            hadoopConfigurationWithGcsProject,
+            new Configuration(),
             emptyMap, // customDefaults
             1,
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
-    assertThat(config.getTableId().getProject()).isEqualTo("foo");
+    assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("foo"));
   }
 
   @Test
   public void testGetAnyOptionWithFallbackOnlyFallbackExists() {
-    Configuration hadoopConfigurationWithGcsProject = new Configuration();
-    hadoopConfigurationWithGcsProject.set("fs.gs.project.id", "bar");
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
-            asDataSourceOptionsMap(parameters),
+            asDataSourceOptionsMap(withParameter("viewMaterializationProject", "bar")),
             defaultGlobalOptions, // allConf
-            hadoopConfigurationWithGcsProject,
+            new Configuration(),
             emptyMap, // customDefaults
             1,
             new SQLConf(),
             sparkVersion,
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
-    assertThat(config.getTableId().getProject()).isEqualTo("bar");
+    assertThat(config.getMaterializationProject()).isEqualTo(Optional.of("bar"));
   }
 
   @Test
@@ -824,7 +830,7 @@ public class SparkBigQueryConfigTest {
             sparkVersion,
             /* schema */ Optional.empty(),
             /* tableIsMandatory */ true);
-    assertThat(config.getTableId().getProject()).isNull();
+    assertThat(config.getMaterializationProject()).isEqualTo(Optional.empty());
   }
 
   @Test
@@ -1235,7 +1241,11 @@ public class SparkBigQueryConfigTest {
   public void testLoadFromQueryConfig() {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
-            asDataSourceOptionsMap(ImmutableMap.of("query", "SELECT * FROM foo")),
+            asDataSourceOptionsMap(
+                ImmutableMap.of( //
+                    "query", "SELECT * FROM foo", //
+                    "materializationDataset", "materializationDataset" //
+                    )),
             emptyMap, // allConf
             new Configuration(),
             emptyMap, // customDefaults
@@ -1246,6 +1256,5 @@ public class SparkBigQueryConfigTest {
             /* tableIsMandatory */ true);
     assertThat(config.getTableId()).isNotNull();
     assertThat(config.getTableId().getTable()).isEqualTo("QUERY");
-    assertThat(config.getTableId().getDataset()).isEqualTo("QUERY");
   }
 }

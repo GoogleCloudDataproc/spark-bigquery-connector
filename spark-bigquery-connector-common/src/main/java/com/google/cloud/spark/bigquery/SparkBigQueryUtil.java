@@ -193,10 +193,7 @@ public class SparkBigQueryUtil {
   public static TableId parseSimpleTableId(SparkSession spark, Map<String, String> options) {
     ImmutableMap<String, String> globalOptions =
         ImmutableMap.copyOf(scalaMapToJavaMap(spark.conf().getAll()));
-    return BigQueryConfigurationUtil.parseSimpleTableId(
-        options,
-        com.google.common.base.Optional.absent(),
-        com.google.common.base.Optional.absent());
+    return BigQueryConfigurationUtil.parseSimpleTableId(globalOptions, options);
   }
 
   public static long sparkTimestampToBigQuery(Object sparkValue) {
