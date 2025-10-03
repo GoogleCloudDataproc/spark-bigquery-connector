@@ -395,6 +395,20 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   @Test
+  public void testQueryMaterializedView_noMaterializationDataset() {
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", TestConstants.SHAKESPEARE_VIEW)
+            .option("viewsEnabled", "true")
+            .load();
+
+    assertThat(df.count()).isGreaterThan(1);
+  }
+
+  @Test
   public void testOrAcrossColumnsAndFormats() {
     List<Row> avroResults =
         spark
