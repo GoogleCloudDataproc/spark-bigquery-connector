@@ -28,10 +28,13 @@ import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.spark.bigquery.events.BigQueryJobCompletedEvent;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.ProvisionException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.StreamSupport;
 import org.apache.spark.scheduler.SparkListener;
 import org.apache.spark.scheduler.SparkListenerEvent;
@@ -73,13 +76,32 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     this.isDsv2OnSpark3AndAbove = isDsv2OnSpark3AndAbove;
   }
 
-  private void testReadFromQueryInternal(String query) {
+  @Test
+  public void testReadFromQuery_nomMterializationDataset() {
+    // the query suffix is to make sure that each format will have
+    // a different table created due to the destination table cache
+    String random = String.valueOf(System.nanoTime());
+    String query =
+        String.format(
+            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
+            random, random);
+    internalTestReadFromQueryWithAdditionalOptions(query, Collections.emptyMap());
+  }
+
+  private void internalTestReadFromQueryToMaterializationDataset(String query) {
+    Map<String, String> additionalOptions =
+        ImmutableMap.of("materializationDataset", testDataset.toString());
+    internalTestReadFromQueryWithAdditionalOptions(query, additionalOptions);
+  }
+
+  private void internalTestReadFromQueryWithAdditionalOptions(
+      String query, Map<String, String> additionalOptions) {
     Dataset<Row> df =
         spark
             .read()
             .format("bigquery")
             .option("viewsEnabled", true)
-            .option("materializationDataset", testDataset.toString())
+            .options(additionalOptions)
             .load(query);
 
     validateResult(df);
@@ -99,7 +121,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
         String.format(
             "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
             random, random);
-    testReadFromQueryInternal(query);
+    internalTestReadFromQueryToMaterializationDataset(query);
   }
 
   @Test
@@ -112,7 +134,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare`\n"
                 + "WHERE word='spark' AND '%s'='%s'",
             random, random);
-    testReadFromQueryInternal(query);
+    internalTestReadFromQueryToMaterializationDataset(query);
   }
 
   @Test
