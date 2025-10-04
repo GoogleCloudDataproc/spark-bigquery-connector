@@ -20,6 +20,7 @@ import java.io.Serializable;
 
 public class RangeData implements Serializable {
 
+  private static final long serialVersionUID = 194460107083111775L;
   private String str;
   private Long rng;
 

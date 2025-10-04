@@ -69,6 +69,7 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
 
   class Avro implements ReadRowsResponseToInternalRowIteratorConverter, Serializable {
 
+    private static final long serialVersionUID = 2994401325376236028L;
     private final com.google.cloud.bigquery.Schema bqSchema;
     private final List<String> columnsInOrder;
     private final String rawAvroSchema;
@@ -120,6 +121,7 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
 
   class Arrow implements ReadRowsResponseToInternalRowIteratorConverter, Serializable {
 
+    private static final long serialVersionUID = -524013378047083342L;
     private final List<String> columnsInOrder;
     private final ByteString arrowSchema;
     private final com.google.common.base.Optional<StructType> userProvidedSchema;

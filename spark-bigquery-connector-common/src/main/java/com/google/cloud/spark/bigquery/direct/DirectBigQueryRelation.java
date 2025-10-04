@@ -211,6 +211,8 @@ public class DirectBigQueryRelation extends BigQueryRelation
   private static class ObjectToInternalRowConverter extends AbstractFunction1<Object, InternalRow>
       implements Serializable {
 
+    private static final long serialVersionUID = 8504174848470344221L;
+
     @Override
     public InternalRow apply(Object v1) {
       return InternalRow.empty();

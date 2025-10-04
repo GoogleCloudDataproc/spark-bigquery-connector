@@ -35,6 +35,7 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
   private static final String ROWS_READ = "rowsRead";
   private static final String PARSE_TIME = "parseTime";
   private static final String SCAN_TIME = "scanTime";
+  private static final long serialVersionUID = -8188694570364436143L;
   private final LongAccumulator bytesReadAccumulator;
   public final LongAccumulator rowsReadAccumulator;
   private final LongAccumulator scanTimeAccumulator;

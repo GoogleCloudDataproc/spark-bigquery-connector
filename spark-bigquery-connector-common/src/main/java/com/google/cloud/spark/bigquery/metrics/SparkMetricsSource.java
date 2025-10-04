@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.spark.metrics.source.Source;
 
 public class SparkMetricsSource implements Source, Serializable, BigQueryMetrics {
+  private static final long serialVersionUID = -6847838588830697961L;
   private transient MetricRegistry registry;
   private transient Timer parseTime;
   private transient Timer timeInSpark;
