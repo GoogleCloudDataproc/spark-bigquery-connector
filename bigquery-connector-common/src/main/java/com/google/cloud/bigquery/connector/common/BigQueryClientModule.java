@@ -108,7 +108,8 @@ public class BigQueryClientModule implements com.google.inject.Module {
             .setHeaderProvider(headerProvider)
             .setProjectId(config.getParentProjectId())
             .setCredentials(bigQueryCredentialsSupplier.getCredentials())
-            .setRetrySettings(config.getBigQueryClientRetrySettings());
+            .setRetrySettings(config.getBigQueryClientRetrySettings())
+            .setUniverseDomain(bigQueryCredentialsSupplier.getUniverseDomain());
 
     HttpTransportOptions.Builder httpTransportOptionsBuilder =
         HttpTransportOptions.newBuilder()

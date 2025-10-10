@@ -587,4 +587,31 @@ public class BigQueryCredentialsSupplierTest {
     ServiceAccountCredentials sac = (ServiceAccountCredentials) credentials;
     assertThat(sac.getScopes()).containsExactly("http://www.googleapis.com/foo/bar");
   }
+
+  @Test
+  public void testUniverseDomain() throws Exception {
+    String json = createServiceAccountJson("key");
+    String credentialsKey =
+        Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+
+    BigQueryCredentialsSupplier supplier =
+        new BigQueryCredentialsSupplier(
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.of(credentialsKey),
+            Optional.empty(),
+            null,
+            null,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty());
+    Credentials credentials = supplier.getCredentials();
+    assertThat(supplier.getUniverseDomain()).isEqualTo(Credentials.GOOGLE_DEFAULT_UNIVERSE);
+    assertThat(credentials.getUniverseDomain()).isEqualTo(Credentials.GOOGLE_DEFAULT_UNIVERSE);
+  }
 }
