@@ -69,6 +69,7 @@ public class BigQueryClientFactory implements Serializable {
   private transient volatile Credentials credentials;
 
   private int cachedHashCode = 0;
+  private String universeDomain;
 
   @Inject
   public BigQueryClientFactory(
@@ -77,6 +78,7 @@ public class BigQueryClientFactory implements Serializable {
       BigQueryConfig bqConfig) {
     // using Guava's optional as it is serializable
     this.credentials = bigQueryCredentialsSupplier.getCredentials();
+    this.universeDomain = bigQueryCredentialsSupplier.getUniverseDomain();
     this.serializedCredentials = BigQueryUtil.getCredentialsByteArray(credentials);
     this.headerProvider = headerProvider;
     this.bqConfig = bqConfig;
@@ -207,7 +209,8 @@ public class BigQueryClientFactory implements Serializable {
       BigQueryReadSettings.Builder clientSettings =
           BigQueryReadSettings.newBuilder()
               .setTransportChannelProvider(transportBuilder.build())
-              .setCredentialsProvider(FixedCredentialsProvider.create(getCredentials()));
+              .setCredentialsProvider(FixedCredentialsProvider.create(getCredentials()))
+              .setUniverseDomain(universeDomain);
 
       bqConfig
           .getCreateReadSessionTimeoutInSeconds()
@@ -240,7 +243,8 @@ public class BigQueryClientFactory implements Serializable {
       BigQueryWriteSettings.Builder clientSettings =
           BigQueryWriteSettings.newBuilder()
               .setTransportChannelProvider(transportBuilder.build())
-              .setCredentialsProvider(FixedCredentialsProvider.create(getCredentials()));
+              .setCredentialsProvider(FixedCredentialsProvider.create(getCredentials()))
+              .setUniverseDomain(universeDomain);
       return BigQueryWriteClient.create(clientSettings.build());
     } catch (IOException e) {
       throw new BigQueryConnectorException("Error creating BigQueryWriteClient", e);
