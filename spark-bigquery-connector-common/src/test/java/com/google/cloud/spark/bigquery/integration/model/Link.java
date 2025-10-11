@@ -20,6 +20,7 @@ import java.io.Serializable;
 
 public class Link implements Serializable {
 
+  private static final long serialVersionUID = 914804886152047390L;
   private String uri;
 
   public Link() {}

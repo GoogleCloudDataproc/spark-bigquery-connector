@@ -21,6 +21,7 @@ import java.io.Serializable;
 
 public class SchemaConvertersConfiguration implements Serializable {
 
+  private static final long serialVersionUID = -5971771984509805208L;
   private final boolean allowMapTypeConversion;
   private int bigNumericDefaultPrecision;
   private int bigNumericDefaultScale;

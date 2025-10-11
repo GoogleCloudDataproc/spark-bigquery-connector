@@ -35,6 +35,7 @@ public class DataSourceWriterContextPartitionHandler
     implements Function2<Integer, Iterator<Row>, Iterator<WriterCommitMessageContext>>,
         Serializable {
 
+  private static final long serialVersionUID = 1427566429084782311L;
   private static Logger logger =
       LoggerFactory.getLogger(DataSourceWriterContextPartitionHandler.class);
 

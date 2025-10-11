@@ -51,6 +51,7 @@ public class SparkBigQueryProxyAndHttpConfig implements BigQueryProxyConfig, Ser
   public static final String GCS_CONFIG_HTTP_CONNECT_TIMEOUT_PROPERTY =
       "fs.gs.http.connect-timeout";
   public static final String GCS_CONFIG_HTTP_READ_TIMEOUT_PROPERTY = "fs.gs.http.read-timeout";
+  private static final long serialVersionUID = 1651319822547810178L;
 
   private com.google.common.base.Optional<URI> proxyUri;
   private com.google.common.base.Optional<String> proxyUsername;

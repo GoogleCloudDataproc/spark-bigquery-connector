@@ -33,7 +33,7 @@ import java.util.Optional;
  */
 public final class QueryParameterHelper implements Serializable {
 
-  private static final long serialVersionUID = 1L; // For Serializable interface
+  private static final long serialVersionUID = -283738274937293739L; // For Serializable interface
 
   private final ParameterMode mode;
   private final ImmutableMap<String, QueryParameterValue> namedParameters;

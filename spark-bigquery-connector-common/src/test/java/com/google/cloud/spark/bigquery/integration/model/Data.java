@@ -21,6 +21,7 @@ import java.sql.Timestamp;
 
 public class Data implements Serializable {
 
+  private static final long serialVersionUID = 752810064619797197L;
   private String str;
   private java.sql.Timestamp ts;
 

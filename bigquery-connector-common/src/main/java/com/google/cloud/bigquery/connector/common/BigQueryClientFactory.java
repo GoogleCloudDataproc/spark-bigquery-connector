@@ -53,6 +53,9 @@ import org.threeten.bp.Duration;
  * and caches clients and also closes them during JVM shutdown.
  */
 public class BigQueryClientFactory implements Serializable {
+
+  private static final long serialVersionUID = 7960760163401041247L;
+
   private static final Logger log = LoggerFactory.getLogger(BigQueryClientFactory.class);
   private static final Map<BigQueryClientFactory, BigQueryReadClient> readClientMap =
       new HashMap<>();
