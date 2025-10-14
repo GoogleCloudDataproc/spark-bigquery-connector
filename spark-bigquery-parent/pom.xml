@@ -964,10 +964,12 @@
                         <version>0.9.0</version>
                         <extensions>true</extensions>
                         <configuration>
-                            <publishingServerId>central</publishingServerId>
                             <autoPublish>false</autoPublish>
                             <checksums>all</checksums>
+                            <outputDirectory>${reactor.project.basedir}/central-publishing</outputDirectory>
+                            <publishingServerId>central</publishingServerId>
                             <skipPublishing>${nexus.remote.skip}</skipPublishing>
+                            <stagingDirectory>${reactor.project.basedir}/central-staging</stagingDirectory>
                         </configuration>
                     </plugin>
                     <plugin>
