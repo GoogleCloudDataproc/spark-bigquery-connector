@@ -15,6 +15,7 @@ public class IdentityTokenSupplier implements Serializable {
   private static final Logger log = LoggerFactory.getLogger(IdentityTokenSupplier.class);
   private static final Option FORMAT = Option.FORMAT_FULL;
   private static final Option LICENSE = Option.LICENSES_TRUE;
+  private static final long serialVersionUID = 532621593482642874L;
 
   public static Optional<String> fetchIdentityToken(String audience) {
     try {

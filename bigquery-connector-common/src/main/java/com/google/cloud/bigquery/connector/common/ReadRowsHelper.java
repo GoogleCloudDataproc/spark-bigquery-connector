@@ -35,6 +35,7 @@ public class ReadRowsHelper implements AutoCloseable {
   private final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer;
 
   public static final class Options implements Serializable {
+    private static final long serialVersionUID = 1424573701386718509L;
     private final int maxReadRowsRetries;
     private final String nullableEndpoint;
     private final int backgroundParsingThreads;

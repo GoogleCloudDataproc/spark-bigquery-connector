@@ -41,6 +41,8 @@ import org.apache.spark.sql.vectorized.ColumnarBatch;
 
 public class ArrowInputPartitionContext implements InputPartitionContext<ColumnarBatch> {
 
+  private static final long serialVersionUID = -6698485693266257704L;
+
   private final BigQueryClientFactory bigQueryReadClientFactory;
   private final BigQueryTracerFactory tracerFactory;
   private List<String> streamNames;

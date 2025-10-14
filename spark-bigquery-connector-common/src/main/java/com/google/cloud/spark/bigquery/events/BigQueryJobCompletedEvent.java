@@ -26,6 +26,7 @@ import org.apache.spark.scheduler.SparkListenerEvent;
 
 public abstract class BigQueryJobCompletedEvent implements SparkListenerEvent, Serializable {
 
+  private static final long serialVersionUID = 5831270570484516631L;
   protected final JobInfo jobInfo;
 
   protected BigQueryJobCompletedEvent(JobInfo jobInfo, JobConfiguration.Type expectedType) {

@@ -26,6 +26,7 @@ import java.time.Duration;
  * time between the {@link #start } and {@link #finish()} call.
  */
 final class DurationTimer implements Serializable {
+  private static final long serialVersionUID = 3952075543181450716L;
   private long start = Long.MIN_VALUE;
   private long accumulatedNanos = 0;
   private long samples = 0;

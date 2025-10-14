@@ -93,6 +93,8 @@ public class SparkBigQueryConfig
         BigQueryClient.LoadDataOptions,
         Serializable {
 
+  private static final long serialVersionUID = 728392817473829L;
+
   public static final int MAX_TRACE_ID_LENGTH = 256;
   public static final TableId QUERY_DUMMY_TABLE_ID = TableId.of("QUERY", "QUERY");
 
