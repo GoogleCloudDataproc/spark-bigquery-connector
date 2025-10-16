@@ -959,25 +959,21 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.sonatype.central</groupId>
-                        <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.9.0</version>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>1.6.13</version>
                         <extensions>true</extensions>
                         <configuration>
-                            <autoPublish>false</autoPublish>
-                            <checksums>all</checksums>
-                            <deploymentName>spark-bigquery-connector-${project.version}-${maven.build.timestamp}</deploymentName>
-                            <outputDirectory>${reactor.project.basedir}/central-publishing</outputDirectory>
-                            <outputFilename>spark-bigquery-connector-${project.version}-bundle.zip</outputFilename>
-                            <publishingServerId>central</publishingServerId>
-                            <skipPublishing>${nexus.remote.skip}</skipPublishing>
-                            <stagingDirectory>${reactor.project.basedir}/central-staging</stagingDirectory>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://ossrh-staging-api.central.sonatype.com</nexusUrl>
+                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                            <skipRemoteStaging>${nexus.remote.skip}</skipRemoteStaging>
                         </configuration>
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.2.7</version>
+                        <version>3.2.8</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
