@@ -966,7 +966,9 @@
                         <configuration>
                             <autoPublish>false</autoPublish>
                             <checksums>all</checksums>
+                            <deploymentName>spark-bigquery-connector-${project.version}-${maven.build.timestamp}</deploymentName>
                             <outputDirectory>${reactor.project.basedir}/central-publishing</outputDirectory>
+                            <outputFilename>spark-bigquery-connector-${project.version}-bundle.zip</outputFilename>
                             <publishingServerId>central</publishingServerId>
                             <skipPublishing>${nexus.remote.skip}</skipPublishing>
                             <stagingDirectory>${reactor.project.basedir}/central-staging</stagingDirectory>
