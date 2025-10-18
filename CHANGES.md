@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.43.0 - 2025-10-17
 * Added new connector, `spark-4.0-bigquery` aimed to be used in Spark 4.0. Like Spark 4.0, this connector requires at
   least Java 17 runtime. It is currently in preview mode.
