@@ -72,6 +72,8 @@ public class BigQueryCredentialsSupplierTest {
   public static final String IMPERSONATED_A = "impersonated-a@developer.gserviceaccount.com";
   public static final String IMPERSONATED_B = "impersonated-b@developer.gserviceaccount.com";
 
+  private static final String TEST_UNIVERSE_DOMAIN = "test-universe-domain";
+
   @Test
   public void testCredentialsFromAccessToken() {
     Credentials nonProxyCredentials =
@@ -364,6 +366,20 @@ public class BigQueryCredentialsSupplierTest {
     return json.toPrettyString();
   }
 
+  private String createServiceAccountJsonWithUniverseDomain(String projectId) throws Exception {
+    GenericJson json = new GenericJson();
+    json.setFactory(GsonFactory.getDefaultInstance());
+    json.put("type", TYPE);
+    json.put("client_id", CLIENT_ID);
+    json.put("client_email", CLIENT_EMAIL);
+    json.put("private_key", PRIVATE_KEY_PKCS8);
+    json.put("private_key_id", PRIVATE_KEY_ID);
+    json.put("project_id", projectId);
+    json.put("quota_project_id", QUOTA_PROJECT);
+    json.put("universe_domain", TEST_UNIVERSE_DOMAIN);
+    return json.toPrettyString();
+  }
+
   Credentials createImpersonatedCredentials(
       String loggedInUserName,
       Set<String> loggedInUserGroups,
@@ -613,5 +629,31 @@ public class BigQueryCredentialsSupplierTest {
     Credentials credentials = supplier.getCredentials();
     assertThat(supplier.getUniverseDomain()).isEqualTo(Credentials.GOOGLE_DEFAULT_UNIVERSE);
     assertThat(credentials.getUniverseDomain()).isEqualTo(Credentials.GOOGLE_DEFAULT_UNIVERSE);
+  }
+
+  @Test
+  public void testNotDefaultUniverseDomain() throws Exception {
+    String json = createServiceAccountJsonWithUniverseDomain("key");
+    String credentialsKey =
+        Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+
+    BigQueryCredentialsSupplier supplier =
+        new BigQueryCredentialsSupplier(
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.of(credentialsKey),
+            Optional.empty(),
+            null,
+            null,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty());
+
+    assertThat(supplier.getUniverseDomain()).isEqualTo(TEST_UNIVERSE_DOMAIN);
   }
 }
