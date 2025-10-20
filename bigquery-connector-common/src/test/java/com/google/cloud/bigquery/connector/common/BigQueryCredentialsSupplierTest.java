@@ -625,6 +625,29 @@ public class BigQueryCredentialsSupplierTest {
   }
 
   @Test
+  public void testDefaultUniverseDomain() throws Exception {
+    BigQueryCredentialsSupplier supplier =
+        new BigQueryCredentialsSupplier(
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            null,
+            null,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty());
+
+    Credentials credentials = supplier.getCredentials();
+    assertThat(supplier.getUniverseDomain()).isEqualTo(Credentials.GOOGLE_DEFAULT_UNIVERSE);
+  }
+
+  @Test
   public void testUniverseDomainOnFailure() throws Exception {
     BigQueryCredentialsSupplier supplier =
         new BigQueryCredentialsSupplier(
