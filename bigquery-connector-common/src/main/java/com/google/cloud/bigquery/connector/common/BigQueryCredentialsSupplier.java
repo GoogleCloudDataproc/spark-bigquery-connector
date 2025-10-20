@@ -38,11 +38,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BigQueryCredentialsSupplier {
   private final Credentials credentials;
   public static final String CLOUD_PLATFORM_SCOPE =
       "https://www.googleapis.com/auth/cloud-platform";
+
+  private static final Logger log = LoggerFactory.getLogger(BigQueryCredentialsSupplier.class);
 
   public BigQueryCredentialsSupplier(
       Optional<String> accessTokenProviderFQCN,
@@ -204,5 +208,16 @@ public class BigQueryCredentialsSupplier {
 
   public Credentials getCredentials() {
     return credentials;
+  }
+
+  public String getUniverseDomain() {
+    String universeDomain = Credentials.GOOGLE_DEFAULT_UNIVERSE;
+    try {
+      universeDomain = getCredentials().getUniverseDomain();
+    } catch (IOException e) {
+      log.warn(
+          "Caught Exception while querying the Universe Domain, continuing with GOOGLE_DEFAULT_UNIVERSE");
+    }
+    return universeDomain;
   }
 }

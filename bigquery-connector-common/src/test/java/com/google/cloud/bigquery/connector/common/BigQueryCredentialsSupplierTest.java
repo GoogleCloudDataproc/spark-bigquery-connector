@@ -17,6 +17,9 @@ package com.google.cloud.bigquery.connector.common;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.api.client.json.GenericJson;
 import com.google.api.client.json.gson.GsonFactory;
@@ -28,12 +31,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.gson.stream.MalformedJsonException;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class BigQueryCredentialsSupplierTest {
 
@@ -71,6 +76,8 @@ public class BigQueryCredentialsSupplierTest {
       "impersonated-global@developer.gserviceaccount.com";
   public static final String IMPERSONATED_A = "impersonated-a@developer.gserviceaccount.com";
   public static final String IMPERSONATED_B = "impersonated-b@developer.gserviceaccount.com";
+
+  private static final String TEST_UNIVERSE_DOMAIN = "test-universe-domain";
 
   @Test
   public void testCredentialsFromAccessToken() {
@@ -361,6 +368,7 @@ public class BigQueryCredentialsSupplierTest {
     json.put("private_key_id", PRIVATE_KEY_ID);
     json.put("project_id", projectId);
     json.put("quota_project_id", QUOTA_PROJECT);
+    json.put("universe_domain", TEST_UNIVERSE_DOMAIN);
     return json.toPrettyString();
   }
 
@@ -586,5 +594,81 @@ public class BigQueryCredentialsSupplierTest {
     assertThat(credentials).isInstanceOf(ServiceAccountCredentials.class);
     ServiceAccountCredentials sac = (ServiceAccountCredentials) credentials;
     assertThat(sac.getScopes()).containsExactly("http://www.googleapis.com/foo/bar");
+  }
+
+  @Test
+  public void testUniverseDomain() throws Exception {
+    String json = createServiceAccountJson("key");
+    String credentialsKey =
+        Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+
+    BigQueryCredentialsSupplier supplier =
+        new BigQueryCredentialsSupplier(
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.of(credentialsKey),
+            Optional.empty(),
+            null,
+            null,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty());
+
+    Credentials credentials = supplier.getCredentials();
+    assertThat(supplier.getUniverseDomain()).isEqualTo(TEST_UNIVERSE_DOMAIN);
+    assertThat(credentials.getUniverseDomain()).isEqualTo(TEST_UNIVERSE_DOMAIN);
+  }
+
+  @Test
+  public void testDefaultUniverseDomain() throws Exception {
+    BigQueryCredentialsSupplier supplier =
+        new BigQueryCredentialsSupplier(
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            null,
+            null,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty());
+
+    Credentials credentials = supplier.getCredentials();
+    assertThat(supplier.getUniverseDomain()).isEqualTo(Credentials.GOOGLE_DEFAULT_UNIVERSE);
+  }
+
+  @Test
+  public void testUniverseDomainOnFailure() throws Exception {
+    BigQueryCredentialsSupplier supplier =
+        new BigQueryCredentialsSupplier(
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            null,
+            null,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty());
+    BigQueryCredentialsSupplier spySupplier = Mockito.spy(supplier);
+    Credentials credentials = mock(Credentials.class);
+    when(spySupplier.getCredentials()).thenReturn(credentials);
+    doThrow(new IOException()).when(credentials).getUniverseDomain();
+    assertThat(spySupplier.getUniverseDomain()).isEqualTo(Credentials.GOOGLE_DEFAULT_UNIVERSE);
   }
 }
