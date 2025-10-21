@@ -240,12 +240,6 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>javax.inject</groupId>
-                <artifactId>javax.inject</artifactId>
-                <version>1</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
                 <groupId>javax.annotation</groupId>
                 <artifactId>javax.annotation-api</artifactId>
                 <version>1.3.2</version>
@@ -667,6 +661,10 @@
                         <relocation>
                             <pattern>io.perfmark</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.io.perfmark</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>javax.inject</pattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.javax.inject</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>net.bytebuddy</pattern>

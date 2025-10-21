@@ -18,14 +18,12 @@ package com.google.cloud.spark.bigquery.acceptance;
 import java.util.Collections;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 
-@Ignore("Waiting for the serverless spark 4.0 runtime")
-public class Spark40DataprocImage22AcceptanceTest extends DataprocAcceptanceTestBase {
+public class Spark40DataprocImage30AcceptanceTest extends DataprocAcceptanceTestBase {
 
   private static AcceptanceTestContext context;
 
-  public Spark40DataprocImage22AcceptanceTest() {
+  public Spark40DataprocImage30AcceptanceTest() {
     super(context, false);
   }
 
