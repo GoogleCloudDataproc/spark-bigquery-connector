@@ -17,15 +17,13 @@ package com.google.cloud.spark.bigquery.acceptance;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 
-@Ignore("Waiting for the serverless spark 4.0 runtime")
-public class Spark40DataprocImage22DisableConscryptAcceptanceTest
+public class Spark40DataprocImage30DisableConscryptAcceptanceTest
     extends DataprocAcceptanceTestBase {
 
   private static AcceptanceTestContext context;
 
-  public Spark40DataprocImage22DisableConscryptAcceptanceTest() {
+  public Spark40DataprocImage30DisableConscryptAcceptanceTest() {
     super(context, false);
   }
 

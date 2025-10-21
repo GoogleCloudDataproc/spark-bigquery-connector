@@ -1,6 +1,8 @@
 # Release Notes
 
 ## Next
+* Issue #1417: Fixed ClassCastException in AWS federated identity
+* PR #1432: Fixing packaging issue with the spark-4.0-bigquery connector.
 
 ## 0.43.0 - 2025-10-17
 * Added new connector, `spark-4.0-bigquery` aimed to be used in Spark 4.0. Like Spark 4.0, this connector requires at
@@ -12,6 +14,7 @@
 * PR #1380: Fixed ImpersonatedCredentials serialization
 * PR #1381: Added the option to set custom credentials scopes
 * PR #1411: Added Support for [SparkSession#executeCommand](https://archive.apache.org/dist/spark/docs/3.0.0/api/java/org/apache/spark/sql/SparkSession.html#executeCommand-java.lang.String-java.lang.String-scala.collection.immutable.Map-)
+* Issue #1421: Fix ArrowInputPartitionContext serialization issue. Thanks @mrjoe7 !
 * BigQuery API has been upgraded to version 2.54.0
 * BigQuery Storage API has been upgraded to version 3.16.1
 * GAX has been upgraded to version 2.68.2
