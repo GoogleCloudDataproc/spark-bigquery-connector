@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.43.1 - 2025-10-22
 * Issue #1417: Fixed ClassCastException in AWS federated identity
 * PR #1432: Fixing packaging issue with the spark-4.0-bigquery connector.
