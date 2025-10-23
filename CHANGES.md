@@ -5,6 +5,7 @@
   least Java 17 runtime. It is currently in preview mode.
 * PR #1445: Add streaming support for Spark DS v2 indirect write.
 * PR #1452: Improved the performance of the dynamic partition overwrite for RANGE_BUCKET partitioned tables.
+* PR #1434: Support per-catalog configuration for project and location for BigQueryCatalog.
 
 ## 0.43.1 - 2025-10-22
 * Issue #1417: Fixed ClassCastException in AWS federated identity

@@ -48,6 +48,10 @@ public interface BigQueryConfig {
 
   String getParentProjectId();
 
+  Optional<String> getCatalogProjectId();
+
+  Optional<String> getCatalogLocation();
+
   boolean useParentProjectForMetadataOperations();
 
   boolean isViewsEnabled();
