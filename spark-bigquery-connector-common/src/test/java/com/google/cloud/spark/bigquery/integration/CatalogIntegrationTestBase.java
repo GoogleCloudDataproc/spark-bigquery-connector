@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SparkSession;
@@ -242,6 +243,75 @@ public class CatalogIntegrationTestBase {
       spark.sql("DROP DATABASE " + database + ";");
       Dataset dataset = bigquery.getDataset(datasetId);
       assertThat(dataset).isNull();
+    }
+  }
+
+  @Test
+  public void testCatalogInitializationWithProject() {
+    try (SparkSession spark = createSparkSession()) {
+      spark
+          .conf()
+          .set(
+              "spark.sql.catalog.public_catalog",
+              "com.google.cloud.spark.bigquery.BigQueryCatalog");
+      spark.conf().set("spark.sql.catalog.public_catalog.project", "bigquery-public-data");
+      List<Row> rows = spark.sql("SHOW DATABASES IN public_catalog").collectAsList();
+      List<String> databaseNames =
+          rows.stream().map(row -> row.getString(0)).collect(Collectors.toList());
+      assertThat(databaseNames).contains("samples");
+    }
+  }
+
+  @Test
+  public void testCreateCatalogWithLocation() throws Exception {
+    String database = String.format("create_db_with_location_%s", System.nanoTime());
+    DatasetId datasetId = DatasetId.of(database);
+    try (SparkSession spark = createSparkSession()) {
+      spark
+          .conf()
+          .set("spark.sql.catalog.test_catalog", "com.google.cloud.spark.bigquery.BigQueryCatalog");
+      spark.conf().set("spark.sql.catalog.test_catalog.location", "EU");
+
+      spark.sql("CREATE DATABASE test_catalog." + database);
+
+      Dataset dataset = bigquery.getDataset(datasetId);
+      assertThat(dataset).isNotNull();
+      assertThat(dataset.getLocation()).isEqualTo("EU");
+    } finally {
+      bigquery.delete(datasetId, BigQuery.DatasetDeleteOption.deleteContents());
+    }
+  }
+
+  @Test
+  public void testCreateTableAsSelectWithProjectAndLocation() throws Exception {
+    String database = String.format("ctas_db_with_location_%s", System.nanoTime());
+    String newTable = "ctas_table_from_public";
+    DatasetId datasetId = DatasetId.of(database);
+    try (SparkSession spark = createSparkSession()) {
+      spark
+          .conf()
+          .set(
+              "spark.sql.catalog.public_catalog",
+              "com.google.cloud.spark.bigquery.BigQueryCatalog");
+      spark.conf().set("spark.sql.catalog.public_catalog.project", "bigquery-public-data");
+      spark
+          .conf()
+          .set("spark.sql.catalog.test_catalog", "com.google.cloud.spark.bigquery.BigQueryCatalog");
+      spark.conf().set("spark.sql.catalog.test_catalog.location", "EU");
+      spark.sql("CREATE DATABASE test_catalog." + database);
+      spark.sql(
+          "CREATE TABLE test_catalog."
+              + database
+              + "."
+              + newTable
+              + " AS SELECT * FROM public_catalog.samples.shakespeare LIMIT 10");
+      Dataset dataset = bigquery.getDataset(datasetId);
+      assertThat(dataset).isNotNull();
+      assertThat(dataset.getLocation()).isEqualTo("EU");
+      Table table = bigquery.getTable(TableId.of(datasetId.getDataset(), newTable));
+      assertThat(table).isNotNull();
+    } finally {
+      bigquery.delete(datasetId, BigQuery.DatasetDeleteOption.deleteContents());
     }
   }
 
