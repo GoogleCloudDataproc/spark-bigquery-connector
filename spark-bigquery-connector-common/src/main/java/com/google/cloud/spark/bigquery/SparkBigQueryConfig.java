@@ -426,7 +426,7 @@ public class SparkBigQueryConfig
 
     config.parentProjectId =
         getAnyOption(globalOptions, options, "parentProject").or(defaultBilledProject());
-    config.catalogProjectId = getOption(options, "project");
+    config.catalogProjectId = getOption(options, "projectId");
     config.catalogLocation = getOption(options, "location");
     config.useParentProjectForMetadataOperations =
         getAnyBooleanOption(globalOptions, options, "useParentProjectForMetadataOperations", false);
