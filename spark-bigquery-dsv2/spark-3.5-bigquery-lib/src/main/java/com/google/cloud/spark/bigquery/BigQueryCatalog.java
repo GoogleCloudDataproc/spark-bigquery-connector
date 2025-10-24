@@ -82,7 +82,11 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
   @Override
   public void initialize(String name, CaseInsensitiveStringMap caseInsensitiveStringMap) {
     logger.info("Initializing BigQuery table catalog [{}])", name);
-    Injector injector = new InjectorBuilder().withTableIsMandatory(false).build();
+    Injector injector =
+        new InjectorBuilder()
+            .withOptions(caseInsensitiveStringMap.asCaseSensitiveMap())
+            .withTableIsMandatory(false)
+            .build();
     tableProvider =
         StreamSupport.stream(ServiceLoader.load(DataSourceRegister.class).spliterator(), false)
             .filter(candidate -> candidate.shortName().equals("bigquery"))
