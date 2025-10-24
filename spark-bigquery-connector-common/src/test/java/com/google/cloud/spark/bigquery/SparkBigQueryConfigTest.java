@@ -1261,7 +1261,7 @@ public class SparkBigQueryConfigTest {
   @Test
   public void testCatalogProjectId() {
     Map<String, String> optionsWithProject = new HashMap<>();
-    optionsWithProject.put("project", "my-catalog-project");
+    optionsWithProject.put("projectId", "my-catalog-project");
     optionsWithProject.put("table", "dataset.table");
 
     SparkBigQueryConfig configWithProject =
@@ -1331,7 +1331,7 @@ public class SparkBigQueryConfigTest {
   @Test
   public void testCatalogProjectIdAndLocation() {
     Map<String, String> optionsWithProjectAndLocation = new HashMap<>();
-    optionsWithProjectAndLocation.put("project", "my-catalog-project");
+    optionsWithProjectAndLocation.put("projectId", "my-catalog-project");
     optionsWithProjectAndLocation.put("location", "EU");
     optionsWithProjectAndLocation.put("table", "dataset.table");
 

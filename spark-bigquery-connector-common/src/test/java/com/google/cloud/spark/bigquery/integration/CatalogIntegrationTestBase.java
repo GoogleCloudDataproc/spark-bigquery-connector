@@ -254,16 +254,19 @@ public class CatalogIntegrationTestBase {
           .set(
               "spark.sql.catalog.public_catalog",
               "com.google.cloud.spark.bigquery.BigQueryCatalog");
-      spark.conf().set("spark.sql.catalog.public_catalog.project", "bigquery-public-data");
+      spark.conf().set("spark.sql.catalog.public_catalog.projectId", "bigquery-public-data");
       List<Row> rows = spark.sql("SHOW DATABASES IN public_catalog").collectAsList();
       List<String> databaseNames =
           rows.stream().map(row -> row.getString(0)).collect(Collectors.toList());
       assertThat(databaseNames).contains("samples");
+      List<Row> data =
+          spark.sql("SELECT * FROM public_catalog.samples.shakespeare LIMIT 10").collectAsList();
+      assertThat(data).hasSize(10);
     }
   }
 
   @Test
-  public void testCreateCatalogWithLocation() throws Exception {
+  public void testCreateCatalogWithLocation() {
     String database = String.format("create_db_with_location_%s", System.nanoTime());
     DatasetId datasetId = DatasetId.of(database);
     try (SparkSession spark = createSparkSession()) {
@@ -283,7 +286,7 @@ public class CatalogIntegrationTestBase {
   }
 
   @Test
-  public void testCreateTableAsSelectWithProjectAndLocation() throws Exception {
+  public void testCreateTableAsSelectWithProjectAndLocation() {
     String database = String.format("ctas_db_with_location_%s", System.nanoTime());
     String newTable = "ctas_table_from_public";
     DatasetId datasetId = DatasetId.of(database);
@@ -293,7 +296,7 @@ public class CatalogIntegrationTestBase {
           .set(
               "spark.sql.catalog.public_catalog",
               "com.google.cloud.spark.bigquery.BigQueryCatalog");
-      spark.conf().set("spark.sql.catalog.public_catalog.project", "bigquery-public-data");
+      spark.conf().set("spark.sql.catalog.public_catalog.projectId", "bigquery-public-data");
       spark
           .conf()
           .set("spark.sql.catalog.test_catalog", "com.google.cloud.spark.bigquery.BigQueryCatalog");
