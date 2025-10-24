@@ -106,11 +106,18 @@ public class BigQueryClientModule implements com.google.inject.Module {
     BigQueryOptions.Builder options =
         BigQueryOptions.newBuilder()
             .setHeaderProvider(headerProvider)
-            .setProjectId(config.getCatalogProjectId().orElse(config.getParentProjectId()))
             .setCredentials(bigQueryCredentialsSupplier.getCredentials())
             .setRetrySettings(config.getBigQueryClientRetrySettings())
             .setUniverseDomain(bigQueryCredentialsSupplier.getUniverseDomain());
 
+    // Determine the project for data location (the catalog's project, if specified)
+    String dataProject = config.getCatalogProjectId().orElse(config.getParentProjectId());
+    options.setProjectId(dataProject);
+
+    // ALWAYS set the parent project for billing/quota to avoid ambiguity.
+    options.setQuotaProjectId(config.getParentProjectId());
+
+    // Set the location if it's available.
     config.getCatalogLocation().ifPresent(options::setLocation);
 
     HttpTransportOptions.Builder httpTransportOptionsBuilder =
