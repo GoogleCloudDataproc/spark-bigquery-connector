@@ -290,6 +290,10 @@ public class CatalogIntegrationTestBase {
     String database = String.format("ctas_db_with_location_%s", System.nanoTime());
     String newTable = "ctas_table_from_public";
     DatasetId datasetId = DatasetId.of(database);
+    // Stop any existing Spark session to ensure a clean state for this test
+    SparkSession.active().stop();
+    SparkSession.clearActiveSession();
+    SparkSession.clearDefaultSession();
     try (SparkSession spark = createSparkSession()) {
       spark
           .conf()
