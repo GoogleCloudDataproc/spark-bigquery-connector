@@ -259,6 +259,8 @@ public class CatalogIntegrationTestBase {
       List<String> databaseNames =
           rows.stream().map(row -> row.getString(0)).collect(Collectors.toList());
       assertThat(databaseNames).contains("samples");
+      System.out.println(databaseNames);
+      spark.sql("SHOW TABLES IN public_catalog.samples").show();
       List<Row> data =
           spark.sql("SELECT * FROM public_catalog.samples.shakespeare LIMIT 10").collectAsList();
       assertThat(data).hasSize(10);
