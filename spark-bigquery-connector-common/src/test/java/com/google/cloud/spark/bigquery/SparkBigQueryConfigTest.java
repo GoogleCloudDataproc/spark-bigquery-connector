@@ -1296,7 +1296,7 @@ public class SparkBigQueryConfigTest {
   @Test
   public void testCatalogLocation() {
     Map<String, String> optionsWithLocation = new HashMap<>();
-    optionsWithLocation.put("location", "US");
+    optionsWithLocation.put("bigquery_location", "US");
     optionsWithLocation.put("table", "dataset.table");
 
     SparkBigQueryConfig configWithLocation =
@@ -1332,7 +1332,7 @@ public class SparkBigQueryConfigTest {
   public void testCatalogProjectIdAndLocation() {
     Map<String, String> optionsWithProjectAndLocation = new HashMap<>();
     optionsWithProjectAndLocation.put("projectId", "my-catalog-project");
-    optionsWithProjectAndLocation.put("location", "EU");
+    optionsWithProjectAndLocation.put("bigquery_location", "EU");
     optionsWithProjectAndLocation.put("table", "dataset.table");
 
     SparkBigQueryConfig config =
