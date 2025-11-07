@@ -45,7 +45,7 @@ public class CatalogIntegrationTestBase {
 
   protected static SparkSession spark;
   private String testTable;
-  // 2. Initialize the SparkSession ONCE before all tests
+
   @BeforeClass
   public static void setupSparkSession() {
     spark =
@@ -60,8 +60,6 @@ public class CatalogIntegrationTestBase {
             .getOrCreate();
   }
 
-  // 4. Stop the SparkSession ONCE after all tests are done
-  // This fixes the local IllegalStateException (race condition)
   @AfterClass
   public static void teardownSparkSession() {
     if (spark != null) {
@@ -253,36 +251,75 @@ public class CatalogIntegrationTestBase {
 
   @Test
   public void testCatalogInitializationWithProject() {
-    spark
-        .conf()
-        .set("spark.sql.catalog.public_catalog", "com.google.cloud.spark.bigquery.BigQueryCatalog");
-    spark.conf().set("spark.sql.catalog.public_catalog.project", "bigquery-public-data");
+    try {
+      spark
+          .conf()
+          .set(
+              "spark.sql.catalog.public_catalog",
+              "com.google.cloud.spark.bigquery.BigQueryCatalog");
+      // Use 'projectId' instead of 'project' - this is the correct property name
+      spark.conf().set("spark.sql.catalog.public_catalog.projectId", "bigquery-public-data");
 
-    List<Row> rows = spark.sql("SHOW DATABASES IN public_catalog").collectAsList();
-    List<String> databaseNames =
-        rows.stream().map(row -> row.getString(0)).collect(Collectors.toList());
-    assertThat(databaseNames).contains("samples");
+      // Add a small delay to ensure catalog is fully initialized
+      Thread.sleep(2000);
 
-    List<Row> data =
-        spark.sql("SELECT * FROM public_catalog.samples.shakespeare LIMIT 10").collectAsList();
-    assertThat(data).hasSize(10);
+      // Verify catalog is accessible before querying
+      try {
+        spark.sql("USE public_catalog");
+      } catch (Exception e) {
+        // Catalog might not support USE, that's okay
+      }
+
+      List<Row> rows = spark.sql("SHOW DATABASES IN public_catalog").collectAsList();
+      List<String> databaseNames =
+          rows.stream().map(row -> row.getString(0)).collect(Collectors.toList());
+      assertThat(databaseNames).contains("samples");
+
+      List<Row> data =
+          spark.sql("SELECT * FROM public_catalog.samples.shakespeare LIMIT 10").collectAsList();
+      assertThat(data).hasSize(10);
+    } catch (Exception e) {
+      // Log the full stack trace to help debug cloud build failures
+      e.printStackTrace();
+      throw new RuntimeException("Test failed with detailed error", e);
+    } finally {
+      // Clean up catalog configuration to avoid interference with other tests
+      try {
+        spark.conf().unset("spark.sql.catalog.public_catalog");
+        spark.conf().unset("spark.sql.catalog.public_catalog.projectId");
+      } catch (Exception ignored) {
+      }
+    }
   }
 
   @Test
   public void testCreateCatalogWithLocation() throws Exception {
     String database = String.format("create_db_with_location_%s", System.nanoTime());
     DatasetId datasetId = DatasetId.of(database);
-    spark
-        .conf()
-        .set(
-            "spark.sql.catalog.test_location_catalog",
-            "com.google.cloud.spark.bigquery.BigQueryCatalog");
-    spark.conf().set("spark.sql.catalog.test_location_catalog.bigquery_location", "EU");
-    spark.sql("CREATE DATABASE test_location_catalog." + database);
-    Dataset dataset = bigquery.getDataset(datasetId);
-    assertThat(dataset).isNotNull();
-    assertThat(dataset.getLocation()).isEqualTo("EU");
-    bigquery.delete(datasetId, BigQuery.DatasetDeleteOption.deleteContents());
+    try {
+      spark
+          .conf()
+          .set(
+              "spark.sql.catalog.test_location_catalog",
+              "com.google.cloud.spark.bigquery.BigQueryCatalog");
+      spark.conf().set("spark.sql.catalog.test_location_catalog.bigquery_location", "EU");
+
+      // Add delay for catalog initialization
+      Thread.sleep(2000);
+
+      spark.sql("CREATE DATABASE test_location_catalog." + database);
+      Dataset dataset = bigquery.getDataset(datasetId);
+      assertThat(dataset).isNotNull();
+      assertThat(dataset.getLocation()).isEqualTo("EU");
+    } finally {
+      bigquery.delete(datasetId, BigQuery.DatasetDeleteOption.deleteContents());
+      // Clean up catalog configuration
+      try {
+        spark.conf().unset("spark.sql.catalog.test_location_catalog");
+        spark.conf().unset("spark.sql.catalog.test_location_catalog.bigquery_location");
+      } catch (Exception ignored) {
+      }
+    }
   }
 
   @Test
@@ -290,29 +327,54 @@ public class CatalogIntegrationTestBase {
     String database = String.format("ctas_db_with_location_%s", System.nanoTime());
     String newTable = "ctas_table_from_public";
     DatasetId datasetId = DatasetId.of(database);
-    spark
-        .conf()
-        .set("spark.sql.catalog.public_catalog", "com.google.cloud.spark.bigquery.BigQueryCatalog");
-    spark.conf().set("spark.sql.catalog.public_catalog.projectId", "bigquery-public-data");
-    spark
-        .conf()
-        .set(
-            "spark.sql.catalog.test_catalog_as_select",
-            "com.google.cloud.spark.bigquery.BigQueryCatalog");
-    spark.conf().set("spark.sql.catalog.test_catalog_as_select.bigquery_location", "EU");
-    spark.sql("CREATE DATABASE test_catalog_as_select." + database);
-    spark.sql(
-        "CREATE TABLE test_catalog_as_select."
-            + database
-            + "."
-            + newTable
-            + " AS SELECT * FROM public_catalog.samples.shakespeare LIMIT 10");
-    Dataset dataset = bigquery.getDataset(datasetId);
-    assertThat(dataset).isNotNull();
-    assertThat(dataset.getLocation()).isEqualTo("EU");
-    Table table = bigquery.getTable(TableId.of(datasetId.getDataset(), newTable));
-    assertThat(table).isNotNull();
-    bigquery.delete(datasetId, BigQuery.DatasetDeleteOption.deleteContents());
+    try {
+      spark
+          .conf()
+          .set(
+              "spark.sql.catalog.public_catalog",
+              "com.google.cloud.spark.bigquery.BigQueryCatalog");
+      // Use 'projectId' instead of 'project'
+      spark.conf().set("spark.sql.catalog.public_catalog.projectId", "bigquery-public-data");
+      spark
+          .conf()
+          .set(
+              "spark.sql.catalog.test_catalog_as_select",
+              "com.google.cloud.spark.bigquery.BigQueryCatalog");
+      spark.conf().set("spark.sql.catalog.test_catalog_as_select.bigquery_location", "EU");
+
+      // Add delay for catalog initialization
+      Thread.sleep(2000);
+
+      spark.sql("CREATE DATABASE test_catalog_as_select." + database);
+
+      // Add another small delay after database creation
+      Thread.sleep(1000);
+
+      spark.sql(
+          "CREATE TABLE test_catalog_as_select."
+              + database
+              + "."
+              + newTable
+              + " AS SELECT * FROM public_catalog.samples.shakespeare LIMIT 10");
+      Dataset dataset = bigquery.getDataset(datasetId);
+      assertThat(dataset).isNotNull();
+      assertThat(dataset.getLocation()).isEqualTo("EU");
+      Table table = bigquery.getTable(TableId.of(datasetId.getDataset(), newTable));
+      assertThat(table).isNotNull();
+    } catch (Exception e) {
+      e.printStackTrace();
+      throw new RuntimeException("Test failed with detailed error", e);
+    } finally {
+      bigquery.delete(datasetId, BigQuery.DatasetDeleteOption.deleteContents());
+      // Clean up catalog configurations
+      try {
+        spark.conf().unset("spark.sql.catalog.public_catalog");
+        spark.conf().unset("spark.sql.catalog.public_catalog.projectId");
+        spark.conf().unset("spark.sql.catalog.test_catalog_as_select");
+        spark.conf().unset("spark.sql.catalog.test_catalog_as_select.bigquery_location");
+      } catch (Exception ignored) {
+      }
+    }
   }
 
   private static SparkSession createSparkSession() {
