@@ -20,7 +20,7 @@ The new API allows column and predicate filtering to only read the data you are 
 
 #### Column Filtering
 
-Since BigQuery is [backed by a columnar datastore](https://cloud.google.com/blog/big-data/2016/04/inside-capacitor-bigquerys-next-generation-columnar-storage-format), it can efficiently stream data without reading all columns.
+Since BigQuery is [backed by a columnar datastore](https://cloud.google.com/blog/products/bigquery/inside-capacitor-bigquerys-next-generation-columnar-storage-format), it can efficiently stream data without reading all columns.
 
 #### Predicate Filtering
 
