@@ -9,17 +9,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.config.ConnectionConfig;
-import org.apache.hc.client5.http.config.RequestConfig;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
-import org.apache.hc.core5.http.ClassicHttpResponse;
-import org.apache.hc.core5.http.ParseException;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.apache.hc.core5.util.Timeout;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
 
 /** Util to extract values from GCP environment */
@@ -48,19 +45,21 @@ public class GCPLabelUtils {
   private static final String SPARK_DIST_CLASSPATH = "SPARK_DIST_CLASSPATH";
 
   static {
-    ConnectionConfig connectionConfig =
-        ConnectionConfig.custom()
-            .setConnectTimeout(Timeout.ofSeconds(1))
-            .setSocketTimeout(Timeout.ofSeconds(1))
+    // Configure HttpClient 4 with short timeouts similar to previous settings
+    RequestConfig requestConfig =
+        RequestConfig.custom()
+            .setConnectTimeout(1000)
+            .setSocketTimeout(1000)
+            .setConnectionRequestTimeout(100) // from pool
             .build();
-    PoolingHttpClientConnectionManager connMan =
-        PoolingHttpClientConnectionManagerBuilder.create()
-            .setDefaultConnectionConfig(connectionConfig)
-            .build();
-    RequestConfig config =
-        RequestConfig.custom().setConnectionRequestTimeout(Timeout.ofMilliseconds(100)).build();
+    PoolingHttpClientConnectionManager connMan = new PoolingHttpClientConnectionManager();
+    connMan.setDefaultMaxPerRoute(20);
+    connMan.setMaxTotal(200);
     HTTP_CLIENT =
-        HttpClients.custom().setDefaultRequestConfig(config).setConnectionManager(connMan).build();
+        HttpClients.custom()
+            .setDefaultRequestConfig(requestConfig)
+            .setConnectionManager(connMan)
+            .build();
   }
 
   static boolean isDataprocRuntime() {
@@ -85,32 +84,32 @@ public class GCPLabelUtils {
     return gcpLabels;
   }
 
-    private static @NotNull Map<String, String> getResourceLabels(ImmutableMap<String, String> conf) {
-        Map<String, String> resourceLabels = new HashMap<>();
-        if("yarn".equals(conf.getOrDefault(SPARK_MASTER, ""))){
-            getClusterName(conf).ifPresent(p -> resourceLabels.put("cluster.name", p));
-            getClusterUUID(conf).ifPresent(p -> resourceLabels.put("cluster.uuid", p));
-            getDataprocJobID(conf).ifPresent(p -> resourceLabels.put("job.id", p));
-            getDataprocJobUUID(conf).ifPresent(p -> resourceLabels.put("job.uuid", p));
-            resourceLabels.put("job.type", "dataproc_job");
-            return resourceLabels;
-        }
-        Optional<String> dataprocBatchID = getDataprocBatchID(conf);
-        if(dataprocBatchID.isPresent()) {
-            dataprocBatchID.ifPresent(p -> resourceLabels.put("spark.batch.id", p));
-            getDataprocBatchUUID(conf).ifPresent(p -> resourceLabels.put("spark.batch.uuid", p));
-            resourceLabels.put("job.type", "batch");
-            return resourceLabels;
-        }
-        Optional<String> dataprocSessionID = getDataprocSessionID(conf);
-        if(dataprocSessionID.isPresent()) {
-            dataprocSessionID.ifPresent(p -> resourceLabels.put("spark.session.id", p));
-            getDataprocSessionUUID(conf).ifPresent(p -> resourceLabels.put("spark.session.uuid", p));
-            resourceLabels.put("job.type", "session");
-            return resourceLabels;
-        }
-        return resourceLabels;
+  private static @NotNull Map<String, String> getResourceLabels(ImmutableMap<String, String> conf) {
+    Map<String, String> resourceLabels = new HashMap<>();
+    if ("yarn".equals(conf.getOrDefault(SPARK_MASTER, ""))) {
+      getClusterName(conf).ifPresent(p -> resourceLabels.put("cluster.name", p));
+      getClusterUUID(conf).ifPresent(p -> resourceLabels.put("cluster.uuid", p));
+      getDataprocJobID(conf).ifPresent(p -> resourceLabels.put("job.id", p));
+      getDataprocJobUUID(conf).ifPresent(p -> resourceLabels.put("job.uuid", p));
+      resourceLabels.put("job.type", "dataproc_job");
+      return resourceLabels;
     }
+    Optional<String> dataprocBatchID = getDataprocBatchID(conf);
+    if (dataprocBatchID.isPresent()) {
+      dataprocBatchID.ifPresent(p -> resourceLabels.put("spark.batch.id", p));
+      getDataprocBatchUUID(conf).ifPresent(p -> resourceLabels.put("spark.batch.uuid", p));
+      resourceLabels.put("job.type", "batch");
+      return resourceLabels;
+    }
+    Optional<String> dataprocSessionID = getDataprocSessionID(conf);
+    if (dataprocSessionID.isPresent()) {
+      dataprocSessionID.ifPresent(p -> resourceLabels.put("spark.session.id", p));
+      getDataprocSessionUUID(conf).ifPresent(p -> resourceLabels.put("spark.session.uuid", p));
+      resourceLabels.put("job.type", "session");
+      return resourceLabels;
+    }
+    return resourceLabels;
+  }
 
   private static Optional<String> getDriverHost(ImmutableMap<String, String> conf) {
     return Optional.ofNullable(conf.get(SPARK_DRIVER_HOST));
@@ -122,7 +121,7 @@ public class GCPLabelUtils {
   static Optional<String> getClusterName(ImmutableMap<String, String> conf) {
     return getDriverHost(conf)
         .map(host -> host.split("\\.")[0])
-        .map(s ->  s.contains("-") ? s.substring(0, s.lastIndexOf("-")) : s);
+        .map(s -> s.contains("-") ? s.substring(0, s.lastIndexOf("-")) : s);
   }
 
   @VisibleForTesting
@@ -201,24 +200,24 @@ public class GCPLabelUtils {
     HttpGet httpGet = new HttpGet(httpURI);
     httpGet.addHeader(METADATA_FLAVOUR, GOOGLE);
     try {
-      return HTTP_CLIENT.execute(
-          httpGet,
+      ResponseHandler<Optional<String>> handler =
           response -> {
             handleError(response);
-            return Optional.of(EntityUtils.toString(response.getEntity()));
-          });
+            return Optional.of(EntityUtils.toString(response.getEntity(), UTF_8));
+          };
+      return HTTP_CLIENT.execute(httpGet, handler);
     } catch (IOException e) {
       return Optional.empty();
     }
   }
 
-  private static void handleError(ClassicHttpResponse response) throws IOException, ParseException {
-    final int statusCode = response.getCode();
-    if (statusCode < 400 || statusCode >= 600) return;
-    String message =
-        String.format(
-            "code: %d, response: %s",
-            statusCode, EntityUtils.toString(response.getEntity(), UTF_8));
-    throw new IOException(message);
+  private static void handleError(HttpResponse response) throws IOException {
+    int statusCode = response.getStatusLine().getStatusCode();
+    if (statusCode < 400 || statusCode >= 600) {
+      return;
+    }
+    String body =
+        response.getEntity() != null ? EntityUtils.toString(response.getEntity(), UTF_8) : "";
+    throw new IOException(String.format("code: %d, response: %s", statusCode, body));
   }
 }
