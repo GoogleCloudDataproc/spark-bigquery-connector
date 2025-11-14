@@ -31,7 +31,7 @@ public class Spark41DataprocImage30AcceptanceTest extends DataprocAcceptanceTest
   public static void setup() throws Exception {
     context =
         DataprocAcceptanceTestBase.setup(
-            "3.0-debian12", "spark-4.0-bigquery", Collections.emptyList());
+            "3.0-debian12", "spark-4.1-bigquery", Collections.emptyList());
   }
 
   @AfterClass

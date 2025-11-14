@@ -22,7 +22,7 @@ public class Spark41BigNumericDataprocServerlessAcceptanceTest
     extends BigNumericDataprocServerlessAcceptanceTestBase {
 
   public Spark41BigNumericDataprocServerlessAcceptanceTest() {
-    super("spark-4.0-bigquery", "3.0");
+    super("spark-4.1-bigquery", "3.0");
   }
 
   // tests from superclass

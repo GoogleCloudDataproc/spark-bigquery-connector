@@ -31,7 +31,7 @@ public class Spark41DataprocImage30DisableConscryptAcceptanceTest
   public static void setup() throws Exception {
     context =
         DataprocAcceptanceTestBase.setup(
-            "3.0-debian12", "spark-4.0-bigquery", DISABLE_CONSCRYPT_LIST);
+            "3.0-debian12", "spark-4.1-bigquery", DISABLE_CONSCRYPT_LIST);
   }
 
   @AfterClass
