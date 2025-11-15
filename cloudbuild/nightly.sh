@@ -43,17 +43,17 @@ case $STEP in
     cat toolchains.xml
     # Build
     export JAVA_HOME=${JAVA17_HOME}
-    $MVN -T 1C install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    $MVN -T 1C install -DskipTests -Pdsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0,dsv2_4.1
     #coverage report
     export JAVA_HOME=${JAVA17_HOME}
-    $MVN -T 1C test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    $MVN -T 1C test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0,dsv2_4.1
     # Run integration tests
     unset MAVEN_OPTS
     export JAVA_HOME=${JAVA17_HOME}
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0,dsv2_4.1
     # Run acceptance tests
     export JAVA_HOME=${JAVA17_HOME}
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0,dsv2_4.1
     # Upload test coverage report to Codecov
     bash <(curl -s https://codecov.io/bash) -K -F "nightly"
 
@@ -91,6 +91,9 @@ case $STEP in
     gsutil cp "${M2REPO}/com/google/cloud/spark/spark-4.0-bigquery/${BUILD_REVISION}-preview/spark-4.0-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}"
     gsutil cp "gs://${BUCKET}/spark-4.0-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}/spark-4.0-bigquery-nightly-snapshot.jar"
 
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-4.1-bigquery/${BUILD_REVISION}-preview/spark-4.1-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-4.1-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}/spark-4.1-bigquery-nightly-snapshot.jar"
+
     gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-metrics/${BUILD_REVISION}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}"
     gsutil cp "gs://${BUCKET}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-metrics-nightly-snapshot.jar"
 
@@ -99,7 +102,7 @@ case $STEP in
 
   deploy)
     # TODO: Re-enable deployment for nightly builds.
-    # $MVN deploy:deploy -DskipTests -Dscala.skipTests=true -Prelease-nightly,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0
+    # $MVN deploy:deploy -DskipTests -Dscala.skipTests=true -Prelease-nightly,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0,dsv2_4.1
     exit
     ;;
 
