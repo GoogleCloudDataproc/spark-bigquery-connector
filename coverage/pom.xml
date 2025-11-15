@@ -303,6 +303,19 @@
         </dependency>
       </dependencies>
     </profile>
+    <profile>
+      <id>dsv2_4.1</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-4.1-bigquery</artifactId>
+          <version>${project.version}-preview</version>
+        </dependency>
+      </dependencies>
+    </profile>
   </profiles>
 </project>
 

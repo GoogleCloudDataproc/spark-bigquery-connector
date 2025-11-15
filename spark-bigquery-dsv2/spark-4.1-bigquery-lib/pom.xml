@@ -1,0 +1,59 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.google.cloud.spark</groupId>
+    <artifactId>spark-bigquery-dsv2-parent</artifactId>
+    <version>${revision}</version>
+    <relativePath>../spark-bigquery-dsv2-parent</relativePath>
+  </parent>
+
+  <artifactId>spark-4.1-bigquery-lib</artifactId>
+  <version>${revision}-preview</version>
+  <name>Connector code for BigQuery DataSource v2 for Spark 4.1</name>
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <spark.version>4.1.0-preview3</spark.version>
+    <scala.binary.version>2.13</scala.binary.version>
+    <shade.skip>true</shade.skip>
+    <toolchain.jdk.version>[17,18)</toolchain.jdk.version>
+    <argLine>${jdk11plus.argLine}</argLine>
+  </properties>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.apache.arrow</groupId>
+        <artifactId>arrow-bom</artifactId>
+        <version>${arrow.spark4.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.arrow</groupId>
+        <artifactId>arrow-memory-netty-buffer-patch</artifactId>
+        <version>${arrow.spark4.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>spark-4.0-bigquery-lib</artifactId>
+      <version>${project.parent.version}-preview</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-avro_2.13</artifactId>
+      <version>${spark.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

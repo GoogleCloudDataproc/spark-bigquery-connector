@@ -235,6 +235,25 @@
       </modules>
     </profile>
     <profile>
+      <id>dsv2_4.1</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>spark-bigquery-dsv2/spark-bigquery-dsv2-common</module>
+        <module>spark-bigquery-dsv2/spark-bigquery-dsv2-parent</module>
+        <module>spark-bigquery-dsv2/spark-3.1-bigquery-lib</module>
+        <module>spark-bigquery-dsv2/spark-bigquery-metrics</module>
+        <module>spark-bigquery-dsv2/spark-3.2-bigquery-lib</module>
+        <module>spark-bigquery-dsv2/spark-3.3-bigquery-lib</module>
+        <module>spark-bigquery-dsv2/spark-3.4-bigquery-lib</module>
+        <module>spark-bigquery-dsv2/spark-3.5-bigquery-lib</module>
+        <module>spark-bigquery-dsv2/spark-4.0-bigquery-lib</module>
+        <module>spark-bigquery-dsv2/spark-4.1-bigquery-lib</module>
+        <module>spark-bigquery-dsv2/spark-4.1-bigquery</module>
+      </modules>
+    </profile>
+    <profile>
       <id>coverage</id>
       <activation>
         <activeByDefault>false</activeByDefault>
