@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Next
+* PR #1437 - Adding Spark 4.1 connector.
 
 ## 0.43.1 - 2025-10-22
 * Issue #1417: Fixed ClassCastException in AWS federated identity
