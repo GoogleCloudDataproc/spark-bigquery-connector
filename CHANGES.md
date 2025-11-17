@@ -1,6 +1,8 @@
 # Release Notes
 
 ## Next
+* Added new connector, `spark-4.1-bigquery` aimed to be used in Spark 4.1. Like Spark 4.1, this connector requires at
+  least Java 17 runtime. It is currently in preview mode.
 
 ## 0.43.1 - 2025-10-22
 * Issue #1417: Fixed ClassCastException in AWS federated identity
