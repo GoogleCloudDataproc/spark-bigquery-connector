@@ -15,7 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.cloud.spark.bigquery.integration.TestConstants.WINDOW_PARTITION_COLUMNS;
+import static com.google.cloud.spark.bigquery.integration.TestConstants.WINDOW_PARTITION_ROW;
 import static com.google.common.truth.Truth.assertThat;
+import static org.apache.spark.sql.functions.*;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assume.assumeThat;
 import static org.junit.Assume.assumeTrue;
@@ -42,6 +45,8 @@ import java.util.stream.Collectors;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.expressions.Window;
+import org.apache.spark.sql.expressions.WindowSpec;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -314,6 +319,25 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     assertThat(schema.apply("foo").dataType()).isEqualTo(timeStampNTZType.get());
     Row row = df.head();
     assertThat(row.get(0)).isEqualTo(dateTime);
+  }
+
+  @Test
+  public void testWindowFunctionPartitionBy() {
+      WindowSpec windowSpec = Window.partitionBy(
+              concat(col("word"), col("corpus_date"))
+      ).orderBy(lit("window_ordering"));
+      Dataset<Row> dataset =
+              spark
+              .read()
+              .format("bigquery")
+              .option("table", TestConstants.SHAKESPEARE_TABLE)
+              .option("readDataFormat", dataFormat)
+              .load()
+              .select("word",  "corpus_date")
+              .withColumn("row_num", row_number().over(windowSpec));
+      Row row = dataset.collectAsList().get(0);
+      assertThat(dataset.columns()).isEqualTo(WINDOW_PARTITION_COLUMNS);
+      assertThat(dataset.collectAsList().get(0)).isEqualTo(WINDOW_PARTITION_ROW);
   }
 
   static <K, V> Map<K, V> scalaMapToJavaMap(scala.collection.Map<K, V> map) {
