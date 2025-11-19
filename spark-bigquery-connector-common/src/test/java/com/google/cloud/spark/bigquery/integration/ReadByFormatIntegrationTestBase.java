@@ -323,21 +323,20 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
   @Test
   public void testWindowFunctionPartitionBy() {
-      WindowSpec windowSpec = Window.partitionBy(
-              concat(col("word"), col("corpus_date"))
-      ).orderBy(lit("window_ordering"));
-      Dataset<Row> dataset =
-              spark
-              .read()
-              .format("bigquery")
-              .option("table", TestConstants.SHAKESPEARE_TABLE)
-              .option("readDataFormat", dataFormat)
-              .load()
-              .select("word",  "corpus_date")
-              .withColumn("row_num", row_number().over(windowSpec));
-      Row row = dataset.collectAsList().get(0);
-      assertThat(dataset.columns()).isEqualTo(WINDOW_PARTITION_COLUMNS);
-      assertThat(dataset.collectAsList().get(0)).isEqualTo(WINDOW_PARTITION_ROW);
+    WindowSpec windowSpec =
+        Window.partitionBy(concat(col("word"), col("corpus_date"))).orderBy(lit("window_ordering"));
+    Dataset<Row> dataset =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", TestConstants.SHAKESPEARE_TABLE)
+            .option("readDataFormat", dataFormat)
+            .load()
+            .select("word", "corpus_date")
+            .withColumn("row_num", row_number().over(windowSpec));
+    Row row = dataset.collectAsList().get(0);
+    assertThat(dataset.columns()).isEqualTo(WINDOW_PARTITION_COLUMNS);
+    assertThat(dataset.collectAsList().get(0)).isEqualTo(WINDOW_PARTITION_ROW);
   }
 
   static <K, V> Map<K, V> scalaMapToJavaMap(scala.collection.Map<K, V> map) {
