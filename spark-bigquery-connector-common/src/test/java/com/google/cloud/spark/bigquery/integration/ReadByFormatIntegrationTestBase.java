@@ -323,13 +323,15 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   @Test
   public void testWindowFunctionPartitionBy() {
     WindowSpec windowSpec =
-        Window.partitionBy(concat(col("str"), col("binary"))).orderBy(lit("window_ordering"));
+        Window.partitionBy(
+                concat(
+                    col("fullVisitorId"), col("visitStartTime"), col("trafficSource.referralPath")))
+            .orderBy(lit("window_ordering"));
     Dataset<Row> dataset =
         spark
             .read()
             .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", TestConstants.ALL_TYPES_TABLE_NAME)
+            .option("table", TestConstants.ANALYTICS_TABLE)
             .option("readDataFormat", dataFormat)
             .load()
             .withColumn("row_num", row_number().over(windowSpec));
@@ -340,7 +342,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
                 .filter(field -> field.name().equals("row_num"))
                 .count())
         .isEqualTo(1);
-    assertThat(dataset.head().getInt(16)).isEqualTo(1);
+    assertThat(dataset.head().get(16)).isEqualTo(1);
   }
 
   static <K, V> Map<K, V> scalaMapToJavaMap(scala.collection.Map<K, V> map) {

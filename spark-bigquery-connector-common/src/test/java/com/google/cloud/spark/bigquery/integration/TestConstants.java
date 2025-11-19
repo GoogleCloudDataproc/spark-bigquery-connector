@@ -133,6 +133,8 @@ public class TestConstants {
   static DataType BQ_NUMERIC = DataTypes.createDecimalType(38, 9);
   static DataType BQ_BIGNUMERIC = DataTypes.createDecimalType(38, 38);
   public static int BIG_NUMERIC_COLUMN_POSITION = 11;
+  static final String ANALYTICS_TABLE =
+      "bigquery-public-data.google_analytics_sample.ga_sessions_20170801";
 
   public static StructType ALL_TYPES_TABLE_SCHEMA =
       new StructType(
