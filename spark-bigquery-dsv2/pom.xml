@@ -15,7 +15,6 @@
   <modules>
     <module>spark-bigquery-dsv2-common</module>
     <module>spark-bigquery-dsv2-parent</module>
-    <module>spark-2.4-bigquery</module>
     <module>spark-3.1-bigquery-lib</module>
     <module>spark-3.1-bigquery</module>
     <module>spark-bigquery-metrics</module>
@@ -29,5 +28,7 @@
     <module>spark-3.5-bigquery</module>
     <module>spark-4.0-bigquery-lib</module>
     <module>spark-4.0-bigquery</module>
+    <module>spark-4.1-bigquery-lib</module>
+    <module>spark-4.1-bigquery</module>
   </modules>
 </project>
