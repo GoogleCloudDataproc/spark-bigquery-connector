@@ -118,9 +118,6 @@ public class TestConstants {
                 false,
                 metadata("description", "The year in which this corpus was published."))
           });
-  static final String[] WINDOW_PARTITION_COLUMNS = {"word", "corpus_date", "row_num"};
-  static final Row WINDOW_PARTITION_ROW = RowFactory.create("\'\'Lo", 1609L, 1);
-
   static final String LARGE_TABLE = "bigquery-public-data.samples.natality";
   static final String LARGE_TABLE_FIELD = "is_male";
   static final long LARGE_TABLE_NUM_ROWS = 33271914L;
