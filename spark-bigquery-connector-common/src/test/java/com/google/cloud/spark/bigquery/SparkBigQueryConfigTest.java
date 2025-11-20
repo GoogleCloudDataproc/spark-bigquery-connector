@@ -412,6 +412,47 @@ public class SparkBigQueryConfigTest {
   }
 
   @Test
+  public void testConfigFromGlobalOptionsWithPartitioningAndClustering() {
+    Configuration hadoopConfiguration = new Configuration();
+    DataSourceOptions options =
+        new DataSourceOptions(
+            ImmutableMap.<String, String>builder().put("table", "dataset.table").build());
+    ImmutableMap<String, String> globalOptions =
+        ImmutableMap.<String, String>builder()
+            .put("spark.datasource.bigquery.partitionField", "test_partition_field")
+            .put("spark.datasource.bigquery.partitionType", "HOUR")
+            .put("spark.datasource.bigquery.partitionExpirationMs", "999")
+            .put("spark.datasource.bigquery.partitionRequireFilter", "true")
+            .put("spark.datasource.bigquery.clusteredFields", "field1,field2")
+            .put("spark.datasource.bigquery.createDisposition", "CREATE_NEVER")
+            .put("spark.datasource.bigquery.decimalTargetTypes", "NUMERIC,BIGNUMERIC")
+            .put("spark.datasource.bigquery.snapshotTimeMillis", "123456789")
+            .putAll(defaultGlobalOptions)
+            .build();
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            options.asMap(),
+            globalOptions,
+            hadoopConfiguration,
+            ImmutableMap.of(),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(), /* tableIsMandatory */
+            true);
+
+    assertThat(config.getPartitionField()).isEqualTo(Optional.of("test_partition_field"));
+    assertThat(config.getPartitionType()).isEqualTo(Optional.of(TimePartitioning.Type.HOUR));
+    assertThat(config.getPartitionExpirationMs()).isEqualTo(OptionalLong.of(999));
+    assertThat(config.getPartitionRequireFilter()).isEqualTo(Optional.of(true));
+    assertThat(config.getClusteredFields().get()).isEqualTo(ImmutableList.of("field1", "field2"));
+    assertThat(config.getCreateDisposition())
+        .isEqualTo(Optional.of(JobInfo.CreateDisposition.CREATE_NEVER));
+    assertThat(config.getDecimalTargetTypes()).isEqualTo(ImmutableList.of("NUMERIC", "BIGNUMERIC"));
+    assertThat(config.getSnapshotTimeMillis()).hasValue(123456789L);
+  }
+
+  @Test
   public void testGetTableIdWithoutThePartition_PartitionExists() {
     Configuration hadoopConfiguration = new Configuration();
     DataSourceOptions options =
