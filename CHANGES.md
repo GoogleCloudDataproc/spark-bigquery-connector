@@ -3,6 +3,12 @@
 ## Next
 * Added new connector, `spark-4.1-bigquery` aimed to be used in Spark 4.1. Like Spark 4.1, this connector requires at
   least Java 17 runtime. It is currently in preview mode.
+* BigQuery API has been upgraded to version 2.56.0
+* BigQuery Storage API has been upgraded to version 3.18.0
+* GAX has been upgraded to version 2.72.1
+* gRPC has been upgraded to version 1.77.0
+* Guava has been upgraded to version 33.5.0-jre
+* Netty has been upgraded to version 4.2.7.Final
 
 ## 0.43.1 - 2025-10-22
 * Issue #1417: Fixed ClassCastException in AWS federated identity
