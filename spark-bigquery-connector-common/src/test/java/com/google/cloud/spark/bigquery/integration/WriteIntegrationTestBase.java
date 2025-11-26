@@ -89,11 +89,7 @@ import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.hamcrest.CoreMatchers;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 import scala.Some;
 
 abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
@@ -606,6 +602,30 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .save(testDataset + "." + destTableName);
     int numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(1);
+  }
+
+  @Test
+  public void testInDirectWriteToBigQueryWithStreaming() {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    String jsonFile = "/test_data_for_streaming.json";
+    String jsonFilePath = this.getClass().getResource(jsonFile).getPath();
+    StructType schema = new StructType().add("col1", "integer").add("col2", "string");
+
+    Dataset<Row> df =
+        spark.readStream().option("multiline", "true").schema(schema).json(jsonFilePath);
+    String destTableName = "test_table_for_streaming";
+    String checkPointLocation = "some-location";
+
+    Assert.assertThrows(
+        "java.lang.NoSuchMethodError: 'org.apache.spark.sql.streaming.DataStreamWriter org.apache.spark.sql.streaming.DataStreamWriter.option(java.lang.String, java.lang.String)'",
+        NoSuchMethodError.class,
+        () ->
+            df.writeStream()
+                .format("bigquery")
+                .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+                .option("writeMethod", writeMethod.toString())
+                .option("checkpointLocation", checkPointLocation)
+                .option("table", destTableName));
   }
 
   private void writeDFNullableToBigQueryNullable_Internal(String writeAtLeastOnce)
