@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeThat;
+import static org.junit.Assume.assumeTrue;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
@@ -53,7 +54,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import com.google.inject.ProvisionException;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -66,6 +71,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -81,6 +87,8 @@ import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.streaming.OutputMode;
+import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Decimal;
@@ -104,6 +112,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   protected Class<? extends Exception> expectedExceptionOnExistingTable;
   protected BigQuery bq;
   protected Optional<DataType> timeStampNTZType;
+
+  protected boolean isDataSourceV1() {
+    return false;
+  }
 
   public WriteIntegrationTestBase(SparkBigQueryConfig.WriteMethod writeMethod) {
     this(writeMethod, IllegalArgumentException.class, Optional.empty());
@@ -606,6 +618,44 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .save(testDataset + "." + destTableName);
     int numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(1);
+  }
+
+  @Test
+  public void testInDirectWriteToBigQueryWithStreaming() throws TimeoutException, IOException {
+    assumeTrue("Skipping test: requires Data Source V1", isDataSourceV1());
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+
+    Path inputDir = Files.createTempDirectory("bq_integration_test_input");
+    Path jsonFile = inputDir.resolve("test_data_for_streaming.json");
+    Files.write(jsonFile, "{\"name\": \"spark\", \"age\": 100}".getBytes(StandardCharsets.UTF_8));
+
+    StructType schema =
+        new StructType().add("name", DataTypes.StringType).add("age", DataTypes.LongType);
+    Dataset<Row> df =
+        spark.readStream().option("multiline", "true").schema(schema).json(inputDir.toString());
+
+    String destTableName = testDataset + "." + "test_stream_json_" + System.nanoTime();
+    String checkPointLocation =
+        Files.createTempDirectory("bq_integration_test_checkpoint").toString();
+
+    StreamingQuery writeStream =
+        df.writeStream()
+            .format("bigquery")
+            .outputMode(OutputMode.Append())
+            .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+            .option("writeMethod", writeMethod.toString())
+            .option("checkpointLocation", checkPointLocation)
+            .option("table", destTableName)
+            .start();
+
+    writeStream.processAllAvailable();
+    writeStream.stop();
+
+    List<Row> rows = spark.read().format("bigquery").load(destTableName).collectAsList();
+    assertThat(rows).hasSize(1);
+    Row row = rows.get(0);
+    assertThat(row.getString(0)).isEqualTo("spark");
+    assertThat(row.getLong(1)).isEqualTo(100L);
   }
 
   private void writeDFNullableToBigQueryNullable_Internal(String writeAtLeastOnce)
