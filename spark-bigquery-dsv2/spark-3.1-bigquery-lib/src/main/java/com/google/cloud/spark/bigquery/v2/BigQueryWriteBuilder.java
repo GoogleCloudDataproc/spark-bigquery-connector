@@ -31,15 +31,15 @@ public class BigQueryWriteBuilder implements WriteBuilder, SupportsOverwrite {
   protected final LogicalWriteInfo info;
   protected final SaveMode mode;
 
-    @Override
-    public StreamingWrite buildForStreaming() {
-        Optional<DataSourceWriterContext> dataSourceWriterContext =
-                DataSourceWriterContext.create(
-                        injector, info.queryId(), info.schema(), mode, info.options());
-        return new BigQueryStreamingWrite(dataSourceWriterContext.get());
-    }
+  @Override
+  public StreamingWrite buildForStreaming() {
+    Optional<DataSourceWriterContext> dataSourceWriterContext =
+        DataSourceWriterContext.create(
+            injector, info.queryId(), info.schema(), mode, info.options());
+    return new BigQueryStreamingWrite(dataSourceWriterContext.get());
+  }
 
-    public BigQueryWriteBuilder(Injector injector, LogicalWriteInfo info, SaveMode mode) {
+  public BigQueryWriteBuilder(Injector injector, LogicalWriteInfo info, SaveMode mode) {
     this.injector = injector;
     this.info = info;
     this.mode = mode;
