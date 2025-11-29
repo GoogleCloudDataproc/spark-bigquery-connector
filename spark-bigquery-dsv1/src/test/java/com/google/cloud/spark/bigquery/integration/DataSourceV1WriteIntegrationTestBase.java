@@ -45,7 +45,7 @@ public class DataSourceV1WriteIntegrationTestBase extends WriteIntegrationTestBa
 
   @Override
   protected boolean isDataSourceV1() {
-      return true;
+    return true;
   }
 
   // DSv2 does not support BigNumeric yet
