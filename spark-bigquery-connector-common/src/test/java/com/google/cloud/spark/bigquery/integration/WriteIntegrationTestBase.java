@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeThat;
-import static org.junit.Assume.assumeTrue;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
@@ -622,7 +621,6 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testInDirectWriteToBigQueryWithStreaming() throws TimeoutException, IOException {
-    assumeTrue("Skipping test: requires Data Source V1", isDataSourceV1());
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
 
     Path inputDir = Files.createTempDirectory("bq_integration_test_input");

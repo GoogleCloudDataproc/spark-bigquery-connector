@@ -22,12 +22,12 @@ public class BigQueryStreamingWrite implements StreamingWrite {
 
   @Override
   public void commit(long epochId, WriterCommitMessage[] messages) {
-    this.ctx.onDataWriterCommit(toWriterCommitMessageContext(messages[0]));
+    this.ctx.onDataStreamingWriterCommit(epochId, toWriterCommitMessageContextArray(messages));
   }
 
   @Override
   public void abort(long epochId, WriterCommitMessage[] messages) {
-    this.ctx.abort(toWriterCommitMessageContextArray(messages));
+    this.ctx.onDataStreamingWriterAbort(epochId, toWriterCommitMessageContextArray(messages));
   }
 
   private WriterCommitMessageContext toWriterCommitMessageContext(WriterCommitMessage message) {

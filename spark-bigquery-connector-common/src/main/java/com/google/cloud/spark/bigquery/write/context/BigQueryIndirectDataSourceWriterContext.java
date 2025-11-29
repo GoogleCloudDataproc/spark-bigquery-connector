@@ -108,6 +108,16 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   }
 
   @Override
+  public void onDataStreamingWriterCommit(long epochId, WriterCommitMessageContext[] messages) {
+    this.commit(messages);
+  }
+
+  @Override
+  public void onDataStreamingWriterAbort(long epochId, WriterCommitMessageContext[] messages) {
+    this.abort(messages);
+  }
+
+  @Override
   public void commit(WriterCommitMessageContext[] messages) {
     logger.info(
         "Data has been successfully written to GCS. Going to load {} files to BigQuery",
