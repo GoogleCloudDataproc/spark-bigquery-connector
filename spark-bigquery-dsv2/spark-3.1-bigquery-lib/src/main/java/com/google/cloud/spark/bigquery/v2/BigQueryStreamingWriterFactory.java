@@ -17,6 +17,6 @@ public class BigQueryStreamingWriterFactory implements StreamingDataWriterFactor
   @Override
   public DataWriter<InternalRow> createWriter(int partitionId, long taskId, long epochId) {
     return new BigQueryStreamingDataWriter(
-        writerContextFactory.createDataWriterContext(partitionId, taskId, 0));
+        writerContextFactory.createDataWriterContext(partitionId, taskId, epochId));
   }
 }
