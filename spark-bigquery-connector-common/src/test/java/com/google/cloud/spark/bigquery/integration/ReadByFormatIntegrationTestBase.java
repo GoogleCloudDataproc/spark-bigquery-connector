@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.cloud.spark.bigquery.integration.TestConstants.GA4_TABLE;
 import static com.google.common.truth.Truth.assertThat;
 import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.concat;
@@ -324,7 +325,6 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
   @Test
   public void testWindowFunctionPartitionBy() {
-    String tableName = "bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_20210131";
     WindowSpec windowSpec =
         Window.partitionBy(concat(col("user_pseudo_id"), col("event_timestamp"), col("event_name")))
             .orderBy(lit("window_ordering"));
@@ -333,7 +333,34 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
         spark
             .read()
             .format("bigquery")
-            .option("table", tableName)
+            .option("table", GA4_TABLE)
+            .option("readDataFormat", dataFormat)
+            .load()
+            .withColumn("row_num", row_number().over(windowSpec));
+
+    Dataset<Row> selectedDF =
+        df.select("user_pseudo_id", "event_name", "event_timestamp", "row_num");
+
+    assertThat(selectedDF.columns().length).isEqualTo(4);
+    assertThat(
+            Arrays.stream(df.schema().fields())
+                .filter(field -> field.name().equals("row_num"))
+                .count())
+        .isEqualTo(1);
+    assertThat(selectedDF.head().get(3)).isEqualTo(1);
+  }
+
+  @Test
+  public void testWindowFunctionPartitionBy_withAVRO() {
+    WindowSpec windowSpec =
+        Window.partitionBy(concat(col("user_pseudo_id"), col("event_timestamp"), col("event_name")))
+            .orderBy(lit("window_ordering"));
+
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", GA4_TABLE)
             .option("readDataFormat", "AVRO")
             .load()
             .withColumn("row_num", row_number().over(windowSpec));
