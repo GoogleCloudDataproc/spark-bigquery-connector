@@ -7,7 +7,7 @@ import org.apache.spark.sql.connector.write.DataWriter;
 import org.apache.spark.sql.connector.write.WriterCommitMessage;
 
 public class BigQueryStreamingDataWriter implements DataWriter<InternalRow> {
-  private DataWriterContext<InternalRow> ctx;
+  private final DataWriterContext<InternalRow> ctx;
 
   public BigQueryStreamingDataWriter(DataWriterContext<InternalRow> ctx) {
     this.ctx = ctx;

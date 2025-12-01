@@ -9,7 +9,7 @@ import org.apache.spark.sql.connector.write.streaming.StreamingDataWriterFactory
 import org.apache.spark.sql.connector.write.streaming.StreamingWrite;
 
 public class BigQueryStreamingWrite implements StreamingWrite {
-  private DataSourceWriterContext ctx;
+  private final DataSourceWriterContext ctx;
 
   public BigQueryStreamingWrite(DataSourceWriterContext ctx) {
     this.ctx = ctx;

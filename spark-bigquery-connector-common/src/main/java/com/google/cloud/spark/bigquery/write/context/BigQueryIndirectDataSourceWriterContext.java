@@ -115,6 +115,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
 
   @Override
   public void onDataStreamingWriterAbort(long epochId, WriterCommitMessageContext[] messages) {
+    logger.warn("Aborting epoch {} from streaming write to BigQuery", epochId);
     this.abort(messages);
   }
 
