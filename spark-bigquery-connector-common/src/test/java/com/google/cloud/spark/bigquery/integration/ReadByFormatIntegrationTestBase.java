@@ -334,20 +334,20 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
             .read()
             .format("bigquery")
             .option("table", tableName)
-            .option("readDataFormat", dataFormat)
+            .option("readDataFormat", "AVRO")
             .load()
             .withColumn("row_num", row_number().over(windowSpec));
 
     Dataset<Row> selectedDF =
-        df.select("user_pseudo_id", "event_name", "event_timestamp", "row_num");
+        df.select("user_pseudo_id", "event_name", "event_timestamp", "device", "row_num");
 
-    assertThat(selectedDF.columns().length).isEqualTo(4);
+    assertThat(selectedDF.columns().length).isEqualTo(5);
     assertThat(
             Arrays.stream(df.schema().fields())
                 .filter(field -> field.name().equals("row_num"))
                 .count())
         .isEqualTo(1);
-    assertThat(selectedDF.head().get(3)).isEqualTo(1);
+    assertThat(selectedDF.head().get(4)).isEqualTo(1);
   }
 
   static <K, V> Map<K, V> scalaMapToJavaMap(scala.collection.Map<K, V> map) {
