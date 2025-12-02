@@ -258,7 +258,7 @@ public class BigQueryWriteHelper {
   void cleanTemporaryGcsPathIfNeeded() {
     // TODO(davidrab): add flag to disable the deletion?
     logger.info("Cleaning temporary GCS path");
-    createTemporaryPathDeleter.ifPresent(IntermediateDataCleaner::deletePath);
+    createTemporaryPathDeleter.ifPresent(cleaner -> cleaner.deletePath(0));
   }
 
   static void verifySaveMode(SaveMode saveMode) {
