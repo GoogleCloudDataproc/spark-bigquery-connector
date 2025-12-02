@@ -167,7 +167,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     } finally {
-      cleanTemporaryGcsPathIfNeeded();
+      cleanTemporaryGcsPathIfNeeded(0);
     }
   }
 
@@ -179,7 +179,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
           writeUUID,
           BigQueryUtil.friendlyTableName(config.getTableId()));
     } finally {
-      cleanTemporaryGcsPathIfNeeded();
+      cleanTemporaryGcsPathIfNeeded(0);
     }
   }
 
@@ -214,7 +214,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     BigQueryWriteHelper.updateTableMetadataIfNeeded(sparkSchema, config, bigQueryClient);
   }
 
-  void cleanTemporaryGcsPathIfNeeded() {
+  void cleanTemporaryGcsPathIfNeeded(long epochId) {
     intermediateDataCleaner.ifPresent(cleaner -> cleaner.deletePath());
   }
 }
