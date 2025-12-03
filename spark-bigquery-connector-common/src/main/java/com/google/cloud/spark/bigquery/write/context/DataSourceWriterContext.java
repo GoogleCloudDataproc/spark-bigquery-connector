@@ -41,6 +41,10 @@ public interface DataSourceWriterContext {
 
   default void onDataWriterCommit(WriterCommitMessageContext message) {}
 
+  default void onDataStreamingWriterCommit(long epochId, WriterCommitMessageContext[] messages) {}
+
+  default void onDataStreamingWriterAbort(long epochId, WriterCommitMessageContext[] messages) {}
+
   void commit(WriterCommitMessageContext[] messages);
 
   void abort(WriterCommitMessageContext[] messages);
