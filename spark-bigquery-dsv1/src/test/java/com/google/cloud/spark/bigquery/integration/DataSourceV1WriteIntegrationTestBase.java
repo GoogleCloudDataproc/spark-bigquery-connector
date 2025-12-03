@@ -43,11 +43,6 @@ public class DataSourceV1WriteIntegrationTestBase extends WriteIntegrationTestBa
     super(writeMethod);
   }
 
-  @Override
-  protected boolean isDataSourceV1() {
-    return true;
-  }
-
   // DSv2 does not support BigNumeric yet
   @Test
   public void testWriteAllDataTypes() {

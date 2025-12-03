@@ -112,10 +112,6 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   protected BigQuery bq;
   protected Optional<DataType> timeStampNTZType;
 
-  protected boolean isDataSourceV1() {
-    return false;
-  }
-
   public WriteIntegrationTestBase(SparkBigQueryConfig.WriteMethod writeMethod) {
     this(writeMethod, IllegalArgumentException.class, Optional.empty());
   }
@@ -641,11 +637,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .format("bigquery")
             .outputMode(OutputMode.Append())
             .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-            .option("writeMethod", writeMethod.toString())
             .option("checkpointLocation", checkPointLocation)
             .option("table", destTableName)
             .start();
-
     writeStream.processAllAvailable();
     writeStream.stop();
 
