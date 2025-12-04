@@ -44,7 +44,10 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
 
   public static final ImmutableSet<TableCapability> TABLE_CAPABILITIES =
       ImmutableSet.of(
-          TableCapability.BATCH_READ, TableCapability.V1_BATCH_WRITE, TableCapability.TRUNCATE);
+          TableCapability.BATCH_READ,
+          TableCapability.V1_BATCH_WRITE,
+          TableCapability.TRUNCATE,
+          TableCapability.STREAMING_WRITE);
 
   protected Injector injector;
   protected Supplier<StructType> schemaSupplier;
