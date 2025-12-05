@@ -5,7 +5,6 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.HashMap;
 import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
@@ -28,19 +27,46 @@ public class GCPLabelUtilsTest {
   private static final String TEST_PROJECT_ID = "test-project";
   private static final String TEST_REGION = "us-central1";
 
-  private static final Map<String, Object> EXPECTED_FACET_DATAPROC_CLUSTER = new HashMap<>();
-  private static final Map<String, Object> EXPECTED_FACET_DATAPROC_BATCH = new HashMap<>();
-  private static final Map<String, Object> EXPECTED_FACET_DATAPROC_SESSION = new HashMap<>();
+  private static final ImmutableMap<String, String> EXPECTED_FACET_DATAPROC_CLUSTER =
+      ImmutableMap.<String, String>builder()
+          .put("job.uuid", TEST_RESOURCE_UUID)
+          .put("job.id", TEST_JOB_ID)
+          .put("cluster.uuid", TEST_RESOURCE_UUID)
+          .put("cluster.name", TEST_CLUSTER_NAME)
+          .put("projectId", TEST_PROJECT_ID)
+          .put("job.type", "dataproc_job")
+          .put("region", TEST_REGION)
+          .build();
+
+  private static final ImmutableMap<String, String> EXPECTED_FACET_DATAPROC_BATCH =
+      ImmutableMap.<String, String>builder()
+          .put("spark.batch.uuid", TEST_RESOURCE_UUID)
+          .put("spark.batch.id", TEST_BATCH_ID)
+          .put("projectId", TEST_PROJECT_ID)
+          .put("job.type", "batch")
+          .put("region", TEST_REGION)
+          .build();
+
+  private static final ImmutableMap<String, String> EXPECTED_FACET_DATAPROC_SESSION =
+      ImmutableMap.<String, String>builder()
+          .put("spark.session.uuid", TEST_RESOURCE_UUID)
+          .put("spark.session.id", TEST_SESSION_ID)
+          .put("projectId", TEST_PROJECT_ID)
+          .put("job.type", "session")
+          .put("region", TEST_REGION)
+          .build();
 
   @Before
   public void setUp() {
     mockServer = ClientAndServer.startClientAndServer();
     mockBaseUrl = "http://localhost:" + mockServer.getPort();
+    GCPLabelUtils.resetSparkLabelsCache();
   }
 
   @After
   public void tearDown() {
     mockServer.stop();
+    GCPLabelUtils.resetSparkLabelsCache();
   }
 
   @Test
@@ -58,6 +84,30 @@ public class GCPLabelUtilsTest {
   }
 
   @Test
+  public void testGetSparkLabelsIsCached() {
+    setupMockServerForBatch();
+    GCPLabelUtils.resetSparkLabelsCache();
+    ImmutableMap<String, String> conf =
+        ImmutableMap.<String, String>builder()
+            .put(GCPLabelUtils.SPARK_APP_ID, TEST_APP_ID)
+            .put(GCPLabelUtils.SPARK_APP_NAME, TEST_APP_NAME)
+            .build();
+
+    ImmutableMap<String, String> conf2 =
+        ImmutableMap.<String, String>builder()
+            .put(GCPLabelUtils.SPARK_APP_ID, TEST_APP_ID + "test")
+            .put(GCPLabelUtils.SPARK_APP_NAME, TEST_APP_NAME + "test")
+            .build();
+
+    Map<String, String> labels1 = GCPLabelUtils.getSparkLabels(conf);
+    Map<String, String> labels2 = GCPLabelUtils.getSparkLabels(conf2);
+
+    assertEquals(labels1.size(), labels2.size());
+    assertEquals(labels1.get("appId"), labels2.get("appId"));
+    assertEquals(labels1.get("appName"), labels2.get("appName"));
+  }
+
+  @Test
   public void testGetGCPLabelsClusterMode() {
     // Setup mock server responses for cluster mode
     setupMockServerForCluster();
@@ -67,7 +117,7 @@ public class GCPLabelUtilsTest {
             .put(GCPLabelUtils.SPARK_MASTER, "yarn")
             .put(
                 GCPLabelUtils.SPARK_DRIVER_HOST,
-                TEST_CLUSTER_NAME + "-m.us-central1-a.c.hadoop-cloud-dev.google.com.internal")
+                TEST_CLUSTER_NAME + "-something.that.should.be.truncated")
             .put(
                 GCPLabelUtils.SPARK_YARN_TAGS,
                 "dataproc_job_" + TEST_JOB_ID + ",dataproc_uuid_" + TEST_RESOURCE_UUID)
@@ -119,11 +169,11 @@ public class GCPLabelUtilsTest {
   }
 
   private static void assertResults(
-      Map<String, String> labels, Map<String, Object> expectedFacetDataprocCluster) {
-    for (Map.Entry<String, Object> expected : expectedFacetDataprocCluster.entrySet()) {
+      Map<String, String> labels, ImmutableMap<String, String> expectedFacetDataprocCluster) {
+    for (Map.Entry<String, String> expected : expectedFacetDataprocCluster.entrySet()) {
       assertEquals(
           "Missing or incorrect value for key: " + expected.getKey(),
-          expected.getValue().toString(),
+          expected.getValue(),
           labels.get(expected.getKey()));
     }
   }
@@ -166,27 +216,5 @@ public class GCPLabelUtilsTest {
     mockServer
         .when(request().withMethod("GET").withPath(endpoint))
         .respond(response().withStatusCode(404));
-  }
-
-  static {
-    EXPECTED_FACET_DATAPROC_CLUSTER.put("job.uuid", TEST_RESOURCE_UUID);
-    EXPECTED_FACET_DATAPROC_CLUSTER.put("job.id", TEST_JOB_ID);
-    EXPECTED_FACET_DATAPROC_CLUSTER.put("cluster.uuid", TEST_RESOURCE_UUID);
-    EXPECTED_FACET_DATAPROC_CLUSTER.put("cluster.name", TEST_CLUSTER_NAME);
-    EXPECTED_FACET_DATAPROC_CLUSTER.put("projectId", TEST_PROJECT_ID);
-    EXPECTED_FACET_DATAPROC_CLUSTER.put("job.type", "dataproc_job");
-    EXPECTED_FACET_DATAPROC_CLUSTER.put("region", TEST_REGION);
-
-    EXPECTED_FACET_DATAPROC_BATCH.put("spark.batch.uuid", TEST_RESOURCE_UUID);
-    EXPECTED_FACET_DATAPROC_BATCH.put("spark.batch.id", TEST_BATCH_ID);
-    EXPECTED_FACET_DATAPROC_BATCH.put("projectId", TEST_PROJECT_ID);
-    EXPECTED_FACET_DATAPROC_BATCH.put("job.type", "batch");
-    EXPECTED_FACET_DATAPROC_BATCH.put("region", TEST_REGION);
-
-    EXPECTED_FACET_DATAPROC_SESSION.put("spark.session.uuid", TEST_RESOURCE_UUID);
-    EXPECTED_FACET_DATAPROC_SESSION.put("spark.session.id", TEST_SESSION_ID);
-    EXPECTED_FACET_DATAPROC_SESSION.put("projectId", TEST_PROJECT_ID);
-    EXPECTED_FACET_DATAPROC_SESSION.put("job.type", "session");
-    EXPECTED_FACET_DATAPROC_SESSION.put("region", TEST_REGION);
   }
 }

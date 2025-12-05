@@ -3,6 +3,8 @@ package com.google.cloud.spark.bigquery.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.Arrays;
@@ -17,7 +19,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
-import org.jetbrains.annotations.NotNull;
 
 /** Util to extract values from GCP environment */
 public class GCPLabelUtils {
@@ -31,7 +32,6 @@ public class GCPLabelUtils {
   public static final String CLUSTER_UUID_ENDPOINT = "/instance/attributes/dataproc-cluster-uuid";
   public static final String DATAPROC_REGION_ENDPOINT = "/instance/attributes/dataproc-region";
   private static final String DATAPROC_CLASSPATH = "/usr/local/share/google/dataproc/lib";
-  private static final CloseableHttpClient HTTP_CLIENT;
   public static final String SPARK_YARN_TAGS = "spark.yarn.tags";
   public static final String SPARK_DRIVER_HOST = "spark.driver.host";
   public static final String SPARK_APP_ID = "spark.app.id";
@@ -44,22 +44,22 @@ public class GCPLabelUtils {
   private static final String GOOGLE = "Google";
   private static final String SPARK_DIST_CLASSPATH = "SPARK_DIST_CLASSPATH";
 
-  static {
-    // Configure HttpClient 4 with short timeouts similar to previous settings
+  private static Optional<Supplier<Map<String, String>>> sparkLabelsSupplier = Optional.empty();
+
+  private static CloseableHttpClient createHttpClient() {
     RequestConfig requestConfig =
         RequestConfig.custom()
             .setConnectTimeout(1000)
             .setSocketTimeout(1000)
             .setConnectionRequestTimeout(100) // from pool
             .build();
-    PoolingHttpClientConnectionManager connMan = new PoolingHttpClientConnectionManager();
-    connMan.setDefaultMaxPerRoute(20);
-    connMan.setMaxTotal(200);
-    HTTP_CLIENT =
-        HttpClients.custom()
-            .setDefaultRequestConfig(requestConfig)
-            .setConnectionManager(connMan)
-            .build();
+    PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+    connectionManager.setDefaultMaxPerRoute(20);
+    connectionManager.setMaxTotal(200);
+    return HttpClients.custom()
+        .setDefaultRequestConfig(requestConfig)
+        .setConnectionManager(connectionManager)
+        .build();
   }
 
   static boolean isDataprocRuntime() {
@@ -68,6 +68,18 @@ public class GCPLabelUtils {
   }
 
   public static Map<String, String> getSparkLabels(ImmutableMap<String, String> conf) {
+    if (!sparkLabelsSupplier.isPresent()) {
+      sparkLabelsSupplier = Optional.of(Suppliers.memoize(() -> computeSparkLabels(conf)));
+    }
+    return sparkLabelsSupplier.get().get();
+  }
+
+  @VisibleForTesting
+  static void resetSparkLabelsCache() {
+    sparkLabelsSupplier = Optional.empty();
+  }
+
+  private static Map<String, String> computeSparkLabels(ImmutableMap<String, String> conf) {
     Map<String, String> sparkLabels = new HashMap<>();
     getSparkAppId(conf).ifPresent(p -> sparkLabels.put("appId", p));
     getSparkAppName(conf).ifPresent(p -> sparkLabels.put("appName", p));
@@ -78,33 +90,41 @@ public class GCPLabelUtils {
   }
 
   static Map<String, String> getGCPLabels(ImmutableMap<String, String> conf) {
-    Map<String, String> gcpLabels = getResourceLabels(conf);
-    getGCPProjectId(conf).ifPresent(p -> gcpLabels.put("projectId", p));
-    getDataprocRegion(conf).ifPresent(p -> gcpLabels.put("region", p));
-    return gcpLabels;
+    try (CloseableHttpClient httpClient = createHttpClient()) {
+      Map<String, String> gcpLabels = getResourceLabels(conf, httpClient);
+      getGCPProjectId(conf, httpClient).ifPresent(p -> gcpLabels.put("projectId", p));
+      getDataprocRegion(conf, httpClient).ifPresent(p -> gcpLabels.put("region", p));
+      return gcpLabels;
+    } catch (IOException e) {
+      // If client creation or closing fails, return empty map
+      return new HashMap<>();
+    }
   }
 
-  private static @NotNull Map<String, String> getResourceLabels(ImmutableMap<String, String> conf) {
+  private static Map<String, String> getResourceLabels(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
     Map<String, String> resourceLabels = new HashMap<>();
     if ("yarn".equals(conf.getOrDefault(SPARK_MASTER, ""))) {
       getClusterName(conf).ifPresent(p -> resourceLabels.put("cluster.name", p));
-      getClusterUUID(conf).ifPresent(p -> resourceLabels.put("cluster.uuid", p));
+      getClusterUUID(conf, httpClient).ifPresent(p -> resourceLabels.put("cluster.uuid", p));
       getDataprocJobID(conf).ifPresent(p -> resourceLabels.put("job.id", p));
       getDataprocJobUUID(conf).ifPresent(p -> resourceLabels.put("job.uuid", p));
       resourceLabels.put("job.type", "dataproc_job");
       return resourceLabels;
     }
-    Optional<String> dataprocBatchID = getDataprocBatchID(conf);
+    Optional<String> dataprocBatchID = getDataprocBatchID(conf, httpClient);
     if (dataprocBatchID.isPresent()) {
       dataprocBatchID.ifPresent(p -> resourceLabels.put("spark.batch.id", p));
-      getDataprocBatchUUID(conf).ifPresent(p -> resourceLabels.put("spark.batch.uuid", p));
+      getDataprocBatchUUID(conf, httpClient)
+          .ifPresent(p -> resourceLabels.put("spark.batch.uuid", p));
       resourceLabels.put("job.type", "batch");
       return resourceLabels;
     }
-    Optional<String> dataprocSessionID = getDataprocSessionID(conf);
+    Optional<String> dataprocSessionID = getDataprocSessionID(conf, httpClient);
     if (dataprocSessionID.isPresent()) {
       dataprocSessionID.ifPresent(p -> resourceLabels.put("spark.session.id", p));
-      getDataprocSessionUUID(conf).ifPresent(p -> resourceLabels.put("spark.session.uuid", p));
+      getDataprocSessionUUID(conf, httpClient)
+          .ifPresent(p -> resourceLabels.put("spark.session.uuid", p));
       resourceLabels.put("job.type", "session");
       return resourceLabels;
     }
@@ -115,8 +135,6 @@ public class GCPLabelUtils {
     return Optional.ofNullable(conf.get(SPARK_DRIVER_HOST));
   }
 
-  /* sample hostname:
-   * sample-cluster-m.us-central1-a.c.hadoop-cloud-dev.google.com.internal */
   @VisibleForTesting
   static Optional<String> getClusterName(ImmutableMap<String, String> conf) {
     return getDriverHost(conf)
@@ -125,8 +143,9 @@ public class GCPLabelUtils {
   }
 
   @VisibleForTesting
-  static Optional<String> getDataprocRegion(ImmutableMap<String, String> conf) {
-    return fetchGCPMetadata(DATAPROC_REGION_ENDPOINT, conf);
+  static Optional<String> getDataprocRegion(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(DATAPROC_REGION_ENDPOINT, conf, httpClient);
   }
 
   @VisibleForTesting
@@ -140,28 +159,33 @@ public class GCPLabelUtils {
   }
 
   @VisibleForTesting
-  static Optional<String> getDataprocBatchID(ImmutableMap<String, String> conf) {
-    return fetchGCPMetadata(BATCH_ID_ENDPOINT, conf);
+  static Optional<String> getDataprocBatchID(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(BATCH_ID_ENDPOINT, conf, httpClient);
   }
 
   @VisibleForTesting
-  static Optional<String> getDataprocBatchUUID(ImmutableMap<String, String> conf) {
-    return fetchGCPMetadata(BATCH_UUID_ENDPOINT, conf);
+  static Optional<String> getDataprocBatchUUID(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(BATCH_UUID_ENDPOINT, conf, httpClient);
   }
 
   @VisibleForTesting
-  static Optional<String> getDataprocSessionID(ImmutableMap<String, String> conf) {
-    return fetchGCPMetadata(SESSION_ID_ENDPOINT, conf);
+  static Optional<String> getDataprocSessionID(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(SESSION_ID_ENDPOINT, conf, httpClient);
   }
 
   @VisibleForTesting
-  private static Optional<String> getDataprocSessionUUID(ImmutableMap<String, String> conf) {
-    return fetchGCPMetadata(SESSION_UUID_ENDPOINT, conf);
+  private static Optional<String> getDataprocSessionUUID(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(SESSION_UUID_ENDPOINT, conf, httpClient);
   }
 
   @VisibleForTesting
-  static Optional<String> getGCPProjectId(ImmutableMap<String, String> conf) {
-    return fetchGCPMetadata(PROJECT_ID_ENDPOINT, conf)
+  static Optional<String> getGCPProjectId(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(PROJECT_ID_ENDPOINT, conf, httpClient)
         .map(b -> b.substring(b.lastIndexOf('/') + 1));
   }
 
@@ -176,25 +200,25 @@ public class GCPLabelUtils {
   }
 
   @VisibleForTesting
-  static Optional<String> getClusterUUID(ImmutableMap<String, String> conf) {
-    return fetchGCPMetadata(CLUSTER_UUID_ENDPOINT, conf);
+  static Optional<String> getClusterUUID(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(CLUSTER_UUID_ENDPOINT, conf, httpClient);
   }
 
   @VisibleForTesting
   static Optional<String> getPropertyFromYarnTag(
       ImmutableMap<String, String> conf, String tagPrefix) {
-    String yarnTag = conf.get(SPARK_YARN_TAGS);
-    if (yarnTag == null) {
-      return Optional.empty();
-    }
-    return Arrays.stream(yarnTag.split(","))
-        .filter(tag -> tag.startsWith(tagPrefix))
-        .findFirst()
-        .map(tag -> tag.substring(tagPrefix.length()));
+    return Optional.ofNullable(conf.get(SPARK_YARN_TAGS))
+        .flatMap(
+            tags ->
+                Arrays.stream(tags.split(","))
+                    .filter(tag -> tag.startsWith(tagPrefix))
+                    .findFirst()
+                    .map(tag -> tag.substring(tagPrefix.length())));
   }
 
-  @VisibleForTesting
-  static Optional<String> fetchGCPMetadata(String httpEndpoint, ImmutableMap<String, String> conf) {
+  private static Optional<String> fetchGCPMetadata(
+      String httpEndpoint, ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
     String baseUri = conf.getOrDefault(GOOGLE_METADATA_API, BASE_URI);
     String httpURI = baseUri + httpEndpoint;
     HttpGet httpGet = new HttpGet(httpURI);
@@ -205,7 +229,7 @@ public class GCPLabelUtils {
             handleError(response);
             return Optional.of(EntityUtils.toString(response.getEntity(), UTF_8));
           };
-      return HTTP_CLIENT.execute(httpGet, handler);
+      return httpClient.execute(httpGet, handler);
     } catch (IOException e) {
       return Optional.empty();
     }
