@@ -109,9 +109,9 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
 
   @Override
   public void onDataStreamingWriterCommit(long epochId, WriterCommitMessageContext[] messages) {
-    logger.info("Start commiting epochId {} to BigQuery", epochId);
     logger.info(
-        "Data has been successfully written to GCS. Going to load {} files to BigQuery",
+        "Start commiting epochId {} to BigQuery. Data has been successfully written to GCS. Going to load {} files to BigQuery",
+        epochId,
         messages.length);
     try {
       commitMessages(messages);

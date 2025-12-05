@@ -656,9 +656,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   @Test
   public void testInDirectWriteToBigQueryWithStreaming_AllTypes()
       throws IOException, TimeoutException {
-    // Skipping test for spark 4: only works for spark 3 for now.
+    // Skipping test for spark 4: only works for spark 3.5 for now.
     String sparkVersion = package$.MODULE$.SPARK_VERSION();
-    Assume.assumeThat(sparkVersion, CoreMatchers.startsWith("3."));
+    Assume.assumeThat(sparkVersion, CoreMatchers.startsWith("3.5"));
 
     StructType schema = TestConstants.ALL_TYPES_TABLE_SCHEMA;
     Row row = TestConstants.ALL_TYPES_TABLE_ROW;
