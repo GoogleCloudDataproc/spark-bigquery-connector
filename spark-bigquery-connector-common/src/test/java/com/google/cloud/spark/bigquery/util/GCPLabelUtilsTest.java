@@ -13,9 +13,6 @@ import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.Header;
 
 public class GCPLabelUtilsTest {
-  private ClientAndServer mockServer;
-  private String mockBaseUrl;
-
   public static final Header METADATA_HEADER = new Header("Metadata-Flavor", "Google");
   private static final String TEST_APP_NAME = "labels-test";
   private static final String TEST_APP_ID = "application_12345";
@@ -26,7 +23,6 @@ public class GCPLabelUtilsTest {
   private static final String TEST_SESSION_ID = "test-session";
   private static final String TEST_PROJECT_ID = "test-project";
   private static final String TEST_REGION = "us-central1";
-
   private static final ImmutableMap<String, String> EXPECTED_FACET_DATAPROC_CLUSTER =
       ImmutableMap.<String, String>builder()
           .put("job.uuid", TEST_RESOURCE_UUID)
@@ -55,6 +51,9 @@ public class GCPLabelUtilsTest {
           .put("job.type", "session")
           .put("region", TEST_REGION)
           .build();
+
+  private ClientAndServer mockServer;
+  private String mockBaseUrl;
 
   @Before
   public void setUp() {
