@@ -108,50 +108,40 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   }
 
   @Override
+  public void onDataStreamingWriterCommit(long epochId, WriterCommitMessageContext[] messages) {
+    logger.info(
+        "Start commiting epochId {} to BigQuery. Data has been successfully written to GCS. Going to load {} files to BigQuery",
+        epochId,
+        messages.length);
+    try {
+      commitMessages(messages);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    } finally {
+      cleanTemporaryGcsEpochPathIfNeeded(epochId);
+    }
+  }
+
+  @Override
+  public void onDataStreamingWriterAbort(long epochId, WriterCommitMessageContext[] messages) {
+    try {
+      logger.warn(
+          "Aborting epoch {} from streaming write {} for table {}",
+          epochId,
+          writeUUID,
+          BigQueryUtil.friendlyTableName(config.getTableId()));
+    } finally {
+      cleanTemporaryGcsEpochPathIfNeeded(epochId);
+    }
+  }
+
+  @Override
   public void commit(WriterCommitMessageContext[] messages) {
     logger.info(
         "Data has been successfully written to GCS. Going to load {} files to BigQuery",
         messages.length);
     try {
-      List<String> sourceUris =
-          Stream.of(messages)
-              .map(msg -> ((BigQueryIndirectWriterCommitMessageContext) msg).getUri())
-              .collect(Collectors.toList());
-
-      Schema schema =
-          SchemaConverters.from(SchemaConvertersConfiguration.from(config))
-              .toBigQuerySchema(sparkSchema);
-      if (tableInfo.isPresent()) {
-        schema =
-            BigQueryUtil.adjustSchemaIfNeeded(
-                schema,
-                tableInfo.get().getDefinition().getSchema(),
-                config
-                    .getLoadSchemaUpdateOptions()
-                    .contains(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION));
-      }
-      if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE
-          && config.getPartitionOverwriteModeValue() == PartitionOverwriteMode.DYNAMIC
-          && bigQueryClient.tableExists(config.getTableId())
-          && bigQueryClient.isTablePartitioned(config.getTableId())) {
-        temporaryTableId =
-            Optional.of(
-                bigQueryClient
-                    .createTempTableAfterCheckingSchema(
-                        config.getTableId(), schema, config.getEnableModeCheckForSchemaFields())
-                    .getTableId());
-        loadDataToBigQuery(sourceUris, schema);
-        Job queryJob =
-            bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
-                temporaryTableId.get(), config.getTableId());
-        bigQueryClient.waitForJob(queryJob);
-      } else {
-        loadDataToBigQuery(sourceUris, schema);
-      }
-      if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE) {
-        updateMetadataIfNeeded();
-      }
-      logger.info("Data has been successfully loaded to BigQuery");
+      commitMessages(messages);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     } finally {
@@ -174,6 +164,48 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   @Override
   public void setTableInfo(TableInfo tableInfo) {
     this.tableInfo = Optional.ofNullable(tableInfo);
+  }
+
+  private void commitMessages(WriterCommitMessageContext[] messages) throws IOException {
+    List<String> sourceUris =
+        Stream.of(messages)
+            .map(msg -> ((BigQueryIndirectWriterCommitMessageContext) msg).getUri())
+            .collect(Collectors.toList());
+
+    Schema schema =
+        SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+            .toBigQuerySchema(sparkSchema);
+    if (tableInfo.isPresent()) {
+      schema =
+          BigQueryUtil.adjustSchemaIfNeeded(
+              schema,
+              tableInfo.get().getDefinition().getSchema(),
+              config
+                  .getLoadSchemaUpdateOptions()
+                  .contains(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION));
+    }
+    if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE
+        && config.getPartitionOverwriteModeValue() == PartitionOverwriteMode.DYNAMIC
+        && bigQueryClient.tableExists(config.getTableId())
+        && bigQueryClient.isTablePartitioned(config.getTableId())) {
+      temporaryTableId =
+          Optional.of(
+              bigQueryClient
+                  .createTempTableAfterCheckingSchema(
+                      config.getTableId(), schema, config.getEnableModeCheckForSchemaFields())
+                  .getTableId());
+      loadDataToBigQuery(sourceUris, schema);
+      Job queryJob =
+          bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
+              temporaryTableId.get(), config.getTableId());
+      bigQueryClient.waitForJob(queryJob);
+    } else {
+      loadDataToBigQuery(sourceUris, schema);
+    }
+    if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE) {
+      updateMetadataIfNeeded();
+    }
+    logger.info("Data has been successfully loaded to BigQuery");
   }
 
   void loadDataToBigQuery(List<String> sourceUris, Schema schema) throws IOException {
@@ -204,5 +236,9 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
 
   void cleanTemporaryGcsPathIfNeeded() {
     intermediateDataCleaner.ifPresent(cleaner -> cleaner.deletePath());
+  }
+
+  void cleanTemporaryGcsEpochPathIfNeeded(long epochId) {
+    intermediateDataCleaner.ifPresent(cleaner -> cleaner.deleteEpochPath(epochId));
   }
 }

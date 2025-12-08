@@ -138,6 +138,19 @@ public class SparkBigQueryUtil {
     return gcsPath;
   }
 
+  public static Path getGcsPathWithApplicationId(
+      SparkBigQueryConfig config, Configuration conf, String applicationId) {
+    String bucket = null;
+    if (config.getPersistentGcsBucket().isPresent()) {
+      bucket = config.getPersistentGcsBucket().get();
+    } else if (config.getTemporaryGcsBucket().isPresent()) {
+      bucket = config.getTemporaryGcsBucket().get();
+    } else {
+      bucket = config.getPersistentGcsBucket().get();
+    }
+    return new Path(String.format("gs://%s/.spark-bigquery-%s-*", bucket, applicationId));
+  }
+
   private static Path getUniqueGcsPath(String gcsBucket, String applicationId, Configuration conf)
       throws IOException {
     boolean needNewPath = true;

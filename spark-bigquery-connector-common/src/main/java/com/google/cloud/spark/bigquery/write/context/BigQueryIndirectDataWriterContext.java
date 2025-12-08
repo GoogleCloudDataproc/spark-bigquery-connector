@@ -38,6 +38,7 @@ class BigQueryIndirectDataWriterContext implements DataWriterContext<InternalRow
   Schema avroSchema;
   IntermediateRecordWriter intermediateRecordWriter;
   private int partitionId;
+  String gcsDirPath;
 
   protected BigQueryIndirectDataWriterContext(
       int partitionId,
@@ -45,13 +46,15 @@ class BigQueryIndirectDataWriterContext implements DataWriterContext<InternalRow
       FileSystem fs,
       StructType sparkSchema,
       Schema avroSchema,
-      IntermediateRecordWriter intermediateRecordWriter) {
+      IntermediateRecordWriter intermediateRecordWriter,
+      String gcsDirPath) {
     this.partitionId = partitionId;
     this.path = path;
     this.fs = fs;
     this.sparkSchema = sparkSchema;
     this.avroSchema = avroSchema;
     this.intermediateRecordWriter = intermediateRecordWriter;
+    this.gcsDirPath = gcsDirPath;
   }
 
   @Override
