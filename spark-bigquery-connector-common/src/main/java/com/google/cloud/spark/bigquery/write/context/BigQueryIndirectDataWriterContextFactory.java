@@ -57,7 +57,7 @@ class BigQueryIndirectDataWriterContextFactory implements DataWriterContextFacto
       IntermediateRecordWriter intermediateRecordWriter =
           new AvroIntermediateRecordWriter(avroSchema, fs.create(path));
       return new BigQueryIndirectDataWriterContext(
-          partitionId, path, fs, sparkSchema, avroSchema, intermediateRecordWriter);
+          partitionId, path, fs, sparkSchema, avroSchema, intermediateRecordWriter, gcsDirPath);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }

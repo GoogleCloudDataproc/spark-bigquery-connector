@@ -56,10 +56,21 @@ public class IntermediateDataCleaner extends Thread {
     }
   }
 
+  public void deleteGcsPath(Path gcsPath) {
+    try {
+      logger.info("Deleting Gcs path " + gcsPath + " if it exists");
+      FileSystem fs = gcsPath.getFileSystem(conf);
+      fs.delete(gcsPath, true); // <-- The crucial recursive delete call
+      logger.info("Successfully deleted main GCS path: {}", gcsPath);
+    } catch (Exception e) {
+      logger.error("Failed to delete main GCS path: {}", gcsPath, e);
+    }
+  }
+
   public void deleteEpochPath(long epochId) {
     Path epochPath = new Path(path, String.valueOf(epochId));
     try {
-      logger.info("Deleting path " + epochPath + " if it exists");
+      logger.info("Deleting epoch path " + epochPath + " if it exists");
       FileSystem fs = epochPath.getFileSystem(conf);
       if (pathExists(fs, epochPath)) {
         fs.delete(epochPath, true);
