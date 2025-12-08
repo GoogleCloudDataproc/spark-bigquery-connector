@@ -40,14 +40,24 @@ public class IntermediateDataCleaner extends Thread {
 
   @Override
   public void run() {
-    deletePath(0);
+    deletePath();
   }
 
-  public void deletePath(long epochId) {
-    Path epochPath = path;
-    if (epochId != 0) {
-      epochPath = new Path(path, String.valueOf(epochId));
+  public void deletePath() {
+    try {
+      logger.info("Deleting path " + path + " if it exists");
+      FileSystem fs = path.getFileSystem(conf);
+      if (pathExists(fs, path)) {
+        fs.delete(path, true);
+      }
+      logger.info("Path " + path + " no longer exists)");
+    } catch (Exception e) {
+      logger.error("Failed to delete path " + path, e);
     }
+  }
+
+  public void deleteEpochPath(long epochId) {
+    Path epochPath = new Path(path, String.valueOf(epochId));
     try {
       logger.info("Deleting path " + epochPath + " if it exists");
       FileSystem fs = epochPath.getFileSystem(conf);
@@ -59,6 +69,7 @@ public class IntermediateDataCleaner extends Thread {
       logger.error("Failed to delete path " + epochPath, e);
     }
   }
+
   // fs.exists can throw exception on missing path
   private boolean pathExists(FileSystem fs, Path path) {
     try {
