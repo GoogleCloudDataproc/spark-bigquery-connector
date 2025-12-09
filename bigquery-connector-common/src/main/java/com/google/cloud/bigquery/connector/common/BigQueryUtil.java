@@ -818,30 +818,15 @@ public class BigQueryUtil {
     long interval = rangePartitioning.getRange().getInterval();
 
     String partitionField = rangePartitioning.getField();
-    String extractedPartitioned =
-        "IFNULL(IF(%s.%s >= %s, 0, RANGE_BUCKET(%s.%s, GENERATE_ARRAY(%s, %s, %s))), -1)";
+
     String extractedPartitionedSource =
         String.format(
-            extractedPartitioned,
-            "source",
-            partitionField,
-            end,
-            "source",
-            partitionField,
-            start,
-            end,
-            interval);
+            "IFNULL(IF(%s >= %s, 0, RANGE_BUCKET(%s, GENERATE_ARRAY(%s, %s, %s))), -1)",
+            partitionField, end, partitionField, start, end, interval);
     String extractedPartitionedTarget =
         String.format(
-            extractedPartitioned,
-            "target",
-            partitionField,
-            end,
-            "target",
-            partitionField,
-            start,
-            end,
-            interval);
+            "IFNULL(IF(target.%s >= %s, 0, RANGE_BUCKET(target.%s, GENERATE_ARRAY(%s, %s, %s))), -1)",
+            partitionField, end, partitionField, start, end, interval);
 
     return createOptimizedMergeQuery(
         destinationDefinition,
