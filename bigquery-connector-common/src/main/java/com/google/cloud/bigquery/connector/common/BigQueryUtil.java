@@ -769,6 +769,21 @@ public class BigQueryUtil {
         String.format(
             "%s(`target`.`%s`, %s)", truncFuntion, partitionField, partitionType.toString());
 
+    return createOptimizedMergeQuery(
+        destinationDefinition,
+        destinationTableName,
+        temporaryTableName,
+        extractedPartitionedSource,
+        extractedPartitionedTarget);
+  }
+
+  private static String createOptimizedMergeQuery(
+      StandardTableDefinition destinationDefinition,
+      String destinationTableName,
+      String temporaryTableName,
+      String extractedPartitionedSource,
+      String extractedPartitionedTarget) {
+    FieldList allFields = destinationDefinition.getSchema().getFields();
     String commaSeparatedFields =
         allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
 
@@ -828,32 +843,12 @@ public class BigQueryUtil {
             end,
             interval);
 
-    FieldList allFields = destinationDefinition.getSchema().getFields();
-    String commaSeparatedFields =
-        allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
-    String booleanInjectedColumn = "_" + Long.toString(1234567890123456789L);
-
-    String queryFormat =
-        "MERGE `%s` AS target\n"
-            + "USING (SELECT * FROM `%s` CROSS JOIN UNNEST([true, false])  %s) AS source\n"
-            + "ON %s = %s AND %s AND (target.%s >= %d OR target.%s IS NULL )\n"
-            + "WHEN MATCHED THEN DELETE\n"
-            + "WHEN NOT MATCHED AND NOT %s THEN\n"
-            + "INSERT(%s) VALUES(%s)";
-    return String.format(
-        queryFormat,
+    return createOptimizedMergeQuery(
+        destinationDefinition,
         destinationTableName,
         temporaryTableName,
-        booleanInjectedColumn,
         extractedPartitionedSource,
-        extractedPartitionedTarget,
-        booleanInjectedColumn,
-        partitionField,
-        BIGQUERY_INTEGER_MIN_VALUE,
-        partitionField,
-        booleanInjectedColumn,
-        commaSeparatedFields,
-        commaSeparatedFields);
+        extractedPartitionedTarget);
   }
 
   // based on https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#jobconfiguration, it
