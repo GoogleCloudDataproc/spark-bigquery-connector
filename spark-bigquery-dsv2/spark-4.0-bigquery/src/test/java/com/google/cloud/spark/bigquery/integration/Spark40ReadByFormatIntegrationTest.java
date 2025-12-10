@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import org.apache.spark.sql.types.DataTypes;
+import org.junit.Test;
 
 public class Spark40ReadByFormatIntegrationTest extends ReadByFormatIntegrationTestBase {
 
@@ -24,4 +25,9 @@ public class Spark40ReadByFormatIntegrationTest extends ReadByFormatIntegrationT
   }
 
   // tests are from the super-class
+
+  @Test
+  public void test() {
+    super.testWindowFunctionPartitionBy_withAVRO();
+  }
 }

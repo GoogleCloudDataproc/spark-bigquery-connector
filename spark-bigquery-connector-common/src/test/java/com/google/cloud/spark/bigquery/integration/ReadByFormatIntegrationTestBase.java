@@ -366,7 +366,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
             .withColumn("row_num", row_number().over(windowSpec));
 
     Dataset<Row> selectedDF =
-        df.select("user_pseudo_id", "event_name", "event_timestamp", "device", "row_num");
+        df.select("user_pseudo_id", "event_name", "event_timestamp", "event_params", "row_num");
 
     assertThat(selectedDF.columns().length).isEqualTo(5);
     assertThat(
