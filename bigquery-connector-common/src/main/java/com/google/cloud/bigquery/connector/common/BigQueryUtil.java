@@ -833,7 +833,7 @@ public class BigQueryUtil {
     // needed for tables that require the partition field to be in the where clause. It must be
     // true.
     String partitionMatchAdditionalCondition =
-        String.format("%s is NULL OR %s >= %d", partitionField, partitionField, Long.MIN_VALUE);
+        String.format("target.%s is NULL OR target.%s >= %d", partitionField, partitionField, Long.MIN_VALUE);
 
     return createOptimizedMergeQuery(
         destinationDefinition,
