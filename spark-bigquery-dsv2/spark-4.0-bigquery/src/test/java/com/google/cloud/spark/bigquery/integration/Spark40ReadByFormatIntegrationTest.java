@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import org.apache.spark.sql.types.DataTypes;
-import org.junit.Test;
 
 public class Spark40ReadByFormatIntegrationTest extends ReadByFormatIntegrationTestBase {
 

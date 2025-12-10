@@ -268,7 +268,9 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
                                 "map_field",
                                 LegacySQLTypeName.RECORD,
                                 FieldList.of(
-                                    Field.of("key", LegacySQLTypeName.STRING),
+                                    Field.newBuilder("key", LegacySQLTypeName.STRING)
+                                        .setMode(Field.Mode.REQUIRED)
+                                        .build(),
                                     Field.of("value", LegacySQLTypeName.INTEGER)))
                             .setMode(Field.Mode.REPEATED)
                             .build())))
