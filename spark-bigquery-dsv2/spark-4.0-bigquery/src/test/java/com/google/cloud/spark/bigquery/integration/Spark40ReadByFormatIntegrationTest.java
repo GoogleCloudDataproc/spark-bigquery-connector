@@ -25,9 +25,4 @@ public class Spark40ReadByFormatIntegrationTest extends ReadByFormatIntegrationT
   }
 
   // tests are from the super-class
-
-  @Test
-  public void test() {
-    super.testWindowFunctionPartitionBy_withAVRO();
-  }
 }
