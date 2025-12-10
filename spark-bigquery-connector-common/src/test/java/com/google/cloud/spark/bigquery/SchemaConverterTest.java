@@ -197,7 +197,7 @@ public class SchemaConverterTest {
     return Field.newBuilder(
             "foo",
             LegacySQLTypeName.RECORD,
-            Field.of("key", LegacySQLTypeName.INTEGER),
+            Field.newBuilder("key", LegacySQLTypeName.INTEGER).setMode(Mode.REQUIRED).build(),
             Field.of("value", LegacySQLTypeName.STRING))
         .setMode(Mode.REPEATED)
         .build();
@@ -467,7 +467,7 @@ public class SchemaConverterTest {
             .convert(getKeyValueRepeatedField());
     StructType elementType =
         new StructType()
-            .add("key", DataTypes.LongType, true)
+            .add("key", DataTypes.LongType, false)
             .add("value", DataTypes.StringType, true);
     ArrayType arrayType = new ArrayType(elementType, true);
     assertThat(field.dataType()).isEqualTo(arrayType);
