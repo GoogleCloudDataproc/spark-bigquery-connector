@@ -775,7 +775,7 @@ public class BigQueryUtil {
         temporaryTableName,
         extractedPartitionedSource,
         extractedPartitionedTarget,
-        /* partitionsToDeleteCondition */ "TRUE");
+        /* partitionMatchAdditionalCondition */ "TRUE");
   }
 
   private static String createOptimizedMergeQuery(
@@ -784,27 +784,27 @@ public class BigQueryUtil {
       String temporaryTableName,
       String extractedPartitionedSource,
       String extractedPartitionedTarget,
-      String partitionsToDeleteCondition) {
+      String partitionMatchAdditionalCondition) {
     FieldList allFields = destinationDefinition.getSchema().getFields();
     String commaSeparatedFields =
         allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
 
     String queryFormat =
         "DECLARE partitions_to_delete DEFAULT "
-            + "(SELECT ARRAY_AGG(DISTINCT(%s) IGNORE NULLS) FROM `%s` WHERE %s); \n"
+            + "(SELECT ARRAY_AGG(DISTINCT(%s) IGNORE NULLS) FROM `%s`); \n"
             + "MERGE `%s` AS target\n"
             + "USING `%s` AS source\n"
             + "ON FALSE\n"
-            + "WHEN NOT MATCHED BY SOURCE AND %s IN UNNEST(partitions_to_delete) THEN DELETE\n"
+            + "WHEN NOT MATCHED BY SOURCE AND (%s) AND %s IN UNNEST(partitions_to_delete) THEN DELETE\n"
             + "WHEN NOT MATCHED BY TARGET THEN\n"
             + "INSERT(%s) VALUES(%s)";
     return String.format(
         queryFormat,
         extractedPartitionedSource,
         temporaryTableName,
-        partitionsToDeleteCondition,
         destinationTableName,
         temporaryTableName,
+        partitionMatchAdditionalCondition,
         extractedPartitionedTarget,
         commaSeparatedFields,
         commaSeparatedFields);
@@ -830,9 +830,10 @@ public class BigQueryUtil {
         String.format(
             "IFNULL(IF(target.%s >= %s, 0, RANGE_BUCKET(target.%s, GENERATE_ARRAY(%s, %s, %s))), -1)",
             partitionField, end, partitionField, start, end, interval);
-    // needed for tables that require the partition field to be in the where clause.
-    String partitionsToDeleteCondition =
-        String.format("%s is NULL OR %s >= %d OR ", partitionField, partitionField, Long.MIN_VALUE);
+    // needed for tables that require the partition field to be in the where clause. It must be
+    // true.
+    String partitionMatchAdditionalCondition =
+        String.format("%s is NULL OR %s >= %d", partitionField, partitionField, Long.MIN_VALUE);
 
     return createOptimizedMergeQuery(
         destinationDefinition,
@@ -840,7 +841,7 @@ public class BigQueryUtil {
         temporaryTableName,
         extractedPartitionedSource,
         extractedPartitionedTarget,
-        partitionsToDeleteCondition);
+        partitionMatchAdditionalCondition);
   }
 
   // based on https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#jobconfiguration, it
