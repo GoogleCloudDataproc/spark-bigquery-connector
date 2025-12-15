@@ -420,7 +420,7 @@ public class SchemaConverters {
       // as the current date. It's safer to leave as a stable string and give the user the
       // option of casting themselves.
     } else if (LegacySQLTypeName.DATETIME.equals(field.getType())) {
-      return DataTypes.StringType;
+      return DataTypes.ByteType;
     } else if (LegacySQLTypeName.RECORD.equals(field.getType())) {
       List<StructField> structFields =
           field.getSubFields().stream().map(this::convert).collect(Collectors.toList());
