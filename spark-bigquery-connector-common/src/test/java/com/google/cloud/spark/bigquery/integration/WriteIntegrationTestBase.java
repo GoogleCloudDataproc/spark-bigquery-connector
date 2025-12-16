@@ -609,8 +609,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testInDirectWriteToBigQueryWithDatetime() throws InterruptedException {
+  public void testInDirectWriteToBigQueryWithDatetime() {
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    // For spark version 3.4 or above, Datatime is converted to in TimestampNTZTypeConverter.
+    String sparkVersion = package$.MODULE$.SPARK_VERSION();
+    Assume.assumeThat(sparkVersion, CoreMatchers.startsWith("3.3"));
+
     String destTableName = createDiffInSchemaDestTable(TestConstants.DATETIME_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
         spark
@@ -634,6 +638,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     List<Row> actualRows = resultDf.collectAsList();
     assertThat(actualRows.size()).isEqualTo(10);
+    // Verify that the DATETIME columns are read as TimestampType
+    StructType resultSchema = resultDf.schema();
+    assertThat(resultSchema.apply("starttime").dataType()).isEqualTo(DataTypes.TimestampType);
+    assertThat(resultSchema.apply("stoptime").dataType()).isEqualTo(DataTypes.TimestampType);
   }
 
   private void writeDFNullableToBigQueryNullable_Internal(String writeAtLeastOnce)
