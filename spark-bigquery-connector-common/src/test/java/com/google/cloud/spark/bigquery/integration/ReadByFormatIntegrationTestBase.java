@@ -328,8 +328,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   @Test
   public void testWindowFunctionPartitionBy() {
     WindowSpec windowSpec =
-        Window.partitionBy(concat(col("user_pseudo_id"), col("event_timestamp"), col("event_name")))
-            .orderBy(lit("window_ordering"));
+        Window.partitionBy("user_pseudo_id", "event_timestamp", "event_name")
+            .orderBy("event_bundle_sequence_id");
 
     Dataset<Row> df =
         spark
