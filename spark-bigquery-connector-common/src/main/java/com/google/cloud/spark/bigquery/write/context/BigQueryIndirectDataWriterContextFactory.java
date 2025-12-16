@@ -49,15 +49,14 @@ class BigQueryIndirectDataWriterContextFactory implements DataWriterContextFacto
     try {
       Schema avroSchema = new Schema.Parser().parse(avroSchemaJson);
 
-      String gcsDir = gcsDirPath + "/" + epochId;
       UUID uuid = new UUID(taskId, epochId);
-      String uri = String.format("%s/part-%06d-%s.avro", gcsDir, partitionId, uuid);
+      String uri = String.format("%s/%s/part-%06d-%s.avro", gcsDirPath, epochId, partitionId, uuid);
       Path path = new Path(uri);
       FileSystem fs = path.getFileSystem(conf.get());
       IntermediateRecordWriter intermediateRecordWriter =
           new AvroIntermediateRecordWriter(avroSchema, fs.create(path));
       return new BigQueryIndirectDataWriterContext(
-          partitionId, path, fs, sparkSchema, avroSchema, intermediateRecordWriter, gcsDirPath);
+          partitionId, path, fs, sparkSchema, avroSchema, intermediateRecordWriter);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
