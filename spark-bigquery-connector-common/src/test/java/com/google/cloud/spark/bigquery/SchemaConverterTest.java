@@ -671,7 +671,9 @@ public class SchemaConverterTest {
                       .add(
                           new StructField(
                               "timestamp", DataTypes.TimestampType, true, Metadata.empty()))
-                      .add(new StructField("datetime", DataTypes.ByteType, true, Metadata.empty())),
+                      .add(
+                          new StructField(
+                              "datetime", DataTypes.TimestampType, true, Metadata.empty())),
                   true,
                   Metadata.empty()))
           .add(SPARK_JSON_FIELD)

@@ -608,6 +608,34 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(numOfRows).isEqualTo(1);
   }
 
+  @Test
+  public void testInDirectWriteToBigQueryWithDatetime() throws InterruptedException {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    String destTableName = createDiffInSchemaDestTable(TestConstants.DATETIME_SCHEMA_DEST_TABLE);
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.new_york_citibike.citibike_trips")
+            .load();
+    Dataset<Row> selectedDF =
+        df.select("starttime", "stoptime").filter("starttime is not null").limit(10);
+
+    selectedDF
+        .write()
+        .format("bigquery")
+        .mode(SaveMode.Append)
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
+        .save(testDataset + "." + destTableName);
+
+    Dataset<Row> resultDf =
+        spark.read().format("bigquery").option("table", testDataset + "." + destTableName).load();
+
+    List<Row> actualRows = resultDf.collectAsList();
+    assertThat(actualRows.size()).isEqualTo(10);
+  }
+
   private void writeDFNullableToBigQueryNullable_Internal(String writeAtLeastOnce)
       throws Exception {
     String destTableName =

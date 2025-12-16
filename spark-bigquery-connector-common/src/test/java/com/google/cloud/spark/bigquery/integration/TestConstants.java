@@ -308,6 +308,10 @@ public class TestConstants {
       Stream.of("create table %s.%s (", "int_req int64,", "int_null int64,", ")", "")
           .collect(Collectors.joining("\n"));
 
+  public static String DATETIME_SCHEMA_DEST_TABLE =
+      Stream.of("create table %s.%s (", "starttime datetime,", "stoptime datetime,", ")", "")
+          .collect(Collectors.joining("\n"));
+
   public static String DIFF_IN_SCHEMA_DEST_TABLE_WITH_NULLABLE_FIELD =
       Stream.of("create table %s.%s (", "int_null int64,", ")", "")
           .collect(Collectors.joining("\n"));
