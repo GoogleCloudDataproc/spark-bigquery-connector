@@ -1533,7 +1533,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         String.format(
             "CREATE TABLE `%s.%s` (name STRING, datetime1 DATETIME)", testDataset, testTable));
     String name = "abc";
-    String dateTime1 = "0001-01-01T01:22:24.999888";
+    String dateTime1 = "0001-01-01 01:22:24.999888";
     Dataset<Row> df =
         spark.createDataFrame(
             Arrays.asList(RowFactory.create(name, dateTime1)),
@@ -1564,7 +1564,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
       LocalDateTime expected = LocalDateTime.of(1, 1, 1, 1, 22, 24).plus(999888, ChronoUnit.MICROS);
       assertThat(head.get(head.fieldIndex("datetime1"))).isEqualTo(expected);
     } else {
-      assertThat(head.get(head.fieldIndex("datetime1"))).isEqualTo("0001-01-01T01:22:24.999888");
+      assertThat(head.get(head.fieldIndex("datetime1"))).isEqualTo("0001-01-01 01:22:24.999888");
     }
   }
 
