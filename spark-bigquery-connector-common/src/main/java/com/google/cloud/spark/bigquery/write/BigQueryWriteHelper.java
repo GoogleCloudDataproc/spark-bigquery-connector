@@ -92,15 +92,7 @@ public class BigQueryWriteHelper {
     this.gcsPath =
         SparkBigQueryUtil.createGcsPath(config, conf, sqlContext.sparkContext().applicationId());
     this.createTemporaryPathDeleter =
-        config
-            .getTemporaryGcsBucket()
-            .map(
-                unused ->
-                    new IntermediateDataCleaner(
-                        gcsPath,
-                        conf,
-                        SparkBigQueryUtil.getGcsPathWithApplicationId(
-                            config, conf, sqlContext.sparkContext().applicationId())));
+        config.getTemporaryGcsBucket().map(unused -> new IntermediateDataCleaner(gcsPath, conf));
 
     Schema schema =
         SchemaConverters.from(SchemaConvertersConfiguration.from(config))

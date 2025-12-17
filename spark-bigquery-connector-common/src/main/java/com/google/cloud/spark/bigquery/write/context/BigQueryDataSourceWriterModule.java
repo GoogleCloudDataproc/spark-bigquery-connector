@@ -101,12 +101,7 @@ public class BigQueryDataSourceWriterModule implements Module {
             .map(
                 ignored ->
                     new IntermediateDataCleaner(
-                        gcsPath,
-                        spark.sparkContext().hadoopConfiguration(),
-                        SparkBigQueryUtil.getGcsPathWithApplicationId(
-                            tableConfig,
-                            spark.sparkContext().hadoopConfiguration(),
-                            spark.sparkContext().applicationId())));
+                        gcsPath, spark.sparkContext().hadoopConfiguration()));
     // based on pmkc's suggestion at https://git.io/JeWRt
     intermediateDataCleaner.ifPresent(cleaner -> Runtime.getRuntime().addShutdownHook(cleaner));
     return new BigQueryIndirectDataSourceWriterContext(

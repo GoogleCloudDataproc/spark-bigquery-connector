@@ -15,9 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.write;
 
-import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -34,24 +32,24 @@ public class IntermediateDataCleaner extends Thread {
   private final Path path;
   /** the hadoop configuration */
   private final Configuration conf;
-  /** the path for the job */
-  private final Path gcsPathPrefix;
 
-  public IntermediateDataCleaner(Path path, Configuration conf, Path gcsPathPrefix) {
+  public IntermediateDataCleaner(Path path, Configuration conf) {
     this.path = path;
     this.conf = conf;
-    this.gcsPathPrefix = gcsPathPrefix;
   }
 
   @Override
   public void run() {
-    deleteGcsPath();
+    deletePath();
   }
 
   public void deletePath() {
     try {
       logger.info("Deleting path " + path + " if it exists");
-      FileSystem fs = path.getFileSystem(conf);
+      Configuration cleanConf = new Configuration(this.conf);
+      // ignores the closed Spark filesystem
+      cleanConf.setBoolean("fs.gs.impl.disable.cache", true);
+      FileSystem fs = FileSystem.get(path.toUri(), cleanConf);
       if (pathExists(fs, path)) {
         fs.delete(path, true);
       }
@@ -61,49 +59,8 @@ public class IntermediateDataCleaner extends Thread {
     }
   }
 
-  // Delete all GCS path matched with the application Id.
-  public void deleteGcsPath() {
-    logger.info("Deleting Gcs path " + gcsPathPrefix + " if it exists");
-    try {
-      FileSystem fs = FileSystem.get(gcsPathPrefix.toUri(), conf);
-      FileStatus[] statuses = fs.globStatus(gcsPathPrefix);
-
-      if (statuses == null || statuses.length == 0) {
-        logger.info("No paths found matching pattern: {}", gcsPathPrefix);
-        return;
-      }
-
-      logger.info(
-          "Found {} paths matching the pattern. Starting recursive deletion.", statuses.length);
-
-      boolean allSuccess = true;
-      for (FileStatus status : statuses) {
-        Path pathToDelete = status.getPath();
-        FileSystem deleteFs = FileSystem.get(pathToDelete.toUri(), conf);
-        boolean deleted = deleteFs.delete(pathToDelete, true);
-
-        if (deleted) {
-          logger.info("Successfully deleted path: {}", pathToDelete);
-        } else {
-          logger.error("Failed to delete path: {}", pathToDelete);
-          allSuccess = false;
-        }
-      }
-
-      if (allSuccess) {
-        logger.info("Completed cleanup for pattern: {}", gcsPathPrefix);
-      } else {
-        logger.warn(
-            "Completed cleanup, but one or more paths failed to delete for pattern: {}",
-            gcsPathPrefix);
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   public void deleteEpochPath(long epochId) {
-    Path epochPath = new Path(path, String.valueOf(epochId));
+    Path epochPath = new Path(path + "/" + epochId);
     try {
       logger.info("Deleting epoch path " + epochPath + " if it exists");
       FileSystem fs = epochPath.getFileSystem(conf);
