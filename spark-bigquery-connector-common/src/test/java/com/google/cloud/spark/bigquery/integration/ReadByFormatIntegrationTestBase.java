@@ -354,6 +354,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
   @Test
   public void testWindowFunctionPartitionBy_withAVRO() {
+    assumeTrue("This test only works for AVRO dataformat", dataFormat.equals("AVRO"));
     WindowSpec windowSpec =
         Window.partitionBy(concat(col("user_pseudo_id"), col("event_timestamp"), col("event_name")))
             .orderBy(lit("window_ordering"));
@@ -363,7 +364,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
             .read()
             .format("bigquery")
             .option("table", GA4_TABLE)
-            .option("readDataFormat", "AVRO")
+            .option("readDataFormat", dataFormat)
             .load()
             .withColumn("row_num", row_number().over(windowSpec));
 
