@@ -21,6 +21,7 @@ import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.connector.write.LogicalWriteInfo;
 import org.apache.spark.sql.connector.write.V1Write;
 import org.apache.spark.sql.connector.write.Write;
+import org.apache.spark.sql.connector.write.WriteBuilder;
 import org.apache.spark.sql.sources.InsertableRelation;
 
 public class Spark35BigQueryWriteBuilder extends BigQueryWriteBuilder implements Write, V1Write {
@@ -38,5 +39,10 @@ public class Spark35BigQueryWriteBuilder extends BigQueryWriteBuilder implements
   public InsertableRelation toInsertableRelation() {
     return new CreatableRelationProviderHelper()
         .createBigQueryInsertableRelationFromInjector(info.schema(), mode, injector);
+  }
+
+  @Override
+  public WriteBuilder truncate() {
+    return new Spark35BigQueryWriteBuilder(injector, info, SaveMode.Overwrite);
   }
 }
