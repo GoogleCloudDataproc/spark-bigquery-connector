@@ -144,7 +144,11 @@ public class SparkBigQueryUtil {
     Path gcsPath = null;
     String gcsBucketAndScheme = getBucketAndScheme(gcsBucket);
     while (needNewPath) {
-      gcsPath = new Path(String.format("%s/.spark-bigquery-%s", gcsBucketAndScheme, applicationId));
+      gcsPath =
+          new Path(
+              String.format(
+                  "%s/.spark-bigquery-%s-%s",
+                  gcsBucketAndScheme, applicationId, UUID.randomUUID()));
       FileSystem fs = gcsPath.getFileSystem(conf);
       needNewPath = fs.exists(gcsPath);
     }

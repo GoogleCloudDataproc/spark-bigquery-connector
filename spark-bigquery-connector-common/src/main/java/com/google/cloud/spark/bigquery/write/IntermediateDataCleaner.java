@@ -46,12 +46,19 @@ public class IntermediateDataCleaner extends Thread {
   public void deletePath() {
     try {
       logger.info("Deleting path " + path + " if it exists");
-      Configuration cleanConf = new Configuration(this.conf);
-      // ignores the closed Spark filesystem
-      cleanConf.setBoolean("fs.gs.impl.disable.cache", true);
+      // Create a copy of the config to avoid polluting the global state
+      Configuration cleanConf = new Configuration(conf);
+
+      // Force a fresh instance that isn't already closed by Spark
+      String scheme = path.toUri().getScheme();
+      if (scheme != null) {
+        cleanConf.set("fs." + scheme + ".impl.disable.cache", "true");
+      }
+
+      // Use the specific URI to ensure GCS is targeted
       FileSystem fs = FileSystem.get(path.toUri(), cleanConf);
       if (pathExists(fs, path)) {
-        fs.delete(path, true);
+        fs.delete(path, false);
       }
       logger.info("Path " + path + " no longer exists)");
     } catch (Exception e) {
