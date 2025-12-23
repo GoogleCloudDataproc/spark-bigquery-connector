@@ -75,7 +75,7 @@ case $STEP in
   # Run integration tests
   integrationtest-3.2)
     export JAVA_HOME=${JAVA8_HOME}
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.2
+    $MVN -X failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.2
     ;;
 
   # Run integration tests
