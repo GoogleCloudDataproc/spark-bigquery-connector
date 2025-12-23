@@ -58,7 +58,7 @@ public class IntermediateDataCleaner extends Thread {
       // Use the specific URI to ensure GCS is targeted
       FileSystem fs = FileSystem.get(path.toUri(), cleanConf);
       if (pathExists(fs, path)) {
-        fs.delete(path, false);
+        fs.delete(path, true);
       }
       logger.info("Path " + path + " no longer exists)");
     } catch (Exception e) {
