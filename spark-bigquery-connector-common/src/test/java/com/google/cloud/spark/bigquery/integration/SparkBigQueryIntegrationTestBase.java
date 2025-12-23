@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import java.util.UUID;
 import org.apache.spark.sql.SparkSession;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -42,9 +43,12 @@ public class SparkBigQueryIntegrationTestBase {
 
     @Override
     protected void before() throws Throwable {
+      String appName = "integration-test-" + UUID.randomUUID();
       spark =
           SparkSession.builder()
               .master("local")
+              .appName(appName)
+              .config("spark.hadoop.google.cloud.appName.v2", appName)
               .config("spark.ui.enabled", "false")
               .config("spark.default.parallelism", 20)
               .getOrCreate();
