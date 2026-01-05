@@ -353,7 +353,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   }
 
   @Test
-  public void testWindowFunctionPartitionBy_withAVRO() {
+  public void testWindowFunctionPartitionByWithArray() {
     assumeTrue("This test only works for AVRO dataformat", dataFormat.equals("AVRO"));
     WindowSpec windowSpec =
         Window.partitionBy(concat(col("user_pseudo_id"), col("event_timestamp"), col("event_name")))
