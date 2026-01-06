@@ -23,12 +23,21 @@ import org.apache.spark.sql.connector.write.BatchWrite;
 import org.apache.spark.sql.connector.write.LogicalWriteInfo;
 import org.apache.spark.sql.connector.write.SupportsOverwrite;
 import org.apache.spark.sql.connector.write.WriteBuilder;
+import org.apache.spark.sql.connector.write.streaming.StreamingWrite;
 import org.apache.spark.sql.sources.Filter;
 
 public class BigQueryWriteBuilder implements WriteBuilder, SupportsOverwrite {
   protected final Injector injector;
   protected final LogicalWriteInfo info;
   protected final SaveMode mode;
+
+  @Override
+  public StreamingWrite buildForStreaming() {
+    Optional<DataSourceWriterContext> dataSourceWriterContext =
+        DataSourceWriterContext.create(
+            injector, info.queryId(), info.schema(), mode, info.options());
+    return new BigQueryStreamingWrite(dataSourceWriterContext.get());
+  }
 
   public BigQueryWriteBuilder(Injector injector, LogicalWriteInfo info, SaveMode mode) {
     this.injector = injector;

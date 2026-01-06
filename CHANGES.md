@@ -3,6 +3,7 @@
 ## Next
 * Added new connector, `spark-4.1-bigquery` aimed to be used in Spark 4.1. Like Spark 4.1, this connector requires at
   least Java 17 runtime. It is currently in preview mode.
+* PR #1445: Add streaming support for Spark DS v2 indirect write.
 * PR #1452: Improved the performance of the dynamic partition overwrite for RANGE_BUCKET partitioned tables.
 
 ## 0.43.1 - 2025-10-22
