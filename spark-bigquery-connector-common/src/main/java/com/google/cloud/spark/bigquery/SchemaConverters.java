@@ -328,6 +328,11 @@ public class SchemaConverters {
     }
     Field key = subFields.get("key");
     Field value = subFields.get("value");
+    // If the BigQuery 'key' field is NULLABLE, this cannot be safely converted
+    // to a Spark Map. It should remain an Array of Structs.
+    if (key.getMode() != Field.Mode.REQUIRED) {
+      return Optional.empty();
+    }
     MapType mapType = DataTypes.createMapType(convert(key).dataType(), convert(value).dataType());
     // The returned type is not nullable because the original field is a REPEATED, not NULLABLE.
     // There are some compromises we need to do as BigQuery has no native MAP type
