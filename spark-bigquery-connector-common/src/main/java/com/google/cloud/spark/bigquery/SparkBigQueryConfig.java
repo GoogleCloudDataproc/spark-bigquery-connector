@@ -55,6 +55,7 @@ import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilde
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
+import com.google.cloud.spark.bigquery.util.GCPLabelUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -658,7 +659,11 @@ public class SparkBigQueryConfig
             });
 
     config.bigQueryJobLabels =
-        parseBigQueryLabels(globalOptions, options, BIGQUERY_JOB_LABEL_PREFIX);
+        ImmutableMap.<String, String>builder()
+            .putAll(GCPLabelUtils.getSparkLabels(originalGlobalOptions))
+            .putAll(parseBigQueryLabels(globalOptions, options, BIGQUERY_JOB_LABEL_PREFIX))
+            .buildKeepingLast();
+
     config.bigQueryTableLabels =
         parseBigQueryLabels(globalOptions, options, BIGQUERY_TABLE_LABEL_PREFIX);
 
