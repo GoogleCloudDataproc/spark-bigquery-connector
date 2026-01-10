@@ -373,6 +373,28 @@ df.writeStream \
 
 **Important:** The connector does not configure the GCS connector, in order to avoid conflict with another GCS connector, if exists. In order to use the write capabilities of the connector, please configure the GCS connector on your cluster as explained [here](https://github.com/GoogleCloudPlatform/bigdata-interop/tree/master/gcs).
 
+#### Schema Behavior on Overwrite
+
+When using `SaveMode.Overwrite` (`.mode("overwrite")`), the connector **preserves the existing table's schema**. 
+The data is truncated, but column types, descriptions, and policy tags are retained.
+
+```
+df.write \
+  .format("bigquery") \
+  .mode("overwrite") \
+  .option("temporaryGcsBucket","some-bucket") \
+  .save("dataset.table")
+```
+
+**Important:** If your DataFrame has a different schema than the existing table (e.g., changing a column from 
+`INTEGER` to `DOUBLE`), the write will fail with a type mismatch error. To change the schema, either:
+- Drop the table before overwriting
+- Use BigQuery DDL to alter the table schema first
+
+This behavior was introduced between version 0.22.0 and 0.41.0 to prevent accidental schema drift.
+
+**Note:** This behavior applies to both the `indirect` (default) and `direct` write methods.
+
 ### Running SQL on BigQuery
 
 The connector supports Spark's [SparkSession#executeCommand](https://archive.apache.org/dist/spark/docs/3.0.0/api/java/org/apache/spark/sql/SparkSession.html#executeCommand-java.lang.String-java.lang.String-scala.collection.immutable.Map-)
