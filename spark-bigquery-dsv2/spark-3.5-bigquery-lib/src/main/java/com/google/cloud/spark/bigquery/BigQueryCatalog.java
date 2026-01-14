@@ -78,6 +78,7 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
   private TableProvider tableProvider;
   private BigQueryClient bigQueryClient;
   private SchemaConverters schemaConverters;
+  private Map<String, String> options;
 
   @Override
   public void initialize(String name, CaseInsensitiveStringMap caseInsensitiveStringMap) {
@@ -85,6 +86,7 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
         "Initializing BigQuery table catalog [{}] with options: {}",
         name,
         caseInsensitiveStringMap);
+    this.options = caseInsensitiveStringMap.asCaseSensitiveMap();
 
     try {
       Injector injector =
@@ -166,13 +168,17 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
 
   Map<String, String> toLoadProperties(Identifier identifier) {
     ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
+    Map<String, String> processedOptions = new java.util.HashMap<>(options);
+    if (processedOptions.containsKey("projectId")) {
+      processedOptions.put("project", processedOptions.remove("projectId"));
+    }
+    result.putAll(processedOptions);
     switch (identifier.namespace().length) {
       case 1:
         result.put("dataset", identifier.namespace()[0]);
         break;
       case 2:
-        // Use 'projectId' instead of 'project' to match the connector's configuration
-        result.put("projectId", identifier.namespace()[0]);
+        result.put("project", identifier.namespace()[0]);
         result.put("dataset", identifier.namespace()[1]);
         break;
       default:
@@ -180,7 +186,7 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
             "The identifier [" + identifier + "] is not recognized by BigQuery");
     }
     result.put("table", identifier.name());
-    return result.build();
+    return result.buildKeepingLast();
   }
 
   @Override
