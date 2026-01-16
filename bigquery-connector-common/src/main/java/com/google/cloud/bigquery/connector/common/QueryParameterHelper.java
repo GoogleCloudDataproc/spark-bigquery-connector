@@ -36,17 +36,17 @@ public final class QueryParameterHelper implements Serializable {
   private static final long serialVersionUID = -283738274937293739L; // For Serializable interface
 
   private final ParameterMode mode;
-  private final ImmutableMap<String, QueryParameterValue> namedParameters;
-  private final ImmutableList<QueryParameterValue> positionalParameters;
+  private final Map<String, QueryParameterValue> namedParameters;
+  private final List<QueryParameterValue> positionalParameters;
 
   public QueryParameterHelper(
       ParameterMode mode,
-      ImmutableMap<String, QueryParameterValue> named,
-      ImmutableList<QueryParameterValue> positional) {
+      Map<String, QueryParameterValue> named,
+      List<QueryParameterValue> positional) {
     this.mode = mode;
 
-    this.namedParameters = named;
-    this.positionalParameters = positional;
+    this.namedParameters = ImmutableMap.copyOf(named);
+    this.positionalParameters = ImmutableList.copyOf(positional);
   }
 
   static QueryParameterHelper none() {
@@ -57,7 +57,7 @@ public final class QueryParameterHelper implements Serializable {
     Preconditions.checkNotNull(
         namedParameters, "Input named parameters map cannot be null for named mode");
     return new QueryParameterHelper(
-        ParameterMode.NAMED, ImmutableMap.copyOf(namedParameters), ImmutableList.of());
+        ParameterMode.NAMED, namedParameters, ImmutableList.of());
   }
 
   static QueryParameterHelper positional(List<QueryParameterValue> positionalParameters) {
@@ -68,7 +68,7 @@ public final class QueryParameterHelper implements Serializable {
     return new QueryParameterHelper(
         ParameterMode.POSITIONAL,
         ImmutableMap.of(), // Pass empty immutable map
-        ImmutableList.copyOf(positionalParameters));
+        positionalParameters);
   }
 
   public ParameterMode getMode() {
@@ -81,7 +81,7 @@ public final class QueryParameterHelper implements Serializable {
    * @return An Optional containing an immutable map of named parameters if mode is NAMED, otherwise
    *     Optional.empty().
    */
-  public Optional<ImmutableMap<String, QueryParameterValue>> getNamedParameters() {
+  public Optional<Map<String, QueryParameterValue>> getNamedParameters() {
     return mode == ParameterMode.NAMED ? Optional.of(namedParameters) : Optional.empty();
   }
 
@@ -91,7 +91,7 @@ public final class QueryParameterHelper implements Serializable {
    * @return An Optional containing an immutable list of positional parameters if mode is
    *     POSITIONAL, otherwise Optional.empty().
    */
-  public Optional<ImmutableList<QueryParameterValue>> getPositionalParameters() {
+  public Optional<List<QueryParameterValue>> getPositionalParameters() {
     return mode == ParameterMode.POSITIONAL ? Optional.of(positionalParameters) : Optional.empty();
   }
 
