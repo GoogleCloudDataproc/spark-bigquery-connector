@@ -628,7 +628,8 @@
                             <pattern>com.google</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.com.google</shadedPattern>
                             <excludes>
-                                <exclude>com.google.cloud.bigquery.connector.common.**</exclude>
+                                <!-- the bigquery connector common library needs to be repackaged -->
+                                <!-- <exclude>com.google.cloud.bigquery.connector.common.**</exclude> -->
                                 <exclude>com.google.cloud.spark.bigquery.**</exclude>
                                 <exclude>com.google.cloud.spark.events.**</exclude>
                             </excludes>
