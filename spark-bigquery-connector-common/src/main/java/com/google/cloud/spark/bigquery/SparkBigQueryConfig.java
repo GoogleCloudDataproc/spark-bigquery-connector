@@ -206,6 +206,9 @@ public class SparkBigQueryConfig
   com.google.common.base.Optional<String> temporaryGcsBucket = empty();
   com.google.common.base.Optional<String> persistentGcsBucket = empty();
   com.google.common.base.Optional<String> persistentGcsPath = empty();
+  // These properties are used to configure the catalog specifically, allowing
+  // separation between the catalog's project/location and the job's billing/execution
+  // project/location.
   com.google.common.base.Optional<String> catalogProjectId = empty();
   com.google.common.base.Optional<String> catalogLocation = empty();
 
