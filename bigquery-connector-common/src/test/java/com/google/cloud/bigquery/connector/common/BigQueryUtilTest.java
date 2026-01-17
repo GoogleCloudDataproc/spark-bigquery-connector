@@ -51,7 +51,6 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.collect.ImmutableList;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;
