@@ -81,8 +81,8 @@ public class GCPLabelUtils {
 
   private static Map<String, String> computeSparkLabels(ImmutableMap<String, String> conf) {
     Map<String, String> sparkLabels = new HashMap<>();
-    getSparkAppId(conf).ifPresent(p -> sparkLabels.put("appId", p));
-    getSparkAppName(conf).ifPresent(p -> sparkLabels.put("appName", p));
+    getSparkAppId(conf).ifPresent(p -> sparkLabels.put("app-id", p));
+    getSparkAppName(conf).ifPresent(p -> sparkLabels.put("app-name", p));
     if (isDataprocRuntime()) {
       sparkLabels.putAll(getGCPLabels(conf));
     }
@@ -92,7 +92,7 @@ public class GCPLabelUtils {
   static Map<String, String> getGCPLabels(ImmutableMap<String, String> conf) {
     try (CloseableHttpClient httpClient = createHttpClient()) {
       Map<String, String> gcpLabels = getResourceLabels(conf, httpClient);
-      getGCPProjectId(conf, httpClient).ifPresent(p -> gcpLabels.put("projectId", p));
+      getGCPProjectId(conf, httpClient).ifPresent(p -> gcpLabels.put("project-id", p));
       getDataprocRegion(conf, httpClient).ifPresent(p -> gcpLabels.put("region", p));
       return gcpLabels;
     } catch (IOException e) {
@@ -105,27 +105,27 @@ public class GCPLabelUtils {
       ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
     Map<String, String> resourceLabels = new HashMap<>();
     if ("yarn".equals(conf.getOrDefault(SPARK_MASTER, ""))) {
-      getClusterName(conf).ifPresent(p -> resourceLabels.put("cluster.name", p));
-      getClusterUUID(conf, httpClient).ifPresent(p -> resourceLabels.put("cluster.uuid", p));
-      getDataprocJobID(conf).ifPresent(p -> resourceLabels.put("job.id", p));
-      getDataprocJobUUID(conf).ifPresent(p -> resourceLabels.put("job.uuid", p));
-      resourceLabels.put("job.type", "dataproc_job");
+      getClusterName(conf).ifPresent(p -> resourceLabels.put("cluster-name", p));
+      getClusterUUID(conf, httpClient).ifPresent(p -> resourceLabels.put("cluster-uuid", p));
+      getDataprocJobID(conf).ifPresent(p -> resourceLabels.put("job-id", p));
+      getDataprocJobUUID(conf).ifPresent(p -> resourceLabels.put("job-uuid", p));
+      resourceLabels.put("job-type", "dataproc_job");
       return resourceLabels;
     }
     Optional<String> dataprocBatchID = getDataprocBatchID(conf, httpClient);
     if (dataprocBatchID.isPresent()) {
-      dataprocBatchID.ifPresent(p -> resourceLabels.put("spark.batch.id", p));
+      dataprocBatchID.ifPresent(p -> resourceLabels.put("spark-batch-id", p));
       getDataprocBatchUUID(conf, httpClient)
-          .ifPresent(p -> resourceLabels.put("spark.batch.uuid", p));
-      resourceLabels.put("job.type", "batch");
+          .ifPresent(p -> resourceLabels.put("spark-batch-uuid", p));
+      resourceLabels.put("job-type", "batch");
       return resourceLabels;
     }
     Optional<String> dataprocSessionID = getDataprocSessionID(conf, httpClient);
     if (dataprocSessionID.isPresent()) {
-      dataprocSessionID.ifPresent(p -> resourceLabels.put("spark.session.id", p));
+      dataprocSessionID.ifPresent(p -> resourceLabels.put("spark-session-id", p));
       getDataprocSessionUUID(conf, httpClient)
-          .ifPresent(p -> resourceLabels.put("spark.session.uuid", p));
-      resourceLabels.put("job.type", "session");
+          .ifPresent(p -> resourceLabels.put("spark-session-uuid", p));
+      resourceLabels.put("job-type", "session");
       return resourceLabels;
     }
     return resourceLabels;

@@ -25,30 +25,30 @@ public class GCPLabelUtilsTest {
   private static final String TEST_REGION = "us-central1";
   private static final ImmutableMap<String, String> EXPECTED_FACET_DATAPROC_CLUSTER =
       ImmutableMap.<String, String>builder()
-          .put("job.uuid", TEST_RESOURCE_UUID)
-          .put("job.id", TEST_JOB_ID)
-          .put("cluster.uuid", TEST_RESOURCE_UUID)
-          .put("cluster.name", TEST_CLUSTER_NAME)
-          .put("projectId", TEST_PROJECT_ID)
-          .put("job.type", "dataproc_job")
+          .put("job-uuid", TEST_RESOURCE_UUID)
+          .put("job-id", TEST_JOB_ID)
+          .put("cluster-uuid", TEST_RESOURCE_UUID)
+          .put("cluster-name", TEST_CLUSTER_NAME)
+          .put("project-id", TEST_PROJECT_ID)
+          .put("job-type", "dataproc_job")
           .put("region", TEST_REGION)
           .build();
 
   private static final ImmutableMap<String, String> EXPECTED_FACET_DATAPROC_BATCH =
       ImmutableMap.<String, String>builder()
-          .put("spark.batch.uuid", TEST_RESOURCE_UUID)
-          .put("spark.batch.id", TEST_BATCH_ID)
-          .put("projectId", TEST_PROJECT_ID)
-          .put("job.type", "batch")
+          .put("spark-batch-uuid", TEST_RESOURCE_UUID)
+          .put("spark-batch-id", TEST_BATCH_ID)
+          .put("project-id", TEST_PROJECT_ID)
+          .put("job-type", "batch")
           .put("region", TEST_REGION)
           .build();
 
   private static final ImmutableMap<String, String> EXPECTED_FACET_DATAPROC_SESSION =
       ImmutableMap.<String, String>builder()
-          .put("spark.session.uuid", TEST_RESOURCE_UUID)
-          .put("spark.session.id", TEST_SESSION_ID)
-          .put("projectId", TEST_PROJECT_ID)
-          .put("job.type", "session")
+          .put("spark-session-uuid", TEST_RESOURCE_UUID)
+          .put("spark-session-id", TEST_SESSION_ID)
+          .put("project-id", TEST_PROJECT_ID)
+          .put("job-type", "session")
           .put("region", TEST_REGION)
           .build();
 
@@ -78,8 +78,8 @@ public class GCPLabelUtilsTest {
     Map<String, String> labels = GCPLabelUtils.getSparkLabels(conf);
 
     assertEquals(2, labels.size());
-    assertEquals(TEST_APP_ID, labels.get("appId"));
-    assertEquals(TEST_APP_NAME, labels.get("appName"));
+    assertEquals(TEST_APP_ID, labels.get("app-id"));
+    assertEquals(TEST_APP_NAME, labels.get("app-name"));
   }
 
   @Test
@@ -102,8 +102,8 @@ public class GCPLabelUtilsTest {
     Map<String, String> labels2 = GCPLabelUtils.getSparkLabels(conf2);
 
     assertEquals(labels1.size(), labels2.size());
-    assertEquals(labels1.get("appId"), labels2.get("appId"));
-    assertEquals(labels1.get("appName"), labels2.get("appName"));
+    assertEquals(labels1.get("app-id"), labels2.get("app-id"));
+    assertEquals(labels1.get("app-name"), labels2.get("app-name"));
   }
 
   @Test
