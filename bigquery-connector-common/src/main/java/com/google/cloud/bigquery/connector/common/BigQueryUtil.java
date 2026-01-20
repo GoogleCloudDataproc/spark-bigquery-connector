@@ -769,6 +769,23 @@ public class BigQueryUtil {
         String.format(
             "%s(`target`.`%s`, %s)", truncFuntion, partitionField, partitionType.toString());
 
+    return createOptimizedMergeQuery(
+        destinationDefinition,
+        destinationTableName,
+        temporaryTableName,
+        extractedPartitionedSource,
+        extractedPartitionedTarget,
+        /* partitionMatchAdditionalCondition */ "TRUE");
+  }
+
+  private static String createOptimizedMergeQuery(
+      StandardTableDefinition destinationDefinition,
+      String destinationTableName,
+      String temporaryTableName,
+      String extractedPartitionedSource,
+      String extractedPartitionedTarget,
+      String partitionMatchAdditionalCondition) {
+    FieldList allFields = destinationDefinition.getSchema().getFields();
     String commaSeparatedFields =
         allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
 
@@ -778,7 +795,7 @@ public class BigQueryUtil {
             + "MERGE `%s` AS target\n"
             + "USING `%s` AS source\n"
             + "ON FALSE\n"
-            + "WHEN NOT MATCHED BY SOURCE AND %s IN UNNEST(partitions_to_delete) THEN DELETE\n"
+            + "WHEN NOT MATCHED BY SOURCE AND (%s) AND %s IN UNNEST(partitions_to_delete) THEN DELETE\n"
             + "WHEN NOT MATCHED BY TARGET THEN\n"
             + "INSERT(%s) VALUES(%s)";
     return String.format(
@@ -787,6 +804,7 @@ public class BigQueryUtil {
         temporaryTableName,
         destinationTableName,
         temporaryTableName,
+        partitionMatchAdditionalCondition,
         extractedPartitionedTarget,
         commaSeparatedFields,
         commaSeparatedFields);
@@ -803,57 +821,28 @@ public class BigQueryUtil {
     long interval = rangePartitioning.getRange().getInterval();
 
     String partitionField = rangePartitioning.getField();
-    String extractedPartitioned =
-        "IFNULL(IF(%s.%s >= %s, 0, RANGE_BUCKET(%s.%s, GENERATE_ARRAY(%s, %s, %s))), -1)";
+
     String extractedPartitionedSource =
         String.format(
-            extractedPartitioned,
-            "source",
-            partitionField,
-            end,
-            "source",
-            partitionField,
-            start,
-            end,
-            interval);
+            "IFNULL(IF(%s >= %s, 0, RANGE_BUCKET(%s, GENERATE_ARRAY(%s, %s, %s))), -1)",
+            partitionField, end, partitionField, start, end, interval);
     String extractedPartitionedTarget =
         String.format(
-            extractedPartitioned,
-            "target",
-            partitionField,
-            end,
-            "target",
-            partitionField,
-            start,
-            end,
-            interval);
+            "IFNULL(IF(target.%s >= %s, 0, RANGE_BUCKET(target.%s, GENERATE_ARRAY(%s, %s, %s))), -1)",
+            partitionField, end, partitionField, start, end, interval);
+    // needed for tables that require the partition field to be in the where clause. It must be
+    // true.
+    String partitionMatchAdditionalCondition =
+        String.format(
+            "target.%s is NULL OR target.%s >= %d", partitionField, partitionField, Long.MIN_VALUE);
 
-    FieldList allFields = destinationDefinition.getSchema().getFields();
-    String commaSeparatedFields =
-        allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
-    String booleanInjectedColumn = "_" + Long.toString(1234567890123456789L);
-
-    String queryFormat =
-        "MERGE `%s` AS target\n"
-            + "USING (SELECT * FROM `%s` CROSS JOIN UNNEST([true, false])  %s) AS source\n"
-            + "ON %s = %s AND %s AND (target.%s >= %d OR target.%s IS NULL )\n"
-            + "WHEN MATCHED THEN DELETE\n"
-            + "WHEN NOT MATCHED AND NOT %s THEN\n"
-            + "INSERT(%s) VALUES(%s)";
-    return String.format(
-        queryFormat,
+    return createOptimizedMergeQuery(
+        destinationDefinition,
         destinationTableName,
         temporaryTableName,
-        booleanInjectedColumn,
         extractedPartitionedSource,
         extractedPartitionedTarget,
-        booleanInjectedColumn,
-        partitionField,
-        BIGQUERY_INTEGER_MIN_VALUE,
-        partitionField,
-        booleanInjectedColumn,
-        commaSeparatedFields,
-        commaSeparatedFields);
+        partitionMatchAdditionalCondition);
   }
 
   // based on https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#jobconfiguration, it

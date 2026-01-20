@@ -46,7 +46,17 @@ public class IntermediateDataCleaner extends Thread {
   public void deletePath() {
     try {
       logger.info("Deleting path " + path + " if it exists");
-      FileSystem fs = path.getFileSystem(conf);
+      // Create a copy of the config to avoid polluting the global state
+      Configuration cleanConf = new Configuration(conf);
+
+      // Force a fresh instance that isn't already closed by Spark
+      String scheme = path.toUri().getScheme();
+      if (scheme != null) {
+        cleanConf.set("fs." + scheme + ".impl.disable.cache", "true");
+      }
+
+      // Use the specific URI to ensure GCS is targeted
+      FileSystem fs = FileSystem.get(path.toUri(), cleanConf);
       if (pathExists(fs, path)) {
         fs.delete(path, true);
       }
@@ -55,6 +65,21 @@ public class IntermediateDataCleaner extends Thread {
       logger.error("Failed to delete path " + path, e);
     }
   }
+
+  public void deleteEpochPath(long epochId) {
+    Path epochPath = new Path(path + "/" + epochId);
+    try {
+      logger.info("Deleting epoch path " + epochPath + " if it exists");
+      FileSystem fs = epochPath.getFileSystem(conf);
+      if (pathExists(fs, epochPath)) {
+        fs.delete(epochPath, true);
+      }
+      logger.info("Path " + epochPath + " no longer exists)");
+    } catch (Exception e) {
+      logger.error("Failed to delete path " + epochPath, e);
+    }
+  }
+
   // fs.exists can throw exception on missing path
   private boolean pathExists(FileSystem fs, Path path) {
     try {
