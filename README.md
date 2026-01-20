@@ -1191,8 +1191,8 @@ val df = spark.read.format("bigquery")
 
 ### Configuring Partitioning
 
-By default the connector creates one partition per 400MB in the table being read (before filtering). This should roughly correspond to the maximum number of readers supported by the BigQuery Storage API.
-This can be configured explicitly with the <code>[maxParallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
+By default, the connector calculates the requested `maxParallelism` as the larger of `preferredMinParallelism` (which defaults to 3 times the application's default parallelism) and 20,000. BigQuery may limit the number of partitions based on server constraints.
+Both <code>[maxParallelism](#properties)</code> and <code>[preferredMinParallelism](#properties)</code> can be configured explicitly to control the number of partitions.
 
 ## Tagging BigQuery Resources
 
