@@ -63,4 +63,30 @@ public class SparkBigQueryReadSessionMetricsTest {
     metrics.incrementScanTimeAccumulator(5000);
     assertThat(metrics.getScanTime()).isEqualTo(6000);
   }
+
+  @Test
+  public void testSerialization() throws Exception {
+    String sessionName = "projects/test-project/locations/us/sessions/testSession";
+    SparkBigQueryReadSessionMetrics metrics =
+        SparkBigQueryReadSessionMetrics.from(
+            spark,
+            ReadSession.newBuilder().setName(sessionName).build(),
+            10L,
+            DataFormat.ARROW,
+            DataOrigin.QUERY,
+            10L);
+
+    java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+    java.io.ObjectOutputStream out = new java.io.ObjectOutputStream(bos);
+    out.writeObject(metrics);
+    out.close();
+
+    java.io.ByteArrayInputStream bis = new java.io.ByteArrayInputStream(bos.toByteArray());
+    java.io.ObjectInputStream in = new java.io.ObjectInputStream(bis);
+    SparkBigQueryReadSessionMetrics deserializedMetrics =
+        (SparkBigQueryReadSessionMetrics) in.readObject();
+
+    assertThat(deserializedMetrics.getNumReadStreams()).isEqualTo(10L);
+    assertThat(deserializedMetrics.getBytesRead()).isEqualTo(0);
+  }
 }

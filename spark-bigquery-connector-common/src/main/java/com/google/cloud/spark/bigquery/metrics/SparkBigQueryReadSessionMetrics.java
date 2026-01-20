@@ -41,7 +41,7 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
   private final LongAccumulator scanTimeAccumulator;
   private final LongAccumulator parseTimeAccumulator;
   private final String sessionId;
-  private final SparkSession sparkSession;
+  private final transient SparkSession sparkSession;
   private final long timestamp;
   private final DataFormat readDataFormat;
   private final DataOrigin dataOrigin;
