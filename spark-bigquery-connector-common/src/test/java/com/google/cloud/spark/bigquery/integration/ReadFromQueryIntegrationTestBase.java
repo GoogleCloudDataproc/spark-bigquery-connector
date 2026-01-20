@@ -389,22 +389,14 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     String envKmsKey = System.getenv("BIGQUERY_KMS_KEY_NAME");
     String kmsKeyName =
         envKmsKey != null ? envKmsKey : "projects/p/locations/l/keyRings/k/cryptoKeys/c";
-    try {
-      spark
-          .read()
-          .format("bigquery")
-          .option("viewsEnabled", true)
-          .option("materializationDataset", testDataset.toString())
-          .option("destinationTableKmsKeyName", kmsKeyName)
-          .load(query)
-          .collect();
-    } catch (Exception e) {
-      if (envKmsKey != null) {
-        throw new RuntimeException("Query failed with provided KMS key", e);
-      }
-      // It is expected to fail as the KMS key is invalid
-    }
-
+    spark
+        .read()
+        .format("bigquery")
+        .option("viewsEnabled", true)
+        .option("materializationDataset", testDataset.toString())
+        .option("destinationTableKmsKeyName", kmsKeyName)
+        .load(query)
+        .collect();
     // validate event publishing
     List<JobInfo> jobInfos = listener.getJobInfos();
     assertThat(jobInfos).hasSize(1);
