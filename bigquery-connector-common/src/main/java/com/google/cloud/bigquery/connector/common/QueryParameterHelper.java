@@ -56,7 +56,8 @@ public final class QueryParameterHelper implements Serializable {
   static QueryParameterHelper named(Map<String, QueryParameterValue> namedParameters) {
     Preconditions.checkNotNull(
         namedParameters, "Input named parameters map cannot be null for named mode");
-    return new QueryParameterHelper(ParameterMode.NAMED, namedParameters, ImmutableList.of());
+    return new QueryParameterHelper(
+        ParameterMode.NAMED, namedParameters, ImmutableList.of());
   }
 
   static QueryParameterHelper positional(List<QueryParameterValue> positionalParameters) {
