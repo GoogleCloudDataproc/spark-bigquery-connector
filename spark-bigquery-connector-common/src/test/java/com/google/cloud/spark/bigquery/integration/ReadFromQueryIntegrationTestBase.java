@@ -386,7 +386,9 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
         String.format(
             "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
             random, random);
-    String kmsKeyName = "projects/p/locations/l/keyRings/k/cryptoKeys/c";
+    String envKmsKey = System.getenv("BIGQUERY_KMS_KEY_NAME");
+    String kmsKeyName =
+        envKmsKey != null ? envKmsKey : "projects/p/locations/l/keyRings/k/cryptoKeys/c";
     try {
       spark
           .read()
@@ -397,6 +399,9 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
           .load(query)
           .collect();
     } catch (Exception e) {
+      if (envKmsKey != null) {
+        throw new RuntimeException("Query failed with provided KMS key", e);
+      }
       // It is expected to fail as the KMS key is invalid
     }
 
@@ -408,7 +413,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             ((QueryJobConfiguration) jobInfo.getConfiguration())
                 .getDestinationEncryptionConfiguration()
                 .getKmsKeyName())
-        .isEqualTo(kmsKeyName);
+        .isEqualTo(kmsKeyName + "/cryptoKeyVersions/1");
   }
 }
 

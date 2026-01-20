@@ -784,6 +784,28 @@ public class SparkBigQueryConfigTest {
   }
 
   @Test
+  public void testKmsKeyPropagationToReadTableOptions() {
+    String kmsKeyName = "projects/p/locations/l/keyRings/k/cryptoKeys/c";
+    DataSourceOptions options =
+        new DataSourceOptions(
+            ImmutableMap.of("table", "dataset.table", "destinationTableKmsKeyName", kmsKeyName));
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            options.asMap(),
+            defaultGlobalOptions,
+            new Configuration(),
+            ImmutableMap.of(),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(),
+            true);
+
+    assertThat(config.getKmsKeyName()).isEqualTo(Optional.of(kmsKeyName));
+    assertThat(config.toReadTableOptions().getKmsKeyName()).isEqualTo(Optional.of(kmsKeyName));
+  }
+
+  @Test
   public void testGetAnyOptionWithFallbackBothConfigsExist() {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
