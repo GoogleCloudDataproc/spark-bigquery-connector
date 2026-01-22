@@ -354,6 +354,13 @@ public class BigQueryClient {
    */
   public Job overwriteDestinationWithTemporaryDynamicPartitons(
       TableId temporaryTableId, TableId destinationTableId) {
+    log.info(
+        "overwriteDestinationWithTemporaryDynamicPartitons called with temporaryTableId: {} and destinationTableId: {}",
+        temporaryTableId,
+        destinationTableId);
+    log.info(
+        "Stack trace for overwriteDestinationWithTemporaryDynamicPartitons:",
+        new RuntimeException("Debug Stack Trace"));
 
     TableDefinition destinationDefinition = getTable(destinationTableId).getDefinition();
     String sqlQuery = null;
@@ -364,12 +371,18 @@ public class BigQueryClient {
 
       TimePartitioning timePartitioning = sdt.getTimePartitioning();
       if (timePartitioning != null) {
+        log.info(
+            "Destination table {} is time partitioned: {}", destinationTableId, timePartitioning);
         sqlQuery =
             getQueryForTimePartitionedTable(
                 destinationTableName, temporaryTableName, sdt, timePartitioning);
       } else {
         RangePartitioning rangePartitioning = sdt.getRangePartitioning();
         if (rangePartitioning != null) {
+          log.info(
+              "Destination table {} is range partitioned: {}",
+              destinationTableId,
+              rangePartitioning);
           sqlQuery =
               getQueryForRangePartitionedTable(
                   destinationTableName, temporaryTableName, sdt, rangePartitioning);
@@ -377,6 +390,7 @@ public class BigQueryClient {
       }
 
       if (sqlQuery != null) {
+        log.info("Running dynamic partition overwrite query: {}", sqlQuery);
         QueryJobConfiguration queryConfig =
             jobConfigurationFactory
                 .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
@@ -388,6 +402,9 @@ public class BigQueryClient {
     }
 
     // no partitioning default to statndard overwrite
+    log.info(
+        "No partition definition found for destination table {}, falling back to standard overwrite",
+        destinationTableId);
     return overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
   }
 
@@ -402,6 +419,9 @@ public class BigQueryClient {
    */
   public Job overwriteDestinationWithTemporary(
       TableId temporaryTableId, TableId destinationTableId) {
+    log.info(
+        "Stack trace for overwriteDestinationWithTemporary:",
+        new RuntimeException("Debug Stack Trace"));
     String queryFormat =
         "MERGE `%s`\n"
             + "USING (SELECT * FROM `%s`)\n"

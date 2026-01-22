@@ -133,6 +133,13 @@ public class BigQueryWriteHelper {
       String format = config.getIntermediateFormat().getDataSource();
       data.write().format(format).save(gcsPath.toString());
 
+      logger.info(
+          "Conditions check: writeDisposition={}, PartitionOverwriteMode={}, tableExists={}, isTablePartitioned={}",
+          writeDisposition,
+          config.getPartitionOverwriteModeValue(),
+          bigQueryClient.tableExists(config.getTableId()),
+          bigQueryClient.isTablePartitioned(config.getTableId()));
+
       if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE
           && config.getPartitionOverwriteModeValue() == PartitionOverwriteMode.DYNAMIC
           && bigQueryClient.tableExists(config.getTableId())
