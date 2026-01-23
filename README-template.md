@@ -391,7 +391,10 @@ df.write \
 - Drop the table before overwriting
 - Use BigQuery DDL to alter the table schema first
 
-This behavior was introduced between version 0.22.2 and 0.41.0 to prevent accidental schema drift.
+For some of the schema difference, the following options can work with overwrite:
+Programmatic Relaxation: Set `.option("allowFieldRelaxation", "true")` for nullability changes and `.option("allowFieldAddition", "true")` for new columns.
+
+This behavior was introduced between version 0.22.0 and 0.41.0 to prevent accidental schema drift.
 
 **Note:** This behavior applies to both the `indirect` (default) and `direct` write methods.
 
