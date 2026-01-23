@@ -375,7 +375,7 @@ df.writeStream \
 
 #### Schema Behavior on Overwrite
 
-When using `SaveMode.Overwrite` (`.mode("overwrite")`), the connector **preserves the existing table's schema**. 
+When using `SaveMode.Overwrite` (`.mode("overwrite")`), the connector **preserves the existing table's schema**.
 The data is truncated, but column types, descriptions, and policy tags are retained.
 
 ```
@@ -386,7 +386,7 @@ df.write \
   .save("dataset.table")
 ```
 
-**Important:** If your DataFrame has a different schema than the existing table (e.g., changing a column from 
+**Important:** If your DataFrame has a different schema than the existing table (e.g., changing a column from
 `INTEGER` to `DOUBLE`), the write will fail with a type mismatch error. To change the schema, either:
 - Drop the table before overwriting
 - Use BigQuery DDL to alter the table schema first
