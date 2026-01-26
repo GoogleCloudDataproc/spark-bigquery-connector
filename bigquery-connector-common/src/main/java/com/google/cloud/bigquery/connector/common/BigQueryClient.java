@@ -698,6 +698,9 @@ public class BigQueryClient {
    * Runs the provided query on BigQuery and saves the result in a temporary table.
    *
    * @param querySql the query to be run
+   * @param expirationTimeInMinutes the expiration time of the temporary table
+   * @param queryParameterHelper the query parameter helper
+   * @param kmsKeyName optional KMS key name to be used for encrypting the temporary table
    * @return a reference to the table
    */
   public TableInfo materializeQueryToTable(
