@@ -1039,6 +1039,10 @@ public class BigQueryClient {
 
   public void createDataset(DatasetId datasetId, Map<String, String> metadata) {
     DatasetInfo.Builder datasetInfo = DatasetInfo.newBuilder(datasetId);
+    // In a non-catalog scenario, both BigQueryOptions.quotaProjectId and
+    // BigQueryOptions.projectId
+    // will be set to the parent projectId, as before.
+    Optional.ofNullable(bigQuery.getOptions().getLocation()).ifPresent(datasetInfo::setLocation);
     if (metadata != null && !metadata.isEmpty()) {
       Optional.ofNullable(metadata.get("bigquery_location")).ifPresent(datasetInfo::setLocation);
       Optional.ofNullable(metadata.get("comment")).ifPresent(datasetInfo::setDescription);

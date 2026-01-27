@@ -206,6 +206,11 @@ public class SparkBigQueryConfig
   com.google.common.base.Optional<String> temporaryGcsBucket = empty();
   com.google.common.base.Optional<String> persistentGcsBucket = empty();
   com.google.common.base.Optional<String> persistentGcsPath = empty();
+  // These properties are used to configure the catalog specifically, allowing
+  // separation between the catalog's project/location and the job's billing/execution
+  // project/location.
+  com.google.common.base.Optional<String> catalogProjectId = empty();
+  com.google.common.base.Optional<String> catalogLocation = empty();
 
   IntermediateFormat intermediateFormat = DEFAULT_INTERMEDIATE_FORMAT;
   DataFormat readDataFormat = DEFAULT_READ_DATA_FORMAT;
@@ -424,6 +429,8 @@ public class SparkBigQueryConfig
 
     config.parentProjectId =
         getAnyOption(globalOptions, options, "parentProject").or(defaultBilledProject());
+    config.catalogProjectId = getOption(options, "projectId");
+    config.catalogLocation = getOption(options, "bigquery_location");
     config.useParentProjectForMetadataOperations =
         getAnyBooleanOption(globalOptions, options, "useParentProjectForMetadataOperations", false);
     config.accessTokenProviderFQCN = getAnyOption(globalOptions, options, "gcpAccessTokenProvider");
@@ -872,6 +879,16 @@ public class SparkBigQueryConfig
   @Override
   public String getParentProjectId() {
     return parentProjectId;
+  }
+
+  @Override
+  public Optional<String> getCatalogProjectId() {
+    return catalogProjectId.toJavaUtil();
+  }
+
+  @Override
+  public Optional<String> getCatalogLocation() {
+    return catalogLocation.toJavaUtil();
   }
 
   @Override
