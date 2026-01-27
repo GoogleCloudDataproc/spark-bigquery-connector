@@ -41,7 +41,6 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
   private final LongAccumulator scanTimeAccumulator;
   private final LongAccumulator parseTimeAccumulator;
   private final String sessionId;
-  private final SparkSession sparkSession;
   private final long timestamp;
   private final DataFormat readDataFormat;
   private final DataOrigin dataOrigin;
@@ -57,7 +56,6 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
       DataFormat readDataFormat,
       DataOrigin dataOrigin,
       long numReadStreams) {
-    this.sparkSession = sparkSession;
     this.sessionId = sessionName;
     this.timestamp = timestamp;
     this.readDataFormat = readDataFormat;
@@ -230,12 +228,12 @@ public class SparkBigQueryReadSessionMetrics extends SparkListener
 
       Method buildMethod = eventBuilderClass.getDeclaredMethod("build");
 
-      sparkSession
+      SparkSession.active()
           .sparkContext()
           .listenerBus()
           .post((SparkListenerEvent) buildMethod.invoke(builderInstance));
 
-      sparkSession.sparkContext().removeSparkListener(this);
+      SparkSession.active().sparkContext().removeSparkListener(this);
     } catch (ReflectiveOperationException ex) {
       logger.debug("spark.events.SparkBigQueryConnectorReadSessionEvent library not in class path");
     }
