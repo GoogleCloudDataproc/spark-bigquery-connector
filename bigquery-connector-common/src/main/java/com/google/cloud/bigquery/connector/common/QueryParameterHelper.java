@@ -18,9 +18,10 @@ package com.google.cloud.bigquery.connector.common;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,18 +46,19 @@ public final class QueryParameterHelper implements Serializable {
       List<QueryParameterValue> positional) {
     this.mode = mode;
 
-    this.namedParameters = ImmutableMap.copyOf(named);
-    this.positionalParameters = ImmutableList.copyOf(positional);
+    this.namedParameters = Collections.unmodifiableMap(new HashMap<>(named));
+    this.positionalParameters = Collections.unmodifiableList(new ArrayList<>(positional));
   }
 
   static QueryParameterHelper none() {
-    return new QueryParameterHelper(ParameterMode.NONE, ImmutableMap.of(), ImmutableList.of());
+    return new QueryParameterHelper(
+        ParameterMode.NONE, Collections.emptyMap(), Collections.emptyList());
   }
 
   static QueryParameterHelper named(Map<String, QueryParameterValue> namedParameters) {
     Preconditions.checkNotNull(
         namedParameters, "Input named parameters map cannot be null for named mode");
-    return new QueryParameterHelper(ParameterMode.NAMED, namedParameters, ImmutableList.of());
+    return new QueryParameterHelper(ParameterMode.NAMED, namedParameters, Collections.emptyList());
   }
 
   static QueryParameterHelper positional(List<QueryParameterValue> positionalParameters) {
@@ -66,7 +68,7 @@ public final class QueryParameterHelper implements Serializable {
 
     return new QueryParameterHelper(
         ParameterMode.POSITIONAL,
-        ImmutableMap.of(), // Pass empty immutable map
+        Collections.emptyMap(), // Pass empty immutable map
         positionalParameters);
   }
 
