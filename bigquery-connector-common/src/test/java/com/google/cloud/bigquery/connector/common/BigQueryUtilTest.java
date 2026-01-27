@@ -51,7 +51,6 @@ import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;
@@ -1008,7 +1007,7 @@ public class BigQueryUtilTest {
     assertThat(result.isEmpty()).isFalse();
 
     assertThat(result.getNamedParameters()).isPresent();
-    ImmutableMap<String, QueryParameterValue> params = result.getNamedParameters().get();
+    Map<String, QueryParameterValue> params = result.getNamedParameters().get();
     assertThat(params).hasSize(12);
 
     assertThat(params.get("strParam")).isEqualTo(QueryParameterValue.string("hello world"));
@@ -1039,7 +1038,7 @@ public class BigQueryUtilTest {
 
     assertThat(result.getMode()).isEqualTo(ParameterMode.NAMED);
     assertThat(result.getNamedParameters()).isPresent();
-    ImmutableMap<String, QueryParameterValue> params = result.getNamedParameters().get();
+    Map<String, QueryParameterValue> params = result.getNamedParameters().get();
     assertThat(params).hasSize(1);
     assertThat(params.get("emptyStr")).isEqualTo(QueryParameterValue.string(""));
   }
@@ -1053,7 +1052,7 @@ public class BigQueryUtilTest {
     QueryParameterHelper result = BigQueryUtil.parseQueryParameters(options);
     assertThat(result.getMode()).isEqualTo(ParameterMode.NAMED);
     assertThat(result.getNamedParameters()).isPresent();
-    ImmutableMap<String, QueryParameterValue> params = result.getNamedParameters().get();
+    Map<String, QueryParameterValue> params = result.getNamedParameters().get();
     assertThat(params).hasSize(2);
     assertThat(params.get("withSpaces"))
         .isEqualTo(QueryParameterValue.string("leading and trailing spaces"));
@@ -1069,7 +1068,7 @@ public class BigQueryUtilTest {
     QueryParameterHelper result = BigQueryUtil.parseQueryParameters(options);
     assertThat(result.getMode()).isEqualTo(ParameterMode.NAMED);
     assertThat(result.getNamedParameters()).isPresent();
-    ImmutableMap<String, QueryParameterValue> params = result.getNamedParameters().get();
+    Map<String, QueryParameterValue> params = result.getNamedParameters().get();
 
     // Both keys exist as they are different strings
     assertThat(params).hasSize(2);
@@ -1103,7 +1102,7 @@ public class BigQueryUtilTest {
     assertThat(result.isEmpty()).isFalse();
 
     assertThat(result.getPositionalParameters()).isPresent();
-    ImmutableList<QueryParameterValue> params = result.getPositionalParameters().get();
+    List<QueryParameterValue> params = result.getPositionalParameters().get();
     assertThat(params).hasSize(3); // Parser ensures correct size based on max index
 
     assertThat(params.get(0)).isEqualTo(QueryParameterValue.string("value1")); // Index 0 = Param 1
@@ -1121,7 +1120,7 @@ public class BigQueryUtilTest {
 
     assertThat(result.getMode()).isEqualTo(ParameterMode.POSITIONAL);
     assertThat(result.getPositionalParameters()).isPresent();
-    ImmutableList<QueryParameterValue> params = result.getPositionalParameters().get();
+    List<QueryParameterValue> params = result.getPositionalParameters().get();
     assertThat(params).hasSize(1);
     assertThat(params.get(0)).isEqualTo(QueryParameterValue.float64(1.0));
   }
