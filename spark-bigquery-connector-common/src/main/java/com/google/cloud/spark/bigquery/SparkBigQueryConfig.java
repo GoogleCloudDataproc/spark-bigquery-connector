@@ -1274,6 +1274,11 @@ public class SparkBigQueryConfig
       public int expirationTimeInMinutes() {
         return SparkBigQueryConfig.this.getMaterializationExpirationTimeInMinutes();
       }
+
+      @Override
+      public Optional<String> getKmsKeyName() {
+        return SparkBigQueryConfig.this.getKmsKeyName();
+      }
     };
   }
 

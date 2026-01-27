@@ -462,7 +462,10 @@ public class BigQueryClient {
       validateViewsEnabled(options);
       String sql = query.get();
       return materializeQueryToTable(
-          sql, options.expirationTimeInMinutes(), options.getQueryParameterHelper());
+          sql,
+          options.expirationTimeInMinutes(),
+          options.getQueryParameterHelper(),
+          options.getKmsKeyName());
     }
 
     TableInfo table = getTable(options.tableId());
@@ -504,7 +507,8 @@ public class BigQueryClient {
     if (query.isPresent()) {
       validateViewsEnabled(options);
       String sql = query.get();
-      return getQueryResultSchema(sql, Collections.emptyMap(), options.getQueryParameterHelper());
+      return getQueryResultSchema(
+          sql, Collections.emptyMap(), options.getQueryParameterHelper(), options.getKmsKeyName());
     }
     TableInfo table = getReadTable(options);
     return table != null ? table.getDefinition().getSchema() : null;
@@ -694,13 +698,20 @@ public class BigQueryClient {
    * Runs the provided query on BigQuery and saves the result in a temporary table.
    *
    * @param querySql the query to be run
+   * @param expirationTimeInMinutes the expiration time of the temporary table
+   * @param queryParameterHelper the query parameter helper
+   * @param kmsKeyName optional KMS key name to be used for encrypting the temporary table
    * @return a reference to the table
    */
   public TableInfo materializeQueryToTable(
-      String querySql, int expirationTimeInMinutes, QueryParameterHelper queryParameterHelper) {
+      String querySql,
+      int expirationTimeInMinutes,
+      QueryParameterHelper queryParameterHelper,
+      Optional<String> kmsKeyName) {
     Optional<TableId> tableId =
         materializationDataset.map(ignored -> createDestinationTableWithoutReference());
-    return materializeTable(querySql, tableId, expirationTimeInMinutes, queryParameterHelper);
+    return materializeTable(
+        querySql, tableId, expirationTimeInMinutes, queryParameterHelper, kmsKeyName);
   }
 
   TableId createDestinationTableWithoutReference() {
@@ -729,6 +740,27 @@ public class BigQueryClient {
       int expirationTimeInMinutes,
       Map<String, String> additionalQueryJobLabels,
       QueryParameterHelper queryParameterHelper) {
+    return materializeQueryToTable(
+        querySql,
+        expirationTimeInMinutes,
+        additionalQueryJobLabels,
+        queryParameterHelper,
+        Optional.empty());
+  }
+
+  /**
+   * Runs the provided query on BigQuery and saves the result in a temporary table.
+   *
+   * @param querySql the query to be run
+   * @param additionalQueryJobLabels the labels to insert on the query job
+   * @return a reference to the table
+   */
+  public TableInfo materializeQueryToTable(
+      String querySql,
+      int expirationTimeInMinutes,
+      Map<String, String> additionalQueryJobLabels,
+      QueryParameterHelper queryParameterHelper,
+      Optional<String> kmsKeyName) {
     Optional<TableId> destinationTableId =
         materializationDataset.map(ignored -> createDestinationTableWithoutReference());
     TempTableBuilder tableBuilder =
@@ -739,7 +771,8 @@ public class BigQueryClient {
             expirationTimeInMinutes,
             jobConfigurationFactory,
             additionalQueryJobLabels,
-            queryParameterHelper);
+            queryParameterHelper,
+            kmsKeyName);
 
     return materializeTable(querySql, tableBuilder);
   }
@@ -760,20 +793,36 @@ public class BigQueryClient {
         createDestinationTable(
             Optional.ofNullable(viewId.getProject()), Optional.ofNullable(viewId.getDataset()));
     return materializeTable(
-        querySql, Optional.of(tableId), expirationTimeInMinutes, QueryParameterHelper.none());
+        querySql,
+        Optional.of(tableId),
+        expirationTimeInMinutes,
+        QueryParameterHelper.none(),
+        Optional.empty());
   }
 
   public Schema getQueryResultSchema(
       String querySql,
       Map<String, String> additionalQueryJobLabels,
       QueryParameterHelper queryParameterHelper) {
-    JobInfo jobInfo =
-        JobInfo.of(
-            jobConfigurationFactory
-                .createParameterizedQueryJobConfigurationBuilder(
-                    querySql, additionalQueryJobLabels, queryParameterHelper)
-                .setDryRun(true)
-                .build());
+    return getQueryResultSchema(
+        querySql, additionalQueryJobLabels, queryParameterHelper, Optional.empty());
+  }
+
+  public Schema getQueryResultSchema(
+      String querySql,
+      Map<String, String> additionalQueryJobLabels,
+      QueryParameterHelper queryParameterHelper,
+      Optional<String> kmsKeyName) {
+    QueryJobConfiguration.Builder builder =
+        jobConfigurationFactory
+            .createParameterizedQueryJobConfigurationBuilder(
+                querySql, additionalQueryJobLabels, queryParameterHelper)
+            .setDryRun(true);
+    kmsKeyName.ifPresent(
+        k ->
+            builder.setDestinationEncryptionConfiguration(
+                EncryptionConfiguration.newBuilder().setKmsKeyName(k).build()));
+    JobInfo jobInfo = JobInfo.of(builder.build());
 
     log.info("running query dryRun {}", querySql);
     JobInfo completedJobInfo = create(jobInfo);
@@ -789,6 +838,20 @@ public class BigQueryClient {
       Optional<TableId> destinationTableId,
       int expirationTimeInMinutes,
       QueryParameterHelper queryParameterHelper) {
+    return materializeTable(
+        querySql,
+        destinationTableId,
+        expirationTimeInMinutes,
+        queryParameterHelper,
+        Optional.empty());
+  }
+
+  private TableInfo materializeTable(
+      String querySql,
+      Optional<TableId> destinationTableId,
+      int expirationTimeInMinutes,
+      QueryParameterHelper queryParameterHelper,
+      Optional<String> kmsKeyName) {
     try {
       return destinationTableCache.get(
           querySql,
@@ -799,7 +862,8 @@ public class BigQueryClient {
               expirationTimeInMinutes,
               jobConfigurationFactory,
               Collections.emptyMap(),
-              queryParameterHelper));
+              queryParameterHelper,
+              kmsKeyName));
     } catch (Exception e) {
       throw new BigQueryConnectorException(
           BigQueryErrorCode.BIGQUERY_VIEW_DESTINATION_TABLE_CREATION_FAILED,
@@ -1006,6 +1070,10 @@ public class BigQueryClient {
     int expirationTimeInMinutes();
 
     QueryParameterHelper getQueryParameterHelper();
+
+    default Optional<String> getKmsKeyName() {
+      return Optional.empty();
+    }
   }
 
   public interface LoadDataOptions {
@@ -1083,6 +1151,7 @@ public class BigQueryClient {
     final JobConfigurationFactory jobConfigurationFactory;
     final Map<String, String> additionalQueryJobLabels;
     final QueryParameterHelper queryParameterHelper;
+    final Optional<String> kmsKeyName;
 
     TempTableBuilder(
         BigQueryClient bigQueryClient,
@@ -1092,6 +1161,26 @@ public class BigQueryClient {
         JobConfigurationFactory jobConfigurationFactory,
         Map<String, String> additionalQueryJobLabels,
         QueryParameterHelper queryParameterHelper) {
+      this(
+          bigQueryClient,
+          querySql,
+          tempTable,
+          expirationTimeInMinutes,
+          jobConfigurationFactory,
+          additionalQueryJobLabels,
+          queryParameterHelper,
+          Optional.empty());
+    }
+
+    TempTableBuilder(
+        BigQueryClient bigQueryClient,
+        String querySql,
+        Optional<TableId> tempTable,
+        int expirationTimeInMinutes,
+        JobConfigurationFactory jobConfigurationFactory,
+        Map<String, String> additionalQueryJobLabels,
+        QueryParameterHelper queryParameterHelper,
+        Optional<String> kmsKeyName) {
       this.bigQueryClient = bigQueryClient;
       this.querySql = querySql;
       this.tempTable = tempTable;
@@ -1099,6 +1188,7 @@ public class BigQueryClient {
       this.jobConfigurationFactory = jobConfigurationFactory;
       this.additionalQueryJobLabels = additionalQueryJobLabels;
       this.queryParameterHelper = queryParameterHelper;
+      this.kmsKeyName = kmsKeyName;
     }
 
     @Override
@@ -1116,6 +1206,10 @@ public class BigQueryClient {
           jobConfigurationFactory.createParameterizedQueryJobConfigurationBuilder(
               querySql, additionalQueryJobLabels, queryParameterHelper);
       tempTable.ifPresent(queryJobConfigurationBuilder::setDestinationTable);
+      kmsKeyName.ifPresent(
+          k ->
+              queryJobConfigurationBuilder.setDestinationEncryptionConfiguration(
+                  EncryptionConfiguration.newBuilder().setKmsKeyName(k).build()));
 
       JobInfo jobInfo = JobInfo.of(queryJobConfigurationBuilder.build());
 
