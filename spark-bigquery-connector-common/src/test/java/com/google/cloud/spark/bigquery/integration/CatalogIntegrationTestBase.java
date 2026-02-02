@@ -393,5 +393,15 @@ public class CatalogIntegrationTestBase {
     }
   }
 
-
+  private static SparkSession createSparkSession() {
+    return SparkSession.builder()
+        .appName("catalog test")
+        .master("local[*]")
+        .config("spark.sql.legacy.createHiveTableByDefault", "false")
+        .config("spark.sql.sources.default", "bigquery")
+        .config("spark.datasource.bigquery.writeMethod", "direct")
+        .config("spark.sql.defaultCatalog", "bigquery")
+        .config("spark.sql.catalog.bigquery", "com.google.cloud.spark.bigquery.BigQueryCatalog")
+        .getOrCreate();
+  }
 }
