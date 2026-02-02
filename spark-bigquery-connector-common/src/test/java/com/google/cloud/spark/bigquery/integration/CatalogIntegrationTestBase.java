@@ -43,12 +43,13 @@ public class CatalogIntegrationTestBase {
 
   BigQuery bigquery = IntegrationTestUtils.getBigquery();
 
-  protected static SparkSession spark;
+  protected SparkSession spark;
+  private static SparkSession globalSpark;
   private String testTable;
 
   @BeforeClass
-  public static void setupSparkSession() {
-    spark =
+  public static void setupGlobalSpark() {
+    globalSpark =
         SparkSession.builder()
             .appName("catalog test")
             .master("local[*]")
@@ -61,11 +62,26 @@ public class CatalogIntegrationTestBase {
   }
 
   @AfterClass
-  public static void teardownSparkSession() {
-    if (spark != null) {
-      spark.stop();
-      spark = null;
+  public static void teardownGlobalSpark() {
+    if (globalSpark != null) {
+      globalSpark.stop();
+      globalSpark = null;
     }
+  }
+
+  @Before
+  public void setupSparkSession() {
+    // We use newSession() to ensure that each test gets a fresh SparkSession with
+    // isolated
+    // SQL configurations (including catalog configs), preventing tests from
+    // interfering with
+    // each other's state. The underlying SparkContext is reused.
+    spark = globalSpark.newSession();
+  }
+
+  @After
+  public void teardownSparkSession() {
+    spark = null;
   }
 
   @Before
@@ -377,15 +393,5 @@ public class CatalogIntegrationTestBase {
     }
   }
 
-  private static SparkSession createSparkSession() {
-    return SparkSession.builder()
-        .appName("catalog test")
-        .master("local[*]")
-        .config("spark.sql.legacy.createHiveTableByDefault", "false")
-        .config("spark.sql.sources.default", "bigquery")
-        .config("spark.datasource.bigquery.writeMethod", "direct")
-        .config("spark.sql.defaultCatalog", "bigquery")
-        .config("spark.sql.catalog.bigquery", "com.google.cloud.spark.bigquery.BigQueryCatalog")
-        .getOrCreate();
-  }
+
 }
