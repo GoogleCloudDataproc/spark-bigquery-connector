@@ -433,10 +433,26 @@ word-break:break-word
    <td>Read/Write</td>
   </tr>
   <tr valign="top">
+   <td><code>billingProject</code>
+   </td>
+   <td>The Google Cloud Project ID to use for <strong>billing</strong> (API calls, query execution).
+       <br/>(Optional. Defaults to the project of the Service Account being used)
+   </td>
+   <td>Read/Write</td>
+  </tr>
+  <tr valign="top">
    <td><code>parentProject</code>
    </td>
-   <td>The Google Cloud Project ID of the table to bill for the export.
+   <td><strong>(Deprecated)</strong> Alias for <code>billingProject</code>.
        <br/>(Optional. Defaults to the project of the Service Account being used)
+   </td>
+   <td>Read/Write</td>
+  </tr>
+  <tr valign="top">
+   <td><code>location</code>
+   </td>
+   <td>The BigQuery location where the data resides (e.g. US, EU, asia-northeast1).
+       <br/>(Optional. Defaults to BigQuery default)
    </td>
    <td>Read/Write</td>
   </tr>
