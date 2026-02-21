@@ -185,11 +185,10 @@ public class BigQueryUtilTest {
   @Test
   public void testProjectCatalogNamespaceTableNotation_independent() {
     TableId tableId =
-            BigQueryUtil.parseTableId(
-                    "table", Optional.of("catalog.namespace"), Optional.of("project"));
+        BigQueryUtil.parseTableId(
+            "table", Optional.of("catalog.namespace"), Optional.of("project"));
     assertThat(tableId).isEqualTo(TableId.of("project", "catalog.namespace", "table"));
   }
-
 
   @Test
   public void testFriendlyName() {
