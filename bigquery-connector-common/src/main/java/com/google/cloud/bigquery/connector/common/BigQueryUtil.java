@@ -97,7 +97,7 @@ public class BigQueryUtil {
   static final String READ_SESSION_EXPIRED_ERROR_MESSAGE = "session expired at";
 
   private static final String PROJECT_PATTERN = "\\S+";
-  // The TableId dataset may be `catalog.namesapce`
+  // The TableId dataset may be `catalog.namespace`
   private static final String DATASET_PATTERN = "\\w+(?:\\.\\w+)?";
   // Allow any character except ':' and '.', which are used as delimiters in qualified names.
   // These confuse the qualified table parsing.
@@ -232,7 +232,13 @@ public class BigQueryUtil {
       if (projectStr.contains(".") && !projectStr.contains(":")) {
         int dotIndex = projectStr.indexOf(".");
         parsedProject = Optional.of(projectStr.substring(0, dotIndex));
-        parsedDataset = Optional.of(projectStr.substring(dotIndex + 1) + "." + parsedDataset.get());
+        String newDataset = projectStr.substring(dotIndex + 1) + "." + parsedDataset.get();
+        // The dataset part should not have more than one dot (i.e. catalog.namespace)
+        if (newDataset.indexOf(".") != newDataset.lastIndexOf(".")) {
+          throw new IllegalArgumentException(
+              format("Invalid Table ID '%s'. Must match '%s'", rawTable, QUALIFIED_TABLE_REGEX));
+        }
+        parsedDataset = Optional.of(newDataset);
       }
     }
 

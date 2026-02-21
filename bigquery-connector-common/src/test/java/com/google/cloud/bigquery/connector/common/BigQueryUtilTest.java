@@ -183,11 +183,28 @@ public class BigQueryUtilTest {
   }
 
   @Test
+  public void testProjectCatalogNamespaceTableNotation_four_part() {
+    TableId tableId =
+        BigQueryUtil.parseTableId(
+            "project.catalog.namespace.table", Optional.empty(), Optional.empty());
+    assertThat(tableId).isEqualTo(TableId.of("project", "catalog.namespace", "table"));
+  }
+
+  @Test
   public void testProjectCatalogNamespaceTableNotation_independent() {
     TableId tableId =
         BigQueryUtil.parseTableId(
             "table", Optional.of("catalog.namespace"), Optional.of("project"));
     assertThat(tableId).isEqualTo(TableId.of("project", "catalog.namespace", "table"));
+  }
+
+  @Test
+  public void testProjectCatalogNamespaceTableNotation_illegal_nested_catalogs_failure() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            BigQueryUtil.parseTableId(
+                "project.catalog.nested.namespace.table", Optional.empty(), Optional.empty()));
   }
 
   @Test
