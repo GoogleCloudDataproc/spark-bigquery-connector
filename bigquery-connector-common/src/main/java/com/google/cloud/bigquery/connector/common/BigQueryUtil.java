@@ -97,7 +97,8 @@ public class BigQueryUtil {
   static final String READ_SESSION_EXPIRED_ERROR_MESSAGE = "session expired at";
 
   private static final String PROJECT_PATTERN = "\\S+";
-  private static final String DATASET_PATTERN = "\\w+";
+  // The TableId dataset may be `catalog.namespace`
+  private static final String DATASET_PATTERN = "\\w+(?:\\.\\w+)?";
   // Allow any character except ':' and '.', which are used as delimiters in qualified names.
   // These confuse the qualified table parsing.
   private static final String TABLE_PATTERN = "[^.:]+";
@@ -225,6 +226,22 @@ public class BigQueryUtil {
     String table = matcher.group(5);
     Optional<String> parsedDataset = Optional.ofNullable(matcher.group(4));
     Optional<String> parsedProject = Optional.ofNullable(matcher.group(3));
+
+    if (parsedProject.isPresent() && parsedDataset.isPresent()) {
+      String projectStr = parsedProject.get();
+      if (projectStr.contains(".") && !projectStr.contains(":")) {
+        int dotIndex = projectStr.indexOf(".");
+        parsedProject = Optional.of(projectStr.substring(0, dotIndex));
+        String newDataset = projectStr.substring(dotIndex + 1) + "." + parsedDataset.get();
+        // The dataset part should not have more than one dot (i.e. catalog.namespace)
+        if (newDataset.indexOf(".") != newDataset.lastIndexOf(".")) {
+          throw new IllegalArgumentException(
+              format("Invalid Table ID '%s'. Must match '%s'", rawTable, QUALIFIED_TABLE_REGEX));
+        }
+        parsedDataset = Optional.of(newDataset);
+      }
+    }
+
     String tableAndPartition =
         datePartition.map(date -> String.format("%s$%s", table, date)).orElse(table);
     String actualDataset =
