@@ -133,6 +133,8 @@ public class TestConstants {
   static DataType BQ_NUMERIC = DataTypes.createDecimalType(38, 9);
   static DataType BQ_BIGNUMERIC = DataTypes.createDecimalType(38, 38);
   public static int BIG_NUMERIC_COLUMN_POSITION = 11;
+  public static final String GA4_TABLE =
+      "bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_20210131";
 
   public static StructType ALL_TYPES_TABLE_SCHEMA =
       new StructType(
@@ -344,6 +346,55 @@ public class TestConstants {
           array(lit(1), lit(2), lit(3)),
           array(struct(lit(1))),
           struct(lit(1), lit("stringa"), struct(lit(true), lit("stringaa"), lit(11))));
+
+  public static Row ALL_TYPES_TABLE_ROW =
+      RowFactory.create(
+          42L,
+          null,
+          true,
+          "string",
+          Date.valueOf("2019-03-18"),
+          new Timestamp(1552872225000L), // 2019-03-18 01:23:45
+          "2019-03-18T01:23:45.678901",
+          5025678901L,
+          new byte[] {98, 121, 116, 101, 115},
+          4.2,
+          "{\"json\":\"true\"}",
+          RowFactory.create(
+              Decimal.apply(
+                  new BigDecimal(
+                      "-99999999999999999999999999999.999999999",
+                      new MathContext(BQ_NUMERIC_PRECISION)),
+                  BQ_NUMERIC_PRECISION,
+                  BQ_NUMERIC_SCALE),
+              Decimal.apply(
+                  new BigDecimal(
+                      "99999999999999999999999999999.999999999",
+                      new MathContext(BQ_NUMERIC_PRECISION)),
+                  BQ_NUMERIC_PRECISION,
+                  BQ_NUMERIC_SCALE),
+              Decimal.apply(
+                  new BigDecimal("3.14", new MathContext(BQ_NUMERIC_PRECISION)),
+                  BQ_NUMERIC_PRECISION,
+                  BQ_NUMERIC_SCALE),
+              Decimal.apply(
+                  new BigDecimal(
+                      "31415926535897932384626433832.795028841",
+                      new MathContext(BQ_NUMERIC_PRECISION)),
+                  BQ_NUMERIC_PRECISION,
+                  BQ_NUMERIC_SCALE)),
+          RowFactory.create(
+              Decimal.apply(
+                  new BigDecimal("-0.34992332820282019728792003956564819968"),
+                  BQ_NUMERIC_PRECISION,
+                  BQ_BIGNUMERIC_SCALE),
+              Decimal.apply(
+                  new BigDecimal("0.34992332820282019728792003956564819967"),
+                  BQ_NUMERIC_PRECISION,
+                  BQ_BIGNUMERIC_SCALE)),
+          new long[] {1L, 2L, 3L, 4L},
+          new Row[] {RowFactory.create(123L), RowFactory.create(1L)},
+          RowFactory.create(1L, "stringa", RowFactory.create(true, "stringaa", 11L)));
 
   private static <T> T[] copy(T... elements) {
     return elements;

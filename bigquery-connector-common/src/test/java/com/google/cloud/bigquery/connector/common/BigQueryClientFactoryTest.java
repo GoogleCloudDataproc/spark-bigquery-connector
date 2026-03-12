@@ -595,6 +595,16 @@ public class BigQueryClientFactoryTest {
     }
 
     @Override
+    public Optional<String> getCatalogProjectId() {
+      return Optional.empty();
+    }
+
+    @Override
+    public Optional<String> getCatalogLocation() {
+      return Optional.empty();
+    }
+
+    @Override
     public boolean useParentProjectForMetadataOperations() {
       return false;
     }

@@ -784,6 +784,28 @@ public class SparkBigQueryConfigTest {
   }
 
   @Test
+  public void testKmsKeyPropagationToReadTableOptions() {
+    String kmsKeyName = "projects/p/locations/l/keyRings/k/cryptoKeys/c";
+    DataSourceOptions options =
+        new DataSourceOptions(
+            ImmutableMap.of("table", "dataset.table", "destinationTableKmsKeyName", kmsKeyName));
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            options.asMap(),
+            defaultGlobalOptions,
+            new Configuration(),
+            ImmutableMap.of(),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(),
+            true);
+
+    assertThat(config.getKmsKeyName()).isEqualTo(Optional.of(kmsKeyName));
+    assertThat(config.toReadTableOptions().getKmsKeyName()).isEqualTo(Optional.of(kmsKeyName));
+  }
+
+  @Test
   public void testGetAnyOptionWithFallbackBothConfigsExist() {
     SparkBigQueryConfig config =
         SparkBigQueryConfig.from(
@@ -1256,5 +1278,98 @@ public class SparkBigQueryConfigTest {
             /* tableIsMandatory */ true);
     assertThat(config.getTableId()).isNotNull();
     assertThat(config.getTableId().getTable()).isEqualTo("QUERY");
+  }
+
+  @Test
+  public void testCatalogProjectId() {
+    Map<String, String> optionsWithProject = new HashMap<>();
+    optionsWithProject.put("projectId", "my-catalog-project");
+    optionsWithProject.put("table", "dataset.table");
+
+    SparkBigQueryConfig configWithProject =
+        SparkBigQueryConfig.from(
+            optionsWithProject,
+            defaultGlobalOptions,
+            new Configuration(),
+            ImmutableMap.of(),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(),
+            true);
+
+    assertThat(configWithProject.getCatalogProjectId()).hasValue("my-catalog-project");
+
+    SparkBigQueryConfig configWithoutProject =
+        SparkBigQueryConfig.from(
+            defaultOptions,
+            defaultGlobalOptions,
+            new Configuration(),
+            ImmutableMap.of(),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(),
+            true);
+
+    assertThat(configWithoutProject.getCatalogProjectId()).isEmpty();
+  }
+
+  @Test
+  public void testCatalogLocation() {
+    Map<String, String> optionsWithLocation = new HashMap<>();
+    optionsWithLocation.put("bigquery_location", "US");
+    optionsWithLocation.put("table", "dataset.table");
+
+    SparkBigQueryConfig configWithLocation =
+        SparkBigQueryConfig.from(
+            optionsWithLocation,
+            defaultGlobalOptions,
+            new Configuration(),
+            ImmutableMap.of(),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(),
+            true);
+
+    assertThat(configWithLocation.getCatalogLocation()).hasValue("US");
+
+    SparkBigQueryConfig configWithoutLocation =
+        SparkBigQueryConfig.from(
+            defaultOptions,
+            defaultGlobalOptions,
+            new Configuration(),
+            ImmutableMap.of(),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(),
+            true);
+
+    assertThat(configWithoutLocation.getCatalogLocation()).isEmpty();
+  }
+
+  @Test
+  public void testCatalogProjectIdAndLocation() {
+    Map<String, String> optionsWithProjectAndLocation = new HashMap<>();
+    optionsWithProjectAndLocation.put("projectId", "my-catalog-project");
+    optionsWithProjectAndLocation.put("bigquery_location", "EU");
+    optionsWithProjectAndLocation.put("table", "dataset.table");
+
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            optionsWithProjectAndLocation,
+            defaultGlobalOptions,
+            new Configuration(),
+            ImmutableMap.of(),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(),
+            true);
+
+    assertThat(config.getCatalogProjectId()).hasValue("my-catalog-project");
+    assertThat(config.getCatalogLocation()).hasValue("EU");
   }
 }

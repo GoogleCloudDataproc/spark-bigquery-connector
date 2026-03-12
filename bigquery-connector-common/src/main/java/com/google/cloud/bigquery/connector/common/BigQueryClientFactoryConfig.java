@@ -39,6 +39,8 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   private final Optional<Map<String, String>> impersonationServiceAccountsForGroups;
   private final Optional<ImmutableList<String>> credentialsScopes;
   private final String parentProjectId;
+  private final Optional<String> catalogProjectId;
+  private final Optional<String> catalogLocation;
   private final boolean useParentProjectForMetadataOperations;
   private final boolean viewsEnabled;
   private final Optional<String> materializationProject;
@@ -75,6 +77,9 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
     this.useParentProjectForMetadataOperations =
         bigQueryConfig.useParentProjectForMetadataOperations();
     this.viewsEnabled = bigQueryConfig.isViewsEnabled();
+    this.catalogProjectId = bigQueryConfig.getCatalogProjectId();
+    this.catalogLocation = bigQueryConfig.getCatalogLocation();
+
     this.materializationProject = bigQueryConfig.getMaterializationProject();
     this.materializationDataset = bigQueryConfig.getMaterializationDataset();
     this.bigQueryClientConnectTimeout = bigQueryConfig.getBigQueryClientConnectTimeout();
@@ -150,6 +155,16 @@ public class BigQueryClientFactoryConfig implements BigQueryConfig {
   @Override
   public String getParentProjectId() {
     return parentProjectId;
+  }
+
+  @Override
+  public Optional<String> getCatalogProjectId() {
+    return catalogProjectId;
+  }
+
+  @Override
+  public Optional<String> getCatalogLocation() {
+    return catalogLocation;
   }
 
   @Override

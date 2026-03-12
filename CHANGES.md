@@ -2,6 +2,22 @@
 
 ## Next
 
+* BigQuery API has been upgraded to version 2.60.0
+* BigQuery Storage API has been upgraded to version 3.22.1
+* GAX has been upgraded to version 2.75.0
+* gRPC has been upgraded to version 1.79.0
+* Guava has been upgraded to version 33.5.0-jre
+* Netty has been upgraded to version 4.2.10.Final
+* Protocol Buffers has been upgraded to version 4.34.0
+
+## 0.44.0 - 2026-02-11
+* Added new connector, `spark-4.1-bigquery` aimed to be used in Spark 4.1. Like Spark 4.1, this connector requires at
+  least Java 17 runtime. It is currently in preview mode.
+* `spark-4.0-bigquery` is generally available!
+* PR #1445: Add streaming support for Spark DS v2 indirect write.
+* PR #1452: Improved the performance of the dynamic partition overwrite for RANGE_BUCKET partitioned tables.
+* PR #1434: Support per-catalog configuration for project and location for BigQueryCatalog.
+
 ## 0.43.1 - 2025-10-22
 * Issue #1417: Fixed ClassCastException in AWS federated identity
 * PR #1432: Fixing packaging issue with the spark-4.0-bigquery connector.

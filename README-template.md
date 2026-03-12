@@ -63,6 +63,8 @@ The latest version of the connector is publicly available in the following links
 
 | version    | Link                                                                                                                                                                                                                   |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Spark 4.1  | `gs://spark-lib/bigquery/spark-4.1-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-4.1-bigquery-${next-release-tag}-preview.jar))                        |
+| Spark 4.0  | `gs://spark-lib/bigquery/spark-4.0-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-4.0-bigquery-${next-release-tag}.jar))                                        |
 | Spark 3.5  | `gs://spark-lib/bigquery/spark-3.5-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.5-bigquery-${next-release-tag}.jar))                                        |
 | Spark 3.4  | `gs://spark-lib/bigquery/spark-3.4-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.4-bigquery-${next-release-tag}.jar))                                        |
 | Spark 3.3  | `gs://spark-lib/bigquery/spark-3.3-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.3-bigquery-${next-release-tag}.jar))                                        |
@@ -113,6 +115,8 @@ repository. It can be used using the `--packages` option or the
 
 | version    | Connector Artifact                                                                 |
 |------------|------------------------------------------------------------------------------------|
+| Spark 4.1  | `com.google.cloud.spark:spark-4.1-bigquery:${next-release-tag}-preview`            |
+| Spark 4.0  | `com.google.cloud.spark:spark-4.0-bigquery:${next-release-tag}`                    |
 | Spark 3.5  | `com.google.cloud.spark:spark-3.5-bigquery:${next-release-tag}`                    |
 | Spark 3.4  | `com.google.cloud.spark:spark-3.4-bigquery:${next-release-tag}`                    |
 | Spark 3.3  | `com.google.cloud.spark:spark-3.3-bigquery:${next-release-tag}`                    |
@@ -373,6 +377,31 @@ df.writeStream \
 
 **Important:** The connector does not configure the GCS connector, in order to avoid conflict with another GCS connector, if exists. In order to use the write capabilities of the connector, please configure the GCS connector on your cluster as explained [here](https://github.com/GoogleCloudPlatform/bigdata-interop/tree/master/gcs).
 
+#### Schema Behavior on Overwrite
+
+When using `SaveMode.Overwrite` (`.mode("overwrite")`), the connector **preserves the existing table's schema**.
+The data is truncated, but column types, descriptions, and policy tags are retained.
+
+```
+df.write \
+  .format("bigquery") \
+  .mode("overwrite") \
+  .option("temporaryGcsBucket","some-bucket") \
+  .save("dataset.table")
+```
+
+**Important:** If your DataFrame has a different schema than the existing table (e.g., changing a column from
+`INTEGER` to `DOUBLE`), the write will fail with a type mismatch error. To change the schema, either:
+- Drop the table before overwriting
+- Use BigQuery DDL to alter the table schema first
+
+For some of the schema difference, the following options can work with overwrite:
+Programmatic Relaxation: Set `.option("allowFieldRelaxation", "true")` for nullability changes and `.option("allowFieldAddition", "true")` for new columns.
+
+This behavior was introduced between version 0.22.0 and 0.41.0 to prevent accidental schema drift.
+
+**Note:** This behavior applies to both the `indirect` (default) and `direct` write methods.
+
 ### Running SQL on BigQuery
 
 The connector supports Spark's [SparkSession#executeCommand](https://archive.apache.org/dist/spark/docs/3.0.0/api/java/org/apache/spark/sql/SparkSession.html#executeCommand-java.lang.String-java.lang.String-scala.collection.immutable.Map-)
@@ -433,10 +462,26 @@ word-break:break-word
    <td>Read/Write</td>
   </tr>
   <tr valign="top">
+   <td><code>billingProject</code>
+   </td>
+   <td>The Google Cloud Project ID to use for <strong>billing</strong> (API calls, query execution).
+       <br/>(Optional. Defaults to the project of the Service Account being used)
+   </td>
+   <td>Read/Write</td>
+  </tr>
+  <tr valign="top">
    <td><code>parentProject</code>
    </td>
-   <td>The Google Cloud Project ID of the table to bill for the export.
+   <td><strong>(Deprecated)</strong> Alias for <code>billingProject</code>.
        <br/>(Optional. Defaults to the project of the Service Account being used)
+   </td>
+   <td>Read/Write</td>
+  </tr>
+  <tr valign="top">
+   <td><code>location</code>
+   </td>
+   <td>The BigQuery location where the data resides (e.g. US, EU, asia-northeast1).
+       <br/>(Optional. Defaults to BigQuery default)
    </td>
    <td>Read/Write</td>
   </tr>
@@ -1197,8 +1242,8 @@ val df = spark.read.format("bigquery")
 
 ### Configuring Partitioning
 
-By default the connector creates one partition per 400MB in the table being read (before filtering). This should roughly correspond to the maximum number of readers supported by the BigQuery Storage API.
-This can be configured explicitly with the <code>[maxParallelism](#properties)</code> property. BigQuery may limit the number of partitions based on server constraints.
+By default, the connector calculates the requested `maxParallelism` as the larger of `preferredMinParallelism` (which defaults to 3 times the application's default parallelism) and 20,000. BigQuery may limit the number of partitions based on server constraints.
+Both <code>[maxParallelism](#properties)</code> and <code>[preferredMinParallelism](#properties)</code> can be configured explicitly to control the number of partitions.
 
 ## Tagging BigQuery Resources
 

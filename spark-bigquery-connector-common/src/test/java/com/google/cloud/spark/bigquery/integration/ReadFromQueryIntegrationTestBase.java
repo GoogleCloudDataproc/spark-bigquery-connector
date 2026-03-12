@@ -378,6 +378,35 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
 
     assertThat(listener.getJobInfos()).isEmpty();
   }
+
+  @Test
+  public void testReadFromQueryWithKmsKey() {
+    String random = String.valueOf(System.nanoTime());
+    String query =
+        String.format(
+            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
+            random, random);
+    String envKmsKey = System.getenv("BIGQUERY_KMS_KEY_NAME");
+    String kmsKeyName =
+        envKmsKey != null ? envKmsKey : "projects/p/locations/l/keyRings/k/cryptoKeys/c";
+    spark
+        .read()
+        .format("bigquery")
+        .option("viewsEnabled", true)
+        .option("materializationDataset", testDataset.toString())
+        .option("destinationTableKmsKeyName", kmsKeyName)
+        .load(query)
+        .collect();
+    // validate event publishing
+    List<JobInfo> jobInfos = listener.getJobInfos();
+    assertThat(jobInfos).hasSize(1);
+    JobInfo jobInfo = jobInfos.iterator().next();
+    assertThat(
+            ((QueryJobConfiguration) jobInfo.getConfiguration())
+                .getDestinationEncryptionConfiguration()
+                .getKmsKeyName())
+        .isEqualTo(kmsKeyName + "/cryptoKeyVersions/1");
+  }
 }
 
 class TestBigQueryJobCompletionListener extends SparkListener {

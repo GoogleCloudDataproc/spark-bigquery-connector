@@ -53,7 +53,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import com.google.inject.ProvisionException;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -66,6 +70,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -77,10 +82,14 @@ import org.apache.spark.ml.feature.VectorAssembler;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.package$;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.execution.streaming.MemoryStream;
+import org.apache.spark.sql.streaming.OutputMode;
+import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Decimal;
@@ -94,7 +103,9 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import scala.Option;
 import scala.Some;
+import scala.collection.JavaConverters;
 
 abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
@@ -606,6 +617,91 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .save(testDataset + "." + destTableName);
     int numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(1);
+  }
+
+  @Test
+  public void testInDirectWriteToBigQueryWithStreaming() throws TimeoutException, IOException {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+
+    // Skipping test for spark 4: only works for spark 3 for now.
+    String sparkVersion = package$.MODULE$.SPARK_VERSION();
+    Assume.assumeThat(sparkVersion, CoreMatchers.startsWith("3."));
+
+    Path inputDir = Files.createTempDirectory("bq_integration_test_input");
+    Path jsonFile = inputDir.resolve("test_data_for_streaming.json");
+    Files.write(jsonFile, "{\"name\": \"spark\", \"age\": 100}".getBytes(StandardCharsets.UTF_8));
+
+    StructType schema =
+        new StructType().add("name", DataTypes.StringType).add("age", DataTypes.LongType);
+    Dataset<Row> df =
+        spark.readStream().option("multiline", "true").schema(schema).json(inputDir.toString());
+
+    String destTableName = testDataset + "." + "test_stream_json_" + System.nanoTime();
+    String checkPointLocation =
+        Files.createTempDirectory("bq_integration_test_checkpoint").toString();
+
+    StreamingQuery writeStream =
+        df.writeStream()
+            .format("bigquery")
+            .outputMode(OutputMode.Append())
+            .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+            .option("checkpointLocation", checkPointLocation)
+            .option("table", destTableName)
+            .start();
+    writeStream.processAllAvailable();
+    writeStream.stop();
+
+    List<Row> rows = spark.read().format("bigquery").load(destTableName).collectAsList();
+    assertThat(rows).hasSize(1);
+    Row row = rows.get(0);
+    assertThat(row.getString(0)).isEqualTo("spark");
+    assertThat(row.getLong(1)).isEqualTo(100L);
+  }
+
+  @Test
+  public void testInDirectWriteToBigQueryWithStreaming_AllTypes()
+      throws IOException, TimeoutException {
+    // Skipping test for spark 4: only works for spark 3.5 for now.
+    String sparkVersion = package$.MODULE$.SPARK_VERSION();
+    Assume.assumeThat(sparkVersion, CoreMatchers.startsWith("3.5"));
+
+    StructType schema = TestConstants.ALL_TYPES_TABLE_SCHEMA;
+    Row row = TestConstants.ALL_TYPES_TABLE_ROW;
+    List<Row> rawRows = Collections.nCopies(20, row);
+
+    Dataset<Row> normalizedDF = spark.createDataFrame(rawRows, schema);
+    List<Row> rows = normalizedDF.collectAsList();
+    Encoder<Row> encoder = normalizedDF.encoder();
+
+    MemoryStream<Row> memoryStream =
+        new MemoryStream<>(
+            1, // id
+            spark.sqlContext(), // sqlContext
+            Option.apply(null),
+            encoder // Implicit encoder passed as final arg
+            );
+    memoryStream.addData(JavaConverters.asScalaBuffer(rows).toSeq());
+
+    String destTableName = testDataset + "." + "test_streaming_allTypes" + System.nanoTime();
+    String checkPointLocation =
+        Files.createTempDirectory("bq_integration_test_streaming_checkpoint").toString();
+
+    StreamingQuery writeStream =
+        memoryStream
+            .toDF()
+            .writeStream()
+            .format("bigquery")
+            .outputMode(OutputMode.Append())
+            .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+            .option("checkpointLocation", checkPointLocation)
+            .option("table", destTableName)
+            .start();
+    writeStream.processAllAvailable();
+    writeStream.stop();
+
+    List<Row> readRows = spark.read().format("bigquery").load(destTableName).collectAsList();
+    assertThat(readRows).hasSize(20);
+    assertThat(readRows.get(0)).isEqualTo(rows.get(0));
   }
 
   private void writeDFNullableToBigQueryNullable_Internal(String writeAtLeastOnce)

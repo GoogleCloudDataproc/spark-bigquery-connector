@@ -78,22 +78,38 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
   private TableProvider tableProvider;
   private BigQueryClient bigQueryClient;
   private SchemaConverters schemaConverters;
+  private Map<String, String> options;
 
   @Override
   public void initialize(String name, CaseInsensitiveStringMap caseInsensitiveStringMap) {
-    logger.info("Initializing BigQuery table catalog [{}])", name);
-    Injector injector = new InjectorBuilder().withTableIsMandatory(false).build();
-    tableProvider =
-        StreamSupport.stream(ServiceLoader.load(DataSourceRegister.class).spliterator(), false)
-            .filter(candidate -> candidate.shortName().equals("bigquery"))
-            .map(candidate -> (TableProvider) candidate)
-            .findFirst()
-            .orElseThrow(
-                () -> new IllegalStateException("Could not find a BigQuery TableProvider"));
-    bigQueryClient = injector.getInstance(BigQueryClient.class);
-    schemaConverters =
-        SchemaConverters.from(
-            SchemaConvertersConfiguration.from(injector.getInstance(SparkBigQueryConfig.class)));
+    logger.info(
+        "Initializing BigQuery table catalog [{}] with options: {}",
+        name,
+        caseInsensitiveStringMap);
+    this.options = caseInsensitiveStringMap.asCaseSensitiveMap();
+
+    try {
+      Injector injector =
+          new InjectorBuilder()
+              .withOptions(caseInsensitiveStringMap.asCaseSensitiveMap())
+              .withTableIsMandatory(false)
+              .build();
+      tableProvider =
+          StreamSupport.stream(ServiceLoader.load(DataSourceRegister.class).spliterator(), false)
+              .filter(candidate -> candidate.shortName().equals("bigquery"))
+              .map(candidate -> (TableProvider) candidate)
+              .findFirst()
+              .orElseThrow(
+                  () -> new IllegalStateException("Could not find a BigQuery TableProvider"));
+      bigQueryClient = injector.getInstance(BigQueryClient.class);
+      schemaConverters =
+          SchemaConverters.from(
+              SchemaConvertersConfiguration.from(injector.getInstance(SparkBigQueryConfig.class)));
+      logger.info("BigQuery table catalog [{}] initialized successfully", name);
+    } catch (Exception e) {
+      logger.error("Failed to initialize BigQuery catalog [{}]", name, e);
+      throw new BigQueryConnectorException("Failed to initialize BigQuery catalog: " + name, e);
+    }
   }
 
   @Override
@@ -152,6 +168,11 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
 
   Map<String, String> toLoadProperties(Identifier identifier) {
     ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
+    Map<String, String> processedOptions = new java.util.HashMap<>(options);
+    if (processedOptions.containsKey("projectId")) {
+      processedOptions.put("project", processedOptions.remove("projectId"));
+    }
+    result.putAll(processedOptions);
     switch (identifier.namespace().length) {
       case 1:
         result.put("dataset", identifier.namespace()[0]);
@@ -165,7 +186,7 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
             "The identifier [" + identifier + "] is not recognized by BigQuery");
     }
     result.put("table", identifier.name());
-    return result.build();
+    return result.buildKeepingLast();
   }
 
   @Override
@@ -285,10 +306,18 @@ public class BigQueryCatalog implements TableCatalog, SupportsNamespaces {
 
   @Override
   public String[][] listNamespaces() throws NoSuchNamespaceException {
-    return Streams.stream(bigQueryClient.listDatasets())
-        .map(Dataset::getDatasetId)
-        .map(this::toNamespace)
-        .toArray(String[][]::new);
+    if (bigQueryClient == null) {
+      throw new IllegalStateException("BigQuery catalog not properly initialized");
+    }
+    try {
+      return Streams.stream(bigQueryClient.listDatasets())
+          .map(Dataset::getDatasetId)
+          .map(this::toNamespace)
+          .toArray(String[][]::new);
+    } catch (Exception e) {
+      logger.error("Error listing namespaces", e);
+      throw new BigQueryConnectorException("Failed to list namespaces", e);
+    }
   }
 
   private String[] toNamespace(DatasetId datasetId) {
