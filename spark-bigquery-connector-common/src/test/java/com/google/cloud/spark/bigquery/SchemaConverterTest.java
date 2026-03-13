@@ -745,8 +745,7 @@ public class SchemaConverterTest {
 
   @Test
   public void testSchemaConvertersConfigurationEnableArrowTimestampRebase() {
-    SchemaConvertersConfiguration config =
-        SchemaConvertersConfiguration.of(true, 38, 9, false);
+    SchemaConvertersConfiguration config = SchemaConvertersConfiguration.of(true, 38, 9, false);
     assertThat(config.getEnableArrowTimestampRebase()).isFalse();
 
     SchemaConvertersConfiguration configDefault = SchemaConvertersConfiguration.createDefault();
