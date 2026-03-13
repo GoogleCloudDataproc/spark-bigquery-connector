@@ -263,6 +263,7 @@ public class SparkBigQueryConfig
   private com.google.common.base.Optional<String> destinationTableKmsKeyName = empty();
 
   private boolean allowMapTypeConversion = ALLOW_MAP_TYPE_CONVERSION_DEFAULT;
+  private boolean enableArrowTimestampRebase = true;
   private long bigQueryJobTimeoutInMinutes = BIGQUERY_JOB_TIMEOUT_IN_MINUTES_DEFAULT;
   private com.google.common.base.Optional<String> gpn;
   private int bigNumericDefaultPrecision;
@@ -686,6 +687,9 @@ public class SparkBigQueryConfig
         getAnyOption(globalOptions, options, ALLOW_MAP_TYPE_CONVERSION)
             .transform(Boolean::valueOf)
             .or(ALLOW_MAP_TYPE_CONVERSION_DEFAULT);
+
+    config.enableArrowTimestampRebase =
+        getAnyBooleanOption(globalOptions, options, "enableArrowTimestampRebase", true);
 
     config.partitionOverwriteModeValue =
         getAnyOption(globalOptions, options, partitionOverwriteModeProperty)
@@ -1208,6 +1212,10 @@ public class SparkBigQueryConfig
     return allowMapTypeConversion;
   }
 
+  public boolean getEnableArrowTimestampRebase() {
+    return enableArrowTimestampRebase;
+  }
+
   public long getBigQueryJobTimeoutInMinutes() {
     return bigQueryJobTimeoutInMinutes;
   }
@@ -1257,6 +1265,7 @@ public class SparkBigQueryConfig
         .setEnableReadSessionCaching(enableReadSessionCaching)
         .setReadSessionCacheDurationMins(readSessionCacheDurationMins)
         .setSnapshotTimeMillis(getSnapshotTimeMillis())
+        .setEnableArrowTimestampRebase(enableArrowTimestampRebase)
         .build();
   }
 
