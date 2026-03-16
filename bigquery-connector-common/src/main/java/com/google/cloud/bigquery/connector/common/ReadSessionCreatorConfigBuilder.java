@@ -49,6 +49,7 @@ public class ReadSessionCreatorConfigBuilder {
   private boolean enableReadSessionCaching = true;
   private long readSessionCacheDurationMins = 5L;
   private OptionalLong snapshotTimeMillis = OptionalLong.empty();
+  private boolean enableArrowTimestampRebase = true;
 
   @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setViewsEnabled(boolean viewsEnabled) {
@@ -197,6 +198,13 @@ public class ReadSessionCreatorConfigBuilder {
     return this;
   }
 
+  @CanIgnoreReturnValue
+  public ReadSessionCreatorConfigBuilder setEnableArrowTimestampRebase(
+      boolean enableArrowTimestampRebase) {
+    this.enableArrowTimestampRebase = enableArrowTimestampRebase;
+    return this;
+  }
+
   public ReadSessionCreatorConfig build() {
     return new ReadSessionCreatorConfig(
         viewsEnabled,
@@ -221,6 +229,7 @@ public class ReadSessionCreatorConfigBuilder {
         traceId,
         enableReadSessionCaching,
         readSessionCacheDurationMins,
-        snapshotTimeMillis);
+        snapshotTimeMillis,
+        enableArrowTimestampRebase);
   }
 }

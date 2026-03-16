@@ -276,7 +276,8 @@ public class BigQueryDataSourceReaderContext {
                         readSessionResponse.get(),
                         arrowSchema,
                         sparkBigQueryReadSessionMetrics,
-                        readSessionCreatorConfig.getResponseCompressionCodec()))
+                        readSessionCreatorConfig.getResponseCompressionCodec(),
+                        readSessionCreatorConfig.getEnableArrowTimestampRebase()))
             .collect(Collectors.toList());
     return plannedInputPartitionContexts.stream()
         .map(ctx -> (InputPartitionContext<ColumnarBatch>) ctx);
