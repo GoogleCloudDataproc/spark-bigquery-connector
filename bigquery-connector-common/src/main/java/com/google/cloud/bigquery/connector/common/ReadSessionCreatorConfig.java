@@ -46,6 +46,7 @@ public class ReadSessionCreatorConfig {
   private final boolean enableReadSessionCaching;
   private final long readSessionCacheDurationMins;
   private final OptionalLong snapshotTimeMillis;
+  private final boolean enableArrowTimestampRebase;
 
   ReadSessionCreatorConfig(
       boolean viewsEnabled,
@@ -70,7 +71,8 @@ public class ReadSessionCreatorConfig {
       Optional<String> traceId,
       boolean enableReadSessionCaching,
       long readSessionCacheDurationMins,
-      OptionalLong snapshotTimeMillis) {
+      OptionalLong snapshotTimeMillis,
+      boolean enableArrowTimestampRebase) {
     this.viewsEnabled = viewsEnabled;
     this.viewEnabledParamName = viewEnabledParamName;
     this.materializationProject = materializationProject;
@@ -94,6 +96,7 @@ public class ReadSessionCreatorConfig {
     this.enableReadSessionCaching = enableReadSessionCaching;
     this.readSessionCacheDurationMins = readSessionCacheDurationMins;
     this.snapshotTimeMillis = snapshotTimeMillis;
+    this.enableArrowTimestampRebase = enableArrowTimestampRebase;
   }
 
   public boolean isViewsEnabled() {
@@ -194,5 +197,9 @@ public class ReadSessionCreatorConfig {
 
   public OptionalLong getSnapshotTimeMillis() {
     return snapshotTimeMillis;
+  }
+
+  public boolean getEnableArrowTimestampRebase() {
+    return enableArrowTimestampRebase;
   }
 }
