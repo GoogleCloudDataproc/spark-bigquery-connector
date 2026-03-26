@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.44.1 - 2026-03-25
 * BigQuery API has been upgraded to version 2.60.0
 * BigQuery Storage API has been upgraded to version 3.22.1
