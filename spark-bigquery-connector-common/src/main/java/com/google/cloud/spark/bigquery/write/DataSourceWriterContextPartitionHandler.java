@@ -71,15 +71,17 @@ public class DataSourceWriterContextPartitionHandler
             epoch,
             e);
         dataWriterContext.abort();
-        WriterCommitMessageContext writerCommitMessage =
-            new WriterCommitMessageContext() {
-              @Override
-              public Optional<Exception> getError() {
-                return Optional.of(e);
-              }
-            };
-        return ImmutableList.<WriterCommitMessageContext>of(writerCommitMessage).iterator();
+        return ImmutableList.<WriterCommitMessageContext>of(writerCommitMessageWithError(e)).iterator();
       }
     }
   }
+
+  private static WriterCommitMessageContext writerCommitMessageWithError(Exception e) {
+    return new WriterCommitMessageContext() {
+        @Override
+        public Optional<Exception> getError() {
+          return Optional.of(e);
+        }
+      };
+    }
 }
