@@ -13,6 +13,8 @@
   <name>BigQuery DataSource v2 implementation common settings</name>
   <packaging>pom</packaging>
   <properties>
+    <iceberg.version>1.10.0</iceberg.version>
+    <spark.minor.version>3.5</spark.minor.version>
     <spark.version>3.5.0</spark.version>
     <scala.binary.version>2.12</scala.binary.version>
   </properties>
@@ -67,6 +69,23 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>spark-bigquery-tests</artifactId>
       <version>${project.parent.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-biglake</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.iceberg</groupId>
+      <artifactId>iceberg-gcp-bundle</artifactId>
+      <version>${iceberg.version}</version>
+      <scope>test</scope>
+    </dependency>
+   <dependency>
+      <groupId>org.apache.iceberg</groupId>
+      <artifactId>iceberg-spark-runtime-${spark.minor.version}_${scala.binary.version}</artifactId>
+      <version>${iceberg.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

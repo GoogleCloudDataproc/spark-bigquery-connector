@@ -200,6 +200,14 @@ public class BigQueryUtilTest {
     assertThat(tableId).isEqualTo(TableId.of("project", "catalog.namespace", "table"));
   }
 
+
+  @Test
+  public void testProjectCatalogNamespaceTableNotation_with_org() {
+    TableId tableId = BigQueryUtil.parseTableId("test.org:test-project.test_catalog.test_dataset.test_table");
+    assertThat(tableId).isEqualTo(TableId.of("test.org:test-project", "test_catalog.test_dataset", "test_table"));
+  }
+
+
   @Test
   public void testProjectCatalogNamespaceTableNotation_illegal_nested_catalogs_failure() {
     assertThrows(
