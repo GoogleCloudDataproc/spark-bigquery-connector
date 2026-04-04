@@ -48,6 +48,7 @@
         <gax.version>2.75.0</gax.version>
         <google-api-client.version>2.9.0</google-api-client.version>
         <google-auth.version>1.43.0</google-auth.version>
+        <google-cloud-biglake.version>0.76.0</google-cloud-biglake.version>
         <google-cloud-bigquery.version>2.60.0</google-cloud-bigquery.version>
         <google-cloud-bigquerystorage.version>3.22.1</google-cloud-bigquerystorage.version>
         <google-cloud-dataproc.version>4.83.0</google-cloud-dataproc.version>
@@ -134,6 +135,11 @@
                 <version>${google-auth.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>google-cloud-biglake</artifactId>
+                <version>${google-cloud-biglake.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.cloud</groupId>
