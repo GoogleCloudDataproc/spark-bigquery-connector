@@ -2,6 +2,7 @@
 
 ## Next
 
+* Fix a bug where user columns named `target` or `source` cause BigQuery `MERGE` statement ambiguity on overwrite.
 * BigQuery API has been upgraded to version 2.60.0
 * BigQuery Storage API has been upgraded to version 3.22.1
 * GAX has been upgraded to version 2.75.0

@@ -1455,4 +1455,24 @@ public class BigQueryUtilTest {
 
     assertThat(actual).isEqualTo(expected);
   }
+
+  @Test
+  public void testGetQueryForTimePartitionedTable() {
+    Schema schema =
+        Schema.of(
+            Field.newBuilder("id", StandardSQLTypeName.INT64).build(),
+            Field.newBuilder("source", StandardSQLTypeName.STRING).build());
+    StandardTableDefinition destinationDefinition =
+        StandardTableDefinition.newBuilder().setSchema(schema).build();
+    TimePartitioning timePartitioning =
+        TimePartitioning.newBuilder(TimePartitioning.Type.DAY).setField("id").build();
+
+    String query =
+        BigQueryUtil.getQueryForTimePartitionedTable(
+            "dest_table", "temp_table", destinationDefinition, timePartitioning);
+
+    assertThat(query).contains("MERGE `dest_table` AS __target");
+    assertThat(query).contains("USING `temp_table` AS __source");
+    assertThat(query).contains("INSERT(`id`,`source`) VALUES(__source.`id`,__source.`source`)");
+  }
 }

@@ -96,6 +96,9 @@ public class BigQueryUtil {
 
   static final String READ_SESSION_EXPIRED_ERROR_MESSAGE = "session expired at";
 
+  private static final String TARGET_ALIAS = "__target";
+  private static final String SOURCE_ALIAS = "__source";
+
   private static final String PROJECT_PATTERN = "\\S+";
   private static final String DATASET_PATTERN = "\\w+";
   // Allow any character except ':' and '.', which are used as delimiters in qualified names.
@@ -767,7 +770,8 @@ public class BigQueryUtil {
         String.format("%s(`%s`, %s)", truncFuntion, partitionField, partitionType.toString());
     String extractedPartitionedTarget =
         String.format(
-            "%s(`target`.`%s`, %s)", truncFuntion, partitionField, partitionType.toString());
+            "%s(`%s`.`%s`, %s)",
+            truncFuntion, TARGET_ALIAS, partitionField, partitionType.toString());
 
     return createOptimizedMergeQuery(
         destinationDefinition,
@@ -788,12 +792,19 @@ public class BigQueryUtil {
     FieldList allFields = destinationDefinition.getSchema().getFields();
     String commaSeparatedFields =
         allFields.stream().map(Field::getName).collect(Collectors.joining("`,`", "`", "`"));
+    String targetAlias = TARGET_ALIAS;
+    String sourceAlias = SOURCE_ALIAS;
+    String commaSeparatedSourceFields =
+        allFields.stream()
+            .map(Field::getName)
+            .map(name -> String.format("%s.`%s`", sourceAlias, name))
+            .collect(Collectors.joining(","));
 
     String queryFormat =
         "DECLARE partitions_to_delete DEFAULT "
             + "(SELECT ARRAY_AGG(DISTINCT(%s) IGNORE NULLS) FROM `%s`); \n"
-            + "MERGE `%s` AS target\n"
-            + "USING `%s` AS source\n"
+            + "MERGE `%s` AS %s\n"
+            + "USING `%s` AS %s\n"
             + "ON FALSE\n"
             + "WHEN NOT MATCHED BY SOURCE AND (%s) AND %s IN UNNEST(partitions_to_delete) THEN DELETE\n"
             + "WHEN NOT MATCHED BY TARGET THEN\n"
@@ -803,11 +814,13 @@ public class BigQueryUtil {
         extractedPartitionedSource,
         temporaryTableName,
         destinationTableName,
+        targetAlias,
         temporaryTableName,
+        sourceAlias,
         partitionMatchAdditionalCondition,
         extractedPartitionedTarget,
         commaSeparatedFields,
-        commaSeparatedFields);
+        commaSeparatedSourceFields);
   }
 
   static String getQueryForRangePartitionedTable(
@@ -828,13 +841,14 @@ public class BigQueryUtil {
             partitionField, end, partitionField, start, end, interval);
     String extractedPartitionedTarget =
         String.format(
-            "IFNULL(IF(target.%s >= %s, 0, RANGE_BUCKET(target.%s, GENERATE_ARRAY(%s, %s, %s))), -1)",
-            partitionField, end, partitionField, start, end, interval);
+            "IFNULL(IF(%s.%s >= %s, 0, RANGE_BUCKET(%s.%s, GENERATE_ARRAY(%s, %s, %s))), -1)",
+            TARGET_ALIAS, partitionField, end, TARGET_ALIAS, partitionField, start, end, interval);
     // needed for tables that require the partition field to be in the where clause. It must be
     // true.
     String partitionMatchAdditionalCondition =
         String.format(
-            "target.%s is NULL OR target.%s >= %d", partitionField, partitionField, Long.MIN_VALUE);
+            "%s.%s is NULL OR %s.%s >= %d",
+            TARGET_ALIAS, partitionField, TARGET_ALIAS, partitionField, Long.MIN_VALUE);
 
     return createOptimizedMergeQuery(
         destinationDefinition,
