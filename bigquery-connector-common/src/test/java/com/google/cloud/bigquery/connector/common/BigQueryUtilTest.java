@@ -60,6 +60,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
@@ -1471,8 +1473,24 @@ public class BigQueryUtilTest {
         BigQueryUtil.getQueryForTimePartitionedTable(
             "dest_table", "temp_table", destinationDefinition, timePartitioning);
 
-    assertThat(query).contains("MERGE `dest_table` AS __target");
-    assertThat(query).contains("USING `temp_table` AS __source");
-    assertThat(query).contains("INSERT(`id`,`source`) VALUES(__source.`id`,__source.`source`)");
+    Matcher targetMatcher =
+        Pattern.compile("MERGE `dest_table` AS `(__target_[a-f0-9]{32})`").matcher(query);
+    assertThat(targetMatcher.find()).isTrue();
+    String targetAlias = targetMatcher.group(1);
+
+    Matcher sourceMatcher =
+        Pattern.compile("USING `temp_table` AS `(__source_[a-f0-9]{32})`").matcher(query);
+    assertThat(sourceMatcher.find()).isTrue();
+    String sourceAlias = sourceMatcher.group(1);
+
+    assertThat(query)
+        .contains(
+            String.format(
+                "timestamp_trunc(`%s`.`id`, DAY) IN UNNEST(partitions_to_delete)", targetAlias));
+
+    assertThat(query)
+        .contains(
+            String.format(
+                "INSERT(`id`,`source`) VALUES(`%s`.`id`,`%s`.`source`)", sourceAlias, sourceAlias));
   }
 }
