@@ -962,6 +962,14 @@ word-break:break-word
      <td>Read</td>
    </tr>
   <tr>
+    <td><code>enableArrowTimestampRebase</code>
+    </td>
+    <td>Boolean config to enable Julian-to-Gregorian rebasing for Arrow timestamps. Set to <code>false</code> to avoid a 2-day shift for pre-Gregorian dates.
+        <br/>(Optional. Default value is <code>true</code>)
+    </td>
+    <td>Read</td>
+  </tr>
+  <tr>
      <td><code>bigQueryJobTimeoutInMinutes</code>
      </td>
      <td>Config to set the BigQuery job timeout in minutes.

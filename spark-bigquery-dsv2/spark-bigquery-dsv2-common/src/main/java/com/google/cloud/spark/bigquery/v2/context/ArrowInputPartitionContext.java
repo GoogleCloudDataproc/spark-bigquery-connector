@@ -52,6 +52,7 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
   private final com.google.common.base.Optional<StructType> userProvidedSchema;
   private final SparkBigQueryReadSessionMetrics sparkBigQueryReadSessionMetrics;
   private final ResponseCompressionCodec responseCompressionCodec;
+  private final boolean enableTimestampRebase;
 
   public ArrowInputPartitionContext(
       BigQueryClientFactory bigQueryReadClientFactory,
@@ -63,6 +64,30 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
       Optional<StructType> userProvidedSchema,
       SparkBigQueryReadSessionMetrics sparkBigQueryReadSessionMetrics,
       ResponseCompressionCodec responseCompressionCodec) {
+    this(
+        bigQueryReadClientFactory,
+        tracerFactory,
+        names,
+        options,
+        selectedFields,
+        readSessionResponse,
+        userProvidedSchema,
+        sparkBigQueryReadSessionMetrics,
+        responseCompressionCodec,
+        true);
+  }
+
+  public ArrowInputPartitionContext(
+      BigQueryClientFactory bigQueryReadClientFactory,
+      BigQueryTracerFactory tracerFactory,
+      List<String> names,
+      ReadRowsHelper.Options options,
+      ImmutableList<String> selectedFields,
+      ReadSessionResponse readSessionResponse,
+      Optional<StructType> userProvidedSchema,
+      SparkBigQueryReadSessionMetrics sparkBigQueryReadSessionMetrics,
+      ResponseCompressionCodec responseCompressionCodec,
+      boolean enableTimestampRebase) {
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
     this.streamNames = names;
     this.options = options;
@@ -73,6 +98,7 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
     this.userProvidedSchema = fromJavaUtil(userProvidedSchema);
     this.sparkBigQueryReadSessionMetrics = sparkBigQueryReadSessionMetrics;
     this.responseCompressionCodec = responseCompressionCodec;
+    this.enableTimestampRebase = enableTimestampRebase;
   }
 
   public InputPartitionReaderContext<ColumnarBatch> createPartitionReaderContext() {
@@ -108,7 +134,8 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
         tracer,
         userProvidedSchema.toJavaUtil(),
         options.numBackgroundThreads(),
-        responseCompressionCodec);
+        responseCompressionCodec,
+        enableTimestampRebase);
   }
 
   @Override

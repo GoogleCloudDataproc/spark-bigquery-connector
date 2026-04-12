@@ -155,6 +155,7 @@ public class ArrowColumnBatchPartitionReaderContext
   private boolean closed = false;
   private final Map<String, StructField> userProvidedFieldMap;
   private final List<AutoCloseable> closeables = new ArrayList<>();
+  private final boolean enableTimestampRebase;
 
   ArrowColumnBatchPartitionReaderContext(
       Iterator<ReadRowsResponse> readRowsResponses,
@@ -165,10 +166,33 @@ public class ArrowColumnBatchPartitionReaderContext
       Optional<StructType> userProvidedSchema,
       int numBackgroundThreads,
       ResponseCompressionCodec responseCompressionCodec) {
+    this(
+        readRowsResponses,
+        schema,
+        readRowsHelper,
+        namesInOrder,
+        tracer,
+        userProvidedSchema,
+        numBackgroundThreads,
+        responseCompressionCodec,
+        true);
+  }
+
+  ArrowColumnBatchPartitionReaderContext(
+      Iterator<ReadRowsResponse> readRowsResponses,
+      ByteString schema,
+      ReadRowsHelper readRowsHelper,
+      List<String> namesInOrder,
+      BigQueryStorageReadRowsTracer tracer,
+      Optional<StructType> userProvidedSchema,
+      int numBackgroundThreads,
+      ResponseCompressionCodec responseCompressionCodec,
+      boolean enableTimestampRebase) {
     this.allocator = ArrowUtil.newRootAllocator(maxAllocation);
     this.readRowsHelper = readRowsHelper;
     this.namesInOrder = namesInOrder;
     this.tracer = tracer;
+    this.enableTimestampRebase = enableTimestampRebase;
     // place holder for reader.
     closeables.add(null);
 
@@ -266,7 +290,9 @@ public class ArrowColumnBatchPartitionReaderContext
               .map(
                   vector ->
                       ArrowSchemaConverter.newArrowSchemaConverter(
-                          vector, userProvidedFieldMap.get(vector.getName())))
+                          vector,
+                          userProvidedFieldMap.get(vector.getName()),
+                          enableTimestampRebase))
               .toArray(ColumnVector[]::new);
 
       currentBatch = new ColumnarBatch(columns);
