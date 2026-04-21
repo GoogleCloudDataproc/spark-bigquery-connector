@@ -209,6 +209,13 @@ public class BigQueryUtilTest {
   }
 
   @Test
+  public void testProjectCatalogNamespaceTableNotation_with_org_and_catalog() {
+    TableId tableId = BigQueryUtil.parseTableId("test.org:test-project.catalog.namespace.table");
+    assertThat(tableId)
+        .isEqualTo(TableId.of("test.org:test-project", "catalog.namespace", "table"));
+  }
+
+  @Test
   public void testProjectCatalogNamespaceTableNotation_illegal_nested_catalogs_failure() {
     assertThrows(
         IllegalArgumentException.class,

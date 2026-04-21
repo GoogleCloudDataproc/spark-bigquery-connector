@@ -235,8 +235,15 @@ public class BigQueryUtil {
 
     if (parsedProject.isPresent() && parsedDataset.isPresent()) {
       String projectStr = parsedProject.get();
-      if (projectStr.contains(".") && !projectStr.contains(":")) {
-        int dotIndex = projectStr.indexOf(".");
+      int dotIndex = -1;
+      if (projectStr.contains(":")) {
+        int colonIndex = projectStr.indexOf(":");
+        dotIndex = projectStr.indexOf(".", colonIndex);
+      } else {
+        dotIndex = projectStr.indexOf(".");
+      }
+
+      if (dotIndex != -1) {
         parsedProject = Optional.of(projectStr.substring(0, dotIndex));
         String newDataset = projectStr.substring(dotIndex + 1) + "." + parsedDataset.get();
         // The dataset part should not have more than one dot (i.e. catalog.namespace)
