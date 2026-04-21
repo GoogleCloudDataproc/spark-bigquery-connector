@@ -37,7 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class LakehouseIntegrationTestBase {
-  private final String LOCATION = "us-east7";
+  private final String LOCATION = "US";
 
   Storage storage = StorageOptions.newBuilder().build().getService();
   String catalogName;
@@ -77,34 +77,37 @@ public class LakehouseIntegrationTestBase {
 
   @Test
   public void testReadFromIcebergCatalog() throws Exception {
-    String namespace = "bqtest";//String.format("sbc_%x", System.nanoTime());
-    String testTable = "shakespeare"; //String.format("test_%x", System.nanoTime());
-    SparkSession spark =
-        createSparkSessionWithLakehouseCatalog("testReadFromIcebergCatalog", "davidrab-iceberg");
-//    spark.sql("CREATE NAMESPACE " + namespace);
-//    spark.sql(
-//        String.format(
-//            "CREATE TABLE %s.%s (word STRING, word_count INT, corpus STRING, corpus_date INT) "
-//                + "USING ICEBERG "
-//                + "TBLPROPERTIES ('gcp.biglake.bigquery-dml.enabled' = true)",
-//            namespace, testTable));
-//    IntegrationTestUtils.runQueryInLocation(
-//        LOCATION,
-//        "INSERT INTO `%s`.`%s`.`%s`.`%s` (word, word_count, corpus, corpus_date) "
-//            + "SELECT word, word_count, corpus, corpus_date FROM `bigquery-public-data.samples.shakespeare`;",
-//        TestConstants.PROJECT_ID,
-//        catalogName,
-//        namespace,
-//        testTable);
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .load(
-                String.format(
-                    "%s.%s.%s.%s", "google.com:hadoop-cloud-dev","davidrab-iceberg", namespace, testTable));
-    List<Row> result = df.where("word='spark'").collectAsList();
-    assertThat(result).hasSize(9);
+    String namespace = String.format("sbc_%x", System.nanoTime());
+    String testTable = String.format("shakespeare_%x", System.nanoTime());
+    Dataset<Row> df;
+    try (SparkSession spark =
+        createSparkSessionWithLakehouseCatalog("testReadFromIcebergCatalog", catalogName)) {
+      spark.sql("CREATE NAMESPACE " + namespace);
+      spark.sql(
+          String.format(
+              "CREATE TABLE %s.%s (word STRING, word_count INT, corpus STRING, corpus_date INT) "
+                  + "USING ICEBERG "
+                  + "TBLPROPERTIES ('gcp.biglake.bigquery-dml.enabled' = true)",
+              namespace, testTable));
+      IntegrationTestUtils.runQueryInLocation(
+          LOCATION,
+          "INSERT INTO `%s`.`%s`.`%s`.`%s` (word, word_count, corpus, corpus_date) "
+              + "SELECT word, word_count, corpus, corpus_date FROM `bigquery-public-data.samples.shakespeare`;",
+          TestConstants.PROJECT_ID,
+          catalogName,
+          namespace,
+          testTable);
+      df =
+          spark
+              .read()
+              .format("bigquery")
+              .load(
+                  String.format(
+                      "%s.%s.%s.%s", TestConstants.PROJECT_ID, "lakehouse", namespace, testTable));
+
+      List<Row> result = df.where("word='spark'").collectAsList();
+      assertThat(result).hasSize(9);
+    }
   }
 
   private SparkSession createSparkSessionWithLakehouseCatalog(String testName, String catalogName) {
@@ -132,10 +135,10 @@ public class LakehouseIntegrationTestBase {
                 "spark.sql.extensions",
                 "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
             .config("spark.sql.defaultCatalog", "lakehouse");
-    Optional.ofNullable(System.getenv("BIGQUERY_API_HTTP_ENDPOINT"))
-        .ifPresent(value -> builder.config("bigQueryHttpEndpoint", value));
-    Optional.ofNullable(System.getenv("BIGQUERY_STORAGE_API_GRPC_ENDPOINT"))
-        .ifPresent(value -> builder.config("bigQueryStorageGrpcEndpoint", value));
+//    Optional.ofNullable(System.getenv("BIGQUERY_API_HTTP_ENDPOINT"))
+//        .ifPresent(value -> builder.config("bigQueryHttpEndpoint", value));
+//    Optional.ofNullable(System.getenv("BIGQUERY_STORAGE_API_GRPC_ENDPOINT"))
+//        .ifPresent(value -> builder.config("bigQueryStorageGrpcEndpoint", value));
     return builder.getOrCreate();
   }
 
