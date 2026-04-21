@@ -28,7 +28,6 @@ import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.util.List;
-import java.util.Optional;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -135,10 +134,10 @@ public class LakehouseIntegrationTestBase {
                 "spark.sql.extensions",
                 "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
             .config("spark.sql.defaultCatalog", "lakehouse");
-//    Optional.ofNullable(System.getenv("BIGQUERY_API_HTTP_ENDPOINT"))
-//        .ifPresent(value -> builder.config("bigQueryHttpEndpoint", value));
-//    Optional.ofNullable(System.getenv("BIGQUERY_STORAGE_API_GRPC_ENDPOINT"))
-//        .ifPresent(value -> builder.config("bigQueryStorageGrpcEndpoint", value));
+    //    Optional.ofNullable(System.getenv("BIGQUERY_API_HTTP_ENDPOINT"))
+    //        .ifPresent(value -> builder.config("bigQueryHttpEndpoint", value));
+    //    Optional.ofNullable(System.getenv("BIGQUERY_STORAGE_API_GRPC_ENDPOINT"))
+    //        .ifPresent(value -> builder.config("bigQueryStorageGrpcEndpoint", value));
     return builder.getOrCreate();
   }
 
