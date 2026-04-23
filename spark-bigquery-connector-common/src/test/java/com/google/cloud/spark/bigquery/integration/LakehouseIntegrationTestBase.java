@@ -149,19 +149,25 @@ public class LakehouseIntegrationTestBase {
   }
 
   private static IcebergCatalogServiceClient createIcebergCatalogServiceClient() throws Exception {
-    String customEndpoint = System.getenv("BIGLAKE_API_GRPC_ENDPOINT");
+    String customEndpoint = System.getenv("BIGLAKE_API_ENDPOINT");
     IcebergCatalogServiceSettings.Builder settingsBuilder =
         IcebergCatalogServiceSettings.newBuilder();
     if (customEndpoint != null && !customEndpoint.trim().isEmpty()) {
+      if(customEndpoint.startsWith("https://")) {
+        settingsBuilder = IcebergCatalogServiceSettings.newHttpJsonBuilder();
+      }
       settingsBuilder.setEndpoint(customEndpoint);
     }
     return IcebergCatalogServiceClient.create(settingsBuilder.build());
   }
 
   private static MetastoreServiceClient createMetastoreServiceClient() throws Exception {
-    String customEndpoint = System.getenv("BIGLAKE_API_GRPC_ENDPOINT");
+    String customEndpoint = System.getenv("BIGLAKE_API_ENDPOINT");
     MetastoreServiceSettings.Builder settingsBuilder = MetastoreServiceSettings.newBuilder();
     if (customEndpoint != null && !customEndpoint.trim().isEmpty()) {
+      if(customEndpoint.startsWith("https://")) {
+        settingsBuilder = MetastoreServiceSettings.newHttpJsonBuilder();
+      }
       settingsBuilder.setEndpoint(customEndpoint);
     }
     return MetastoreServiceClient.create(settingsBuilder.build());
