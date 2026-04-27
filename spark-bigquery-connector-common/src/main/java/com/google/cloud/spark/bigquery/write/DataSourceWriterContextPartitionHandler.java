@@ -71,7 +71,10 @@ public class DataSourceWriterContextPartitionHandler
             epoch,
             e);
         dataWriterContext.abort();
-        return ImmutableList.<WriterCommitMessageContext>of(writerCommitMessageWithError(e))
+        Exception serializableException =
+            (Exception) com.google.cloud.bigquery.connector.common.BigQueryUtil.makeSerializable(e);
+        return ImmutableList.<WriterCommitMessageContext>of(
+                writerCommitMessageWithError(serializableException))
             .iterator();
       }
     }

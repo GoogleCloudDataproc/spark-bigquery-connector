@@ -54,6 +54,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.grpc.Status;
 import io.grpc.Status.Code;
+import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -152,6 +153,64 @@ public class BigQueryUtil {
           && statusRuntimeException.getMessage().contains(READ_SESSION_EXPIRED_ERROR_MESSAGE);
     }
     return false;
+  }
+
+  public static Throwable makeSerializable(Throwable t) {
+    if (t == null) {
+      return null;
+    }
+
+    Throwable current = t;
+    Throwable parent = null;
+
+    while (current != null) {
+      if (isGrpcStatusException(current)) {
+        Throwable serializable = createSerializableGrpcStatusException(current);
+
+        if (parent != null) {
+          try {
+            java.lang.reflect.Field causeField = Throwable.class.getDeclaredField("cause");
+            causeField.setAccessible(true);
+            causeField.set(parent, serializable);
+          } catch (Exception e) {
+            // Fallback
+          }
+        } else {
+          return serializable;
+        }
+        current = serializable;
+      }
+      parent = current;
+      current = current.getCause();
+    }
+
+    return t;
+  }
+
+  private static boolean isGrpcStatusException(Throwable t) {
+    return t instanceof StatusRuntimeException || t instanceof StatusException;
+  }
+
+  private static Throwable createSerializableGrpcStatusException(Throwable grpcException) {
+    String message = grpcException.getMessage();
+    Status status = null;
+    if (grpcException instanceof StatusException) {
+      status = ((StatusException) grpcException).getStatus();
+    } else if (grpcException instanceof StatusRuntimeException) {
+      status = ((StatusRuntimeException) grpcException).getStatus();
+    } else {
+      throw new IllegalArgumentException(
+          "Should be gRPC StatusException or StatusRuntimeException", grpcException);
+    }
+    SerializableGrpcStatusException serializable =
+        new SerializableGrpcStatusException(
+            message,
+            status.getCode(),
+            status.getDescription(),
+            makeSerializable(status.getCause()));
+    serializable.setStackTrace(grpcException.getStackTrace());
+
+    return serializable;
   }
 
   static BigQueryException convertToBigQueryException(BigQueryError error) {
