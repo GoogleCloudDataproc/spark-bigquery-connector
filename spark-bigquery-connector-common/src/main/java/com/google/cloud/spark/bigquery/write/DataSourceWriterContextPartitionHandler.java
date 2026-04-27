@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.write;
 
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.write.context.DataWriterContext;
 import com.google.cloud.spark.bigquery.write.context.DataWriterContextFactory;
 import com.google.cloud.spark.bigquery.write.context.WriterCommitMessageContext;
@@ -72,7 +73,7 @@ public class DataSourceWriterContextPartitionHandler
             e);
         dataWriterContext.abort();
         Exception serializableException =
-            (Exception) com.google.cloud.bigquery.connector.common.BigQueryUtil.makeSerializable(e);
+            (Exception) BigQueryUtil.makeSerializable(e);
         return ImmutableList.<WriterCommitMessageContext>of(
                 writerCommitMessageWithError(serializableException))
             .iterator();
