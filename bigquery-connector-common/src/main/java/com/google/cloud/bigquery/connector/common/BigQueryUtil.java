@@ -162,23 +162,56 @@ public class BigQueryUtil {
 
     Throwable current = t;
     Throwable parent = null;
+    java.lang.reflect.Field causeField = null;
+    java.lang.reflect.Field suppressedField = null;
+
+    try {
+      causeField = Throwable.class.getDeclaredField("cause");
+      causeField.setAccessible(true);
+      suppressedField = Throwable.class.getDeclaredField("suppressedExceptions");
+      suppressedField.setAccessible(true);
+    } catch (Exception e) {
+      // Fallback if we can't even get fields
+    }
 
     while (current != null) {
+      // Process suppressed exceptions first
+      if (suppressedField != null) {
+        try {
+          java.util.List<Throwable> suppressed =
+              (java.util.List<Throwable>) suppressedField.get(current);
+          if (suppressed != null && !suppressed.isEmpty()) {
+            java.util.List<Throwable> newSuppressed = new java.util.ArrayList<>(suppressed.size());
+            for (Throwable s : suppressed) {
+              newSuppressed.add(makeSerializable(s));
+            }
+            suppressedField.set(current, newSuppressed);
+          }
+        } catch (Exception e) {
+          // Ignore
+        }
+      }
+
       if (isGrpcStatusException(current)) {
         Throwable serializable = createSerializableGrpcStatusException(current);
 
         if (parent != null) {
-          try {
-            java.lang.reflect.Field causeField = Throwable.class.getDeclaredField("cause");
-            causeField.setAccessible(true);
-            causeField.set(parent, serializable);
-          } catch (Exception e) {
-            // Fallback
+          if (causeField != null) {
+            try {
+              causeField.set(parent, serializable);
+              return t; // Return immediately as suggested by reviewer!
+            } catch (Exception e) {
+              // Fallback: return the serializable version directly, breaking the chain but
+              // avoiding serialization error
+              return serializable;
+            }
+          } else {
+            // Fallback: return the serializable version directly
+            return serializable;
           }
         } else {
           return serializable;
         }
-        current = serializable;
       }
       parent = current;
       current = current.getCause();

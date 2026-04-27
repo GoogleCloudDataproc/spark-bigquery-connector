@@ -72,19 +72,18 @@ public class DataSourceWriterContextPartitionHandler
             epoch,
             e);
         dataWriterContext.abort();
-        Exception serializableException = (Exception) BigQueryUtil.makeSerializable(e);
         return ImmutableList.<WriterCommitMessageContext>of(
-                writerCommitMessageWithError(serializableException))
+                writerCommitMessageWithError(BigQueryUtil.makeSerializable(e)))
             .iterator();
       }
     }
   }
 
-  private static WriterCommitMessageContext writerCommitMessageWithError(Exception e) {
+  private static WriterCommitMessageContext writerCommitMessageWithError(Throwable t) {
     return new WriterCommitMessageContext() {
       @Override
-      public Optional<Exception> getError() {
-        return Optional.of(e);
+      public Optional<Throwable> getError() {
+        return Optional.of(t);
       }
     };
   }
