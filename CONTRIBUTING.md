@@ -33,12 +33,6 @@ The connector is built using the Maven wrapper (`./mvnw`). The repository
 publishes several connector jars sharing a common core, organized along three
 axes: API generation (DSv1 / DSv2), Spark version, and Scala version.
 
-> **Source of truth for the test commands CI runs:**
-> [`cloudbuild/presubmit.sh`](cloudbuild/presubmit.sh) (presubmit: init, unit
-> tests, integration tests sharded per profile) and
-> [`cloudbuild/nightly.sh`](cloudbuild/nightly.sh) (nightly: above plus
-> acceptance tests). If the examples below ever drift, those scripts win.
-
 ### Modules
 
 Always built (no profile required):
@@ -116,8 +110,16 @@ artifacts are produced.
 
 ### JDK requirements
 
-The build targets Java 8 bytecode (`maven.compiler.release=8`), but the test
-matrix runs on **two JDKs**:
+The connector itself is compiled to Java 8 bytecode
+(`maven.compiler.release=8`). At runtime, the JDK you need depends on which
+Spark version your connector targets:
+
+* Connectors for Spark 3.1 – 3.5: Java 8 supported (Java 11 / 17 also work
+  where the underlying Spark distribution supports them).
+* Connectors for Spark 4.0 / 4.1: **Java 17 required**, matching Spark 4.x's
+  own JDK requirement.
+
+The CI test matrix uses both JDKs:
 
 * **Java 17** — initial install, all unit tests, and integration tests for
   Spark 3.3, 3.4, 3.5, 4.0, and 4.1.
