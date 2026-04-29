@@ -757,6 +757,53 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   @Test
+  public void testArrowTimestampRebaseOption() {
+    TimeZone originalTz = TimeZone.getDefault();
+    String originalSessionTz = spark.conf().get("spark.sql.session.timeZone");
+    try {
+      TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+      spark.conf().set("spark.sql.session.timeZone", "UTC");
+      IntegrationTestUtils.runQuery(
+          String.format(
+              "CREATE TABLE `%s.%s` AS SELECT TIMESTAMP('1500-01-01 00:00:00+00') AS ts;",
+              testDataset, testTable));
+
+      Row withoutRebase =
+          spark
+              .read()
+              .format("bigquery")
+              .option("dataset", testDataset.toString())
+              .option("table", testTable)
+              .option("readDataFormat", "ARROW")
+              .option("enableArrowTimestampRebase", "false")
+              .load()
+              .collectAsList()
+              .get(0);
+      Row withRebase =
+          spark
+              .read()
+              .format("bigquery")
+              .option("dataset", testDataset.toString())
+              .option("table", testTable)
+              .option("readDataFormat", "ARROW")
+              .option("enableArrowTimestampRebase", "true")
+              .load()
+              .collectAsList()
+              .get(0);
+
+      Timestamp rawTs = (Timestamp) withoutRebase.get(withoutRebase.fieldIndex("ts"));
+      Timestamp rebasedTs = (Timestamp) withRebase.get(withRebase.fieldIndex("ts"));
+
+      assertThat(rawTs).isEqualTo(Timestamp.valueOf("1500-01-01 00:00:00"));
+      assertThat(rebasedTs).isEqualTo(Timestamp.valueOf("1500-01-11 00:00:00"));
+      assertThat(rawTs).isNotEqualTo(rebasedTs);
+    } finally {
+      TimeZone.setDefault(originalTz);
+      spark.conf().set("spark.sql.session.timeZone", originalSessionTz);
+    }
+  }
+
+  @Test
   public void testPushDateTimePredicate() {
     IntegrationTestUtils.runQuery(
         String.format(
