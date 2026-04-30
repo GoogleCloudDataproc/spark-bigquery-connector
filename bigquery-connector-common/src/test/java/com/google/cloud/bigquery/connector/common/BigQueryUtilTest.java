@@ -1504,14 +1504,9 @@ public class BigQueryUtilTest {
     Throwable result = BigQueryUtil.makeSerializable(outer);
 
     assertThat(result).isNotNull();
-    assertThat(result).isInstanceOf(Exception.class);
-    assertThat(result.getMessage()).isEqualTo("Outer message");
+    assertThat(result).isInstanceOf(SerializableGrpcStatusException.class);
 
-    Throwable cause = result.getCause();
-    assertThat(cause).isNotNull();
-    assertThat(cause).isInstanceOf(SerializableGrpcStatusException.class);
-
-    SerializableGrpcStatusException serializable = (SerializableGrpcStatusException) cause;
+    SerializableGrpcStatusException serializable = (SerializableGrpcStatusException) result;
     assertThat(serializable.getStatusCode()).isEqualTo(io.grpc.Status.Code.INVALID_ARGUMENT);
     assertThat(serializable.getStatusDescription()).isEqualTo("Invalid rows");
   }
@@ -1558,6 +1553,9 @@ public class BigQueryUtilTest {
     Throwable result = BigQueryUtil.makeSerializable(grpcException);
 
     assertThat(result).isInstanceOf(SerializableGrpcStatusException.class);
-    assertThat(result.getCause()).isEqualTo(rootCause);
+    assertThat(result.getCause()).isNull();
+
+    SerializableGrpcStatusException serializable = (SerializableGrpcStatusException) result;
+    assertThat(serializable.getCauseMessage()).isEqualTo(rootCause.toString());
   }
 }

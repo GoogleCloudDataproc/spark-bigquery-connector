@@ -22,12 +22,14 @@ public class SerializableGrpcStatusException extends RuntimeException {
 
   private final Status.Code statusCode;
   private final String statusDescription;
+  private final String causeMessage;
 
   public SerializableGrpcStatusException(
-      String message, Status.Code statusCode, String statusDescription, Throwable cause) {
-    super(message, cause);
+      String message, Status.Code statusCode, String statusDescription, String causeMessage) {
+    super(message);
     this.statusCode = statusCode;
     this.statusDescription = statusDescription;
+    this.causeMessage = causeMessage;
   }
 
   public Status.Code getStatusCode() {
@@ -38,8 +40,17 @@ public class SerializableGrpcStatusException extends RuntimeException {
     return statusDescription;
   }
 
+  public String getCauseMessage() {
+    return causeMessage;
+  }
+
   @Override
   public String toString() {
-    return super.toString() + " [Code: " + statusCode + ", Description: " + statusDescription + "]";
+    String base =
+        super.toString() + " [Code: " + statusCode + ", Description: " + statusDescription + "]";
+    if (causeMessage != null) {
+      return base + " Cause: " + causeMessage;
+    }
+    return base;
   }
 }
