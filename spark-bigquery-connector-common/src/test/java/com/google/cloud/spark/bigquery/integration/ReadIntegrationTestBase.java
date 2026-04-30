@@ -757,6 +757,70 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   @Test
+  public void testArrowTimestampRebaseOption() {
+    // Rebase is a no-op on Spark 2.4 (RebaseDateTime was added in Spark 3.0), so the
+    // with/without-flag reads would be indistinguishable there.
+    assumeTrue(isRebaseDateTimeAvailable());
+
+    TimeZone originalTz = TimeZone.getDefault();
+    String originalSessionTz = spark.conf().get("spark.sql.session.timeZone");
+    try {
+      TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+      spark.conf().set("spark.sql.session.timeZone", "UTC");
+      IntegrationTestUtils.runQuery(
+          String.format(
+              "CREATE TABLE `%s.%s` AS SELECT TIMESTAMP('1500-01-01 00:00:00+00') AS ts;",
+              testDataset, testTable));
+
+      Row withoutRebase =
+          spark
+              .read()
+              .format("bigquery")
+              .option("dataset", testDataset.toString())
+              .option("table", testTable)
+              .option("readDataFormat", "ARROW")
+              .option("enableArrowTimestampRebase", "false")
+              .load()
+              .collectAsList()
+              .get(0);
+      Row withRebase =
+          spark
+              .read()
+              .format("bigquery")
+              .option("dataset", testDataset.toString())
+              .option("table", testTable)
+              .option("readDataFormat", "ARROW")
+              .option("enableArrowTimestampRebase", "true")
+              .load()
+              .collectAsList()
+              .get(0);
+
+      Timestamp rawTs = (Timestamp) withoutRebase.get(withoutRebase.fieldIndex("ts"));
+      Timestamp rebasedTs = (Timestamp) withRebase.get(withRebase.fieldIndex("ts"));
+
+      // Without rebase: Spark reads BigQuery's proleptic-Gregorian micros directly, so the
+      // round-trip preserves the wall-clock value that was inserted.
+      assertThat(rawTs).isEqualTo(Timestamp.valueOf("1500-01-01 00:00:00"));
+      // With rebase: Spark applies rebaseJulianToGregorianMicros, which shifts pre-1582
+      // timestamps. The exact offset depends on Spark's rebase tables, so just verify the
+      // values diverge — that's the contract this option controls.
+      assertThat(rebasedTs).isNotEqualTo(rawTs);
+    } finally {
+      TimeZone.setDefault(originalTz);
+      spark.conf().set("spark.sql.session.timeZone", originalSessionTz);
+    }
+  }
+
+  private static boolean isRebaseDateTimeAvailable() {
+    try {
+      Class.forName("org.apache.spark.sql.catalyst.util.RebaseDateTime");
+      return true;
+    } catch (ClassNotFoundException e) {
+      return false;
+    }
+  }
+
+  @Test
   public void testPushDateTimePredicate() {
     IntegrationTestUtils.runQuery(
         String.format(
