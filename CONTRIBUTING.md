@@ -102,10 +102,10 @@ Plus, defined in `spark-bigquery-parent/pom.xml`:
 * `integration` — enables `*IntegrationTest` classes via Failsafe.
 * `acceptance` — enables `*AcceptanceTest` classes via Failsafe.
 
-Example: to compile **just** the Scala 2.12 connector run
+Example: To compile **just** the Scala 2.12 connector, run
 `./mvnw install -Pdsv1_2.12`.
 
-**Important:** if no profile is selected, only the always-built common
+**Important:** If no profile is selected, only the always-built common
 artifacts are produced.
 
 ### JDK requirements

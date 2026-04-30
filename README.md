@@ -76,7 +76,7 @@ The final two connectors are Scala based connectors, please use the jar relevant
 below.
 
 ### Connector to Spark Compatibility Matrix
-| Connector \ Spark                     | 2.3     | 2.4     | 3.0     | 3.1     | 3.2     | 3.3     |3.4      | 3.5     | 4.0     | 4.1     |
+| Connector \ Spark                     | 2.3     | 2.4     | 3.0     | 3.1     | 3.2     | 3.3     | 3.4     | 3.5     | 4.0     | 4.1     |
 |---------------------------------------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|
 | spark-4.1-bigquery                    |         |         |         |         |         |         |         |         |         | &check; |
 | spark-4.0-bigquery                    |         |         |         |         |         |         |         |         | &check; |         |

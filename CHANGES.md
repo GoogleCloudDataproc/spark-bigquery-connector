@@ -4,6 +4,7 @@
 
 * Issue #1476: Fixed BigQuery MERGE statement ambiguity on overwrite when table columns are named `target` or `source`.
 * PR #1475: Don't reference `this` in anonymous WriterCommitMessageContext object.
+* PR #1473: Added `enableArrowTimestampRebase` option (default `true`) to control the Julian-to-Gregorian rebase in the Arrow reader path. Set to `false` to avoid the 2-day shift on pre-Gregorian timestamps. Fixes #1389.
 
 ## 0.44.1 - 2026-03-25
 * BigQuery API has been upgraded to version 2.60.0
