@@ -79,11 +79,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BigQueryUtil {
-  private static final Logger log = LoggerFactory.getLogger(BigQueryUtil.class);
 
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
@@ -163,25 +160,22 @@ public class BigQueryUtil {
       return null;
     }
 
-    Throwable current = t;
-
-    while (current != null) {
-      if (isGrpcStatusException(current)) {
-        return createSerializableGrpcStatusException(current);
-      }
-      current = current.getCause();
-    }
-
-    return t;
+    return getCausalChain(t).stream()
+        .filter(BigQueryUtil::isGrpcStatusException)
+        .findFirst()
+        .map(BigQueryUtil::createSerializableGrpcStatusException)
+        .map(Throwable.class::cast)
+        .orElse(t);
   }
 
   private static boolean isGrpcStatusException(Throwable t) {
     return t instanceof StatusRuntimeException || t instanceof StatusException;
   }
 
-  private static Throwable createSerializableGrpcStatusException(Throwable grpcException) {
+  private static SerializableGrpcStatusException createSerializableGrpcStatusException(
+      Throwable grpcException) {
     String message = grpcException.getMessage();
-    Status status = null;
+    Status status;
     if (grpcException instanceof StatusException) {
       status = ((StatusException) grpcException).getStatus();
     } else if (grpcException instanceof StatusRuntimeException) {
