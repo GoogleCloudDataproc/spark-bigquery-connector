@@ -195,8 +195,7 @@ public class BigQueryUtil {
     }
     try {
       @SuppressWarnings("unchecked")
-      List<Throwable> suppressed =
-          (List<Throwable>) suppressedField.get(throwable);
+      List<Throwable> suppressed = (List<Throwable>) suppressedField.get(throwable);
       if (suppressed != null && !suppressed.isEmpty()) {
         List<Throwable> newSuppressed = new ArrayList<>(suppressed.size());
         for (Throwable s : suppressed) {
