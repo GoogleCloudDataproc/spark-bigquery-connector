@@ -79,8 +79,25 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BigQueryUtil {
+  private static final Logger log = LoggerFactory.getLogger(BigQueryUtil.class);
+
+  private static java.lang.reflect.Field CAUSE_FIELD;
+  private static java.lang.reflect.Field SUPPRESSED_FIELD;
+
+  static {
+    try {
+      CAUSE_FIELD = Throwable.class.getDeclaredField("cause");
+      CAUSE_FIELD.setAccessible(true);
+      SUPPRESSED_FIELD = Throwable.class.getDeclaredField("suppressedExceptions");
+      SUPPRESSED_FIELD.setAccessible(true);
+    } catch (NoSuchFieldException | SecurityException e) {
+      log.warn("Could not reflectively access Throwable fields for serializing gRPC exceptions", e);
+    }
+  }
 
   // Numeric is a fixed precision Decimal Type with 38 digits of precision and 9 digits of scale.
   // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
@@ -162,24 +179,13 @@ public class BigQueryUtil {
 
     Throwable current = t;
     Throwable parent = null;
-    java.lang.reflect.Field causeField = null;
-    java.lang.reflect.Field suppressedField = null;
-
-    try {
-      causeField = Throwable.class.getDeclaredField("cause");
-      causeField.setAccessible(true);
-      suppressedField = Throwable.class.getDeclaredField("suppressedExceptions");
-      suppressedField.setAccessible(true);
-    } catch (Exception e) {
-      // Fallback if we can't even get fields
-    }
 
     while (current != null) {
-      processSuppressedExceptions(current, suppressedField);
+      processSuppressedExceptions(current);
 
       if (isGrpcStatusException(current)) {
         Throwable serializable = createSerializableGrpcStatusException(current);
-        return replaceInCauseChain(t, parent, serializable, causeField);
+        return replaceInCauseChain(t, parent, serializable);
       }
       parent = current;
       current = current.getCause();
@@ -188,46 +194,42 @@ public class BigQueryUtil {
     return t;
   }
 
-  private static void processSuppressedExceptions(
-      Throwable throwable, java.lang.reflect.Field suppressedField) {
-    if (suppressedField == null) {
+  private static void processSuppressedExceptions(Throwable throwable) {
+    if (SUPPRESSED_FIELD == null) {
       return;
     }
     try {
       @SuppressWarnings("unchecked")
-      List<Throwable> suppressed = (List<Throwable>) suppressedField.get(throwable);
+      List<Throwable> suppressed = (List<Throwable>) SUPPRESSED_FIELD.get(throwable);
       if (suppressed != null && !suppressed.isEmpty()) {
         List<Throwable> newSuppressed = new ArrayList<>(suppressed.size());
         for (Throwable s : suppressed) {
           newSuppressed.add(makeSerializable(s)); // recursive call
         }
-        suppressedField.set(throwable, newSuppressed);
+        SUPPRESSED_FIELD.set(throwable, newSuppressed);
       }
-    } catch (IllegalAccessException e) {
-      // Ignore, we can't modify it
+    } catch (IllegalAccessException | IllegalArgumentException e) {
+      log.warn("Failed to modify suppressed exceptions for serializability", e);
     }
   }
 
   private static Throwable replaceInCauseChain(
-      Throwable originalChain,
-      Throwable parent,
-      Throwable newThrowable,
-      java.lang.reflect.Field causeField) {
+      Throwable originalChain, Throwable parent, Throwable newThrowable) {
     if (parent == null) {
       // It's the root of the chain
       return newThrowable;
     }
 
-    if (causeField != null) {
+    if (CAUSE_FIELD != null) {
       try {
-        causeField.set(parent, newThrowable);
+        CAUSE_FIELD.set(parent, newThrowable);
         return originalChain; // Return the original head of the chain
       } catch (IllegalAccessException | IllegalArgumentException e) {
-        // Fallback: return the new throwable directly, breaking the chain
+        log.warn("Failed to set serializable cause, returning truncated exception chain", e);
         return newThrowable;
       }
     } else {
-      // Fallback: return the new throwable directly
+      log.warn("CAUSE_FIELD is null, returning truncated exception chain");
       return newThrowable;
     }
   }
@@ -254,6 +256,9 @@ public class BigQueryUtil {
             status.getDescription(),
             makeSerializable(status.getCause())); // Ensure the cause is also serializable
     serializable.setStackTrace(grpcException.getStackTrace());
+    for (Throwable suppressed : grpcException.getSuppressed()) {
+      serializable.addSuppressed(makeSerializable(suppressed));
+    }
 
     return serializable;
   }

@@ -18,6 +18,8 @@ package com.google.cloud.bigquery.connector.common;
 import io.grpc.Status;
 
 public class SerializableGrpcStatusException extends RuntimeException {
+  private static final long serialVersionUID = 1L;
+
   private final Status.Code statusCode;
   private final String statusDescription;
 
