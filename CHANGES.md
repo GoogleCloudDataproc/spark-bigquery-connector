@@ -3,6 +3,8 @@
 ## Next
 
 * Issue #1476: Fixed BigQuery MERGE statement ambiguity on overwrite when table columns are named `target` or `source`.
+* PR #1479: Fixing NotSerializableException thrown on the executors
+
 
 ## 0.44.1 - 2026-03-25
 * BigQuery API has been upgraded to version 2.60.0

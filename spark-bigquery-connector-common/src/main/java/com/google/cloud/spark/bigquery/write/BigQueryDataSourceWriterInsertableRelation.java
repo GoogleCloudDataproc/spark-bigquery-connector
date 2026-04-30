@@ -88,7 +88,7 @@ public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertab
         WriterCommitMessageContext[] writerCommitMessages =
             writerCommitMessagesRDD.collect().toArray(new WriterCommitMessageContext[0]);
         if (writerCommitMessages.length == numPartitions) {
-          List<Exception> errors =
+          List<Throwable> errors =
               Arrays.stream(writerCommitMessages)
                   .filter(msg -> msg.getError().isPresent())
                   .map(msg -> msg.getError().get())
@@ -107,8 +107,8 @@ public class BigQueryDataSourceWriterInsertableRelation extends BigQueryInsertab
                       + errors.size()
                       + " partitions, aborting the write. Errors listed below");
               int i = 1;
-              for (Exception e : errors) {
-                logger.error("Error #" + i, e);
+              for (Throwable t : errors) {
+                logger.error("Error #" + i, t);
                 i++;
               }
             }
