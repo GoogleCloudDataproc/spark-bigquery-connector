@@ -222,7 +222,7 @@ public class BigQueryUtil {
       try {
         causeField.set(parent, newThrowable);
         return originalChain; // Return the original head of the chain
-      } catch (Exception e) {
+      } catch (IllegalAccessException | IllegalArgumentException e) {
         // Fallback: return the new throwable directly, breaking the chain
         return newThrowable;
       }
