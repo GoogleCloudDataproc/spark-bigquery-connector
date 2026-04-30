@@ -175,49 +175,62 @@ public class BigQueryUtil {
     }
 
     while (current != null) {
-      // Process suppressed exceptions first
-      if (suppressedField != null) {
-        try {
-          java.util.List<Throwable> suppressed =
-              (java.util.List<Throwable>) suppressedField.get(current);
-          if (suppressed != null && !suppressed.isEmpty()) {
-            java.util.List<Throwable> newSuppressed = new java.util.ArrayList<>(suppressed.size());
-            for (Throwable s : suppressed) {
-              newSuppressed.add(makeSerializable(s));
-            }
-            suppressedField.set(current, newSuppressed);
-          }
-        } catch (Exception e) {
-          // Ignore
-        }
-      }
+      processSuppressedExceptions(current, suppressedField);
 
       if (isGrpcStatusException(current)) {
         Throwable serializable = createSerializableGrpcStatusException(current);
-
-        if (parent != null) {
-          if (causeField != null) {
-            try {
-              causeField.set(parent, serializable);
-              return t; // Return immediately as suggested by reviewer!
-            } catch (Exception e) {
-              // Fallback: return the serializable version directly, breaking the chain but
-              // avoiding serialization error
-              return serializable;
-            }
-          } else {
-            // Fallback: return the serializable version directly
-            return serializable;
-          }
-        } else {
-          return serializable;
-        }
+        return replaceInCauseChain(t, parent, serializable, causeField);
       }
       parent = current;
       current = current.getCause();
     }
 
     return t;
+  }
+
+  private static void processSuppressedExceptions(
+      Throwable throwable, java.lang.reflect.Field suppressedField) {
+    if (suppressedField == null) {
+      return;
+    }
+    try {
+      @SuppressWarnings("unchecked")
+      List<Throwable> suppressed =
+          (List<Throwable>) suppressedField.get(throwable);
+      if (suppressed != null && !suppressed.isEmpty()) {
+        List<Throwable> newSuppressed = new ArrayList<>(suppressed.size());
+        for (Throwable s : suppressed) {
+          newSuppressed.add(makeSerializable(s)); // recursive call
+        }
+        suppressedField.set(throwable, newSuppressed);
+      }
+    } catch (IllegalAccessException e) {
+      // Ignore, we can't modify it
+    }
+  }
+
+  private static Throwable replaceInCauseChain(
+      Throwable originalChain,
+      Throwable parent,
+      Throwable newThrowable,
+      java.lang.reflect.Field causeField) {
+    if (parent == null) {
+      // It's the root of the chain
+      return newThrowable;
+    }
+
+    if (causeField != null) {
+      try {
+        causeField.set(parent, newThrowable);
+        return originalChain; // Return the original head of the chain
+      } catch (Exception e) {
+        // Fallback: return the new throwable directly, breaking the chain
+        return newThrowable;
+      }
+    } else {
+      // Fallback: return the new throwable directly
+      return newThrowable;
+    }
   }
 
   private static boolean isGrpcStatusException(Throwable t) {
@@ -240,7 +253,7 @@ public class BigQueryUtil {
             message,
             status.getCode(),
             status.getDescription(),
-            makeSerializable(status.getCause()));
+            makeSerializable(status.getCause())); // Ensure the cause is also serializable
     serializable.setStackTrace(grpcException.getStackTrace());
 
     return serializable;
