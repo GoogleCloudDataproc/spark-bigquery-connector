@@ -185,6 +185,46 @@ public class BigQueryUtilTest {
   }
 
   @Test
+  public void testProjectCatalogNamespaceTableNotation_four_part() {
+    TableId tableId =
+        BigQueryUtil.parseTableId(
+            "project.catalog.namespace.table", Optional.empty(), Optional.empty());
+    assertThat(tableId).isEqualTo(TableId.of("project", "catalog.namespace", "table"));
+  }
+
+  @Test
+  public void testProjectCatalogNamespaceTableNotation_independent() {
+    TableId tableId =
+        BigQueryUtil.parseTableId(
+            "table", Optional.of("catalog.namespace"), Optional.of("project"));
+    assertThat(tableId).isEqualTo(TableId.of("project", "catalog.namespace", "table"));
+  }
+
+  @Test
+  public void testProjectCatalogNamespaceTableNotation_with_org() {
+    TableId tableId =
+        BigQueryUtil.parseTableId("test.org:test-project.test_catalog.test_dataset.test_table");
+    assertThat(tableId)
+        .isEqualTo(TableId.of("test.org:test-project", "test_catalog.test_dataset", "test_table"));
+  }
+
+  @Test
+  public void testProjectCatalogNamespaceTableNotation_with_org_and_catalog() {
+    TableId tableId = BigQueryUtil.parseTableId("test.org:test-project.catalog.namespace.table");
+    assertThat(tableId)
+        .isEqualTo(TableId.of("test.org:test-project", "catalog.namespace", "table"));
+  }
+
+  @Test
+  public void testProjectCatalogNamespaceTableNotation_illegal_nested_catalogs_failure() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            BigQueryUtil.parseTableId(
+                "project.catalog.nested.namespace.table", Optional.empty(), Optional.empty()));
+  }
+
+  @Test
   public void testFriendlyName() {
     String name = BigQueryUtil.friendlyTableName(TABLE_ID);
     assertThat(name).isEqualTo(FULLY_QUALIFIED_TABLE);

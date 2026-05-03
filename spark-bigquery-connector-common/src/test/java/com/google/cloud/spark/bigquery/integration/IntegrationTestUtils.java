@@ -24,6 +24,9 @@ import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.JobId;
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -38,6 +41,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -56,12 +60,23 @@ public class IntegrationTestUtils {
       CacheBuilder.newBuilder().expireAfterWrite(15, TimeUnit.MINUTES).maximumSize(1000).build();
 
   public static BigQuery getBigquery() {
-    return BigQueryOptions.getDefaultInstance().getService();
+    return getBigquery(Optional.empty());
+  }
+
+  public static BigQuery getBigquery(Optional<String> location) {
+    BigQueryOptions.Builder options = BigQueryOptions.newBuilder();
+    location.ifPresent(options::setLocation);
+    Optional.ofNullable(System.getenv("BIGQUERY_API_HTTP_ENDPOINT")).ifPresent(options::setHost);
+    return options.build().getService();
   }
 
   private static BigQueryClient getBigQueryClient() {
+    return getBigQueryClient(Optional.empty());
+  }
+
+  private static BigQueryClient getBigQueryClient(Optional<String> location) {
     return new BigQueryClient(
-        getBigquery(),
+        getBigquery(location),
         Optional.empty(),
         Optional.empty(),
         destinationTableCache,
@@ -84,6 +99,25 @@ public class IntegrationTestUtils {
 
   public static void runQuery(String query, Object... args) {
     getBigQueryClient().query(String.format(query, args));
+  }
+
+  public static void runQueryInLocation(String bigQueryLocation, String query, Object... args) {
+    try {
+      getBigquery(Optional.ofNullable(bigQueryLocation))
+          .create(
+              JobInfo.newBuilder(
+                      QueryJobConfiguration.newBuilder(String.format(query, args)).build())
+                  .setJobId(
+                      JobId.newBuilder()
+                          .setJob(UUID.randomUUID().toString()) // Generates a unique ID for the job
+                          .setLocation(bigQueryLocation)
+                          .build())
+                  .build())
+          .waitFor();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
   }
 
   public static Iterable<Table> listTables(DatasetId datasetId, TableDefinition.Type... types) {

@@ -14,8 +14,9 @@
   <name>Connector code for BigQuery DataSource v2 for Spark 4.1</name>
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
-    <spark.version>4.1.0</spark.version>
     <scala.binary.version>2.13</scala.binary.version>
+    <spark.minor.version>4.1</spark.minor.version>
+    <spark.version>4.1.0</spark.version>
     <shade.skip>true</shade.skip>
     <toolchain.jdk.version>[17,18)</toolchain.jdk.version>
     <argLine>${jdk11plus.argLine}</argLine>
@@ -40,6 +41,13 @@
         <groupId>org.apache.arrow</groupId>
         <artifactId>arrow-memory-netty-buffer-patch</artifactId>
         <version>${arrow.spark4.version}</version>
+      </dependency>
+      <!-- TODO: remove once iceberg supports Spark 4.1 -->
+      <dependency>
+        <groupId>org.apache.iceberg</groupId>
+        <artifactId>iceberg-spark-runtime-4.0_2.13</artifactId>
+        <version>1.10.0</version>
+        <scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
