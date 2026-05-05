@@ -20,7 +20,7 @@ import java.util.Optional;
 
 public interface WriterCommitMessageContext extends Serializable {
 
-  default Optional<Exception> getError() {
+  default Optional<Throwable> getError() {
     return Optional.empty();
   }
 }

@@ -54,6 +54,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.grpc.Status;
 import io.grpc.Status.Code;
+import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -152,6 +153,48 @@ public class BigQueryUtil {
           && statusRuntimeException.getMessage().contains(READ_SESSION_EXPIRED_ERROR_MESSAGE);
     }
     return false;
+  }
+
+  public static Throwable makeSerializable(Throwable t) {
+    if (t == null) {
+      return null;
+    }
+
+    return getCausalChain(t).stream()
+        .filter(BigQueryUtil::isGrpcStatusException)
+        .findFirst()
+        .map(BigQueryUtil::createSerializableGrpcStatusException)
+        .map(Throwable.class::cast)
+        .orElse(t);
+  }
+
+  private static boolean isGrpcStatusException(Throwable t) {
+    return t instanceof StatusRuntimeException || t instanceof StatusException;
+  }
+
+  private static SerializableGrpcStatusException createSerializableGrpcStatusException(
+      Throwable grpcException) {
+    String message = grpcException.getMessage();
+    Status status;
+    if (grpcException instanceof StatusException) {
+      status = ((StatusException) grpcException).getStatus();
+    } else if (grpcException instanceof StatusRuntimeException) {
+      status = ((StatusRuntimeException) grpcException).getStatus();
+    } else {
+      throw new IllegalArgumentException(
+          "Should be gRPC StatusException or StatusRuntimeException", grpcException);
+    }
+
+    String causeMessage =
+        grpcException.getCause() != null ? grpcException.getCause().toString() : null;
+
+    SerializableGrpcStatusException serializable =
+        new SerializableGrpcStatusException(
+            message, status.getCode(), status.getDescription(), causeMessage);
+
+    serializable.setStackTrace(grpcException.getStackTrace());
+
+    return serializable;
   }
 
   static BigQueryException convertToBigQueryException(BigQueryError error) {

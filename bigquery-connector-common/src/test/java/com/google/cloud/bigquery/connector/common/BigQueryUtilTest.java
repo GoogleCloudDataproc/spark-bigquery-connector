@@ -1493,4 +1493,69 @@ public class BigQueryUtilTest {
             String.format(
                 "INSERT(`id`,`source`) VALUES(`%s`.`id`,`%s`.`source`)", sourceAlias, sourceAlias));
   }
+
+  @Test
+  public void testMakeSerializable_withGrpcStatusRuntimeException() {
+    io.grpc.Status status = io.grpc.Status.INVALID_ARGUMENT.withDescription("Invalid rows");
+    io.grpc.StatusRuntimeException grpcException = new io.grpc.StatusRuntimeException(status);
+
+    Exception outer = new Exception("Outer message", grpcException);
+
+    Throwable result = BigQueryUtil.makeSerializable(outer);
+
+    assertThat(result).isNotNull();
+    assertThat(result).isInstanceOf(SerializableGrpcStatusException.class);
+
+    SerializableGrpcStatusException serializable = (SerializableGrpcStatusException) result;
+    assertThat(serializable.getStatusCode()).isEqualTo(io.grpc.Status.Code.INVALID_ARGUMENT);
+    assertThat(serializable.getStatusDescription()).isEqualTo("Invalid rows");
+  }
+
+  @Test
+  public void testMakeSerializable_noGrpcException() {
+    Exception e = new Exception("Simple error");
+    Throwable result = BigQueryUtil.makeSerializable(e);
+    assertThat(result).isEqualTo(e);
+  }
+
+  @Test
+  public void testMakeSerializable_null() {
+    assertThat(BigQueryUtil.makeSerializable(null)).isNull();
+  }
+
+  @Test
+  public void testMakeSerializable_directGrpcException() {
+    io.grpc.Status status = io.grpc.Status.INVALID_ARGUMENT.withDescription("Invalid rows");
+    io.grpc.StatusRuntimeException grpcException = new io.grpc.StatusRuntimeException(status);
+    Throwable result = BigQueryUtil.makeSerializable(grpcException);
+    assertThat(result).isInstanceOf(SerializableGrpcStatusException.class);
+    SerializableGrpcStatusException serializable = (SerializableGrpcStatusException) result;
+    assertThat(serializable.getStatusCode()).isEqualTo(io.grpc.Status.Code.INVALID_ARGUMENT);
+  }
+
+  @Test
+  public void testMakeSerializable_withStatusException() {
+    io.grpc.Status status = io.grpc.Status.INVALID_ARGUMENT.withDescription("Invalid rows");
+    io.grpc.StatusException grpcException = new io.grpc.StatusException(status);
+    Throwable result = BigQueryUtil.makeSerializable(grpcException);
+    assertThat(result).isInstanceOf(SerializableGrpcStatusException.class);
+    SerializableGrpcStatusException serializable = (SerializableGrpcStatusException) result;
+    assertThat(serializable.getStatusCode()).isEqualTo(io.grpc.Status.Code.INVALID_ARGUMENT);
+  }
+
+  @Test
+  public void testMakeSerializable_grpcExceptionWithCause() {
+    Exception rootCause = new Exception("Root cause");
+    io.grpc.Status status =
+        io.grpc.Status.INVALID_ARGUMENT.withDescription("Invalid rows").withCause(rootCause);
+    io.grpc.StatusRuntimeException grpcException = new io.grpc.StatusRuntimeException(status);
+
+    Throwable result = BigQueryUtil.makeSerializable(grpcException);
+
+    assertThat(result).isInstanceOf(SerializableGrpcStatusException.class);
+    assertThat(result.getCause()).isNull();
+
+    SerializableGrpcStatusException serializable = (SerializableGrpcStatusException) result;
+    assertThat(serializable.getCauseMessage()).isEqualTo(rootCause.toString());
+  }
 }
