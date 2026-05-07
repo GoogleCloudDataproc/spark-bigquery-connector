@@ -153,7 +153,7 @@ public class LakehouseIntegrationTestBase {
     IcebergCatalogServiceSettings.Builder settingsBuilder =
         IcebergCatalogServiceSettings.newBuilder();
     if (customEndpoint != null && !customEndpoint.trim().isEmpty()) {
-      if(customEndpoint.startsWith("https://")) {
+      if (customEndpoint.startsWith("https://")) {
         settingsBuilder = IcebergCatalogServiceSettings.newHttpJsonBuilder();
       }
       settingsBuilder.setEndpoint(customEndpoint);
@@ -165,7 +165,7 @@ public class LakehouseIntegrationTestBase {
     String customEndpoint = System.getenv("BIGLAKE_API_ENDPOINT");
     MetastoreServiceSettings.Builder settingsBuilder = MetastoreServiceSettings.newBuilder();
     if (customEndpoint != null && !customEndpoint.trim().isEmpty()) {
-      if(customEndpoint.startsWith("https://")) {
+      if (customEndpoint.startsWith("https://")) {
         settingsBuilder = MetastoreServiceSettings.newHttpJsonBuilder();
       }
       settingsBuilder.setEndpoint(customEndpoint);
