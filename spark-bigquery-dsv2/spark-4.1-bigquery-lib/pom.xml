@@ -42,13 +42,6 @@
         <artifactId>arrow-memory-netty-buffer-patch</artifactId>
         <version>${arrow.spark4.version}</version>
       </dependency>
-      <!-- TODO: remove once iceberg supports Spark 4.1 -->
-      <dependency>
-        <groupId>org.apache.iceberg</groupId>
-        <artifactId>iceberg-spark-runtime-4.0_2.13</artifactId>
-        <version>1.10.0</version>
-        <scope>test</scope>
-      </dependency>
     </dependencies>
   </dependencyManagement>
   <dependencies>
@@ -56,6 +49,12 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>spark-4.0-bigquery-lib</artifactId>
       <version>${project.parent.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.iceberg</groupId>
+      <artifactId>iceberg-spark-runtime-4.0_${scala.binary.version}</artifactId>
+      <version>${iceberg.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>

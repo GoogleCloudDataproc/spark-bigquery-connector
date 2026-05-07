@@ -13,6 +13,7 @@
   <version>${revision}-preview</version>
   <name>BigQuery DataSource v2 for Spark 4.1</name>
   <properties>
+    <iceberg-spark-runtime>4.0_${scala.binary.version}</iceberg-spark-runtime>
     <maven.compiler.release>17</maven.compiler.release>
     <scala.binary.version>2.13</scala.binary.version>
     <spark.minor.version>4.1</spark.minor.version>
@@ -51,16 +52,15 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.apache.iceberg</groupId>
+      <artifactId>iceberg-spark-runtime-4.0_${scala.binary.version}</artifactId>
+      <version>${iceberg.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-avro_2.13</artifactId>
       <version>${spark.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <!-- TODO: remove once iceberg supports Spark 4.1 -->
-    <dependency>
-      <groupId>org.apache.iceberg</groupId>
-      <artifactId>iceberg-spark-runtime-4.0_2.13</artifactId>
-      <version>1.10.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
