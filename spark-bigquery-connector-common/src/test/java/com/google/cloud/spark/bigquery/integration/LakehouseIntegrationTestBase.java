@@ -37,7 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class LakehouseIntegrationTestBase {
-  private final String LOCATION = "US";
+  private static final String LOCATION = "US";
 
   Storage storage = StorageOptions.newBuilder().build().getService();
   String catalogName;
