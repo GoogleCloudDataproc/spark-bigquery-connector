@@ -52,8 +52,8 @@ import com.google.cloud.spark.bigquery.integration.model.RangeData;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
+import com.google.gson.JsonObject;
 import com.google.inject.ProvisionException;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -70,12 +70,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.apache.spark.ml.PipelineModel;
-import org.apache.spark.ml.Transformer;
 import org.apache.spark.ml.feature.MinMaxScaler;
 import org.apache.spark.ml.feature.MinMaxScalerModel;
 import org.apache.spark.ml.feature.VectorAssembler;
@@ -87,6 +84,7 @@ import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.execution.streaming.MemoryStream;
 import org.apache.spark.sql.streaming.OutputMode;
 import org.apache.spark.sql.streaming.StreamingQuery;
@@ -108,6 +106,1066 @@ import scala.Some;
 import scala.collection.JavaConverters;
 
 abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
+
+  protected SparkBigQueryIntegrationTestRunner testRunner =
+      new InMemorySparkBigQueryIntegrationTestRunner();
+
+  protected static JsonObject basicWriteApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String scenario = parameters.getOrDefault("scenario", "APPEND");
+    String writeMethod = parameters.get("writeMethod");
+    String writeAtLeastOnce = parameters.getOrDefault("writeAtLeastOnce", "False");
+    String intermediateFormat = parameters.getOrDefault("intermediateFormat", "avro");
+    String gcsBucket = parameters.get("temporaryGcsBucket");
+    String fullTableName = testDataset + "." + testTable;
+
+    SparkSession spark =
+        SparkSession.builder()
+            .master("local[*]")
+            .appName("basic_write_test")
+            .config("spark.ui.enabled", "false")
+            .getOrCreate();
+
+    try {
+      Person p1 =
+          new Person("Abc", Arrays.asList(new Friend(10, Arrays.asList(new Link("www.abc.com")))));
+      Person p2 =
+          new Person("Def", Arrays.asList(new Friend(12, Arrays.asList(new Link("www.def.com")))));
+      Person p3 =
+          new Person("Xyz", Arrays.asList(new Friend(10, Arrays.asList(new Link("www.xyz.com")))));
+      Person p4 =
+          new Person("Pqr", Arrays.asList(new Friend(12, Arrays.asList(new Link("www.pqr.com")))));
+
+      Dataset<Row> initialDF =
+          spark.createDataset(Arrays.asList(p1, p2), Encoders.bean(Person.class)).toDF();
+      Dataset<Row> additionalDF =
+          spark.createDataset(Arrays.asList(p3, p4), Encoders.bean(Person.class)).toDF();
+
+      if ("APPEND".equals(scenario)) {
+        initialDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", gcsBucket)
+            .option("intermediateFormat", intermediateFormat)
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .save();
+
+        additionalDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", gcsBucket)
+            .option("intermediateFormat", intermediateFormat)
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .save();
+      } else if ("ERROR_IF_EXISTS".equals(scenario)) {
+        initialDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.ErrorIfExists)
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", gcsBucket)
+            .option("intermediateFormat", intermediateFormat)
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .save();
+
+        additionalDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.ErrorIfExists)
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", gcsBucket)
+            .option("intermediateFormat", intermediateFormat)
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .save();
+      } else if ("IGNORE".equals(scenario)) {
+        initialDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Ignore)
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", gcsBucket)
+            .option("intermediateFormat", intermediateFormat)
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .save();
+
+        additionalDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Ignore)
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", gcsBucket)
+            .option("intermediateFormat", intermediateFormat)
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .save();
+      } else if ("OVERWRITE".equals(scenario)) {
+        initialDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Overwrite)
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", gcsBucket)
+            .option("intermediateFormat", intermediateFormat)
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .save();
+
+        additionalDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Overwrite)
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", gcsBucket)
+            .option("intermediateFormat", intermediateFormat)
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .save();
+      } else if ("SIMPLIFIED_API".equals(scenario)) {
+        initialDF
+            .write()
+            .format("bigquery")
+            .option("temporaryGcsBucket", gcsBucket)
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .save(fullTableName);
+      } else if ("LABELS".equals(scenario)) {
+        initialDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", gcsBucket)
+            .option("intermediateFormat", intermediateFormat)
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .option("bigQueryTableLabel.alice", "bob")
+            .option("bigQueryTableLabel.foo", "bar")
+            .save();
+      } else if ("LIST_INFERENCE".equals(scenario)) {
+        initialDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", gcsBucket)
+            .option("intermediateFormat", "parquet")
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .option("enableListInference", true)
+            .save();
+      }
+
+      JsonObject result = new JsonObject();
+      result.addProperty("status", "success");
+      return result;
+    } finally {
+      // clean context stop if necessary
+    }
+  }
+
+  protected static JsonObject schemaDiffWriteApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String scenario = parameters.getOrDefault("scenario", "DIFF_SCHEMA");
+    String writeMethod = parameters.get("writeMethod");
+    String writeAtLeastOnce = parameters.getOrDefault("writeAtLeastOnce", "False");
+    String enableModeCheck = parameters.getOrDefault("enableModeCheck", "true");
+    String allowFieldAddition = parameters.getOrDefault("allowFieldAddition", "false");
+    String allowFieldRelaxation = parameters.getOrDefault("allowFieldRelaxation", "false");
+    String temporaryGcsBucket = parameters.get("temporaryGcsBucket");
+    String sourceTable = parameters.get("sourceTable");
+    String destTable = testDataset + "." + testTable;
+
+    SparkSession spark =
+        SparkSession.builder()
+            .master("local[*]")
+            .appName("schema_diff_write_test")
+            .config("spark.ui.enabled", "false")
+            .getOrCreate();
+
+    try {
+      if ("DIFF_SCHEMA".equals(scenario)) {
+        Dataset<Row> df = spark.read().format("bigquery").option("table", sourceTable).load();
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("enableModeCheckForSchemaFields", Boolean.parseBoolean(enableModeCheck))
+            .save(destTable);
+      } else if ("NULLABLE_TO_NULLABLE".equals(scenario)) {
+        StructType srcSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("int_null", DataTypes.IntegerType, true, Metadata.empty())
+                });
+        List<Row> rows = Arrays.asList(RowFactory.create(25), RowFactory.create((Object) null));
+        Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .save(destTable);
+      } else if ("NULLABLE_NON_NULL_TO_REQUIRED".equals(scenario)) {
+        StructType srcSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("int_req", DataTypes.IntegerType, true, Metadata.empty())
+                });
+        List<Row> rows = Arrays.asList(RowFactory.create(25));
+        Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .option("writeAtLeastOnce", writeAtLeastOnce)
+            .save(destTable);
+      } else if ("NULLABLE_NULL_TO_REQUIRED".equals(scenario)) {
+        StructType srcSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("int_req", DataTypes.IntegerType, true, Metadata.empty())
+                });
+        List<Row> rows = Arrays.asList(RowFactory.create((Object) null));
+        Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("writeMethod", writeMethod)
+            .save(destTable);
+      } else if ("NULLABLE_TO_REPEATED".equals(scenario)) {
+        StructType srcSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("int_rep", DataTypes.IntegerType, true, Metadata.empty())
+                });
+        List<Row> rows = Arrays.asList(RowFactory.create(10));
+        Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("writeMethod", writeMethod)
+            .save(destTable);
+      } else if ("REQUIRED_TO_NULLABLE".equals(scenario)) {
+        StructType srcSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("int_null", DataTypes.IntegerType, false, Metadata.empty())
+                });
+        List<Row> rows = Arrays.asList(RowFactory.create(25));
+        Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .save(destTable);
+      } else if ("REQUIRED_TO_REQUIRED".equals(scenario)) {
+        StructType srcSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("int_req", DataTypes.IntegerType, false, Metadata.empty())
+                });
+        List<Row> rows = Arrays.asList(RowFactory.create(25));
+        Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .save(destTable);
+      } else if ("REQUIRED_TO_REPEATED".equals(scenario)) {
+        StructType srcSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("int_rep", DataTypes.IntegerType, false, Metadata.empty())
+                });
+        List<Row> rows = Arrays.asList(RowFactory.create(10));
+        Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("writeMethod", writeMethod)
+            .save(destTable);
+      } else if ("REPEATED_TO_NULLABLE".equals(scenario)) {
+        StructType srcSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField(
+                      "int_null",
+                      DataTypes.createArrayType(DataTypes.IntegerType),
+                      true,
+                      Metadata.empty())
+                });
+        List<Row> rows =
+            Arrays.asList(RowFactory.create(Arrays.asList(1, 2)), RowFactory.create((Object) null));
+        Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("writeMethod", writeMethod)
+            .save(destTable);
+      } else if ("REPEATED_TO_REQUIRED".equals(scenario)) {
+        StructType srcSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField(
+                      "int_req",
+                      DataTypes.createArrayType(DataTypes.IntegerType),
+                      true,
+                      Metadata.empty())
+                });
+        List<Row> rows = Arrays.asList(RowFactory.create(Arrays.asList(1, 2)));
+        Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .save(destTable);
+      } else if ("REPEATED_TO_REPEATED".equals(scenario)) {
+        StructType srcSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField(
+                      "int_rep",
+                      DataTypes.createArrayType(DataTypes.IntegerType),
+                      true,
+                      Metadata.empty())
+                });
+        List<Row> rows =
+            Arrays.asList(RowFactory.create(Arrays.asList(1, 2)), RowFactory.create((Object) null));
+        Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .save(destTable);
+      } else if ("SUBSET".equals(scenario)) {
+        StructType initialSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("key", DataTypes.StringType, true, Metadata.empty()),
+                  new StructField("value", DataTypes.StringType, true, Metadata.empty()),
+                  new StructField("ds", DataTypes.DateType, true, Metadata.empty())
+                });
+        List<Row> initialRows =
+            Arrays.asList(
+                RowFactory.create("key1", "val1", Date.valueOf("2023-04-13")),
+                RowFactory.create("key2", "val2", Date.valueOf("2023-04-14")));
+        Dataset<Row> initialDF = spark.createDataFrame(initialRows, initialSchema);
+        initialDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .save(destTable);
+
+        StructType finalSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("key", DataTypes.StringType, true, Metadata.empty()),
+                  new StructField("value", DataTypes.StringType, true, Metadata.empty())
+                });
+        List<Row> finalRows = Arrays.asList(RowFactory.create("key3", "val3"));
+        Dataset<Row> finalDF = spark.createDataFrame(finalRows, finalSchema);
+        finalDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .save(destTable);
+      } else if ("ADDITION".equals(scenario)) {
+        StructType initialSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("value", DataTypes.StringType, true, Metadata.empty()),
+                  new StructField("ds", DataTypes.DateType, true, Metadata.empty())
+                });
+        List<Row> rows =
+            Arrays.asList(
+                RowFactory.create("val1", Date.valueOf("2023-04-13")),
+                RowFactory.create("val2", Date.valueOf("2023-04-14")));
+        Dataset<Row> initialDF = spark.createDataFrame(rows, initialSchema);
+        initialDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Overwrite)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .save(destTable);
+
+        StructType finalSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("value", DataTypes.StringType, true, Metadata.empty()),
+                  new StructField("ds", DataTypes.DateType, true, Metadata.empty()),
+                  new StructField("new_field", DataTypes.StringType, true, Metadata.empty())
+                });
+        List<Row> finalRows =
+            Arrays.asList(RowFactory.create("val3", Date.valueOf("2023-04-15"), "newVal1"));
+        Dataset<Row> finalDF = spark.createDataFrame(finalRows, finalSchema);
+        finalDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .option("allowFieldAddition", allowFieldAddition)
+            .option("allowFieldRelaxation", allowFieldRelaxation)
+            .save(destTable);
+      } else if ("ADDITION_NESTED".equals(scenario)) {
+        StructType initialSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("value", DataTypes.StringType, true, Metadata.empty()),
+                  new StructField("ds", DataTypes.DateType, true, Metadata.empty())
+                });
+        List<Row> rows =
+            Arrays.asList(
+                RowFactory.create("val1", Date.valueOf("2023-04-13")),
+                RowFactory.create("val2", Date.valueOf("2023-04-14")));
+        Dataset<Row> initialDF = spark.createDataFrame(rows, initialSchema);
+        initialDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Overwrite)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .save(destTable);
+
+        StructType nestedSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("value", DataTypes.StringType, true, Metadata.empty()),
+                  new StructField("ds", DataTypes.DateType, true, Metadata.empty()),
+                  new StructField(
+                      "nested_col",
+                      new StructType(
+                          new StructField[] {
+                            new StructField(
+                                "sub_field1", DataTypes.StringType, true, Metadata.empty()),
+                            new StructField(
+                                "sub_field2", DataTypes.StringType, true, Metadata.empty())
+                          }),
+                      true,
+                      Metadata.empty())
+                });
+        List<Row> nestedData =
+            Arrays.asList(
+                RowFactory.create(
+                    "val5", Date.valueOf("2023-04-15"), RowFactory.create("str1", "str2")),
+                RowFactory.create(
+                    "val6", Date.valueOf("2023-04-16"), RowFactory.create("str1", "str2")));
+        Dataset<Row> nestedDF = spark.createDataFrame(nestedData, nestedSchema);
+        nestedDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .option("allowFieldAddition", allowFieldAddition)
+            .option("allowFieldRelaxation", allowFieldRelaxation)
+            .save(destTable);
+      } else if ("ADDITION_INTO_NESTED".equals(scenario)) {
+        StructType initialSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("value", DataTypes.StringType, true, Metadata.empty()),
+                  new StructField("ds", DataTypes.DateType, true, Metadata.empty()),
+                  new StructField(
+                      "nested_col",
+                      new StructType(
+                          new StructField[] {
+                            new StructField(
+                                "sub_field1", DataTypes.StringType, true, Metadata.empty()),
+                            new StructField(
+                                "sub_field2", DataTypes.StringType, true, Metadata.empty())
+                          }),
+                      true,
+                      Metadata.empty())
+                });
+        List<Row> initialData =
+            Arrays.asList(
+                RowFactory.create(
+                    "val5", Date.valueOf("2023-04-15"), RowFactory.create("str1", "str2")),
+                RowFactory.create(
+                    "val6", Date.valueOf("2023-04-16"), RowFactory.create("str1", "str2")));
+        Dataset<Row> initialDF = spark.createDataFrame(initialData, initialSchema);
+        initialDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .option("allowFieldAddition", allowFieldAddition)
+            .option("allowFieldRelaxation", allowFieldRelaxation)
+            .save(destTable);
+
+        StructType finalSchema =
+            new StructType(
+                new StructField[] {
+                  new StructField("value", DataTypes.StringType, true, Metadata.empty()),
+                  new StructField("ds", DataTypes.DateType, true, Metadata.empty()),
+                  new StructField(
+                      "nested_col",
+                      new StructType(
+                          new StructField[] {
+                            new StructField(
+                                "sub_field1", DataTypes.StringType, true, Metadata.empty()),
+                            new StructField(
+                                "sub_field2", DataTypes.StringType, true, Metadata.empty()),
+                            new StructField(
+                                "sub_field3", DataTypes.StringType, true, Metadata.empty())
+                          }),
+                      true,
+                      Metadata.empty())
+                });
+        List<Row> finalData =
+            Arrays.asList(
+                RowFactory.create(
+                    "val5", Date.valueOf("2023-04-15"), RowFactory.create("str1", "str2", "str3")),
+                RowFactory.create(
+                    "val6", Date.valueOf("2023-04-16"), RowFactory.create("str1", "str2", "str3")));
+        Dataset<Row> finalDF = spark.createDataFrame(finalData, finalSchema);
+        finalDF
+            .write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .option("allowFieldAddition", allowFieldAddition)
+            .option("allowFieldRelaxation", allowFieldRelaxation)
+            .save(destTable);
+      }
+
+      JsonObject result = new JsonObject();
+      result.addProperty("status", "success");
+      return result;
+    } finally {
+      // clean context stop if necessary
+    }
+  }
+
+  protected static JsonObject partitionClusteredWriteApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String scenario = parameters.getOrDefault("scenario", "PARTITION_CLUSTERED");
+    String writeMethod = parameters.get("writeMethod");
+    String partitionField = parameters.get("partitionField");
+    String partitionType = parameters.get("partitionType");
+    String clusteredFields = parameters.get("clusteredFields");
+    String datePartition = parameters.get("datePartition");
+    String temporaryGcsBucket = parameters.get("temporaryGcsBucket");
+    String dynamicOverwriteType = parameters.get("dynamicOverwriteType");
+    String timeStampNTZTypeName = parameters.get("timeStampNTZTypeName");
+    String fullTableName = testDataset + "." + testTable;
+
+    SparkSession spark =
+        SparkSession.builder()
+            .master("local[*]")
+            .appName("partition_clustered_write_test")
+            .config("spark.ui.enabled", "false")
+            .getOrCreate();
+
+    try {
+      if ("PARTITION_CLUSTERED".equals(scenario)) {
+        Dataset<Row> df =
+            spark
+                .read()
+                .format("bigquery")
+                .option("table", TestConstants.LIBRARIES_PROJECTS_TABLE)
+                .load()
+                .where("platform = 'Sublime'");
+        df.write()
+            .format("bigquery")
+            .option("table", fullTableName + "_partitioned")
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("partitionField", partitionField)
+            .option("clusteredFields", clusteredFields)
+            .option("writeMethod", writeMethod)
+            .mode(SaveMode.Overwrite)
+            .save();
+      } else if ("CLUSTERED".equals(scenario)) {
+        Dataset<Row> df =
+            spark
+                .read()
+                .format("bigquery")
+                .option("table", TestConstants.LIBRARIES_PROJECTS_TABLE)
+                .load()
+                .where("platform = 'Sublime'");
+        df.write()
+            .format("bigquery")
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("clusteredFields", clusteredFields)
+            .option("writeMethod", writeMethod)
+            .mode(SaveMode.Append)
+            .save();
+      } else if ("OVERWRITE_SINGLE".equals(scenario)) {
+        String comment = parameters.get("dateFieldComment");
+        StructField theDateField;
+        if (comment != null) {
+          theDateField =
+              new StructField("the_date", DataTypes.DateType, true, Metadata.empty())
+                  .withComment(comment);
+        } else {
+          theDateField = new StructField("the_date", DataTypes.DateType, true, Metadata.empty());
+        }
+        List<Row> rows = Arrays.asList(RowFactory.create(Date.valueOf("2020-07-01"), "baz"));
+        StructType newDataSchema =
+            new StructType(
+                new StructField[] {
+                  theDateField,
+                  new StructField("some_text", DataTypes.StringType, true, Metadata.empty())
+                });
+        Dataset<Row> newDataDF = spark.createDataFrame(rows, newDataSchema);
+        newDataDF
+            .write()
+            .format("bigquery")
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("datePartition", datePartition)
+            .mode("overwrite")
+            .save(fullTableName + "_partitioned");
+      } else if ("TIME_PARTITION".equals(scenario)) {
+        List<Data> data =
+            Arrays.asList(
+                new Data("a", Timestamp.valueOf("2020-01-01 01:01:01")),
+                new Data("b", Timestamp.valueOf("2020-01-02 02:02:02")),
+                new Data("c", Timestamp.valueOf("2020-01-03 03:03:03")));
+        Dataset<Row> df = spark.createDataset(data, Encoders.bean(Data.class)).toDF();
+        df.write()
+            .format("bigquery")
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("partitionField", partitionField)
+            .option("partitionType", partitionType)
+            .option("partitionRequireFilter", "true")
+            .option("table", fullTableName + "_" + partitionType)
+            .option("writeMethod", writeMethod)
+            .save();
+      } else if ("RANGE_PARTITION".equals(scenario)) {
+        List<RangeData> data =
+            Arrays.asList(new RangeData("a", 1L), new RangeData("b", 5L), new RangeData("c", 11L));
+        Dataset<Row> df = spark.createDataset(data, Encoders.bean(RangeData.class)).toDF();
+        df.write()
+            .format("bigquery")
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("partitionField", "rng")
+            .option("partitionRangeStart", "1")
+            .option("partitionRangeEnd", "21")
+            .option("partitionRangeInterval", "2")
+            .option("partitionRequireFilter", "true")
+            .option("table", fullTableName + "_range")
+            .option("writeMethod", writeMethod)
+            .save();
+      } else if ("DYNAMIC_OVERWRITE".equals(scenario)) {
+        DataType ntzType = null;
+        if (timeStampNTZTypeName != null && !"".equals(timeStampNTZTypeName)) {
+          if (timeStampNTZTypeName.contains("TimestampNTZ")) {
+            try {
+              ntzType = (DataType) DataTypes.class.getField("TimestampNTZType").get(null);
+            } catch (Exception ignored) {
+            }
+          }
+        }
+
+        Dataset<Row> df = null;
+        if ("TIMESTAMP_HOUR".equals(dynamicOverwriteType)
+            || "TIMESTAMP_DAY".equals(dynamicOverwriteType)
+            || "TIMESTAMP_MONTH".equals(dynamicOverwriteType)
+            || "TIMESTAMP_YEAR".equals(dynamicOverwriteType)
+            || "NO_PARTITION".equals(dynamicOverwriteType)) {
+          df =
+              spark.createDataFrame(
+                  Arrays.asList(
+                      RowFactory.create(10, Timestamp.valueOf("2023-09-29 2:00:00")),
+                      RowFactory.create(20, Timestamp.valueOf("2023-09-30 12:00:00"))),
+                  new StructType(
+                      new StructField[] {
+                        new StructField("order_id", DataTypes.IntegerType, true, Metadata.empty()),
+                        new StructField(
+                            "order_date_time", DataTypes.TimestampType, true, Metadata.empty())
+                      }));
+        } else if ("DATE_DAY".equals(dynamicOverwriteType)
+            || "DATE_MONTH".equals(dynamicOverwriteType)
+            || "DATE_YEAR".equals(dynamicOverwriteType)) {
+          df =
+              spark.createDataFrame(
+                  Arrays.asList(
+                      RowFactory.create(10, Date.valueOf("2023-09-29")),
+                      RowFactory.create(20, Date.valueOf("2023-09-30"))),
+                  new StructType(
+                      new StructField[] {
+                        new StructField("order_id", DataTypes.IntegerType, true, Metadata.empty()),
+                        new StructField("order_date", DataTypes.DateType, true, Metadata.empty())
+                      }));
+        } else if ("DATETIME_HOUR".equals(dynamicOverwriteType)
+            || "DATETIME_DAY".equals(dynamicOverwriteType)
+            || "DATETIME_MONTH".equals(dynamicOverwriteType)
+            || "DATETIME_YEAR".equals(dynamicOverwriteType)) {
+          Preconditions.checkNotNull(
+              ntzType, "NTZ type must be passed for DateTime partition test");
+          df =
+              spark.createDataFrame(
+                  Arrays.asList(
+                      RowFactory.create(10, LocalDateTime.of(2023, 9, 29, 10, 15, 0)),
+                      RowFactory.create(20, LocalDateTime.of(2023, 9, 30, 12, 0, 0))),
+                  new StructType(
+                      new StructField[] {
+                        new StructField("order_id", DataTypes.IntegerType, true, Metadata.empty()),
+                        new StructField("order_date_time", ntzType, true, Metadata.empty())
+                      }));
+        } else if ("RANGE".equals(dynamicOverwriteType)) {
+          df =
+              spark.createDataFrame(
+                  Arrays.asList(
+                      RowFactory.create(4, 2000),
+                      RowFactory.create(20, 2050),
+                      RowFactory.create(85, 3000),
+                      RowFactory.create(90, 3050)),
+                  new StructType(
+                      new StructField[] {
+                        new StructField("order_id", DataTypes.IntegerType, true, Metadata.empty()),
+                        new StructField(
+                            "order_count", DataTypes.IntegerType, true, Metadata.empty())
+                      }));
+        } else if ("RANGE_LESS".equals(dynamicOverwriteType)) {
+          df =
+              spark.createDataFrame(
+                  Arrays.asList(RowFactory.create(4, 2000), RowFactory.create(-10, 2050)),
+                  new StructType(
+                      new StructField[] {
+                        new StructField("order_id", DataTypes.IntegerType, true, Metadata.empty()),
+                        new StructField(
+                            "order_count", DataTypes.IntegerType, true, Metadata.empty())
+                      }));
+        } else if ("RANGE_GREATER".equals(dynamicOverwriteType)) {
+          df =
+              spark.createDataFrame(
+                  Arrays.asList(RowFactory.create(4, 2000), RowFactory.create(105, 2050)),
+                  new StructType(
+                      new StructField[] {
+                        new StructField("order_id", DataTypes.IntegerType, true, Metadata.empty()),
+                        new StructField(
+                            "order_count", DataTypes.IntegerType, true, Metadata.empty())
+                      }));
+        } else if ("RANGE_BOUNDARY".equals(dynamicOverwriteType)) {
+          df =
+              spark.createDataFrame(
+                  Arrays.asList(RowFactory.create(-1, 2000), RowFactory.create(5, 2050)),
+                  new StructType(
+                      new StructField[] {
+                        new StructField("order_id", DataTypes.IntegerType, true, Metadata.empty()),
+                        new StructField(
+                            "order_count", DataTypes.IntegerType, true, Metadata.empty())
+                      }));
+        } else if ("RANGE_NULLS".equals(dynamicOverwriteType)) {
+          df =
+              spark.createDataFrame(
+                  Arrays.asList(RowFactory.create(null, 2000), RowFactory.create(5, 2050)),
+                  new StructType(
+                      new StructField[] {
+                        new StructField("order_id", DataTypes.IntegerType, true, Metadata.empty()),
+                        new StructField(
+                            "order_count", DataTypes.IntegerType, true, Metadata.empty())
+                      }));
+        }
+
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Overwrite)
+            .option("dataset", testDataset)
+            .option("table", testTable)
+            .option("writeMethod", writeMethod)
+            .option(
+                "spark.sql.sources.partitionOverwriteMode",
+                PartitionOverwriteMode.DYNAMIC.toString())
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .save();
+      }
+
+      JsonObject result = new JsonObject();
+      result.addProperty("status", "success");
+      return result;
+    } finally {
+      // clean context stop if necessary
+    }
+  }
+
+  protected static JsonObject dateTimeWriteApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String scenario = parameters.getOrDefault("scenario", "JSON_NEW");
+    String writeMethod = parameters.get("writeMethod");
+    String saveMode = parameters.getOrDefault("saveMode", "append");
+    String intermediateFormat = parameters.getOrDefault("intermediateFormat", "avro");
+    String temporaryGcsBucket = parameters.get("temporaryGcsBucket");
+    String timeStampNTZTypeName = parameters.get("timeStampNTZTypeName");
+    String fullTableName = testDataset + "." + testTable;
+
+    SparkSession spark =
+        SparkSession.builder()
+            .master("local[*]")
+            .appName("date_time_write_test")
+            .config("spark.ui.enabled", "false")
+            .getOrCreate();
+
+    try {
+      if ("JSON_NEW".equals(scenario) || "JSON_EXISTING".equals(scenario)) {
+        Dataset<Row> df =
+            spark.createDataFrame(
+                Arrays.asList(
+                    RowFactory.create("{\"key\":\"foo\",\"value\":1}"),
+                    RowFactory.create("{\"key\":\"bar\",\"value\":2}")),
+                new StructType(
+                    new StructField[] {
+                      new StructField(
+                          "jf",
+                          DataTypes.StringType,
+                          true,
+                          Metadata.fromJson("{\"sqlType\":\"JSON\"}"))
+                    }));
+        df.write()
+            .format("bigquery")
+            .mode("append".equalsIgnoreCase(saveMode) ? SaveMode.Append : SaveMode.Overwrite)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("intermediateFormat", "AVRO")
+            .option("dataset", testDataset)
+            .option("table", testTable)
+            .option("writeMethod", writeMethod)
+            .save();
+      } else if ("MAP".equals(scenario)) {
+        Dataset<Row> df =
+            spark.createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(ImmutableMap.of("a", 1L, "b", 2L)),
+                    RowFactory.create(ImmutableMap.of("c", 3L))),
+                new StructType(
+                    new StructField[] {
+                      new StructField(
+                          "mf",
+                          DataTypes.createMapType(DataTypes.StringType, DataTypes.LongType),
+                          false,
+                          Metadata.empty())
+                    }));
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("intermediateFormat", "AVRO")
+            .option("dataset", testDataset)
+            .option("table", testTable)
+            .option("writeMethod", writeMethod)
+            .save();
+      } else if ("WIDE_NUMERICS".equals(scenario)) {
+        Decimal num = Decimal.apply("12345.6");
+        Decimal bignum = Decimal.apply("12345.12345");
+        Dataset<Row> df =
+            spark.createDataFrame(
+                Arrays.asList(RowFactory.create(num, bignum)),
+                new StructType(
+                    new StructField[] {
+                      new StructField(
+                          "num", DataTypes.createDecimalType(6, 1), true, Metadata.empty()),
+                      new StructField(
+                          "bignum", DataTypes.createDecimalType(10, 5), true, Metadata.empty())
+                    }));
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("dataset", testDataset)
+            .option("table", testTable)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("writeMethod", writeMethod)
+            .save();
+      } else if ("STRING_TO_TIME".equals(scenario)) {
+        String name = "abc";
+        String wakeUpTime = "10:00:00";
+        Dataset<Row> df =
+            spark.createDataFrame(
+                Arrays.asList(RowFactory.create(name, wakeUpTime)),
+                new StructType(
+                    new StructField[] {
+                      new StructField("name", DataTypes.StringType, true, Metadata.empty()),
+                      new StructField("wake_up_time", DataTypes.StringType, true, Metadata.empty())
+                    }));
+        df.write()
+            .format("bigquery")
+            .mode("overwrite".equalsIgnoreCase(saveMode) ? SaveMode.Overwrite : SaveMode.Append)
+            .option("dataset", testDataset)
+            .option("table", testTable)
+            .option("writeMethod", writeMethod)
+            .save();
+      } else if ("STRING_TO_DATETIME".equals(scenario)) {
+        String name = "abc";
+        String dateTime1 = "0001-01-01T01:22:24.999888";
+        Dataset<Row> df =
+            spark.createDataFrame(
+                Arrays.asList(RowFactory.create(name, dateTime1)),
+                new StructType(
+                    new StructField[] {
+                      new StructField("name", DataTypes.StringType, true, Metadata.empty()),
+                      new StructField("datetime1", DataTypes.StringType, true, Metadata.empty())
+                    }));
+        df.write()
+            .format("bigquery")
+            .mode("overwrite".equalsIgnoreCase(saveMode) ? SaveMode.Overwrite : SaveMode.Append)
+            .option("dataset", testDataset)
+            .option("table", testTable)
+            .option("writeMethod", writeMethod)
+            .save();
+      } else if ("TIMESTAMP".equals(scenario)) {
+        String name = "abc";
+        TimeZone.setDefault(TimeZone.getTimeZone("IST"));
+        Timestamp timestamp1 = Timestamp.valueOf("1501-01-01 01:22:24.999888");
+        Dataset<Row> df =
+            spark.createDataFrame(
+                Arrays.asList(RowFactory.create(name, timestamp1)),
+                new StructType(
+                    new StructField[] {
+                      new StructField("name", DataTypes.StringType, true, Metadata.empty()),
+                      new StructField("timestamp1", DataTypes.TimestampType, true, Metadata.empty())
+                    }));
+        df.write()
+            .format("bigquery")
+            .mode("append")
+            .option("dataset", testDataset)
+            .option("table", testTable)
+            .option("writeMethod", writeMethod)
+            .save();
+      } else if ("TIMESTAMP_NTZ".equals(scenario)) {
+        DataType ntzType = null;
+        if (timeStampNTZTypeName != null && timeStampNTZTypeName.contains("TimestampNTZ")) {
+          try {
+            ntzType = (DataType) DataTypes.class.getField("TimestampNTZType").get(null);
+          } catch (Exception ignored) {
+          }
+        }
+        Preconditions.checkNotNull(ntzType, "NTZ Type must be specified");
+        String timeValStr = parameters.get("timeValue");
+        LocalDateTime time = LocalDateTime.parse(timeValStr);
+        Dataset<Row> df =
+            spark.createDataFrame(
+                Arrays.asList(RowFactory.create(time)),
+                new StructType(
+                    new StructField[] {new StructField("foo", ntzType, true, Metadata.empty())}));
+        df.write()
+            .format("bigquery")
+            .mode("overwrite".equalsIgnoreCase(saveMode) ? SaveMode.Overwrite : SaveMode.Append)
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("intermediateFormat", intermediateFormat)
+            .option("writeMethod", writeMethod)
+            .save();
+      } else if ("DESCRIPTION_UNCHANGED".equals(scenario) || "COUNT_AFTER_WRITE".equals(scenario)) {
+        Dataset<Row> df =
+            spark.createDataFrame(
+                Arrays.asList(RowFactory.create("foo", 10), RowFactory.create("bar", 20)),
+                new StructType()
+                    .add("name", DataTypes.StringType)
+                    .add("age", DataTypes.IntegerType));
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("intermediateFormat", "avro")
+            .option("writeAtLeastOnce", "false")
+            .option("writeMethod", writeMethod)
+            .save();
+      } else if ("EMPTY_DF".equals(scenario)) {
+        Dataset<Row> df = spark.createDataFrame(Collections.emptyList(), Link.class);
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("table", fullTableName)
+            .option("temporaryGcsBucket", temporaryGcsBucket)
+            .option("intermediateFormat", "avro")
+            .option("writeAtLeastOnce", "false")
+            .option("writeMethod", writeMethod)
+            .save();
+      }
+
+      JsonObject result = new JsonObject();
+      result.addProperty("status", "success");
+      return result;
+    } finally {
+      // clean context stop if necessary
+    }
+  }
+
+  protected static JsonObject machineLearningWriteApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String writeMethod = parameters.get("writeMethod");
+    String temporaryGcsBucket = parameters.get("temporaryGcsBucket");
+    String fullTableName = testDataset + "." + testTable;
+
+    SparkSession spark =
+        SparkSession.builder()
+            .master("local[*]")
+            .appName("ml_write_test")
+            .config("spark.ui.enabled", "false")
+            .getOrCreate();
+
+    try {
+      Dataset<Row> df =
+          spark.createDataFrame(
+              Arrays.asList(
+                  RowFactory.create("1", "20230515", 12345, 5678, 1234.12345),
+                  RowFactory.create("2", "20230515", 14789, 25836, 1234.12345),
+                  RowFactory.create("3", "20230515", 54321, 98765, 1234.12345)),
+              new StructType(
+                  new StructField[] {
+                    new StructField("Seqno", DataTypes.StringType, true, Metadata.empty()),
+                    new StructField("date1", DataTypes.StringType, true, Metadata.empty()),
+                    new StructField("num1", DataTypes.IntegerType, true, Metadata.empty()),
+                    new StructField("num2", DataTypes.IntegerType, true, Metadata.empty()),
+                    new StructField("amt1", DataTypes.DoubleType, true, Metadata.empty())
+                  }));
+
+      List<org.apache.spark.ml.Transformer> stages = new ArrayList<>();
+
+      VectorAssembler va = new VectorAssembler();
+      va.setInputCols(new String[] {"num1", "num2"});
+      va.setOutputCol("features_vector");
+      df = va.transform(df);
+      stages.add(va);
+
+      MinMaxScaler minMaxScaler = new MinMaxScaler();
+      minMaxScaler.setInputCol("features_vector");
+      minMaxScaler.setOutputCol("features");
+      MinMaxScalerModel minMaxScalerModel = minMaxScaler.fit(df);
+      df = minMaxScalerModel.transform(df);
+      stages.add(minMaxScalerModel);
+
+      df.write()
+          .format("bigquery")
+          .option("writeMethod", writeMethod)
+          .option("temporaryGcsBucket", temporaryGcsBucket)
+          .option("dataset", testDataset)
+          .option("table", testTable)
+          .save();
+
+      JsonObject result = new JsonObject();
+      result.addProperty("status", "success");
+      return result;
+    } finally {
+      // clean context stop if necessary
+    }
+  }
 
   private static final TimeZone DEFAULT_TZ = TimeZone.getDefault();
   protected static AtomicInteger id = new AtomicInteger(0);
@@ -232,44 +1290,54 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .load();
   }
 
-  private void writeToBigQuery_AppendSaveMode_Internal(String writeAtLeastOnce)
-      throws InterruptedException {
-    // initial write
-    writeToBigQueryAvroFormat(initialData(), SaveMode.Append, writeAtLeastOnce);
-    assertThat(testTableNumberOfRows()).isEqualTo(2);
-    assertThat(initialDataValuesExist()).isTrue();
-    // second write
-    writeToBigQueryAvroFormat(additonalData(), SaveMode.Append, writeAtLeastOnce);
+  private void writeToBigQuery_AppendSaveMode_Internal(String writeAtLeastOnce) throws Exception {
+    JsonObject result =
+        testRunner.run(
+            WriteIntegrationTestBase::basicWriteApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "scenario",
+                "APPEND",
+                "writeMethod",
+                writeMethod.toString(),
+                "writeAtLeastOnce",
+                writeAtLeastOnce,
+                "temporaryGcsBucket",
+                TestConstants.TEMPORARY_GCS_BUCKET));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(testTableNumberOfRows()).isEqualTo(4);
+    assertThat(initialDataValuesExist()).isTrue();
     assertThat(additionalDataValuesExist()).isTrue();
   }
 
   @Test
-  public void testWriteToBigQuery_AppendSaveMode() throws InterruptedException {
+  public void testWriteToBigQuery_AppendSaveMode() throws Exception {
     writeToBigQuery_AppendSaveMode_Internal("False");
   }
 
   @Test
-  public void testWriteToBigQuery_AppendSaveMode_AtLeastOnce() throws InterruptedException {
+  public void testWriteToBigQuery_AppendSaveMode_AtLeastOnce() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     writeToBigQuery_AppendSaveMode_Internal("True");
   }
 
-  private void writeToBigQuery_WithTableLabels_Internal(String writeAtLeastOnce) {
-    Dataset<Row> df = initialData();
-
-    df.write()
-        .format("bigquery")
-        .mode(SaveMode.Append)
-        .option("table", fullTableName())
-        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-        .option("intermediateFormat", "avro")
-        .option("writeMethod", writeMethod.toString())
-        .option("writeAtLeastOnce", writeAtLeastOnce)
-        .option("bigQueryTableLabel.alice", "bob")
-        .option("bigQueryTableLabel.foo", "bar")
-        .save();
-
+  private void writeToBigQuery_WithTableLabels_Internal(String writeAtLeastOnce) throws Exception {
+    JsonObject result =
+        testRunner.run(
+            WriteIntegrationTestBase::basicWriteApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "scenario",
+                "LABELS",
+                "writeMethod",
+                writeMethod.toString(),
+                "writeAtLeastOnce",
+                writeAtLeastOnce,
+                "temporaryGcsBucket",
+                TestConstants.TEMPORARY_GCS_BUCKET));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
     Table bigQueryTable = bq.getTable(testDataset.toString(), testTable);
     Map<String, String> tableLabels = bigQueryTable.getLabels();
     assertEquals(2, tableLabels.size());
@@ -278,30 +1346,33 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQuery_WithTableLabels() {
+  public void testWriteToBigQuery_WithTableLabels() throws Exception {
     writeToBigQuery_WithTableLabels_Internal("False");
   }
 
   @Test
-  public void testWriteToBigQuery_WithTableLabels_AtLeastOnce() {
+  public void testWriteToBigQuery_WithTableLabels_AtLeastOnce() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     writeToBigQuery_WithTableLabels_Internal("True");
   }
 
   private void writeToBigQuery_EnableListInference_Internal(String writeAtLeastOnce)
-      throws InterruptedException {
-    Dataset<Row> df = initialData();
-    df.write()
-        .format("bigquery")
-        .mode(SaveMode.Append)
-        .option("table", fullTableName())
-        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-        .option("intermediateFormat", "parquet")
-        .option("writeMethod", writeMethod.toString())
-        .option("writeAtLeastOnce", writeAtLeastOnce)
-        .option("enableListInference", true)
-        .save();
-
+      throws Exception {
+    JsonObject result =
+        testRunner.run(
+            WriteIntegrationTestBase::basicWriteApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "scenario",
+                "LIST_INFERENCE",
+                "writeMethod",
+                writeMethod.toString(),
+                "writeAtLeastOnce",
+                writeAtLeastOnce,
+                "temporaryGcsBucket",
+                TestConstants.TEMPORARY_GCS_BUCKET));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
     Dataset<Row> readDF =
         spark
             .read()
@@ -310,132 +1381,192 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .option("table", testTable)
             .load();
     SchemaConverters sc = SchemaConverters.from(SchemaConvertersConfiguration.createDefault());
-    Schema initialSchema = sc.toBigQuerySchema(df.schema());
+    Schema initialSchema = sc.toBigQuerySchema(initialData().schema());
     Schema readSchema = sc.toBigQuerySchema(readDF.schema());
     assertEquals(initialSchema, readSchema);
   }
 
   @Test
-  public void testWriteToBigQuery_EnableListInference() throws InterruptedException {
+  public void testWriteToBigQuery_EnableListInference() throws Exception {
     writeToBigQuery_EnableListInference_Internal("False");
   }
 
   @Test
-  public void testWriteToBigQuery_EnableListInference_AtLeastOnce() throws InterruptedException {
+  public void testWriteToBigQuery_EnableListInference_AtLeastOnce() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     writeToBigQuery_EnableListInference_Internal("True");
   }
 
   private void writeToBigQuery_ErrorIfExistsSaveMode_Internal(String writeAtLeastOnce)
-      throws InterruptedException {
-    // initial write
-    writeToBigQueryAvroFormat(initialData(), SaveMode.ErrorIfExists, writeAtLeastOnce);
+      throws Exception {
+    // Run first append
+    JsonObject result =
+        testRunner.run(
+            WriteIntegrationTestBase::basicWriteApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "scenario",
+                "SIMPLIFIED_API",
+                "writeMethod",
+                writeMethod.toString(),
+                "writeAtLeastOnce",
+                writeAtLeastOnce,
+                "temporaryGcsBucket",
+                TestConstants.TEMPORARY_GCS_BUCKET));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
+
+    // Second write under ErrorIfExists must fail E2E
     assertThrows(
         expectedExceptionOnExistingTable,
-        () -> writeToBigQueryAvroFormat(additonalData(), SaveMode.ErrorIfExists, writeAtLeastOnce));
+        () ->
+            testRunner.run(
+                WriteIntegrationTestBase::basicWriteApp,
+                testDataset.toString(),
+                testTable,
+                ImmutableMap.of(
+                    "scenario",
+                    "ERROR_IF_EXISTS",
+                    "writeMethod",
+                    writeMethod.toString(),
+                    "writeAtLeastOnce",
+                    writeAtLeastOnce,
+                    "temporaryGcsBucket",
+                    TestConstants.TEMPORARY_GCS_BUCKET)));
   }
 
   @Test
-  public void testWriteToBigQuery_ErrorIfExistsSaveMode() throws InterruptedException {
+  public void testWriteToBigQuery_ErrorIfExistsSaveMode() throws Exception {
     writeToBigQuery_ErrorIfExistsSaveMode_Internal("False");
   }
 
   @Test
-  public void testWriteToBigQuery_ErrorIfExistsSaveMode_AtLeastOnce() throws InterruptedException {
+  public void testWriteToBigQuery_ErrorIfExistsSaveMode_AtLeastOnce() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     writeToBigQuery_ErrorIfExistsSaveMode_Internal("True");
   }
 
-  private void writeToBigQuery_IgnoreSaveMode_Internal(String writeAtLeastOnce)
-      throws InterruptedException {
-    // initial write
-    writeToBigQueryAvroFormat(initialData(), SaveMode.Ignore, writeAtLeastOnce);
-    assertThat(testTableNumberOfRows()).isEqualTo(2);
-    assertThat(initialDataValuesExist()).isTrue();
-    // second write
-    writeToBigQueryAvroFormat(additonalData(), SaveMode.Ignore, writeAtLeastOnce);
+  private void writeToBigQuery_IgnoreSaveMode_Internal(String writeAtLeastOnce) throws Exception {
+    JsonObject result =
+        testRunner.run(
+            WriteIntegrationTestBase::basicWriteApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "scenario",
+                "IGNORE",
+                "writeMethod",
+                writeMethod.toString(),
+                "writeAtLeastOnce",
+                writeAtLeastOnce,
+                "temporaryGcsBucket",
+                TestConstants.TEMPORARY_GCS_BUCKET));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
     assertThat(additionalDataValuesExist()).isFalse();
   }
 
   @Test
-  public void testWriteToBigQuery_IgnoreSaveMode() throws InterruptedException {
+  public void testWriteToBigQuery_IgnoreSaveMode() throws Exception {
     writeToBigQuery_IgnoreSaveMode_Internal("False");
   }
 
   @Test
-  public void testWriteToBigQuery_IgnoreSaveMode_AtLeastOnce() throws InterruptedException {
+  public void testWriteToBigQuery_IgnoreSaveMode_AtLeastOnce() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     writeToBigQuery_IgnoreSaveMode_Internal("True");
   }
 
   private void writeToBigQuery_OverwriteSaveMode_Internal(String writeAtLeastOnce)
-      throws InterruptedException {
-    // initial write
-    writeToBigQueryAvroFormat(initialData(), SaveMode.Overwrite, writeAtLeastOnce);
-    assertThat(testTableNumberOfRows()).isEqualTo(2);
-    assertThat(initialDataValuesExist()).isTrue();
-
-    // Adding a two minute cushion as the data takes some time to move from buffer to the actual
-    // table. Without this cushion, get the following error:
-    // "UPDATE or DELETE statement over {DestinationTable} would affect rows in the streaming
-    // buffer, which is not supported"
-    Thread.sleep(120 * 1000);
-
-    // second write
-    writeToBigQueryAvroFormat(additonalData(), SaveMode.Overwrite, writeAtLeastOnce);
+      throws Exception {
+    JsonObject result =
+        testRunner.run(
+            WriteIntegrationTestBase::basicWriteApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "scenario",
+                "OVERWRITE",
+                "writeMethod",
+                writeMethod.toString(),
+                "writeAtLeastOnce",
+                writeAtLeastOnce,
+                "temporaryGcsBucket",
+                TestConstants.TEMPORARY_GCS_BUCKET));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isFalse();
     assertThat(additionalDataValuesExist()).isTrue();
   }
 
   @Test
-  public void testWriteToBigQuery_OverwriteSaveMode() throws InterruptedException {
+  public void testWriteToBigQuery_OverwriteSaveMode() throws Exception {
     writeToBigQuery_OverwriteSaveMode_Internal("False");
   }
 
   @Test
-  public void testWriteToBigQuery_OverwriteSaveMode_AtLeastOnce() throws InterruptedException {
+  public void testWriteToBigQuery_OverwriteSaveMode_AtLeastOnce() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     writeToBigQuery_OverwriteSaveMode_Internal("True");
   }
 
   @Test
-  public void testWriteToBigQuery_AvroFormat() throws InterruptedException {
-    writeToBigQuery(initialData(), SaveMode.ErrorIfExists, "avro");
+  public void testWriteToBigQuery_AvroFormat() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            WriteIntegrationTestBase::basicWriteApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "scenario",
+                "SIMPLIFIED_API",
+                "writeMethod",
+                writeMethod.toString(),
+                "intermediateFormat",
+                "avro",
+                "temporaryGcsBucket",
+                TestConstants.TEMPORARY_GCS_BUCKET));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
   }
 
-  private void writeToBigQuerySimplifiedApi_Internal(String writeAtLeastOnce)
-      throws InterruptedException {
-    initialData()
-        .write()
-        .format("bigquery")
-        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-        .option("writeMethod", writeMethod.toString())
-        .option("writeAtLeastOnce", writeAtLeastOnce)
-        .save(fullTableName());
+  private void writeToBigQuerySimplifiedApi_Internal(String writeAtLeastOnce) throws Exception {
+    JsonObject result =
+        testRunner.run(
+            WriteIntegrationTestBase::basicWriteApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "scenario",
+                "SIMPLIFIED_API",
+                "writeMethod",
+                writeMethod.toString(),
+                "writeAtLeastOnce",
+                writeAtLeastOnce,
+                "temporaryGcsBucket",
+                TestConstants.TEMPORARY_GCS_BUCKET));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(testTableNumberOfRows()).isEqualTo(2);
     assertThat(initialDataValuesExist()).isTrue();
   }
 
   @Test
-  public void testWriteToBigQuerySimplifiedApi() throws InterruptedException {
+  public void testWriteToBigQuerySimplifiedApi() throws Exception {
     writeToBigQuerySimplifiedApi_Internal("False");
   }
 
   @Test
-  public void testWriteToBigQuerySimplifiedApi_AtLeastOnce() throws InterruptedException {
+  public void testWriteToBigQuerySimplifiedApi_AtLeastOnce() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     writeToBigQuerySimplifiedApi_Internal("True");
   }
 
   @Test
-  public void testWriteToBigQueryAddingTheSettingsToSparkConf() throws InterruptedException {
+  public void testWriteToBigQueryAddingTheSettingsToSparkConf() throws Exception {
     spark.conf().set("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET);
     initialData()
         .write()
@@ -620,7 +1751,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testInDirectWriteToBigQueryWithStreaming() throws TimeoutException, IOException {
+  public void testInDirectWriteToBigQueryWithStreaming() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
 
     // Skipping test for spark 4: only works for spark 3 for now.
@@ -659,8 +1790,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testInDirectWriteToBigQueryWithStreaming_AllTypes()
-      throws IOException, TimeoutException {
+  public void testInDirectWriteToBigQueryWithStreaming_AllTypes() throws Exception {
     // Skipping test for spark 4: only works for spark 3.5 for now.
     String sparkVersion = package$.MODULE$.SPARK_VERSION();
     Assume.assumeThat(sparkVersion, CoreMatchers.startsWith("3.5"));
@@ -680,7 +1810,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             Option.apply(null),
             encoder // Implicit encoder passed as final arg
             );
-    memoryStream.addData(JavaConverters.asScalaBuffer(rows).toSeq());
+    memoryStream.addData(JavaConverters.asScalaBuffer(rows).seq());
 
     String destTableName = testDataset + "." + "test_streaming_allTypes" + System.nanoTime();
     String checkPointLocation =
@@ -768,7 +1898,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteNullableDFWithNullDataToBigQueryRequired() {
+  public void testWriteNullableDFWithNullDataToBigQueryRequired() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REQUIRED_FIELD);
@@ -789,7 +1919,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteNullableDFToBigQueryRepeated() {
+  public void testWriteNullableDFToBigQueryRepeated() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REPEATED_FIELD);
@@ -847,7 +1977,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteRequiredDFToBigQueryRepeated() {
+  public void testWriteRequiredDFToBigQueryRepeated() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REPEATED_FIELD);
@@ -867,7 +1997,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteRepeatedDFToBigQueryNullable() {
+  public void testWriteRepeatedDFToBigQueryNullable() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_NULLABLE_FIELD);
@@ -893,7 +2023,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteRepeatedDFToBigQueryRequired() {
+  public void testWriteRepeatedDFToBigQueryRequired() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REQUIRED_FIELD);
@@ -919,7 +2049,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteRepeatedDFToBigQueryRepeated() {
+  public void testWriteRepeatedDFToBigQueryRepeated() throws Exception {
     String destTableName =
         createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE_WITH_REPEATED_FIELD);
     StructType srcSchema =
@@ -942,52 +2072,44 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQueryPartitionedAndClusteredTable() {
+  public void testWriteToBigQueryPartitionedAndClusteredTable() throws Exception {
     // partition write not supported in BQ Storage Write API
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
 
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", TestConstants.LIBRARIES_PROJECTS_TABLE)
-            .load()
-            .where("platform = 'Sublime'");
-
-    df.write()
-        .format("bigquery")
-        .option("table", fullTableNamePartitioned())
-        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-        .option("partitionField", "created_timestamp")
-        .option("clusteredFields", "platform")
-        .option("writeMethod", writeMethod.toString())
-        .mode(SaveMode.Overwrite)
-        .save();
-
+    JsonObject result =
+        testRunner.run(
+            WriteIntegrationTestBase::partitionClusteredWriteApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "scenario", "PARTITION_CLUSTERED",
+                "writeMethod", writeMethod.toString(),
+                "partitionField", "created_timestamp",
+                "clusteredFields", "platform",
+                "temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
     StandardTableDefinition tableDefinition = testPartitionedTableDefinition();
     assertThat(tableDefinition.getTimePartitioning().getField()).isEqualTo("created_timestamp");
     assertThat(tableDefinition.getClustering().getFields()).contains("platform");
   }
 
   @Test
-  public void testWriteToBigQueryClusteredTable() {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", TestConstants.LIBRARIES_PROJECTS_TABLE)
-            .load()
-            .where("platform = 'Sublime'");
-
-    df.write()
-        .format("bigquery")
-        .option("table", fullTableName())
-        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-        .option("clusteredFields", "platform")
-        .option("writeMethod", writeMethod.toString())
-        .mode(SaveMode.Append)
-        .save();
-
+  public void testWriteToBigQueryClusteredTable() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            WriteIntegrationTestBase::partitionClusteredWriteApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "scenario",
+                "CLUSTERED",
+                "writeMethod",
+                writeMethod.toString(),
+                "clusteredFields",
+                "platform",
+                "temporaryGcsBucket",
+                TestConstants.TEMPORARY_GCS_BUCKET));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
     StandardTableDefinition tableDefinition =
         bq.getTable(testDataset.toString(), testTable).getDefinition();
     assertThat(tableDefinition.getClustering().getFields()).contains("platform");
@@ -1072,14 +2194,14 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   // TODO: figure out why the table creation fails
   // @Test
-  public void testOverwriteSinglePartition() {
+  public void testOverwriteSinglePartition() throws Exception {
     overwriteSinglePartition(
         new StructField("the_date", DataTypes.DateType, true, Metadata.empty()));
   }
 
   // TODO: figure out why the table creation fails
   // @Test
-  public void testOverwriteSinglePartitionWithComment() {
+  public void testOverwriteSinglePartitionWithComment() throws Exception {
     String comment = "the partition field";
     Dataset<Row> resultDF =
         overwriteSinglePartition(
@@ -1089,7 +2211,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteToBigQueryWithDescription() {
+  public void testWriteToBigQueryWithDescription() throws Exception {
     String testDescription = "test description";
     String testComment = "test comment";
 
@@ -1157,22 +2279,22 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testPartition_Hourly() {
+  public void testPartition_Hourly() throws Exception {
     testPartition("HOUR");
   }
 
   @Test
-  public void testPartition_Daily() {
+  public void testPartition_Daily() throws Exception {
     testPartition("DAY");
   }
 
   @Test
-  public void testPartition_Monthly() {
+  public void testPartition_Monthly() throws Exception {
     testPartition("MONTH");
   }
 
   @Test
-  public void testPartition_Yearly() {
+  public void testPartition_Yearly() throws Exception {
     testPartition("YEAR");
   }
 
@@ -1202,7 +2324,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testPartitionRange() {
+  public void testPartitionRange() throws Exception {
     // partition write not supported in BQ Storage Write API
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
 
@@ -1237,7 +2359,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testCacheDataFrameInDataSource() {
+  public void testCacheDataFrameInDataSource() throws Exception {
     // It takes some time for the data to be available for read via the Storage Read API, after it
     // has been written
     // using the Storage Write API hence this test becomes flaky!
@@ -1577,12 +2699,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteStringToTimeField_OverwriteSaveMode() {
+  public void testWriteStringToTimeField_OverwriteSaveMode() throws Exception {
     testWriteStringToTimeField_internal(SaveMode.Overwrite);
   }
 
   @Test
-  public void testWriteStringToTimeField_AppendSaveMode() {
+  public void testWriteStringToTimeField_AppendSaveMode() throws Exception {
     testWriteStringToTimeField_internal(SaveMode.Append);
   }
 
@@ -1629,17 +2751,17 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteStringToDateTimeField_OverwriteSaveMode() {
+  public void testWriteStringToDateTimeField_OverwriteSaveMode() throws Exception {
     testWriteStringToDateTimeField_internal(SaveMode.Overwrite);
   }
 
   @Test
-  public void testWriteStringToDateTimeField_AppendSaveMode() {
+  public void testWriteStringToDateTimeField_AppendSaveMode() throws Exception {
     testWriteStringToDateTimeField_internal(SaveMode.Append);
   }
 
   @Test
-  public void testWriteToTimestampField() {
+  public void testWriteToTimestampField() throws Exception {
     // not supported for indirect writes
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     IntegrationTestUtils.runQuery(
@@ -1708,7 +2830,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_partitionTimestampByHour() {
+  public void testOverwriteDynamicPartition_partitionTimestampByHour() throws Exception {
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1752,7 +2874,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_partitionTimestampByDay() {
+  public void testOverwriteDynamicPartition_partitionTimestampByDay() throws Exception {
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1796,7 +2918,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_partitionTimestampByMonth() {
+  public void testOverwriteDynamicPartition_partitionTimestampByMonth() throws Exception {
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1840,7 +2962,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_partitionTimestampByYear() {
+  public void testOverwriteDynamicPartition_partitionTimestampByYear() throws Exception {
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1884,7 +3006,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_partitionDateByDay() {
+  public void testOverwriteDynamicPartition_partitionDateByDay() throws Exception {
     String orderId = "order_id";
     String orderDate = "order_date";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1924,7 +3046,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_partitionDateByMonth() {
+  public void testOverwriteDynamicPartition_partitionDateByMonth() throws Exception {
     String orderId = "order_id";
     String orderDate = "order_date";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -1965,7 +3087,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_partitionDateByYear() {
+  public void testOverwriteDynamicPartition_partitionDateByYear() throws Exception {
     String orderId = "order_id";
     String orderDate = "order_date";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -2006,7 +3128,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_partitionDateTimeByHour() {
+  public void testOverwriteDynamicPartition_partitionDateTimeByHour() throws Exception {
     assumeThat(timeStampNTZType.isPresent(), is(true));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
@@ -2048,7 +3170,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_partitionDateTimeByDay() {
+  public void testOverwriteDynamicPartition_partitionDateTimeByDay() throws Exception {
     assumeThat(timeStampNTZType.isPresent(), is(true));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
@@ -2090,7 +3212,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_partitionDateTimeByMonth() {
+  public void testOverwriteDynamicPartition_partitionDateTimeByMonth() throws Exception {
     assumeThat(timeStampNTZType.isPresent(), is(true));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
@@ -2132,7 +3254,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_partitionDateTimeByYear() {
+  public void testOverwriteDynamicPartition_partitionDateTimeByYear() throws Exception {
     assumeThat(timeStampNTZType.isPresent(), is(true));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
@@ -2174,7 +3296,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_noTimePartitioning() {
+  public void testOverwriteDynamicPartition_noTimePartitioning() throws Exception {
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -2212,7 +3334,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_rangePartitioned() {
+  public void testOverwriteDynamicPartition_rangePartitioned() throws Exception {
     String orderId = "order_id";
     String orderCount = "order_count";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -2263,7 +3385,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_rangePartitionedOutsideRangeLessThanStart() {
+  public void testOverwriteDynamicPartition_rangePartitionedOutsideRangeLessThanStart()
+      throws Exception {
     String orderId = "order_id";
     String orderCount = "order_count";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -2298,7 +3421,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_rangePartitionedOutsideRangeGreaterThanEnd() {
+  public void testOverwriteDynamicPartition_rangePartitionedOutsideRangeGreaterThanEnd()
+      throws Exception {
     String orderId = "order_id";
     String orderCount = "order_count";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -2333,7 +3457,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_rangePartitionedBoundaryCondition() {
+  public void testOverwriteDynamicPartition_rangePartitionedBoundaryCondition() throws Exception {
     String orderId = "order_id";
     String orderCount = "order_count";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -2372,7 +3496,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartition_rangePartitionedWithNulls() {
+  public void testOverwriteDynamicPartition_rangePartitionedWithNulls() throws Exception {
     String orderId = "order_id";
     String orderCount = "order_count";
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
@@ -2630,62 +3754,34 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testWriteSparkMlTypes() {
+  public void testWriteSparkMlTypes() throws Exception {
     // Spark ML types have issues on Spark 2.4
     String sparkVersion = package$.MODULE$.SPARK_VERSION();
     Assume.assumeThat(sparkVersion, CoreMatchers.startsWith("3."));
 
-    Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create("1", "20230515", 12345, 5678, 1234.12345),
-                RowFactory.create("2", "20230515", 14789, 25836, 1234.12345),
-                RowFactory.create("3", "20230515", 54321, 98765, 1234.12345)),
-            new StructType(
-                new StructField[] {
-                  StructField.apply("Seqno", DataTypes.StringType, true, Metadata.empty()),
-                  StructField.apply("date1", DataTypes.StringType, true, Metadata.empty()),
-                  StructField.apply("num1", DataTypes.IntegerType, true, Metadata.empty()),
-                  StructField.apply("num2", DataTypes.IntegerType, true, Metadata.empty()),
-                  StructField.apply("amt1", DataTypes.DoubleType, true, Metadata.empty())
-                }));
+    JsonObject result =
+        testRunner.run(
+            WriteIntegrationTestBase::machineLearningWriteApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "writeMethod",
+                writeMethod.toString(),
+                "temporaryGcsBucket",
+                TestConstants.TEMPORARY_GCS_BUCKET));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
 
-    List<Transformer> stages = new ArrayList<>();
-
-    VectorAssembler va = new VectorAssembler();
-    va.setInputCols(new String[] {"num1", "num2"});
-    va.setOutputCol("features_vector");
-    df = va.transform(df);
-    stages.add(va);
-
-    MinMaxScaler minMaxScaler = new MinMaxScaler();
-    minMaxScaler.setInputCol("features_vector");
-    minMaxScaler.setOutputCol("features");
-    MinMaxScalerModel minMaxScalerModel = minMaxScaler.fit(df);
-    df = minMaxScalerModel.transform(df);
-    stages.add(minMaxScalerModel);
-
-    PipelineModel pipelineModel = new PipelineModel("pipeline", stages);
-    df.show(false);
-    df.write()
-        .format("bigquery")
-        .option("writeMethod", writeMethod.toString())
-        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-        .option("dataset", testDataset.toString())
-        .option("table", testTable)
-        .save();
-
-    Dataset<Row> result =
+    Dataset<Row> readResult =
         spark
             .read()
             .format("bigquery")
             .option("dataset", testDataset.toString())
             .option("table", testTable)
             .load();
-    StructType resultSchema = result.schema();
+    StructType resultSchema = readResult.schema();
     assertThat(resultSchema.apply("features").dataType()).isEqualTo(SQLDataTypes.VectorType());
-    result.show(false);
-    List<Row> values = result.collectAsList();
+    readResult.show(false);
+    List<Row> values = readResult.collectAsList();
     assertThat(values).hasSize(3);
     Row row = values.get(0);
     assertThat(row.get(row.fieldIndex("features")))
@@ -2693,7 +3789,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testTimestampNTZDirectWriteToBigQuery() throws InterruptedException {
+  public void testTimestampNTZDirectWriteToBigQuery() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     assumeThat(timeStampNTZType.isPresent(), is(true));
     LocalDateTime time = LocalDateTime.of(2023, 9, 1, 12, 23, 34, 268543 * 1000);
@@ -2723,7 +3819,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testTimestampNTZIndirectWriteToBigQueryAvroFormat() throws InterruptedException {
+  public void testTimestampNTZIndirectWriteToBigQueryAvroFormat() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
     assumeThat(timeStampNTZType.isPresent(), is(true));
     LocalDateTime time = LocalDateTime.of(2023, 9, 1, 12, 23, 34, 268543 * 1000);
@@ -2735,7 +3831,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testTimestampNTZIndirectWriteToBigQueryParquetFormat() throws InterruptedException {
+  public void testTimestampNTZIndirectWriteToBigQueryParquetFormat() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
     assumeThat(timeStampNTZType.isPresent(), is(true));
     LocalDateTime time = LocalDateTime.of(2023, 9, 15, 12, 36, 34, 268543 * 1000);
@@ -2747,7 +3843,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testTableDescriptionRemainsUnchanged() {
+  public void testTableDescriptionRemainsUnchanged() throws Exception {
     IntegrationTestUtils.runQuery(
         String.format("CREATE TABLE `%s.%s` (name STRING, age INT64)", testDataset, testTable));
     String initialDescription = bq.getTable(testDataset.toString(), testTable).getDescription();
@@ -2772,7 +3868,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testCountAfterWrite() {
+  public void testCountAfterWrite() throws Exception {
     IntegrationTestUtils.runQuery(
         String.format("CREATE TABLE `%s.%s` (name STRING, age INT64)", testDataset, testTable));
     Dataset<Row> read1Df = spark.read().format("bigquery").load(fullTableName());

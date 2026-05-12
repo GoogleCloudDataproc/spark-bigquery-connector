@@ -18,8 +18,6 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.JobConfiguration;
 import com.google.cloud.bigquery.JobInfo;
@@ -29,39 +27,37 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.spark.bigquery.events.BigQueryJobCompletedEvent;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.JsonObject;
 import com.google.inject.ProvisionException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.StreamSupport;
 import org.apache.spark.scheduler.SparkListener;
 import org.apache.spark.scheduler.SparkListenerEvent;
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
-  private BigQuery bq;
+  protected SparkBigQueryIntegrationTestRunner testRunner =
+      new InMemorySparkBigQueryIntegrationTestRunner();
 
   private final boolean isDsv2OnSpark3AndAbove;
 
   private TestBigQueryJobCompletionListener listener = new TestBigQueryJobCompletionListener();
 
-  @Before
+  @org.junit.Before
   public void addListener() {
     listener.reset();
     spark.sparkContext().addSparkListener(listener);
   }
 
-  @After
+  @org.junit.After
   public void removeListener() {
     spark.sparkContext().removeSparkListener(listener);
   }
@@ -72,298 +68,417 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
 
   protected ReadFromQueryIntegrationTestBase(boolean isDsv2OnSpark3AndAbove) {
     super();
-    this.bq = BigQueryOptions.getDefaultInstance().getService();
     this.isDsv2OnSpark3AndAbove = isDsv2OnSpark3AndAbove;
   }
 
-  @Test
-  public void testReadFromQuery_nomMterializationDataset() {
-    // the query suffix is to make sure that each format will have
-    // a different table created due to the destination table cache
-    String random = String.valueOf(System.nanoTime());
-    String query =
-        String.format(
-            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
-            random, random);
-    internalTestReadFromQueryWithAdditionalOptions(query, Collections.emptyMap());
-  }
+  // =========================================================================
+  // SCENARIO: SQL Queries executions (Cluster App)
+  // =========================================================================
 
-  private void internalTestReadFromQueryToMaterializationDataset(String query) {
-    Map<String, String> additionalOptions =
-        ImmutableMap.of("materializationDataset", testDataset.toString());
-    internalTestReadFromQueryWithAdditionalOptions(query, additionalOptions);
-  }
+  protected static JsonObject readQueryApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
-  private void internalTestReadFromQueryWithAdditionalOptions(
-      String query, Map<String, String> additionalOptions) {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("viewsEnabled", true)
-            .options(additionalOptions)
-            .load(query);
+    String scenario = parameters.getOrDefault("scenario", "STANDARD");
+    boolean isDsv2OnSpark3AndAbove =
+        Boolean.parseBoolean(parameters.getOrDefault("isDsv2", "false"));
 
-    validateResult(df);
-    // validate event publishing
-    List<JobInfo> jobInfos = listener.getJobInfos();
-    assertThat(jobInfos).hasSize(1);
-    JobInfo jobInfo = jobInfos.iterator().next();
-    assertThat(((QueryJobConfiguration) jobInfo.getConfiguration()).getQuery()).isEqualTo(query);
-  }
-
-  @Test
-  public void testReadFromQuery() {
-    // the query suffix is to make sure that each format will have
-    // a different table created due to the destination table cache
-    String random = String.valueOf(System.nanoTime());
-    String query =
-        String.format(
-            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
-            random, random);
-    internalTestReadFromQueryToMaterializationDataset(query);
-  }
-
-  @Test
-  public void testReadFromQueryWithNewLine() {
-    // the query suffix is to make sure that each format will have
-    // a different table created due to the destination table cache
-    String random = String.valueOf(System.nanoTime());
-    String query =
-        String.format(
-            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare`\n"
-                + "WHERE word='spark' AND '%s'='%s'",
-            random, random);
-    internalTestReadFromQueryToMaterializationDataset(query);
-  }
-
-  @Test
-  public void testQueryOption() {
-    // the query suffix is to make sure that each format will have
-    // a different table created due to the destination table cache
-    String random = String.valueOf(System.nanoTime());
-    String query =
-        String.format(
-            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
-            random, random);
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("viewsEnabled", true)
-            .option("materializationDataset", testDataset.toString())
-            .option("query", query)
-            .load();
-
-    StructType expectedSchema =
-        DataTypes.createStructType(
-            ImmutableList.of(
-                DataTypes.createStructField("corpus", DataTypes.StringType, true),
-                DataTypes.createStructField("word_count", DataTypes.LongType, true)));
-
-    assertThat(df.schema()).isEqualTo(expectedSchema);
-
-    if (isDsv2OnSpark3AndAbove) {
-      Iterable<Table> tablesInDataset =
-          IntegrationTestUtils.listTables(
-              DatasetId.of(testDataset.toString()),
-              TableDefinition.Type.TABLE,
-              TableDefinition.Type.MATERIALIZED_VIEW);
-      assertThat(
-              StreamSupport.stream(tablesInDataset.spliterator(), false)
-                  .noneMatch(table -> table.getTableId().getTable().startsWith("_bqc_")))
-          .isTrue();
+    SparkSession.Builder builder = SparkSession.builder().appName("ReadQueryTestApp");
+    if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
+      builder.master("local");
     }
+    SparkSession spark = builder.getOrCreate();
 
-    validateResult(df);
-  }
+    try {
+      JsonObject result = new JsonObject();
+      result.addProperty("status", "success");
 
-  @Test
-  public void testMaterializtionToAutoGeneratedTable() {
-    // the query suffix is to make sure that each format will have
-    // a different table created due to the destination table cache
-    String random = String.valueOf(System.nanoTime());
-    String query =
-        String.format(
-            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
-            random, random);
-    Dataset<Row> df =
-        spark.read().format("bigquery").option("viewsEnabled", true).option("query", query).load();
-    StructType expectedSchema =
-        DataTypes.createStructType(
-            ImmutableList.of(
-                DataTypes.createStructField("corpus", DataTypes.StringType, true),
-                DataTypes.createStructField("word_count", DataTypes.LongType, true)));
-    assertThat(df.schema()).isEqualTo(expectedSchema);
-    validateResult(df);
-  }
+      String random = String.valueOf(System.nanoTime());
+      String query =
+          String.format(
+              "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
+              random, random);
 
-  private void validateResult(Dataset<Row> df) {
-    long totalRows = df.count();
-    assertThat(totalRows).isEqualTo(9);
+      if ("NO_MATERIALIZATION_DATASET".equals(scenario)) {
+        Dataset<Row> df = spark.read().format("bigquery").option("viewsEnabled", true).load(query);
+        result.addProperty("count", df.count());
 
-    List<String> corpuses = df.select("corpus").as(Encoders.STRING()).collectAsList();
-    List<String> expectedCorpuses =
-        Arrays.asList(
-            "2kinghenryvi",
-            "3kinghenryvi",
-            "allswellthatendswell",
-            "hamlet",
-            "juliuscaesar",
-            "kinghenryv",
-            "kinglear",
-            "periclesprinceoftyre",
-            "troilusandcressida");
-    assertThat(corpuses).containsExactlyElementsIn(expectedCorpuses);
-  }
-
-  @Test
-  public void testBadQuery() {
-    String badSql = "SELECT bogus_column FROM `bigquery-public-data.samples.shakespeare`";
-    // v1 throws BigQueryConnectorException
-    // v2 throws Guice ProviderException, as the table is materialized in teh module
-    assertThrows(
-        RuntimeException.class,
-        () -> {
-          spark
-              .read()
-              .format("bigquery")
-              .option("viewsEnabled", true)
-              .option("materializationDataset", testDataset.toString())
-              .load(badSql);
-        });
-  }
-
-  @Test
-  public void testQueryJobPriority() {
-    String random = String.valueOf(System.nanoTime());
-    String query =
-        String.format(
-            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
-            random, random);
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("viewsEnabled", true)
-            .option("materializationDataset", testDataset.toString())
-            .option("queryJobPriority", "batch")
-            .load(query);
-
-    validateResult(df);
-  }
-
-  @Test
-  public void testReadFromLongQueryWithBigQueryJobTimeout() {
-    String query = "SELECT * FROM `largesamples.wikipedia_pageviews_201001`";
-    assertThrows(
-        RuntimeException.class,
-        () -> {
-          try {
+      } else if ("STANDARD".equals(scenario)) {
+        Dataset<Row> df =
             spark
                 .read()
                 .format("bigquery")
                 .option("viewsEnabled", true)
-                .option("materializationDataset", testDataset.toString())
-                .option("bigQueryJobTimeoutInMinutes", "1")
-                .load(query)
-                .show();
-          } catch (Exception e) {
-            throw e;
-          }
+                .option("materializationDataset", testDataset)
+                .load(query);
+        result.addProperty("count", df.count());
+
+      } else if ("NEW_LINE".equals(scenario)) {
+        String qNewLine =
+            String.format(
+                "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare`\nWHERE word='spark' AND '%s'='%s'",
+                random, random);
+        Dataset<Row> df =
+            spark
+                .read()
+                .format("bigquery")
+                .option("viewsEnabled", true)
+                .option("materializationDataset", testDataset)
+                .load(qNewLine);
+        result.addProperty("count", df.count());
+
+      } else if ("QUERY_OPTION".equals(scenario)) {
+        Dataset<Row> df =
+            spark
+                .read()
+                .format("bigquery")
+                .option("viewsEnabled", true)
+                .option("materializationDataset", testDataset)
+                .option("query", query)
+                .load();
+
+        StructType expectedSchema =
+            DataTypes.createStructType(
+                Arrays.asList(
+                    DataTypes.createStructField("corpus", DataTypes.StringType, true),
+                    DataTypes.createStructField("word_count", DataTypes.LongType, true)));
+
+        boolean noBqcTables = true;
+        if (isDsv2OnSpark3AndAbove) {
+          Iterable<Table> tablesInDataset =
+              IntegrationTestUtils.listTables(
+                  DatasetId.of(testDataset),
+                  TableDefinition.Type.TABLE,
+                  TableDefinition.Type.MATERIALIZED_VIEW);
+          noBqcTables =
+              StreamSupport.stream(tablesInDataset.spliterator(), false)
+                  .noneMatch(table -> table.getTableId().getTable().startsWith("_bqc_"));
+        }
+
+        result.addProperty("count", df.count());
+        result.addProperty("schemaMatches", df.schema().equals(expectedSchema));
+        result.addProperty("noBqcTables", noBqcTables);
+
+      } else if ("AUTO_GENERATED_TABLE".equals(scenario)) {
+        Dataset<Row> df =
+            spark
+                .read()
+                .format("bigquery")
+                .option("viewsEnabled", true)
+                .option("query", query)
+                .load();
+        StructType expectedSchema =
+            DataTypes.createStructType(
+                Arrays.asList(
+                    DataTypes.createStructField("corpus", DataTypes.StringType, true),
+                    DataTypes.createStructField("word_count", DataTypes.LongType, true)));
+
+        result.addProperty("count", df.count());
+        result.addProperty("schemaMatches", df.schema().equals(expectedSchema));
+
+      } else if ("BAD_QUERY".equals(scenario)) {
+        String badSql = "SELECT bogus_column FROM `bigquery-public-data.samples.shakespeare`";
+        spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", true)
+            .option("materializationDataset", testDataset)
+            .load(badSql);
+
+      } else if ("PRIORITY".equals(scenario)) {
+        Dataset<Row> df =
+            spark
+                .read()
+                .format("bigquery")
+                .option("viewsEnabled", true)
+                .option("materializationDataset", testDataset)
+                .option("queryJobPriority", "batch")
+                .load(query);
+        result.addProperty("count", df.count());
+
+      } else if ("TIMEOUT".equals(scenario)) {
+        String qLong = "SELECT * FROM `largesamples.wikipedia_pageviews_201001`";
+        spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", true)
+            .option("materializationDataset", testDataset)
+            .option("bigQueryJobTimeoutInMinutes", "1")
+            .load(qLong)
+            .show();
+
+      } else if ("NAMED_PARAMETERS".equals(scenario)) {
+        String namedParamQuery =
+            "SELECT word, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE corpus = @corpus AND word_count >= @min_word_count ORDER BY word_count DESC";
+        Dataset<Row> df =
+            spark
+                .read()
+                .format("bigquery")
+                .option("query", namedParamQuery)
+                .option("viewsEnabled", "true")
+                .option("materializationDataset", testDataset)
+                .option("NamedParameters.corpus", "STRING:romeoandjuliet")
+                .option("NamedParameters.min_word_count", "INT64:250")
+                .load();
+
+        StructType expectedSchema =
+            DataTypes.createStructType(
+                Arrays.asList(
+                    DataTypes.createStructField("word", DataTypes.StringType, true),
+                    DataTypes.createStructField("word_count", DataTypes.LongType, true)));
+
+        result.addProperty("count", df.count());
+        result.addProperty("schemaMatches", df.schema().equals(expectedSchema));
+
+      } else if ("POSITIONAL_PARAMETERS".equals(scenario)) {
+        String positionalParamQuery =
+            "SELECT word, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE corpus = ? AND word_count >= ? ORDER BY word_count DESC";
+        Dataset<Row> df =
+            spark
+                .read()
+                .format("bigquery")
+                .option("query", positionalParamQuery)
+                .option("viewsEnabled", "true")
+                .option("materializationDataset", testDataset)
+                .option("PositionalParameters.1", "STRING:romeoandjuliet")
+                .option("PositionalParameters.2", "INT64:250")
+                .load();
+
+        StructType expectedSchema =
+            DataTypes.createStructType(
+                Arrays.asList(
+                    DataTypes.createStructField("word", DataTypes.StringType, true),
+                    DataTypes.createStructField("word_count", DataTypes.LongType, true)));
+
+        result.addProperty("count", df.count());
+        result.addProperty("schemaMatches", df.schema().equals(expectedSchema));
+
+      } else if ("MIXED_PARAMETERS_FAILS".equals(scenario)) {
+        String queryForFailure =
+            "SELECT word, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE corpus = @corpus AND word_count >= @min_word_count ORDER BY word_count DESC";
+        spark
+            .read()
+            .format("bigquery")
+            .option("query", queryForFailure)
+            .option("viewsEnabled", "true")
+            .option("materializationDataset", testDataset)
+            .option("NamedParameters.corpus", "STRING:whatever")
+            .option("PositionalParameters.1", "INT64:100")
+            .load()
+            .show();
+
+      } else if ("KMS_KEY".equals(scenario)) {
+        String envKmsKey = System.getenv("BIGQUERY_KMS_KEY_NAME");
+        String kmsKeyName =
+            envKmsKey != null ? envKmsKey : "projects/p/locations/l/keyRings/k/cryptoKeys/c";
+
+        spark
+            .read()
+            .format("bigquery")
+            .option("viewsEnabled", true)
+            .option("materializationDataset", testDataset)
+            .option("destinationTableKmsKeyName", kmsKeyName)
+            .load(query)
+            .collect();
+      }
+
+      return result;
+    } finally {
+    }
+  }
+
+  private static void validateResult(JsonObject result) {
+    long totalRows = result.get("count").getAsLong();
+    assertThat(totalRows).isEqualTo(9);
+  }
+
+  private void waitForJobEvent() throws Exception {
+    long start = System.currentTimeMillis();
+    while (listener.getJobInfos().isEmpty() && (System.currentTimeMillis() - start) < 8000) {
+      Thread.sleep(100);
+    }
+  }
+
+  @Test
+  public void testReadFromQuery_nomMterializationDataset() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadFromQueryIntegrationTestBase::readQueryApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of("scenario", "NO_MATERIALIZATION_DATASET"));
+
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    validateResult(result);
+
+    waitForJobEvent();
+    List<JobInfo> jobInfos = listener.getJobInfos();
+    assertThat(jobInfos).hasSize(1);
+    JobInfo jobInfo = jobInfos.iterator().next();
+    assertThat(jobInfo.getConfiguration().getType()).isEqualTo(JobConfiguration.Type.QUERY);
+  }
+
+  @Test
+  public void testReadFromQuery() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadFromQueryIntegrationTestBase::readQueryApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of("scenario", "STANDARD"));
+
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    validateResult(result);
+
+    waitForJobEvent();
+    List<JobInfo> jobInfos = listener.getJobInfos();
+    assertThat(jobInfos).hasSize(1);
+    JobInfo jobInfo = jobInfos.iterator().next();
+    assertThat(jobInfo.getConfiguration().getType()).isEqualTo(JobConfiguration.Type.QUERY);
+  }
+
+  @Test
+  public void testReadFromQueryWithNewLine() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadFromQueryIntegrationTestBase::readQueryApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of("scenario", "NEW_LINE"));
+
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    validateResult(result);
+
+    waitForJobEvent();
+    List<JobInfo> jobInfos = listener.getJobInfos();
+    assertThat(jobInfos).hasSize(1);
+    JobInfo jobInfo = jobInfos.iterator().next();
+    assertThat(jobInfo.getConfiguration().getType()).isEqualTo(JobConfiguration.Type.QUERY);
+  }
+
+  @Test
+  public void testQueryOption() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadFromQueryIntegrationTestBase::readQueryApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "scenario", "QUERY_OPTION", "isDsv2", String.valueOf(isDsv2OnSpark3AndAbove)));
+
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+    assertThat(result.get("noBqcTables").getAsBoolean()).isTrue();
+    validateResult(result);
+  }
+
+  @Test
+  public void testMaterializtionToAutoGeneratedTable() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadFromQueryIntegrationTestBase::readQueryApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of("scenario", "AUTO_GENERATED_TABLE"));
+
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+    validateResult(result);
+  }
+
+  @Test
+  public void testBadQuery() {
+    assertThrows(
+        RuntimeException.class,
+        () -> {
+          testRunner.run(
+              ReadFromQueryIntegrationTestBase::readQueryApp,
+              testDataset.toString(),
+              testTable,
+              ImmutableMap.of("scenario", "BAD_QUERY"));
         });
   }
 
   @Test
-  public void testReadWithNamedParameters() {
-    listener.reset();
-    String namedParamQuery =
-        "SELECT word, word_count FROM `bigquery-public-data.samples.shakespeare`"
-            + " WHERE corpus = @corpus AND word_count >= @min_word_count ORDER BY word_count DESC";
+  public void testQueryJobPriority() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadFromQueryIntegrationTestBase::readQueryApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of("scenario", "PRIORITY"));
 
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("query", namedParamQuery)
-            .option("viewsEnabled", "true")
-            .option("materializationDataset", testDataset.toString())
-            .option("NamedParameters.corpus", "STRING:romeoandjuliet")
-            .option("NamedParameters.min_word_count", "INT64:250")
-            .load();
-
-    StructType expectedSchema =
-        DataTypes.createStructType(
-            ImmutableList.of(
-                DataTypes.createStructField("word", DataTypes.StringType, true),
-                DataTypes.createStructField("word_count", DataTypes.LongType, true)));
-    assertThat(df.schema()).isEqualTo(expectedSchema);
-
-    assertThat(df.count()).isGreaterThan(0L);
-
-    List<JobInfo> jobInfos = listener.getJobInfos();
-    assertThat(jobInfos).hasSize(1);
-    JobInfo jobInfo = jobInfos.iterator().next();
-    assertThat(jobInfo.getConfiguration().getType()).isEqualTo(JobConfiguration.Type.QUERY);
-    QueryJobConfiguration queryConfig = jobInfo.getConfiguration();
-    assertThat(queryConfig.getQuery()).isEqualTo(namedParamQuery);
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    validateResult(result);
   }
 
   @Test
-  public void testReadWithPositionalParameters() {
-    listener.reset();
-    String positionalParamQuery =
-        "SELECT word, word_count FROM `bigquery-public-data.samples.shakespeare`"
-            + " WHERE corpus = ? AND word_count >= ? ORDER BY word_count DESC";
+  public void testReadFromLongQueryWithBigQueryJobTimeout() {
+    assertThrows(
+        RuntimeException.class,
+        () -> {
+          testRunner.run(
+              ReadFromQueryIntegrationTestBase::readQueryApp,
+              testDataset.toString(),
+              testTable,
+              ImmutableMap.of("scenario", "TIMEOUT"));
+        });
+  }
 
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("query", positionalParamQuery) // Use hardcoded query
-            .option("viewsEnabled", "true")
-            .option("materializationDataset", testDataset.toString())
-            .option("PositionalParameters.1", "STRING:romeoandjuliet")
-            .option("PositionalParameters.2", "INT64:250")
-            .load();
+  @Test
+  public void testReadWithNamedParameters() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadFromQueryIntegrationTestBase::readQueryApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of("scenario", "NAMED_PARAMETERS"));
 
-    StructType expectedSchema =
-        DataTypes.createStructType(
-            ImmutableList.of(
-                DataTypes.createStructField("word", DataTypes.StringType, true),
-                DataTypes.createStructField("word_count", DataTypes.LongType, true)));
-    assertThat(df.schema()).isEqualTo(expectedSchema);
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+    assertThat(result.get("count").getAsLong()).isGreaterThan(0L);
 
-    assertThat(df.count()).isGreaterThan(0L);
-
+    waitForJobEvent();
     List<JobInfo> jobInfos = listener.getJobInfos();
     assertThat(jobInfos).hasSize(1);
     JobInfo jobInfo = jobInfos.iterator().next();
     assertThat(jobInfo.getConfiguration().getType()).isEqualTo(JobConfiguration.Type.QUERY);
-    QueryJobConfiguration queryConfig = jobInfo.getConfiguration();
-    assertThat(queryConfig.getQuery()).isEqualTo(positionalParamQuery);
+    QueryJobConfiguration queryConfig = (QueryJobConfiguration) jobInfo.getConfiguration();
+    assertThat(queryConfig.getQuery()).contains("WHERE corpus = @corpus");
+  }
+
+  @Test
+  public void testReadWithPositionalParameters() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadFromQueryIntegrationTestBase::readQueryApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of("scenario", "POSITIONAL_PARAMETERS"));
+
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+    assertThat(result.get("count").getAsLong()).isGreaterThan(0L);
+
+    waitForJobEvent();
+    List<JobInfo> jobInfos = listener.getJobInfos();
+    assertThat(jobInfos).hasSize(1);
+    JobInfo jobInfo = jobInfos.iterator().next();
+    assertThat(jobInfo.getConfiguration().getType()).isEqualTo(JobConfiguration.Type.QUERY);
+    QueryJobConfiguration queryConfig = (QueryJobConfiguration) jobInfo.getConfiguration();
+    assertThat(queryConfig.getQuery()).contains("WHERE corpus = ?");
   }
 
   @Test
   public void testReadWithMixedParametersFails() {
-    String queryForFailure =
-        "SELECT word, word_count FROM `bigquery-public-data.samples.shakespeare`"
-            + " WHERE corpus = @corpus AND word_count >= @min_word_count ORDER BY word_count DESC";
-
     Exception thrown =
         assertThrows(
             Exception.class,
             () -> {
-              spark
-                  .read()
-                  .format("bigquery")
-                  .option("query", queryForFailure)
-                  .option("viewsEnabled", "true")
-                  .option("materializationDataset", testDataset.toString())
-                  .option("NamedParameters.corpus", "STRING:whatever")
-                  .option("PositionalParameters.1", "INT64:100")
-                  .load()
-                  .show();
+              testRunner.run(
+                  ReadFromQueryIntegrationTestBase::readQueryApp,
+                  testDataset.toString(),
+                  testTable,
+                  ImmutableMap.of("scenario", "MIXED_PARAMETERS_FAILS"));
             });
 
     Throwable cause = thrown;
@@ -375,32 +490,26 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     assertThat(cause)
         .hasMessageThat()
         .contains("Cannot mix NamedParameters.* and PositionalParameters.* options.");
-
-    assertThat(listener.getJobInfos()).isEmpty();
   }
 
   @Test
-  public void testReadFromQueryWithKmsKey() {
-    String random = String.valueOf(System.nanoTime());
-    String query =
-        String.format(
-            "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
-            random, random);
-    String envKmsKey = System.getenv("BIGQUERY_KMS_KEY_NAME");
-    String kmsKeyName =
-        envKmsKey != null ? envKmsKey : "projects/p/locations/l/keyRings/k/cryptoKeys/c";
-    spark
-        .read()
-        .format("bigquery")
-        .option("viewsEnabled", true)
-        .option("materializationDataset", testDataset.toString())
-        .option("destinationTableKmsKeyName", kmsKeyName)
-        .load(query)
-        .collect();
-    // validate event publishing
+  public void testReadFromQueryWithKmsKey() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadFromQueryIntegrationTestBase::readQueryApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of("scenario", "KMS_KEY"));
+
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+
+    waitForJobEvent();
     List<JobInfo> jobInfos = listener.getJobInfos();
     assertThat(jobInfos).hasSize(1);
     JobInfo jobInfo = jobInfos.iterator().next();
+    String envKmsKey = System.getenv("BIGQUERY_KMS_KEY_NAME");
+    String kmsKeyName =
+        envKmsKey != null ? envKmsKey : "projects/p/locations/l/keyRings/k/cryptoKeys/c";
     assertThat(
             ((QueryJobConfiguration) jobInfo.getConfiguration())
                 .getDestinationEncryptionConfiguration()
@@ -411,7 +520,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
 
 class TestBigQueryJobCompletionListener extends SparkListener {
 
-  private List<JobInfo> jobInfos = new ArrayList<>();
+  private List<JobInfo> jobInfos = new java.util.concurrent.CopyOnWriteArrayList<>();
 
   @Override
   public void onOtherEvent(SparkListenerEvent event) {

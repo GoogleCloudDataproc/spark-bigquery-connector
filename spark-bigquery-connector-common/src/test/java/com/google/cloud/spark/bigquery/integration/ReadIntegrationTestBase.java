@@ -59,6 +59,9 @@ import scala.collection.immutable.HashMap;
 
 public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
+  protected SparkBigQueryIntegrationTestRunner testRunner =
+      new InMemorySparkBigQueryIntegrationTestRunner();
+
   private static final TimeZone DEFAULT_TZ = TimeZone.getDefault();
   private static final Map<String, Collection<String>> FILTER_DATA =
       ImmutableMap.<String, Collection<String>>builder()
