@@ -17,6 +17,9 @@ package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableId;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonObject;
 import java.io.File;
@@ -69,9 +72,8 @@ public class OpenLineageIntegrationTestBase {
 
   @After
   public void deleteTestTable() throws Exception {
-    com.google.cloud.bigquery.BigQuery bigquery = IntegrationTestUtils.getBigquery();
-    com.google.cloud.bigquery.Table table =
-        bigquery.getTable(com.google.cloud.bigquery.TableId.of(testDataset.testDataset, testTable));
+    BigQuery bigquery = IntegrationTestUtils.getBigquery();
+    Table table = bigquery.getTable(TableId.of(testDataset.testDataset, testTable));
     if (table != null) {
       table.delete();
     }
@@ -88,6 +90,9 @@ public class OpenLineageIntegrationTestBase {
     String temporaryGcsBucket = parameters.get("temporaryGcsBucket");
     String lineageFilePath = parameters.get("lineageFilePath");
     java.io.File lineageFile = new java.io.File(lineageFilePath);
+    if (lineageFile.exists()) {
+      lineageFile.delete();
+    }
 
     SparkSession spark =
         SparkSession.builder()
@@ -103,7 +108,7 @@ public class OpenLineageIntegrationTestBase {
     try {
       // E2E Warm-up query to initialize OpenLineage background agent listener
       spark.sql("SELECT 1").collect();
-      Thread.sleep(1500);
+      Thread.sleep(500);
 
       String fullTableName = TestConstants.PROJECT_ID + "." + testDataset + "." + testTable;
 
@@ -148,18 +153,15 @@ public class OpenLineageIntegrationTestBase {
 
       // Flush and parse OpenLineage logs
       // Poll for up to 15 seconds until the lineage file contains logs E2E
-      boolean fileHasLogs = false;
-      long pollStart = System.currentTimeMillis();
-      while (!fileHasLogs && (System.currentTimeMillis() - pollStart) < 15000) {
-        try (java.util.Scanner scanner = new java.util.Scanner(lineageFile)) {
-          if (scanner.hasNextLine()) {
-            fileHasLogs = true;
-          }
-        }
-        if (!fileHasLogs) {
-          Thread.sleep(500);
-        }
-      }
+      IntegrationTestUtils.pollUntil(
+          () -> {
+            try (java.util.Scanner scanner = new java.util.Scanner(lineageFile)) {
+              return scanner.hasNextLine();
+            } catch (Exception e) {
+              return false;
+            }
+          },
+          15);
 
       System.out.println("=== DEBUG RAW LINEAGE FILE START ===");
       try (java.util.Scanner scanner = new java.util.Scanner(lineageFile)) {

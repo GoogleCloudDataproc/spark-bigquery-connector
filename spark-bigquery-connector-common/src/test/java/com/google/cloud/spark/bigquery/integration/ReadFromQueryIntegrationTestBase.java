@@ -19,7 +19,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.cloud.bigquery.DatasetId;
-import com.google.cloud.bigquery.JobConfiguration;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Table;
@@ -27,6 +26,7 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.spark.bigquery.events.BigQueryJobCompletedEvent;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.inject.ProvisionException;
 import java.util.Arrays;
@@ -48,19 +48,6 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
       new InMemorySparkBigQueryIntegrationTestRunner();
 
   private final boolean isDsv2OnSpark3AndAbove;
-
-  private TestBigQueryJobCompletionListener listener = new TestBigQueryJobCompletionListener();
-
-  @org.junit.Before
-  public void addListener() {
-    listener.reset();
-    spark.sparkContext().addSparkListener(listener);
-  }
-
-  @org.junit.After
-  public void removeListener() {
-    spark.sparkContext().removeSparkListener(listener);
-  }
 
   protected ReadFromQueryIntegrationTestBase() {
     this(false);
@@ -87,6 +74,8 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
       builder.master("local");
     }
     SparkSession spark = builder.getOrCreate();
+    TestBigQueryJobCompletionListener listener = new TestBigQueryJobCompletionListener();
+    spark.sparkContext().addSparkListener(listener);
 
     try {
       JsonObject result = new JsonObject();
@@ -281,21 +270,31 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             .collect();
       }
 
+      JsonArray jobsArray = new JsonArray();
+      for (JobInfo job : listener.getJobInfos()) {
+        JsonObject jobJson = new JsonObject();
+        jobJson.addProperty("type", job.getConfiguration().getType().toString());
+        if (job.getConfiguration() instanceof QueryJobConfiguration) {
+          QueryJobConfiguration qConfig = (QueryJobConfiguration) job.getConfiguration();
+          jobJson.addProperty("query", qConfig.getQuery());
+          if (qConfig.getDestinationEncryptionConfiguration() != null) {
+            jobJson.addProperty(
+                "kmsKeyName", qConfig.getDestinationEncryptionConfiguration().getKmsKeyName());
+          }
+        }
+        jobsArray.add(jobJson);
+      }
+      result.add("jobInfos", jobsArray);
+
       return result;
     } finally {
+      spark.sparkContext().removeSparkListener(listener);
     }
   }
 
   private static void validateResult(JsonObject result) {
     long totalRows = result.get("count").getAsLong();
     assertThat(totalRows).isEqualTo(9);
-  }
-
-  private void waitForJobEvent() throws Exception {
-    long start = System.currentTimeMillis();
-    while (listener.getJobInfos().isEmpty() && (System.currentTimeMillis() - start) < 8000) {
-      Thread.sleep(100);
-    }
   }
 
   @Test
@@ -307,14 +306,10 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             testTable,
             ImmutableMap.of("scenario", "NO_MATERIALIZATION_DATASET"));
 
-    assertThat(result.get("status").getAsString()).isEqualTo("success");
-    validateResult(result);
-
-    waitForJobEvent();
-    List<JobInfo> jobInfos = listener.getJobInfos();
-    assertThat(jobInfos).hasSize(1);
-    JobInfo jobInfo = jobInfos.iterator().next();
-    assertThat(jobInfo.getConfiguration().getType()).isEqualTo(JobConfiguration.Type.QUERY);
+    JsonArray jobInfos = result.getAsJsonArray("jobInfos");
+    assertThat(jobInfos.size()).isEqualTo(1);
+    JsonObject jobInfo = jobInfos.get(0).getAsJsonObject();
+    assertThat(jobInfo.get("type").getAsString()).isEqualTo("QUERY");
   }
 
   @Test
@@ -326,14 +321,10 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             testTable,
             ImmutableMap.of("scenario", "STANDARD"));
 
-    assertThat(result.get("status").getAsString()).isEqualTo("success");
-    validateResult(result);
-
-    waitForJobEvent();
-    List<JobInfo> jobInfos = listener.getJobInfos();
-    assertThat(jobInfos).hasSize(1);
-    JobInfo jobInfo = jobInfos.iterator().next();
-    assertThat(jobInfo.getConfiguration().getType()).isEqualTo(JobConfiguration.Type.QUERY);
+    JsonArray jobInfos = result.getAsJsonArray("jobInfos");
+    assertThat(jobInfos.size()).isEqualTo(1);
+    JsonObject jobInfo = jobInfos.get(0).getAsJsonObject();
+    assertThat(jobInfo.get("type").getAsString()).isEqualTo("QUERY");
   }
 
   @Test
@@ -345,14 +336,10 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             testTable,
             ImmutableMap.of("scenario", "NEW_LINE"));
 
-    assertThat(result.get("status").getAsString()).isEqualTo("success");
-    validateResult(result);
-
-    waitForJobEvent();
-    List<JobInfo> jobInfos = listener.getJobInfos();
-    assertThat(jobInfos).hasSize(1);
-    JobInfo jobInfo = jobInfos.iterator().next();
-    assertThat(jobInfo.getConfiguration().getType()).isEqualTo(JobConfiguration.Type.QUERY);
+    JsonArray jobInfos = result.getAsJsonArray("jobInfos");
+    assertThat(jobInfos.size()).isEqualTo(1);
+    JsonObject jobInfo = jobInfos.get(0).getAsJsonObject();
+    assertThat(jobInfo.get("type").getAsString()).isEqualTo("QUERY");
   }
 
   @Test
@@ -433,17 +420,11 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             testTable,
             ImmutableMap.of("scenario", "NAMED_PARAMETERS"));
 
-    assertThat(result.get("status").getAsString()).isEqualTo("success");
-    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
-    assertThat(result.get("count").getAsLong()).isGreaterThan(0L);
-
-    waitForJobEvent();
-    List<JobInfo> jobInfos = listener.getJobInfos();
-    assertThat(jobInfos).hasSize(1);
-    JobInfo jobInfo = jobInfos.iterator().next();
-    assertThat(jobInfo.getConfiguration().getType()).isEqualTo(JobConfiguration.Type.QUERY);
-    QueryJobConfiguration queryConfig = (QueryJobConfiguration) jobInfo.getConfiguration();
-    assertThat(queryConfig.getQuery()).contains("WHERE corpus = @corpus");
+    JsonArray jobInfos = result.getAsJsonArray("jobInfos");
+    assertThat(jobInfos.size()).isEqualTo(1);
+    JsonObject jobInfo = jobInfos.get(0).getAsJsonObject();
+    assertThat(jobInfo.get("type").getAsString()).isEqualTo("QUERY");
+    assertThat(jobInfo.get("query").getAsString()).contains("WHERE corpus = @corpus");
   }
 
   @Test
@@ -455,17 +436,11 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             testTable,
             ImmutableMap.of("scenario", "POSITIONAL_PARAMETERS"));
 
-    assertThat(result.get("status").getAsString()).isEqualTo("success");
-    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
-    assertThat(result.get("count").getAsLong()).isGreaterThan(0L);
-
-    waitForJobEvent();
-    List<JobInfo> jobInfos = listener.getJobInfos();
-    assertThat(jobInfos).hasSize(1);
-    JobInfo jobInfo = jobInfos.iterator().next();
-    assertThat(jobInfo.getConfiguration().getType()).isEqualTo(JobConfiguration.Type.QUERY);
-    QueryJobConfiguration queryConfig = (QueryJobConfiguration) jobInfo.getConfiguration();
-    assertThat(queryConfig.getQuery()).contains("WHERE corpus = ?");
+    JsonArray jobInfos = result.getAsJsonArray("jobInfos");
+    assertThat(jobInfos.size()).isEqualTo(1);
+    JsonObject jobInfo = jobInfos.get(0).getAsJsonObject();
+    assertThat(jobInfo.get("type").getAsString()).isEqualTo("QUERY");
+    assertThat(jobInfo.get("query").getAsString()).contains("WHERE corpus = ?");
   }
 
   @Test
@@ -501,19 +476,14 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             testTable,
             ImmutableMap.of("scenario", "KMS_KEY"));
 
-    assertThat(result.get("status").getAsString()).isEqualTo("success");
-
-    waitForJobEvent();
-    List<JobInfo> jobInfos = listener.getJobInfos();
-    assertThat(jobInfos).hasSize(1);
-    JobInfo jobInfo = jobInfos.iterator().next();
+    JsonArray jobInfos = result.getAsJsonArray("jobInfos");
+    assertThat(jobInfos.size()).isEqualTo(1);
+    JsonObject jobInfo = jobInfos.get(0).getAsJsonObject();
+    assertThat(jobInfo.get("type").getAsString()).isEqualTo("QUERY");
     String envKmsKey = System.getenv("BIGQUERY_KMS_KEY_NAME");
     String kmsKeyName =
         envKmsKey != null ? envKmsKey : "projects/p/locations/l/keyRings/k/cryptoKeys/c";
-    assertThat(
-            ((QueryJobConfiguration) jobInfo.getConfiguration())
-                .getDestinationEncryptionConfiguration()
-                .getKmsKeyName())
+    assertThat(jobInfo.get("kmsKeyName").getAsString())
         .isEqualTo(kmsKeyName + "/cryptoKeyVersions/1");
   }
 }

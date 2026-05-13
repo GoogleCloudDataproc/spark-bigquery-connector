@@ -28,7 +28,7 @@ public class Spark35IndirectWriteIntegrationTest extends WriteIntegrationTestBas
   @Before
   public void setParquetLoadBehaviour() {
     // TODO: make this the default value
-    spark.conf().set("enableListInference", "true");
+    spark().conf().set("enableListInference", "true");
   }
 
   // tests from superclass

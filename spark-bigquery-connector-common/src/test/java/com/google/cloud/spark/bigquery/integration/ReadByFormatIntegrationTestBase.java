@@ -36,6 +36,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import com.google.gson.JsonObject;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -60,6 +61,10 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
   protected SparkBigQueryIntegrationTestRunner testRunner =
       new InMemorySparkBigQueryIntegrationTestRunner();
+
+  protected SparkSession spark() {
+    return SparkSession.builder().master("local[*]").getOrCreate();
+  }
 
   private static final int LARGE_TABLE_NUMBER_OF_PARTITIONS = 138;
   protected final String dataFormat;
@@ -298,9 +303,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
         long sizeOfFirstPartition =
             df.rdd()
                 .toJavaRDD()
-                .mapPartitions(
-                    rows ->
-                        Arrays.asList(com.google.common.collect.Iterators.size(rows)).iterator())
+                .mapPartitions(rows -> Arrays.asList(Iterators.size(rows)).iterator())
                 .collect()
                 .get(0)
                 .longValue();
@@ -749,7 +752,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   }
 
   Dataset<Row> getViewDataFrame() {
-    return spark
+    return spark()
         .read()
         .format("bigquery")
         .option("dataset", testDataset.toString())
@@ -762,7 +765,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   }
 
   Dataset<Row> readAllTypesTable() {
-    return spark
+    return spark()
         .read()
         .format("bigquery")
         .option("dataset", testDataset.toString())

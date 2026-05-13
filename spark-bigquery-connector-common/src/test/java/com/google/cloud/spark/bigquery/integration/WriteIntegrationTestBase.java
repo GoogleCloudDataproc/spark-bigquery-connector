@@ -110,6 +110,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   protected SparkBigQueryIntegrationTestRunner testRunner =
       new InMemorySparkBigQueryIntegrationTestRunner();
 
+  protected SparkSession spark() {
+    return SparkSession.builder().master("local[*]").getOrCreate();
+  }
+
   protected static JsonObject basicWriteApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "APPEND");
@@ -1222,7 +1226,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   // See more at http://spark.apache.org/docs/2.3.2/api/java/org/apache/spark/sql/SaveMode.html
 
   protected Dataset<Row> initialData() {
-    return spark
+    return spark()
         .createDataset(
             Arrays.asList(
                 new Person(
@@ -1235,7 +1239,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   protected Dataset<Row> additonalData() {
-    return spark
+    return spark()
         .createDataset(
             Arrays.asList(
                 new Person(
@@ -1282,7 +1286,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   Dataset<Row> readAllTypesTable() {
-    return spark
+    return spark()
         .read()
         .format("bigquery")
         .option("dataset", testDataset.toString())
@@ -1374,7 +1378,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 TestConstants.TEMPORARY_GCS_BUCKET));
     assertThat(result.get("status").getAsString()).isEqualTo("success");
     Dataset<Row> readDF =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("dataset", testDataset.toString())
@@ -1567,7 +1571,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testWriteToBigQueryAddingTheSettingsToSparkConf() throws Exception {
-    spark.conf().set("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET);
+    spark().conf().set("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET);
     initialData()
         .write()
         .format("bigquery")
@@ -1585,7 +1589,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     int numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(0);
     Dataset<Row> df =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("table", testDataset + "." + TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME)
@@ -1617,7 +1621,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("table", testDataset + "." + TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME)
@@ -1653,7 +1657,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     int numOfRows = testTableNumberOfRows(destTableName);
     assertThat(numOfRows).isEqualTo(0);
     Dataset<Row> df =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option(
@@ -1687,7 +1691,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
     String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("table", testDataset + "." + TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME)
@@ -1710,7 +1714,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assumeThat(writeMethod, equalTo(SparkBigQueryConfig.WriteMethod.INDIRECT));
     String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("table", testDataset + "." + TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME)
@@ -1732,7 +1736,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
     String destTableName = createDiffInSchemaDestTable(TestConstants.DIFF_IN_SCHEMA_DEST_TABLE);
     Dataset<Row> df =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option(
@@ -1760,12 +1764,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     Path inputDir = Files.createTempDirectory("bq_integration_test_input");
     Path jsonFile = inputDir.resolve("test_data_for_streaming.json");
-    Files.write(jsonFile, "{\"name\": \"spark\", \"age\": 100}".getBytes(StandardCharsets.UTF_8));
+    Files.write(jsonFile, "{\"name\": \"spark()\", \"age\": 100}".getBytes(StandardCharsets.UTF_8));
 
     StructType schema =
         new StructType().add("name", DataTypes.StringType).add("age", DataTypes.LongType);
     Dataset<Row> df =
-        spark.readStream().option("multiline", "true").schema(schema).json(inputDir.toString());
+        spark().readStream().option("multiline", "true").schema(schema).json(inputDir.toString());
 
     String destTableName = testDataset + "." + "test_stream_json_" + System.nanoTime();
     String checkPointLocation =
@@ -1782,10 +1786,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     writeStream.processAllAvailable();
     writeStream.stop();
 
-    List<Row> rows = spark.read().format("bigquery").load(destTableName).collectAsList();
+    List<Row> rows = spark().read().format("bigquery").load(destTableName).collectAsList();
     assertThat(rows).hasSize(1);
     Row row = rows.get(0);
-    assertThat(row.getString(0)).isEqualTo("spark");
+    assertThat(row.getString(0)).isEqualTo("spark()");
     assertThat(row.getLong(1)).isEqualTo(100L);
   }
 
@@ -1799,14 +1803,14 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     Row row = TestConstants.ALL_TYPES_TABLE_ROW;
     List<Row> rawRows = Collections.nCopies(20, row);
 
-    Dataset<Row> normalizedDF = spark.createDataFrame(rawRows, schema);
+    Dataset<Row> normalizedDF = spark().createDataFrame(rawRows, schema);
     List<Row> rows = normalizedDF.collectAsList();
     Encoder<Row> encoder = normalizedDF.encoder();
 
     MemoryStream<Row> memoryStream =
         new MemoryStream<>(
             1, // id
-            spark.sqlContext(), // sqlContext
+            spark().sqlContext(), // sqlContext
             Option.apply(null),
             encoder // Implicit encoder passed as final arg
             );
@@ -1829,7 +1833,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     writeStream.processAllAvailable();
     writeStream.stop();
 
-    List<Row> readRows = spark.read().format("bigquery").load(destTableName).collectAsList();
+    List<Row> readRows = spark().read().format("bigquery").load(destTableName).collectAsList();
     assertThat(readRows).hasSize(20);
     assertThat(readRows.get(0)).isEqualTo(rows.get(0));
   }
@@ -1841,7 +1845,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     StructType srcSchema =
         structType(StructField.apply("int_null", DataTypes.IntegerType, true, Metadata.empty()));
     List<Row> rows = Arrays.asList(RowFactory.create(25), RowFactory.create((Object) null));
-    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+    Dataset<Row> df = spark().createDataFrame(rows, srcSchema);
 
     df.write()
         .format("bigquery")
@@ -1873,7 +1877,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     StructType srcSchema =
         structType(StructField.apply("int_req", DataTypes.IntegerType, true, Metadata.empty()));
     List<Row> rows = Arrays.asList(RowFactory.create(25));
-    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+    Dataset<Row> df = spark().createDataFrame(rows, srcSchema);
 
     df.write()
         .format("bigquery")
@@ -1905,7 +1909,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     StructType srcSchema =
         structType(StructField.apply("int_req", DataTypes.IntegerType, true, Metadata.empty()));
     List<Row> rows = Arrays.asList(RowFactory.create((Object) null));
-    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+    Dataset<Row> df = spark().createDataFrame(rows, srcSchema);
 
     Assert.assertThrows(
         "INVALID_ARGUMENT: Errors found while processing rows.",
@@ -1926,7 +1930,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     StructType srcSchema =
         structType(StructField.apply("int_rep", DataTypes.IntegerType, true, Metadata.empty()));
     List<Row> rows = Arrays.asList(RowFactory.create(10));
-    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+    Dataset<Row> df = spark().createDataFrame(rows, srcSchema);
 
     Assert.assertThrows(
         ProvisionException.class,
@@ -1945,7 +1949,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     StructType srcSchema =
         structType(StructField.apply("int_null", DataTypes.IntegerType, false, Metadata.empty()));
     List<Row> rows = Arrays.asList(RowFactory.create(25));
-    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+    Dataset<Row> df = spark().createDataFrame(rows, srcSchema);
 
     df.write()
         .format("bigquery")
@@ -1964,7 +1968,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     StructType srcSchema =
         structType(StructField.apply("int_req", DataTypes.IntegerType, false, Metadata.empty()));
     List<Row> rows = Arrays.asList(RowFactory.create(25));
-    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+    Dataset<Row> df = spark().createDataFrame(rows, srcSchema);
 
     df.write()
         .format("bigquery")
@@ -1984,7 +1988,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     StructType srcSchema =
         structType(StructField.apply("int_rep", DataTypes.IntegerType, false, Metadata.empty()));
     List<Row> rows = Arrays.asList(RowFactory.create(10));
-    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+    Dataset<Row> df = spark().createDataFrame(rows, srcSchema);
 
     Assert.assertThrows(
         ProvisionException.class,
@@ -2010,7 +2014,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 Metadata.empty()));
     List<Row> rows =
         Arrays.asList(RowFactory.create(Arrays.asList(1, 2)), RowFactory.create((Object) null));
-    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+    Dataset<Row> df = spark().createDataFrame(rows, srcSchema);
 
     Assert.assertThrows(
         ProvisionException.class,
@@ -2035,7 +2039,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 true,
                 Metadata.empty()));
     List<Row> rows = Arrays.asList(RowFactory.create(Arrays.asList(1, 2)));
-    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+    Dataset<Row> df = spark().createDataFrame(rows, srcSchema);
 
     Assert.assertThrows(
         ProvisionException.class,
@@ -2061,7 +2065,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 Metadata.empty()));
     List<Row> rows =
         Arrays.asList(RowFactory.create(Arrays.asList(1, 2)), RowFactory.create((Object) null));
-    Dataset<Row> df = spark.createDataFrame(rows, srcSchema);
+    Dataset<Row> df = spark().createDataFrame(rows, srcSchema);
 
     df.write()
         .format("bigquery")
@@ -2118,7 +2122,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   @Test
   public void testWriteWithTableLabels() throws Exception {
     Dataset<Row> df = initialData();
-    spark.conf().set("bigQueryTableLabel.foo", "bar");
+    spark().conf().set("bigQueryTableLabel.foo", "bar");
     df.write()
         .format("bigquery")
         .option("writeMethod", writeMethod.toString())
@@ -2126,7 +2130,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("dataset", testDataset.toString())
         .option("table", testTable)
         .save();
-    spark.conf().unset("bigQueryTableLabel.foo");
+    spark().conf().unset("bigQueryTableLabel.foo");
 
     Table table =
         IntegrationTestUtils.getBigquery().getTable(TableId.of(testDataset.toString(), testTable));
@@ -2172,7 +2176,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             new StructField[] {
               dateField, new StructField("some_text", DataTypes.StringType, true, Metadata.empty())
             });
-    Dataset<Row> newDataDF = spark.createDataFrame(rows, newDataSchema);
+    Dataset<Row> newDataDF = spark().createDataFrame(rows, newDataSchema);
 
     newDataDF
         .write()
@@ -2182,7 +2186,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .mode("overwrite")
         .save(fullTableName());
 
-    Dataset<Row> resultDF = spark.read().format("bigquery").load(fullTableName());
+    Dataset<Row> resultDF = spark().read().format("bigquery").load(fullTableName());
     List<Row> result = resultDF.collectAsList();
 
     assertThat(result).hasSize(2);
@@ -2234,7 +2238,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     for (int i = 0; i < schemas.length; i++) {
       List<Row> data = Arrays.asList(RowFactory.create(100), RowFactory.create(200));
 
-      Dataset<Row> descriptionDF = spark.createDataFrame(data, schemas[i]);
+      Dataset<Row> descriptionDF = spark().createDataFrame(data, schemas[i]);
 
       descriptionDF
           .write()
@@ -2247,7 +2251,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
           .save();
 
       Dataset<Row> readDF =
-          spark
+          spark()
               .read()
               .format("bigquery")
               .option("dataset", testDataset.toString())
@@ -2269,7 +2273,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   @Test
   public void testWriteEmptyDataFrame() throws Exception {
-    Dataset<Row> df = spark.createDataFrame(Collections.emptyList(), Link.class);
+    Dataset<Row> df = spark().createDataFrame(Collections.emptyList(), Link.class);
     writeToBigQueryAvroFormat(df, SaveMode.Append, "False");
     assertThat(testTableNumberOfRows()).isEqualTo(0);
   }
@@ -2307,7 +2311,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             new Data("a", Timestamp.valueOf("2020-01-01 01:01:01")),
             new Data("b", Timestamp.valueOf("2020-01-02 02:02:02")),
             new Data("c", Timestamp.valueOf("2020-01-03 03:03:03")));
-    Dataset<Row> df = spark.createDataset(data, Encoders.bean(Data.class)).toDF();
+    Dataset<Row> df = spark().createDataset(data, Encoders.bean(Data.class)).toDF();
     String table = testDataset.toString() + "." + testTable + "_" + partitionType;
     df.write()
         .format("bigquery")
@@ -2319,7 +2323,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("writeMethod", writeMethod.toString())
         .save();
 
-    Dataset<Row> readDF = spark.read().format("bigquery").load(table);
+    Dataset<Row> readDF = spark().read().format("bigquery").load(table);
     assertThat(readDF.count()).isEqualTo(3);
   }
 
@@ -2330,7 +2334,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     List<RangeData> data =
         Arrays.asList(new RangeData("a", 1L), new RangeData("b", 5L), new RangeData("c", 11L));
-    Dataset<Row> df = spark.createDataset(data, Encoders.bean(RangeData.class)).toDF();
+    Dataset<Row> df = spark().createDataset(data, Encoders.bean(RangeData.class)).toDF();
     String table = testDataset.toString() + "." + testTable + "_range";
     df.write()
         .format("bigquery")
@@ -2344,7 +2348,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("writeMethod", writeMethod.toString())
         .save();
 
-    Dataset<Row> readDF = spark.read().format("bigquery").load(table);
+    Dataset<Row> readDF = spark().read().format("bigquery").load(table);
     assertThat(readDF.count()).isEqualTo(3);
     Table bqTable = bq.getTable(TableId.of(testDataset.toString(), testTable + "_range"));
     assertThat(bqTable).isNotNull();
@@ -2370,7 +2374,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     writeToBigQuery(allTypesTable, SaveMode.Overwrite, "avro", "False");
 
     Dataset<Row> df =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("dataset", testDataset.toString())
@@ -2390,16 +2394,17 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testWriteJsonToANewTable() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create("{\"key\":\"foo\",\"value\":1}"),
-                RowFactory.create("{\"key\":\"bar\",\"value\":2}")),
-            structType(
-                StructField.apply(
-                    "jf",
-                    DataTypes.StringType,
-                    true,
-                    Metadata.fromJson("{\"sqlType\":\"JSON\"}"))));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create("{\"key\":\"foo\",\"value\":1}"),
+                    RowFactory.create("{\"key\":\"bar\",\"value\":2}")),
+                structType(
+                    StructField.apply(
+                        "jf",
+                        DataTypes.StringType,
+                        true,
+                        Metadata.fromJson("{\"sqlType\":\"JSON\"}"))));
     df.write()
         .format("bigquery")
         .mode(SaveMode.Append)
@@ -2419,7 +2424,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     // validating by querying a sub-field of the json
     Dataset<Row> resultDF =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("viewsEnabled", "true")
@@ -2441,16 +2446,17 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StandardTableDefinition.of(Schema.of(Field.of("jf", LegacySQLTypeName.JSON)))));
     assertThat(table).isNotNull();
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create("{\"key\":\"foo\",\"value\":1}"),
-                RowFactory.create("{\"key\":\"bar\",\"value\":2}")),
-            structType(
-                StructField.apply(
-                    "jf",
-                    DataTypes.StringType,
-                    true,
-                    Metadata.fromJson("{\"sqlType\":\"JSON\"}"))));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create("{\"key\":\"foo\",\"value\":1}"),
+                    RowFactory.create("{\"key\":\"bar\",\"value\":2}")),
+                structType(
+                    StructField.apply(
+                        "jf",
+                        DataTypes.StringType,
+                        true,
+                        Metadata.fromJson("{\"sqlType\":\"JSON\"}"))));
     df.write()
         .format("bigquery")
         .mode(SaveMode.Append)
@@ -2464,7 +2470,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     // validating by querying a sub-field of the json
     Dataset<Row> resultDF =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("viewsEnabled", "true")
@@ -2478,16 +2484,17 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   @Test
   public void testWriteMapToANewTable() throws Exception {
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(ImmutableMap.of("a", new Long(1), "b", new Long(2))),
-                RowFactory.create(ImmutableMap.of("c", new Long(3)))),
-            structType(
-                StructField.apply(
-                    "mf",
-                    DataTypes.createMapType(DataTypes.StringType, DataTypes.LongType),
-                    false,
-                    Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(ImmutableMap.of("a", new Long(1), "b", new Long(2))),
+                    RowFactory.create(ImmutableMap.of("c", new Long(3)))),
+                structType(
+                    StructField.apply(
+                        "mf",
+                        DataTypes.createMapType(DataTypes.StringType, DataTypes.LongType),
+                        false,
+                        Metadata.empty())));
     df.write()
         .format("bigquery")
         .mode(SaveMode.Append)
@@ -2523,7 +2530,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     // validating by querying a sub-field of the json
     Dataset<Row> resultDF =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("viewsEnabled", "true")
@@ -2547,7 +2554,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         Arrays.asList(
             RowFactory.create("val1", Date.valueOf("2023-04-13")),
             RowFactory.create("val2", Date.valueOf("2023-04-14")));
-    Dataset<Row> initialDF = spark.createDataFrame(rows, initialSchema);
+    Dataset<Row> initialDF = spark().createDataFrame(rows, initialSchema);
     // initial write
     initialDF
         .write()
@@ -2568,7 +2575,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             StructField.apply("new_field", DataTypes.StringType, true, Metadata.empty()));
     List<Row> finalRows =
         Arrays.asList(RowFactory.create("val3", Date.valueOf("2023-04-15"), "newVal1"));
-    Dataset<Row> finalDF = spark.createDataFrame(finalRows, finalSchema);
+    Dataset<Row> finalDF = spark().createDataFrame(finalRows, finalSchema);
     finalDF
         .write()
         .format("bigquery")
@@ -2583,7 +2590,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(testTableNumberOfRows()).isEqualTo(3);
 
     Dataset<Row> resultDF =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("dataset", testDataset.toString())
@@ -2632,12 +2639,14 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     Decimal num = Decimal.apply("12345.6");
     Decimal bignum = Decimal.apply("12345.12345");
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(RowFactory.create(num, bignum)),
-            structType(
-                StructField.apply("num", DataTypes.createDecimalType(6, 1), true, Metadata.empty()),
-                StructField.apply(
-                    "bignum", DataTypes.createDecimalType(10, 5), true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(RowFactory.create(num, bignum)),
+                structType(
+                    StructField.apply(
+                        "num", DataTypes.createDecimalType(6, 1), true, Metadata.empty()),
+                    StructField.apply(
+                        "bignum", DataTypes.createDecimalType(10, 5), true, Metadata.empty())));
     df.write()
         .format("bigquery")
         .mode(SaveMode.Append)
@@ -2648,7 +2657,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .save();
 
     Dataset<Row> resultDF =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("dataset", testDataset.toString())
@@ -2671,11 +2680,13 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     String name = "abc";
     String wakeUpTime = "10:00:00";
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(RowFactory.create(name, wakeUpTime)),
-            structType(
-                StructField.apply("name", DataTypes.StringType, true, Metadata.empty()),
-                StructField.apply("wake_up_time", DataTypes.StringType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(RowFactory.create(name, wakeUpTime)),
+                structType(
+                    StructField.apply("name", DataTypes.StringType, true, Metadata.empty()),
+                    StructField.apply(
+                        "wake_up_time", DataTypes.StringType, true, Metadata.empty())));
     df.write()
         .format("bigquery")
         .mode(saveMode)
@@ -2685,7 +2696,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .save();
 
     Dataset<Row> resultDF =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("dataset", testDataset.toString())
@@ -2717,11 +2728,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     String name = "abc";
     String dateTime1 = "0001-01-01T01:22:24.999888";
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(RowFactory.create(name, dateTime1)),
-            structType(
-                StructField.apply("name", DataTypes.StringType, true, Metadata.empty()),
-                StructField.apply("datetime1", DataTypes.StringType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(RowFactory.create(name, dateTime1)),
+                structType(
+                    StructField.apply("name", DataTypes.StringType, true, Metadata.empty()),
+                    StructField.apply("datetime1", DataTypes.StringType, true, Metadata.empty())));
     df.write()
         .format("bigquery")
         .mode(saveMode)
@@ -2731,7 +2743,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .save();
 
     Dataset<Row> resultDF =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("dataset", testDataset.toString())
@@ -2772,11 +2784,13 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     TimeZone.setDefault(TimeZone.getTimeZone("IST"));
     Timestamp timestamp1 = Timestamp.valueOf("1501-01-01 01:22:24.999888");
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(RowFactory.create(name, timestamp1)),
-            structType(
-                StructField.apply("name", DataTypes.StringType, true, Metadata.empty()),
-                StructField.apply("timestamp1", DataTypes.TimestampType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(RowFactory.create(name, timestamp1)),
+                structType(
+                    StructField.apply("name", DataTypes.StringType, true, Metadata.empty()),
+                    StructField.apply(
+                        "timestamp1", DataTypes.TimestampType, true, Metadata.empty())));
     df.write()
         .format("bigquery")
         .mode("append")
@@ -2788,7 +2802,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     TimeZone.setDefault(TimeZone.getTimeZone("PST"));
 
     Dataset<Row> resultDF =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("dataset", testDataset.toString())
@@ -2810,7 +2824,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("table", testTable)
         .option("writeMethod", writeMethod.toString())
         .option(
-            "spark.sql.sources.partitionOverwriteMode", PartitionOverwriteMode.DYNAMIC.toString())
+            "spark().sql.sources.partitionOverwriteMode", PartitionOverwriteMode.DYNAMIC.toString())
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .save();
 
@@ -2821,7 +2835,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
               testDataset, testTable));
     }
 
-    return spark
+    return spark()
         .read()
         .format("bigquery")
         .option("dataset", testDataset.toString())
@@ -2843,13 +2857,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, Timestamp.valueOf("2023-09-28 10:15:00")),
-                RowFactory.create(20, Timestamp.valueOf("2023-09-30 12:00:00"))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(10, Timestamp.valueOf("2023-09-28 10:15:00")),
+                    RowFactory.create(20, Timestamp.valueOf("2023-09-30 12:00:00"))),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(
+                        orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
@@ -2887,13 +2903,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, Timestamp.valueOf("2023-09-29 2:00:00")),
-                RowFactory.create(20, Timestamp.valueOf("2023-09-30 12:00:00"))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(10, Timestamp.valueOf("2023-09-29 2:00:00")),
+                    RowFactory.create(20, Timestamp.valueOf("2023-09-30 12:00:00"))),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(
+                        orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
@@ -2931,13 +2949,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, Timestamp.valueOf("2023-10-29 2:00:00")),
-                RowFactory.create(20, Timestamp.valueOf("2023-11-30 12:00:00"))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(10, Timestamp.valueOf("2023-10-29 2:00:00")),
+                    RowFactory.create(20, Timestamp.valueOf("2023-11-30 12:00:00"))),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(
+                        orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
@@ -2975,13 +2995,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, Timestamp.valueOf("2023-10-29 2:00:00")),
-                RowFactory.create(20, Timestamp.valueOf("2024-11-30 12:00:00"))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(10, Timestamp.valueOf("2023-10-29 2:00:00")),
+                    RowFactory.create(20, Timestamp.valueOf("2024-11-30 12:00:00"))),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(
+                        orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
@@ -3018,13 +3040,14 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderDate));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, Date.valueOf("2023-09-29")),
-                RowFactory.create(20, Date.valueOf("2023-09-30"))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDate, DataTypes.DateType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(10, Date.valueOf("2023-09-29")),
+                    RowFactory.create(20, Date.valueOf("2023-09-30"))),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(orderDate, DataTypes.DateType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
@@ -3059,13 +3082,14 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderDate));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, Date.valueOf("2023-10-20")),
-                RowFactory.create(20, Date.valueOf("2023-11-30"))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDate, DataTypes.DateType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(10, Date.valueOf("2023-10-20")),
+                    RowFactory.create(20, Date.valueOf("2023-11-30"))),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(orderDate, DataTypes.DateType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
@@ -3100,13 +3124,14 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderDate));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, Date.valueOf("2023-10-20")),
-                RowFactory.create(20, Date.valueOf("2024-11-30"))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDate, DataTypes.DateType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(10, Date.valueOf("2023-10-20")),
+                    RowFactory.create(20, Date.valueOf("2024-11-30"))),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(orderDate, DataTypes.DateType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
@@ -3142,13 +3167,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, LocalDateTime.of(2023, 9, 28, 10, 15, 0)),
-                RowFactory.create(20, LocalDateTime.of(2023, 9, 30, 12, 0, 0))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(10, LocalDateTime.of(2023, 9, 28, 10, 15, 0)),
+                    RowFactory.create(20, LocalDateTime.of(2023, 9, 30, 12, 0, 0))),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(
+                        orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
@@ -3184,13 +3211,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, LocalDateTime.of(2023, 9, 29, 10, 15, 0)),
-                RowFactory.create(20, LocalDateTime.of(2023, 9, 30, 12, 0, 0))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(10, LocalDateTime.of(2023, 9, 29, 10, 15, 0)),
+                    RowFactory.create(20, LocalDateTime.of(2023, 9, 30, 12, 0, 0))),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(
+                        orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
@@ -3226,13 +3255,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, LocalDateTime.of(2023, 10, 20, 10, 15, 0)),
-                RowFactory.create(20, LocalDateTime.of(2023, 11, 30, 12, 0, 0))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(10, LocalDateTime.of(2023, 10, 20, 10, 15, 0)),
+                    RowFactory.create(20, LocalDateTime.of(2023, 11, 30, 12, 0, 0))),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(
+                        orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
@@ -3268,13 +3299,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, LocalDateTime.of(2023, 10, 20, 10, 15, 0)),
-                RowFactory.create(20, LocalDateTime.of(2024, 11, 30, 12, 0, 0))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(10, LocalDateTime.of(2023, 10, 20, 10, 15, 0)),
+                    RowFactory.create(20, LocalDateTime.of(2024, 11, 30, 12, 0, 0))),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(
+                        orderDateTime, timeStampNTZType.get(), true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
@@ -3308,13 +3341,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderDateTime));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(10, Timestamp.valueOf("2023-09-29 2:00:00")),
-                RowFactory.create(20, Timestamp.valueOf("2023-09-30 12:00:00"))),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(10, Timestamp.valueOf("2023-09-29 2:00:00")),
+                    RowFactory.create(20, Timestamp.valueOf("2023-09-30 12:00:00"))),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(
+                        orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, false);
     assertThat(result.count()).isEqualTo(2);
@@ -3347,15 +3382,16 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderCount));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(
-                RowFactory.create(4, 2000),
-                RowFactory.create(20, 2050),
-                RowFactory.create(85, 3000),
-                RowFactory.create(90, 3050)),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(
+                    RowFactory.create(4, 2000),
+                    RowFactory.create(20, 2050),
+                    RowFactory.create(85, 3000),
+                    RowFactory.create(90, 3050)),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(5);
@@ -3399,11 +3435,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderCount));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(RowFactory.create(4, 2000), RowFactory.create(-10, 2050)),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(RowFactory.create(4, 2000), RowFactory.create(-10, 2050)),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(2);
@@ -3435,11 +3472,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderCount));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(RowFactory.create(4, 2000), RowFactory.create(105, 2050)),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(RowFactory.create(4, 2000), RowFactory.create(105, 2050)),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(2);
@@ -3470,11 +3508,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderCount));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(RowFactory.create(-1, 2000), RowFactory.create(5, 2050)),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(RowFactory.create(-1, 2000), RowFactory.create(5, 2050)),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
@@ -3509,11 +3548,12 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             testDataset, testTable, orderId, orderCount));
 
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(RowFactory.create(null, 2000), RowFactory.create(5, 2050)),
-            structType(
-                StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
-                StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
+        spark()
+            .createDataFrame(
+                Arrays.asList(RowFactory.create(null, 2000), RowFactory.create(5, 2050)),
+                structType(
+                    StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+                    StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
     Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
     assertThat(result.count()).isEqualTo(3);
@@ -3556,7 +3596,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         Arrays.asList(
             RowFactory.create("key1", "val1", Date.valueOf("2023-04-13")),
             RowFactory.create("key2", "val2", Date.valueOf("2023-04-14")));
-    Dataset<Row> initialDF = spark.createDataFrame(rows, initialSchema);
+    Dataset<Row> initialDF = spark().createDataFrame(rows, initialSchema);
     // initial write
     initialDF
         .write()
@@ -3574,7 +3614,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             StructField.apply("key", DataTypes.StringType, true, Metadata.empty()),
             StructField.apply("value", DataTypes.StringType, true, Metadata.empty()));
     List<Row> finalRows = Arrays.asList(RowFactory.create("key3", "val3"));
-    Dataset<Row> finalDF = spark.createDataFrame(finalRows, finalSchema);
+    Dataset<Row> finalDF = spark().createDataFrame(finalRows, finalSchema);
     finalDF
         .write()
         .format("bigquery")
@@ -3598,7 +3638,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         Arrays.asList(
             RowFactory.create("val1", Date.valueOf("2023-04-13")),
             RowFactory.create("val2", Date.valueOf("2023-04-14")));
-    Dataset<Row> initialDF = spark.createDataFrame(rows, initialSchema);
+    Dataset<Row> initialDF = spark().createDataFrame(rows, initialSchema);
     // initial write
     initialDF
         .write()
@@ -3628,7 +3668,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 "val5", Date.valueOf("2023-04-15"), RowFactory.create("str1", "str2")),
             RowFactory.create(
                 "val6", Date.valueOf("2023-04-16"), RowFactory.create("str1", "str2")));
-    Dataset<Row> nestedDF = spark.createDataFrame(nestedData, nestedSchema);
+    Dataset<Row> nestedDF = spark().createDataFrame(nestedData, nestedSchema);
 
     nestedDF
         .write()
@@ -3684,7 +3724,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 "val5", Date.valueOf("2023-04-15"), RowFactory.create("str1", "str2")),
             RowFactory.create(
                 "val6", Date.valueOf("2023-04-16"), RowFactory.create("str1", "str2")));
-    Dataset<Row> initialDF = spark.createDataFrame(initialData, initialSchema);
+    Dataset<Row> initialDF = spark().createDataFrame(initialData, initialSchema);
 
     initialDF
         .write()
@@ -3717,7 +3757,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 "val5", Date.valueOf("2023-04-15"), RowFactory.create("str1", "str2", "str3")),
             RowFactory.create(
                 "val6", Date.valueOf("2023-04-16"), RowFactory.create("str1", "str2", "str3")));
-    Dataset<Row> finalDF = spark.createDataFrame(finalData, finalSchema);
+    Dataset<Row> finalDF = spark().createDataFrame(finalData, finalSchema);
 
     finalDF
         .write()
@@ -3772,7 +3812,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(result.get("status").getAsString()).isEqualTo("success");
 
     Dataset<Row> readResult =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("dataset", testDataset.toString())
@@ -3795,12 +3835,13 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     LocalDateTime time = LocalDateTime.of(2023, 9, 1, 12, 23, 34, 268543 * 1000);
     List<Row> rows = Arrays.asList(RowFactory.create(time));
     Dataset<Row> df =
-        spark.createDataFrame(
-            rows,
-            new StructType(
-                new StructField[] {
-                  StructField.apply("foo", timeStampNTZType.get(), true, Metadata.empty())
-                }));
+        spark()
+            .createDataFrame(
+                rows,
+                new StructType(
+                    new StructField[] {
+                      StructField.apply("foo", timeStampNTZType.get(), true, Metadata.empty())
+                    }));
     String table = testDataset.toString() + "." + testTable;
     df.write()
         .format("bigquery")
@@ -3848,14 +3889,17 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         String.format("CREATE TABLE `%s.%s` (name STRING, age INT64)", testDataset, testTable));
     String initialDescription = bq.getTable(testDataset.toString(), testTable).getDescription();
     Dataset<Row> df =
-        spark.createDataFrame(
-            Arrays.asList(RowFactory.create("foo", 10), RowFactory.create("bar", 20)),
-            new StructType().add("name", DataTypes.StringType).add("age", DataTypes.IntegerType));
+        spark()
+            .createDataFrame(
+                Arrays.asList(RowFactory.create("foo", 10), RowFactory.create("bar", 20)),
+                new StructType()
+                    .add("name", DataTypes.StringType)
+                    .add("age", DataTypes.IntegerType));
     writeToBigQueryAvroFormat(df, SaveMode.Append, "True");
     assertThat(initialDescription)
         .isEqualTo(bq.getTable(testDataset.toString(), testTable).getDescription());
     Dataset<Row> readDF =
-        spark
+        spark()
             .read()
             .format("bigquery")
             .option("dataset", testDataset.toString())
@@ -3871,16 +3915,19 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testCountAfterWrite() throws Exception {
     IntegrationTestUtils.runQuery(
         String.format("CREATE TABLE `%s.%s` (name STRING, age INT64)", testDataset, testTable));
-    Dataset<Row> read1Df = spark.read().format("bigquery").load(fullTableName());
+    Dataset<Row> read1Df = spark().read().format("bigquery").load(fullTableName());
     assertThat(read1Df.count()).isEqualTo(0L);
 
     Dataset<Row> dfToWrite =
-        spark.createDataFrame(
-            Arrays.asList(RowFactory.create("foo", 10), RowFactory.create("bar", 20)),
-            new StructType().add("name", DataTypes.StringType).add("age", DataTypes.IntegerType));
+        spark()
+            .createDataFrame(
+                Arrays.asList(RowFactory.create("foo", 10), RowFactory.create("bar", 20)),
+                new StructType()
+                    .add("name", DataTypes.StringType)
+                    .add("age", DataTypes.IntegerType));
     writeToBigQueryAvroFormat(dfToWrite, SaveMode.Append, "false");
 
-    Dataset<Row> read2Df = spark.read().format("bigquery").load(fullTableName());
+    Dataset<Row> read2Df = spark().read().format("bigquery").load(fullTableName());
     assertThat(read2Df.count()).isEqualTo(2L);
   }
 
@@ -3889,12 +3936,13 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     Preconditions.checkArgument(timeStampNTZType.isPresent(), "timestampNTZType not present");
     List<Row> rows = Arrays.asList(RowFactory.create(time));
     Dataset<Row> df =
-        spark.createDataFrame(
-            rows,
-            new StructType(
-                new StructField[] {
-                  StructField.apply("foo", timeStampNTZType.get(), true, Metadata.empty())
-                }));
+        spark()
+            .createDataFrame(
+                rows,
+                new StructType(
+                    new StructField[] {
+                      StructField.apply("foo", timeStampNTZType.get(), true, Metadata.empty())
+                    }));
     writeToBigQuery(df, SaveMode.Overwrite, format);
     BigQuery bigQuery = IntegrationTestUtils.getBigquery();
     TableResult result =

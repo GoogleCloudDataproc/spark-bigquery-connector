@@ -145,8 +145,18 @@ public class CatalogIntegrationTestBase {
             .set(
                 "spark.sql.catalog.public_catalog",
                 "com.google.cloud.spark.bigquery.BigQueryCatalog");
-        spark.conf().set("spark.sql.catalog.public_catalog.projectId", "bigquery-public-data");
-        Thread.sleep(1500);
+        IntegrationTestUtils.pollUntil(
+            () -> {
+              try {
+                return spark.sql("SHOW DATABASES IN public_catalog").collectAsList().stream()
+                    .map(row -> row.getString(0))
+                    .collect(Collectors.toList())
+                    .contains("samples");
+              } catch (Exception e) {
+                return false;
+              }
+            },
+            15);
 
         List<Row> rows = spark.sql("SHOW DATABASES IN public_catalog").collectAsList();
         List<String> databaseNames =
@@ -166,7 +176,16 @@ public class CatalogIntegrationTestBase {
                 "spark.sql.catalog.test_location_catalog",
                 "com.google.cloud.spark.bigquery.BigQueryCatalog");
         spark.conf().set("spark.sql.catalog.test_location_catalog.bigquery_location", "EU");
-        Thread.sleep(1500);
+        IntegrationTestUtils.pollUntil(
+            () -> {
+              try {
+                spark.sql("SHOW DATABASES IN test_location_catalog").collect();
+                return true;
+              } catch (Exception e) {
+                return false;
+              }
+            },
+            15);
 
         spark.sql("CREATE DATABASE test_location_catalog." + database);
 
@@ -183,10 +202,32 @@ public class CatalogIntegrationTestBase {
                 "spark.sql.catalog.test_catalog_as_select",
                 "com.google.cloud.spark.bigquery.BigQueryCatalog");
         spark.conf().set("spark.sql.catalog.test_catalog_as_select.bigquery_location", "EU");
-        Thread.sleep(1500);
+        IntegrationTestUtils.pollUntil(
+            () -> {
+              try {
+                spark.sql("SHOW DATABASES IN test_catalog_as_select").collect();
+                return true;
+              } catch (Exception e) {
+                return false;
+              }
+            },
+            15);
 
         spark.sql("CREATE DATABASE test_catalog_as_select." + database);
-        Thread.sleep(500);
+        IntegrationTestUtils.pollUntil(
+            () -> {
+              try {
+                return spark.sql("SHOW DATABASES IN test_catalog_as_select").collectAsList()
+                    .stream()
+                    .map(row -> row.getString(0))
+                    .collect(Collectors.toList())
+                    .contains(database);
+              } catch (Exception e) {
+                return false;
+              }
+            },
+            15);
+
         spark.sql(
             "CREATE TABLE test_catalog_as_select."
                 + database

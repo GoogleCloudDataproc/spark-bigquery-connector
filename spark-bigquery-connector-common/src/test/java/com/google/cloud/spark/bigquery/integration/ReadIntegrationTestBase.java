@@ -599,60 +599,72 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   protected static JsonObject readFilteredTimestampApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     SparkSession spark = SparkSession.builder().getOrCreate();
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset)
-            .option("table", testTable)
-            .load();
-    Dataset<Row> filteredDF =
-        df.where(df.apply("eventTime").between("2023-01-09 10:00:00", "2023-01-09 10:00:00"));
-    List<Row> resultList = filteredDF.collectAsList();
+    String originalSessionTz = spark.conf().get("spark.sql.session.timeZone");
+    try {
+      spark.conf().set("spark.sql.session.timeZone", "UTC");
+      Dataset<Row> df =
+          spark
+              .read()
+              .format("bigquery")
+              .option("dataset", testDataset)
+              .option("table", testTable)
+              .load();
+      Dataset<Row> filteredDF =
+          df.where(df.apply("eventTime").between("2023-01-09 10:00:00", "2023-01-09 10:00:00"));
+      List<Row> resultList = filteredDF.collectAsList();
 
-    JsonObject result = new JsonObject();
-    result.addProperty("status", "success");
-    result.addProperty("rowCount", resultList.size());
-    Row head = resultList.get(0);
-    result.addProperty(
-        "eventTimeMillis", ((Timestamp) head.get(head.fieldIndex("eventTime"))).getTime());
-    return result;
+      JsonObject result = new JsonObject();
+      result.addProperty("status", "success");
+      result.addProperty("rowCount", resultList.size());
+      Row head = resultList.get(0);
+      result.addProperty(
+          "eventTimeMillis", ((Timestamp) head.get(head.fieldIndex("eventTime"))).getTime());
+      return result;
+    } finally {
+      spark.conf().set("spark.sql.session.timeZone", originalSessionTz);
+    }
   }
 
   protected static JsonObject readArrowTimestampRebaseApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     SparkSession spark = SparkSession.builder().getOrCreate();
-    Row withoutRebase =
-        spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset)
-            .option("table", testTable)
-            .option("readDataFormat", "ARROW")
-            .option("enableArrowTimestampRebase", "false")
-            .load()
-            .collectAsList()
-            .get(0);
-    Row withRebase =
-        spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset)
-            .option("table", testTable)
-            .option("readDataFormat", "ARROW")
-            .option("enableArrowTimestampRebase", "true")
-            .load()
-            .collectAsList()
-            .get(0);
+    String originalSessionTz = spark.conf().get("spark.sql.session.timeZone");
+    try {
+      spark.conf().set("spark.sql.session.timeZone", "UTC");
+      Row withoutRebase =
+          spark
+              .read()
+              .format("bigquery")
+              .option("dataset", testDataset)
+              .option("table", testTable)
+              .option("readDataFormat", "ARROW")
+              .option("enableArrowTimestampRebase", "false")
+              .load()
+              .collectAsList()
+              .get(0);
+      Row withRebase =
+          spark
+              .read()
+              .format("bigquery")
+              .option("dataset", testDataset)
+              .option("table", testTable)
+              .option("readDataFormat", "ARROW")
+              .option("enableArrowTimestampRebase", "true")
+              .load()
+              .collectAsList()
+              .get(0);
 
-    JsonObject result = new JsonObject();
-    result.addProperty("status", "success");
-    result.addProperty(
-        "withoutRebaseMillis",
-        ((Timestamp) withoutRebase.get(withoutRebase.fieldIndex("ts"))).getTime());
-    result.addProperty(
-        "withRebaseMillis", ((Timestamp) withRebase.get(withRebase.fieldIndex("ts"))).getTime());
-    return result;
+      JsonObject result = new JsonObject();
+      result.addProperty("status", "success");
+      result.addProperty(
+          "withoutRebaseMillis",
+          ((Timestamp) withoutRebase.get(withoutRebase.fieldIndex("ts"))).getTime());
+      result.addProperty(
+          "withRebaseMillis", ((Timestamp) withRebase.get(withRebase.fieldIndex("ts"))).getTime());
+      return result;
+    } finally {
+      spark.conf().set("spark.sql.session.timeZone", originalSessionTz);
+    }
   }
 
   protected static JsonObject readPushDateTimePredicateApp(
@@ -890,7 +902,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   @Test
   public void testUnhandledFilterOnStruct() throws Exception {
-    Assume.assumeThat(spark.version(), CoreMatchers.startsWith("3."));
+    Assume.assumeThat(
+        org.apache.spark.package$.MODULE$.SPARK_VERSION(), CoreMatchers.startsWith("3."));
     JsonObject result =
         testRunner.run(
             ReadIntegrationTestBase::readUnhandledFilterStructApp, "", "", ImmutableMap.of());
@@ -1151,7 +1164,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   @Test
   public void testReadFilteredTimestampField() throws Exception {
     TimeZone.setDefault(TimeZone.getTimeZone("PST"));
-    spark.conf().set("spark.sql.session.timeZone", "UTC");
+
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` AS SELECT TIMESTAMP(\"2023-01-09 10:00:00\") as eventTime;",
@@ -1174,10 +1187,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     assumeTrue(isRebaseDateTimeAvailable());
 
     TimeZone originalTz = TimeZone.getDefault();
-    String originalSessionTz = spark.conf().get("spark.sql.session.timeZone");
     try {
       TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-      spark.conf().set("spark.sql.session.timeZone", "UTC");
       IntegrationTestUtils.runQuery(
           String.format(
               "CREATE TABLE `%s.%s` AS SELECT TIMESTAMP('1500-01-01 00:00:00+00') AS ts;",
@@ -1198,7 +1209,6 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
       assertThat(withRebase).isNotEqualTo(withoutRebase);
     } finally {
       TimeZone.setDefault(originalTz);
-      spark.conf().set("spark.sql.session.timeZone", originalSessionTz);
     }
   }
 
