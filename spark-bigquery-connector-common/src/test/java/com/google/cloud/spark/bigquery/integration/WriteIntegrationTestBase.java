@@ -2829,7 +2829,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("table", testTable)
         .option("writeMethod", writeMethod.toString())
         .option(
-            "spark().sql.sources.partitionOverwriteMode", PartitionOverwriteMode.DYNAMIC.toString())
+            "spark.sql.sources.partitionOverwriteMode", PartitionOverwriteMode.DYNAMIC.toString())
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
         .save();
 

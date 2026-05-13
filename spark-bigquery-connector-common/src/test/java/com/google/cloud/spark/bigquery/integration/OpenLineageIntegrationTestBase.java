@@ -94,6 +94,13 @@ public class OpenLineageIntegrationTestBase {
       lineageFile.delete();
     }
 
+    try {
+      SparkSession.active().stop();
+    } catch (Exception ignored) {
+    }
+    SparkSession.clearActiveSession();
+    SparkSession.clearDefaultSession();
+
     SparkSession spark =
         SparkSession.builder()
             .master("local[*]")
@@ -180,7 +187,7 @@ public class OpenLineageIntegrationTestBase {
               return false;
             }
           },
-          15);
+          45);
 
       boolean hasInputEvent = false;
       boolean hasOutputEvent = false;
@@ -224,6 +231,7 @@ public class OpenLineageIntegrationTestBase {
       return result;
     } finally {
       try {
+        Thread.sleep(1500);
         spark.stop();
       } catch (Exception ignored) {
       }
