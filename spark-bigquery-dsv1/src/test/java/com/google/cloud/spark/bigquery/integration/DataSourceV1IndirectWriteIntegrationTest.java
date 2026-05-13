@@ -16,18 +16,11 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import org.junit.Before;
 
 public class DataSourceV1IndirectWriteIntegrationTest extends DataSourceV1WriteIntegrationTestBase {
 
   public DataSourceV1IndirectWriteIntegrationTest() {
     super(SparkBigQueryConfig.WriteMethod.INDIRECT);
-  }
-
-  @Before
-  public void setParquetLoadBehaviour() {
-    // TODO: make this the default value
-    spark.conf().set("enableListInference", "true");
   }
 
   // additional tests are from the super-class
