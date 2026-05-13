@@ -15,45 +15,17 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import java.util.UUID;
-import org.apache.spark.sql.SparkSession;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.rules.ExternalResource;
 
 public class SparkBigQueryIntegrationTestBase {
 
-  @ClassRule public static SparkFactory sparkFactory = new SparkFactory();
   @ClassRule public static TestDataset testDataset = new TestDataset();
 
-  protected SparkSession spark;
   protected String testTable;
-
-  public SparkBigQueryIntegrationTestBase() {
-    this.spark = sparkFactory.spark;
-  }
 
   @Before
   public void createTestTable() {
     testTable = "test_" + System.nanoTime();
-  }
-
-  protected static class SparkFactory extends ExternalResource {
-    SparkSession spark;
-
-    @Override
-    protected void before() throws Throwable {
-      String appName = "integration-test-" + UUID.randomUUID();
-      spark =
-          SparkSession.builder()
-              .master("local")
-              .appName(appName)
-              .config("spark.hadoop.google.cloud.appName.v2", appName)
-              .config("spark.ui.enabled", "false")
-              .config("spark.default.parallelism", 20)
-              .getOrCreate();
-      // reducing test's logs
-      spark.sparkContext().setLogLevel("WARN");
-    }
   }
 }

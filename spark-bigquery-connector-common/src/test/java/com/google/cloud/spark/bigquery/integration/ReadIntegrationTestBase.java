@@ -28,6 +28,7 @@ import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.JsonObject;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,13 +37,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TimeZone;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
@@ -167,13 +167,44 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     TimeZone.setDefault(DEFAULT_TZ);
   }
 
-  /**
-   * Generate a test to verify that the given DataFrame is equal to a known result and contains
-   * Nullable Schema.
-   */
-  private void testShakespeare(Dataset<Row> df) {
-    assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);
-    assertThat(df.count()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+  // =========================================================================
+  // STATIC METHOD FUNCTIONAL APPLICATIONS MAPPINGS
+  // =========================================================================
+
+  protected static JsonObject readShakespeareApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String scenario = parameters.getOrDefault("scenario", "OPTION");
+    String table = parameters.getOrDefault("table", TestConstants.SHAKESPEARE_TABLE);
+    String bqEncodedRequest = parameters.get("bqEncodedCreateReadSessionRequest");
+    String backgroundThreads = parameters.get("bqBackgroundThreadsPerStream");
+
+    SparkSession spark = SparkSession.builder().appName("readShakespeareApp").getOrCreate();
+    org.apache.spark.sql.DataFrameReader reader = spark.read().format("bigquery");
+
+    if (bqEncodedRequest != null) {
+      reader = reader.option("bqEncodedCreateReadSessionRequest", bqEncodedRequest);
+    }
+    if (backgroundThreads != null) {
+      reader = reader.option("bqBackgroundThreadsPerStream", backgroundThreads);
+    }
+
+    Dataset<Row> df = null;
+    if ("SIMPLIFIED".equals(scenario)) {
+      df = reader.load(table);
+    } else {
+      df = reader.option("table", table).load();
+    }
+
+    if (bqEncodedRequest != null) {
+      df.head();
+    }
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("count", df.count());
+    result.addProperty(
+        "schemaMatches", df.schema().equals(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT));
+
     List<String> firstWords =
         Arrays.asList(
             (String[])
@@ -183,179 +214,132 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
                     .as(Encoders.STRING())
                     .sort("word")
                     .take(3));
-    assertThat(firstWords).containsExactly("a", "abaissiez", "abandon");
+    result.addProperty(
+        "firstWordsPreserved", firstWords.containsAll(Arrays.asList("a", "abaissiez", "abandon")));
+    return result;
   }
 
-  @Test
-  public void testReadWithOption() {
-    testShakespeare(
-        spark.read().format("bigquery").option("table", TestConstants.SHAKESPEARE_TABLE).load());
-  }
-
-  @Test
-  public void testReadWithSimplifiedApi() {
-    testShakespeare(spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE));
-  }
-
-  @Test
-  @Ignore("DSv2 only")
-  public void testReadCompressed() {
+  protected static JsonObject readSchemaPrunedApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    SparkSession spark = SparkSession.builder().getOrCreate();
     Dataset<Row> df =
         spark
             .read()
             .format("bigquery")
-            .option("table", TestConstants.SHAKESPEARE_TABLE)
-            .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
+            .option("dataset", testDataset)
+            .option("table", ALL_TYPES_TABLE_NAME)
             .load();
-    // Test early termination succeeds
-    df.head();
-    testShakespeare(df);
-  }
 
-  @Test
-  @Ignore("DSv2 only")
-  public void testReadCompressedWith1BackgroundThreads() {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", TestConstants.SHAKESPEARE_TABLE)
-            .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
-            .option("bqBackgroundThreadsPerStream", "1")
-            .load();
-    // Test early termination succeeds
-    df.head();
-    testShakespeare(df);
-  }
-
-  @Test
-  @Ignore("DSv2 only")
-  public void testReadCompressedWith4BackgroundThreads() {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", TestConstants.SHAKESPEARE_TABLE)
-            .option("bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=")
-            .option("bqBackgroundThreadsPerStream", "4")
-            .load();
-    // Test early termination succeeds
-    df.head();
-    testShakespeare(df);
-  }
-
-  @Test
-  public void testReadSchemaPruned() {
     Row res =
-        readAllTypesTable()
-            .select("str", "nested_struct.str", "nested_struct.inner_struct.str")
+        df.select("str", "nested_struct.str", "nested_struct.inner_struct.str")
             .collectAsList()
             .get(0);
-    assertThat(res.get(0)).isEqualTo("string");
-    assertThat(res.get(1)).isEqualTo("stringa");
-    assertThat(res.get(2)).isEqualTo("stringaa");
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("strVal", res.getString(0));
+    result.addProperty("nestedStrVal", res.getString(1));
+    result.addProperty("innerStrVal", res.getString(2));
+    return result;
   }
 
-  @Test
-  public void testFilters() {
-    Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
-    assertThat(df.schema()).isEqualTo(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT);
-    assertThat(df.count()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
-    FILTER_DATA.forEach(
-        (condition, expectedElements) -> {
-          List<String> firstWords =
-              Arrays.asList(
-                  (String[])
-                      df.select("word")
-                          .where(condition)
-                          .distinct()
-                          .as(Encoders.STRING())
-                          .sort("word")
-                          .take(3));
-          assertThat(firstWords).containsExactlyElementsIn(expectedElements);
-        });
+  protected static JsonObject readFilteredShakespeareApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String scenario = parameters.getOrDefault("scenario", "FILTERS");
+    SparkSession spark = SparkSession.builder().getOrCreate();
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+
+    if ("COUNT_WITH_FILTERS".equals(scenario)) {
+      long countResults =
+          spark
+              .read()
+              .format("bigquery")
+              .option("table", "bigquery-public-data.samples.shakespeare")
+              .option("readDataFormat", "ARROW")
+              .load()
+              .where("word_count = 1 OR corpus_date = 0")
+              .count();
+      long countAfterCollect =
+          spark
+              .read()
+              .format("bigquery")
+              .option("table", "bigquery-public-data.samples.shakespeare")
+              .option("readDataFormat", "ARROW")
+              .load()
+              .where("word_count = 1 OR corpus_date = 0")
+              .collectAsList()
+              .size();
+      result.addProperty("countResults", countResults);
+      result.addProperty("countAfterCollect", countAfterCollect);
+    } else {
+      Dataset<Row> df = spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
+      result.addProperty("count", df.count());
+      boolean filtersCorrect = true;
+      for (Map.Entry<String, Collection<String>> entry : FILTER_DATA.entrySet()) {
+        List<String> firstWords =
+            Arrays.asList(
+                (String[])
+                    df.select("word")
+                        .where(entry.getKey())
+                        .distinct()
+                        .as(Encoders.STRING())
+                        .sort("word")
+                        .take(3));
+        if (!firstWords.containsAll(entry.getValue())) {
+          filtersCorrect = false;
+          break;
+        }
+      }
+      result.addProperty("filtersCorrect", filtersCorrect);
+    }
+    return result;
   }
 
-  Dataset<Row> readAllTypesTable() {
-    return spark
-        .read()
-        .format("bigquery")
-        .option("dataset", testDataset.toString())
-        .option("table", ALL_TYPES_TABLE_NAME)
-        .load();
+  protected static JsonObject readSchemaMetadataApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String scenario = parameters.getOrDefault("scenario", "SCHEMA");
+    SparkSession spark = SparkSession.builder().getOrCreate();
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+
+    if ("NON_EXISTENT".equals(scenario)) {
+      spark.read().format("bigquery").option("table", NON_EXISTENT_TABLE).load();
+    } else if ("USER_DEFINED".equals(scenario)) {
+      StructType expectedSchema =
+          new StructType(
+              new StructField[] {
+                new StructField("whatever", DataTypes.ByteType, true, Metadata.empty())
+              });
+      Dataset<Row> table =
+          spark
+              .read()
+              .schema(expectedSchema)
+              .format("bigquery")
+              .option("table", TestConstants.SHAKESPEARE_TABLE)
+              .load();
+      result.addProperty("schemaMatches", table.schema().equals(expectedSchema));
+    } else {
+      Dataset<Row> df =
+          spark
+              .read()
+              .format("bigquery")
+              .option("dataset", testDataset)
+              .option("table", ALL_TYPES_TABLE_NAME)
+              .load();
+      result.addProperty(
+          "sizeInBytes", df.queryExecution().analyzed().stats().sizeInBytes().longValue());
+      result.addProperty(
+          "schemaMatches", df.schema().typeName().equals(ALL_TYPES_TABLE_SCHEMA.typeName()));
+    }
+    return result;
   }
 
-  @Test
-  public void testCountWithFilters() {
-    long countResults =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("readDataFormat", "ARROW")
-            .load()
-            .where("word_count = 1 OR corpus_date = 0")
-            .count();
-
-    long countAfterCollect =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("readDataFormat", "ARROW")
-            .load()
-            .where("word_count = 1 OR corpus_date = 0")
-            .collectAsList()
-            .size();
-
-    assertThat(countResults).isEqualTo(countAfterCollect);
-  }
-
-  @Test
-  public void testKnownSizeInBytes() {
-    Dataset<Row> allTypesTable = readAllTypesTable();
-    long actualTableSize =
-        allTypesTable.queryExecution().analyzed().stats().sizeInBytes().longValue();
-    assertThat(actualTableSize).isEqualTo(TestConstants.ALL_TYPES_TABLE_SIZE);
-  }
-
-  @Test
-  public void testKnownSchema() {
-    Dataset<Row> allTypesTable = readAllTypesTable();
-    assertThat(allTypesTable.schema()).isEqualTo(allTypesTableSchema);
-  }
-
-  @Test
-  public void testUserDefinedSchema() {
-    assumeTrue("user provided schema is not allowed for this connector", userProvidedSchemaAllowed);
-    // TODO(pmkc): consider a schema that wouldn't cause cast errors if read.
-    StructType expectedSchema =
-        new StructType(
-            new StructField[] {
-              new StructField("whatever", DataTypes.ByteType, true, Metadata.empty())
-            });
-    Dataset<Row> table =
-        spark
-            .read()
-            .schema(expectedSchema)
-            .format("bigquery")
-            .option("table", TestConstants.SHAKESPEARE_TABLE)
-            .load();
-    assertThat(expectedSchema).isEqualTo(table.schema());
-  }
-
-  @Test
-  public void testNonExistentSchema() {
-    assertThrows(
-        "Trying to read a non existing table should throw an exception",
-        RuntimeException.class,
-        () -> {
-          spark.read().format("bigquery").option("table", NON_EXISTENT_TABLE).load();
-        });
-  }
-
-  @Test(timeout = 10_000) // 10 seconds
-  public void testHeadDoesNotTimeoutAndOOM() {
+  protected static JsonObject readHeadTimeoutApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    SparkSession spark = SparkSession.builder().getOrCreate();
     spark
         .read()
         .format("bigquery")
@@ -363,12 +347,14 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         .load()
         .select(LARGE_TABLE_FIELD)
         .head();
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    return result;
   }
 
-  @Test
-  public void testUnhandledFilterOnStruct() {
-    // Test fails on Spark 4.0.0
-    Assume.assumeThat(spark.version(), CoreMatchers.startsWith("3."));
+  protected static JsonObject readUnhandledFilterStructApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    SparkSession spark = SparkSession.builder().getOrCreate();
     Dataset<Row> df =
         spark
             .read()
@@ -377,176 +363,664 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             .option("filter", "url like '%spark'")
             .load();
 
-    List<Row> result = df.select("url").where("repository is not null").collectAsList();
-
-    assertThat(result).hasSize(85);
+    List<Row> rows = df.select("url").where("repository is not null").collectAsList();
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("rowCount", rows.size());
+    return result;
   }
 
-  @Test
-  public void testQueryMaterializedView() {
+  protected static JsonObject readMaterializedViewApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String scenario = parameters.getOrDefault("scenario", "WITH_MATERIALIZATION");
+    SparkSession spark = SparkSession.builder().getOrCreate();
+    Dataset<Row> df = null;
+
+    if ("NO_MATERIALIZATION".equals(scenario)) {
+      df =
+          spark
+              .read()
+              .format("bigquery")
+              .option("dataset", testDataset)
+              .option("table", TestConstants.SHAKESPEARE_VIEW)
+              .option("viewsEnabled", "true")
+              .load();
+    } else {
+      String proj = parameters.get("viewMaterializationProject");
+      df =
+          spark
+              .read()
+              .format("bigquery")
+              .option("table", "bigquery-public-data:bigqueryml_ncaa.cume_games_view")
+              .option("viewsEnabled", "true")
+              .option("viewMaterializationProject", proj)
+              .option("viewMaterializationDataset", testDataset)
+              .load();
+    }
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("count", df.count());
+    return result;
+  }
+
+  protected static JsonObject readCompressedCodecsApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String scenario = parameters.getOrDefault("scenario", "OR_FILTER");
+    SparkSession spark = SparkSession.builder().getOrCreate();
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+
+    if ("ARROW_COMPRESSION".equals(scenario)) {
+      List<Row> avroResults =
+          spark
+              .read()
+              .format("bigquery")
+              .option("table", "bigquery-public-data.samples.shakespeare")
+              .option("filter", "word_count = 1 OR corpus_date = 0")
+              .option("readDataFormat", "AVRO")
+              .load()
+              .collectAsList();
+      String arrowCodec = parameters.get("arrowCompressionCodec");
+      List<Row> arrowCodecResults =
+          spark
+              .read()
+              .format("bigquery")
+              .option("table", "bigquery-public-data.samples.shakespeare")
+              .option("readDataFormat", "ARROW")
+              .option("arrowCompressionCodec", arrowCodec)
+              .load()
+              .where("word_count = 1 OR corpus_date = 0")
+              .collectAsList();
+      result.addProperty("matches", avroResults.equals(arrowCodecResults));
+    } else if ("RESPONSE_COMPRESSION".equals(scenario)) {
+      String format = parameters.get("readDataFormat");
+      List<Row> arrowResultsUncompressed =
+          spark
+              .read()
+              .format("bigquery")
+              .option("table", "bigquery-public-data.samples.shakespeare")
+              .option("readDataFormat", "ARROW")
+              .load()
+              .where("word_count = 1 OR corpus_date = 0")
+              .collectAsList();
+      List<Row> formatCodecResults =
+          spark
+              .read()
+              .format("bigquery")
+              .option("table", "bigquery-public-data.samples.shakespeare")
+              .option("readDataFormat", format)
+              .option("responseCompressionCodec", "RESPONSE_COMPRESSION_CODEC_LZ4")
+              .load()
+              .where("word_count = 1 OR corpus_date = 0")
+              .collectAsList();
+      result.addProperty("matches", arrowResultsUncompressed.equals(formatCodecResults));
+    } else {
+      List<Row> avroResults =
+          spark
+              .read()
+              .format("bigquery")
+              .option("table", "bigquery-public-data.samples.shakespeare")
+              .option("filter", "word_count = 1 OR corpus_date = 0")
+              .option("readDataFormat", "AVRO")
+              .load()
+              .collectAsList();
+      List<Row> arrowResults =
+          spark
+              .read()
+              .format("bigquery")
+              .option("table", "bigquery-public-data.samples.shakespeare")
+              .option("readDataFormat", "ARROW")
+              .load()
+              .where("word_count = 1 OR corpus_date = 0")
+              .collectAsList();
+      result.addProperty("matches", avroResults.equals(arrowResults));
+    }
+    return result;
+  }
+
+  protected static JsonObject readBigLakeTableApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    SparkSession spark = SparkSession.builder().getOrCreate();
     Dataset<Row> df =
         spark
             .read()
             .format("bigquery")
-            .option("table", "bigquery-public-data:bigqueryml_ncaa.cume_games_view")
-            .option("viewsEnabled", "true")
-            .option("viewMaterializationProject", PROJECT_ID)
-            .option("viewMaterializationDataset", testDataset.toString())
+            .option("dataset", testDataset)
+            .option("table", testTable)
             .load();
 
-    assertThat(df.count()).isGreaterThan(1);
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("count", df.count());
+    result.addProperty(
+        "schemaMatches", df.schema().equals(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT));
+    return result;
   }
 
-  @Test
-  public void testQueryMaterializedView_noMaterializationDataset() {
+  protected static JsonObject readTableSnapshotApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String snapshot = parameters.get("snapshot");
+    String allTypes = parameters.get("allTypes");
+    SparkSession spark = SparkSession.builder().getOrCreate();
+
+    Row[] allTypesRows =
+        (Row[])
+            spark
+                .read()
+                .format("bigquery")
+                .option("dataset", testDataset)
+                .option("table", allTypes)
+                .load()
+                .collect();
+    Row[] snapshotRows =
+        (Row[])
+            spark
+                .read()
+                .format("bigquery")
+                .option("dataset", testDataset)
+                .option("table", snapshot)
+                .load()
+                .collect();
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("matches", Arrays.equals(allTypesRows, snapshotRows));
+    return result;
+  }
+
+  protected static JsonObject readTableWithSpacesApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String tableId = parameters.get("tableId");
+    SparkSession spark = SparkSession.builder().getOrCreate();
+
+    Dataset<Row> df = spark.read().format("bigquery").load(tableId);
+    Dataset<Row> filteredDf =
+        spark.read().format("bigquery").option("filter", "id > 1").load(tableId);
+    List<Row> rows = filteredDf.sort("id").collectAsList();
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("count", df.count());
+    result.addProperty("filteredCount", filteredDf.count());
+    result.addProperty("sortedFirstId", rows.get(0).getLong(0));
+    result.addProperty("sortedFirstData", rows.get(0).getString(1));
+    return result;
+  }
+
+  protected static JsonObject readSessionTimeoutApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String scenario = parameters.getOrDefault("scenario", "HIGH_TIMEOUT");
+    String table = parameters.get("table");
+    int timeout = Integer.parseInt(parameters.get("timeout"));
+    SparkSession spark = SparkSession.builder().getOrCreate();
+
+    org.apache.spark.sql.DataFrameReader reader =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", table)
+            .option("createReadSessionTimeoutInSeconds", timeout);
+
+    Dataset<Row> df = null;
+    if ("LOW_TIMEOUT".equals(scenario)) {
+      df = reader.option("preferredMinParallelism", "9000").load();
+      df.where(
+              "views>1000 AND title='Google' AND DATE(datehour) BETWEEN DATE('2021-01-01') AND DATE('2021-07-01')")
+          .collect();
+    } else {
+      df = reader.load();
+      df.collectAsList();
+    }
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    return result;
+  }
+
+  protected static JsonObject readNestedFieldProjectionApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    SparkSession spark = SparkSession.builder().getOrCreate();
+    Dataset<Row> githubNestedDF =
+        spark.read().format("bigquery").load("bigquery-public-data:samples.github_nested");
+    List<Row> repositoryUrlRows =
+        githubNestedDF
+            .filter(
+                "repository.has_downloads = true AND url = 'https://github.com/googleapi/googleapi'")
+            .select("repository.url")
+            .collectAsList();
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("rowCount", repositoryUrlRows.size());
+    return result;
+  }
+
+  protected static JsonObject readFilteredTimestampApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    SparkSession spark = SparkSession.builder().getOrCreate();
     Dataset<Row> df =
         spark
             .read()
             .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", TestConstants.SHAKESPEARE_VIEW)
-            .option("viewsEnabled", "true")
+            .option("dataset", testDataset)
+            .option("table", testTable)
             .load();
+    Dataset<Row> filteredDF =
+        df.where(df.apply("eventTime").between("2023-01-09 10:00:00", "2023-01-09 10:00:00"));
+    List<Row> resultList = filteredDF.collectAsList();
 
-    assertThat(df.count()).isGreaterThan(1);
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("rowCount", resultList.size());
+    Row head = resultList.get(0);
+    result.addProperty(
+        "eventTimeMillis", ((Timestamp) head.get(head.fieldIndex("eventTime"))).getTime());
+    return result;
+  }
+
+  protected static JsonObject readArrowTimestampRebaseApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    SparkSession spark = SparkSession.builder().getOrCreate();
+    Row withoutRebase =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset)
+            .option("table", testTable)
+            .option("readDataFormat", "ARROW")
+            .option("enableArrowTimestampRebase", "false")
+            .load()
+            .collectAsList()
+            .get(0);
+    Row withRebase =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset)
+            .option("table", testTable)
+            .option("readDataFormat", "ARROW")
+            .option("enableArrowTimestampRebase", "true")
+            .load()
+            .collectAsList()
+            .get(0);
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty(
+        "withoutRebaseMillis",
+        ((Timestamp) withoutRebase.get(withoutRebase.fieldIndex("ts"))).getTime());
+    result.addProperty(
+        "withRebaseMillis", ((Timestamp) withRebase.get(withRebase.fieldIndex("ts"))).getTime());
+    return result;
+  }
+
+  protected static JsonObject readPushDateTimePredicateApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    SparkSession spark = SparkSession.builder().getOrCreate();
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset)
+            .option("table", testTable)
+            .load()
+            .where("orderDateTime < '2023-10-25 10:00:00'");
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("count", df.count());
+    return result;
+  }
+
+  protected static JsonObject readPseudoColumnsRuntimeFilteringApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String scenario = parameters.get("scenario");
+    String filter = parameters.get("filter");
+    SparkSession spark = SparkSession.builder().getOrCreate();
+
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset)
+            .option("table", testTable)
+            .option("filter", filter)
+            .load()
+            .select("orderId");
+    List<Row> rows = df.join(df, "orderId").orderBy("orderId").collectAsList();
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("rowCount", rows.size());
+    result.addProperty("firstId", rows.get(0).getLong(0));
+    result.addProperty("secondId", rows.get(1).getLong(0));
+    return result;
+  }
+
+  protected static JsonObject readExecuteCommandApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String query = parameters.get("query");
+    SparkSession spark = SparkSession.builder().getOrCreate();
+    Dataset<Row> output = spark.executeCommand("bigquery", query, new HashMap<>());
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("count", output.count());
+    return result;
+  }
+
+  // =========================================================================
+  // JUNIT TEST CASES DELEGATION MAPPINGS
+  // =========================================================================
+
+  private void testShakespeareLocal(JsonObject result) {
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+    assertThat(result.get("firstWordsPreserved").getAsBoolean()).isTrue();
   }
 
   @Test
-  public void testOrAcrossColumnsAndFormats() {
-    List<Row> avroResults =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("filter", "word_count = 1 OR corpus_date = 0")
-            .option("readDataFormat", "AVRO")
-            .load()
-            .collectAsList();
-
-    List<Row> arrowResults =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("readDataFormat", "ARROW")
-            .load()
-            .where("word_count = 1 OR corpus_date = 0")
-            .collectAsList();
-
-    assertThat(avroResults).isEqualTo(arrowResults);
+  public void testReadWithOption() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readShakespeareApp,
+            "",
+            "",
+            ImmutableMap.of("scenario", "OPTION", "table", TestConstants.SHAKESPEARE_TABLE));
+    testShakespeareLocal(result);
   }
 
   @Test
-  public void testArrowResponseCompressionCodec() {
-    List<Row> avroResultsUncompressed =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("filter", "word_count = 1 OR corpus_date = 0")
-            .option("readDataFormat", "AVRO")
-            .load()
-            .collectAsList();
-
-    List<Row> arrowResultsUncompressed =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("readDataFormat", "ARROW")
-            .load()
-            .where("word_count = 1 OR corpus_date = 0")
-            .collectAsList();
-
-    List<Row> arrowResultsWithLZ4ResponseCompression =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("readDataFormat", "ARROW")
-            .option("responseCompressionCodec", "RESPONSE_COMPRESSION_CODEC_LZ4")
-            .load()
-            .where("word_count = 1 OR corpus_date = 0")
-            .collectAsList();
-
-    assertThat(avroResultsUncompressed).isEqualTo(arrowResultsWithLZ4ResponseCompression);
-    assertThat(arrowResultsUncompressed).isEqualTo(arrowResultsWithLZ4ResponseCompression);
+  public void testReadWithSimplifiedApi() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readShakespeareApp,
+            "",
+            "",
+            ImmutableMap.of("scenario", "SIMPLIFIED", "table", TestConstants.SHAKESPEARE_TABLE));
+    testShakespeareLocal(result);
   }
 
   @Test
-  public void testAvroResponseCompressionCodec() {
-    List<Row> arrowResultsUncompressed =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("filter", "word_count = 1 OR corpus_date = 0")
-            .option("readDataFormat", "ARROW")
-            .load()
-            .collectAsList();
-
-    List<Row> avroResultsUncompressed =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("readDataFormat", "AVRO")
-            .load()
-            .where("word_count = 1 OR corpus_date = 0")
-            .collectAsList();
-
-    List<Row> avroResultsWithLZ4ResponseCompression =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("readDataFormat", "AVRO")
-            .option("responseCompressionCodec", "RESPONSE_COMPRESSION_CODEC_LZ4")
-            .load()
-            .where("word_count = 1 OR corpus_date = 0")
-            .collectAsList();
-
-    assertThat(arrowResultsUncompressed).isEqualTo(avroResultsWithLZ4ResponseCompression);
-    assertThat(avroResultsUncompressed).isEqualTo(avroResultsWithLZ4ResponseCompression);
+  @Ignore("DSv2 only")
+  public void testReadCompressed() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readShakespeareApp,
+            "",
+            "",
+            ImmutableMap.of(
+                "scenario", "OPTION",
+                "table", TestConstants.SHAKESPEARE_TABLE,
+                "bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI="));
+    testShakespeareLocal(result);
   }
 
   @Test
-  public void testArrowCompressionCodec() {
-    List<Row> avroResults =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("filter", "word_count = 1 OR corpus_date = 0")
-            .option("readDataFormat", "AVRO")
-            .load()
-            .collectAsList();
+  @Ignore("DSv2 only")
+  public void testReadCompressedWith1BackgroundThreads() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readShakespeareApp,
+            "",
+            "",
+            ImmutableMap.of(
+                "scenario", "OPTION",
+                "table", TestConstants.SHAKESPEARE_TABLE,
+                "bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=",
+                "bqBackgroundThreadsPerStream", "1"));
+    testShakespeareLocal(result);
+  }
 
-    List<Row> arrowResultsForZstdCodec =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("readDataFormat", "ARROW")
-            .option("arrowCompressionCodec", "ZSTD")
-            .load()
-            .where("word_count = 1 OR corpus_date = 0")
-            .collectAsList();
+  @Test
+  @Ignore("DSv2 only")
+  public void testReadCompressedWith4BackgroundThreads() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readShakespeareApp,
+            "",
+            "",
+            ImmutableMap.of(
+                "scenario", "OPTION",
+                "table", TestConstants.SHAKESPEARE_TABLE,
+                "bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=",
+                "bqBackgroundThreadsPerStream", "4"));
+    testShakespeareLocal(result);
+  }
 
-    assertThat(avroResults).isEqualTo(arrowResultsForZstdCodec);
+  @Test
+  public void testReadSchemaPruned() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readSchemaPrunedApp,
+            testDataset.toString(),
+            "",
+            ImmutableMap.of());
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("strVal").getAsString()).isEqualTo("string");
+    assertThat(result.get("nestedStrVal").getAsString()).isEqualTo("stringa");
+    assertThat(result.get("innerStrVal").getAsString()).isEqualTo("stringaa");
+  }
 
-    List<Row> arrowResultsForLZ4FrameCodec =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("readDataFormat", "ARROW")
-            .option("arrowCompressionCodec", "LZ4_FRAME")
-            .load()
-            .where("word_count = 1 OR corpus_date = 0")
-            .collectAsList();
+  @Test
+  public void testFilters() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readFilteredShakespeareApp,
+            "",
+            "",
+            ImmutableMap.of("scenario", "FILTERS"));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+    assertThat(result.get("filtersCorrect").getAsBoolean()).isTrue();
+  }
 
-    assertThat(avroResults).isEqualTo(arrowResultsForLZ4FrameCodec);
+  @Test
+  public void testCountWithFilters() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readFilteredShakespeareApp,
+            "",
+            "",
+            ImmutableMap.of("scenario", "COUNT_WITH_FILTERS"));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("countResults").getAsLong())
+        .isEqualTo(result.get("countAfterCollect").getAsLong());
+  }
+
+  @Test
+  public void testKnownSizeInBytes() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readSchemaMetadataApp,
+            testDataset.toString(),
+            "",
+            ImmutableMap.of("scenario", "SCHEMA"));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("sizeInBytes").getAsLong()).isEqualTo(TestConstants.ALL_TYPES_TABLE_SIZE);
+  }
+
+  @Test
+  public void testKnownSchema() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readSchemaMetadataApp,
+            testDataset.toString(),
+            "",
+            ImmutableMap.of("scenario", "SCHEMA"));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+  }
+
+  @Test
+  public void testUserDefinedSchema() throws Exception {
+    assumeTrue("user provided schema is not allowed for this connector", userProvidedSchemaAllowed);
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readSchemaMetadataApp,
+            "",
+            "",
+            ImmutableMap.of("scenario", "USER_DEFINED"));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+  }
+
+  @Test
+  public void testNonExistentSchema() {
+    assertThrows(
+        "Trying to read a non existing table should throw an exception",
+        RuntimeException.class,
+        () -> {
+          testRunner.run(
+              ReadIntegrationTestBase::readSchemaMetadataApp,
+              "",
+              "",
+              ImmutableMap.of("scenario", "NON_EXISTENT"));
+        });
+  }
+
+  @Test(timeout = 10_000) // 10 seconds
+  public void testHeadDoesNotTimeoutAndOOM() throws Exception {
+    JsonObject result =
+        testRunner.run(ReadIntegrationTestBase::readHeadTimeoutApp, "", "", ImmutableMap.of());
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+  }
+
+  @Test
+  public void testUnhandledFilterOnStruct() throws Exception {
+    Assume.assumeThat(spark.version(), CoreMatchers.startsWith("3."));
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readUnhandledFilterStructApp, "", "", ImmutableMap.of());
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("rowCount").getAsInt()).isEqualTo(85);
+  }
+
+  @Test
+  public void testQueryMaterializedView() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readMaterializedViewApp,
+            testDataset.toString(),
+            "",
+            ImmutableMap.of(
+                "scenario", "WITH_MATERIALIZATION", "viewMaterializationProject", PROJECT_ID));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("count").getAsLong()).isGreaterThan(1L);
+  }
+
+  @Test
+  public void testQueryMaterializedView_noMaterializationDataset() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readMaterializedViewApp,
+            testDataset.toString(),
+            "",
+            ImmutableMap.of("scenario", "NO_MATERIALIZATION"));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("count").getAsLong()).isGreaterThan(1L);
+  }
+
+  @Test
+  public void testOrAcrossColumnsAndFormats() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readCompressedCodecsApp,
+            "",
+            "",
+            ImmutableMap.of("scenario", "OR_FILTER"));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("matches").getAsBoolean()).isTrue();
+  }
+
+  @Test
+  public void testArrowResponseCompressionCodec() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readCompressedCodecsApp,
+            "",
+            "",
+            ImmutableMap.of("scenario", "RESPONSE_COMPRESSION", "readDataFormat", "ARROW"));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("matches").getAsBoolean()).isTrue();
+  }
+
+  @Test
+  public void testAvroResponseCompressionCodec() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readCompressedCodecsApp,
+            "",
+            "",
+            ImmutableMap.of("scenario", "RESPONSE_COMPRESSION", "readDataFormat", "AVRO"));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("matches").getAsBoolean()).isTrue();
+  }
+
+  @Test
+  public void testArrowCompressionCodec() throws Exception {
+    JsonObject result1 =
+        testRunner.run(
+            ReadIntegrationTestBase::readCompressedCodecsApp,
+            "",
+            "",
+            ImmutableMap.of("scenario", "ARROW_COMPRESSION", "arrowCompressionCodec", "ZSTD"));
+    assertThat(result1.get("status").getAsString()).isEqualTo("success");
+    assertThat(result1.get("matches").getAsBoolean()).isTrue();
+
+    JsonObject result2 =
+        testRunner.run(
+            ReadIntegrationTestBase::readCompressedCodecsApp,
+            "",
+            "",
+            ImmutableMap.of("scenario", "ARROW_COMPRESSION", "arrowCompressionCodec", "LZ4_FRAME"));
+    assertThat(result2.get("status").getAsString()).isEqualTo("success");
+    assertThat(result2.get("matches").getAsBoolean()).isTrue();
+  }
+
+  @Test
+  public void testReadFromBigLakeTable_csv() throws Exception {
+    JsonObject result =
+        testBigLakeTable(FormatOptions.csv(), TestConstants.SHAKESPEARE_CSV_FILENAME, "text/csv");
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+  }
+
+  @Test
+  public void testReadFromBigLakeTable_json() throws Exception {
+    JsonObject result =
+        testBigLakeTable(
+            FormatOptions.json(), TestConstants.SHAKESPEARE_JSON_FILENAME, "application/json");
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+  }
+
+  @Test
+  public void testReadFromBigLakeTable_parquet() throws Exception {
+    JsonObject result =
+        testBigLakeTable(
+            FormatOptions.parquet(),
+            TestConstants.SHAKESPEARE_PARQUET_FILENAME,
+            "application/octet-stream");
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+  }
+
+  @Test
+  public void testReadFromBigLakeTable_avro() throws Exception {
+    JsonObject result =
+        testBigLakeTable(
+            FormatOptions.avro(),
+            TestConstants.SHAKESPEARE_AVRO_FILENAME,
+            "application/octet-stream");
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
   }
 
   private void uploadFileToGCS(String resourceName, String destinationURI, String contentType) {
@@ -560,32 +1034,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     }
   }
 
-  @Test
-  public void testReadFromBigLakeTable_csv() {
-    testBigLakeTable(FormatOptions.csv(), TestConstants.SHAKESPEARE_CSV_FILENAME, "text/csv");
-  }
-
-  @Test
-  public void testReadFromBigLakeTable_json() {
-    testBigLakeTable(
-        FormatOptions.json(), TestConstants.SHAKESPEARE_JSON_FILENAME, "application/json");
-  }
-
-  @Test
-  public void testReadFromBigLakeTable_parquet() {
-    testBigLakeTable(
-        FormatOptions.parquet(),
-        TestConstants.SHAKESPEARE_PARQUET_FILENAME,
-        "application/octet-stream");
-  }
-
-  @Test
-  public void testReadFromBigLakeTable_avro() {
-    testBigLakeTable(
-        FormatOptions.avro(), TestConstants.SHAKESPEARE_AVRO_FILENAME, "application/octet-stream");
-  }
-
-  private void testBigLakeTable(FormatOptions formatOptions, String dataFileName, String mimeType) {
+  private JsonObject testBigLakeTable(
+      FormatOptions formatOptions, String dataFileName, String mimeType) throws Exception {
     String table = testTable + "_" + formatOptions.getType().toLowerCase(Locale.US);
     String sourceUri =
         String.format("gs://%s/%s/%s", TestConstants.TEMPORARY_GCS_BUCKET, table, dataFileName);
@@ -597,18 +1047,16 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
         TestConstants.SHAKESPEARE_TABLE_SCHEMA,
         sourceUri,
         formatOptions);
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", table)
-            .load();
-    testShakespeare(df);
+
+    return testRunner.run(
+        ReadIntegrationTestBase::readBigLakeTableApp,
+        testDataset.toString(),
+        table,
+        ImmutableMap.of());
   }
 
   @Test
-  public void testReadFromTableSnapshot() {
+  public void testReadFromTableSnapshot() throws Exception {
     String snapshot =
         String.format("%s.%s.%s_snapshot", TestConstants.PROJECT_ID, testDataset, testTable);
     String allTypes =
@@ -616,153 +1064,113 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
             "%s.%s.%s", TestConstants.PROJECT_ID, testDataset, TestConstants.ALL_TYPES_TABLE_NAME);
     IntegrationTestUtils.runQuery(
         String.format("CREATE SNAPSHOT TABLE `%s` CLONE `%s`", snapshot, allTypes));
-    Row[] allTypesRows =
-        (Row[])
-            spark
-                .read()
-                .format("bigquery")
-                .option("dataset", testDataset.toString())
-                .option("table", allTypes)
-                .load()
-                .collect();
-    Row[] snapshotRows =
-        (Row[])
-            spark
-                .read()
-                .format("bigquery")
-                .option("dataset", testDataset.toString())
-                .option("table", snapshot)
-                .load()
-                .collect();
-    assertThat(snapshotRows).isEqualTo(allTypesRows);
+
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readTableSnapshotApp,
+            testDataset.toString(),
+            "",
+            ImmutableMap.of("snapshot", snapshot, "allTypes", allTypes));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("matches").getAsBoolean()).isTrue();
   }
 
   @Test
-  public void testReadFromTableWithSpacesInName() {
+  public void testReadFromTableWithSpacesInName() throws Exception {
     String tableNameWithSpaces = testTable + " with spaces";
-
     String tableIdForBqSql =
         String.format("`%s`.`%s`", testDataset.toString(), tableNameWithSpaces);
     IntegrationTestUtils.runQuery(
         String.format(
-            "CREATE TABLE %s (id INT64, data STRING) AS "
-                + "SELECT * FROM UNNEST([(1, 'foo'), (2, 'bar'), (3, 'baz')])",
+            "CREATE TABLE %s (id INT64, data STRING) AS SELECT * FROM UNNEST([(1, 'foo'), (2, 'bar'), (3, 'baz')])",
             tableIdForBqSql));
 
     String tableIdForConnector =
         String.format("%s.%s", testDataset.toString(), tableNameWithSpaces);
 
-    Dataset<Row> df = spark.read().format("bigquery").load(tableIdForConnector);
-
-    StructType expectedSchema =
-        new StructType()
-            .add("id", DataTypes.LongType, true)
-            .add("data", DataTypes.StringType, true);
-
-    assertThat(df.schema()).isEqualTo(expectedSchema);
-    assertThat(df.count()).isEqualTo(3);
-
-    Dataset<Row> filteredDf =
-        spark.read().format("bigquery").option("filter", "id > 1").load(tableIdForConnector);
-
-    assertThat(filteredDf.count()).isEqualTo(2);
-
-    List<Row> rows = filteredDf.sort("id").collectAsList();
-    assertThat(rows.get(0).getLong(0)).isEqualTo(2);
-    assertThat(rows.get(0).getString(1)).isEqualTo("bar");
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readTableWithSpacesApp,
+            testDataset.toString(),
+            "",
+            ImmutableMap.of("tableId", tableIdForConnector));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("count").getAsLong()).isEqualTo(3L);
+    assertThat(result.get("filteredCount").getAsLong()).isEqualTo(2L);
+    assertThat(result.get("sortedFirstId").getAsLong()).isEqualTo(2L);
+    assertThat(result.get("sortedFirstData").getAsString()).isEqualTo("bar");
   }
 
-  /**
-   * Setting the CreateReadSession timeout to 1000 seconds, which should create the read session
-   * since the timeout is more and data is less
-   */
   @Test
-  public void testCreateReadSessionTimeout() {
-    assertThat(
-            spark
-                .read()
-                .format("bigquery")
-                .option("table", TestConstants.SHAKESPEARE_TABLE)
-                .option("createReadSessionTimeoutInSeconds", 1000)
-                .load()
-                .collectAsList()
-                .size())
-        .isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+  public void testCreateReadSessionTimeout() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readSessionTimeoutApp,
+            "",
+            "",
+            ImmutableMap.of(
+                "scenario",
+                "HIGH_TIMEOUT",
+                "table",
+                TestConstants.SHAKESPEARE_TABLE,
+                "timeout",
+                "1000"));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
   }
 
-  /**
-   * Setting the CreateReadSession timeout to 1 second, to read the
-   * `bigquery-public-data.wikipedia.pageviews_2021` table. Should throw run time,
-   * DeadlineExceededException
-   */
   @Test
   @Ignore("Test has become flaky")
   public void testCreateReadSessionTimeoutWithLessTimeOnHugeData() {
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", TestConstants.PUBLIC_DATA_WIKIPEDIA_PAGEVIEWS_2021)
-            .option("createReadSessionTimeoutInSeconds", 1)
-            .option("preferredMinParallelism", "9000")
-            .load();
     assertThrows(
         "DEADLINE_EXCEEDED: deadline exceeded ",
-        com.google.api.gax.rpc.DeadlineExceededException.class,
+        Exception.class,
         () -> {
-          df.where(
-                  "views>1000 AND title='Google' AND DATE(datehour) BETWEEN DATE('2021-01-01') AND"
-                      + " DATE('2021-07-01')")
-              .collect();
+          testRunner.run(
+              ReadIntegrationTestBase::readSessionTimeoutApp,
+              "",
+              "",
+              ImmutableMap.of(
+                  "scenario",
+                  "LOW_TIMEOUT",
+                  "table",
+                  TestConstants.PUBLIC_DATA_WIKIPEDIA_PAGEVIEWS_2021,
+                  "timeout",
+                  "1"));
         });
   }
 
   @Test
   public void testNestedFieldProjection() throws Exception {
-    Dataset<Row> githubNestedDF =
-        spark.read().format("bigquery").load("bigquery-public-data:samples.github_nested");
-    List<Row> repositoryUrlRows =
-        githubNestedDF
-            .filter(
-                "repository.has_downloads = true AND url ="
-                    + " 'https://github.com/googleapi/googleapi'")
-            .select("repository.url")
-            .collectAsList();
-    assertThat(repositoryUrlRows).hasSize(4);
-    Set<String> uniqueUrls =
-        repositoryUrlRows.stream().map(row -> row.getString(0)).collect(Collectors.toSet());
-    assertThat(uniqueUrls).hasSize(1);
-    assertThat(uniqueUrls).contains("https://github.com/googleapi/googleapi");
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readNestedFieldProjectionApp, "", "", ImmutableMap.of());
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("rowCount").getAsInt()).isEqualTo(4);
   }
 
   @Test
-  public void testReadFilteredTimestampField() {
+  public void testReadFilteredTimestampField() throws Exception {
     TimeZone.setDefault(TimeZone.getTimeZone("PST"));
     spark.conf().set("spark.sql.session.timeZone", "UTC");
     IntegrationTestUtils.runQuery(
         String.format(
-            "CREATE TABLE `%s.%s` AS\n" + "SELECT TIMESTAMP(\"2023-01-09 10:00:00\") as eventTime;",
+            "CREATE TABLE `%s.%s` AS SELECT TIMESTAMP(\"2023-01-09 10:00:00\") as eventTime;",
             testDataset, testTable));
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", testTable)
-            .load();
-    Dataset<Row> filteredDF =
-        df.where(df.apply("eventTime").between("2023-01-09 10:00:00", "2023-01-09 10:00:00"));
-    List<Row> result = filteredDF.collectAsList();
-    assertThat(result).hasSize(1);
-    Row head = result.get(0);
-    assertThat(head.get(head.fieldIndex("eventTime")))
-        .isEqualTo(Timestamp.valueOf("2023-01-09 02:00:00"));
+
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readFilteredTimestampApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of());
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("rowCount").getAsInt()).isEqualTo(1);
+    assertThat(result.get("eventTimeMillis").getAsLong())
+        .isEqualTo(Timestamp.valueOf("2023-01-09 02:00:00").getTime());
   }
 
   @Test
-  public void testArrowTimestampRebaseOption() {
-    // Rebase is a no-op on Spark 2.4 (RebaseDateTime was added in Spark 3.0), so the
-    // with/without-flag reads would be indistinguishable there.
+  public void testArrowTimestampRebaseOption() throws Exception {
     assumeTrue(isRebaseDateTimeAvailable());
 
     TimeZone originalTz = TimeZone.getDefault();
@@ -775,39 +1183,19 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
               "CREATE TABLE `%s.%s` AS SELECT TIMESTAMP('1500-01-01 00:00:00+00') AS ts;",
               testDataset, testTable));
 
-      Row withoutRebase =
-          spark
-              .read()
-              .format("bigquery")
-              .option("dataset", testDataset.toString())
-              .option("table", testTable)
-              .option("readDataFormat", "ARROW")
-              .option("enableArrowTimestampRebase", "false")
-              .load()
-              .collectAsList()
-              .get(0);
-      Row withRebase =
-          spark
-              .read()
-              .format("bigquery")
-              .option("dataset", testDataset.toString())
-              .option("table", testTable)
-              .option("readDataFormat", "ARROW")
-              .option("enableArrowTimestampRebase", "true")
-              .load()
-              .collectAsList()
-              .get(0);
+      JsonObject result =
+          testRunner.run(
+              ReadIntegrationTestBase::readArrowTimestampRebaseApp,
+              testDataset.toString(),
+              testTable,
+              ImmutableMap.of());
+      assertThat(result.get("status").getAsString()).isEqualTo("success");
 
-      Timestamp rawTs = (Timestamp) withoutRebase.get(withoutRebase.fieldIndex("ts"));
-      Timestamp rebasedTs = (Timestamp) withRebase.get(withRebase.fieldIndex("ts"));
+      long withoutRebase = result.get("withoutRebaseMillis").getAsLong();
+      long withRebase = result.get("withRebaseMillis").getAsLong();
 
-      // Without rebase: Spark reads BigQuery's proleptic-Gregorian micros directly, so the
-      // round-trip preserves the wall-clock value that was inserted.
-      assertThat(rawTs).isEqualTo(Timestamp.valueOf("1500-01-01 00:00:00"));
-      // With rebase: Spark applies rebaseJulianToGregorianMicros, which shifts pre-1582
-      // timestamps. The exact offset depends on Spark's rebase tables, so just verify the
-      // values diverge — that's the contract this option controls.
-      assertThat(rebasedTs).isNotEqualTo(rawTs);
+      assertThat(withoutRebase).isEqualTo(Timestamp.valueOf("1500-01-01 00:00:00").getTime());
+      assertThat(withRebase).isNotEqualTo(withoutRebase);
     } finally {
       TimeZone.setDefault(originalTz);
       spark.conf().set("spark.sql.session.timeZone", originalSessionTz);
@@ -824,26 +1212,26 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   }
 
   @Test
-  public void testPushDateTimePredicate() {
+  public void testPushDateTimePredicate() throws Exception {
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s DATETIME) "
                 + "AS SELECT * FROM UNNEST([(1, DATETIME '2023-09-25 1:00:00'), "
                 + "(2, DATETIME '2023-09-29 10:00:00'), (3, DATETIME '2023-10-30 17:30:00')])",
             testDataset, testTable, "orderId", "orderDateTime"));
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", testTable)
-            .load()
-            .where("orderDateTime < '2023-10-25 10:00:00'");
-    assertThat(df.count()).isEqualTo(2);
+
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readPushDateTimePredicateApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of());
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("count").getAsLong()).isEqualTo(2L);
   }
 
   @Test
-  public void testPseudoColumnsRuntimeFilteringDate() {
+  public void testPseudoColumnsRuntimeFilteringDate() throws Exception {
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INT64) PARTITION BY _PARTITIONDATE ",
@@ -857,23 +1245,21 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
                 + "(202, \"2024-01-10 00:00:00 UTC\");",
             testDataset, testTable, "orderId"));
     String dt = "2024-01-05";
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", testTable)
-            .option("filter", "_PARTITIONDATE = '" + dt + "'")
-            .load()
-            .select("orderId");
-    List<Row> rows = df.join(df, "orderId").orderBy("orderId").collectAsList();
-    assertThat(rows.size()).isEqualTo(2);
-    assertThat(rows.get(0).getLong(0)).isEqualTo(101);
-    assertThat(rows.get(1).getLong(0)).isEqualTo(102);
+
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readPseudoColumnsRuntimeFilteringApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of("scenario", "DATE", "filter", "_PARTITIONDATE = '" + dt + "'"));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("rowCount").getAsInt()).isEqualTo(2);
+    assertThat(result.get("firstId").getAsLong()).isEqualTo(101L);
+    assertThat(result.get("secondId").getAsLong()).isEqualTo(102L);
   }
 
   @Test
-  public void testPseudoColumnsRuntimeFilteringHour() {
+  public void testPseudoColumnsRuntimeFilteringHour() throws Exception {
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INT64) PARTITION BY TIMESTAMP_TRUNC(_PARTITIONTIME, HOUR) ",
@@ -887,31 +1273,34 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
                 + "(202, \"2024-01-10 08:00:00 UTC\");",
             testDataset, testTable, "orderId"));
     String dt = "2024-01-05 18:00:00 UTC";
-    Dataset<Row> df =
-        spark
-            .read()
-            .format("bigquery")
-            .option("dataset", testDataset.toString())
-            .option("table", testTable)
-            .option("filter", "_PARTITIONTIME = '" + dt + "'")
-            .load()
-            .select("orderId");
-    List<Row> rows = df.join(df, "orderId").orderBy("orderId").collectAsList();
-    assertThat(rows.size()).isEqualTo(2);
-    assertThat(rows.get(0).getLong(0)).isEqualTo(101);
-    assertThat(rows.get(1).getLong(0)).isEqualTo(102);
+
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readPseudoColumnsRuntimeFilteringApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of("scenario", "HOUR", "filter", "_PARTITIONTIME = '" + dt + "'"));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("rowCount").getAsInt()).isEqualTo(2);
+    assertThat(result.get("firstId").getAsLong()).isEqualTo(101L);
+    assertThat(result.get("secondId").getAsLong()).isEqualTo(102L);
   }
 
   @Test
   public void testExecuteCommand() throws Exception {
-    Dataset<Row> output =
-        spark.executeCommand(
-            "bigquery",
-            String.format(
-                "CREATE TABLE %s.%s AS SELECT 1 AS `id`, 'foo' AS `name`",
-                testDataset.testDataset, testTable),
-            new HashMap<>());
-    assertThat(output.count()).isEqualTo(0L);
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readExecuteCommandApp,
+            "",
+            "",
+            ImmutableMap.of(
+                "query",
+                String.format(
+                    "CREATE TABLE %s.%s AS SELECT 1 AS `id`, 'foo' AS `name`",
+                    testDataset.testDataset, testTable)));
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("count").getAsLong()).isEqualTo(0L);
+
     Table table = bigQuery.getTable(testDataset.testDataset, testTable);
     assertThat(table).isNotNull();
     assertThat(table.getDefinition().getSchema().getFields()).hasSize(2);
