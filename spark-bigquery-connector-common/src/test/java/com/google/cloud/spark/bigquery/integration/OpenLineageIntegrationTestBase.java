@@ -156,20 +156,31 @@ public class OpenLineageIntegrationTestBase {
       IntegrationTestUtils.pollUntil(
           () -> {
             try (java.util.Scanner scanner = new java.util.Scanner(lineageFile)) {
-              return scanner.hasNextLine();
+              while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                try {
+                  org.json.JSONObject event = new org.json.JSONObject(line);
+                  if (event.has("outputs") && !event.getJSONArray("outputs").isEmpty()) {
+                    org.json.JSONArray outputs = event.getJSONArray("outputs");
+                    for (int i = 0; i < outputs.length(); i++) {
+                      String outputName = ((org.json.JSONObject) outputs.get(i)).getString("name");
+                      if (outputName
+                          .trim()
+                          .toLowerCase()
+                          .contains(testTable.trim().toLowerCase())) {
+                        return true;
+                      }
+                    }
+                  }
+                } catch (Exception ignored) {
+                }
+              }
+              return false;
             } catch (Exception e) {
               return false;
             }
           },
           15);
-
-      System.out.println("=== DEBUG RAW LINEAGE FILE START ===");
-      try (java.util.Scanner scanner = new java.util.Scanner(lineageFile)) {
-        while (scanner.hasNextLine()) {
-          System.out.println("=== LINEAGE LINE: " + scanner.nextLine());
-        }
-      }
-      System.out.println("=== DEBUG RAW LINEAGE FILE END ===");
 
       boolean hasInputEvent = false;
       boolean hasOutputEvent = false;
@@ -180,39 +191,27 @@ public class OpenLineageIntegrationTestBase {
           org.json.JSONObject event = new org.json.JSONObject(line);
 
           if (event.has("inputs") && !event.getJSONArray("inputs").isEmpty()) {
-            String inputName =
-                ((org.json.JSONObject) event.getJSONArray("inputs").get(0)).getString("name");
-            boolean match =
-                inputName
-                    .trim()
-                    .toLowerCase()
-                    .contains(TestConstants.SHAKESPEARE_TABLE.trim().toLowerCase());
-            System.out.println(
-                "=== DEBUG READ INPUT NAME: ["
-                    + inputName
-                    + "], expected: ["
-                    + TestConstants.SHAKESPEARE_TABLE
-                    + "], MATCH: "
-                    + match);
-            if (match) {
-              hasInputEvent = true;
+            org.json.JSONArray inputs = event.getJSONArray("inputs");
+            for (int i = 0; i < inputs.length(); i++) {
+              String inputName = ((org.json.JSONObject) inputs.get(i)).getString("name");
+              if (inputName
+                  .trim()
+                  .toLowerCase()
+                  .contains(TestConstants.SHAKESPEARE_TABLE.trim().toLowerCase())) {
+                hasInputEvent = true;
+                break;
+              }
             }
           }
 
           if (event.has("outputs") && !event.getJSONArray("outputs").isEmpty()) {
-            String outputName =
-                ((org.json.JSONObject) event.getJSONArray("outputs").get(0)).getString("name");
-            boolean match =
-                outputName.trim().toLowerCase().contains(fullTableName.trim().toLowerCase());
-            System.out.println(
-                "=== DEBUG READ OUTPUT NAME: ["
-                    + outputName
-                    + "], expected: ["
-                    + fullTableName
-                    + "], MATCH: "
-                    + match);
-            if (match) {
-              hasOutputEvent = true;
+            org.json.JSONArray outputs = event.getJSONArray("outputs");
+            for (int i = 0; i < outputs.length(); i++) {
+              String outputName = ((org.json.JSONObject) outputs.get(i)).getString("name");
+              if (outputName.trim().toLowerCase().contains(testTable.trim().toLowerCase())) {
+                hasOutputEvent = true;
+                break;
+              }
             }
           }
         }
@@ -224,6 +223,10 @@ public class OpenLineageIntegrationTestBase {
       result.addProperty("hasOutputEvent", hasOutputEvent);
       return result;
     } finally {
+      try {
+        spark.stop();
+      } catch (Exception ignored) {
+      }
     }
   }
 

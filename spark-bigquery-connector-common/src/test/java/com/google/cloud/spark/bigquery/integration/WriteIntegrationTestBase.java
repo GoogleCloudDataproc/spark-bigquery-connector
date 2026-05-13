@@ -128,6 +128,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .master("local[*]")
             .appName("basic_write_test")
             .config("spark.ui.enabled", "false")
+            .config("enableListInference", "true")
             .getOrCreate();
 
     try {
@@ -293,6 +294,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .master("local[*]")
             .appName("schema_diff_write_test")
             .config("spark.ui.enabled", "false")
+            .config("enableListInference", "true")
             .getOrCreate();
 
     try {
@@ -684,6 +686,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .master("local[*]")
             .appName("partition_clustered_write_test")
             .config("spark.ui.enabled", "false")
+            .config("enableListInference", "true")
             .getOrCreate();
 
     try {
@@ -925,6 +928,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .master("local[*]")
             .appName("date_time_write_test")
             .config("spark.ui.enabled", "false")
+            .config("enableListInference", "true")
             .getOrCreate();
 
     try {
@@ -1122,6 +1126,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             .master("local[*]")
             .appName("ml_write_test")
             .config("spark.ui.enabled", "false")
+            .config("enableListInference", "true")
             .getOrCreate();
 
     try {

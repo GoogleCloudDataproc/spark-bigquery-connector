@@ -97,143 +97,162 @@ public class CatalogIntegrationTestBase {
       JsonObject result = new JsonObject();
       result.addProperty("status", "success");
 
-      if ("CREATE_TABLE_DEFAULT".equals(scenario) || "CREATE_TABLE_CUSTOM".equals(scenario)) {
-        spark.sql("CREATE TABLE " + fullTableName(dataset, testTable) + "(id int, data string);");
+      switch (scenario) {
+        case "CREATE_TABLE_DEFAULT":
+        case "CREATE_TABLE_CUSTOM":
+          spark.sql("CREATE TABLE " + fullTableName(dataset, testTable) + "(id int, data string);");
+          break;
 
-      } else if ("CREATE_INSERT_DEFAULT".equals(scenario)
-          || "CREATE_INSERT_CUSTOM".equals(scenario)) {
-        spark.sql("CREATE TABLE " + fullTableName(dataset, testTable) + "(id int, data string);");
-        spark.sql(String.format("INSERT INTO `%s`.`%s` VALUES (1, 'foo');", dataset, testTable));
+        case "CREATE_INSERT_DEFAULT":
+        case "CREATE_INSERT_CUSTOM":
+          spark.sql("CREATE TABLE " + fullTableName(dataset, testTable) + "(id int, data string);");
+          spark.sql(String.format("INSERT INTO `%s`.`%s` VALUES (1, 'foo');", dataset, testTable));
+          break;
 
-      } else if ("CTAS_DEFAULT".equals(scenario) || "CTAS_CUSTOM".equals(scenario)) {
-        spark.sql(
-            "CREATE TABLE "
-                + fullTableName(dataset, testTable)
-                + " AS SELECT 1 AS id, 'foo' AS data;");
+        case "CTAS_DEFAULT":
+        case "CTAS_CUSTOM":
+          spark.sql(
+              "CREATE TABLE "
+                  + fullTableName(dataset, testTable)
+                  + " AS SELECT 1 AS id, 'foo' AS data;");
+          break;
 
-      } else if ("READ_DIFFERENT_PROJECT".equals(scenario)) {
-        List<Row> rows =
-            spark
-                .sql(
-                    "SELECT * from `bigquery-public-data`.`samples`.`shakespeare` WHERE word='spark'")
-                .collectAsList();
-        result.addProperty("rowCount", rows.size());
+        case "READ_DIFFERENT_PROJECT":
+          List<Row> rowsDifferentProject =
+              spark
+                  .sql(
+                      "SELECT * from `bigquery-public-data`.`samples`.`shakespeare` WHERE word='spark'")
+                  .collectAsList();
+          result.addProperty("rowCount", rowsDifferentProject.size());
+          break;
 
-      } else if ("LIST_NAMESPACES".equals(scenario)) {
-        List<Row> databases = spark.sql("SHOW DATABASES").collectAsList();
-        List<String> dbs =
-            databases.stream().map(row -> row.getString(0)).collect(Collectors.toList());
-        result.addProperty("containsDatabase", dbs.contains(database));
+        case "LIST_NAMESPACES":
+          List<Row> databases = spark.sql("SHOW DATABASES").collectAsList();
+          List<String> dbs =
+              databases.stream().map(row -> row.getString(0)).collect(Collectors.toList());
+          result.addProperty("containsDatabase", dbs.contains(database));
+          break;
 
-      } else if ("CREATE_NAMESPACE".equals(scenario)) {
-        spark.sql("CREATE DATABASE " + database + ";");
+        case "CREATE_NAMESPACE":
+          spark.sql("CREATE DATABASE " + database + ";");
+          break;
 
-      } else if ("CREATE_NAMESPACE_LOCATION".equals(scenario)) {
-        spark.sql(
-            "CREATE DATABASE "
-                + database
-                + " COMMENT 'foo' WITH DBPROPERTIES (bigquery_location = '"
-                + location
-                + "');");
+        case "CREATE_NAMESPACE_LOCATION":
+          spark.sql(
+              "CREATE DATABASE "
+                  + database
+                  + " COMMENT 'foo' WITH DBPROPERTIES (bigquery_location = '"
+                  + location
+                  + "');");
+          break;
 
-      } else if ("DROP_DATABASE".equals(scenario)) {
-        spark.sql("DROP DATABASE " + database + ";");
+        case "DROP_DATABASE":
+          spark.sql("DROP DATABASE " + database + ";");
+          break;
 
-      } else if ("CATALOG_INIT_PROJECT".equals(scenario)) {
-        spark
-            .conf()
-            .set(
-                "spark.sql.catalog.public_catalog",
-                "com.google.cloud.spark.bigquery.BigQueryCatalog");
-        IntegrationTestUtils.pollUntil(
-            () -> {
-              try {
-                return spark.sql("SHOW DATABASES IN public_catalog").collectAsList().stream()
-                    .map(row -> row.getString(0))
-                    .collect(Collectors.toList())
-                    .contains("samples");
-              } catch (Exception e) {
-                return false;
-              }
-            },
-            15);
+        case "CATALOG_INIT_PROJECT":
+          spark
+              .conf()
+              .set(
+                  "spark.sql.catalog.public_catalog",
+                  "com.google.cloud.spark.bigquery.BigQueryCatalog");
+          IntegrationTestUtils.pollUntil(
+              () -> {
+                try {
+                  return spark.sql("SHOW DATABASES IN public_catalog").collectAsList().stream()
+                      .map(row -> row.getString(0))
+                      .collect(Collectors.toList())
+                      .contains("samples");
+                } catch (Exception e) {
+                  return false;
+                }
+              },
+              15);
 
-        List<Row> rows = spark.sql("SHOW DATABASES IN public_catalog").collectAsList();
-        List<String> databaseNames =
-            rows.stream().map(row -> row.getString(0)).collect(Collectors.toList());
-        boolean containsSamples = databaseNames.contains("samples");
+          List<Row> rowsCatalogInit = spark.sql("SHOW DATABASES IN public_catalog").collectAsList();
+          List<String> databaseNames =
+              rowsCatalogInit.stream().map(row -> row.getString(0)).collect(Collectors.toList());
+          boolean containsSamples = databaseNames.contains("samples");
 
-        List<Row> data =
-            spark.sql("SELECT * FROM public_catalog.samples.shakespeare LIMIT 10").collectAsList();
+          List<Row> data =
+              spark
+                  .sql("SELECT * FROM public_catalog.samples.shakespeare LIMIT 10")
+                  .collectAsList();
 
-        result.addProperty("containsSamples", containsSamples);
-        result.addProperty("limitCount", data.size());
+          result.addProperty("containsSamples", containsSamples);
+          result.addProperty("limitCount", data.size());
+          break;
 
-      } else if ("CATALOG_EU_LOCATION".equals(scenario)) {
-        spark
-            .conf()
-            .set(
-                "spark.sql.catalog.test_location_catalog",
-                "com.google.cloud.spark.bigquery.BigQueryCatalog");
-        spark.conf().set("spark.sql.catalog.test_location_catalog.bigquery_location", "EU");
-        IntegrationTestUtils.pollUntil(
-            () -> {
-              try {
-                spark.sql("SHOW DATABASES IN test_location_catalog").collect();
-                return true;
-              } catch (Exception e) {
-                return false;
-              }
-            },
-            15);
+        case "CATALOG_EU_LOCATION":
+          spark
+              .conf()
+              .set(
+                  "spark.sql.catalog.test_location_catalog",
+                  "com.google.cloud.spark.bigquery.BigQueryCatalog");
+          spark.conf().set("spark.sql.catalog.test_location_catalog.bigquery_location", "EU");
+          IntegrationTestUtils.pollUntil(
+              () -> {
+                try {
+                  spark.sql("SHOW DATABASES IN test_location_catalog").collect();
+                  return true;
+                } catch (Exception e) {
+                  return false;
+                }
+              },
+              15);
 
-        spark.sql("CREATE DATABASE test_location_catalog." + database);
+          spark.sql("CREATE DATABASE test_location_catalog." + database);
+          break;
 
-      } else if ("CTAS_PROJECT_LOCATION".equals(scenario)) {
-        spark
-            .conf()
-            .set(
-                "spark.sql.catalog.public_catalog",
-                "com.google.cloud.spark.bigquery.BigQueryCatalog");
-        spark.conf().set("spark.sql.catalog.public_catalog.projectId", "bigquery-public-data");
-        spark
-            .conf()
-            .set(
-                "spark.sql.catalog.test_catalog_as_select",
-                "com.google.cloud.spark.bigquery.BigQueryCatalog");
-        spark.conf().set("spark.sql.catalog.test_catalog_as_select.bigquery_location", "EU");
-        IntegrationTestUtils.pollUntil(
-            () -> {
-              try {
-                spark.sql("SHOW DATABASES IN test_catalog_as_select").collect();
-                return true;
-              } catch (Exception e) {
-                return false;
-              }
-            },
-            15);
+        case "CTAS_PROJECT_LOCATION":
+          spark
+              .conf()
+              .set(
+                  "spark.sql.catalog.public_catalog",
+                  "com.google.cloud.spark.bigquery.BigQueryCatalog");
+          spark.conf().set("spark.sql.catalog.public_catalog.projectId", "bigquery-public-data");
+          spark
+              .conf()
+              .set(
+                  "spark.sql.catalog.test_catalog_as_select",
+                  "com.google.cloud.spark.bigquery.BigQueryCatalog");
+          spark.conf().set("spark.sql.catalog.test_catalog_as_select.bigquery_location", "EU");
+          IntegrationTestUtils.pollUntil(
+              () -> {
+                try {
+                  spark.sql("SHOW DATABASES IN test_catalog_as_select").collect();
+                  return true;
+                } catch (Exception e) {
+                  return false;
+                }
+              },
+              15);
 
-        spark.sql("CREATE DATABASE test_catalog_as_select." + database);
-        IntegrationTestUtils.pollUntil(
-            () -> {
-              try {
-                return spark.sql("SHOW DATABASES IN test_catalog_as_select").collectAsList()
-                    .stream()
-                    .map(row -> row.getString(0))
-                    .collect(Collectors.toList())
-                    .contains(database);
-              } catch (Exception e) {
-                return false;
-              }
-            },
-            15);
+          spark.sql("CREATE DATABASE test_catalog_as_select." + database);
+          IntegrationTestUtils.pollUntil(
+              () -> {
+                try {
+                  return spark.sql("SHOW DATABASES IN test_catalog_as_select").collectAsList()
+                      .stream()
+                      .map(row -> row.getString(0))
+                      .collect(Collectors.toList())
+                      .contains(database);
+                } catch (Exception e) {
+                  return false;
+                }
+              },
+              15);
 
-        spark.sql(
-            "CREATE TABLE test_catalog_as_select."
-                + database
-                + "."
-                + testTable
-                + " AS SELECT * FROM public_catalog.samples.shakespeare LIMIT 10");
+          spark.sql(
+              "CREATE TABLE test_catalog_as_select."
+                  + database
+                  + "."
+                  + testTable
+                  + " AS SELECT * FROM public_catalog.samples.shakespeare LIMIT 10");
+          break;
+
+        default:
+          break;
       }
 
       return result;
@@ -245,7 +264,7 @@ public class CatalogIntegrationTestBase {
         spark.conf().unset("spark.sql.catalog.test_location_catalog.bigquery_location");
         spark.conf().unset("spark.sql.catalog.test_catalog_as_select");
         spark.conf().unset("spark.sql.catalog.test_catalog_as_select.bigquery_location");
-      } catch (Exception ignored) {
+      } catch (java.util.NoSuchElementException ignored) {
       }
     }
   }

@@ -23,13 +23,7 @@ public class Spark31IndirectWriteIntegrationTest extends WriteIntegrationTestBas
   public Spark31IndirectWriteIntegrationTest() {
     super(SparkBigQueryConfig.WriteMethod.INDIRECT);
   }
-
-  @Before
-  public void setParquetLoadBehaviour() {
-    // TODO: make this the default value
-    spark.conf().set("enableListInference", "true");
-  }
-
+  
   // tests from superclass
 
 }

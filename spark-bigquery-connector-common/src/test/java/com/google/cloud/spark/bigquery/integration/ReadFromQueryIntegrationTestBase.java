@@ -87,12 +87,13 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
               "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE word='spark' AND '%s'='%s'",
               random, random);
 
+      Dataset<Row> df = null;
       if ("NO_MATERIALIZATION_DATASET".equals(scenario)) {
-        Dataset<Row> df = spark.read().format("bigquery").option("viewsEnabled", true).load(query);
+        df = spark.read().format("bigquery").option("viewsEnabled", true).load(query);
         result.addProperty("count", df.count());
 
       } else if ("STANDARD".equals(scenario)) {
-        Dataset<Row> df =
+        df =
             spark
                 .read()
                 .format("bigquery")
@@ -106,7 +107,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             String.format(
                 "SELECT corpus, word_count FROM `bigquery-public-data.samples.shakespeare`\nWHERE word='spark' AND '%s'='%s'",
                 random, random);
-        Dataset<Row> df =
+        df =
             spark
                 .read()
                 .format("bigquery")
@@ -116,7 +117,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
         result.addProperty("count", df.count());
 
       } else if ("QUERY_OPTION".equals(scenario)) {
-        Dataset<Row> df =
+        df =
             spark
                 .read()
                 .format("bigquery")
@@ -148,7 +149,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
         result.addProperty("noBqcTables", noBqcTables);
 
       } else if ("AUTO_GENERATED_TABLE".equals(scenario)) {
-        Dataset<Row> df =
+        df =
             spark
                 .read()
                 .format("bigquery")
@@ -174,7 +175,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             .load(badSql);
 
       } else if ("PRIORITY".equals(scenario)) {
-        Dataset<Row> df =
+        df =
             spark
                 .read()
                 .format("bigquery")
@@ -198,7 +199,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
       } else if ("NAMED_PARAMETERS".equals(scenario)) {
         String namedParamQuery =
             "SELECT word, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE corpus = @corpus AND word_count >= @min_word_count ORDER BY word_count DESC";
-        Dataset<Row> df =
+        df =
             spark
                 .read()
                 .format("bigquery")
@@ -221,7 +222,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
       } else if ("POSITIONAL_PARAMETERS".equals(scenario)) {
         String positionalParamQuery =
             "SELECT word, word_count FROM `bigquery-public-data.samples.shakespeare` WHERE corpus = ? AND word_count >= ? ORDER BY word_count DESC";
-        Dataset<Row> df =
+        df =
             spark
                 .read()
                 .format("bigquery")
@@ -270,6 +271,17 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
             .collect();
       }
 
+      if (df != null) {
+        List<Row> rows = df.select(df.columns()[0]).distinct().collectAsList();
+        JsonArray contentArray = new JsonArray();
+        for (Row r : rows) {
+          if (r.get(0) != null) {
+            contentArray.add(r.get(0).toString());
+          }
+        }
+        result.add("contentList", contentArray);
+      }
+
       JsonArray jobsArray = new JsonArray();
       for (JobInfo job : listener.getJobInfos()) {
         JsonObject jobJson = new JsonObject();
@@ -295,6 +307,10 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
   private static void validateResult(JsonObject result) {
     long totalRows = result.get("count").getAsLong();
     assertThat(totalRows).isEqualTo(9);
+    if (result.has("contentList")) {
+      JsonArray contentList = result.getAsJsonArray("contentList");
+      assertThat(contentList.size()).isGreaterThan(0);
+    }
   }
 
   @Test
