@@ -39,6 +39,26 @@
             <artifactId>jacoco-maven-plugin</artifactId>
             <executions>
               <execution>
+                <id>merge-results</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>merge</goal>
+                </goals>
+                <configuration>
+                  <fileSets>
+                    <fileSet>
+                      <directory>${project.basedir}/..</directory>
+                      <includes>
+                        <include>**/target/jacoco.exec</include>
+                        <include>**/target/jacoco-it.exec</include>
+                      </includes>
+                    </fileSet>
+                  </fileSets>
+                  <destFile>${project.build.directory}/merged.exec</destFile>
+                </configuration>
+              </execution>
+              <execution>
+                <id>report-aggregate</id>
                 <phase>verify</phase>
                 <goals>
                   <goal>report-aggregate</goal>
