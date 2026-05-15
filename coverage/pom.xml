@@ -24,6 +24,11 @@
       <artifactId>spark-bigquery-connector-common</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>spark-bigquery-scala-212-support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 
   <profiles>
@@ -64,6 +69,19 @@
                   <goal>report-aggregate</goal>
                 </goals>
               </execution>
+              <execution>
+                <id>aggregate-it-reports</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>report-aggregate</goal>
+                </goals>
+                <configuration>
+                  <!-- Tell Jacoco where to look for the data file -->
+                  <dataFileIncludes>
+                    <dataFileInclude>**/jacoco-it.exec</dataFileInclude>
+                  </dataFileIncludes>
+                </configuration>
+              </execution>
             </executions>
           </plugin>
         </plugins>
@@ -98,11 +116,6 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-bigquery-with-dependencies_2.12</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>spark-2.4-bigquery</artifactId>
           <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -212,31 +225,38 @@
       <dependencies>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>spark-2.4-bigquery</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.1-bigquery</artifactId>
           <version>${project.version}</version>
         </dependency>
-      </dependencies>
-    </profile>
-    <profile>
-      <id>dsv2_2.4</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <dependencies>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>spark-2.4-bigquery</artifactId>
+          <artifactId>spark-3.2-bigquery</artifactId>
           <version>${project.version}</version>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>spark-bigquery-dsv2-common</artifactId>
+          <artifactId>spark-3.3-bigquery</artifactId>
           <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.4-bigquery</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.5-bigquery</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-4.0-bigquery</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-4.1-bigquery</artifactId>
+          <version>${project.version}-preview</version>
         </dependency>
       </dependencies>
     </profile>
@@ -249,6 +269,11 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.1-bigquery</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.1-bigquery-lib</artifactId>
           <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -266,6 +291,21 @@
       <dependencies>
         <dependency>
           <groupId>${project.groupId}</groupId>
+          <artifactId>spark-bigquery-dsv2-common</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.1-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.2-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.2-bigquery</artifactId>
           <version>${project.version}</version>
         </dependency>
@@ -277,6 +317,26 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <dependencies>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-bigquery-dsv2-common</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.1-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.2-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.3-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.3-bigquery</artifactId>
@@ -292,6 +352,31 @@
       <dependencies>
         <dependency>
           <groupId>${project.groupId}</groupId>
+          <artifactId>spark-bigquery-dsv2-common</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.1-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.2-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.3-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.4-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.4-bigquery</artifactId>
           <version>${project.version}</version>
         </dependency>
@@ -303,6 +388,36 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <dependencies>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-bigquery-dsv2-common</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.1-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.2-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.3-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.4-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.5-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-3.5-bigquery</artifactId>
@@ -318,6 +433,41 @@
       <dependencies>
         <dependency>
           <groupId>${project.groupId}</groupId>
+          <artifactId>spark-bigquery-dsv2-common</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.1-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.2-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.3-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.4-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.5-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-4.0-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
           <artifactId>spark-4.0-bigquery</artifactId>
           <version>${project.version}</version>
         </dependency>
@@ -331,6 +481,46 @@
       <dependencies>
         <dependency>
           <groupId>${project.groupId}</groupId>
+          <artifactId>spark-bigquery-dsv2-common</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.1-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.2-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.3-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.4-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.5-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-4.0-bigquery-lib</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-4.1-bigquery-lib</artifactId>
+          <version>${project.version}-preview</version>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
           <artifactId>spark-4.1-bigquery</artifactId>
           <version>${project.version}-preview</version>
         </dependency>
@@ -338,4 +528,3 @@
     </profile>
   </profiles>
 </project>
-
