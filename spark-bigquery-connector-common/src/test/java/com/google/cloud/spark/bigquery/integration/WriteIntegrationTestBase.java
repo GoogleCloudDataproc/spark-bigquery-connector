@@ -103,7 +103,6 @@ import org.junit.Before;
 import org.junit.Test;
 import scala.Option;
 import scala.Some;
-import scala.collection.JavaConverters;
 
 abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
@@ -1819,7 +1818,16 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
             Option.apply(null),
             encoder // Implicit encoder passed as final arg
             );
-    memoryStream.addData(JavaConverters.asScalaBuffer(rows).seq());
+    Class<?> javaConvertersClass = Class.forName("scala.collection.JavaConverters");
+    Object scalaBuffer =
+        javaConvertersClass.getMethod("asScalaBuffer", java.util.List.class).invoke(null, rows);
+    Object scalaSeq = scalaBuffer.getClass().getMethod("seq").invoke(scalaBuffer);
+    for (java.lang.reflect.Method m : memoryStream.getClass().getMethods()) {
+      if (m.getName().equals("addData") && m.getParameterCount() == 1) {
+        m.invoke(memoryStream, scalaSeq);
+        break;
+      }
+    }
 
     String destTableName = testDataset + "." + "test_streaming_allTypes" + System.nanoTime();
     String checkPointLocation =

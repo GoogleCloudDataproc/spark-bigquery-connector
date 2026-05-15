@@ -527,9 +527,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
       List<Row> rowList = df.collectAsList();
       List<Map<?, ?>> list =
-          rowList.stream()
-              .map(row -> scalaMapToJavaMap(row.getMap(0)))
-              .collect(Collectors.toList());
+          rowList.stream().map(row -> row.getJavaMap(0)).collect(Collectors.toList());
 
       boolean containsMap1 =
           list.contains(ImmutableMap.of("a", Long.valueOf(1), "b", Long.valueOf(2)));
@@ -739,16 +737,6 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     assertThat(result.get("columnsLength").getAsInt()).isEqualTo(5);
     assertThat(result.get("rowNumFieldExists").getAsBoolean()).isTrue();
     assertThat(result.get("headRowNumValue").getAsInt()).isEqualTo(1);
-  }
-
-  static <K, V> Map<K, V> scalaMapToJavaMap(scala.collection.Map<K, V> map) {
-    ImmutableMap.Builder<K, V> result = ImmutableMap.<K, V>builder();
-    scala.collection.Iterator<scala.Tuple2<K, V>> iterator = map.iterator();
-    while (iterator.hasNext()) {
-      scala.Tuple2<K, V> entry = iterator.next();
-      result.put(entry._1(), entry._2());
-    }
-    return result.build();
   }
 
   Dataset<Row> getViewDataFrame() {

@@ -199,4 +199,12 @@ public class IntegrationTestUtils {
     throw new java.util.concurrent.TimeoutException(
         "Condition not met within " + timeoutSeconds + " seconds.");
   }
+
+  public static SparkSession.Builder createSparkSessionBuilder(String appName) {
+    SparkSession.Builder builder = SparkSession.builder().appName(appName);
+    if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
+      builder.master("local[*]");
+    }
+    return builder;
+  }
 }

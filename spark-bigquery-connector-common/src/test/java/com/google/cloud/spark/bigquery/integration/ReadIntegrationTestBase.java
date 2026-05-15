@@ -785,8 +785,16 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
       builder.master("local[*]");
     }
     SparkSession spark = builder.getOrCreate();
+    Class<?> scalaMapClass = Class.forName("scala.collection.immutable.Map");
+    Class<?> scalaMapModuleClass = Class.forName("scala.collection.immutable.Map$");
+    Object scalaMapModule = scalaMapModuleClass.getField("MODULE$").get(null);
+    Object emptyScalaMap = scalaMapModuleClass.getMethod("empty").invoke(scalaMapModule);
+
+    java.lang.reflect.Method executeCommandMethod =
+        spark.getClass().getMethod("executeCommand", String.class, String.class, scalaMapClass);
+    @SuppressWarnings("unchecked")
     Dataset<Row> output =
-        spark.executeCommand("bigquery", query, scala.collection.immutable.Map$.MODULE$.empty());
+        (Dataset<Row>) executeCommandMethod.invoke(spark, "bigquery", query, emptyScalaMap);
 
     JsonObject result = new JsonObject();
     result.addProperty("status", "success");
