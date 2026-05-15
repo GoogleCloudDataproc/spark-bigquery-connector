@@ -54,6 +54,7 @@
                   <dataFileIncludes>
                     <dataFileInclude>${reactor.project.basedir}/**/jacoco.exec</dataFileInclude>
                   </dataFileIncludes>
+                  <ou
                 </configuration>
               </execution>
               <execution>
@@ -67,6 +68,7 @@
                   <dataFileIncludes>
                     <dataFileInclude>${reactor.project.basedir}/**/jacoco-it.exec</dataFileInclude>
                   </dataFileIncludes>
+                  <outputDirectory>${project.reporting.outputDirectory}/jacoco-it-aggregate</outputDirectory>
                 </configuration>
               </execution>
             </executions>
