@@ -54,7 +54,6 @@
                   <dataFileIncludes>
                     <dataFileInclude>${reactor.project.basedir}/**/jacoco.exec</dataFileInclude>
                   </dataFileIncludes>
-                  <ou
                 </configuration>
               </execution>
               <execution>
