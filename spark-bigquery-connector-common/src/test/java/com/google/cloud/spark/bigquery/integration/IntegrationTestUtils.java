@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -65,7 +66,7 @@ public class IntegrationTestUtils {
         Optional.empty(),
         destinationTableCache,
         ImmutableMap.of(),
-        com.google.cloud.bigquery.QueryJobConfiguration.Priority.INTERACTIVE,
+        Priority.INTERACTIVE,
         Optional.empty(),
         6 * 60);
   }
