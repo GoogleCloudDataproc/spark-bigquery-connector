@@ -88,6 +88,12 @@ public class CatalogIntegrationTestBase {
             .config(
                 "spark.sql.catalog.bigquery", "com.google.cloud.spark.bigquery.BigQueryCatalog");
 
+    for (Map.Entry<String, String> entry : parameters.entrySet()) {
+      if (entry.getKey().startsWith("spark.")) {
+        builder.config(entry.getKey(), entry.getValue());
+      }
+    }
+
     if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
       builder.master("local[*]");
     }
@@ -151,11 +157,6 @@ public class CatalogIntegrationTestBase {
           break;
 
         case "CATALOG_INIT_PROJECT":
-          spark
-              .conf()
-              .set(
-                  "spark.sql.catalog.public_catalog",
-                  "com.google.cloud.spark.bigquery.BigQueryCatalog");
           IntegrationTestUtils.pollUntil(
               () -> {
                 try {
@@ -184,12 +185,6 @@ public class CatalogIntegrationTestBase {
           break;
 
         case "CATALOG_EU_LOCATION":
-          spark
-              .conf()
-              .set(
-                  "spark.sql.catalog.test_location_catalog",
-                  "com.google.cloud.spark.bigquery.BigQueryCatalog");
-          spark.conf().set("spark.sql.catalog.test_location_catalog.bigquery_location", "EU");
           IntegrationTestUtils.pollUntil(
               () -> {
                 try {
@@ -205,18 +200,6 @@ public class CatalogIntegrationTestBase {
           break;
 
         case "CTAS_PROJECT_LOCATION":
-          spark
-              .conf()
-              .set(
-                  "spark.sql.catalog.public_catalog",
-                  "com.google.cloud.spark.bigquery.BigQueryCatalog");
-          spark.conf().set("spark.sql.catalog.public_catalog.projectId", "bigquery-public-data");
-          spark
-              .conf()
-              .set(
-                  "spark.sql.catalog.test_catalog_as_select",
-                  "com.google.cloud.spark.bigquery.BigQueryCatalog");
-          spark.conf().set("spark.sql.catalog.test_catalog_as_select.bigquery_location", "EU");
           IntegrationTestUtils.pollUntil(
               () -> {
                 try {
@@ -258,12 +241,11 @@ public class CatalogIntegrationTestBase {
       return result;
     } finally {
       try {
-        spark.conf().unset("spark.sql.catalog.public_catalog");
-        spark.conf().unset("spark.sql.catalog.public_catalog.projectId");
-        spark.conf().unset("spark.sql.catalog.test_location_catalog");
-        spark.conf().unset("spark.sql.catalog.test_location_catalog.bigquery_location");
-        spark.conf().unset("spark.sql.catalog.test_catalog_as_select");
-        spark.conf().unset("spark.sql.catalog.test_catalog_as_select.bigquery_location");
+        for (String key : parameters.keySet()) {
+          if (key.startsWith("spark.")) {
+            spark.conf().unset(key);
+          }
+        }
       } catch (java.util.NoSuchElementException ignored) {
       }
     }
@@ -488,7 +470,11 @@ public class CatalogIntegrationTestBase {
             CatalogIntegrationTestBase::catalogApp,
             testDataset.testDataset,
             testTable,
-            ImmutableMap.of("scenario", "CATALOG_INIT_PROJECT"));
+            ImmutableMap.of(
+                "scenario",
+                "CATALOG_INIT_PROJECT",
+                "spark.sql.catalog.public_catalog",
+                "com.google.cloud.spark.bigquery.BigQueryCatalog"));
 
     assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(result.get("containsSamples").getAsBoolean()).isTrue();
@@ -505,7 +491,15 @@ public class CatalogIntegrationTestBase {
               CatalogIntegrationTestBase::catalogApp,
               testDataset.testDataset,
               testTable,
-              ImmutableMap.of("scenario", "CATALOG_EU_LOCATION", "database", database));
+              ImmutableMap.of(
+                  "scenario",
+                  "CATALOG_EU_LOCATION",
+                  "database",
+                  database,
+                  "spark.sql.catalog.test_location_catalog",
+                  "com.google.cloud.spark.bigquery.BigQueryCatalog",
+                  "spark.sql.catalog.test_location_catalog.bigquery_location",
+                  "EU"));
 
       assertThat(result.get("status").getAsString()).isEqualTo("success");
       Dataset dataset = bigquery.getDataset(datasetId);
@@ -526,7 +520,19 @@ public class CatalogIntegrationTestBase {
               CatalogIntegrationTestBase::catalogApp,
               testDataset.testDataset,
               testTable,
-              ImmutableMap.of("scenario", "CTAS_PROJECT_LOCATION", "database", database));
+              ImmutableMap.of(
+                  "scenario",
+                  "CTAS_PROJECT_LOCATION",
+                  "database",
+                  database,
+                  "spark.sql.catalog.public_catalog",
+                  "com.google.cloud.spark.bigquery.BigQueryCatalog",
+                  "spark.sql.catalog.public_catalog.projectId",
+                  "bigquery-public-data",
+                  "spark.sql.catalog.test_catalog_as_select",
+                  "com.google.cloud.spark.bigquery.BigQueryCatalog",
+                  "spark.sql.catalog.test_catalog_as_select.bigquery_location",
+                  "EU"));
 
       assertThat(result.get("status").getAsString()).isEqualTo("success");
       Dataset dataset = bigquery.getDataset(datasetId);
