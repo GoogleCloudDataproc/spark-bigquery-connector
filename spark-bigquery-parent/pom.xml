@@ -79,6 +79,8 @@
             --add-opens java.base/sun.nio.ch=ALL-UNNAMED
         </jdk11plus.argLine>
         <scala.skipTests>false</scala.skipTests>
+        <argLine></argLine>
+        <failsafeArgLine></failsafeArgLine>
     </properties>
     <dependencyManagement>
         <dependencies>
