@@ -63,7 +63,9 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
       new InMemorySparkBigQueryIntegrationTestRunner();
 
   protected SparkSession spark() {
-    return IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatTest").getOrCreate();
+    return IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatTest")
+        .getOrCreate()
+        .newSession();
   }
 
   private static final int LARGE_TABLE_NUMBER_OF_PARTITIONS = 138;
@@ -96,6 +98,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   // SCENARIO: Read View select-and-filter pushdowns
   // =========================================================================
 
+  @SuppressWarnings("resource")
   protected static JsonObject readByFormatViewApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
@@ -103,7 +106,9 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     String format = parameters.get("dataFormat");
 
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatViewTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatViewTestApp")
+            .getOrCreate()
+            .newSession();
 
     Dataset<Row> df =
         spark
@@ -164,6 +169,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   // SCENARIO: Read Out-Of-Order / Selected Columns
   // =========================================================================
 
+  @SuppressWarnings("resource")
   protected static JsonObject readByFormatColumnsApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
@@ -171,7 +177,9 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     String format = parameters.get("dataFormat");
 
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatColumnsTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatColumnsTestApp")
+            .getOrCreate()
+            .newSession();
 
     JsonObject result = new JsonObject();
     result.addProperty("status", "success");
@@ -244,6 +252,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   // SCENARIO: Read Parallelism and Partitions Split balanced checks
   // =========================================================================
 
+  @SuppressWarnings("resource")
   protected static JsonObject readByFormatPartitionsApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
@@ -252,7 +261,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatPartitionsTestApp")
-            .getOrCreate();
+            .getOrCreate()
+            .newSession();
 
     try {
       JsonObject result = new JsonObject();
@@ -356,13 +366,16 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   // SCENARIO: Read combinePushedDownFilters behaviour checks
   // =========================================================================
 
+  @SuppressWarnings("resource")
   protected static JsonObject readKeepingFiltersApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
     String format = parameters.get("dataFormat");
 
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadKeepingFiltersTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadKeepingFiltersTestApp")
+            .getOrCreate()
+            .newSession();
 
     try {
       Dataset<Row> df1 =
@@ -418,6 +431,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   // SCENARIO: Read Column Order Struct Schema verification
   // =========================================================================
 
+  @SuppressWarnings("resource")
   protected static JsonObject readColumnOrderStructApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
@@ -425,7 +439,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadColumnOrderStructTestApp")
-            .getOrCreate();
+            .getOrCreate()
+            .newSession();
 
     try {
       StructType schema = Encoders.bean(ColumnOrderTestClass.class).schema();
@@ -470,11 +485,14 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   // SCENARIO: Read BQ Map and convert to Spark Map
   // =========================================================================
 
+  @SuppressWarnings("resource")
   protected static JsonObject readConvertMapApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadConvertMapTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadConvertMapTestApp")
+            .getOrCreate()
+            .newSession();
 
     try {
       BigQuery bigQuery = IntegrationTestUtils.getBigquery();
@@ -551,13 +569,16 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   // SCENARIO: Read Timestamp NTZ Datetime fields
   // =========================================================================
 
+  @SuppressWarnings("resource")
   protected static JsonObject readTimestampNTZApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
     String expectedTypeName = parameters.get("ntzTypeName");
 
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadTimestampNTZTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadTimestampNTZTestApp")
+            .getOrCreate()
+            .newSession();
 
     try {
       BigQuery bigQuery = IntegrationTestUtils.getBigquery();
@@ -615,6 +636,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   // SCENARIO: Read Window functions calculations (GA4 tables)
   // =========================================================================
 
+  @SuppressWarnings("resource")
   protected static JsonObject readGA4WindowFunctionApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
@@ -623,7 +645,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadGA4WindowFunctionTestApp")
-            .getOrCreate();
+            .getOrCreate()
+            .newSession();
 
     try {
       JsonObject result = new JsonObject();

@@ -171,6 +171,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   // STATIC METHOD FUNCTIONAL APPLICATIONS MAPPINGS
   // =========================================================================
 
+  @SuppressWarnings("resource")
   protected static JsonObject readShakespeareApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "OPTION");
@@ -179,7 +180,9 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     String backgroundThreads = parameters.get("bqBackgroundThreadsPerStream");
 
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("readShakespeareApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("readShakespeareApp")
+            .getOrCreate()
+            .newSession();
     org.apache.spark.sql.DataFrameReader reader = spark.read().format("bigquery");
 
     if (bqEncodedRequest != null) {
@@ -220,10 +223,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readSchemaPrunedApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
     Dataset<Row> df =
         spark
             .read()
@@ -245,11 +251,14 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readFilteredShakespeareApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "FILTERS");
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
 
     JsonObject result = new JsonObject();
     result.addProperty("status", "success");
@@ -300,11 +309,14 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readSchemaMetadataApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "SCHEMA");
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
 
     JsonObject result = new JsonObject();
     result.addProperty("status", "success");
@@ -341,10 +353,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readHeadTimeoutApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
     spark
         .read()
         .format("bigquery")
@@ -357,10 +372,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readUnhandledFilterStructApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
     Dataset<Row> df =
         spark
             .read()
@@ -376,11 +394,14 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readMaterializedViewApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "WITH_MATERIALIZATION");
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
     Dataset<Row> df = null;
 
     if ("NO_MATERIALIZATION".equals(scenario)) {
@@ -411,11 +432,14 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readCompressedCodecsApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "OR_FILTER");
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
     JsonObject result = new JsonObject();
     result.addProperty("status", "success");
 
@@ -487,10 +511,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readBigLakeTableApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
     Dataset<Row> df =
         spark
             .read()
@@ -507,12 +534,15 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readTableSnapshotApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String snapshot = parameters.get("snapshot");
     String allTypes = parameters.get("allTypes");
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
 
     Row[] allTypesRows =
         (Row[])
@@ -539,11 +569,14 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readTableWithSpacesApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String tableId = parameters.get("tableId");
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
 
     Dataset<Row> df = spark.read().format("bigquery").load(tableId);
     Dataset<Row> filteredDf =
@@ -559,13 +592,16 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readSessionTimeoutApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "HIGH_TIMEOUT");
     String table = parameters.get("table");
     int timeout = Integer.parseInt(parameters.get("timeout"));
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
 
     org.apache.spark.sql.DataFrameReader reader =
         spark
@@ -590,10 +626,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readNestedFieldProjectionApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
     Dataset<Row> githubNestedDF =
         spark.read().format("bigquery").load("bigquery-public-data:samples.github_nested");
     List<Row> repositoryUrlRows =
@@ -609,10 +648,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readFilteredTimestampApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
     String originalSessionTz = spark.conf().get("spark.sql.session.timeZone");
     try {
       spark.conf().set("spark.sql.session.timeZone", "UTC");
@@ -639,10 +681,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     }
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readArrowTimestampRebaseApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
     String originalSessionTz = spark.conf().get("spark.sql.session.timeZone");
     try {
       spark.conf().set("spark.sql.session.timeZone", "UTC");
@@ -682,10 +727,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     }
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readPushDateTimePredicateApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
     Dataset<Row> df =
         spark
             .read()
@@ -701,12 +749,15 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readPseudoColumnsRuntimeFilteringApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.get("scenario");
     String filter = parameters.get("filter");
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
 
     Dataset<Row> df =
         spark
@@ -727,11 +778,14 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
     return result;
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject readExecuteCommandApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String query = parameters.get("query");
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("readExecuteCommandApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("readExecuteCommandApp")
+            .getOrCreate()
+            .newSession();
     Class<?> scalaMapClass = Class.forName("scala.collection.immutable.Map");
     Class<?> scalaMapModuleClass = Class.forName("scala.collection.immutable.Map$");
     Object scalaMapModule = scalaMapModuleClass.getField("MODULE$").get(null);

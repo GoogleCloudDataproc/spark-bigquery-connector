@@ -58,7 +58,8 @@ public class OpenLineageIntegrationTestBase {
               .config("spark.extraListeners", "io.openlineage.spark.agent.OpenLineageSparkListener")
               .config("spark.openlineage.transport.type", "file")
               .config("spark.openlineage.transport.location", lineageFile.getAbsolutePath())
-              .getOrCreate();
+              .getOrCreate()
+              .newSession();
       spark.sparkContext().setLogLevel("WARN");
     }
   }
@@ -77,20 +78,11 @@ public class OpenLineageIntegrationTestBase {
     }
   }
 
-  @After
-  public void teardownActiveSession() {
-    try {
-      SparkSession.active().stop();
-    } catch (Exception ignored) {
-    }
-    SparkSession.clearActiveSession();
-    SparkSession.clearDefaultSession();
-  }
-
   // =========================================================================
   // SCENARIO: OpenLineage Spark agent event logging checks
   // =========================================================================
 
+  @SuppressWarnings("resource")
   protected static JsonObject openLineageApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
@@ -116,7 +108,8 @@ public class OpenLineageIntegrationTestBase {
             .config("spark.extraListeners", "io.openlineage.spark.agent.OpenLineageSparkListener")
             .config("spark.openlineage.transport.type", "file")
             .config("spark.openlineage.transport.location", lineageFilePath)
-            .getOrCreate();
+            .getOrCreate()
+            .newSession();
 
     try {
       // E2E Warm-up query to initialize OpenLineage background agent listener

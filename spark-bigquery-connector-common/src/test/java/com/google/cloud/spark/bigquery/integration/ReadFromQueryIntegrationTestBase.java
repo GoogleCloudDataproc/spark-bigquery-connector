@@ -62,6 +62,7 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
   // SCENARIO: SQL Queries executions (Cluster App)
   // =========================================================================
 
+  @SuppressWarnings("resource")
   protected static JsonObject readQueryApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
@@ -70,7 +71,9 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
         Boolean.parseBoolean(parameters.getOrDefault("isDsv2", "false"));
 
     SparkSession spark =
-        IntegrationTestUtils.createSparkSessionBuilder("ReadQueryTestApp").getOrCreate();
+        IntegrationTestUtils.createSparkSessionBuilder("ReadQueryTestApp")
+            .getOrCreate()
+            .newSession();
     TestBigQueryJobCompletionListener listener = new TestBigQueryJobCompletionListener();
     spark.sparkContext().addSparkListener(listener);
 

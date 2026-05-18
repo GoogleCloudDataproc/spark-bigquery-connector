@@ -110,9 +110,10 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
       new InMemorySparkBigQueryIntegrationTestRunner();
 
   protected SparkSession spark() {
-    return IntegrationTestUtils.createSparkSessionBuilder("WriteTest").getOrCreate();
+    return IntegrationTestUtils.createSparkSessionBuilder("WriteTest").getOrCreate().newSession();
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject basicWriteApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "APPEND");
@@ -126,7 +127,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         IntegrationTestUtils.createSparkSessionBuilder("basic_write_test")
             .config("spark.ui.enabled", "false")
             .config("enableListInference", "true")
-            .getOrCreate();
+            .getOrCreate()
+            .newSession();
 
     try {
       Person p1 =
@@ -274,6 +276,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     }
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject schemaDiffWriteApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "DIFF_SCHEMA");
@@ -290,7 +293,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         IntegrationTestUtils.createSparkSessionBuilder("schema_diff_write_test")
             .config("spark.ui.enabled", "false")
             .config("enableListInference", "true")
-            .getOrCreate();
+            .getOrCreate()
+            .newSession();
 
     try {
       if ("DIFF_SCHEMA".equals(scenario)) {
@@ -663,6 +667,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     }
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject partitionClusteredWriteApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "PARTITION_CLUSTERED");
@@ -680,7 +685,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         IntegrationTestUtils.createSparkSessionBuilder("partition_clustered_write_test")
             .config("spark.ui.enabled", "false")
             .config("enableListInference", "true")
-            .getOrCreate();
+            .getOrCreate()
+            .newSession();
 
     try {
       if ("PARTITION_CLUSTERED".equals(scenario)) {
@@ -906,6 +912,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     }
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject dateTimeWriteApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "JSON_NEW");
@@ -920,7 +927,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         IntegrationTestUtils.createSparkSessionBuilder("date_time_write_test")
             .config("spark.ui.enabled", "false")
             .config("enableListInference", "true")
-            .getOrCreate();
+            .getOrCreate()
+            .newSession();
 
     try {
       if ("JSON_NEW".equals(scenario) || "JSON_EXISTING".equals(scenario)) {
@@ -1106,6 +1114,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     }
   }
 
+  @SuppressWarnings("resource")
   protected static JsonObject machineLearningWriteApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String writeMethod = parameters.get("writeMethod");
@@ -1116,7 +1125,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         IntegrationTestUtils.createSparkSessionBuilder("ml_write_test")
             .config("spark.ui.enabled", "false")
             .config("enableListInference", "true")
-            .getOrCreate();
+            .getOrCreate()
+            .newSession();
 
     try {
       Dataset<Row> df =

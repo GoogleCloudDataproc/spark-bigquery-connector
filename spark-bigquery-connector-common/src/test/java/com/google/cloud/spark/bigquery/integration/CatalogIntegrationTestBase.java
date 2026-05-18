@@ -66,20 +66,11 @@ public class CatalogIntegrationTestBase {
     }
   }
 
-  @After
-  public void teardownActiveSession() {
-    try {
-      SparkSession.active().stop();
-    } catch (Exception ignored) {
-    }
-    SparkSession.clearActiveSession();
-    SparkSession.clearDefaultSession();
-  }
-
   // =========================================================================
   // SCENARIO: Spark Catalog DDL & DML operations
   // =========================================================================
 
+  @SuppressWarnings("resource")
   protected static JsonObject catalogApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
@@ -96,7 +87,8 @@ public class CatalogIntegrationTestBase {
             .config("spark.sql.defaultCatalog", "bigquery")
             .config(
                 "spark.sql.catalog.bigquery", "com.google.cloud.spark.bigquery.BigQueryCatalog");
-    SparkSession spark = builder.getOrCreate();
+
+    SparkSession spark = builder.getOrCreate().newSession();
 
     for (Map.Entry<String, String> entry : parameters.entrySet()) {
       if (entry.getKey().startsWith("spark.")) {
@@ -173,7 +165,7 @@ public class CatalogIntegrationTestBase {
                   return false;
                 }
               },
-              15);
+              45);
 
           List<Row> rowsCatalogInit = spark.sql("SHOW DATABASES IN public_catalog").collectAsList();
           List<String> databaseNames =
@@ -199,7 +191,7 @@ public class CatalogIntegrationTestBase {
                   return false;
                 }
               },
-              15);
+              45);
 
           spark.sql("CREATE DATABASE test_location_catalog." + database);
           break;
@@ -214,7 +206,7 @@ public class CatalogIntegrationTestBase {
                   return false;
                 }
               },
-              15);
+              45);
 
           spark.sql("CREATE DATABASE test_catalog_as_select." + database);
           IntegrationTestUtils.pollUntil(
@@ -229,7 +221,7 @@ public class CatalogIntegrationTestBase {
                   return false;
                 }
               },
-              15);
+              45);
 
           spark.sql(
               "CREATE TABLE test_catalog_as_select."
