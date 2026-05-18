@@ -35,9 +35,11 @@ public class SparkBigQueryIntegrationTestBase {
     try {
       org.apache.spark.SparkEnv env = org.apache.spark.SparkEnv.get();
       if (env != null) {
-        env.metricsSystem()
-            .registry()
-            .removeMatching((name, metric) -> name.contains("bigquery-metrics-source"));
+        Object metricsSystem = env.metricsSystem();
+        java.lang.reflect.Method registryMethod = metricsSystem.getClass().getMethod("registry");
+        com.codahale.metrics.MetricRegistry registry =
+            (com.codahale.metrics.MetricRegistry) registryMethod.invoke(metricsSystem);
+        registry.removeMatching((name, metric) -> name.contains("bigquery-metrics-source"));
       }
     } catch (Exception ignored) {
     }
