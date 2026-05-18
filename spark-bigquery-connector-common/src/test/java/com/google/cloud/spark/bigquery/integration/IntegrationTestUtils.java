@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -33,7 +34,6 @@ import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
-import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
@@ -66,7 +66,7 @@ public class IntegrationTestUtils {
         Optional.empty(),
         destinationTableCache,
         ImmutableMap.of(),
-        SparkBigQueryConfig.DEFAULT_JOB_PRIORITY,
+        Priority.INTERACTIVE,
         Optional.empty(),
         6 * 60);
   }
