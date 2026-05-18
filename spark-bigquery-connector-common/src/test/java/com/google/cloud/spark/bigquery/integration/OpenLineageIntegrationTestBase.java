@@ -77,6 +77,16 @@ public class OpenLineageIntegrationTestBase {
     }
   }
 
+  @After
+  public void teardownActiveSession() {
+    try {
+      SparkSession.active().stop();
+    } catch (Exception ignored) {
+    }
+    SparkSession.clearActiveSession();
+    SparkSession.clearDefaultSession();
+  }
+
   // =========================================================================
   // SCENARIO: OpenLineage Spark agent event logging checks
   // =========================================================================

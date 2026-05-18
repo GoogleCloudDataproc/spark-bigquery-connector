@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
+import com.google.api.gax.rpc.DeadlineExceededException;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.FormatOptions;
@@ -1162,7 +1163,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   public void testCreateReadSessionTimeoutWithLessTimeOnHugeData() {
     assertThrows(
         "DEADLINE_EXCEEDED: deadline exceeded ",
-        Exception.class,
+            DeadlineExceededException.class,
         () -> {
           testRunner.run(
               ReadIntegrationTestBase::readSessionTimeoutApp,

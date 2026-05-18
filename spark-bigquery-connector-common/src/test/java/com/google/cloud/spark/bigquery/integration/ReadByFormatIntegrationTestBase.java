@@ -396,7 +396,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
       result.addProperty("status", "success");
       result.addProperty("equal", equal);
       return result;
-    } finally {
+    } catch (Exception e) {
+      throw new RuntimeException("Error in readKeepingFiltersApp", e);
     }
   }
 

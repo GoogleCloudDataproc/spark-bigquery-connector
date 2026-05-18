@@ -66,6 +66,16 @@ public class CatalogIntegrationTestBase {
     }
   }
 
+  @After
+  public void teardownActiveSession() {
+    try {
+      SparkSession.active().stop();
+    } catch (Exception ignored) {
+    }
+    SparkSession.clearActiveSession();
+    SparkSession.clearDefaultSession();
+  }
+
   // =========================================================================
   // SCENARIO: Spark Catalog DDL & DML operations
   // =========================================================================
