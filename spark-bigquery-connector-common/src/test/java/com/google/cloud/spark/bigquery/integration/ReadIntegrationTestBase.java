@@ -1163,7 +1163,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
   public void testCreateReadSessionTimeoutWithLessTimeOnHugeData() {
     assertThrows(
         "DEADLINE_EXCEEDED: deadline exceeded ",
-            DeadlineExceededException.class,
+        DeadlineExceededException.class,
         () -> {
           testRunner.run(
               ReadIntegrationTestBase::readSessionTimeoutApp,
