@@ -62,10 +62,16 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   protected SparkBigQueryIntegrationTestRunner testRunner =
       new InMemorySparkBigQueryIntegrationTestRunner();
 
+  private SparkSession sparkSession;
+
   protected SparkSession spark() {
-    return IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatTest")
-        .getOrCreate()
-        .newSession();
+    if (sparkSession == null) {
+      sparkSession =
+          IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatTest")
+              .getOrCreate()
+              .newSession();
+    }
+    return sparkSession;
   }
 
   private static final int LARGE_TABLE_NUMBER_OF_PARTITIONS = 138;

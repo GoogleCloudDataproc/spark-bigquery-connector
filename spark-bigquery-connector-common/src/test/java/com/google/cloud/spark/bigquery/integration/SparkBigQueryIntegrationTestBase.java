@@ -27,5 +27,19 @@ public class SparkBigQueryIntegrationTestBase {
   @Before
   public void createTestTable() {
     testTable = "test_" + System.nanoTime();
+    cleanMetricsRegistry();
+  }
+
+  @org.junit.After
+  public void cleanMetricsRegistry() {
+    try {
+      org.apache.spark.SparkEnv env = org.apache.spark.SparkEnv.get();
+      if (env != null) {
+        env.metricsSystem()
+            .registry()
+            .removeMatching((name, metric) -> name.contains("bigquery-metrics-source"));
+      }
+    } catch (Exception ignored) {
+    }
   }
 }

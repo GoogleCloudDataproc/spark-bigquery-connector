@@ -109,8 +109,14 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   protected SparkBigQueryIntegrationTestRunner testRunner =
       new InMemorySparkBigQueryIntegrationTestRunner();
 
+  private SparkSession sparkSession;
+
   protected SparkSession spark() {
-    return IntegrationTestUtils.createSparkSessionBuilder("WriteTest").getOrCreate().newSession();
+    if (sparkSession == null) {
+      sparkSession =
+          IntegrationTestUtils.createSparkSessionBuilder("WriteTest").getOrCreate().newSession();
+    }
+    return sparkSession;
   }
 
   @SuppressWarnings("resource")
