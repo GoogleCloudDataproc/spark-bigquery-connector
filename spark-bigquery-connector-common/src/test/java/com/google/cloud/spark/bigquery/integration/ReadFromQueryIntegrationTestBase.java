@@ -69,11 +69,8 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBase 
     boolean isDsv2OnSpark3AndAbove =
         Boolean.parseBoolean(parameters.getOrDefault("isDsv2", "false"));
 
-    SparkSession.Builder builder = SparkSession.builder().appName("ReadQueryTestApp");
-    if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
-      builder.master("local");
-    }
-    SparkSession spark = builder.getOrCreate();
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("ReadQueryTestApp").getOrCreate();
     TestBigQueryJobCompletionListener listener = new TestBigQueryJobCompletionListener();
     spark.sparkContext().addSparkListener(listener);
 

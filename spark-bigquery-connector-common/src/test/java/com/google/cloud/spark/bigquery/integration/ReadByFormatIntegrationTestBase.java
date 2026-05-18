@@ -63,7 +63,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
       new InMemorySparkBigQueryIntegrationTestRunner();
 
   protected SparkSession spark() {
-    return SparkSession.builder().master("local[*]").getOrCreate();
+    return IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatTest").getOrCreate();
   }
 
   private static final int LARGE_TABLE_NUMBER_OF_PARTITIONS = 138;
@@ -102,11 +102,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     String scenario = parameters.getOrDefault("scenario", "VIEW");
     String format = parameters.get("dataFormat");
 
-    SparkSession.Builder builder = SparkSession.builder().appName("ReadByFormatViewTestApp");
-    if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
-      builder.master("local");
-    }
-    SparkSession spark = builder.getOrCreate();
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatViewTestApp").getOrCreate();
 
     Dataset<Row> df =
         spark
@@ -173,11 +170,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     String scenario = parameters.getOrDefault("scenario", "OUT_OF_ORDER");
     String format = parameters.get("dataFormat");
 
-    SparkSession.Builder builder = SparkSession.builder().appName("ReadByFormatColumnsTestApp");
-    if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
-      builder.master("local");
-    }
-    SparkSession spark = builder.getOrCreate();
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatColumnsTestApp").getOrCreate();
 
     JsonObject result = new JsonObject();
     result.addProperty("status", "success");
@@ -256,11 +250,9 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     String scenario = parameters.getOrDefault("scenario", "CUSTOM_PARTITIONS");
     String format = parameters.get("dataFormat");
 
-    SparkSession.Builder builder = SparkSession.builder().appName("ReadByFormatPartitionsTestApp");
-    if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
-      builder.master("local");
-    }
-    SparkSession spark = builder.getOrCreate();
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatPartitionsTestApp")
+            .getOrCreate();
 
     try {
       JsonObject result = new JsonObject();
@@ -369,11 +361,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
     String format = parameters.get("dataFormat");
 
-    SparkSession.Builder builder = SparkSession.builder().appName("ReadKeepingFiltersTestApp");
-    if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
-      builder.master("local");
-    }
-    SparkSession spark = builder.getOrCreate();
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("ReadKeepingFiltersTestApp").getOrCreate();
 
     try {
       Dataset<Row> df1 =
@@ -433,11 +422,9 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
     String format = parameters.get("dataFormat");
 
-    SparkSession.Builder builder = SparkSession.builder().appName("ReadColumnOrderStructTestApp");
-    if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
-      builder.master("local");
-    }
-    SparkSession spark = builder.getOrCreate();
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("ReadColumnOrderStructTestApp")
+            .getOrCreate();
 
     try {
       StructType schema = Encoders.bean(ColumnOrderTestClass.class).schema();
@@ -485,11 +472,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   protected static JsonObject readConvertMapApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
-    SparkSession.Builder builder = SparkSession.builder().appName("ReadConvertMapTestApp");
-    if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
-      builder.master("local");
-    }
-    SparkSession spark = builder.getOrCreate();
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("ReadConvertMapTestApp").getOrCreate();
 
     try {
       BigQuery bigQuery = IntegrationTestUtils.getBigquery();
@@ -571,11 +555,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
     String expectedTypeName = parameters.get("ntzTypeName");
 
-    SparkSession.Builder builder = SparkSession.builder().appName("ReadTimestampNTZTestApp");
-    if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
-      builder.master("local");
-    }
-    SparkSession spark = builder.getOrCreate();
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("ReadTimestampNTZTestApp").getOrCreate();
 
     try {
       BigQuery bigQuery = IntegrationTestUtils.getBigquery();
@@ -639,11 +620,9 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     String scenario = parameters.getOrDefault("scenario", "STANDARD");
     String format = parameters.get("dataFormat");
 
-    SparkSession.Builder builder = SparkSession.builder().appName("ReadGA4WindowFunctionTestApp");
-    if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
-      builder.master("local");
-    }
-    SparkSession spark = builder.getOrCreate();
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("ReadGA4WindowFunctionTestApp")
+            .getOrCreate();
 
     try {
       JsonObject result = new JsonObject();

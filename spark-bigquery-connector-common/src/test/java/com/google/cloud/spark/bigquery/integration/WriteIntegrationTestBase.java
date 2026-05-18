@@ -110,7 +110,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
       new InMemorySparkBigQueryIntegrationTestRunner();
 
   protected SparkSession spark() {
-    return SparkSession.builder().master("local[*]").getOrCreate();
+    return IntegrationTestUtils.createSparkSessionBuilder("WriteTest").getOrCreate();
   }
 
   protected static JsonObject basicWriteApp(
@@ -123,9 +123,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     String fullTableName = testDataset + "." + testTable;
 
     SparkSession spark =
-        SparkSession.builder()
-            .master("local[*]")
-            .appName("basic_write_test")
+        IntegrationTestUtils.createSparkSessionBuilder("basic_write_test")
             .config("spark.ui.enabled", "false")
             .config("enableListInference", "true")
             .getOrCreate();
@@ -289,9 +287,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     String destTable = testDataset + "." + testTable;
 
     SparkSession spark =
-        SparkSession.builder()
-            .master("local[*]")
-            .appName("schema_diff_write_test")
+        IntegrationTestUtils.createSparkSessionBuilder("schema_diff_write_test")
             .config("spark.ui.enabled", "false")
             .config("enableListInference", "true")
             .getOrCreate();
@@ -681,9 +677,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     String fullTableName = testDataset + "." + testTable;
 
     SparkSession spark =
-        SparkSession.builder()
-            .master("local[*]")
-            .appName("partition_clustered_write_test")
+        IntegrationTestUtils.createSparkSessionBuilder("partition_clustered_write_test")
             .config("spark.ui.enabled", "false")
             .config("enableListInference", "true")
             .getOrCreate();
@@ -923,9 +917,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     String fullTableName = testDataset + "." + testTable;
 
     SparkSession spark =
-        SparkSession.builder()
-            .master("local[*]")
-            .appName("date_time_write_test")
+        IntegrationTestUtils.createSparkSessionBuilder("date_time_write_test")
             .config("spark.ui.enabled", "false")
             .config("enableListInference", "true")
             .getOrCreate();
@@ -1121,9 +1113,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     String fullTableName = testDataset + "." + testTable;
 
     SparkSession spark =
-        SparkSession.builder()
-            .master("local[*]")
-            .appName("ml_write_test")
+        IntegrationTestUtils.createSparkSessionBuilder("ml_write_test")
             .config("spark.ui.enabled", "false")
             .config("enableListInference", "true")
             .getOrCreate();

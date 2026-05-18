@@ -79,18 +79,13 @@ public class CatalogIntegrationTestBase {
     String database = parameters.getOrDefault("database", "test_db");
 
     SparkSession.Builder builder =
-        SparkSession.builder()
-            .appName("CatalogTestApp")
+        IntegrationTestUtils.createSparkSessionBuilder("CatalogTestApp")
             .config("spark.sql.legacy.createHiveTableByDefault", "false")
             .config("spark.sql.sources.default", "bigquery")
             .config("spark.datasource.bigquery.writeMethod", "direct")
             .config("spark.sql.defaultCatalog", "bigquery")
             .config(
                 "spark.sql.catalog.bigquery", "com.google.cloud.spark.bigquery.BigQueryCatalog");
-
-    if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
-      builder.master("local[*]");
-    }
     SparkSession spark = builder.getOrCreate();
 
     for (Map.Entry<String, String> entry : parameters.entrySet()) {

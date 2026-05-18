@@ -52,9 +52,7 @@ public class OpenLineageIntegrationTestBase {
       lineageFile = File.createTempFile("openlineage_test_" + System.nanoTime(), ".log");
       lineageFile.deleteOnExit();
       spark =
-          SparkSession.builder()
-              .master("local")
-              .appName("openlineage_test_bigquery_connector")
+          IntegrationTestUtils.createSparkSessionBuilder("openlineage_test_bigquery_connector")
               .config("spark.ui.enabled", "false")
               .config("spark.default.parallelism", 2)
               .config("spark.extraListeners", "io.openlineage.spark.agent.OpenLineageSparkListener")
@@ -102,9 +100,7 @@ public class OpenLineageIntegrationTestBase {
     SparkSession.clearDefaultSession();
 
     SparkSession spark =
-        SparkSession.builder()
-            .master("local[*]")
-            .appName("openlineage_test_bigquery_connector")
+        IntegrationTestUtils.createSparkSessionBuilder("openlineage_test_bigquery_connector")
             .config("spark.ui.enabled", "false")
             .config("spark.default.parallelism", 2)
             .config("spark.extraListeners", "io.openlineage.spark.agent.OpenLineageSparkListener")
