@@ -88,16 +88,16 @@ public class CatalogIntegrationTestBase {
             .config(
                 "spark.sql.catalog.bigquery", "com.google.cloud.spark.bigquery.BigQueryCatalog");
 
-    for (Map.Entry<String, String> entry : parameters.entrySet()) {
-      if (entry.getKey().startsWith("spark.")) {
-        builder.config(entry.getKey(), entry.getValue());
-      }
-    }
-
     if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
       builder.master("local[*]");
     }
     SparkSession spark = builder.getOrCreate();
+
+    for (Map.Entry<String, String> entry : parameters.entrySet()) {
+      if (entry.getKey().startsWith("spark.")) {
+        spark.conf().set(entry.getKey(), entry.getValue());
+      }
+    }
 
     try {
       JsonObject result = new JsonObject();
@@ -474,7 +474,9 @@ public class CatalogIntegrationTestBase {
                 "scenario",
                 "CATALOG_INIT_PROJECT",
                 "spark.sql.catalog.public_catalog",
-                "com.google.cloud.spark.bigquery.BigQueryCatalog"));
+                "com.google.cloud.spark.bigquery.BigQueryCatalog",
+                "spark.sql.catalog.public_catalog.projectId",
+                "bigquery-public-data"));
 
     assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(result.get("containsSamples").getAsBoolean()).isTrue();
