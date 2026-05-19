@@ -257,6 +257,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
 
     if (writingMode.equals(WritingMode.APPEND_AT_LEAST_ONCE)
         || writingMode.equals(WritingMode.OVERWRITE)) {
+      long startTime = System.currentTimeMillis();
       Job queryJob =
           (writingMode.equals(WritingMode.OVERWRITE))
               ? overwriteMode == PartitionOverwriteMode.STATIC
@@ -267,6 +268,11 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
               : bigQueryClient.appendDestinationWithTemporary(
                   tableToWrite.getTableId(), destinationTableId);
       bigQueryClient.waitForJob(queryJob);
+      long duration = System.currentTimeMillis() - startTime;
+      logger.info(
+          "Copied temporary table to destination in {}ms. JobId: {}",
+          duration,
+          queryJob.getJobId().getJob());
       Preconditions.checkState(
           bigQueryClient.deleteTable(tableToWrite.getTableId()),
           new BigQueryConnectorException(
