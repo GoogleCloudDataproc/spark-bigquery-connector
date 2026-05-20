@@ -15,45 +15,33 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import java.util.UUID;
-import org.apache.spark.sql.SparkSession;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.rules.ExternalResource;
 
 public class SparkBigQueryIntegrationTestBase {
 
-  @ClassRule public static SparkFactory sparkFactory = new SparkFactory();
   @ClassRule public static TestDataset testDataset = new TestDataset();
 
-  protected SparkSession spark;
   protected String testTable;
-
-  public SparkBigQueryIntegrationTestBase() {
-    this.spark = sparkFactory.spark;
-  }
 
   @Before
   public void createTestTable() {
     testTable = "test_" + System.nanoTime();
+    cleanMetricsRegistry();
   }
 
-  protected static class SparkFactory extends ExternalResource {
-    SparkSession spark;
-
-    @Override
-    protected void before() throws Throwable {
-      String appName = "integration-test-" + UUID.randomUUID();
-      spark =
-          SparkSession.builder()
-              .master("local")
-              .appName(appName)
-              .config("spark.hadoop.google.cloud.appName.v2", appName)
-              .config("spark.ui.enabled", "false")
-              .config("spark.default.parallelism", 20)
-              .getOrCreate();
-      // reducing test's logs
-      spark.sparkContext().setLogLevel("WARN");
+  @org.junit.After
+  public void cleanMetricsRegistry() {
+    try {
+      org.apache.spark.SparkEnv env = org.apache.spark.SparkEnv.get();
+      if (env != null) {
+        Object metricsSystem = env.metricsSystem();
+        java.lang.reflect.Method registryMethod = metricsSystem.getClass().getMethod("registry");
+        com.codahale.metrics.MetricRegistry registry =
+            (com.codahale.metrics.MetricRegistry) registryMethod.invoke(metricsSystem);
+        registry.removeMatching((name, metric) -> name.contains("bigquery-metrics-source"));
+      }
+    } catch (Exception ignored) {
     }
   }
 }

@@ -70,7 +70,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Function1;
 import scala.Tuple2;
-import scala.collection.mutable.IndexedSeq;
 
 public class ProtobufUtils {
 
@@ -495,13 +494,14 @@ public class ProtobufUtils {
           protoValue.add(converted);
         }
       } else {
-        IndexedSeq<Object> sparkArrayData = (IndexedSeq<Object>) sparkValue;
-        int sparkArrayDataLength = sparkArrayData.length();
-        for (int i = 0; i < sparkArrayDataLength; i++) {
+        scala.collection.Iterator<Object> iterator =
+            ((scala.collection.Iterable<Object>) sparkValue).iterator();
+        while (iterator.hasNext()) {
+          Object sparkElement = iterator.next();
           Object converted =
               convertSparkValueToProtoRowValue(
                   elementType,
-                  sparkArrayData.apply(i),
+                  sparkElement,
                   containsNull,
                   nestedTypeDescriptor,
                   typeConverterElementOptional,

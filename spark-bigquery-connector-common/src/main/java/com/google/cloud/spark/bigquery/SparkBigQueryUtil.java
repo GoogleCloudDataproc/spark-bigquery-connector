@@ -250,7 +250,11 @@ public class SparkBigQueryUtil {
   public static <K, V> ImmutableMap<K, V> scalaMapToJavaMap(
       scala.collection.immutable.Map<K, V> map) {
     ImmutableMap.Builder<K, V> result = ImmutableMap.<K, V>builder();
-    map.foreach(entry -> result.put(entry._1(), entry._2()));
+    scala.collection.Iterator<scala.Tuple2<K, V>> iterator = map.iterator();
+    while (iterator.hasNext()) {
+      scala.Tuple2<K, V> entry = iterator.next();
+      result.put(entry._1(), entry._2());
+    }
     return result.build();
   }
 
