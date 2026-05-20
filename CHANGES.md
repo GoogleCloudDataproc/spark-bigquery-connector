@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.44.2 - 2026-05-20
 
 * Issue #1389: Fixed Timestamp Conversion from Julian to Gregorian conversion
