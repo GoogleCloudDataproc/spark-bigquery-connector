@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.44.2 - 2026-05-20
 
 * Issue #1389: Fixed Timestamp Conversion from Julian to Gregorian conversion
 * Issue #1476: Fixed BigQuery MERGE statement ambiguity on overwrite when table columns are named `target` or `source`.
