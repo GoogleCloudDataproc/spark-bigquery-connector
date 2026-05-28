@@ -80,6 +80,8 @@
             --add-opens java.base/sun.nio.ch=ALL-UNNAMED
         </jdk11plus.argLine>
         <scala.skipTests>false</scala.skipTests>
+        <argLine></argLine>
+        <failsafeArgLine></failsafeArgLine>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -363,7 +365,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.11</version>
+                    <version>0.8.14</version>
                     <executions>
                         <execution>
                             <goals>
@@ -845,7 +847,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <configuration>
-                            <argLine>${argLine}</argLine>
+                            <argLine>${argLine} ${failsafeArgLine}</argLine>
                             <forkCount>7</forkCount>
                             <reuseForks>false</reuseForks>
                             <includes>
@@ -884,6 +886,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <configuration>
+                            <argLine>${failsafeArgLine}</argLine>
                             <forkCount>10</forkCount>
                             <reuseForks>false</reuseForks>
                             <includes>
@@ -919,6 +922,18 @@
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
                         <executions>
+                        <execution>
+                        <id>prepare-it-agent</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>prepare-agent-integration</goal>
+                        </goals>
+                        <configuration>
+                            <destFile>${project.build.directory}/jacoco-it.exec</destFile>
+                            <!-- Bind the agent string to a custom property -->
+                            <propertyName>failsafeArgLine</propertyName> 
+                        </configuration>
+                    </execution>
                             <execution>
                                 <id>report</id>
                                 <phase>verify</phase>

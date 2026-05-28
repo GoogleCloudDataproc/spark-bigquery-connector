@@ -146,10 +146,16 @@ public class BigQueryWriteHelper {
                         config.getEnableModeCheckForSchemaFields())
                     .getTableId());
         loadDataToBigQuery();
+        long startTime = System.currentTimeMillis();
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
                 temporaryTableId.get(), config.getTableId());
         bigQueryClient.waitForJob(queryJob);
+        long duration = System.currentTimeMillis() - startTime;
+        logger.info(
+            "Overwrote destination with temporary dynamic partitions in {}ms. JobId: {}",
+            duration,
+            queryJob.getJobId().getJob());
       } else {
         loadDataToBigQuery();
       }
@@ -242,7 +248,12 @@ public class BigQueryWriteHelper {
         updatedTableInfo.setLabels(config.getBigQueryTableLabels()).build();
       }
 
-      bigQueryClient.update(updatedTableInfo.build());
+      TableInfo tableToUpdate = updatedTableInfo.build();
+      logger.debug("Updating table metadata: {}", tableToUpdate);
+      long startTime = System.currentTimeMillis();
+      bigQueryClient.update(tableToUpdate);
+      long duration = System.currentTimeMillis() - startTime;
+      logger.info("Updated table metadata in {}ms", duration);
     }
   }
 

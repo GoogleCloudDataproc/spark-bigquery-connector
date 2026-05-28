@@ -180,10 +180,16 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
                         config.getTableId(), schema, config.getEnableModeCheckForSchemaFields())
                     .getTableId());
         loadDataToBigQuery(sourceUris, schema);
+        long startTime = System.currentTimeMillis();
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
                 temporaryTableId.get(), config.getTableId());
         bigQueryClient.waitForJob(queryJob);
+        long duration = System.currentTimeMillis() - startTime;
+        logger.info(
+            "Overwrote destination with temporary dynamic partitions in {}ms. JobId: {}",
+            duration,
+            queryJob.getJobId().getJob());
       } else {
         loadDataToBigQuery(sourceUris, schema);
       }
