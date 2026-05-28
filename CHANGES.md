@@ -6,8 +6,16 @@
 
 * Issue #1389: Fixed Timestamp Conversion from Julian to Gregorian conversion
 * Issue #1476: Fixed BigQuery MERGE statement ambiguity on overwrite when table columns are named `target` or `source`.
-* PR #1479: Fixing NotSerializableException thrown on the executors
+* PR #1479: Fixing NotSerializableException thrown on the executors+
 * PR #1488: Added timing and Job ID logging to write path operations
+* BigQuery API has been upgraded to version 2.65.0
+* BigQuery Storage API has been upgraded to version 3.27.0
+* GAX has been upgraded to version 2.79.0
+* gRPC has been upgraded to version 1.81.0
+* Guava has been upgraded to version 33.6.0-jre
+* Netty has been upgraded to version 4.2.12.Final
+* Protocol Buffers has been upgraded to version 4.34.1
+* Avro has been upgraded to version 1.11.5
 
 ## 0.44.1 - 2026-03-25
 * BigQuery API has been upgraded to version 2.60.0

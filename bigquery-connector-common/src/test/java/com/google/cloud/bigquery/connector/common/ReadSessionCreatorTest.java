@@ -428,7 +428,7 @@ public class ReadSessionCreatorTest {
                 requestedSession
                     .setDataFormat(config.getReadDataFormat())
                     .setReadOptions(readOptions)
-                    .setTable(ReadSessionCreator.toTablePath(table.getTableId()))
+                    .setTable(table.getTableId().getIAMResourceName())
                     .setTableModifiers(TableModifiers.newBuilder())
                     .build())
             .setMaxStreamCount(config.getMaxParallelism().getAsInt())
