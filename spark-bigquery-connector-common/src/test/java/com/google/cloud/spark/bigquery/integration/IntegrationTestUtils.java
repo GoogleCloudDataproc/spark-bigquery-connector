@@ -129,6 +129,15 @@ public class IntegrationTestUtils {
   }
 
   static void createView(String dataset, String view) {
+
+    BigQuery bq = getBigquery();
+    String query = "SELECT * FROM `bigquery-public-data.samples.shakespeare`";
+    TableId tableId = TableId.of(dataset, view);
+    ViewDefinition viewDefinition = ViewDefinition.newBuilder(query).setUseLegacySql(false).build();
+    bq.create(TableInfo.of(tableId, viewDefinition));
+  }
+
+  static void createView(String dataset, String table, String view) {
     BigQuery bq = getBigquery();
     String query = "SELECT * FROM `bigquery-public-data.samples.shakespeare`";
     TableId tableId = TableId.of(dataset, view);
@@ -185,5 +194,26 @@ public class IntegrationTestUtils {
       //   assertThat(actualField).isEqualTo(expectedField);
       // }
     }
+  }
+
+  public static void pollUntil(java.util.function.BooleanSupplier condition, int timeoutSeconds)
+      throws Exception {
+    long deadline = System.currentTimeMillis() + timeoutSeconds * 1000L;
+    while (System.currentTimeMillis() < deadline) {
+      if (condition.getAsBoolean()) {
+        return; // Condition satisfied
+      }
+      Thread.sleep(100); // Check every 100ms
+    }
+    throw new java.util.concurrent.TimeoutException(
+        "Condition not met within " + timeoutSeconds + " seconds.");
+  }
+
+  public static SparkSession.Builder createSparkSessionBuilder(String appName) {
+    SparkSession.Builder builder = SparkSession.builder().appName(appName);
+    if (System.getProperty("spark.master") == null && System.getenv("SPARK_MASTER") == null) {
+      builder.master("local[*]");
+    }
+    return builder;
   }
 }
