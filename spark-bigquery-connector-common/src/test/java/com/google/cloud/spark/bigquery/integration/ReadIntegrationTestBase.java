@@ -29,6 +29,8 @@ import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -39,7 +41,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -203,23 +207,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
       df.head();
     }
 
-    JsonObject result = new JsonObject();
+    JsonObject result = generateShakespeareTestValues(df);
     result.addProperty("status", "success");
-    result.addProperty("count", df.count());
-    result.addProperty(
-        "schemaMatches", df.schema().equals(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT));
-
-    List<String> firstWords =
-        Arrays.asList(
-            (String[])
-                df.select("word")
-                    .where("word >= 'a' AND word not like '%\\'%'")
-                    .distinct()
-                    .as(Encoders.STRING())
-                    .sort("word")
-                    .take(3));
-    result.addProperty(
-        "firstWordsPreserved", firstWords.containsAll(Arrays.asList("a", "abaissiez", "abandon")));
     return result;
   }
 
@@ -526,11 +515,27 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
             .option("table", testTable)
             .load();
 
-    JsonObject result = new JsonObject();
+    JsonObject result = generateShakespeareTestValues(df);
     result.addProperty("status", "success");
+    return result;
+  }
+
+  protected static JsonObject generateShakespeareTestValues(Dataset<Row> df) {
+    JsonObject result = new JsonObject();
     result.addProperty("count", df.count());
     result.addProperty(
         "schemaMatches", df.schema().equals(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT));
+    JsonArray firstWords = new JsonArray(3);
+    Arrays.asList(
+            (String[])
+                df.select("word")
+                    .where("word >= 'a' AND word not like '%\\'%'")
+                    .distinct()
+                    .as(Encoders.STRING())
+                    .sort("word")
+                    .take(3))
+        .forEach(firstWords::add);
+    result.add("firstWords", firstWords);
     return result;
   }
 
@@ -811,7 +816,12 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
     assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
-    assertThat(result.get("firstWordsPreserved").getAsBoolean()).isTrue();
+    List<String> firstWords =
+        StreamSupport.stream(result.get("firstWords").getAsJsonArray().spliterator(), false)
+            .map(JsonElement::getAsString)
+            .collect(Collectors.toList());
+    assertThat(firstWords).hasSize(3);
+    assertThat(firstWords).containsExactly("a", "abaissiez", "abandon");
   }
 
   @Test
@@ -1078,9 +1088,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   public void testReadFromBigLakeTable_csv() throws Exception {
     JsonObject result =
         testBigLakeTable(FormatOptions.csv(), TestConstants.SHAKESPEARE_CSV_FILENAME, "text/csv");
-    assertThat(result.get("status").getAsString()).isEqualTo("success");
-    assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
-    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+    testShakespeareLocal(result);
   }
 
   @Test
@@ -1088,9 +1096,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     JsonObject result =
         testBigLakeTable(
             FormatOptions.json(), TestConstants.SHAKESPEARE_JSON_FILENAME, "application/json");
-    assertThat(result.get("status").getAsString()).isEqualTo("success");
-    assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
-    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+    testShakespeareLocal(result);
   }
 
   @Test
@@ -1100,9 +1106,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
             FormatOptions.parquet(),
             TestConstants.SHAKESPEARE_PARQUET_FILENAME,
             "application/octet-stream");
-    assertThat(result.get("status").getAsString()).isEqualTo("success");
-    assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
-    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+    testShakespeareLocal(result);
   }
 
   @Test
@@ -1112,9 +1116,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
             FormatOptions.avro(),
             TestConstants.SHAKESPEARE_AVRO_FILENAME,
             "application/octet-stream");
-    assertThat(result.get("status").getAsString()).isEqualTo("success");
-    assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
-    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+    testShakespeareLocal(result);
   }
 
   private void uploadFileToGCS(String resourceName, String destinationURI, String contentType) {
