@@ -227,12 +227,16 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
             .option("table", ALL_TYPES_TABLE_NAME)
             .load();
 
-    Row res =
-        df.select("str", "nested_struct.str", "nested_struct.inner_struct.str")
-            .collectAsList()
-            .get(0);
+    List<Row> rows =
+        df.select("str", "nested_struct.str", "nested_struct.inner_struct.str").collectAsList();
 
     JsonObject result = new JsonObject();
+    if (rows.isEmpty()) {
+      result.addProperty("status", "failed");
+      result.addProperty("error", "No rows returned by query");
+      return result;
+    }
+    Row res = rows.get(0);
     result.addProperty("status", "success");
     result.addProperty("strVal", res.getString(0));
     result.addProperty("nestedStrVal", res.getString(1));
@@ -441,6 +445,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
               .option("filter", "word_count = 1 OR corpus_date = 0")
               .option("readDataFormat", "AVRO")
               .load()
+              .sort("word", "word_count", "corpus", "corpus_date")
               .collectAsList();
       String arrowCodec = parameters.get("arrowCompressionCodec");
       List<Row> arrowCodecResults =
@@ -452,6 +457,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
               .option("arrowCompressionCodec", arrowCodec)
               .load()
               .where("word_count = 1 OR corpus_date = 0")
+              .sort("word", "word_count", "corpus", "corpus_date")
               .collectAsList();
       result.addProperty("matches", avroResults.equals(arrowCodecResults));
     } else if ("RESPONSE_COMPRESSION".equals(scenario)) {
@@ -464,6 +470,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
               .option("readDataFormat", "ARROW")
               .load()
               .where("word_count = 1 OR corpus_date = 0")
+              .sort("word", "word_count", "corpus", "corpus_date")
               .collectAsList();
       List<Row> formatCodecResults =
           spark
@@ -474,6 +481,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
               .option("responseCompressionCodec", "RESPONSE_COMPRESSION_CODEC_LZ4")
               .load()
               .where("word_count = 1 OR corpus_date = 0")
+              .sort("word", "word_count", "corpus", "corpus_date")
               .collectAsList();
       result.addProperty("matches", arrowResultsUncompressed.equals(formatCodecResults));
     } else {
@@ -485,6 +493,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
               .option("filter", "word_count = 1 OR corpus_date = 0")
               .option("readDataFormat", "AVRO")
               .load()
+              .sort("word", "word_count", "corpus", "corpus_date")
               .collectAsList();
       List<Row> arrowResults =
           spark
@@ -494,6 +503,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
               .option("readDataFormat", "ARROW")
               .load()
               .where("word_count = 1 OR corpus_date = 0")
+              .sort("word", "word_count", "corpus", "corpus_date")
               .collectAsList();
       result.addProperty("matches", avroResults.equals(arrowResults));
     }
@@ -589,6 +599,11 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     List<Row> rows = filteredDf.sort("id").collectAsList();
 
     JsonObject result = new JsonObject();
+    if (rows.isEmpty()) {
+      result.addProperty("status", "failed");
+      result.addProperty("error", "No rows returned by filtered query");
+      return result;
+    }
     result.addProperty("status", "success");
     result.addProperty("count", df.count());
     result.addProperty("filteredCount", filteredDf.count());
@@ -675,6 +690,11 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
       List<Row> resultList = filteredDF.collectAsList();
 
       JsonObject result = new JsonObject();
+      if (resultList.isEmpty()) {
+        result.addProperty("status", "failed");
+        result.addProperty("error", "No rows returned by filtered eventTime query");
+        return result;
+      }
       result.addProperty("status", "success");
       result.addProperty("rowCount", resultList.size());
       Row head = resultList.get(0);
@@ -696,7 +716,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     String originalSessionTz = spark.conf().get("spark.sql.session.timeZone");
     try {
       spark.conf().set("spark.sql.session.timeZone", "UTC");
-      Row withoutRebase =
+      List<Row> rowsWithoutRebase =
           spark
               .read()
               .format("bigquery")
@@ -705,9 +725,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
               .option("readDataFormat", "ARROW")
               .option("enableArrowTimestampRebase", "false")
               .load()
-              .collectAsList()
-              .get(0);
-      Row withRebase =
+              .collectAsList();
+      List<Row> rowsWithRebase =
           spark
               .read()
               .format("bigquery")
@@ -716,10 +735,17 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
               .option("readDataFormat", "ARROW")
               .option("enableArrowTimestampRebase", "true")
               .load()
-              .collectAsList()
-              .get(0);
+              .collectAsList();
 
       JsonObject result = new JsonObject();
+      if (rowsWithoutRebase.isEmpty() || rowsWithRebase.isEmpty()) {
+        result.addProperty("status", "failed");
+        result.addProperty("error", "No rows returned by query");
+        return result;
+      }
+      Row withoutRebase = rowsWithoutRebase.get(0);
+      Row withRebase = rowsWithRebase.get(0);
+
       result.addProperty("status", "success");
       result.addProperty(
           "withoutRebaseMillis",
@@ -776,6 +802,11 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     List<Row> rows = df.join(df, "orderId").orderBy("orderId").collectAsList();
 
     JsonObject result = new JsonObject();
+    if (rows.size() < 2) {
+      result.addProperty("status", "failed");
+      result.addProperty("error", "Fewer than 2 rows returned by query (got " + rows.size() + ")");
+      return result;
+    }
     result.addProperty("status", "success");
     result.addProperty("rowCount", rows.size());
     result.addProperty("firstId", rows.get(0).getLong(0));

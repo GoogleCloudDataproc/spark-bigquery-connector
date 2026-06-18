@@ -20,8 +20,12 @@ import java.lang.reflect.Method;
 import org.apache.spark.SparkEnv;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SparkBigQueryIntegrationTestBaseV2 {
+
+  private final Logger logger = LoggerFactory.getLogger(getClass());
 
   @ClassRule public static TestDataset testDataset = new TestDataset();
 
@@ -43,7 +47,8 @@ public class SparkBigQueryIntegrationTestBaseV2 {
         MetricRegistry registry = (MetricRegistry) registryMethod.invoke(metricsSystem);
         registry.removeMatching((name, metric) -> name.contains("bigquery-metrics-source"));
       }
-    } catch (Exception ignored) {
+    } catch (Exception e) {
+      logger.debug("Failed to clean metrics registry during test teardown: {}", e.getMessage());
     }
   }
 }
