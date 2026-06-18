@@ -822,13 +822,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
         IntegrationTestUtils.createSparkSessionBuilder("readExecuteCommandApp")
             .getOrCreate()
             .newSession();
-    Class<?> scalaMapClass = Class.forName("scala.collection.immutable.Map");
-    Class<?> scalaMapModuleClass = Class.forName("scala.collection.immutable.Map$");
-    Object scalaMapModule = scalaMapModuleClass.getField("MODULE$").get(null);
-    Object emptyScalaMap = scalaMapModuleClass.getMethod("empty").invoke(scalaMapModule);
+    scala.collection.immutable.Map emptyScalaMap = scala.collection.immutable.Map$.MODULE$.empty();
 
     java.lang.reflect.Method executeCommandMethod =
-        spark.getClass().getMethod("executeCommand", String.class, String.class, scalaMapClass);
+        spark
+            .getClass()
+            .getMethod(
+                "executeCommand", String.class, String.class, scala.collection.immutable.Map.class);
     @SuppressWarnings("unchecked")
     Dataset<Row> output =
         (Dataset<Row>) executeCommandMethod.invoke(spark, "bigquery", query, emptyScalaMap);

@@ -198,8 +198,9 @@ public class IntegrationTestUtils {
 
   public static void pollUntil(java.util.function.BooleanSupplier condition, int timeoutSeconds)
       throws Exception {
-    long deadline = System.currentTimeMillis() + timeoutSeconds * 1000L;
-    while (System.currentTimeMillis() < deadline) {
+    long deadline =
+        System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(timeoutSeconds);
+    while (System.nanoTime() < deadline) {
       if (condition.getAsBoolean()) {
         return; // Condition satisfied
       }
