@@ -139,7 +139,7 @@ public class IntegrationTestUtils {
 
   static void createView(String dataset, String table, String view) {
     BigQuery bq = getBigquery();
-    String query = "SELECT * FROM `bigquery-public-data.samples.shakespeare`";
+    String query = String.format("SELECT * FROM `%s.%s`", dataset, table);
     TableId tableId = TableId.of(dataset, view);
     ViewDefinition viewDefinition = ViewDefinition.newBuilder(query).setUseLegacySql(false).build();
     bq.create(TableInfo.of(tableId, viewDefinition));

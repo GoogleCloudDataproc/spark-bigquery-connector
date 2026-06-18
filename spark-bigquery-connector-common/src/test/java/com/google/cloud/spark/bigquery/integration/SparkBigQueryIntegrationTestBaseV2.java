@@ -43,9 +43,11 @@ public class SparkBigQueryIntegrationTestBaseV2 {
       SparkEnv env = SparkEnv.get();
       if (env != null) {
         Object metricsSystem = env.metricsSystem();
-        Method registryMethod = metricsSystem.getClass().getMethod("registry");
-        MetricRegistry registry = (MetricRegistry) registryMethod.invoke(metricsSystem);
-        registry.removeMatching((name, metric) -> name.contains("bigquery-metrics-source"));
+        if (metricsSystem != null) {
+          Method registryMethod = metricsSystem.getClass().getMethod("registry");
+          MetricRegistry registry = (MetricRegistry) registryMethod.invoke(metricsSystem);
+          registry.removeMatching((name, metric) -> name.contains("bigquery-metrics-source"));
+        }
       }
     } catch (Exception e) {
       logger.debug("Failed to clean metrics registry during test teardown: {}", e.getMessage());
