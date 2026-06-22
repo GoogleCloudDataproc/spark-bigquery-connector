@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -155,6 +156,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
       allTypesTableSchema =
           allTypesTableSchema.add(field.name(), dateTimeType, field.nullable(), field.metadata());
     }
+  }
+
+  public static JsonObject convertSchemaToJsonObject(StructType schema) {
+    return JsonParser.parseString(schema.json()).getAsJsonObject();
   }
 
   @Before
@@ -348,7 +353,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
               .format("bigquery")
               .option("table", TestConstants.SHAKESPEARE_TABLE)
               .load();
-      result.addProperty("schemaMatches", table.schema().equals(expectedSchema));
+      result.add("resultSchema", convertSchemaToJsonObject(table.schema()));
     } else {
       Dataset<Row> df =
           spark
@@ -359,8 +364,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
               .load();
       result.addProperty(
           "sizeInBytes", df.queryExecution().analyzed().stats().sizeInBytes().longValue());
-      result.addProperty(
-          "schemaMatches", df.schema().typeName().equals(ALL_TYPES_TABLE_SCHEMA.typeName()));
+      result.add("resultSchema", convertSchemaToJsonObject(df.schema()));
     }
     return result;
   }
@@ -572,8 +576,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   protected static JsonObject generateShakespeareTestValues(Dataset<Row> df) {
     JsonObject result = new JsonObject();
     result.addProperty("count", df.count());
-    result.addProperty(
-        "schemaMatches", df.schema().equals(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT));
+    result.add("resultSchema", convertSchemaToJsonObject(df.schema()));
     JsonArray firstWords = new JsonArray(3);
     Arrays.asList(
             (String[])
@@ -975,7 +978,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   private void testShakespeareLocal(JsonObject result) {
     assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
-    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+    assertThat(result.get("resultSchema").getAsJsonObject())
+        .isEqualTo(convertSchemaToJsonObject(SHAKESPEARE_TABLE_SCHEMA_WITH_METADATA_COMMENT));
     List<String> firstWords =
         StreamSupport.stream(result.get("firstWords").getAsJsonArray().spliterator(), false)
             .map(JsonElement::getAsString)
@@ -1114,7 +1118,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
             "",
             ImmutableMap.of("scenario", "SCHEMA"));
     assertThat(result.get("status").getAsString()).isEqualTo("success");
-    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+    assertThat(result.get("resultSchema").getAsJsonObject())
+        .isEqualTo(convertSchemaToJsonObject(allTypesTableSchema));
   }
 
   @Test
@@ -1127,7 +1132,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
             "",
             ImmutableMap.of("scenario", "USER_DEFINED"));
     assertThat(result.get("status").getAsString()).isEqualTo("success");
-    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
+    StructType expectedSchema =
+        new StructType(
+            new StructField[] {
+              new StructField("whatever", DataTypes.ByteType, true, Metadata.empty())
+            });
+    assertThat(result.get("resultSchema").getAsJsonObject())
+        .isEqualTo(convertSchemaToJsonObject(expectedSchema));
   }
 
   @Test
