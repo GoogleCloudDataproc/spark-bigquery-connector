@@ -45,11 +45,11 @@ public class SparkBigQueryIntegrationTestBaseV2 {
       if (env != null) {
         MetricsSystem metricsSystem = env.metricsSystem();
         if (metricsSystem != null) {
-          java.lang.reflect.Method registryMethod = metricsSystem.getClass().getDeclaredMethod("registry");
+          java.lang.reflect.Method registryMethod =
+              metricsSystem.getClass().getDeclaredMethod("registry");
           registryMethod.setAccessible(true);
           MetricRegistry registry = (MetricRegistry) registryMethod.invoke(metricsSystem);
-          registry.removeMatching((name, metric) ->
-                  name.contains("bigquery-metrics-source"));
+          registry.removeMatching((name, metric) -> name.contains("bigquery-metrics-source"));
         }
       }
     } catch (Exception e) {
