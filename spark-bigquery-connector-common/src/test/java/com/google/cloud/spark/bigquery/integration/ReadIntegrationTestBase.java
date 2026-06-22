@@ -118,6 +118,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   protected StructType allTypesTableSchema;
 
   protected final boolean userProvidedSchemaAllowed;
+  protected Optional<DataType> timeStampNTZType = Optional.empty();
 
   protected List<String> gcsObjectsToClean = new ArrayList<>();
 
@@ -139,6 +140,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
       boolean userProvidedSchemaAllowed, Optional<DataType> timeStampNTZType) {
     super();
     this.userProvidedSchemaAllowed = userProvidedSchemaAllowed;
+    this.timeStampNTZType = timeStampNTZType;
     intializeSchema(timeStampNTZType);
   }
 
@@ -926,13 +928,16 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
             .option("dataset", testDataset)
             .option("table", ALL_TYPES_TABLE_NAME)
             .load();
+    boolean isTimestampNTZType =
+        Boolean.parseBoolean(parameters.getOrDefault("timestamp_ntz_type", "false"));
+    List<org.apache.spark.sql.Column> cols = new ArrayList<>(TestConstants.ALL_TYPES_TABLE_COLS);
+    if (isTimestampNTZType) {
+      cols.set(
+          6,
+          org.apache.spark.sql.functions.lit("2019-03-18T01:23:45.678901").cast("timestamp_ntz"));
+    }
     Row expectedValues =
-        spark
-            .range(1)
-            .select(
-                TestConstants.ALL_TYPES_TABLE_COLS.stream()
-                    .toArray(org.apache.spark.sql.Column[]::new))
-            .head();
+        spark.range(1).select(cols.toArray(new org.apache.spark.sql.Column[0])).head();
     Row row = allTypesTable.head();
     IntegrationTestUtils.compareRows(row, expectedValues);
 
@@ -1566,7 +1571,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
             ReadIntegrationTestBase::readDataTypesApp,
             testDataset.toString(),
             "",
-            ImmutableMap.of());
+            ImmutableMap.of("timestamp_ntz_type", String.valueOf(timeStampNTZType.isPresent())));
     assertThat(result.get("status").getAsString()).isEqualTo("success");
   }
 

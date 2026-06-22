@@ -26,6 +26,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>bigquery-connector-common</artifactId>
+      <version>${project.version}</version>
+      <classifier>tests</classifier>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>spark-bigquery-connector-common</artifactId>
       <version>${project.version}</version>
     </dependency>
