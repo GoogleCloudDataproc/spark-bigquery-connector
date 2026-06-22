@@ -32,7 +32,7 @@ public class SparkBigQueryIntegrationTestBaseV2 {
 
   @Before
   public void createTestTable() {
-    testTable = "test_" + System.nanoTime();
+    testTable = "test_" + (System.nanoTime() & Long.MAX_VALUE);
     cleanMetricsRegistry();
   }
 
