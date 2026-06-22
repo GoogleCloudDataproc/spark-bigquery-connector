@@ -25,6 +25,7 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.connector.common.integration.DefaultCredentialsDelegateAccessTokenProvider;
 import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -183,6 +184,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     String bqEncodedRequest = parameters.get("bqEncodedCreateReadSessionRequest");
     String backgroundThreads = parameters.get("bqBackgroundThreadsPerStream");
 
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("readShakespeareApp")
             .getOrCreate()
@@ -215,6 +220,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   @SuppressWarnings("resource")
   protected static JsonObject readSchemaPrunedApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -248,6 +257,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   protected static JsonObject readFilteredShakespeareApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "FILTERS");
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -306,6 +319,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   protected static JsonObject readSchemaMetadataApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "SCHEMA");
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -349,6 +366,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   @SuppressWarnings("resource")
   protected static JsonObject readHeadTimeoutApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -368,6 +389,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   @SuppressWarnings("resource")
   protected static JsonObject readUnhandledFilterStructApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -391,6 +416,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   protected static JsonObject readMaterializedViewApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "WITH_MATERIALIZATION");
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -429,6 +458,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   protected static JsonObject readCompressedCodecsApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "OR_FILTER");
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -513,6 +546,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   @SuppressWarnings("resource")
   protected static JsonObject readBigLakeTableApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -554,6 +591,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String snapshot = parameters.get("snapshot");
     String allTypes = parameters.get("allTypes");
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -588,6 +629,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   protected static JsonObject readTableWithSpacesApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String tableId = parameters.get("tableId");
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -618,6 +663,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     String scenario = parameters.getOrDefault("scenario", "HIGH_TIMEOUT");
     String table = parameters.get("table");
     int timeout = Integer.parseInt(parameters.get("timeout"));
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -649,6 +698,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   @SuppressWarnings("resource")
   protected static JsonObject readNestedFieldProjectionApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -671,6 +724,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   @SuppressWarnings("resource")
   protected static JsonObject readFilteredTimestampApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -709,6 +766,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   @SuppressWarnings("resource")
   protected static JsonObject readArrowTimestampRebaseApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -761,6 +822,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   @SuppressWarnings("resource")
   protected static JsonObject readPushDateTimePredicateApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -785,6 +850,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.get("scenario");
     String filter = parameters.get("filter");
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
@@ -818,6 +887,10 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   protected static JsonObject readExecuteCommandApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String query = parameters.get("query");
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("readExecuteCommandApp")
             .getOrCreate()
@@ -836,6 +909,57 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     JsonObject result = new JsonObject();
     result.addProperty("status", "success");
     result.addProperty("count", output.count());
+    return result;
+  }
+
+  @SuppressWarnings("resource")
+  protected static JsonObject readDataTypesApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("readDataTypesApp")
+            .getOrCreate()
+            .newSession();
+    Dataset<Row> allTypesTable =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset)
+            .option("table", ALL_TYPES_TABLE_NAME)
+            .load();
+    Row expectedValues =
+        spark
+            .range(1)
+            .select(
+                TestConstants.ALL_TYPES_TABLE_COLS.stream()
+                    .toArray(org.apache.spark.sql.Column[]::new))
+            .head();
+    Row row = allTypesTable.head();
+    IntegrationTestUtils.compareRows(row, expectedValues);
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    return result;
+  }
+
+  @SuppressWarnings("resource")
+  protected static JsonObject readCustomAccessTokenProviderApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("readCustomAccessTokenProviderApp")
+            .getOrCreate()
+            .newSession();
+    Dataset<Row> df =
+        spark
+            .read()
+            .format("bigquery")
+            .option(
+                "gcpAccessTokenProvider",
+                DefaultCredentialsDelegateAccessTokenProvider.class.getCanonicalName())
+            .load(TestConstants.SHAKESPEARE_TABLE);
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("count", df.count());
     return result;
   }
 
@@ -1433,5 +1557,25 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     Table table = bigQuery.getTable(testDataset.testDataset, testTable);
     assertThat(table).isNotNull();
     assertThat(table.getDefinition().getSchema().getFields()).hasSize(2);
+  }
+
+  @Test
+  public void testReadDataTypes() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readDataTypesApp,
+            testDataset.toString(),
+            "",
+            ImmutableMap.of());
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+  }
+
+  @Test
+  public void testCustomAccessTokenProvider() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readCustomAccessTokenProviderApp, "", "", ImmutableMap.of());
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
   }
 }
