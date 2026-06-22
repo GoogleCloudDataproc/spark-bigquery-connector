@@ -15,9 +15,8 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import com.codahale.metrics.MetricRegistry;
-import java.lang.reflect.Method;
 import org.apache.spark.SparkEnv;
+import org.apache.spark.metrics.MetricsSystem;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.slf4j.Logger;
@@ -42,11 +41,20 @@ public class SparkBigQueryIntegrationTestBaseV2 {
     try {
       SparkEnv env = SparkEnv.get();
       if (env != null) {
-        Object metricsSystem = env.metricsSystem();
+        MetricsSystem metricsSystem = env.metricsSystem();
         if (metricsSystem != null) {
-          Method registryMethod = metricsSystem.getClass().getMethod("registry");
-          MetricRegistry registry = (MetricRegistry) registryMethod.invoke(metricsSystem);
-          registry.removeMatching((name, metric) -> name.contains("bigquery-metrics-source"));
+          metricsSystem
+              .getSourcesByName("bigquery-metrics-source")
+              .foreach(
+                  source -> {
+                    metricsSystem.removeSource(source);
+                    return Void.TYPE;
+                  });
+          //          Method registryMethod = metricsSystem.getClass().getMethod("registry");
+          //          MetricRegistry registry = (MetricRegistry)
+          // registryMethod.invoke(metricsSystem);
+          //          registry.removeMatching((name, metric) ->
+          // name.contains("bigquery-metrics-source"));
         }
       }
     } catch (Exception e) {
