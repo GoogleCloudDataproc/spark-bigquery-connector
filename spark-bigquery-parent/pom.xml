@@ -55,7 +55,7 @@
         <google-truth.version>1.4.5</google-truth.version>
         <grpc.version>1.79.0</grpc.version>
         <guava.version>33.5.0-jre</guava.version>
-        <jackson.version>2.21.1</jackson.version>
+        <jackson.version>2.22.0</jackson.version>
         <netty.version>4.2.10.Final</netty.version>
         <openlineage-spark.version>1.37.0</openlineage-spark.version>
         <paranamer.version>2.8.3</paranamer.version>
