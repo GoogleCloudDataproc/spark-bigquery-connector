@@ -35,10 +35,14 @@ import java.util.Map;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.unsafe.types.UTF8String;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BigQueryDirectDataWriterContext implements DataWriterContext<InternalRow> {
+  private static final UTF8String UPSERT = UTF8String.fromString("UPSERT");
+  private static final UTF8String DELETE = UTF8String.fromString("DELETE");
+
   final Logger logger = LoggerFactory.getLogger(BigQueryDirectDataWriterContext.class);
 
   private final int partitionId;
@@ -84,7 +88,7 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
 
     int changeTypeIdx = -1;
     for (int i = 0; i < sparkSchema.fields().length; i++) {
-      if (sparkSchema.fields()[i].name().equals("_CHANGE_TYPE")) {
+      if (sparkSchema.fields()[i].name().equalsIgnoreCase("_CHANGE_TYPE")) {
         changeTypeIdx = i;
         break;
       }
@@ -107,10 +111,18 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
     if (changeTypeFieldIndex != -1) {
       Object changeTypeObj = record.get(changeTypeFieldIndex, DataTypes.StringType);
       if (changeTypeObj != null) {
-        String valStr = changeTypeObj.toString();
-        if (!valStr.equals("UPSERT") && !valStr.equals("DELETE")) {
-          throw new IllegalArgumentException(
-              "CDC _CHANGE_TYPE must be UPSERT or DELETE, but got: " + valStr);
+        if (changeTypeObj instanceof UTF8String) {
+          UTF8String changeTypeUtf8 = (UTF8String) changeTypeObj;
+          if (!changeTypeUtf8.equals(UPSERT) && !changeTypeUtf8.equals(DELETE)) {
+            throw new IllegalArgumentException(
+                "CDC _CHANGE_TYPE must be UPSERT or DELETE, but got: " + changeTypeUtf8);
+          }
+        } else {
+          String valStr = changeTypeObj.toString();
+          if (!valStr.equals("UPSERT") && !valStr.equals("DELETE")) {
+            throw new IllegalArgumentException(
+                "CDC _CHANGE_TYPE must be UPSERT or DELETE, but got: " + valStr);
+          }
         }
       } else {
         throw new IllegalArgumentException("CDC _CHANGE_TYPE cannot be null");
