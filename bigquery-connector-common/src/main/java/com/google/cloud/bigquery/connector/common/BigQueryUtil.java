@@ -88,6 +88,8 @@ public class BigQueryUtil {
   public static final int DEFAULT_NUMERIC_SCALE = 9;
   public static final int DEFAULT_BIG_NUMERIC_PRECISION = 76;
   public static final int DEFAULT_BIG_NUMERIC_SCALE = 38;
+  public static final ImmutableSet<String> CDC_PSEUDO_COLUMNS =
+      ImmutableSet.of("_CHANGE_TYPE", "_CHANGE_SEQUENCE_NUMBER");
   private static final int NO_VALUE = -1;
   private static final long BIGQUERY_INTEGER_MIN_VALUE = Long.MIN_VALUE;
   static final ImmutableSet<String> INTERNAL_ERROR_MESSAGES =
@@ -572,18 +574,26 @@ public class BigQueryUtil {
       return ComparisonResult.differentNoDescription();
     }
 
+    java.util.List<Field> filteredSourceFields =
+        sourceFieldList.stream()
+            .filter(
+                f ->
+                    !CDC_PSEUDO_COLUMNS.contains(f.getName().toUpperCase(java.util.Locale.ENGLISH)))
+            .collect(java.util.stream.Collectors.toList());
+
     // cannot write of the source has more fields than the destination table.
-    if (sourceFieldList.size() > destinationFieldList.size()) {
+    if (filteredSourceFields.size() > destinationFieldList.size()) {
       return ComparisonResult.differentWithDescription(
           ImmutableList.of(
               "Number of source fields: "
-                  + sourceFieldList.size()
+                  + filteredSourceFields.size()
                   + " is larger than number of destination fields: "
                   + destinationFieldList.size()));
     }
 
     Map<String, Field> sourceFieldsMap =
-        sourceFieldList.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
+        filteredSourceFields.stream()
+            .collect(Collectors.toMap(Field::getName, Function.identity()));
     Map<String, Field> destinationFieldsMap =
         destinationFieldList.stream()
             .collect(Collectors.toMap(Field::getName, Function.identity()));

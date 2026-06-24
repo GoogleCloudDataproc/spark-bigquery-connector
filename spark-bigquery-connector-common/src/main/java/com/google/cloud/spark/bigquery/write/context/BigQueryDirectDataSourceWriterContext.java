@@ -84,6 +84,51 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   private WritingMode writingMode = WritingMode.ALL_ELSE;
   private final SparkContext sparkContext;
 
+  private static StructType normalizeCdcColumns(StructType schema) {
+    boolean hasCdc =
+        Arrays.stream(schema.fields())
+            .anyMatch(
+                f ->
+                    BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(
+                        f.name().toUpperCase(java.util.Locale.ENGLISH)));
+    if (!hasCdc) {
+      return schema;
+    }
+    org.apache.spark.sql.types.StructField[] fields =
+        Arrays.stream(schema.fields())
+            .map(
+                f -> {
+                  String nameUpper = f.name().toUpperCase(java.util.Locale.ENGLISH);
+                  if (BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(nameUpper)) {
+                    return f.copy(nameUpper, f.dataType(), f.nullable(), f.metadata());
+                  }
+                  return f;
+                })
+            .toArray(org.apache.spark.sql.types.StructField[]::new);
+    return new StructType(fields);
+  }
+
+  private boolean hasCdcColumns(Schema bigQuerySchema) {
+    return bigQuerySchema.getFields().stream()
+        .anyMatch(
+            f ->
+                BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(
+                    f.getName().toUpperCase(java.util.Locale.ENGLISH)));
+  }
+
+  private boolean hasPrimaryKey(TableInfo tableInfo) {
+    try {
+      if (tableInfo.getDefinition() instanceof com.google.cloud.bigquery.StandardTableDefinition) {
+        com.google.cloud.bigquery.StandardTableDefinition stdDef = tableInfo.getDefinition();
+        return stdDef.getTableConstraints() != null
+            && stdDef.getTableConstraints().getPrimaryKey() != null;
+      }
+    } catch (NoSuchMethodError | Exception e) {
+      // Fallback if google-cloud-bigquery version doesn't support getTableConstraints or throws
+    }
+    return true; // Default to true if unable to check
+  }
+
   public BigQueryDirectDataSourceWriterContext(
       BigQueryClient bigQueryClient,
       BigQueryClientFactory bigQueryWriteClientFactory,
@@ -106,7 +151,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     this.writeClientFactory = bigQueryWriteClientFactory;
     this.destinationTableId = destinationTableId;
     this.writeUUID = writeUUID;
-    this.sparkSchema = sparkSchema;
+    this.sparkSchema = normalizeCdcColumns(sparkSchema);
     this.bigqueryDataWriterHelperRetrySettings = bigqueryDataWriterHelperRetrySettings;
     this.traceId = traceId;
     this.enableModeCheckForSchemaFields = enableModeCheckForSchemaFields;
@@ -116,9 +161,23 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     this.writeAtLeastOnce = writeAtLeastOnce;
     this.sparkContext = sparkContext;
     Schema bigQuerySchema =
-        SchemaConverters.from(this.schemaConvertersConfiguration).toBigQuerySchema(sparkSchema);
+        SchemaConverters.from(this.schemaConvertersConfiguration)
+            .toBigQuerySchema(this.sparkSchema);
+    if (hasCdcColumns(bigQuerySchema)) {
+      if (!writeAtLeastOnce) {
+        throw new IllegalArgumentException(
+            "CDC is only supported when writeMethod is DIRECT and writeAtLeastOnce is true.");
+      }
+      if (saveMode != SaveMode.Append) {
+        throw new IllegalArgumentException("CDC can only be used with SaveMode.Append");
+      }
+      if (destinationTableId.getTable().contains("$")) {
+        throw new IllegalArgumentException(
+            "CDC cannot be used with a partition decorator ($). Write to the base table.");
+      }
+    }
     try {
-      this.protoSchema = toProtoSchema(sparkSchema);
+      this.protoSchema = toProtoSchema(this.sparkSchema);
     } catch (IllegalArgumentException e) {
       throw new BigQueryConnectorException.InvalidSchemaException(
           "Could not convert Spark schema to protobuf descriptor", e);
@@ -164,9 +223,18 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
           new BigQueryConnectorException.InvalidSchemaException(
               "Destination table's schema is not compatible with dataframe's schema. "
                   + schemaWritableResult.makeMessage()));
+      if (hasCdcColumns(bigQuerySchema)) {
+        if (!hasPrimaryKey(destinationTable)) {
+          throw new IllegalArgumentException("CDC requires a primary key on the destination table");
+        }
+      }
       switch (saveMode) {
         case Append:
           if (writeAtLeastOnce) {
+            if (hasCdcColumns(bigQuerySchema)) {
+              writingMode = WritingMode.ALL_ELSE;
+              return new BigQueryTable(destinationTable.getTableId(), false);
+            }
             writingMode = WritingMode.APPEND_AT_LEAST_ONCE;
             return new BigQueryTable(
                 bigQueryClient.createTempTable(destinationTableId, tableSchema).getTableId(), true);
@@ -184,6 +252,9 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       }
       return new BigQueryTable(destinationTable.getTableId(), false);
     } else {
+      if (hasCdcColumns(bigQuerySchema)) {
+        throw new IllegalArgumentException("CDC can only be written to an existing table");
+      }
       return new BigQueryTable(
           bigQueryClient
               .createTable(

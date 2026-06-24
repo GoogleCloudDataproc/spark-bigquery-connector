@@ -48,6 +48,7 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
   private final Descriptors.Descriptor schemaDescriptor;
   private final Map<Integer, ProtobufSchemaFieldCacheEntry> fieldIndexToEntryMap;
   private final DynamicMessage.Builder messageBuilder;
+  private final int changeTypeFieldIndex;
 
   /**
    * A helper object to assist the BigQueryDataWriter with all the writing: essentially does all the
@@ -80,6 +81,15 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
     this.fieldIndexToEntryMap = new HashMap<>();
     this.messageBuilder = DynamicMessage.newBuilder(this.schemaDescriptor);
 
+    int changeTypeIdx = -1;
+    for (int i = 0; i < sparkSchema.fields().length; i++) {
+      if (sparkSchema.fields()[i].name().equals("_CHANGE_TYPE")) {
+        changeTypeIdx = i;
+        break;
+      }
+    }
+    this.changeTypeFieldIndex = changeTypeIdx;
+
     this.writerHelper =
         new BigQueryDirectDataWriterHelper(
             writeClientFactory,
@@ -93,6 +103,19 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
 
   @Override
   public void write(InternalRow record) throws IOException {
+    if (changeTypeFieldIndex != -1) {
+      org.apache.spark.unsafe.types.UTF8String changeTypeVal =
+          record.getUTF8String(changeTypeFieldIndex);
+      if (changeTypeVal != null) {
+        String valStr = changeTypeVal.toString();
+        if (!valStr.equals("UPSERT") && !valStr.equals("DELETE")) {
+          throw new IllegalArgumentException(
+              "CDC _CHANGE_TYPE must be UPSERT or DELETE, but got: " + valStr);
+        }
+      } else {
+        throw new IllegalArgumentException("CDC _CHANGE_TYPE cannot be null");
+      }
+    }
     ByteString message =
         buildSingleRowMessage(
                 sparkSchema,

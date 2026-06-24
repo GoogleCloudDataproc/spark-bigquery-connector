@@ -95,6 +95,14 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     this.intermediateDataCleaner = intermediateDataCleaner;
     this.writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
     this.sparkContext = sparkContext;
+    if (java.util.Arrays.stream(sparkSchema.fields())
+        .anyMatch(
+            f ->
+                com.google.cloud.bigquery.connector.common.BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(
+                    f.name().toUpperCase(java.util.Locale.ENGLISH)))) {
+      throw new IllegalArgumentException(
+          "CDC is only supported when writeMethod is DIRECT and writeAtLeastOnce is true.");
+    }
   }
 
   @Override
