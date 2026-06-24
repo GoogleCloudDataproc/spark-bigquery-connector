@@ -22,9 +22,11 @@ import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.InjectorBuilder;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.write.context.BigQueryDataSourceWriterModule;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Injector;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.spark.sql.*;
@@ -123,6 +125,13 @@ public class CreatableRelationProviderHelper {
   private BigQueryInsertableRelationBase createBigQueryInsertableRelationInternal(
       StructType schema, SaveMode saveMode, Injector injector) {
     SparkBigQueryConfig config = injector.getInstance(SparkBigQueryConfig.class);
+    if (Arrays.stream(schema.fields()).anyMatch(SparkBigQueryUtil::isCdcPseudoColumn)) {
+      if (config.getWriteMethod() != SparkBigQueryConfig.WriteMethod.DIRECT
+          || !config.isWriteAtLeastOnce()) {
+        throw new IllegalArgumentException(
+            "CDC is only supported when writeMethod is DIRECT and writeAtLeastOnce is true.");
+      }
+    }
     BigQueryClient bigQueryClient = injector.getInstance(BigQueryClient.class);
     SQLContext sqlContext = injector.getInstance(SparkSession.class).sqlContext();
 
