@@ -2843,7 +2843,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testCdcAppend() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
 
-    String destTableName = testDataset + "." + "cdc_test_" + System.nanoTime();
+    String destTableName = testDataset + "." + testTable;
     String ddl =
         String.format(
             "CREATE TABLE %s (id INT64, name STRING, PRIMARY KEY(id) NOT ENFORCED)", destTableName);
@@ -2868,7 +2868,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("writeAtLeastOnce", "true")
         .save(destTableName);
 
-    int numOfRows = testTableNumberOfRows(destTableName.split("\\.")[1]);
+    int numOfRows = testTableNumberOfRows(testTable);
     assertThat(numOfRows).isEqualTo(2);
 
     // Send a DELETE for one of the rows
@@ -2881,7 +2881,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("writeAtLeastOnce", "true")
         .save(destTableName);
 
-    numOfRows = testTableNumberOfRows(destTableName.split("\\.")[1]);
+    numOfRows = testTableNumberOfRows(testTable);
     assertThat(numOfRows).isEqualTo(1);
   }
 
@@ -2889,7 +2889,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testCdcFailsWhenIndirectWriteMethod() {
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
 
-    String destTableName = testDataset + "." + "cdc_indirect_test_" + System.nanoTime();
+    String destTableName = testDataset + "." + testTable;
     StructType schema =
         new StructType().add("id", DataTypes.LongType).add("_CHANGE_TYPE", DataTypes.StringType);
     Dataset<Row> df =
@@ -2925,8 +2925,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testCdcFailsWhenDirectButNotAtLeastOnce() {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
 
-    String destTableName =
-        testDataset + "." + "cdc_direct_not_at_least_once_test_" + System.nanoTime();
+    String destTableName = testDataset + "." + testTable;
     StructType schema =
         new StructType().add("id", DataTypes.LongType).add("_CHANGE_TYPE", DataTypes.StringType);
     Dataset<Row> df =
@@ -2962,7 +2961,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testCdcFailsWhenTableDoesNotExist() {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
 
-    String destTableName = testDataset + "." + "cdc_no_table_test_" + System.nanoTime();
+    String destTableName = testDataset + "." + testTable;
     StructType schema =
         new StructType().add("id", DataTypes.LongType).add("_CHANGE_TYPE", DataTypes.StringType);
     Dataset<Row> df =
@@ -2996,7 +2995,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testCdcFailsWithPartitionDecorator() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
 
-    String baseTableName = testDataset + "." + "cdc_partition_decorator_test_" + System.nanoTime();
+    String baseTableName = testDataset + "." + testTable;
     String ddl =
         String.format(
             "CREATE TABLE %s (id INT64, name STRING, partition_date DATE, PRIMARY KEY(id) NOT ENFORCED) PARTITION BY partition_date",
@@ -3046,7 +3045,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testCdcFailsWithInvalidChangeType() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
 
-    String destTableName = testDataset + "." + "cdc_invalid_value_test_" + System.nanoTime();
+    String destTableName = testDataset + "." + testTable;
     String ddl =
         String.format(
             "CREATE TABLE %s (id INT64, name STRING, PRIMARY KEY(id) NOT ENFORCED)", destTableName);
@@ -3090,7 +3089,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testCdcFailsWithOverwrite() throws Exception {
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
 
-    String destTableName = testDataset + "." + "cdc_overwrite_test_" + System.nanoTime();
+    String destTableName = testDataset + "." + testTable;
     String ddl =
         String.format(
             "CREATE TABLE %s (id INT64, name STRING, PRIMARY KEY(id) NOT ENFORCED)", destTableName);
