@@ -75,7 +75,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.IntFunction;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -576,9 +575,7 @@ public class BigQueryUtil {
     }
 
     List<Field> filteredSourceFields =
-        sourceFieldList.stream()
-            .filter(f -> !isCdcPseudoColumn(f))
-            .collect(Collectors.toList());
+        sourceFieldList.stream().filter(f -> !isCdcPseudoColumn(f)).collect(Collectors.toList());
 
     // cannot write of the source has more fields than the destination table.
     if (filteredSourceFields.size() > destinationFieldList.size()) {
