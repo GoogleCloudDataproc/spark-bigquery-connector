@@ -169,12 +169,12 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
         SchemaConverters.from(this.schemaConvertersConfiguration)
             .toBigQuerySchema(this.sparkSchema);
     if (hasCdcColumns(bigQuerySchema)) {
+      if (saveMode != SaveMode.Append) {
+        throw new IllegalArgumentException("CDC can only be used with SaveMode.Append");
+      }
       if (!writeAtLeastOnce) {
         throw new IllegalArgumentException(
             "CDC is only supported when writeMethod is DIRECT and writeAtLeastOnce is true.");
-      }
-      if (saveMode != SaveMode.Append) {
-        throw new IllegalArgumentException("CDC can only be used with SaveMode.Append");
       }
       if (destinationTableId.getTable().contains("$")) {
         throw new IllegalArgumentException(
