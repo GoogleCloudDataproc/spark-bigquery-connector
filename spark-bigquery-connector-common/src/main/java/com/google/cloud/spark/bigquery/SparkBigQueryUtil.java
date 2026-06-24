@@ -34,6 +34,7 @@ import java.io.UncheckedIOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -51,6 +52,7 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.StructField;
 
 /** Spark related utilities */
 public class SparkBigQueryUtil {
@@ -321,5 +323,9 @@ public class SparkBigQueryUtil {
                     "dataproc_job_uuid",
                     BigQueryUtil.sanitizeLabelValue(tag.substring(tag.lastIndexOf('_') + 1))));
     return labels.build();
+  }
+
+  public static boolean isCdcPseudoColumn(StructField field) {
+    return BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(field.name().toUpperCase(Locale.ENGLISH));
   }
 }

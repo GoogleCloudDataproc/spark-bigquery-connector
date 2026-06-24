@@ -1188,4 +1188,9 @@ public class BigQueryUtil {
     }
     return String.valueOf(fieldValue.getValue());
   }
+
+  public static boolean isCdcPseudoColumn(Field field) {
+    return BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(field.getName().toUpperCase(Locale.ENGLISH));
+  }
+
 }

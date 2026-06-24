@@ -36,6 +36,7 @@ import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.metrics.SparkBigQueryConnectorMetricsUtils;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -87,18 +88,10 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   private WritingMode writingMode = WritingMode.ALL_ELSE;
   private final SparkContext sparkContext;
 
-  private static boolean isCdcPseudoColumn(StructField field) {
-    return BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(field.name().toUpperCase(Locale.ENGLISH));
-  }
-
-  private static boolean isCdcPseudoColumn(Field field) {
-    return BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(field.getName().toUpperCase(Locale.ENGLISH));
-  }
-
   private static StructType normalizeCdcColumns(StructType schema) {
     boolean hasCdc =
         Arrays.stream(schema.fields())
-            .anyMatch(BigQueryDirectDataSourceWriterContext::isCdcPseudoColumn);
+            .anyMatch(SparkBigQueryUtil::isCdcPseudoColumn);
     if (!hasCdc) {
       return schema;
     }
@@ -107,7 +100,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
             .map(
                 f -> {
                   String nameUpper = f.name().toUpperCase(Locale.ENGLISH);
-                  if (isCdcPseudoColumn(f)) {
+                  if (SparkBigQueryUtil.isCdcPseudoColumn(f)) {
                     return f.copy(nameUpper, f.dataType(), f.nullable(), f.metadata());
                   }
                   return f;
@@ -118,7 +111,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
 
   private boolean hasCdcColumns(Schema bigQuerySchema) {
     return bigQuerySchema.getFields().stream()
-        .anyMatch(BigQueryDirectDataSourceWriterContext::isCdcPseudoColumn);
+        .anyMatch(BigQueryUtil::isCdcPseudoColumn);
   }
 
   private boolean hasPrimaryKey(TableInfo tableInfo) {
