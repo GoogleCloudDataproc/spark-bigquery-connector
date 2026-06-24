@@ -2895,9 +2895,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     Dataset<Row> df =
         spark.createDataFrame(Collections.singletonList(RowFactory.create(1L, "UPSERT")), schema);
 
-    IllegalArgumentException e =
+    Exception e =
         assertThrows(
-            IllegalArgumentException.class,
+            Exception.class,
             () -> {
               df.write()
                   .format("bigquery")
@@ -2906,8 +2906,19 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                   .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
                   .save(destTableName);
             });
-    assertThat(e.getMessage())
-        .contains("CDC is only supported when writeMethod is DIRECT and writeAtLeastOnce is true");
+    boolean found = false;
+    Throwable t = e;
+    while (t != null) {
+      if (t instanceof IllegalArgumentException
+          && t.getMessage()
+              .contains(
+                  "CDC is only supported when writeMethod is DIRECT and writeAtLeastOnce is true")) {
+        found = true;
+        break;
+      }
+      t = t.getCause();
+    }
+    assertThat(found).isTrue();
   }
 
   @Test
@@ -2921,9 +2932,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     Dataset<Row> df =
         spark.createDataFrame(Collections.singletonList(RowFactory.create(1L, "UPSERT")), schema);
 
-    IllegalArgumentException e =
+    Exception e =
         assertThrows(
-            IllegalArgumentException.class,
+            Exception.class,
             () -> {
               df.write()
                   .format("bigquery")
@@ -2932,8 +2943,19 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                   .option("writeAtLeastOnce", "false")
                   .save(destTableName);
             });
-    assertThat(e.getMessage())
-        .contains("CDC is only supported when writeMethod is DIRECT and writeAtLeastOnce is true");
+    boolean found = false;
+    Throwable t = e;
+    while (t != null) {
+      if (t instanceof IllegalArgumentException
+          && t.getMessage()
+              .contains(
+                  "CDC is only supported when writeMethod is DIRECT and writeAtLeastOnce is true")) {
+        found = true;
+        break;
+      }
+      t = t.getCause();
+    }
+    assertThat(found).isTrue();
   }
 
   @Test
@@ -2946,9 +2968,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     Dataset<Row> df =
         spark.createDataFrame(Collections.singletonList(RowFactory.create(1L, "UPSERT")), schema);
 
-    IllegalArgumentException e =
+    Exception e =
         assertThrows(
-            IllegalArgumentException.class,
+            Exception.class,
             () -> {
               df.write()
                   .format("bigquery")
@@ -2957,7 +2979,17 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                   .option("writeAtLeastOnce", "true")
                   .save(destTableName);
             });
-    assertThat(e.getMessage()).contains("CDC can only be written to an existing table");
+    boolean found = false;
+    Throwable t = e;
+    while (t != null) {
+      if (t instanceof IllegalArgumentException
+          && t.getMessage().contains("CDC can only be written to an existing table")) {
+        found = true;
+        break;
+      }
+      t = t.getCause();
+    }
+    assertThat(found).isTrue();
   }
 
   @Test
@@ -2967,18 +2999,26 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     String baseTableName = testDataset + "." + "cdc_partition_decorator_test_" + System.nanoTime();
     String ddl =
         String.format(
-            "CREATE TABLE %s (id INT64, name STRING, PRIMARY KEY(id) NOT ENFORCED)", baseTableName);
+            "CREATE TABLE %s (id INT64, name STRING, partition_date DATE, PRIMARY KEY(id) NOT ENFORCED) PARTITION BY partition_date",
+            baseTableName);
     IntegrationTestUtils.runQuery(ddl);
 
     String destTableName = baseTableName + "$20230101";
     StructType schema =
-        new StructType().add("id", DataTypes.LongType).add("_CHANGE_TYPE", DataTypes.StringType);
+        new StructType()
+            .add("id", DataTypes.LongType)
+            .add("name", DataTypes.StringType)
+            .add("partition_date", DataTypes.DateType)
+            .add("_CHANGE_TYPE", DataTypes.StringType);
     Dataset<Row> df =
-        spark.createDataFrame(Collections.singletonList(RowFactory.create(1L, "UPSERT")), schema);
+        spark.createDataFrame(
+            Collections.singletonList(
+                RowFactory.create(1L, "foo", java.sql.Date.valueOf("2023-01-01"), "UPSERT")),
+            schema);
 
-    IllegalArgumentException e =
+    Exception e =
         assertThrows(
-            IllegalArgumentException.class,
+            Exception.class,
             () -> {
               df.write()
                   .format("bigquery")
@@ -2987,8 +3027,19 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                   .option("writeAtLeastOnce", "true")
                   .save(destTableName);
             });
-    assertThat(e.getMessage())
-        .contains("CDC cannot be used with a partition decorator ($). Write to the base table.");
+    boolean found = false;
+    Throwable t = e;
+    while (t != null) {
+      if (t instanceof IllegalArgumentException
+          && t.getMessage()
+              .contains(
+                  "CDC cannot be used with a partition decorator ($). Write to the base table.")) {
+        found = true;
+        break;
+      }
+      t = t.getCause();
+    }
+    assertThat(found).isTrue();
   }
 
   @Test
@@ -3050,9 +3101,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     Dataset<Row> df =
         spark.createDataFrame(Collections.singletonList(RowFactory.create(1L, "UPSERT")), schema);
 
-    IllegalArgumentException e =
+    Exception e =
         assertThrows(
-            IllegalArgumentException.class,
+            Exception.class,
             () -> {
               df.write()
                   .format("bigquery")
@@ -3061,6 +3112,16 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                   .option("writeAtLeastOnce", "true")
                   .save(destTableName);
             });
-    assertThat(e.getMessage()).contains("CDC can only be used with SaveMode.Append");
+    boolean found = false;
+    Throwable t = e;
+    while (t != null) {
+      if (t instanceof IllegalArgumentException
+          && t.getMessage().contains("CDC can only be used with SaveMode.Append")) {
+        found = true;
+        break;
+      }
+      t = t.getCause();
+    }
+    assertThat(found).isTrue();
   }
 }

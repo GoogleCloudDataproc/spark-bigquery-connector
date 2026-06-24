@@ -104,10 +104,19 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
   @Override
   public void write(InternalRow record) throws IOException {
     if (changeTypeFieldIndex != -1) {
-      org.apache.spark.unsafe.types.UTF8String changeTypeVal =
-          record.getUTF8String(changeTypeFieldIndex);
-      if (changeTypeVal != null) {
-        String valStr = changeTypeVal.toString();
+      Object changeTypeObj =
+          record.get(changeTypeFieldIndex, org.apache.spark.sql.types.DataTypes.StringType);
+      if (changeTypeObj != null) {
+        String valStr;
+        if (changeTypeObj instanceof org.apache.spark.unsafe.types.UTF8String) {
+          valStr = ((org.apache.spark.unsafe.types.UTF8String) changeTypeObj).toString();
+        } else if (changeTypeObj instanceof String) {
+          valStr = (String) changeTypeObj;
+        } else {
+          throw new IllegalArgumentException(
+              "CDC _CHANGE_TYPE must be a String, but got class: "
+                  + changeTypeObj.getClass().getName());
+        }
         if (!valStr.equals("UPSERT") && !valStr.equals("DELETE")) {
           throw new IllegalArgumentException(
               "CDC _CHANGE_TYPE must be UPSERT or DELETE, but got: " + valStr);
