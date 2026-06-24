@@ -35,7 +35,6 @@ import java.util.Map;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
-import org.apache.spark.unsafe.types.UTF8String;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,16 +107,7 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
     if (changeTypeFieldIndex != -1) {
       Object changeTypeObj = record.get(changeTypeFieldIndex, DataTypes.StringType);
       if (changeTypeObj != null) {
-        String valStr;
-        if (changeTypeObj instanceof UTF8String) {
-          valStr = ((UTF8String) changeTypeObj).toString();
-        } else if (changeTypeObj instanceof String) {
-          valStr = (String) changeTypeObj;
-        } else {
-          throw new IllegalArgumentException(
-              "CDC _CHANGE_TYPE must be a String, but got class: "
-                  + changeTypeObj.getClass().getName());
-        }
+        String valStr = changeTypeObj.toString();
         if (!valStr.equals("UPSERT") && !valStr.equals("DELETE")) {
           throw new IllegalArgumentException(
               "CDC _CHANGE_TYPE must be UPSERT or DELETE, but got: " + valStr);

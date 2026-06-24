@@ -112,12 +112,13 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   }
 
   private boolean hasPrimaryKey(TableInfo tableInfo) {
+    if (!(tableInfo.getDefinition() instanceof StandardTableDefinition)) {
+      return false;
+    }
     try {
-      if (tableInfo.getDefinition() instanceof StandardTableDefinition) {
-        StandardTableDefinition stdDef = (StandardTableDefinition) tableInfo.getDefinition();
-        return stdDef.getTableConstraints() != null
-            && stdDef.getTableConstraints().getPrimaryKey() != null;
-      }
+      StandardTableDefinition stdDef = (StandardTableDefinition) tableInfo.getDefinition();
+      return stdDef.getTableConstraints() != null
+          && stdDef.getTableConstraints().getPrimaryKey() != null;
     } catch (NoSuchMethodError | Exception e) {
       // Fallback if google-cloud-bigquery version doesn't support getTableConstraints or throws
     }
