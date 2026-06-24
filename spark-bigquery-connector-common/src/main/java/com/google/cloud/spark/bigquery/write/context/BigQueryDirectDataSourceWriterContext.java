@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery.write.context;
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
 
 import com.google.api.gax.retrying.RetrySettings;
+import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
@@ -41,9 +42,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.Locale;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,22 +87,27 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   private WritingMode writingMode = WritingMode.ALL_ELSE;
   private final SparkContext sparkContext;
 
+  private static boolean isCdcPseudoColumn(StructField field) {
+    return BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(field.name().toUpperCase(Locale.ENGLISH));
+  }
+
+  private static boolean isCdcPseudoColumn(Field field) {
+    return BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(field.getName().toUpperCase(Locale.ENGLISH));
+  }
+
   private static StructType normalizeCdcColumns(StructType schema) {
     boolean hasCdc =
         Arrays.stream(schema.fields())
-            .anyMatch(
-                f ->
-                    BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(
-                        f.name().toUpperCase(java.util.Locale.ENGLISH)));
+            .anyMatch(BigQueryDirectDataSourceWriterContext::isCdcPseudoColumn);
     if (!hasCdc) {
       return schema;
     }
-    org.apache.spark.sql.types.StructField[] fields =
+    StructField[] fields =
         Arrays.stream(schema.fields())
             .map(
                 f -> {
-                  String nameUpper = f.name().toUpperCase(java.util.Locale.ENGLISH);
-                  if (BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(nameUpper)) {
+                  String nameUpper = f.name().toUpperCase(Locale.ENGLISH);
+                  if (isCdcPseudoColumn(f)) {
                     return f.copy(nameUpper, f.dataType(), f.nullable(), f.metadata());
                   }
                   return f;
@@ -110,10 +118,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
 
   private boolean hasCdcColumns(Schema bigQuerySchema) {
     return bigQuerySchema.getFields().stream()
-        .anyMatch(
-            f ->
-                BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(
-                    f.getName().toUpperCase(java.util.Locale.ENGLISH)));
+        .anyMatch(BigQueryDirectDataSourceWriterContext::isCdcPseudoColumn);
   }
 
   private boolean hasPrimaryKey(TableInfo tableInfo) {
