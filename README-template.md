@@ -402,6 +402,27 @@ This behavior was introduced between version 0.22.0 and 0.41.0 to prevent accide
 
 **Note:** This behavior applies to both the `indirect` (default) and `direct` write methods.
 
+#### Change Data Capture (CDC) write
+
+The connector supports writing data to BigQuery tables using Change Data Capture (CDC). CDC allows applying row-level updates (`UPSERT`) and deletes (`DELETE`) directly from a Spark DataFrame based on the `_CHANGE_TYPE` and `_CHANGE_SEQUENCE_NUMBER` pseudo-columns (case-insensitive). CDC writes require using the direct write method with `writeAtLeastOnce` enabled, target table pre-existence with a primary key, and `SaveMode.Append` (`.mode("append")`). Partition decorators are not supported alongside CDC writes.
+
+```python
+# Create a DataFrame containing CDC columns
+data = [
+    (1, "Alice", "UPSERT", 1),
+    (2, "Bob", "DELETE", 2)
+]
+df = spark.createDataFrame(data, ["id", "name", "_CHANGE_TYPE", "_CHANGE_SEQUENCE_NUMBER"])
+
+# Write to BigQuery using direct write method with writeAtLeastOnce enabled
+df.write \
+  .format("bigquery") \
+  .mode("append") \
+  .option("writeMethod", "direct") \
+  .option("writeAtLeastOnce", "true") \
+  .save("dataset.table")
+```
+
 ### Running SQL on BigQuery
 
 The connector supports Spark's [SparkSession#executeCommand](https://archive.apache.org/dist/spark/docs/3.0.0/api/java/org/apache/spark/sql/SparkSession.html#executeCommand-java.lang.String-java.lang.String-scala.collection.immutable.Map-)
