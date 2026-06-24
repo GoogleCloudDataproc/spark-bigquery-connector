@@ -38,7 +38,6 @@ import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration;
@@ -97,8 +96,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     this.intermediateDataCleaner = intermediateDataCleaner;
     this.writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
     this.sparkContext = sparkContext;
-    if (Arrays.stream(sparkSchema.fields())
-        .anyMatch(SparkBigQueryUtil::isCdcPseudoColumn)) {
+    if (Arrays.stream(sparkSchema.fields()).anyMatch(SparkBigQueryUtil::isCdcPseudoColumn)) {
       throw new IllegalArgumentException(
           "CDC is only supported when writeMethod is DIRECT and writeAtLeastOnce is true.");
     }

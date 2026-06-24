@@ -80,6 +80,7 @@ import org.apache.spark.ml.feature.MinMaxScaler;
 import org.apache.spark.ml.feature.MinMaxScalerModel;
 import org.apache.spark.ml.feature.VectorAssembler;
 import org.apache.spark.ml.linalg.SQLDataTypes;
+import org.apache.spark.ml.linalg.Vector;
 import org.apache.spark.package$;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
@@ -2688,8 +2689,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     List<Row> values = result.collectAsList();
     assertThat(values).hasSize(3);
     Row row = values.get(0);
-    assertThat(row.get(row.fieldIndex("features")))
-        .isInstanceOf(org.apache.spark.ml.linalg.Vector.class);
+    assertThat(row.get(row.fieldIndex("features"))).isInstanceOf(Vector.class);
   }
 
   @Test

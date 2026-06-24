@@ -75,6 +75,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -574,12 +575,10 @@ public class BigQueryUtil {
       return ComparisonResult.differentNoDescription();
     }
 
-    java.util.List<Field> filteredSourceFields =
+    List<Field> filteredSourceFields =
         sourceFieldList.stream()
-            .filter(
-                f ->
-                    !CDC_PSEUDO_COLUMNS.contains(f.getName().toUpperCase(java.util.Locale.ENGLISH)))
-            .collect(java.util.stream.Collectors.toList());
+            .filter(f -> !isCdcPseudoColumn(f))
+            .collect(Collectors.toList());
 
     // cannot write of the source has more fields than the destination table.
     if (filteredSourceFields.size() > destinationFieldList.size()) {
@@ -1192,5 +1191,4 @@ public class BigQueryUtil {
   public static boolean isCdcPseudoColumn(Field field) {
     return BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(field.getName().toUpperCase(Locale.ENGLISH));
   }
-
 }

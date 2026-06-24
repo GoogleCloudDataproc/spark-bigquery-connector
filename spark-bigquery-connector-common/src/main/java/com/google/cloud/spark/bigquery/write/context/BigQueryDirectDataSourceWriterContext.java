@@ -18,9 +18,9 @@ package com.google.cloud.spark.bigquery.write.context;
 import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
 
 import com.google.api.gax.retrying.RetrySettings;
-import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
@@ -89,9 +89,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   private final SparkContext sparkContext;
 
   private static StructType normalizeCdcColumns(StructType schema) {
-    boolean hasCdc =
-        Arrays.stream(schema.fields())
-            .anyMatch(SparkBigQueryUtil::isCdcPseudoColumn);
+    boolean hasCdc = Arrays.stream(schema.fields()).anyMatch(SparkBigQueryUtil::isCdcPseudoColumn);
     if (!hasCdc) {
       return schema;
     }
@@ -105,19 +103,18 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
                   }
                   return f;
                 })
-            .toArray(org.apache.spark.sql.types.StructField[]::new);
+            .toArray(StructField[]::new);
     return new StructType(fields);
   }
 
   private boolean hasCdcColumns(Schema bigQuerySchema) {
-    return bigQuerySchema.getFields().stream()
-        .anyMatch(BigQueryUtil::isCdcPseudoColumn);
+    return bigQuerySchema.getFields().stream().anyMatch(BigQueryUtil::isCdcPseudoColumn);
   }
 
   private boolean hasPrimaryKey(TableInfo tableInfo) {
     try {
-      if (tableInfo.getDefinition() instanceof com.google.cloud.bigquery.StandardTableDefinition) {
-        com.google.cloud.bigquery.StandardTableDefinition stdDef = tableInfo.getDefinition();
+      if (tableInfo.getDefinition() instanceof StandardTableDefinition) {
+        StandardTableDefinition stdDef = (StandardTableDefinition) tableInfo.getDefinition();
         return stdDef.getTableConstraints() != null
             && stdDef.getTableConstraints().getPrimaryKey() != null;
       }
