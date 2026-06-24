@@ -99,7 +99,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
                 f -> {
                   String nameUpper = f.name().toUpperCase(Locale.ENGLISH);
                   if (SparkBigQueryUtil.isCdcPseudoColumn(f)) {
-                    return f.copy(nameUpper, f.dataType(), f.nullable(), f.metadata());
+                    return new StructField(nameUpper, f.dataType(), f.nullable(), f.metadata());
                   }
                   return f;
                 })
@@ -112,7 +112,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   }
 
   private boolean hasPrimaryKey(TableInfo tableInfo) {
-    if (!(tableInfo.getDefinition() instanceof StandardTableDefinition)) {
+    if (tableInfo == null || !(tableInfo.getDefinition() instanceof StandardTableDefinition)) {
       return false;
     }
     try {
