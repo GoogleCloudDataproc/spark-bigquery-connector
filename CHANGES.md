@@ -2,6 +2,8 @@
 
 ## Next
 
+* PR #1494: Added Support for Change Data Capture (CDC)
+
 ## 0.44.2 - 2026-05-20
 
 * Issue #1389: Fixed Timestamp Conversion from Julian to Gregorian conversion
