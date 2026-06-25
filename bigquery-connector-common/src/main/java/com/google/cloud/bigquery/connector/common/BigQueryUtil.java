@@ -574,22 +574,18 @@ public class BigQueryUtil {
       return ComparisonResult.differentNoDescription();
     }
 
-    List<Field> filteredSourceFields =
-        sourceFieldList.stream().filter(f -> !isCdcPseudoColumn(f)).collect(Collectors.toList());
-
     // cannot write of the source has more fields than the destination table.
-    if (filteredSourceFields.size() > destinationFieldList.size()) {
+    if (sourceFieldList.size() > destinationFieldList.size()) {
       return ComparisonResult.differentWithDescription(
           ImmutableList.of(
               "Number of source fields: "
-                  + filteredSourceFields.size()
+                  + sourceFieldList.size()
                   + " is larger than number of destination fields: "
                   + destinationFieldList.size()));
     }
 
     Map<String, Field> sourceFieldsMap =
-        filteredSourceFields.stream()
-            .collect(Collectors.toMap(Field::getName, Function.identity()));
+        sourceFieldList.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
     Map<String, Field> destinationFieldsMap =
         destinationFieldList.stream()
             .collect(Collectors.toMap(Field::getName, Function.identity()));

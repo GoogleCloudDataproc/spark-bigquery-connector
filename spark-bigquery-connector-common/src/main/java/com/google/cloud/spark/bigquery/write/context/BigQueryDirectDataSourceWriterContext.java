@@ -44,6 +44,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.stream.Collectors;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -208,9 +209,17 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     if (bigQueryClient.tableExists(destinationTableId)) {
       TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
       Schema tableSchema = destinationTable.getDefinition().getSchema();
+      Schema sourceSchemaForValidation = bigQuerySchema;
+      if (hasCdcColumns(bigQuerySchema)) {
+        sourceSchemaForValidation =
+            Schema.of(
+                bigQuerySchema.getFields().stream()
+                    .filter(f -> !BigQueryUtil.isCdcPseudoColumn(f))
+                    .collect(Collectors.toList()));
+      }
       ComparisonResult schemaWritableResult =
           BigQueryUtil.schemaWritable(
-              bigQuerySchema, // sourceSchema
+              sourceSchemaForValidation, // sourceSchema
               tableSchema, // destinationSchema
               false, // regardFieldOrder
               enableModeCheckForSchemaFields);
