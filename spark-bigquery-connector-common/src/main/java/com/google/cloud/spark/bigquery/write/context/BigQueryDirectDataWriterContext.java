@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.spark.sql.catalyst.InternalRow;
-import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.slf4j.Logger;
@@ -113,7 +112,7 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
       if (changeTypeUtf8 != null) {
         if (!changeTypeUtf8.equals(UPSERT) && !changeTypeUtf8.equals(DELETE)) {
           throw new IllegalArgumentException(
-                  "CDC _CHANGE_TYPE must be UPSERT or DELETE, but got: " + changeTypeUtf8);
+              "CDC _CHANGE_TYPE must be UPSERT or DELETE, but got: " + changeTypeUtf8);
         }
       } else {
         throw new IllegalArgumentException("CDC _CHANGE_TYPE cannot be null");
