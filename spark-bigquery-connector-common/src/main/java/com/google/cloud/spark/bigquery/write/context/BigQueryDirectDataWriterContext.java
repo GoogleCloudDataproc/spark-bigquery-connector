@@ -112,8 +112,12 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
   @Override
   public void write(InternalRow record) throws IOException {
     if (changeTypeFieldIndex != -1) {
-      UTF8String changeTypeUtf8 = record.getUTF8String(changeTypeFieldIndex);
-      if (changeTypeUtf8 != null) {
+      Object changeTypeVal = record.get(changeTypeFieldIndex, DataTypes.StringType);
+      if (changeTypeVal != null) {
+        UTF8String changeTypeUtf8 =
+            changeTypeVal instanceof UTF8String
+                ? (UTF8String) changeTypeVal
+                : UTF8String.fromString(changeTypeVal.toString());
         if (!changeTypeUtf8.equals(UPSERT) && !changeTypeUtf8.equals(DELETE)) {
           throw new IllegalArgumentException(
               "CDC _CHANGE_TYPE must be UPSERT or DELETE, but got: " + changeTypeUtf8);
