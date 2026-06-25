@@ -48,6 +48,7 @@ import java.util.stream.Collectors;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
@@ -161,9 +162,16 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
         SchemaConverters.from(this.schemaConvertersConfiguration)
             .toBigQuerySchema(this.sparkSchema);
     if (hasCdcColumns(bigQuerySchema)) {
-      if (bigQuerySchema.getFields().get("_CHANGE_TYPE") == null) {
-        throw new IllegalArgumentException(
-            "CDC writes require the _CHANGE_TYPE column to be present in the schema.");
+      StructField changeTypeField =
+          Arrays.stream(this.sparkSchema.fields())
+              .filter(f -> f.name().equals("_CHANGE_TYPE"))
+              .findFirst()
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "CDC writes require the _CHANGE_TYPE column to be present in the schema."));
+      if (!changeTypeField.dataType().equals(DataTypes.StringType)) {
+        throw new IllegalArgumentException("CDC _CHANGE_TYPE column must be of type String");
       }
       if (saveMode != SaveMode.Append) {
         throw new IllegalArgumentException("CDC can only be used with SaveMode.Append");
