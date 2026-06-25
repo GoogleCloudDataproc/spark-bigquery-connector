@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.slf4j.Logger;
@@ -88,6 +89,9 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
     int changeTypeIdx = -1;
     for (int i = 0; i < sparkSchema.fields().length; i++) {
       if (sparkSchema.fields()[i].name().equalsIgnoreCase("_CHANGE_TYPE")) {
+        if (!sparkSchema.fields()[i].dataType().equals(DataTypes.StringType)) {
+          throw new IllegalArgumentException("CDC _CHANGE_TYPE column must be of type String");
+        }
         changeTypeIdx = i;
         break;
       }
