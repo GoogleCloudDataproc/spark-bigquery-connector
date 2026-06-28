@@ -166,7 +166,7 @@ public class OpenLineageIntegrationTestBase {
       // Poll for up to 15 seconds until the lineage file contains logs E2E
       IntegrationTestUtils.pollUntil(
           () -> {
-            try (Scanner scanner = new Scanner(lineageFile)) {
+            try (Scanner scanner = new Scanner(lineageFile, "UTF-8")) {
               while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 try {
@@ -196,7 +196,7 @@ public class OpenLineageIntegrationTestBase {
       boolean hasInputEvent = false;
       boolean hasOutputEvent = false;
 
-      try (Scanner scanner = new Scanner(lineageFile)) {
+      try (Scanner scanner = new Scanner(lineageFile, "UTF-8")) {
         while (scanner.hasNextLine()) {
           String line = scanner.nextLine();
           try {
@@ -238,7 +238,6 @@ public class OpenLineageIntegrationTestBase {
       return result;
     } finally {
       try {
-        Thread.sleep(1500);
         spark.stop();
       } catch (Exception ignored) {
       }
