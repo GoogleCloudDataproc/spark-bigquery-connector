@@ -23,10 +23,15 @@ import com.google.cloud.bigquery.TableId;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonObject;
 import java.io.File;
+import java.nio.file.Files;
 import java.util.Map;
+import java.util.Scanner;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -89,9 +94,9 @@ public class OpenLineageIntegrationTestBase {
     String scenario = parameters.getOrDefault("scenario", "STANDARD");
     String temporaryGcsBucket = parameters.get("temporaryGcsBucket");
     String lineageFilePath = parameters.get("lineageFilePath");
-    java.io.File lineageFile = new java.io.File(lineageFilePath);
+    File lineageFile = new java.io.File(lineageFilePath);
     if (lineageFile.exists()) {
-      lineageFile.delete();
+      Files.deleteIfExists(lineageFile.toPath());
     }
 
     try {
@@ -150,7 +155,7 @@ public class OpenLineageIntegrationTestBase {
         writeDF
             .write()
             .format("bigquery")
-            .mode(org.apache.spark.sql.SaveMode.Append)
+            .mode(SaveMode.Append)
             .option("table", fullTableName)
             .option("temporaryGcsBucket", temporaryGcsBucket)
             .option("writeMethod", "direct")
@@ -161,15 +166,15 @@ public class OpenLineageIntegrationTestBase {
       // Poll for up to 15 seconds until the lineage file contains logs E2E
       IntegrationTestUtils.pollUntil(
           () -> {
-            try (java.util.Scanner scanner = new java.util.Scanner(lineageFile)) {
+            try (Scanner scanner = new Scanner(lineageFile)) {
               while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 try {
-                  org.json.JSONObject event = new org.json.JSONObject(line);
+                  JSONObject event = new JSONObject(line);
                   if (event.has("outputs") && !event.getJSONArray("outputs").isEmpty()) {
-                    org.json.JSONArray outputs = event.getJSONArray("outputs");
+                    JSONArray outputs = event.getJSONArray("outputs");
                     for (int i = 0; i < outputs.length(); i++) {
-                      String outputName = ((org.json.JSONObject) outputs.get(i)).getString("name");
+                      String outputName = ((JSONObject) outputs.get(i)).getString("name");
                       if (outputName
                           .trim()
                           .toLowerCase()
@@ -191,34 +196,37 @@ public class OpenLineageIntegrationTestBase {
       boolean hasInputEvent = false;
       boolean hasOutputEvent = false;
 
-      try (java.util.Scanner scanner = new java.util.Scanner(lineageFile)) {
+      try (Scanner scanner = new Scanner(lineageFile)) {
         while (scanner.hasNextLine()) {
           String line = scanner.nextLine();
-          org.json.JSONObject event = new org.json.JSONObject(line);
+          try {
+            JSONObject event = new JSONObject(line);
 
-          if (event.has("inputs") && !event.getJSONArray("inputs").isEmpty()) {
-            org.json.JSONArray inputs = event.getJSONArray("inputs");
-            for (int i = 0; i < inputs.length(); i++) {
-              String inputName = ((org.json.JSONObject) inputs.get(i)).getString("name");
-              if (inputName
-                  .trim()
-                  .toLowerCase()
-                  .contains(TestConstants.SHAKESPEARE_TABLE.trim().toLowerCase())) {
-                hasInputEvent = true;
-                break;
+            if (event.has("inputs") && !event.getJSONArray("inputs").isEmpty()) {
+              JSONArray inputs = event.getJSONArray("inputs");
+              for (int i = 0; i < inputs.length(); i++) {
+                String inputName = ((JSONObject) inputs.get(i)).getString("name");
+                if (inputName
+                    .trim()
+                    .toLowerCase()
+                    .contains(TestConstants.SHAKESPEARE_TABLE.trim().toLowerCase())) {
+                  hasInputEvent = true;
+                  break;
+                }
               }
             }
-          }
 
-          if (event.has("outputs") && !event.getJSONArray("outputs").isEmpty()) {
-            org.json.JSONArray outputs = event.getJSONArray("outputs");
-            for (int i = 0; i < outputs.length(); i++) {
-              String outputName = ((org.json.JSONObject) outputs.get(i)).getString("name");
-              if (outputName.trim().toLowerCase().contains(testTable.trim().toLowerCase())) {
-                hasOutputEvent = true;
-                break;
+            if (event.has("outputs") && !event.getJSONArray("outputs").isEmpty()) {
+              JSONArray outputs = event.getJSONArray("outputs");
+              for (int i = 0; i < outputs.length(); i++) {
+                String outputName = ((JSONObject) outputs.get(i)).getString("name");
+                if (outputName.trim().toLowerCase().contains(testTable.trim().toLowerCase())) {
+                  hasOutputEvent = true;
+                  break;
+                }
               }
             }
+          } catch (Exception ignored) {
           }
         }
       }
