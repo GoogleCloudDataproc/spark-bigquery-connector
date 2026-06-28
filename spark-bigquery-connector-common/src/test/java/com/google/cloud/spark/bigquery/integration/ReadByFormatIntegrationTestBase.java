@@ -539,8 +539,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
           rowList.stream().map(row -> row.getJavaMap(0)).collect(Collectors.toList());
 
       boolean containsMap1 =
-          list.contains(ImmutableMap.of("a", Long.valueOf(1), "b", Long.valueOf(2)));
-      boolean containsMap2 = list.contains(ImmutableMap.of("c", Long.valueOf(3)));
+          list.contains(ImmutableMap.of("a", 1L, "b", 2L));
+      boolean containsMap2 = list.contains(ImmutableMap.of("c", 3L));
 
       JsonObject result = new JsonObject();
       result.addProperty("status", "success");
