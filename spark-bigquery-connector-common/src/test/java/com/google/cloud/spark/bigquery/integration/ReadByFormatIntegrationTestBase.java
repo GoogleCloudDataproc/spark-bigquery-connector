@@ -612,7 +612,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
       Row row = df.head();
       LocalDateTime val = (LocalDateTime) row.get(0);
-      boolean dateTimeMatches = val.equals(dateTime);
+      boolean dateTimeMatches = dateTime.equals(val);
 
       JsonObject result = new JsonObject();
       result.addProperty("status", "success");
