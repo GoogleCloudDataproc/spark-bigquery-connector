@@ -538,8 +538,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
       List<Map<?, ?>> list =
           rowList.stream().map(row -> row.getJavaMap(0)).collect(Collectors.toList());
 
-      boolean containsMap1 =
-          list.contains(ImmutableMap.of("a", 1L, "b", 2L));
+      boolean containsMap1 = list.contains(ImmutableMap.of("a", 1L, "b", 2L));
       boolean containsMap2 = list.contains(ImmutableMap.of("c", 3L));
 
       JsonObject result = new JsonObject();
@@ -682,8 +681,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
         result.addProperty("columnsLength", selectedDF.columns().length);
         result.addProperty("rowNumFieldExists", rowNumCount == 1);
         Row headRow = selectedDF.head();
-        result.addProperty(
-            "headRowNumValue", headRow.getInt(headRow.fieldIndex("row_num")));
+        result.addProperty("headRowNumValue", headRow.getInt(headRow.fieldIndex("row_num")));
 
       } else if ("WITH_ARRAY".equals(scenario)) {
         WindowSpec windowSpec =
