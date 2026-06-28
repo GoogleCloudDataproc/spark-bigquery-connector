@@ -681,8 +681,9 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
         result.addProperty("columnsLength", selectedDF.columns().length);
         result.addProperty("rowNumFieldExists", rowNumCount == 1);
+        Row headRow = selectedDF.head();
         result.addProperty(
-            "headRowNumValue", selectedDF.head().getInt(selectedDF.head().fieldIndex("row_num")));
+            "headRowNumValue", headRow.getInt(headRow.fieldIndex("row_num")));
 
       } else if ("WITH_ARRAY".equals(scenario)) {
         WindowSpec windowSpec =
