@@ -447,17 +447,20 @@ public class CatalogIntegrationTestBase {
         String.format("drop_database_test_%s_%s", System.currentTimeMillis(), System.nanoTime());
     DatasetId datasetId = DatasetId.of(database);
     bigquery.create(Dataset.newBuilder(datasetId).build());
+    try {
+      JsonObject result =
+          testRunner.run(
+              CatalogIntegrationTestBase::catalogApp,
+              testDataset.testDataset,
+              testTable,
+              ImmutableMap.of("scenario", "DROP_DATABASE", "database", database));
 
-    JsonObject result =
-        testRunner.run(
-            CatalogIntegrationTestBase::catalogApp,
-            testDataset.testDataset,
-            testTable,
-            ImmutableMap.of("scenario", "DROP_DATABASE", "database", database));
-
-    assertThat(result.get("status").getAsString()).isEqualTo("success");
-    Dataset dataset = bigquery.getDataset(datasetId);
-    assertThat(dataset).isNull();
+      assertThat(result.get("status").getAsString()).isEqualTo("success");
+      Dataset dataset = bigquery.getDataset(datasetId);
+      assertThat(dataset).isNull();
+    } finally {
+      bigquery.delete(datasetId, BigQuery.DatasetDeleteOption.deleteContents());
+    }
   }
 
   @Test
