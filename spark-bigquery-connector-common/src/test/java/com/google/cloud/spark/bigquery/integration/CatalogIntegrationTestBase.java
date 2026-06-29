@@ -167,10 +167,8 @@ public class CatalogIntegrationTestBase {
               },
               45);
 
-          List<Row> rowsCatalogInit = spark.sql("SHOW DATABASES IN public_catalog").collectAsList();
-          List<String> databaseNames =
-              rowsCatalogInit.stream().map(row -> row.getString(0)).collect(Collectors.toList());
-          boolean containsSamples = databaseNames.contains("samples");
+          boolean containsSamples = spark.sql("SHOW DATABASES IN public_catalog").collectAsList().stream()
+              .anyMatch(row -> "samples".equals(row.getString(0)));
 
           List<Row> data =
               spark
