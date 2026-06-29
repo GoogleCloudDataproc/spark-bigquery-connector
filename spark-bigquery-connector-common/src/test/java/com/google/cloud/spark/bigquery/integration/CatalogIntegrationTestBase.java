@@ -167,8 +167,9 @@ public class CatalogIntegrationTestBase {
               },
               45);
 
-          boolean containsSamples = spark.sql("SHOW DATABASES IN public_catalog").collectAsList().stream()
-              .anyMatch(row -> "samples".equals(row.getString(0)));
+          boolean containsSamples =
+              spark.sql("SHOW DATABASES IN public_catalog").collectAsList().stream()
+                  .anyMatch(row -> "samples".equals(row.getString(0)));
 
           List<Row> data =
               spark
@@ -212,9 +213,7 @@ public class CatalogIntegrationTestBase {
                 try {
                   return spark.sql("SHOW DATABASES IN test_catalog_as_select").collectAsList()
                       .stream()
-                      .map(row -> row.getString(0))
-                      .collect(Collectors.toList())
-                      .contains(database);
+                      .anyMatch(row -> database.equals(row.getString(0)));
                 } catch (Exception e) {
                   return false;
                 }
