@@ -94,10 +94,8 @@ public class OpenLineageIntegrationTestBase {
     String scenario = parameters.getOrDefault("scenario", "STANDARD");
     String temporaryGcsBucket = parameters.get("temporaryGcsBucket");
     String lineageFilePath = parameters.get("lineageFilePath");
-    File lineageFile = new java.io.File(lineageFilePath);
-    if (lineageFile.exists()) {
-      Files.deleteIfExists(lineageFile.toPath());
-    }
+    File lineageFile = new File(lineageFilePath);
+    Files.deleteIfExists(lineageFile.toPath());
 
     try {
       SparkSession.active().stop();
@@ -163,7 +161,7 @@ public class OpenLineageIntegrationTestBase {
       }
 
       // Flush and parse OpenLineage logs
-      // Poll for up to 15 seconds until the lineage file contains logs E2E
+      // Poll for up to 45 seconds until the lineage file contains logs E2E
       IntegrationTestUtils.pollUntil(
           () -> {
             try (Scanner scanner = new Scanner(lineageFile, "UTF-8")) {
@@ -174,7 +172,7 @@ public class OpenLineageIntegrationTestBase {
                   if (event.has("outputs") && !event.getJSONArray("outputs").isEmpty()) {
                     JSONArray outputs = event.getJSONArray("outputs");
                     for (int i = 0; i < outputs.length(); i++) {
-                      String outputName = ((JSONObject) outputs.get(i)).getString("name");
+                      String outputName = outputs.getJSONObject(i).getString("name");
                       if (outputName
                           .trim()
                           .toLowerCase()
@@ -205,7 +203,7 @@ public class OpenLineageIntegrationTestBase {
             if (event.has("inputs") && !event.getJSONArray("inputs").isEmpty()) {
               JSONArray inputs = event.getJSONArray("inputs");
               for (int i = 0; i < inputs.length(); i++) {
-                String inputName = ((JSONObject) inputs.get(i)).getString("name");
+                String inputName = inputs.getJSONObject(i).getString("name");
                 if (inputName
                     .trim()
                     .toLowerCase()
@@ -219,7 +217,7 @@ public class OpenLineageIntegrationTestBase {
             if (event.has("outputs") && !event.getJSONArray("outputs").isEmpty()) {
               JSONArray outputs = event.getJSONArray("outputs");
               for (int i = 0; i < outputs.length(); i++) {
-                String outputName = ((JSONObject) outputs.get(i)).getString("name");
+                String outputName = outputs.getJSONObject(i).getString("name");
                 if (outputName.trim().toLowerCase().contains(testTable.trim().toLowerCase())) {
                   hasOutputEvent = true;
                   break;
