@@ -249,7 +249,7 @@ public class CatalogIntegrationTestBase {
   }
 
   private static String fullTableName(String dataset, String testTable) {
-    return dataset.equals(DEFAULT_NAMESPACE)
+    return DEFAULT_NAMESPACE.equals(dataset)
         ? "`" + testTable + "`"
         : "`" + dataset + "`.`" + testTable + "`";
   }
