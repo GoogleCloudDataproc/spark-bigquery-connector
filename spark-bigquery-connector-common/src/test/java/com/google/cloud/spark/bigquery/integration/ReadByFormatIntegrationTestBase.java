@@ -21,6 +21,7 @@ import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.concat;
 import static org.apache.spark.sql.functions.lit;
 import static org.apache.spark.sql.functions.row_number;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assume.assumeThat;
 import static org.junit.Assume.assumeTrue;
@@ -33,6 +34,8 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.spark.bigquery.DataSourceVersion;
+import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation;
 import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -78,6 +81,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   protected final String dataFormat;
   protected final boolean userProvidedSchemaAllowed;
   protected Optional<DataType> timeStampNTZType;
+  private DataSourceVersion dataSourceVersion = DataSourceVersion.V2;
 
   public ReadByFormatIntegrationTestBase(String dataFormat) {
     this(dataFormat, true, Optional.empty());
@@ -111,6 +115,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     String scenario = parameters.getOrDefault("scenario", "VIEW");
     String format = parameters.get("dataFormat");
 
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatViewTestApp")
             .getOrCreate()
@@ -182,6 +187,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     String scenario = parameters.getOrDefault("scenario", "OUT_OF_ORDER");
     String format = parameters.get("dataFormat");
 
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatColumnsTestApp")
             .getOrCreate()
@@ -265,6 +271,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     String scenario = parameters.getOrDefault("scenario", "CUSTOM_PARTITIONS");
     String format = parameters.get("dataFormat");
 
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadByFormatPartitionsTestApp")
             .getOrCreate()
@@ -378,6 +385,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
     String format = parameters.get("dataFormat");
 
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadKeepingFiltersTestApp")
             .getOrCreate()
@@ -443,6 +451,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
     String format = parameters.get("dataFormat");
 
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadColumnOrderStructTestApp")
             .getOrCreate()
@@ -495,6 +504,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   protected static JsonObject readConvertMapApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadConvertMapTestApp")
             .getOrCreate()
@@ -580,6 +590,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
     String expectedTypeName = parameters.get("ntzTypeName");
 
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadTimestampNTZTestApp")
             .getOrCreate()
@@ -648,6 +659,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     String scenario = parameters.getOrDefault("scenario", "STANDARD");
     String format = parameters.get("dataFormat");
 
+    @SuppressWarnings("resource")
     SparkSession spark =
         IntegrationTestUtils.createSparkSessionBuilder("ReadGA4WindowFunctionTestApp")
             .getOrCreate()
@@ -767,6 +779,91 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
         .option("dataset", testDataset.toString())
         .option("table", TestConstants.ALL_TYPES_TABLE_NAME)
         .load();
+  }
+
+  protected static JsonObject optimizedCountStarApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+
+    String dataFormat = parameters.get("dataFormat");
+    boolean withFilter = Boolean.parseBoolean(parameters.getOrDefault("withFilter", "false"));
+
+    @SuppressWarnings("resource")
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("OptimizedCountStarTestApp")
+            .getOrCreate()
+            .newSession();
+
+    DirectBigQueryRelation.emptyRowRDDsCreated = 0;
+
+    Dataset<Row> df1 =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("optimizedEmptyProjection", "false")
+            .option("readDataFormat", dataFormat)
+            .load();
+
+    if (withFilter) {
+      df1 = df1.select("corpus_date").where("corpus_date > 0");
+    } else {
+      df1 = df1.select("corpus_date");
+    }
+    long oldMethodCount = df1.count();
+    int emptyRowRDDsCreated1 = DirectBigQueryRelation.emptyRowRDDsCreated;
+
+    Dataset<Row> df2 =
+        spark
+            .read()
+            .format("bigquery")
+            .option("table", "bigquery-public-data.samples.shakespeare")
+            .option("readDataFormat", dataFormat)
+            .load();
+
+    if (withFilter) {
+      df2 = df2.where("corpus_date > 0");
+    }
+    long optimizedCount = df2.count();
+    int emptyRowRDDsCreated2 = DirectBigQueryRelation.emptyRowRDDsCreated;
+
+    JsonObject result = new JsonObject();
+    result.addProperty("oldMethodCount", oldMethodCount);
+    result.addProperty("optimizedCount", optimizedCount);
+    result.addProperty("emptyRowRDDsCreated1", emptyRowRDDsCreated1);
+    result.addProperty("emptyRowRDDsCreated2", emptyRowRDDsCreated2);
+    return result;
+  }
+
+  @Test
+  public void testOptimizedCountStarWithFilter() throws Exception {
+    assumeThat(dataSourceVersion, equalTo(DataSourceVersion.V1));
+    JsonObject result =
+        testRunner.run(
+            ReadByFormatIntegrationTestBase::optimizedCountStarApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of("withFilter", "true", "dataFormat", dataFormat));
+
+    assertThat(result.get("emptyRowRDDsCreated1").getAsInt()).isEqualTo(0);
+    assertThat(result.get("optimizedCount").getAsLong())
+        .isEqualTo(result.get("oldMethodCount").getAsLong());
+    assertThat(result.get("emptyRowRDDsCreated2").getAsInt()).isEqualTo(1);
+  }
+
+  @Test
+  public void testOptimizedCountStar() throws Exception {
+    assumeThat(dataSourceVersion, equalTo(DataSourceVersion.V1));
+    JsonObject result =
+        testRunner.run(
+            ReadByFormatIntegrationTestBase::optimizedCountStarApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of("withFilter", "false", "dataFormat", dataFormat));
+
+    assertThat(result.get("emptyRowRDDsCreated1").getAsInt()).isEqualTo(0);
+    assertThat(result.get("optimizedCount").getAsLong())
+        .isEqualTo(result.get("oldMethodCount").getAsLong());
+    assertThat(result.get("emptyRowRDDsCreated2").getAsInt()).isEqualTo(1);
   }
 
   protected Set<String> extractWords(Dataset<Row> df) {
