@@ -15,8 +15,10 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import com.google.cloud.spark.bigquery.DataSourceVersion;
 import java.util.Arrays;
 import java.util.Collection;
+import org.apache.spark.sql.types.DataTypes;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 

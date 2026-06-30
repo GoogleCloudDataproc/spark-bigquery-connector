@@ -81,7 +81,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
   protected final String dataFormat;
   protected final boolean userProvidedSchemaAllowed;
   protected Optional<DataType> timeStampNTZType;
-  private DataSourceVersion dataSourceVersion = DataSourceVersion.V2;
+  protected DataSourceVersion dataSourceVersion = DataSourceVersion.V2;
 
   public ReadByFormatIntegrationTestBase(String dataFormat) {
     this(dataFormat, true, Optional.empty());
