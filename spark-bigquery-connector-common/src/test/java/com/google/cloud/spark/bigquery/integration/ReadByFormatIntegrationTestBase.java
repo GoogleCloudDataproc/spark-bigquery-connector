@@ -717,10 +717,10 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
                 .filter(field -> field.name().equals("row_num"))
                 .count();
 
+        Row head = selectedDF.head();
         result.addProperty("columnsLength", selectedDF.columns().length);
         result.addProperty("rowNumFieldExists", rowNumCount == 1);
-        result.addProperty(
-            "headRowNumValue", selectedDF.head().getInt(selectedDF.head().fieldIndex("row_num")));
+        result.addProperty("headRowNumValue", head.getInt(head.fieldIndex("row_num")));
       }
 
       return result;
