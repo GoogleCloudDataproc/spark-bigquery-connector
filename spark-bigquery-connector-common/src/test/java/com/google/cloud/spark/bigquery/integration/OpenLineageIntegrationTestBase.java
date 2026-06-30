@@ -87,7 +87,7 @@ public class OpenLineageIntegrationTestBase {
   // SCENARIO: OpenLineage Spark agent event logging checks
   // =========================================================================
 
-  @SuppressWarnings("resource")
+  @SuppressWarnings({"resource", "java:S2925"})
   protected static JsonObject openLineageApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
@@ -100,6 +100,7 @@ public class OpenLineageIntegrationTestBase {
     try {
       SparkSession.active().stop();
     } catch (Exception ignored) {
+      // Ignored
     }
     SparkSession.clearActiveSession();
     SparkSession.clearDefaultSession();
@@ -182,6 +183,7 @@ public class OpenLineageIntegrationTestBase {
                     }
                   }
                 } catch (Exception ignored) {
+                  // Ignored
                 }
               }
               return false;
@@ -191,14 +193,15 @@ public class OpenLineageIntegrationTestBase {
           },
           45);
 
-      boolean hasInputEvent = false;
-      boolean hasOutputEvent = false;
+      boolean hasLinkEvent = false;
 
       try (Scanner scanner = new Scanner(lineageFile, "UTF-8")) {
         while (scanner.hasNextLine()) {
           String line = scanner.nextLine();
           try {
             JSONObject event = new JSONObject(line);
+            boolean hasInput = false;
+            boolean hasOutput = false;
 
             if (event.has("inputs") && !event.getJSONArray("inputs").isEmpty()) {
               JSONArray inputs = event.getJSONArray("inputs");
@@ -208,7 +211,7 @@ public class OpenLineageIntegrationTestBase {
                     .trim()
                     .toLowerCase()
                     .contains(TestConstants.SHAKESPEARE_TABLE.trim().toLowerCase())) {
-                  hasInputEvent = true;
+                  hasInput = true;
                   break;
                 }
               }
@@ -219,25 +222,31 @@ public class OpenLineageIntegrationTestBase {
               for (int i = 0; i < outputs.length(); i++) {
                 String outputName = outputs.getJSONObject(i).getString("name");
                 if (outputName.trim().toLowerCase().contains(testTable.trim().toLowerCase())) {
-                  hasOutputEvent = true;
+                  hasOutput = true;
                   break;
                 }
               }
             }
+
+            if (hasInput && hasOutput) {
+              hasLinkEvent = true;
+              break;
+            }
           } catch (Exception ignored) {
+            // Ignored
           }
         }
       }
 
       JsonObject result = new JsonObject();
       result.addProperty("status", "success");
-      result.addProperty("hasInputEvent", hasInputEvent);
-      result.addProperty("hasOutputEvent", hasOutputEvent);
+      result.addProperty("hasLinkEvent", hasLinkEvent);
       return result;
     } finally {
       try {
         spark.stop();
       } catch (Exception ignored) {
+        // Ignored
       }
     }
   }
@@ -258,8 +267,7 @@ public class OpenLineageIntegrationTestBase {
                 TestConstants.TEMPORARY_GCS_BUCKET));
 
     assertThat(result.get("status").getAsString()).isEqualTo("success");
-    assertThat(result.get("hasInputEvent").getAsBoolean()).isTrue();
-    assertThat(result.get("hasOutputEvent").getAsBoolean()).isTrue();
+    assertThat(result.get("hasLinkEvent").getAsBoolean()).isTrue();
   }
 
   @Test
@@ -278,7 +286,6 @@ public class OpenLineageIntegrationTestBase {
                 TestConstants.TEMPORARY_GCS_BUCKET));
 
     assertThat(result.get("status").getAsString()).isEqualTo("success");
-    assertThat(result.get("hasInputEvent").getAsBoolean()).isTrue();
-    assertThat(result.get("hasOutputEvent").getAsBoolean()).isTrue();
+    assertThat(result.get("hasLinkEvent").getAsBoolean()).isTrue();
   }
 }
