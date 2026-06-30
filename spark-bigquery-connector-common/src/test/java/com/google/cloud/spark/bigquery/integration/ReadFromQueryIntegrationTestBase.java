@@ -26,6 +26,7 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.spark.bigquery.events.BigQueryJobCompletedEvent;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.inject.ProvisionException;
@@ -39,6 +40,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
 
@@ -216,8 +218,14 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV
                     DataTypes.createStructField("word", DataTypes.StringType, true),
                     DataTypes.createStructField("word_count", DataTypes.LongType, true)));
 
+        JsonArray schemaColumns =
+            new Gson()
+                .toJsonTree(
+                    Arrays.asList(df.schema().fields()).stream().map(StructField::name).toArray())
+                .getAsJsonArray();
         result.addProperty("count", df.count());
         result.addProperty("schemaMatches", df.schema().equals(expectedSchema));
+        result.add("schemaColumns", schemaColumns);
 
       } else if ("POSITIONAL_PARAMETERS".equals(scenario)) {
         String positionalParamQuery =
@@ -310,6 +318,21 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV
     if (result.has("contentList")) {
       JsonArray contentList = result.getAsJsonArray("contentList");
       assertThat(contentList.size()).isGreaterThan(0);
+      assertThat(contentList)
+          .containsExactlyElementsIn(
+              new Gson()
+                  .toJsonTree(
+                      Arrays.asList(
+                          "2kinghenryvi",
+                          "3kinghenryvi",
+                          "allswellthatendswell",
+                          "hamlet",
+                          "juliuscaesar",
+                          "kinghenryv",
+                          "kinglear",
+                          "periclesprinceoftyre",
+                          "troilusandcressida"))
+                  .getAsJsonArray());
     }
   }
 
@@ -441,6 +464,10 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV
     JsonObject jobInfo = jobInfos.get(0).getAsJsonObject();
     assertThat(jobInfo.get("type").getAsString()).isEqualTo("QUERY");
     assertThat(jobInfo.get("query").getAsString()).contains("WHERE corpus = @corpus");
+    assertThat(result.get("count").getAsLong()).isEqualTo(12L);
+    assertThat(result.getAsJsonArray("schemaColumns"))
+        .containsExactlyElementsIn(
+            new Gson().toJsonTree(Arrays.asList("word", "word_count")).getAsJsonArray());
   }
 
   @Test
