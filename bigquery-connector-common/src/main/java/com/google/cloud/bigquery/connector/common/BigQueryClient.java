@@ -24,7 +24,6 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.bigquery.Bigquery;
 import com.google.auth.http.HttpCredentialsAdapter;
-import com.google.cloud.BaseServiceException;
 import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -162,7 +161,7 @@ public class BigQueryClient {
    *
    * @param job The {@code Job} to keep track of.
    */
-  public JobInfo waitForJob(Job job) {
+  public JobInfo waitForJob(Job job, String operation) {
     try {
       Job completedJob =
           job.waitFor(
@@ -178,6 +177,7 @@ public class BigQueryClient {
         throw new IllegalStateException(
             String.format("Job aborted due to timeout  : %s minutes", bigQueryJobTimeoutInMinutes));
       }
+      logJobTelemetry(completedJob, operation);
       jobCompletionListener.ifPresent(jcl -> jcl.accept(completedJob));
       return completedJob;
     } catch (InterruptedException e) {
@@ -553,16 +553,12 @@ public class BigQueryClient {
     return bigQuery.update(table);
   }
 
-  public Job createAndWaitFor(JobConfiguration.Builder jobConfiguration) {
-    return createAndWaitFor(jobConfiguration.build());
-  }
-
-  public Job createAndWaitFor(JobConfiguration jobConfiguration) {
+  public Job createAndWaitFor(JobConfiguration jobConfiguration, String operation) {
     JobInfo jobInfo = JobInfo.of(jobConfiguration);
     Job job = bigQuery.create(jobInfo);
-    Job returnedJob = null;
 
     log.info("Submitted job {}. jobId: {}", jobConfiguration, job.getJobId());
+
     try {
       Job completedJob = job.waitFor();
       if (completedJob == null) {
@@ -576,6 +572,7 @@ public class BigQueryClient {
             String.format(
                 "Failed to run the job [%s], due to '%s'", completedJob.getStatus().getError()));
       }
+      logJobTelemetry(completedJob, operation);
       return completedJob;
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -583,6 +580,18 @@ public class BigQueryClient {
           BaseHttpServiceException.UNKNOWN_CODE,
           String.format("Failed to run the job [%s], task was interrupted", job),
           e);
+    }
+  }
+
+  private void logJobTelemetry(Job completedJob, String operation) {
+    JobStatistics stats = completedJob.getStatistics();
+    if (stats != null && stats.getStartTime() != null && stats.getEndTime() != null) {
+      long duration = stats.getEndTime() - stats.getStartTime();
+      JobConfiguration config = completedJob.getConfiguration();
+      JobConfiguration.Type type = config != null ? config.getType() : null;
+      JobId jobId = completedJob.getJobId();
+      String jobIdStr = jobId != null ? jobId.getJob() : "unknown";
+      log.info("BigQuery {} job {} ({}) completed in {}ms", type, jobIdStr, operation, duration);
     }
   }
 
@@ -955,7 +964,7 @@ public class BigQueryClient {
 
     Job finishedJob = null;
     try {
-      finishedJob = createAndWaitFor(jobConfiguration);
+      finishedJob = createAndWaitFor(jobConfiguration.build(), "Load Data from GCS to Table");
 
       if (finishedJob.getStatus().getError() != null) {
         throw new BigQueryException(
@@ -1218,7 +1227,8 @@ public class BigQueryClient {
       JobInfo jobInfo = JobInfo.of(queryJobConfigurationBuilder.build());
 
       log.info("running query [{}]", querySql);
-      JobInfo completedJobInfo = bigQueryClient.waitForJob(bigQueryClient.create(jobInfo));
+      JobInfo completedJobInfo =
+          bigQueryClient.waitForJob(bigQueryClient.create(jobInfo), "Materialize Query to Table");
       if (completedJobInfo.getStatus().getError() != null) {
         throw BigQueryUtil.convertToBigQueryException(completedJobInfo.getStatus().getError());
       }
@@ -1237,31 +1247,6 @@ public class BigQueryClient {
       // temp table was auto generated
       return bigQueryClient.getTable(
           ((QueryJobConfiguration) completedJobInfo.getConfiguration()).getDestinationTable());
-    }
-
-    Job waitForJob(Job job) {
-      try {
-        log.info(
-            "Job submitted : {}, {},  Job type : {}",
-            job.getJobId(),
-            job.getSelfLink(),
-            job.getConfiguration().getType());
-        Job completedJob = job.waitFor();
-        log.info(
-            "Job has finished {} creationTime : {}, startTime : {}, endTime : {} ",
-            completedJob.getJobId(),
-            completedJob.getStatistics().getCreationTime(),
-            completedJob.getStatistics().getStartTime(),
-            completedJob.getStatistics().getEndTime());
-        log.debug("Job has finished. {}", completedJob);
-        return completedJob;
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new BigQueryException(
-            BaseServiceException.UNKNOWN_CODE,
-            String.format("Job %s has been interrupted", job.getJobId()),
-            e);
-      }
     }
   }
 

@@ -343,11 +343,9 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
           batchCommitWriteStreamsResponse.getCommitTime());
     }
 
-    if (writingMode.equals(WritingMode.APPEND_AT_LEAST_ONCE)
-        || writingMode.equals(WritingMode.OVERWRITE)) {
-      long startTime = System.currentTimeMillis();
+    if (writingMode == WritingMode.APPEND_AT_LEAST_ONCE || writingMode == WritingMode.OVERWRITE) {
       Job queryJob =
-          (writingMode.equals(WritingMode.OVERWRITE))
+          (writingMode == WritingMode.OVERWRITE)
               ? overwriteMode == PartitionOverwriteMode.STATIC
                   ? bigQueryClient.overwriteDestinationWithTemporary(
                       tableToWrite.getTableId(), destinationTableId)
@@ -355,12 +353,11 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
                       tableToWrite.getTableId(), destinationTableId)
               : bigQueryClient.appendDestinationWithTemporary(
                   tableToWrite.getTableId(), destinationTableId);
-      bigQueryClient.waitForJob(queryJob);
-      long duration = System.currentTimeMillis() - startTime;
-      logger.info(
-          "Copied temporary table to destination in {}ms. JobId: {}",
-          duration,
-          queryJob.getJobId().getJob());
+      bigQueryClient.waitForJob(
+          queryJob,
+          writingMode == WritingMode.OVERWRITE
+              ? "Overwrite Transaction Commit"
+              : "Append Transaction Commit");
       Preconditions.checkState(
           bigQueryClient.deleteTable(tableToWrite.getTableId()),
           new BigQueryConnectorException(

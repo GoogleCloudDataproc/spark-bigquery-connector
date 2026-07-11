@@ -146,16 +146,10 @@ public class BigQueryWriteHelper {
                         config.getEnableModeCheckForSchemaFields())
                     .getTableId());
         loadDataToBigQuery();
-        long startTime = System.currentTimeMillis();
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
                 temporaryTableId.get(), config.getTableId());
-        bigQueryClient.waitForJob(queryJob);
-        long duration = System.currentTimeMillis() - startTime;
-        logger.info(
-            "Overwrote destination with temporary dynamic partitions in {}ms. JobId: {}",
-            duration,
-            queryJob.getJobId().getJob());
+        bigQueryClient.waitForJob(queryJob, "Dynamic Partition Overwrite Commit");
       } else {
         loadDataToBigQuery();
       }
