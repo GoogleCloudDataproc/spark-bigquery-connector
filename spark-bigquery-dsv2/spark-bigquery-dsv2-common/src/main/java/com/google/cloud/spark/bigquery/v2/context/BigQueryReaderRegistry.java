@@ -24,6 +24,8 @@ public class BigQueryReaderRegistry {
   private static final BigQueryReaderFactoryHook DEFAULT = new DefaultBigQueryReaderFactoryHook();
   private static volatile BigQueryReaderFactoryHook activeHook = DEFAULT;
 
+  private BigQueryReaderRegistry() {}
+
   /**
    * Registers a pluggable hook factory. Passing {@code null} resets to the default hook.
    *
