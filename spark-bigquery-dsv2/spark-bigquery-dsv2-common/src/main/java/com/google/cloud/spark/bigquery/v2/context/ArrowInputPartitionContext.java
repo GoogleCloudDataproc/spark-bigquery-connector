@@ -125,7 +125,7 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
         new ReadRowsHelper(bigQueryReadClientFactory, readRowsRequests, options);
     tracer.startStream();
     Iterator<ReadRowsResponse> readRowsResponses = readRowsHelper.readRows();
-    return BigQueryReaderRegistry.get()
+    return PartitionReaderFactory.get()
         .createReaderContext(
             readRowsResponses,
             serializedArrowSchema,

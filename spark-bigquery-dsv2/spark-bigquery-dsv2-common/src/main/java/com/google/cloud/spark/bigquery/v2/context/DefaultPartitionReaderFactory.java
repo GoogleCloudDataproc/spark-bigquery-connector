@@ -27,11 +27,10 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 
 /**
- * Default implementation of {@link BigQueryReaderFactoryHook} that falls back to the standard
- * {@link ArrowColumnBatchPartitionReaderContext} for columnar Arrow reads. Used as the default
- * active hook in {@link BigQueryReaderRegistry}.
+ * Default implementation of {@link PartitionReaderFactory} that falls back to the standard {@link
+ * ArrowColumnBatchPartitionReaderContext} for columnar Arrow reads.
  */
-public class DefaultBigQueryReaderFactoryHook implements BigQueryReaderFactoryHook {
+public class DefaultPartitionReaderFactory implements PartitionReaderFactory {
   @Override
   public InputPartitionReaderContext<ColumnarBatch> createReaderContext(
       Iterator<ReadRowsResponse> readRowsResponses,

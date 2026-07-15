@@ -21,23 +21,23 @@ import static org.mockito.Mockito.mock;
 import org.junit.After;
 import org.junit.Test;
 
-public class BigQueryReaderRegistryTest {
+public class PartitionReaderFactoryTest {
 
   @After
   public void tearDown() {
-    BigQueryReaderRegistry.register(null);
+    PartitionReaderFactory.register(null);
   }
 
   @Test
   public void testRegistryFlow() {
-    assertThat(BigQueryReaderRegistry.get()).isInstanceOf(DefaultBigQueryReaderFactoryHook.class);
+    assertThat(PartitionReaderFactory.get()).isInstanceOf(DefaultPartitionReaderFactory.class);
 
-    BigQueryReaderFactoryHook hook = mock(BigQueryReaderFactoryHook.class);
-    BigQueryReaderRegistry.register(hook);
+    PartitionReaderFactory hook = mock(PartitionReaderFactory.class);
+    PartitionReaderFactory.register(hook);
 
-    assertThat(BigQueryReaderRegistry.get()).isSameInstanceAs(hook);
+    assertThat(PartitionReaderFactory.get()).isSameInstanceAs(hook);
 
-    BigQueryReaderRegistry.register(null);
-    assertThat(BigQueryReaderRegistry.get()).isInstanceOf(DefaultBigQueryReaderFactoryHook.class);
+    PartitionReaderFactory.register(null);
+    assertThat(PartitionReaderFactory.get()).isInstanceOf(DefaultPartitionReaderFactory.class);
   }
 }

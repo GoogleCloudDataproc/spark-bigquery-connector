@@ -27,10 +27,10 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 
 /**
- * A pluggable factory hook interface that allows customizing the creation of {@link
+ * A pluggable factory interface that allows customizing the creation of {@link
  * InputPartitionReaderContext} for columnar Arrow reads.
  */
-public interface BigQueryReaderFactoryHook {
+public interface PartitionReaderFactory {
   /**
    * Creates a custom reader context for reading columnar batches.
    *
@@ -55,4 +55,28 @@ public interface BigQueryReaderFactoryHook {
       int numBackgroundThreads,
       ResponseCompressionCodec responseCompressionCodec,
       boolean enableTimestampRebase);
+
+  /** Holder class to hold the mutable static instance. */
+  class Holder {
+    private static final PartitionReaderFactory DEFAULT = new DefaultPartitionReaderFactory();
+    private static volatile PartitionReaderFactory instance = DEFAULT;
+  }
+
+  /**
+   * Gets the currently active factory.
+   *
+   * @return the active factory
+   */
+  static PartitionReaderFactory get() {
+    return Holder.instance;
+  }
+
+  /**
+   * Registers a pluggable factory. Passing {@code null} resets to the default factory.
+   *
+   * @param factory the factory to register, or {@code null} to reset to default
+   */
+  static void register(PartitionReaderFactory factory) {
+    Holder.instance = (factory != null) ? factory : Holder.DEFAULT;
+  }
 }
