@@ -28,6 +28,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.ComparisonResult;
+import com.google.cloud.bigquery.connector.common.JobOperation;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsRequest;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
@@ -356,8 +357,8 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       bigQueryClient.waitForJob(
           queryJob,
           writingMode == WritingMode.OVERWRITE
-              ? "Overwrite Transaction Commit"
-              : "Append Transaction Commit");
+              ? JobOperation.OVERWRITE_TRANSACTION
+              : JobOperation.APPEND_TRANSACTION);
       Preconditions.checkState(
           bigQueryClient.deleteTable(tableToWrite.getTableId()),
           new BigQueryConnectorException(

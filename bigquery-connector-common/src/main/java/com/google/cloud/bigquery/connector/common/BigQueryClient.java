@@ -161,7 +161,7 @@ public class BigQueryClient {
    *
    * @param job The {@code Job} to keep track of.
    */
-  public JobInfo waitForJob(Job job, String operation) {
+  public JobInfo waitForJob(Job job, JobOperation operation) {
     try {
       Job completedJob =
           job.waitFor(
@@ -553,7 +553,7 @@ public class BigQueryClient {
     return bigQuery.update(table);
   }
 
-  public Job createAndWaitFor(JobConfiguration jobConfiguration, String operation) {
+  public Job createAndWaitFor(JobConfiguration jobConfiguration, JobOperation operation) {
     JobInfo jobInfo = JobInfo.of(jobConfiguration);
     Job job = bigQuery.create(jobInfo);
 
@@ -583,7 +583,10 @@ public class BigQueryClient {
     }
   }
 
-  private void logJobTelemetry(Job completedJob, String operation) {
+  private void logJobTelemetry(Job completedJob, JobOperation operation) {
+    if (completedJob == null) {
+      return;
+    }
     JobStatistics stats = completedJob.getStatistics();
     if (stats != null && stats.getStartTime() != null && stats.getEndTime() != null) {
       long duration = stats.getEndTime() - stats.getStartTime();
@@ -591,7 +594,12 @@ public class BigQueryClient {
       JobConfiguration.Type type = config != null ? config.getType() : null;
       JobId jobId = completedJob.getJobId();
       String jobIdStr = jobId != null ? jobId.getJob() : "unknown";
-      log.info("BigQuery {} job {} ({}) completed in {}ms", type, jobIdStr, operation, duration);
+      log.info(
+          "BigQuery {} job {} ({}) completed in {}ms",
+          type,
+          jobIdStr,
+          operation.getDescription(),
+          duration);
     }
   }
 
@@ -964,7 +972,7 @@ public class BigQueryClient {
 
     Job finishedJob = null;
     try {
-      finishedJob = createAndWaitFor(jobConfiguration.build(), "Load Data from GCS to Table");
+      finishedJob = createAndWaitFor(jobConfiguration.build(), JobOperation.LOAD_DATA_FROM_GCS);
 
       if (finishedJob.getStatus().getError() != null) {
         throw new BigQueryException(
@@ -1228,7 +1236,7 @@ public class BigQueryClient {
 
       log.info("running query [{}]", querySql);
       JobInfo completedJobInfo =
-          bigQueryClient.waitForJob(bigQueryClient.create(jobInfo), "Materialize Query to Table");
+          bigQueryClient.waitForJob(bigQueryClient.create(jobInfo), JobOperation.MATERIALIZE_QUERY);
       if (completedJobInfo.getStatus().getError() != null) {
         throw BigQueryUtil.convertToBigQueryException(completedJobInfo.getStatus().getError());
       }
