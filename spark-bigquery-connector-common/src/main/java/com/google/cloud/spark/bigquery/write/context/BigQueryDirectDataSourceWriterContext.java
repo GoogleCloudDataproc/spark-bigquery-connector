@@ -28,6 +28,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.ComparisonResult;
+import com.google.cloud.bigquery.connector.common.JobOperation;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsRequest;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
@@ -343,11 +344,9 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
           batchCommitWriteStreamsResponse.getCommitTime());
     }
 
-    if (writingMode.equals(WritingMode.APPEND_AT_LEAST_ONCE)
-        || writingMode.equals(WritingMode.OVERWRITE)) {
-      long startTime = System.currentTimeMillis();
+    if (writingMode == WritingMode.APPEND_AT_LEAST_ONCE || writingMode == WritingMode.OVERWRITE) {
       Job queryJob =
-          (writingMode.equals(WritingMode.OVERWRITE))
+          (writingMode == WritingMode.OVERWRITE)
               ? overwriteMode == PartitionOverwriteMode.STATIC
                   ? bigQueryClient.overwriteDestinationWithTemporary(
                       tableToWrite.getTableId(), destinationTableId)
@@ -355,12 +354,11 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
                       tableToWrite.getTableId(), destinationTableId)
               : bigQueryClient.appendDestinationWithTemporary(
                   tableToWrite.getTableId(), destinationTableId);
-      bigQueryClient.waitForJob(queryJob);
-      long duration = System.currentTimeMillis() - startTime;
-      logger.info(
-          "Copied temporary table to destination in {}ms. JobId: {}",
-          duration,
-          queryJob.getJobId().getJob());
+      bigQueryClient.waitForJob(
+          queryJob,
+          writingMode == WritingMode.OVERWRITE
+              ? JobOperation.OVERWRITE_TRANSACTION
+              : JobOperation.APPEND_TRANSACTION);
       Preconditions.checkState(
           bigQueryClient.deleteTable(tableToWrite.getTableId()),
           new BigQueryConnectorException(
