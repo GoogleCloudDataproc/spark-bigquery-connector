@@ -47,6 +47,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.ViewDefinition;
+import com.google.cloud.bigquery.storage.v1.Exceptions.AppendSerializationError;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
@@ -57,9 +58,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -1557,5 +1560,56 @@ public class BigQueryUtilTest {
 
     SerializableGrpcStatusException serializable = (SerializableGrpcStatusException) result;
     assertThat(serializable.getCauseMessage()).isEqualTo(rootCause.toString());
+  }
+
+  @Test
+  public void testMakeSerializable_withAppendSerializationError() {
+    String statusDescription = "Errors found while processing rows";
+    String writeStream = "projects/test/datasets/test/tables/test/streams/test";
+    Map<Integer, String> rowErrors = new LinkedHashMap<>();
+    rowErrors.put(2, "second row failed");
+    rowErrors.put(0, "first row failed");
+    AppendSerializationError appendSerializationError =
+        new AppendSerializationError(
+            io.grpc.Status.Code.INVALID_ARGUMENT.value(),
+            statusDescription,
+            writeStream,
+            rowErrors);
+    BigQueryConnectorException connectorException =
+        new BigQueryConnectorException(
+            "Execution Exception while retrieving AppendRowsResponse",
+            new ExecutionException(appendSerializationError));
+
+    Throwable result =
+        BigQueryUtil.verifySerialization(BigQueryUtil.makeSerializable(connectorException));
+
+    assertThat(result).isInstanceOf(SerializableGrpcStatusException.class);
+    assertThat(result.getCause()).isNull();
+    SerializableGrpcStatusException serializable = (SerializableGrpcStatusException) result;
+    assertThat(serializable.getStatusCode()).isEqualTo(io.grpc.Status.Code.INVALID_ARGUMENT);
+    assertThat(serializable.getStatusDescription()).isEqualTo(statusDescription);
+    assertThat(serializable.getMessage()).contains("write stream: " + writeStream);
+    assertThat(serializable.getMessage())
+        .contains("row errors (append request indexes): {0=first row failed, 2=second row failed}");
+    assertThat(serializable.toString()).contains("first row failed");
+  }
+
+  @Test
+  public void testMakeSerializable_withAppendSerializationErrorWithoutRowErrors() {
+    String statusDescription = "Errors found while processing rows";
+    AppendSerializationError appendSerializationError =
+        new AppendSerializationError(
+            io.grpc.Status.Code.INVALID_ARGUMENT.value(),
+            statusDescription,
+            "projects/test/datasets/test/tables/test/streams/test",
+            Collections.emptyMap());
+
+    Throwable result =
+        BigQueryUtil.verifySerialization(BigQueryUtil.makeSerializable(appendSerializationError));
+
+    assertThat(result).isInstanceOf(SerializableGrpcStatusException.class);
+    assertThat(result.getMessage())
+        .contains("write stream: " + appendSerializationError.getStreamName());
+    assertThat(result.getMessage()).contains("row errors (append request indexes): {}");
   }
 }

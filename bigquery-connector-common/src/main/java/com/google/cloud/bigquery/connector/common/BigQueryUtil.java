@@ -43,6 +43,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.storage.v1.Exceptions.AppendSerializationError;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.annotations.VisibleForTesting;
@@ -66,6 +67,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -177,6 +179,16 @@ public class BigQueryUtil {
   private static SerializableGrpcStatusException createSerializableGrpcStatusException(
       Throwable grpcException) {
     String message = grpcException.getMessage();
+    if (grpcException instanceof AppendSerializationError) {
+      AppendSerializationError appendSerializationError = (AppendSerializationError) grpcException;
+      Map<Integer, String> rowErrors = appendSerializationError.getRowIndexToErrorMessage();
+      message =
+          format(
+              "%s; write stream: %s; row errors (append request indexes): %s",
+              message,
+              appendSerializationError.getStreamName(),
+              new TreeMap<>(rowErrors == null ? Collections.emptyMap() : rowErrors));
+    }
     Status status;
     if (grpcException instanceof StatusException) {
       status = ((StatusException) grpcException).getStatus();
