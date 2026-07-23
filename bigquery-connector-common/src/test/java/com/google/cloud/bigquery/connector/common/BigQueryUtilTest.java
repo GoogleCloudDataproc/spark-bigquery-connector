@@ -51,7 +51,12 @@ import com.google.cloud.bigquery.storage.v1.Exceptions.AppendSerializationError;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.ObjectStreamConstants;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;
@@ -62,6 +67,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -75,6 +81,24 @@ public class BigQueryUtilTest {
       TableId.of("test.org:test-project", "test_dataset", "test_table");
   private static final String FULLY_QUALIFIED_TABLE =
       "test.org:test-project.test_dataset.test_table";
+
+  private static int serializedStringPayloadSize(String value) throws IOException {
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    try (ObjectOutputStream output = new ObjectOutputStream(bytes)) {
+      output.writeObject(value);
+    }
+    byte[] serialized = bytes.toByteArray();
+    byte typeCode = serialized[2 * Short.BYTES];
+    int lengthBytes;
+    if (typeCode == ObjectStreamConstants.TC_STRING) {
+      lengthBytes = Short.BYTES;
+    } else if (typeCode == ObjectStreamConstants.TC_LONGSTRING) {
+      lengthBytes = Long.BYTES;
+    } else {
+      throw new AssertionError("Expected a serialized String type code");
+    }
+    return serialized.length - (2 * Short.BYTES) - 1 - lengthBytes;
+  }
 
   private static void checkFailureMessage(ComparisonResult result, String message) {
     assertThat(result.valuesAreEqual()).isFalse();
@@ -1590,26 +1614,88 @@ public class BigQueryUtilTest {
     assertThat(serializable.getStatusDescription()).isEqualTo(statusDescription);
     assertThat(serializable.getMessage()).contains("write stream: " + writeStream);
     assertThat(serializable.getMessage())
-        .contains("row errors (append request indexes): {0=first row failed, 2=second row failed}");
+        .endsWith("row errors (append request indexes): {0=first row failed, 2=second row failed}");
     assertThat(serializable.toString()).contains("first row failed");
+  }
+
+  @Test
+  public void testMakeSerializable_withMoreThanMaximumRowErrors() {
+    List<Integer> rowIndexes = IntStream.range(0, 102).boxed().collect(Collectors.toList());
+    Collections.shuffle(rowIndexes, new Random(1501L));
+    Map<Integer, String> rowErrors = new LinkedHashMap<>();
+    rowIndexes.forEach(index -> rowErrors.put(index, "row error " + index));
+    AppendSerializationError appendSerializationError =
+        new AppendSerializationError(
+            io.grpc.Status.Code.INVALID_ARGUMENT.value(),
+            "Errors found while processing rows",
+            "projects/test/datasets/test/tables/test/streams/test",
+            rowErrors);
+
+    Throwable result =
+        BigQueryUtil.verifySerialization(BigQueryUtil.makeSerializable(appendSerializationError));
+
+    String expectedRowErrors =
+        IntStream.range(0, 100)
+            .mapToObj(index -> index + "=row error " + index)
+            .collect(Collectors.joining(", ", "{", "}"));
+    assertThat(result.getMessage())
+        .endsWith(
+            "row errors (append request indexes): "
+                + expectedRowErrors
+                + " [2 additional row errors omitted]");
+    assertThat(result.getMessage()).doesNotContain("100=row error 100");
+    assertThat(result.getMessage()).doesNotContain("101=row error 101");
+  }
+
+  @Test
+  public void testMakeSerializable_withOversizedRowErrorMessage() throws IOException {
+    Map<Integer, String> rowErrors = new LinkedHashMap<>();
+    rowErrors.put(0, Strings.repeat("\uD83D\uDE80", 20 * 1024));
+    rowErrors.put(1, "second row failed");
+    AppendSerializationError appendSerializationError =
+        new AppendSerializationError(
+            io.grpc.Status.Code.INVALID_ARGUMENT.value(),
+            "Errors found while processing rows",
+            "projects/test/datasets/test/tables/test/streams/test",
+            rowErrors);
+
+    Throwable result =
+        BigQueryUtil.verifySerialization(BigQueryUtil.makeSerializable(appendSerializationError));
+
+    String rowErrorsPrefix = "row errors (append request indexes): ";
+    String message = result.getMessage();
+    String rowErrorsSection = message.substring(message.indexOf(rowErrorsPrefix));
+    int serializedPayloadSize = serializedStringPayloadSize(rowErrorsSection);
+    assertThat(serializedPayloadSize).isAtLeast(63 * 1024);
+    assertThat(serializedPayloadSize).isAtMost(64 * 1024);
+    assertThat(rowErrorsSection).startsWith(rowErrorsPrefix + "{0=");
+    assertThat(rowErrorsSection)
+        .endsWith("} [row error text truncated] [1 additional row error omitted]");
+    assertThat(rowErrorsSection).doesNotContain("1=second row failed");
+    assertThat(Character.isLowSurrogate(rowErrorsSection.charAt(rowErrorsSection.indexOf('}') - 1)))
+        .isTrue();
   }
 
   @Test
   public void testMakeSerializable_withAppendSerializationErrorWithoutRowErrors() {
     String statusDescription = "Errors found while processing rows";
-    AppendSerializationError appendSerializationError =
-        new AppendSerializationError(
-            io.grpc.Status.Code.INVALID_ARGUMENT.value(),
-            statusDescription,
-            "projects/test/datasets/test/tables/test/streams/test",
-            Collections.emptyMap());
+    List<Map<Integer, String>> noRowErrors =
+        Arrays.asList(null, Collections.<Integer, String>emptyMap());
+    for (Map<Integer, String> rowErrors : noRowErrors) {
+      AppendSerializationError appendSerializationError =
+          new AppendSerializationError(
+              io.grpc.Status.Code.INVALID_ARGUMENT.value(),
+              statusDescription,
+              "projects/test/datasets/test/tables/test/streams/test",
+              rowErrors);
 
-    Throwable result =
-        BigQueryUtil.verifySerialization(BigQueryUtil.makeSerializable(appendSerializationError));
+      Throwable result =
+          BigQueryUtil.verifySerialization(BigQueryUtil.makeSerializable(appendSerializationError));
 
-    assertThat(result).isInstanceOf(SerializableGrpcStatusException.class);
-    assertThat(result.getMessage())
-        .contains("write stream: " + appendSerializationError.getStreamName());
-    assertThat(result.getMessage()).contains("row errors (append request indexes): {}");
+      assertThat(result).isInstanceOf(SerializableGrpcStatusException.class);
+      assertThat(result.getMessage())
+          .contains("write stream: " + appendSerializationError.getStreamName());
+      assertThat(result.getMessage()).endsWith("row errors (append request indexes): {}");
+    }
   }
 }
