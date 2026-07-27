@@ -55,12 +55,29 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
       final Optional<StructType> userProvidedSchema,
       final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer,
       final ResponseCompressionCodec responseCompressionCodec) {
+    return arrow(
+        columnsInOrder,
+        arrowSchema,
+        userProvidedSchema,
+        bigQueryStorageReadRowsTracer,
+        responseCompressionCodec,
+        true);
+  }
+
+  static ReadRowsResponseToInternalRowIteratorConverter arrow(
+      final List<String> columnsInOrder,
+      final ByteString arrowSchema,
+      final Optional<StructType> userProvidedSchema,
+      final Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer,
+      final ResponseCompressionCodec responseCompressionCodec,
+      final boolean enableTimestampRebase) {
     return new Arrow(
         columnsInOrder,
         arrowSchema,
         fromJavaUtil(userProvidedSchema),
         fromJavaUtil(bigQueryStorageReadRowsTracer),
-        responseCompressionCodec);
+        responseCompressionCodec,
+        enableTimestampRebase);
   }
 
   Iterator<InternalRow> convert(ReadRowsResponse response);
@@ -128,6 +145,7 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
     private final com.google.common.base.Optional<BigQueryStorageReadRowsTracer>
         bigQueryStorageReadRowsTracer;
     private final ResponseCompressionCodec responseCompressionCodec;
+    private final boolean enableTimestampRebase;
 
     public Arrow(
         List<String> columnsInOrder,
@@ -135,12 +153,14 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
         com.google.common.base.Optional<StructType> userProvidedSchema,
         com.google.common.base.Optional<BigQueryStorageReadRowsTracer>
             bigQueryStorageReadRowsTracer,
-        ResponseCompressionCodec responseCompressionCodec) {
+        ResponseCompressionCodec responseCompressionCodec,
+        boolean enableTimestampRebase) {
       this.columnsInOrder = columnsInOrder;
       this.arrowSchema = arrowSchema;
       this.userProvidedSchema = userProvidedSchema;
       this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
       this.responseCompressionCodec = responseCompressionCodec;
+      this.enableTimestampRebase = enableTimestampRebase;
     }
 
     @Override
@@ -152,7 +172,8 @@ public interface ReadRowsResponseToInternalRowIteratorConverter {
           response,
           userProvidedSchema.toJavaUtil(),
           bigQueryStorageReadRowsTracer.toJavaUtil(),
-          responseCompressionCodec);
+          responseCompressionCodec,
+          enableTimestampRebase);
     }
 
     @Override

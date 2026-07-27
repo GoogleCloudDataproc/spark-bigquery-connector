@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.write;
 
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.spark.bigquery.write.context.DataWriterContext;
 import com.google.cloud.spark.bigquery.write.context.DataWriterContextFactory;
 import com.google.cloud.spark.bigquery.write.context.WriterCommitMessageContext;
@@ -71,17 +72,18 @@ public class DataSourceWriterContextPartitionHandler
             epoch,
             e);
         dataWriterContext.abort();
-        return ImmutableList.<WriterCommitMessageContext>of(writerCommitMessageWithError(e))
+        return ImmutableList.<WriterCommitMessageContext>of(
+                writerCommitMessageWithError(BigQueryUtil.makeSerializable(e)))
             .iterator();
       }
     }
   }
 
-  private static WriterCommitMessageContext writerCommitMessageWithError(Exception e) {
+  private static WriterCommitMessageContext writerCommitMessageWithError(Throwable t) {
     return new WriterCommitMessageContext() {
       @Override
-      public Optional<Exception> getError() {
-        return Optional.of(e);
+      public Optional<Throwable> getError() {
+        return Optional.of(t);
       }
     };
   }

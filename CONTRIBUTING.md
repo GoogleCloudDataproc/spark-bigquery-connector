@@ -91,11 +91,14 @@ Because building every connector is lengthy, the project uses
 [Maven profiles](https://maven.apache.org/guides/introduction/introduction-to-profiles.html)
 to scope the build. The profiles defined in the root POM are:
 
-* `dsv1_2.12`, `dsv1_2.13` — one Scala variant of the DSv1 connector.
+* `dsv1_2.12`, `dsv1_2.13` — one supported Scala variant of the DSv1
+  connector.
 * `dsv2_3.1`, `dsv2_3.2`, `dsv2_3.3`, `dsv2_3.4`, `dsv2_3.5`, `dsv2_4.0`,
   `dsv2_4.1` — one Spark version of the DSv2 connector.
 * `dsv1`, `dsv2`, `all` — aggregates for the whole DSv1 / DSv2 / both worlds.
 * `coverage` — adds the `coverage/` aggregator for Jacoco reports.
+* `dsv1_2.11`, `dsv2_2.4` — legacy profiles retained in the build but omitted
+  from the CI matrix.
 
 Plus, defined in `spark-bigquery-parent/pom.xml`:
 
@@ -110,9 +113,10 @@ artifacts are produced.
 
 ### JDK requirements
 
-The connector itself is compiled to Java 8 bytecode
-(`maven.compiler.release=8`). At runtime, the JDK you need depends on which
-Spark version your connector targets:
+Most connector artifacts are compiled to Java 8 bytecode
+(`maven.compiler.release=8`). The Spark 4.0 and 4.1 artifacts override this
+setting and compile to Java 17 bytecode. At runtime, the JDK you need depends
+on which Spark version your connector targets:
 
 * Connectors for Spark 3.1 – 3.5: Java 8 supported (Java 11 / 17 also work
   where the underlying Spark distribution supports them).
@@ -127,9 +131,10 @@ The CI test matrix uses both JDKs:
   and `dsv2_3.2`.
 
 CI generates `toolchains.xml` automatically via
-`./mvnw toolchains:generate-jdk-toolchains-xml`. Locally, install both JDKs
-and either generate the toolchains file the same way or set `JAVA_HOME` per
-command. See `cloudbuild/presubmit.sh` for the exact mapping of stage to JDK.
+`./mvnw toolchains:generate-jdk-toolchains-xml`. For the full build locally,
+install JDK 8, 11, and 17, then either generate the toolchains file the same
+way or set `JAVA_HOME` per command. See `cloudbuild/presubmit.sh` for the exact
+mapping of stage to JDK.
 
 ### Running tests
 

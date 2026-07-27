@@ -30,7 +30,6 @@ import org.apache.arrow.vector.complex.*;
 
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.ArrowType.ArrowTypeID;
-import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.types.*;
 
 import org.apache.spark.sql.vectorized.ColumnVector;
@@ -176,6 +175,10 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
   }
 
   public static ArrowSchemaConverter newArrowSchemaConverter(ValueVector vector, StructField userProvidedField) {
+    return newArrowSchemaConverter(vector, userProvidedField, true);
+  }
+
+  public static ArrowSchemaConverter newArrowSchemaConverter(ValueVector vector, StructField userProvidedField, boolean enableTimestampRebase) {
     if (vector instanceof BitVector) {
       return new ArrowSchemaConverter.BooleanAccessor((BitVector) vector);
     } else if (vector instanceof BigIntVector) {
@@ -197,13 +200,13 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
     } else if (vector instanceof TimeStampMicroVector) {
       return new ArrowSchemaConverter.TimestampMicroVectorAccessor((TimeStampMicroVector) vector);
     } else if (vector instanceof TimeStampMicroTZVector) {
-      return new ArrowSchemaConverter.TimestampMicroTZVectorAccessor((TimeStampMicroTZVector) vector);
+      return new ArrowSchemaConverter.TimestampMicroTZVectorAccessor((TimeStampMicroTZVector) vector, enableTimestampRebase);
     } else if (vector instanceof ListVector) {
       ListVector listVector = (ListVector) vector;
-      return new ArrowSchemaConverter.ArrayAccessor(listVector, userProvidedField);
+      return new ArrowSchemaConverter.ArrayAccessor(listVector, userProvidedField, enableTimestampRebase);
     } else if (vector instanceof StructVector) {
       StructVector structVector = (StructVector) vector;
-      return new ArrowSchemaConverter.StructAccessor(structVector, userProvidedField);
+      return new ArrowSchemaConverter.StructAccessor(structVector, userProvidedField, enableTimestampRebase);
     } else {
       throw new UnsupportedOperationException();
     }
@@ -541,16 +544,18 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
     private final Optional<Method> rebaseMicrosMethod;
     private final TimeStampMicroTZVector vector;
 
-    TimestampMicroTZVectorAccessor(TimeStampMicroTZVector vector) {
+    TimestampMicroTZVectorAccessor(TimeStampMicroTZVector vector, boolean enableTimestampRebase) {
       super(vector);
       this.vector = vector;
       Method rebaseMicrosTmp = null;
-      try {
-        // for Spark 3.0+ only. See https://issues.apache.org/jira/browse/SPARK-26651
-        Class<?> rebaseDateTimeClass = Class.forName(
-            "org.apache.spark.sql.catalyst.util.RebaseDateTime");
-        rebaseMicrosTmp = rebaseDateTimeClass.getDeclaredMethod("rebaseJulianToGregorianMicros", long.class);
-      } catch (ReflectiveOperationException ignored) { }
+      if (enableTimestampRebase) {
+        try {
+          // for Spark 3.0+ only. See https://issues.apache.org/jira/browse/SPARK-26651
+          Class<?> rebaseDateTimeClass = Class.forName(
+              "org.apache.spark.sql.catalyst.util.RebaseDateTime");
+          rebaseMicrosTmp = rebaseDateTimeClass.getDeclaredMethod("rebaseJulianToGregorianMicros", long.class);
+        } catch (ReflectiveOperationException ignored) { }
+      }
       rebaseMicrosMethod = Optional.ofNullable(rebaseMicrosTmp);
     }
 
@@ -581,9 +586,12 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
 
     private final ArrowSchemaConverter arrayData;
 
-    ArrayAccessor(ListVector vector, StructField userProvidedField) {
+    private final boolean enableTimestampRebase;
+
+    ArrayAccessor(ListVector vector, StructField userProvidedField, boolean enableTimestampRebase) {
       super(vector);
       this.vector = vector;
+      this.enableTimestampRebase = enableTimestampRebase;
       StructField structField = null;
 
       // this is to support Array of StructType/StructVector
@@ -598,7 +606,7 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
                 Metadata.empty());// safe to pass empty metadata as it is not used anywhere
       }
 
-      this.arrayData = newArrowSchemaConverter(vector.getDataVector(), structField);
+      this.arrayData = newArrowSchemaConverter(vector.getDataVector(), structField, enableTimestampRebase);
     }
 
 
@@ -649,7 +657,7 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
     private final StructVector vector;
     private ArrowSchemaConverter childColumns[];
 
-    StructAccessor(StructVector structVector, StructField userProvidedField) {
+    StructAccessor(StructVector structVector, StructField userProvidedField, boolean enableTimestampRebase) {
       super(structVector);
       this.vector = structVector;
       if(userProvidedField !=null) {
@@ -669,12 +677,12 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
         for (int i = 0; i < childColumns.length; ++i) {
           StructField structField = structList.get(i);
           childColumns[i] =
-                  newArrowSchemaConverter(valueVectorMap.get(structField.name()), structField);
+                  newArrowSchemaConverter(valueVectorMap.get(structField.name()), structField, enableTimestampRebase);
         }
       } else {
         childColumns = new ArrowSchemaConverter[structVector.size()];
         for (int i = 0; i < childColumns.length; ++i) {
-          childColumns[i] = newArrowSchemaConverter(structVector.getVectorById(i), /*userProvidedField=*/null);
+          childColumns[i] = newArrowSchemaConverter(structVector.getVectorById(i), /*userProvidedField=*/null, enableTimestampRebase);
         }
       }
     }

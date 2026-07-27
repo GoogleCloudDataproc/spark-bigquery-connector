@@ -123,7 +123,8 @@ class BigQueryRDDContext implements Serializable {
               readSession.getArrowSchema().getSerializedSchema(),
               Optional.of(schema),
               Optional.of(tracer),
-              options.getResponseCompressionCodec());
+              options.getResponseCompressionCodec(),
+              options.getEnableArrowTimestampRebase());
     }
 
     return new InterruptibleIterator<InternalRow>(

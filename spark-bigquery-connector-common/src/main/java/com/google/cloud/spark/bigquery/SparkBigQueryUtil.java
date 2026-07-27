@@ -31,9 +31,12 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -51,6 +54,7 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.StructField;
 
 /** Spark related utilities */
 public class SparkBigQueryUtil {
@@ -215,7 +219,7 @@ public class SparkBigQueryUtil {
     }
 
     // need to return timestamp in epoch microseconds
-    java.sql.Timestamp timestamp = (java.sql.Timestamp) sparkValue;
+    Timestamp timestamp = (Timestamp) sparkValue;
     long epochMillis = timestamp.getTime();
     int micros = (timestamp.getNanos() / 1000) % 1000;
     return epochMillis * 1000 + micros;
@@ -231,7 +235,7 @@ public class SparkBigQueryUtil {
       return Math.toIntExact(localDate.toEpochDay());
     }
 
-    java.sql.Date sparkDate = (java.sql.Date) sparkValue;
+    Date sparkDate = (Date) sparkValue;
     return (int) sparkDate.toLocalDate().toEpochDay();
   }
 
@@ -321,5 +325,9 @@ public class SparkBigQueryUtil {
                     "dataproc_job_uuid",
                     BigQueryUtil.sanitizeLabelValue(tag.substring(tag.lastIndexOf('_') + 1))));
     return labels.build();
+  }
+
+  public static boolean isCdcPseudoColumn(StructField field) {
+    return BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(field.name().toUpperCase(Locale.ENGLISH));
   }
 }

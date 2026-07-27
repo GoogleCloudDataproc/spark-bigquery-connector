@@ -75,11 +75,10 @@ The latest version of the connector is publicly available in the following links
 | Scala 2.12 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-${next-release-tag}.jar)) |
 | Scala 2.11 | `gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar` ([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-with-dependencies_2.11-0.29.0.jar))                           |
 
-The first six versions are Java based connectors targeting Spark 2.4/3.1/3.2/3.3/3.4/3.5 of all Scala versions built on the new
-Data Source APIs (Data Source API v2) of Spark.
-
-The final two connectors are Scala based connectors, please use the jar relevant to your Spark installation as outlined
-below.
+The Spark-specific connectors are Java-based Data Source V2 artifacts; use the
+artifact matching your Spark version. The Scala-specific connectors use Data
+Source V1; choose the artifact matching your Spark installation's Scala binary
+version as outlined below.
 
 ### Connector to Spark Compatibility Matrix
 | Connector \ Spark                     | 2.3     | 2.4     | 3.0     | 3.1     | 3.2     | 3.3     | 3.4     | 3.5     | 4.0     | 4.1     |
@@ -97,10 +96,10 @@ below.
 | spark-bigquery-with-dependencies_2.11 | &check; | &check; |         |         |         |         |         |         |         |         |
 
 ### Connector to Dataproc Image Compatibility Matrix
-| Connector \ Dataproc Image            | 1.3     | 1.4     | 1.5     | 2.0     | 2.1     | 2.2     | 3.0     | Serverless<br>Image 1.0 | Serverless<br>Image 2.0 | Serverless<br>Image 2.1 | Serverless<br>Image 2.2 | Serverless<br>Image 3.0 |
+| Connector \ Dataproc Image            | 1.3     | 1.4     | 1.5     | 2.0     | 2.1     | 2.2     | 3.0     | Serverless<br>Runtime 1.0 | Serverless<br>Runtime 2.0 | Serverless<br>Runtime 2.1 | Serverless<br>Runtime 2.2 | Serverless<br>Runtime 3.0 |
 |---------------------------------------|---------|---------|---------|---------|---------|---------|---------|-------------------------|-------------------------|-------------------------|-------------------------|-------------------------|
-| spark-4.1-bigquery                    |         |         |         |         |         |         |         |                         |                         |                         |                         |                         |
-| spark-4.0-bigquery                    |         |         |         |         |         |         | &check; |                         |                         |                         |                         | &check;                 |
+| spark-4.1-bigquery                    |         |         |         |         |         |         | &check; |                         |                         |                         |                         |                         |
+| spark-4.0-bigquery                    |         |         |         |         |         |         |         |                         |                         |                         |                         | &check;                 |
 | spark-3.5-bigquery                    |         |         |         |         |         | &check; |         |                         |                         |                         | &check;                 |                         |
 | spark-3.4-bigquery                    |         |         |         |         |         | &check; |         |                         |                         | &check;                 | &check;                 |                         |
 | spark-3.3-bigquery                    |         |         |         |         | &check; | &check; |         | &check;                 | &check;                 | &check;                 | &check;                 |                         |
@@ -111,10 +110,12 @@ below.
 | spark-bigquery-with-dependencies_2.12 |         |         | &check; | &check; | &check; | &check; |         | &check;                 |                         |                         |                         |                         |
 | spark-bigquery-with-dependencies_2.11 | &check; | &check; |         |         |         |         |         |                         |                         |                         |                         |                         |
 
-Dataproc Image 3.0 (Spark 4.0) and Serverless Image 3.0 (Spark 4.0) are
-currently in preview; see the
-[Dataproc release notes](https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-version-clusters)
-for the latest image-version status.
+These matrices describe connector compatibility, not whether an image or
+runtime is currently supported. See the current
+[cluster image versions](https://docs.cloud.google.com/managed-spark/docs/concepts/versioning/image-version-lists)
+and
+[serverless runtime versions](https://docs.cloud.google.com/managed-spark/docs/concepts/versions/serverless-versions)
+for lifecycle status.
 
 ### Maven / Ivy Package Usage
 The connector is also available from the
@@ -411,6 +412,27 @@ This behavior was introduced between version 0.22.0 and 0.41.0 to prevent accide
 
 **Note:** This behavior applies to both the `indirect` (default) and `direct` write methods.
 
+#### Change Data Capture (CDC) write
+
+The connector supports writing data to BigQuery tables using Change Data Capture (CDC). CDC allows applying row-level updates (`UPSERT`) and deletes (`DELETE`) directly from a Spark DataFrame based on the `_CHANGE_TYPE` and `_CHANGE_SEQUENCE_NUMBER` pseudo-columns (case-insensitive). CDC writes require using the direct write method with `writeAtLeastOnce` enabled, target table pre-existence with a primary key, and `SaveMode.Append` (`.mode("append")`). Partition decorators are not supported alongside CDC writes.
+
+```python
+# Create a DataFrame containing CDC columns
+data = [
+    (1, "Alice", "UPSERT", 1),
+    (2, "Bob", "DELETE", 2)
+]
+df = spark.createDataFrame(data, ["id", "name", "_CHANGE_TYPE", "_CHANGE_SEQUENCE_NUMBER"])
+
+# Write to BigQuery using direct write method with writeAtLeastOnce enabled
+df.write \
+  .format("bigquery") \
+  .mode("append") \
+  .option("writeMethod", "direct") \
+  .option("writeAtLeastOnce", "true") \
+  .save("dataset.table")
+```
+
 ### Running SQL on BigQuery
 
 The connector supports Spark's [SparkSession#executeCommand](https://archive.apache.org/dist/spark/docs/3.0.0/api/java/org/apache/spark/sql/SparkSession.html#executeCommand-java.lang.String-java.lang.String-scala.collection.immutable.Map-)
@@ -471,17 +493,9 @@ word-break:break-word
    <td>Read/Write</td>
   </tr>
   <tr valign="top">
-   <td><code>billingProject</code>
-   </td>
-   <td>The Google Cloud Project ID to use for <strong>billing</strong> (API calls, query execution).
-       <br/>(Optional. Defaults to the project of the Service Account being used)
-   </td>
-   <td>Read/Write</td>
-  </tr>
-  <tr valign="top">
    <td><code>parentProject</code>
    </td>
-   <td><strong>(Deprecated)</strong> Alias for <code>billingProject</code>.
+   <td>The Google Cloud Project ID to use for billing (API calls and query execution).
        <br/>(Optional. Defaults to the project of the Service Account being used)
    </td>
    <td>Read/Write</td>
@@ -970,6 +984,14 @@ word-break:break-word
      </td>
      <td>Read</td>
    </tr>
+  <tr>
+    <td><code>enableArrowTimestampRebase</code>
+    </td>
+    <td>Boolean config to enable Julian-to-Gregorian rebasing for Arrow timestamps. Set to <code>false</code> to avoid a 2-day shift for pre-Gregorian dates.
+        <br/>(Optional. Default value is <code>true</code>)
+    </td>
+    <td>Read</td>
+  </tr>
   <tr>
      <td><code>bigQueryJobTimeoutInMinutes</code>
      </td>

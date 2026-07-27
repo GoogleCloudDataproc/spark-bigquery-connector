@@ -55,7 +55,7 @@
         <google-truth.version>1.4.5</google-truth.version>
         <grpc.version>1.79.0</grpc.version>
         <guava.version>33.5.0-jre</guava.version>
-        <jackson.version>2.21.1</jackson.version>
+        <jackson.version>2.22.0</jackson.version>
         <netty.version>4.2.10.Final</netty.version>
         <openlineage-spark.version>1.37.0</openlineage-spark.version>
         <paranamer.version>2.8.3</paranamer.version>
@@ -79,6 +79,10 @@
             --add-opens java.base/sun.nio.ch=ALL-UNNAMED
         </jdk11plus.argLine>
         <scala.skipTests>false</scala.skipTests>
+        <argLine></argLine>
+        <failsafeArgLine></failsafeArgLine>
+        <!-- Set to true to skip surefire without affecting failsafe -->
+        <skipUnitTests>false</skipUnitTests>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -357,7 +361,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.11</version>
+                    <version>0.8.14</version>
                     <executions>
                         <execution>
                             <goals>
@@ -449,6 +453,7 @@
                     <jdkToolchain>
                         <version>${toolchain.jdk.version}</version>
                     </jdkToolchain>
+                    <skip>${skipUnitTests}</skip>
                 </configuration>
             </plugin>
             <plugin>
@@ -839,7 +844,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <configuration>
-                            <argLine>${argLine}</argLine>
+                            <argLine>${argLine} @{failsafeArgLine}</argLine>
                             <forkCount>7</forkCount>
                             <reuseForks>false</reuseForks>
                             <includes>
@@ -878,6 +883,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <configuration>
+                            <argLine>@{failsafeArgLine}</argLine>
                             <forkCount>10</forkCount>
                             <reuseForks>false</reuseForks>
                             <includes>
@@ -913,12 +919,30 @@
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
                         <executions>
+                            <!-- Agent for Failsafe (IT) coverage -->
                             <execution>
-                                <id>report</id>
-                                <phase>verify</phase>
+                                <id>prepare-it-agent</id>
+                                <phase>pre-integration-test</phase>
                                 <goals>
-                                    <goal>report</goal>
+                                    <goal>prepare-agent-integration</goal>
                                 </goals>
+                                <configuration>
+                                    <destFile>${project.build.directory}/jacoco-it.exec</destFile>
+                                    <!-- Bind the agent string to a custom property -->
+                                    <propertyName>failsafeArgLine</propertyName>
+                                </configuration>
+                            </execution>
+                            <!-- Per-module IT report (needed for aggregation) -->
+                            <execution>
+                                <id>after-integration-test</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>report-integration</goal>
+                                </goals>
+                                <configuration>
+                                    <dataFile>${project.build.directory}/jacoco-it.exec</dataFile>
+                                    <outputDirectory>${project.reporting.outputDirectory}/jacoco-it</outputDirectory>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>

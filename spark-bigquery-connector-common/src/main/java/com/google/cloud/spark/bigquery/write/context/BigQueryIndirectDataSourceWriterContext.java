@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.JobOperation;
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
 import com.google.cloud.spark.bigquery.SchemaConverters;
@@ -35,6 +36,7 @@ import com.google.cloud.spark.bigquery.write.BigQueryWriteHelper;
 import com.google.cloud.spark.bigquery.write.IntermediateDataCleaner;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -95,6 +97,10 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     this.intermediateDataCleaner = intermediateDataCleaner;
     this.writeDisposition = SparkBigQueryUtil.saveModeToWriteDisposition(saveMode);
     this.sparkContext = sparkContext;
+    if (Arrays.stream(sparkSchema.fields()).anyMatch(SparkBigQueryUtil::isCdcPseudoColumn)) {
+      throw new IllegalArgumentException(
+          "CDC is only supported when writeMethod is DIRECT and writeAtLeastOnce is true.");
+    }
   }
 
   @Override
@@ -183,7 +189,7 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
                 temporaryTableId.get(), config.getTableId());
-        bigQueryClient.waitForJob(queryJob);
+        bigQueryClient.waitForJob(queryJob, JobOperation.DYNAMIC_PARTITION_OVERWRITE);
       } else {
         loadDataToBigQuery(sourceUris, schema);
       }
@@ -195,7 +201,6 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     } finally {
       cleanTemporaryGcsPathIfNeeded(epochId);
     }
-    logger.info("Data has been successfully loaded to BigQuery");
   }
 
   void loadDataToBigQuery(List<String> sourceUris, Schema schema) throws IOException {

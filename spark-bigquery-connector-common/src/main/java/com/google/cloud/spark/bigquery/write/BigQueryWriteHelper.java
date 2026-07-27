@@ -27,6 +27,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.JobOperation;
 import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
@@ -149,7 +150,7 @@ public class BigQueryWriteHelper {
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
                 temporaryTableId.get(), config.getTableId());
-        bigQueryClient.waitForJob(queryJob);
+        bigQueryClient.waitForJob(queryJob, JobOperation.DYNAMIC_PARTITION_OVERWRITE);
       } else {
         loadDataToBigQuery();
       }
@@ -242,7 +243,12 @@ public class BigQueryWriteHelper {
         updatedTableInfo.setLabels(config.getBigQueryTableLabels()).build();
       }
 
-      bigQueryClient.update(updatedTableInfo.build());
+      TableInfo tableToUpdate = updatedTableInfo.build();
+      logger.debug("Updating table metadata: {}", tableToUpdate);
+      long startTime = System.currentTimeMillis();
+      bigQueryClient.update(tableToUpdate);
+      long duration = System.currentTimeMillis() - startTime;
+      logger.info("Updated table metadata in {}ms", duration);
     }
   }
 

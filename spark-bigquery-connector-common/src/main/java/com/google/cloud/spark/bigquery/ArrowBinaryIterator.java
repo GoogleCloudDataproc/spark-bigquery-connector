@@ -52,6 +52,7 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
   Iterator<InternalRow> currentIterator;
   List<String> columnsInOrder;
   Map<String, StructField> userProvidedFieldMap;
+  private final boolean enableTimestampRebase;
 
   public ArrowBinaryIterator(
       List<String> columnsInOrder,
@@ -60,6 +61,24 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
       Optional<StructType> userProvidedSchema,
       Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer,
       ResponseCompressionCodec responseCompressionCodec) {
+    this(
+        columnsInOrder,
+        schema,
+        readRowsResponse,
+        userProvidedSchema,
+        bigQueryStorageReadRowsTracer,
+        responseCompressionCodec,
+        true);
+  }
+
+  public ArrowBinaryIterator(
+      List<String> columnsInOrder,
+      ByteString schema,
+      ReadRowsResponse readRowsResponse,
+      Optional<StructType> userProvidedSchema,
+      Optional<BigQueryStorageReadRowsTracer> bigQueryStorageReadRowsTracer,
+      ResponseCompressionCodec responseCompressionCodec,
+      boolean enableTimestampRebase) {
     BufferAllocator allocator =
         ArrowUtil.newRootAllocator(maxAllocation)
             .newChildAllocator("ArrowBinaryIterator", 0, maxAllocation);
@@ -90,6 +109,7 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
             .collect(Collectors.toMap(StructField::name, Function.identity()));
 
     this.bigQueryStorageReadRowsTracer = bigQueryStorageReadRowsTracer;
+    this.enableTimestampRebase = enableTimestampRebase;
   }
 
   @Override
@@ -116,7 +136,7 @@ public class ArrowBinaryIterator implements Iterator<InternalRow> {
             .map(
                 vector ->
                     ArrowSchemaConverter.newArrowSchemaConverter(
-                        vector, userProvidedFieldMap.get(vector.getName())))
+                        vector, userProvidedFieldMap.get(vector.getName()), enableTimestampRebase))
             .collect(Collectors.toList())
             .toArray(new ColumnVector[0]);
 

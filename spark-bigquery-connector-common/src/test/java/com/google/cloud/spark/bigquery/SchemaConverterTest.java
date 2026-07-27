@@ -743,6 +743,20 @@ public class SchemaConverterTest {
               .setMode(Field.Mode.NULLABLE)
               .build());
 
+  @Test
+  public void testSchemaConvertersConfigurationEnableArrowTimestampRebase() {
+    SchemaConvertersConfiguration config = SchemaConvertersConfiguration.of(true, 38, 9, false);
+    assertThat(config.getEnableArrowTimestampRebase()).isFalse();
+
+    SchemaConvertersConfiguration configDefault = SchemaConvertersConfiguration.createDefault();
+    assertThat(configDefault.getEnableArrowTimestampRebase()).isTrue();
+
+    SparkBigQueryConfig sparkConfig = new SparkBigQueryConfig();
+    // Default is true
+    assertThat(SchemaConvertersConfiguration.from(sparkConfig).getEnableArrowTimestampRebase())
+        .isTrue();
+  }
+
   private StructField simpleStructField(String name, DataType dataType) {
     return StructField.apply(name, dataType, /* nullable */ true, Metadata.empty());
   }

@@ -54,6 +54,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.grpc.Status;
 import io.grpc.Status.Code;
+import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -87,6 +88,8 @@ public class BigQueryUtil {
   public static final int DEFAULT_NUMERIC_SCALE = 9;
   public static final int DEFAULT_BIG_NUMERIC_PRECISION = 76;
   public static final int DEFAULT_BIG_NUMERIC_SCALE = 38;
+  public static final ImmutableSet<String> CDC_PSEUDO_COLUMNS =
+      ImmutableSet.of("_CHANGE_TYPE", "_CHANGE_SEQUENCE_NUMBER");
   private static final int NO_VALUE = -1;
   private static final long BIGQUERY_INTEGER_MIN_VALUE = Long.MIN_VALUE;
   static final ImmutableSet<String> INTERNAL_ERROR_MESSAGES =
@@ -152,6 +155,48 @@ public class BigQueryUtil {
           && statusRuntimeException.getMessage().contains(READ_SESSION_EXPIRED_ERROR_MESSAGE);
     }
     return false;
+  }
+
+  public static Throwable makeSerializable(Throwable t) {
+    if (t == null) {
+      return null;
+    }
+
+    return getCausalChain(t).stream()
+        .filter(BigQueryUtil::isGrpcStatusException)
+        .findFirst()
+        .map(BigQueryUtil::createSerializableGrpcStatusException)
+        .map(Throwable.class::cast)
+        .orElse(t);
+  }
+
+  private static boolean isGrpcStatusException(Throwable t) {
+    return t instanceof StatusRuntimeException || t instanceof StatusException;
+  }
+
+  private static SerializableGrpcStatusException createSerializableGrpcStatusException(
+      Throwable grpcException) {
+    String message = grpcException.getMessage();
+    Status status;
+    if (grpcException instanceof StatusException) {
+      status = ((StatusException) grpcException).getStatus();
+    } else if (grpcException instanceof StatusRuntimeException) {
+      status = ((StatusRuntimeException) grpcException).getStatus();
+    } else {
+      throw new IllegalArgumentException(
+          "Should be gRPC StatusException or StatusRuntimeException", grpcException);
+    }
+
+    String causeMessage =
+        grpcException.getCause() != null ? grpcException.getCause().toString() : null;
+
+    SerializableGrpcStatusException serializable =
+        new SerializableGrpcStatusException(
+            message, status.getCode(), status.getDescription(), causeMessage);
+
+    serializable.setStackTrace(grpcException.getStackTrace());
+
+    return serializable;
   }
 
   static BigQueryException convertToBigQueryException(BigQueryError error) {
@@ -1134,5 +1179,9 @@ public class BigQueryUtil {
       return "NULL";
     }
     return String.valueOf(fieldValue.getValue());
+  }
+
+  public static boolean isCdcPseudoColumn(Field field) {
+    return BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(field.getName().toUpperCase(Locale.ENGLISH));
   }
 }
