@@ -22,8 +22,10 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.connector.common.AccessTokenProvider;
 import com.google.cloud.bigquery.connector.common.AccessTokenProviderCredentials;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
+import com.google.cloud.bigquery.connector.common.FileCredentialsAccessTokenProvider;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -104,5 +106,40 @@ public class CustomCredentialsIntegrationTest {
     table = bigQuery.getTable(TABLE_ID);
     assertThat(table).isNotNull();
     assertThat(accessTokenProvider.getCallCount()).isEqualTo(2);
+  }
+
+  @Test
+  public void testAccessTokenProviderConfigOnly_defaultsToFileCredentialsAccessTokenProvider() {
+    String credentialsPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
+    if (credentialsPath != null && !credentialsPath.isEmpty()) {
+      BigQueryCredentialsSupplier credentialsSupplier =
+          new BigQueryCredentialsSupplier(
+              Optional.empty(),
+              Optional.of(credentialsPath),
+              Optional.empty(),
+              Optional.empty(),
+              Optional.empty(),
+              null,
+              null,
+              Optional.empty(),
+              Optional.empty(),
+              Optional.empty(),
+              Optional.empty(),
+              Optional.empty(),
+              Optional.empty(),
+              Optional.empty());
+      Credentials credentials = credentialsSupplier.getCredentials();
+      assertThat(credentials).isInstanceOf(AccessTokenProviderCredentials.class);
+      AccessTokenProvider provider =
+          ((AccessTokenProviderCredentials) credentials).getAccessTokenProvider();
+      assertThat(provider).isInstanceOf(FileCredentialsAccessTokenProvider.class);
+      assertThat(((FileCredentialsAccessTokenProvider) provider).getCredentialsPath())
+          .isEqualTo(credentialsPath);
+
+      BigQueryOptions options = BigQueryOptions.newBuilder().setCredentials(credentials).build();
+      BigQuery bigQuery = options.getService();
+      Table table = bigQuery.getTable(TABLE_ID);
+      assertThat(table).isNotNull();
+    }
   }
 }
