@@ -64,17 +64,25 @@ public class BigQueryCredentialsSupplier {
       Optional<String> proxyUsername,
       Optional<String> proxyPassword) {
     GoogleCredentials credentials;
-    if (accessTokenProviderFQCN.isPresent()) {
+    Optional<String> effectiveAccessTokenProviderFQCN =
+        accessTokenProviderFQCN.isPresent()
+            ? accessTokenProviderFQCN
+            : (accessTokenProviderConfig.isPresent()
+                ? Optional.of(FileCredentialsAccessTokenProvider.class.getName())
+                : Optional.empty());
+    if (effectiveAccessTokenProviderFQCN.isPresent()) {
       AccessTokenProvider accessTokenProvider =
           accessTokenProviderConfig
               .map(
                   config ->
                       createVerifiedInstance(
-                          accessTokenProviderFQCN.get(), AccessTokenProvider.class, config))
+                          effectiveAccessTokenProviderFQCN.get(),
+                          AccessTokenProvider.class,
+                          config))
               .orElseGet(
                   () ->
                       createVerifiedInstance(
-                          accessTokenProviderFQCN.get(), AccessTokenProvider.class));
+                          effectiveAccessTokenProviderFQCN.get(), AccessTokenProvider.class));
       credentials = new AccessTokenProviderCredentials(verifySerialization(accessTokenProvider));
     } else if (accessToken.isPresent()) {
       credentials = createCredentialsFromAccessToken(accessToken.get());

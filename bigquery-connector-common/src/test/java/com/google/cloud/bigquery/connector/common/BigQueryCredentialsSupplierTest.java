@@ -300,6 +300,34 @@ public class BigQueryCredentialsSupplierTest {
   }
 
   @Test
+  public void testAccessTokenProviderConfigDefaultFallback() {
+    Credentials credentials =
+        new BigQueryCredentialsSupplier(
+                Optional.empty(),
+                Optional.of("/dummy/credentials/path.json"),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                null,
+                null,
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty())
+            .getCredentials();
+
+    assertThat(credentials).isInstanceOf(AccessTokenProviderCredentials.class);
+    AccessTokenProvider provider =
+        ((AccessTokenProviderCredentials) credentials).getAccessTokenProvider();
+    assertThat(provider).isInstanceOf(FileCredentialsAccessTokenProvider.class);
+    assertThat(((FileCredentialsAccessTokenProvider) provider).getCredentialsPath())
+        .isEqualTo("/dummy/credentials/path.json");
+  }
+
+  @Test
   public void testCredentialsFromFileWithErrors() throws Exception {
     String json = createServiceAccountJson("file");
     File credentialsFile = File.createTempFile("dummy-credentials", ".json");
