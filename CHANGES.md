@@ -3,6 +3,7 @@
 ## Next
 
 * PR #1494: Added Support for Change Data Capture (CDC)
+* Issue #1503: Corrected the documented billing project option to `parentProject`.
 
 ## 0.44.2 - 2026-05-20
 
@@ -42,6 +43,9 @@
 * PR #1376: `materializationDataset` is now optional to read from views or queries.
 * PR #1380: Fixed ImpersonatedCredentials serialization
 * PR #1381: Added the option to set custom credentials scopes
+* PR #1400: Fixed issue #1379 by preventing indirect `SaveMode.Append` writes from updating table
+  metadata and requiring the `bigquery.tables.setCategory` permission; also fixed a redundant load
+  during dynamic partition overwrite.
 * PR #1411: Added Support for [SparkSession#executeCommand](https://archive.apache.org/dist/spark/docs/3.0.0/api/java/org/apache/spark/sql/SparkSession.html#executeCommand-java.lang.String-java.lang.String-scala.collection.immutable.Map-)
 * Issue #1421: Fix ArrowInputPartitionContext serialization issue. Thanks @mrjoe7 !
 * BigQuery API has been upgraded to version 2.54.0
