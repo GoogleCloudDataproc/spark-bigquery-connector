@@ -971,6 +971,26 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     return result;
   }
 
+  @SuppressWarnings("resource")
+  protected static JsonObject readAccessTokenProviderConfigOnlyApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    String credentialsPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("readAccessTokenProviderConfigOnlyApp")
+            .getOrCreate()
+            .newSession();
+    org.apache.spark.sql.DataFrameReader reader = spark.read().format("bigquery");
+    if (credentialsPath != null && !credentialsPath.isEmpty()) {
+      reader = reader.option("gcpAccessTokenProviderConfig", credentialsPath);
+    }
+    Dataset<Row> df = reader.load(TestConstants.SHAKESPEARE_TABLE);
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("count", df.count());
+    return result;
+  }
+
   // =========================================================================
   // JUNIT TEST CASES DELEGATION MAPPINGS
   // =========================================================================
@@ -1593,5 +1613,21 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
             ReadIntegrationTestBase::readCustomAccessTokenProviderApp, "", "", ImmutableMap.of());
     assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(result.get("count").getAsLong()).isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+  }
+
+  @Test
+  public void testAccessTokenProviderConfigOnly() throws Exception {
+    String credentialsPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
+    if (credentialsPath != null && !credentialsPath.isEmpty()) {
+      JsonObject result =
+          testRunner.run(
+              ReadIntegrationTestBase::readAccessTokenProviderConfigOnlyApp,
+              "",
+              "",
+              ImmutableMap.of());
+      assertThat(result.get("status").getAsString()).isEqualTo("success");
+      assertThat(result.get("count").getAsLong())
+          .isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+    }
   }
 }

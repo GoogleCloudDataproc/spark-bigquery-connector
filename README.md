@@ -1433,6 +1433,15 @@ spark.conf.set("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
 // Per read/Write
 spark.read.format("bigquery").option("credentials", "<SERVICE_ACCOUNT_JSON_IN_BASE64>")
 ```
+* For Workload Identity Federation (WIF) or external account key files requiring dynamic token refresh across Spark executors, set `gcpAccessTokenProviderConfig` to the path of your credentials JSON file:
+```
+// Globally
+spark.conf.set("gcpAccessTokenProviderConfig", "</path/to/credentials.json>")
+// Per read/Write
+spark.read.format("bigquery").option("gcpAccessTokenProviderConfig", "</path/to/credentials.json>")
+```
+  When `gcpAccessTokenProviderConfig` is set, `gcpAccessTokenProvider` automatically defaults to `com.google.cloud.bigquery.connector.common.FileCredentialsAccessTokenProvider`. This ensures credentials are 100% serializable across Spark executors (preventing `NotSerializableException` in direct write mode) while dynamically refreshing OAuth tokens for jobs running longer than 1 hour.
+
 * In cases where the user has an internal service providing the Google AccessToken, a custom implementation
   can be done, creating only the AccessToken and providing its TTL. Token refresh will re-generate a new token. In order
   to use this, implement the
