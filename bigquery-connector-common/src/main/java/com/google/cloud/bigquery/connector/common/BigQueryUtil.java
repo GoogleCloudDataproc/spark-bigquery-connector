@@ -43,6 +43,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.storage.v1.Exceptions.AppendSerializationError;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.common.annotations.VisibleForTesting;
@@ -99,6 +100,12 @@ public class BigQueryUtil {
           "Received unexpected EOS on DATA frame from server");
 
   static final String READ_SESSION_EXPIRED_ERROR_MESSAGE = "session expired at";
+
+  private static final int MAX_APPEND_ROW_ERRORS_IN_MESSAGE = 100;
+  // Java serialization uses modified UTF-8 for strings; this also bounds standard UTF-8 logs.
+  private static final int MAX_APPEND_ROW_ERRORS_SECTION_BYTES = 64 * 1024;
+  private static final String APPEND_ROW_ERRORS_PREFIX = "row errors (append request indexes): ";
+  private static final String ROW_ERROR_TEXT_TRUNCATED_SUFFIX = " [row error text truncated]";
 
   private static final String TARGET_ALIAS =
       "__target_" + UUID.randomUUID().toString().replace("-", "");
@@ -177,6 +184,14 @@ public class BigQueryUtil {
   private static SerializableGrpcStatusException createSerializableGrpcStatusException(
       Throwable grpcException) {
     String message = grpcException.getMessage();
+    if (grpcException instanceof AppendSerializationError) {
+      AppendSerializationError appendSerializationError = (AppendSerializationError) grpcException;
+      Map<Integer, String> rowErrors = appendSerializationError.getRowIndexToErrorMessage();
+      message =
+          format(
+              "%s; write stream: %s; %s",
+              message, appendSerializationError.getStreamName(), formatAppendRowErrors(rowErrors));
+    }
     Status status;
     if (grpcException instanceof StatusException) {
       status = ((StatusException) grpcException).getStatus();
@@ -197,6 +212,110 @@ public class BigQueryUtil {
     serializable.setStackTrace(grpcException.getStackTrace());
 
     return serializable;
+  }
+
+  private static String formatAppendRowErrors(@Nullable Map<Integer, String> rowErrors) {
+    if (rowErrors == null || rowErrors.isEmpty()) {
+      return APPEND_ROW_ERRORS_PREFIX + "{}";
+    }
+
+    TreeMap<Integer, String> lowestRowErrors = new TreeMap<>();
+    int totalRowErrorCount = 0;
+    for (Map.Entry<Integer, String> rowError : rowErrors.entrySet()) {
+      totalRowErrorCount++;
+      lowestRowErrors.put(rowError.getKey(), rowError.getValue());
+      if (lowestRowErrors.size() > MAX_APPEND_ROW_ERRORS_IN_MESSAGE) {
+        lowestRowErrors.pollLastEntry();
+      }
+    }
+
+    String maximumSuffix =
+        ROW_ERROR_TEXT_TRUNCATED_SUFFIX
+            + formatAdditionalRowErrorsOmittedSuffix(totalRowErrorCount);
+    int entriesByteLimit =
+        MAX_APPEND_ROW_ERRORS_SECTION_BYTES - modifiedUtf8Length(maximumSuffix) - 1;
+    StringBuilder formattedRowErrors = new StringBuilder(APPEND_ROW_ERRORS_PREFIX).append('{');
+    int formattedByteCount = modifiedUtf8Length(APPEND_ROW_ERRORS_PREFIX) + 1;
+    int formattedRowErrorCount = 0;
+    boolean rowErrorTextTruncated = false;
+
+    for (Map.Entry<Integer, String> rowError : lowestRowErrors.entrySet()) {
+      String separator = formattedRowErrorCount == 0 ? "" : ", ";
+      String rowErrorPrefix = separator + rowError.getKey() + "=";
+      int rowErrorPrefixByteCount = modifiedUtf8Length(rowErrorPrefix);
+      int remainingValueBytes = entriesByteLimit - formattedByteCount - rowErrorPrefixByteCount;
+      if (remainingValueBytes < 0) {
+        break;
+      }
+
+      formattedRowErrors.append(rowErrorPrefix);
+      formattedByteCount += rowErrorPrefixByteCount;
+      String rowErrorMessage = String.valueOf(rowError.getValue());
+      int originalLength = formattedRowErrors.length();
+      formattedByteCount +=
+          appendModifiedUtf8Prefix(formattedRowErrors, rowErrorMessage, remainingValueBytes);
+      formattedRowErrorCount++;
+      if (formattedRowErrors.length() - originalLength < rowErrorMessage.length()) {
+        rowErrorTextTruncated = true;
+        break;
+      }
+    }
+
+    formattedRowErrors.append('}');
+    if (rowErrorTextTruncated) {
+      formattedRowErrors.append(ROW_ERROR_TEXT_TRUNCATED_SUFFIX);
+    }
+    formattedRowErrors.append(
+        formatAdditionalRowErrorsOmittedSuffix(totalRowErrorCount - formattedRowErrorCount));
+    return formattedRowErrors.toString();
+  }
+
+  private static String formatAdditionalRowErrorsOmittedSuffix(int count) {
+    if (count == 0) {
+      return "";
+    }
+    return format(" [%d additional row error%s omitted]", count, count == 1 ? "" : "s");
+  }
+
+  private static int appendModifiedUtf8Prefix(
+      StringBuilder target, String value, int maximumBytes) {
+    int byteCount = 0;
+    int characterCount = 0;
+    while (characterCount < value.length()) {
+      char current = value.charAt(characterCount);
+      int currentCharacterCount =
+          Character.isHighSurrogate(current)
+                  && characterCount + 1 < value.length()
+                  && Character.isLowSurrogate(value.charAt(characterCount + 1))
+              ? 2
+              : 1;
+      int currentByteCount = modifiedUtf8Length(current);
+      if (currentCharacterCount == 2) {
+        currentByteCount += modifiedUtf8Length(value.charAt(characterCount + 1));
+      }
+      if (byteCount + currentByteCount > maximumBytes) {
+        break;
+      }
+      byteCount += currentByteCount;
+      characterCount += currentCharacterCount;
+    }
+    target.append(value, 0, characterCount);
+    return byteCount;
+  }
+
+  private static int modifiedUtf8Length(String value) {
+    int byteCount = 0;
+    for (int index = 0; index < value.length(); index++) {
+      byteCount += modifiedUtf8Length(value.charAt(index));
+    }
+    return byteCount;
+  }
+
+  private static int modifiedUtf8Length(char value) {
+    if (value >= 0x0001 && value <= 0x007f) {
+      return 1;
+    }
+    return value <= 0x07ff ? 2 : 3;
   }
 
   static BigQueryException convertToBigQueryException(BigQueryError error) {
