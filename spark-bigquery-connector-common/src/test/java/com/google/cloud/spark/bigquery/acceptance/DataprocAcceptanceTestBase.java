@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.acceptance;
 
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.CONNECTOR_JAR_DIRECTORY;
+import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.DATAPROC_CLUSTER;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.DATAPROC_ENDPOINT;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MAX_BIG_NUMERIC;
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestConstants.MIN_BIG_NUMERIC;
@@ -111,6 +112,9 @@ public class DataprocAcceptanceTestBase {
       Map<String, String> properties,
       String connectorJarUri)
       throws Exception {
+    if (DATAPROC_CLUSTER.filter(s -> !s.isEmpty()).isPresent()) {
+      return DATAPROC_CLUSTER.get();
+    }
     String clusterName = generateClusterName(testId);
     cluster(
         client ->
@@ -124,6 +128,10 @@ public class DataprocAcceptanceTestBase {
   }
 
   protected static void terminateCluster(String clusterName) throws Exception {
+    if (DATAPROC_CLUSTER.filter(s -> !s.isEmpty()).isPresent()) {
+      // already spin up cluster are not terminated
+      return;
+    }
     cluster(client -> client.deleteClusterAsync(PROJECT_ID, REGION, clusterName).get());
   }
 
@@ -250,7 +258,7 @@ public class DataprocAcceptanceTestBase {
     assertThat(output.trim()).isEqualTo(MIN_BIG_NUMERIC + "," + MAX_BIG_NUMERIC);
   }
 
-  private Job createAndRunPythonJob(
+  protected Job createAndRunPythonJob(
       String testName, String pythonFile, String pythonZipUri, List<String> args) throws Exception {
     AcceptanceTestUtils.uploadToGcs(
         getClass().getResourceAsStream("/acceptance/" + pythonFile),
@@ -266,7 +274,7 @@ public class DataprocAcceptanceTestBase {
     return runAndWait(job, Duration.ofSeconds(TIMEOUT_IN_SECONDS));
   }
 
-  private PySparkJob.Builder createPySparkJobBuilder(
+  protected PySparkJob.Builder createPySparkJobBuilder(
       String testName, String pythonZipUri, List<String> args) {
     PySparkJob.Builder builder =
         PySparkJob.newBuilder()
@@ -285,7 +293,7 @@ public class DataprocAcceptanceTestBase {
     return builder;
   }
 
-  private Job runAndWait(Job job, Duration timeout) throws Exception {
+  protected Job runAndWait(Job job, Duration timeout) throws Exception {
     try (JobControllerClient jobControllerClient =
         JobControllerClient.create(
             JobControllerSettings.newBuilder().setEndpoint(DATAPROC_ENDPOINT).build())) {
