@@ -5,6 +5,20 @@
 * PR #1494: Added Support for Change Data Capture (CDC)
 * Issue #1501: Preserved detailed row errors from failed direct writes
 * Issue #1503: Corrected the documented billing project option to `parentProject`.
+* CVE-2025-24970, CVE-2025-25193: Netty has been upgraded to version 4.2.16.Final
+* CVE-2023-5072: org.json has been upgraded to version 20260719
+* BigQuery API has been upgraded to version 2.69.0
+* BigQuery Storage API has been upgraded to version 3.31.0
+* GAX has been upgraded to version 2.83.0
+* Google Auth has been upgraded to version 1.50.0
+* Google Cloud Dataproc has been upgraded to version 4.92.0
+* Google Cloud Storage has been upgraded to version 2.71.0
+* gRPC has been upgraded to version 1.83.1
+* Guava has been upgraded to version 33.6.0-jre
+* OpenLineage Spark has been upgraded to version 1.52.0
+* commons-codec has been upgraded to version 1.22.1
+* commons-io has been upgraded to version 2.22.0
+* error_prone_annotations has been upgraded to version 2.50.0
 
 ## 0.44.2 - 2026-05-20
 
