@@ -745,7 +745,6 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
   @Test
   public void testWindowFunctionPartitionByWithArray() throws Exception {
-    assumeTrue("This test only works for AVRO dataformat", dataFormat.equals("AVRO"));
     JsonObject result =
         testRunner.run(
             ReadByFormatIntegrationTestBase::readGA4WindowFunctionApp,
