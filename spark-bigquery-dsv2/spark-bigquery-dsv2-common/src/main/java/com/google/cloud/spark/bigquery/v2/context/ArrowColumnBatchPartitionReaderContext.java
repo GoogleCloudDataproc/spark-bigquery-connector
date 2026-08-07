@@ -63,32 +63,45 @@ public class ArrowColumnBatchPartitionReaderContext
     implements InputPartitionReaderContext<ColumnarBatch> {
   private static final long maxAllocation = 500 * 1024 * 1024;
 
-  private static void ensureStructVectorsHaveChildren(VectorSchemaRoot root) {
-    if (root == null) {
+  static void ensureStructVectorsHaveChildren(VectorSchemaRoot root) {
+    if (root == null || root.getSchema() == null) {
       return;
     }
-    for (FieldVector vector : root.getFieldVectors()) {
-      ensureStructVectorsHaveChildren(vector);
+    List<Field> fields = root.getSchema().getFields();
+    List<FieldVector> vectors = root.getFieldVectors();
+    ensureStructVectorsHaveChildren(fields, vectors);
+  }
+
+  static void ensureStructVectorsHaveChildren(List<Field> fields, List<FieldVector> vectors) {
+    if (fields == null || vectors == null) {
+      return;
+    }
+    int count = Math.min(fields.size(), vectors.size());
+    for (int i = 0; i < count; i++) {
+      ensureStructVectorsHaveChildren(fields.get(i), vectors.get(i));
     }
   }
 
-  private static void ensureStructVectorsHaveChildren(FieldVector vector) {
+  static void ensureStructVectorsHaveChildren(Field field, FieldVector vector) {
+    if (field == null || vector == null) {
+      return;
+    }
     if (vector instanceof StructVector) {
       StructVector structVector = (StructVector) vector;
       if (structVector.getChildrenFromFields().isEmpty()) {
-        List<Field> children = structVector.getField().getChildren();
+        List<Field> children = field.getChildren();
         if (children != null && !children.isEmpty()) {
           structVector.initializeChildrenFromFields(children);
         }
       }
-      for (FieldVector child : structVector.getChildrenFromFields()) {
-        ensureStructVectorsHaveChildren(child);
-      }
+      List<Field> childFields = field.getChildren();
+      List<FieldVector> childVectors = structVector.getChildrenFromFields();
+      ensureStructVectorsHaveChildren(childFields, childVectors);
     } else if (vector instanceof ListVector) {
       ListVector listVector = (ListVector) vector;
       FieldVector dataVector = listVector.getDataVector();
-      if (dataVector != null) {
-        ensureStructVectorsHaveChildren(dataVector);
+      if (dataVector != null && field.getChildren() != null && !field.getChildren().isEmpty()) {
+        ensureStructVectorsHaveChildren(field.getChildren().get(0), dataVector);
       }
     }
   }

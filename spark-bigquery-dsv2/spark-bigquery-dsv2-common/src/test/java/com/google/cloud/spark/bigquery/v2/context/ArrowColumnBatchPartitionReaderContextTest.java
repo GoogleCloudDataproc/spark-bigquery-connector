@@ -82,14 +82,13 @@ public class ArrowColumnBatchPartitionReaderContextTest {
         ArrowRecordBatch batchToLoad = recordBatch) {
       assertThat(targetStructVec.getChildrenFromFields()).isEmpty();
 
-      // Initialize children matching the schema fields
-      targetStructVec.initializeChildrenFromFields(structField.getChildren());
-      assertThat(targetStructVec.getChildrenFromFields()).hasSize(1);
-
-      FieldVector targetFieldVec = targetStructVec;
       VectorSchemaRoot targetRoot =
           new VectorSchemaRoot(
-              ImmutableList.of(targetFieldVec.getField()), ImmutableList.of(targetFieldVec));
+              ImmutableList.of(structField), ImmutableList.of((FieldVector) targetStructVec));
+
+      // Test package-private method ensureStructVectorsHaveChildren using Schema metadata
+      ArrowColumnBatchPartitionReaderContext.ensureStructVectorsHaveChildren(targetRoot);
+      assertThat(targetStructVec.getChildrenFromFields()).hasSize(1);
 
       VectorLoader loader = new VectorLoader(targetRoot);
       loader.load(batchToLoad);
