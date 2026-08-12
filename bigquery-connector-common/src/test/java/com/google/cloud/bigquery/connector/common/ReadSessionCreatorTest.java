@@ -360,6 +360,75 @@ public class ReadSessionCreatorTest {
         .isEqualTo(TableModifiers.newBuilder().build());
   }
 
+  @Test
+  public void testDottedNestedSelectedFieldsArePropagatedForBaseTable() throws Exception {
+    ReadSessionCreatorConfig config =
+        new ReadSessionCreatorConfigBuilder().setEnableReadSessionCaching(false).build();
+    ReadSessionCreator creator =
+        new ReadSessionCreator(config, bigQueryClient, bigQueryReadClientFactory);
+    when(bigQueryReadClientFactory.getBigQueryReadClient()).thenReturn(readClient);
+    when(bigQueryClient.getTable(any())).thenReturn(table);
+    when(stub.createReadSessionCallable()).thenReturn(createReadSessionCall);
+
+    creator.create(
+        TableId.of("dataset", "table"),
+        ImmutableList.of("col1", "repository.url", "repository.owner.login"),
+        Optional.empty());
+
+    ArgumentCaptor<CreateReadSessionRequest> requestCaptor =
+        ArgumentCaptor.forClass(CreateReadSessionRequest.class);
+    verify(createReadSessionCall, times(1)).call(requestCaptor.capture());
+    // Dotted nested paths must reach the Storage Read API unchanged so BigQuery returns the
+    // nested-pruned schema. b/534631726.
+    assertThat(requestCaptor.getValue().getReadSession().getReadOptions().getSelectedFieldsList())
+        .containsExactly("col1", "repository.url", "repository.owner.login")
+        .inOrder();
+  }
+
+  @Test
+  public void testViewMaterializationUsesTopLevelColumns() throws Exception {
+    String query = "SELECT * FROM `a.v`";
+    when(bigQueryClient.getTable(any())).thenReturn(view);
+    when(bigQueryClient.createSql(
+            any(TableId.class),
+            any(ImmutableList.class),
+            any(String[].class),
+            any(OptionalLong.class)))
+        .thenReturn(query);
+    when(bigQueryClient.materializeViewToTable(query, view.getTableId(), 120)).thenReturn(table);
+    mockBigQueryRead.reset();
+    mockBigQueryRead.addResponse(
+        ReadSession.newBuilder().addStreams(ReadStream.newBuilder().setName("0")).build());
+    BigQueryClientFactory mockBigQueryClientFactory = mock(BigQueryClientFactory.class);
+    when(mockBigQueryClientFactory.getBigQueryReadClient()).thenReturn(client);
+
+    ReadSessionCreatorConfig config =
+        new ReadSessionCreatorConfigBuilder()
+            .setEnableReadSessionCaching(false)
+            .setViewsEnabled(true)
+            .build();
+    ReadSessionCreator creator =
+        new ReadSessionCreator(config, bigQueryClient, mockBigQueryClientFactory);
+
+    creator.create(
+        view.getTableId(),
+        ImmutableList.of("repository.url", "repository.owner.login", "url"),
+        Optional.empty());
+
+    // View-materialization SQL only understands top-level column names; dotted paths would break
+    // it (e.g. SELECT repository.url returns a scalar named "url"). b/534631726.
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<ImmutableList<String>> columnsCaptor =
+        ArgumentCaptor.forClass(ImmutableList.class);
+    verify(bigQueryClient)
+        .createSql(
+            any(TableId.class),
+            columnsCaptor.capture(),
+            any(String[].class),
+            any(OptionalLong.class));
+    assertThat(columnsCaptor.getValue()).containsExactly("repository", "url").inOrder();
+  }
+
   private void testCacheMissScenario(
       ReadSessionCreator creator,
       String readSessionName,

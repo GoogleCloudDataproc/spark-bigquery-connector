@@ -31,6 +31,7 @@ import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.ReadStream;
+import com.google.cloud.spark.bigquery.NestedSchemaPruning;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
@@ -304,12 +305,13 @@ public class BigQueryDataSourceReaderContext {
                 .map(Field::getName)
                 .collect(ImmutableList.toImmutableList());
       } else {
-        Set<String> requiredColumnSet = ImmutableSet.copyOf(selectedFields);
-        schema =
-            Schema.of(
-                schema.getFields().stream()
-                    .filter(field -> requiredColumnSet.contains(field.getName()))
-                    .collect(Collectors.toList()));
+        // Prune the BigQuery schema (including nested struct sub-fields) to match the pruned schema
+        // BigQuery returns on the wire. selectedFields (top-level names) is still used as the
+        // AVRO converter's column order; the nested pruning is driven by readSchema(). b/534631726.
+        Set<String> selectedFieldPaths =
+            ImmutableSet.copyOf(
+                this.schema.map(NestedSchemaPruning::toSelectedFieldPaths).orElse(selectedFields));
+        schema = NestedSchemaPruning.pruneBigQuerySchema(schema, selectedFieldPaths);
       }
       return ReadRowsResponseToInternalRowIteratorConverter.avro(
           schema,
@@ -329,8 +331,14 @@ public class BigQueryDataSourceReaderContext {
         schema
             .map(requiredSchema -> ImmutableList.copyOf(requiredSchema.fieldNames()))
             .orElse(ImmutableList.copyOf(fields.keySet()));
+    // Top-level names (above) are used by the Arrow/AVRO readers. The read session, however, is
+    // given dotted leaf paths (e.g. "repository.url") so BigQuery returns exactly the nested-pruned
+    // schema reported by readSchema(). See NestedSchemaPruning and b/534631726.
+    ImmutableList<String> readSessionSelectedFields =
+        schema.map(NestedSchemaPruning::toSelectedFieldPaths).orElse(selectedFields);
     Optional<String> filter = getCombinedFilter();
-    ReadSessionResponse response = readSessionCreator.create(tableId, selectedFields, filter);
+    ReadSessionResponse response =
+        readSessionCreator.create(tableId, readSessionSelectedFields, filter);
     logger.info(
         "Got read session for {}: {} for application id: {}",
         tableId.toString(),
@@ -439,19 +447,15 @@ public class BigQueryDataSourceReaderContext {
   }
 
   public void pruneColumns(StructType requiredSchema) {
-    // requiredSchema may be nested column pruned, which is not supported yet.
+    // requiredSchema may be nested (struct) column pruned by Spark (notably Spark 3.5+).
+    // Honor it so readSchema() matches exactly what BigQuery returns on the wire; otherwise
+    // Spark 3.5's stricter DataSourceV2 output validation throws a schema-resolution error
+    // (b/534631726). ARRAY<STRUCT>/MAP fields are kept whole (see NestedSchemaPruning); Spark
+    // projects those in-engine.
     this.schema =
         this.schema.map(
-            prevSchema -> {
-              Set<String> requiredCols = ImmutableSet.copyOf(requiredSchema.fieldNames());
-              StructType prunedSchema = new StructType();
-              for (StructField field : prevSchema.fields()) {
-                if (requiredCols.contains(field.name())) {
-                  prunedSchema = prunedSchema.add(field);
-                }
-              }
-              return prunedSchema;
-            });
+            prevSchema ->
+                NestedSchemaPruning.computeEffectiveReadSchema(prevSchema, requiredSchema));
   }
 
   public StatisticsContext estimateStatistics() {

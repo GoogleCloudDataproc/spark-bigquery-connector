@@ -6,6 +6,10 @@
 * Issue #1501: Preserved detailed row errors from failed direct writes
 * Issue #1503: Corrected the documented billing project option to `parentProject`.
 * PR #1510: Handle Arrow StructVectors with 0 child vectors in ArrowColumnBatchPartitionReaderContext
+* PR #1512: Fixed a schema-resolution error on Spark 3.5 when reading a nested
+  STRUCT column with a filter Spark cannot push down (e.g. `struct_col IS NOT
+  NULL`). The DataSource V2 reader now honors Spark's nested schema pruning and
+  pushes matching nested `selected_fields` to the BigQuery Storage Read API.
 
 ## 0.44.2 - 2026-05-20
 
