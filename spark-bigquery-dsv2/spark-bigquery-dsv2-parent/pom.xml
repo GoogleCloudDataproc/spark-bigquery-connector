@@ -109,7 +109,19 @@
               <classesDirectory>${basedir}/src/build/javadoc</classesDirectory>
             </configuration>
           </execution>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <configuration>
+          <shadeTestJar>true</shadeTestJar>
+        </configuration>
       </plugin>
     </plugins>
   </build>

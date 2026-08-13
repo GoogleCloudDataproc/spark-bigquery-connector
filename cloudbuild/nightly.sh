@@ -97,6 +97,9 @@ case $STEP in
     gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-metrics/${BUILD_REVISION}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}"
     gsutil cp "gs://${BUCKET}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-metrics-nightly-snapshot.jar"
 
+    # Upload the newly created integration tests shaded jar
+    find "${M2REPO}/com/google/cloud/spark" -name "*-tests.jar" -exec gsutil cp {} "gs://dataproc-integration-test-input/spark-bigquery-integration-test/" \;
+
     exit
     ;;
 
