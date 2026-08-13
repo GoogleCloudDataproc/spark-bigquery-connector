@@ -105,6 +105,20 @@ public final class NestedSchemaPruning {
     return ImmutableList.copyOf(paths);
   }
 
+  /**
+   * Converts an effective read schema into BigQuery {@code selected_fields}, keeping unchanged
+   * structs selected as a whole and using dotted paths only where Spark actually pruned children.
+   *
+   * @param fullSchema the schema before Spark's column pruning
+   * @param effectiveSchema the schema after Spark's column pruning
+   */
+  public static ImmutableList<String> toSelectedFieldPaths(
+      StructType fullSchema, StructType effectiveSchema) {
+    List<String> paths = new ArrayList<>();
+    collectComparedPaths(fullSchema, effectiveSchema, "", paths);
+    return ImmutableList.copyOf(paths);
+  }
+
   private static void collectPaths(StructType schema, String prefix, List<String> paths) {
     for (StructField field : schema.fields()) {
       String path = prefix.isEmpty() ? field.name() : prefix + "." + field.name();
@@ -113,6 +127,39 @@ public final class NestedSchemaPruning {
       } else {
         paths.add(path);
       }
+    }
+  }
+
+  private static void collectComparedPaths(
+      StructType fullSchema, StructType effectiveSchema, String prefix, List<String> paths) {
+    Set<String> fullNames = new HashSet<>();
+    for (String name : fullSchema.fieldNames()) {
+      fullNames.add(name);
+    }
+    for (StructField effectiveField : effectiveSchema.fields()) {
+      String path = prefix.isEmpty() ? effectiveField.name() : prefix + "." + effectiveField.name();
+      if (!fullNames.contains(effectiveField.name())) {
+        collectFieldPaths(effectiveField, path, paths);
+        continue;
+      }
+      StructField fullField = fullSchema.apply(effectiveField.name());
+      DataType fullType = fullField.dataType();
+      DataType effectiveType = effectiveField.dataType();
+      if (fullType.equals(effectiveType) || !(effectiveType instanceof StructType)) {
+        paths.add(path);
+      } else if (fullType instanceof StructType) {
+        collectComparedPaths((StructType) fullType, (StructType) effectiveType, path, paths);
+      } else {
+        collectFieldPaths(effectiveField, path, paths);
+      }
+    }
+  }
+
+  private static void collectFieldPaths(StructField field, String path, List<String> paths) {
+    if (field.dataType() instanceof StructType && !((StructType) field.dataType()).isEmpty()) {
+      collectPaths((StructType) field.dataType(), path, paths);
+    } else {
+      paths.add(path);
     }
   }
 
@@ -136,13 +183,7 @@ public final class NestedSchemaPruning {
     for (Field field : fields) {
       String path = prefix.isEmpty() ? field.getName() : prefix + "." + field.getName();
       boolean wholeSelected = selectedPaths.contains(path);
-      boolean subSelected = false;
-      for (String selectedPath : selectedPaths) {
-        if (selectedPath.startsWith(path + ".")) {
-          subSelected = true;
-          break;
-        }
-      }
+      boolean subSelected = hasSelectedDescendant(selectedPaths, path);
       if (!wholeSelected && !subSelected) {
         continue;
       }
@@ -158,5 +199,15 @@ public final class NestedSchemaPruning {
       }
     }
     return FieldList.of(result);
+  }
+
+  private static boolean hasSelectedDescendant(Set<String> selectedPaths, String path) {
+    String prefix = path + ".";
+    for (String selectedPath : selectedPaths) {
+      if (selectedPath.startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

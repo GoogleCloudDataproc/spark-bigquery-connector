@@ -66,6 +66,35 @@ public class NestedSchemaPruningTest {
     assertThat(effectiveOwner.fieldNames()).asList().containsExactly("login");
     assertThat(NestedSchemaPruning.toSelectedFieldPaths(effective))
         .containsExactly("repository.owner.login");
+    assertThat(NestedSchemaPruning.toSelectedFieldPaths(full, effective))
+        .containsExactly("repository.owner.login");
+  }
+
+  @Test
+  public void unchangedStructSelection_keepsTopLevelPath() {
+    StructType repository =
+        new StructType().add("url", DataTypes.StringType).add("id", DataTypes.LongType);
+    StructType full =
+        new StructType().add("url", DataTypes.StringType).add("repository", repository);
+
+    assertThat(NestedSchemaPruning.toSelectedFieldPaths(full, full))
+        .containsExactly("url", "repository")
+        .inOrder();
+  }
+
+  @Test
+  public void partiallyPrunedStruct_keepsUnchangedNestedStructWhole() {
+    StructType owner =
+        new StructType().add("login", DataTypes.StringType).add("id", DataTypes.LongType);
+    StructType repository = new StructType().add("url", DataTypes.StringType).add("owner", owner);
+    StructType full = new StructType().add("repository", repository);
+    StructType requiredRepository = new StructType().add("owner", owner);
+    StructType required = new StructType().add("repository", requiredRepository);
+
+    StructType effective = NestedSchemaPruning.computeEffectiveReadSchema(full, required);
+
+    assertThat(NestedSchemaPruning.toSelectedFieldPaths(full, effective))
+        .containsExactly("repository.owner");
   }
 
   @Test
@@ -85,7 +114,7 @@ public class NestedSchemaPruningTest {
     assertThat(effective.fieldNames()).asList().containsExactly("url", "repository").inOrder();
     StructType effectiveRepo = (StructType) effective.apply("repository").dataType();
     assertThat(effectiveRepo.fieldNames()).asList().containsExactly("url");
-    assertThat(NestedSchemaPruning.toSelectedFieldPaths(effective))
+    assertThat(NestedSchemaPruning.toSelectedFieldPaths(full, effective))
         .containsExactly("url", "repository.url");
   }
 

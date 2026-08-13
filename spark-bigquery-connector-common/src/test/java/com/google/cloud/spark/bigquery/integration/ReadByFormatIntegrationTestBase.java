@@ -496,6 +496,32 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     assertThat(result.get("equal").getAsBoolean()).isTrue();
   }
 
+  @Test
+  public void testNestedStructProjectionWithFilter() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readNestedStructProjectionWithFilterApp,
+            "",
+            "",
+            ImmutableMap.of("dataFormat", dataFormat));
+
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("rowCount").getAsInt()).isGreaterThan(0);
+  }
+
+  @Test
+  public void testNestedFieldProjection() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readNestedFieldProjectionApp,
+            "",
+            "",
+            ImmutableMap.of("dataFormat", dataFormat));
+
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("rowCount").getAsInt()).isEqualTo(4);
+  }
+
   // =========================================================================
   // SCENARIO: Read BQ Map and convert to Spark Map
   // =========================================================================
