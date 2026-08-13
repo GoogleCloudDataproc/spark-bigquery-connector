@@ -29,6 +29,7 @@ import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.RangePartitioning;
@@ -1706,6 +1707,68 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .option("dataset", testDataset.toString())
         .option("table", testTable)
         .load();
+  }
+
+  @Test
+  public void testOverwriteDynamicPartitionWithRetainedPartitionOptions() {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    String orderId = "order_id";
+    String orderDateTime = "order_date_time";
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+
+    StructType schema =
+        structType(
+            StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+            StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty()));
+    Dataset<Row> initialData =
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create(1, Timestamp.valueOf("2025-01-01 10:00:00")),
+                RowFactory.create(2, Timestamp.valueOf("2025-01-01 11:00:00"))),
+            schema);
+    Dataset<Row> replacementData =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create(3, Timestamp.valueOf("2025-01-01 10:30:00"))), schema);
+
+    for (Dataset<Row> df : Arrays.asList(initialData, replacementData)) {
+      df.write()
+          .format("bigquery")
+          .mode(SaveMode.Overwrite)
+          .option("dataset", testDataset.toString())
+          .option("table", testTable)
+          .option("writeMethod", writeMethod.toString())
+          .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+          .option("createDisposition", JobInfo.CreateDisposition.CREATE_IF_NEEDED.toString())
+          .option("partitionField", orderDateTime)
+          .option("partitionType", TimePartitioning.Type.HOUR.toString())
+          .option(
+              "spark.sql.sources.partitionOverwriteMode", PartitionOverwriteMode.DYNAMIC.toString())
+          .save();
+    }
+
+    StandardTableDefinition tableDefinition =
+        bq.getTable(testDataset.toString(), testTable).getDefinition();
+    assertThat(tableDefinition.getTimePartitioning().getField()).isEqualTo(orderDateTime);
+    assertThat(tableDefinition.getTimePartitioning().getType())
+        .isEqualTo(TimePartitioning.Type.HOUR);
+
+    Dataset<Row> result =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    List<Row> rows = result.collectAsList();
+    rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
+
+    assertThat(rows).hasSize(2);
+    assertThat(rows.get(0).getLong(rows.get(0).fieldIndex(orderId))).isEqualTo(2);
+    assertThat(rows.get(0).getTimestamp(rows.get(0).fieldIndex(orderDateTime)))
+        .isEqualTo(Timestamp.valueOf("2025-01-01 11:00:00"));
+    assertThat(rows.get(1).getLong(rows.get(1).fieldIndex(orderId))).isEqualTo(3);
+    assertThat(rows.get(1).getTimestamp(rows.get(1).fieldIndex(orderDateTime)))
+        .isEqualTo(Timestamp.valueOf("2025-01-01 10:30:00"));
   }
 
   @Test

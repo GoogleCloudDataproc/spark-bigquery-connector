@@ -909,6 +909,18 @@ public class BigQueryClient {
       JobInfo.WriteDisposition writeDisposition,
       Optional<Schema> schema,
       TableId destinationTable) {
+    return loadDataIntoTable(
+        options, sourceUris, formatOptions, writeDisposition, schema, destinationTable, true);
+  }
+
+  public JobStatistics.LoadStatistics loadDataIntoTable(
+      LoadDataOptions options,
+      List<String> sourceUris,
+      FormatOptions formatOptions,
+      JobInfo.WriteDisposition writeDisposition,
+      Optional<Schema> schema,
+      TableId destinationTable,
+      boolean applyDestinationTableLayoutOptions) {
     LoadJobConfiguration.Builder jobConfiguration =
         jobConfigurationFactory
             .createLoadJobConfigurationBuilder(destinationTable, sourceUris, formatOptions)
@@ -924,7 +936,8 @@ public class BigQueryClient {
 
     options.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
 
-    if (options.getPartitionField().isPresent() || options.getPartitionType().isPresent()) {
+    if (applyDestinationTableLayoutOptions
+        && (options.getPartitionField().isPresent() || options.getPartitionType().isPresent())) {
       TimePartitioning.Builder timePartitionBuilder =
           TimePartitioning.newBuilder(options.getPartitionTypeOrDefault());
       options.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
@@ -934,20 +947,24 @@ public class BigQueryClient {
       options.getPartitionField().ifPresent(timePartitionBuilder::setField);
       jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
     }
-    if (options.getPartitionField().isPresent() && options.getPartitionRange().isPresent()) {
+    if (applyDestinationTableLayoutOptions
+        && options.getPartitionField().isPresent()
+        && options.getPartitionRange().isPresent()) {
       RangePartitioning.Builder rangePartitionBuilder = RangePartitioning.newBuilder();
       options.getPartitionField().ifPresent(rangePartitionBuilder::setField);
       options.getPartitionRange().ifPresent(rangePartitionBuilder::setRange);
       jobConfiguration.setRangePartitioning(rangePartitionBuilder.build());
     }
 
-    options
-        .getClusteredFields()
-        .ifPresent(
-            clusteredFields -> {
-              Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
-              jobConfiguration.setClustering(clustering);
-            });
+    if (applyDestinationTableLayoutOptions) {
+      options
+          .getClusteredFields()
+          .ifPresent(
+              clusteredFields -> {
+                Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
+                jobConfiguration.setClustering(clustering);
+              });
+    }
 
     if (options.isUseAvroLogicalTypes()) {
       jobConfiguration.setUseAvroLogicalTypes(true);

@@ -6,6 +6,7 @@
 * Issue #1501: Preserved detailed row errors from failed direct writes
 * Issue #1503: Corrected the documented billing project option to `parentProject`.
 * PR #1510: Handle Arrow StructVectors with 0 child vectors in ArrowColumnBatchPartitionReaderContext
+* Issue #1514: Fixed indirect dynamic overwrite when partition options are retained after table creation.
 
 ## 0.44.2 - 2026-05-20
 
