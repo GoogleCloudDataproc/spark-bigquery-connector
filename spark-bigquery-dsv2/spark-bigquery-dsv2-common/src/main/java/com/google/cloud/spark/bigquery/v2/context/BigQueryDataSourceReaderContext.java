@@ -258,7 +258,12 @@ public class BigQueryDataSourceReaderContext {
     }
 
     ImmutableList<String> partitionSelectedFields = tempSelectedFields;
-    Optional<StructType> arrowSchema = Optional.of(userProvidedSchema.orElse(readSchema()));
+    // Use the effective (nested-pruned) read schema so the Arrow reader's expected struct fields
+    // match exactly what BigQuery returns on the wire. userProvidedSchema is NOT pruned by
+    // pruneColumns, so relying on it here would make the reader expect sub-fields BigQuery omitted
+    // and crash with UnsupportedOperationException (b/534631726). readSchema() already reflects any
+    // user-provided schema (it seeds this.schema) plus the pruning applied in pruneColumns.
+    Optional<StructType> arrowSchema = Optional.of(readSchema());
     plannedInputPartitionContexts =
         Streams.stream(
                 Iterables.partition(
