@@ -82,11 +82,6 @@ public final class NestedSchemaPruning {
     if (fullType instanceof StructType && requiredType instanceof StructType) {
       StructType prunedChildren =
           computeEffectiveReadSchema((StructType) fullType, (StructType) requiredType);
-      // Defensive: never emit an empty struct (which would drop the field from selected_fields and
-      // desync readSchema from the wire). Fall back to the full struct definition.
-      if (prunedChildren.isEmpty()) {
-        return fullField;
-      }
       return new StructField(
           fullField.name(), prunedChildren, fullField.nullable(), fullField.metadata());
     }
@@ -148,7 +143,15 @@ public final class NestedSchemaPruning {
       if (fullType.equals(effectiveType) || !(effectiveType instanceof StructType)) {
         paths.add(path);
       } else if (fullType instanceof StructType) {
-        collectComparedPaths((StructType) fullType, (StructType) effectiveType, path, paths);
+        StructType effectiveStruct = (StructType) effectiveType;
+        if (effectiveStruct.isEmpty()) {
+          // Spark 4 uses an empty struct when it only needs the parent's nullability (for example,
+          // `repository IS NOT NULL`). Selecting the parent preserves its validity bitmap without
+          // requesting an arbitrary child.
+          paths.add(path);
+        } else {
+          collectComparedPaths((StructType) fullType, effectiveStruct, path, paths);
+        }
       } else {
         collectFieldPaths(effectiveField, path, paths);
       }

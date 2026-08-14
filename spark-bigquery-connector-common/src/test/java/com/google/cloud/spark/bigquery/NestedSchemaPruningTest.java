@@ -119,6 +119,24 @@ public class NestedSchemaPruningTest {
   }
 
   @Test
+  public void isNotNullOnStruct_preservesEmptyStructRequestedBySpark4() {
+    StructType repository =
+        new StructType().add("url", DataTypes.StringType).add("id", DataTypes.LongType);
+    StructType full =
+        new StructType().add("url", DataTypes.StringType).add("repository", repository);
+    StructType required =
+        new StructType().add("url", DataTypes.StringType).add("repository", new StructType());
+
+    StructType effective = NestedSchemaPruning.computeEffectiveReadSchema(full, required);
+
+    assertThat(effective.fieldNames()).asList().containsExactly("url", "repository").inOrder();
+    assertThat(((StructType) effective.apply("repository").dataType()).isEmpty()).isTrue();
+    assertThat(NestedSchemaPruning.toSelectedFieldPaths(full, effective))
+        .containsExactly("url", "repository")
+        .inOrder();
+  }
+
+  @Test
   public void arrayOfStruct_keptWhole_notNestedPruned() {
     StructType element =
         new StructType().add("a", DataTypes.StringType).add("b", DataTypes.StringType);

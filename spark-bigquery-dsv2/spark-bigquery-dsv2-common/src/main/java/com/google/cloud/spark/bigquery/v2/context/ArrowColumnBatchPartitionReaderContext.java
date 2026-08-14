@@ -64,30 +64,60 @@ public class ArrowColumnBatchPartitionReaderContext
   private static final long maxAllocation = 500 * 1024 * 1024;
 
   static void ensureStructVectorsHaveChildren(VectorSchemaRoot root) {
+    ensureStructVectorsHaveChildren(root, Optional.empty());
+  }
+
+  static void ensureStructVectorsHaveChildren(
+      VectorSchemaRoot root, Optional<StructType> expectedSchema) {
     if (root == null || root.getSchema() == null) {
       return;
     }
     List<Field> fields = root.getSchema().getFields();
     List<FieldVector> vectors = root.getFieldVectors();
-    ensureStructVectorsHaveChildren(fields, vectors);
+    Map<String, StructField> expectedFields =
+        Arrays.stream(expectedSchema.orElse(new StructType()).fields())
+            .collect(Collectors.toMap(StructField::name, field -> field));
+    ensureStructVectorsHaveChildren(fields, vectors, expectedFields);
   }
 
   static void ensureStructVectorsHaveChildren(List<Field> fields, List<FieldVector> vectors) {
+    ensureStructVectorsHaveChildren(fields, vectors, java.util.Collections.emptyMap());
+  }
+
+  private static void ensureStructVectorsHaveChildren(
+      List<Field> fields, List<FieldVector> vectors, Map<String, StructField> expectedFields) {
     if (fields == null || vectors == null) {
       return;
     }
     int count = Math.min(fields.size(), vectors.size());
     for (int i = 0; i < count; i++) {
-      ensureStructVectorsHaveChildren(fields.get(i), vectors.get(i));
+      Field field = fields.get(i);
+      ensureStructVectorsHaveChildren(field, vectors.get(i), expectedFields.get(field.getName()));
     }
   }
 
   static void ensureStructVectorsHaveChildren(Field field, FieldVector vector) {
+    ensureStructVectorsHaveChildren(field, vector, null);
+  }
+
+  private static void ensureStructVectorsHaveChildren(
+      Field field, FieldVector vector, StructField expectedField) {
     if (field == null || vector == null) {
       return;
     }
     if (vector instanceof StructVector) {
       StructVector structVector = (StructVector) vector;
+      StructType expectedStruct =
+          expectedField != null && expectedField.dataType() instanceof StructType
+              ? (StructType) expectedField.dataType()
+              : null;
+      // Spark 4 represents a struct needed only for an IS NULL/IS NOT NULL predicate as
+      // struct<>. BigQuery's Arrow schema still describes the table's children, while its record
+      // batches contain only the parent validity vector. Initializing those children makes Arrow
+      // 18 reject the batch with "found 0 expected N".
+      if (expectedStruct != null && expectedStruct.isEmpty()) {
+        return;
+      }
       if (structVector.getChildrenFromFields().isEmpty()) {
         List<Field> children = field.getChildren();
         if (children != null && !children.isEmpty()) {
@@ -96,12 +126,17 @@ public class ArrowColumnBatchPartitionReaderContext
       }
       List<Field> childFields = field.getChildren();
       List<FieldVector> childVectors = structVector.getChildrenFromFields();
-      ensureStructVectorsHaveChildren(childFields, childVectors);
+      Map<String, StructField> expectedChildren =
+          expectedStruct == null
+              ? java.util.Collections.emptyMap()
+              : Arrays.stream(expectedStruct.fields())
+                  .collect(Collectors.toMap(StructField::name, child -> child));
+      ensureStructVectorsHaveChildren(childFields, childVectors, expectedChildren);
     } else if (vector instanceof ListVector) {
       ListVector listVector = (ListVector) vector;
       FieldVector dataVector = listVector.getDataVector();
       if (dataVector != null && field.getChildren() != null && !field.getChildren().isEmpty()) {
-        ensureStructVectorsHaveChildren(field.getChildren().get(0), dataVector);
+        ensureStructVectorsHaveChildren(field.getChildren().get(0), dataVector, null);
       }
     }
   }
@@ -115,10 +150,10 @@ public class ArrowColumnBatchPartitionReaderContext
   static class SimpleAdapter implements ArrowReaderAdapter {
     private final ArrowReader reader;
 
-    SimpleAdapter(ArrowReader reader) {
+    SimpleAdapter(ArrowReader reader, Optional<StructType> expectedSchema) {
       this.reader = reader;
       try {
-        ensureStructVectorsHaveChildren(reader.getVectorSchemaRoot());
+        ensureStructVectorsHaveChildren(reader.getVectorSchemaRoot(), expectedSchema);
       } catch (IOException ignored) {
       }
     }
@@ -155,7 +190,8 @@ public class ArrowColumnBatchPartitionReaderContext
         List<ArrowReader> readers,
         ExecutorService executor,
         BigQueryStorageReadRowsTracer tracer,
-        AutoCloseable closeable) {
+        AutoCloseable closeable,
+        Optional<StructType> expectedSchema) {
       Schema schema = null;
       closeables.add(closeable);
       try {
@@ -172,10 +208,10 @@ public class ArrowColumnBatchPartitionReaderContext
           allocator.newChildAllocator("ParallelReaderAllocator", 0, maxAllocation);
       root = VectorSchemaRoot.create(schema, readerAllocator);
       closeables.add(root);
-      ensureStructVectorsHaveChildren(root);
+      ensureStructVectorsHaveChildren(root, expectedSchema);
       for (ArrowReader reader : readers) {
         try {
-          ensureStructVectorsHaveChildren(reader.getVectorSchemaRoot());
+          ensureStructVectorsHaveChildren(reader.getVectorSchemaRoot(), expectedSchema);
         } catch (IOException ignored) {
         }
       }
@@ -272,7 +308,8 @@ public class ArrowColumnBatchPartitionReaderContext
               ImmutableList.of(newArrowStreamReader(fullStream)),
               MoreExecutors.newDirectExecutorService(),
               tracer.forkWithPrefix("BackgroundReader"),
-              /* closeable= */ null);
+              /* closeable= */ null,
+              userProvidedSchema);
     } else if (numBackgroundThreads > 1) {
       // Subtract one because current excess tasks will be executed
       // on round robin thread in ParallelArrowReader.
@@ -303,12 +340,13 @@ public class ArrowColumnBatchPartitionReaderContext
               readers,
               backgroundParsingService,
               tracer.forkWithPrefix("MultithreadReader"),
-              multiplexer);
+              multiplexer,
+              userProvidedSchema);
     } else {
       // Zero background threads.
       InputStream fullStream =
           makeSingleInputStream(readRowsResponses, schema, tracer, responseCompressionCodec);
-      reader = new SimpleAdapter(newArrowStreamReader(fullStream));
+      reader = new SimpleAdapter(newArrowStreamReader(fullStream), userProvidedSchema);
     }
   }
 
