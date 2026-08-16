@@ -18,6 +18,7 @@ package com.google.cloud.bigquery.connector.common;
 import static com.google.cloud.bigquery.connector.common.BigQueryErrorCode.UNSUPPORTED;
 import static java.lang.String.format;
 
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
@@ -47,6 +48,7 @@ public class ReadSessionCreator {
   public static final int DEFAULT_MAX_PARALLELISM = 20_000;
   public static final int MINIMAL_PARALLELISM = 1;
   public static final int DEFAULT_MIN_PARALLELISM_FACTOR = 3;
+  private static final String ACCESS_DENIED_REASON = "accessDenied";
 
   private static final Logger log = LoggerFactory.getLogger(ReadSessionCreator.class);
   private static boolean initialized = false;
@@ -92,8 +94,48 @@ public class ReadSessionCreator {
       TableId table, ImmutableList<String> selectedFields, Optional<String> filter) {
     Instant sessionPrepStartTime = Instant.now();
     TableInfo tableDetails = bigQueryClient.getTable(table);
-    TableInfo actualTable = getActualTable(tableDetails, selectedFields, filter);
 
+    if (tableDetails.getDefinition().getType() == TableDefinition.Type.MATERIALIZED_VIEW) {
+      try {
+        // Attempt to read the Materialized View directly. This will fail if the required
+        // permissions are not present.
+        return createReadSession(
+            tableDetails, tableDetails, selectedFields, filter, sessionPrepStartTime);
+      } catch (BigQueryException e) {
+        if (!isPermissionDeniedError(e)) {
+          // Not a permission error, so re-throw it.
+          throw e;
+        }
+        // This is a permission error. Log a warning and fall back to materializing the view.
+        log.warn(
+            "Failed to initiate a direct read from Materialized View '{}' due to a permission"
+                + " error. The service account likely lacks 'bigquery.tables.getData'"
+                + " permission. Falling back to re-executing the view's underlying query. This"
+                + " will incur additional BigQuery costs and impact performance. For optimal"
+                + " performance, grant the 'roles/bigquery.dataViewer' role to the principal at"
+                + " the dataset or table level.",
+            tableDetails.getTableId().toString());
+        // Execution will now fall through to the getActualTable() call below.
+      }
+    }
+
+    TableInfo actualTable = getActualTable(tableDetails, selectedFields, filter);
+    return createReadSession(
+        actualTable, tableDetails, selectedFields, filter, sessionPrepStartTime);
+  }
+
+  private boolean isPermissionDeniedError(BigQueryException e) {
+    return e.getCode() == java.net.HttpURLConnection.HTTP_FORBIDDEN
+        && e.getError() != null
+        && ACCESS_DENIED_REASON.equals(e.getError().getReason());
+  }
+
+  private ReadSessionResponse createReadSession(
+      TableInfo actualTable,
+      TableInfo tableDetails,
+      ImmutableList<String> selectedFields,
+      Optional<String> filter,
+      Instant sessionPrepStartTime) {
     BigQueryReadClient bigQueryReadClient = bigQueryReadClientFactory.getBigQueryReadClient();
     log.info(
         "|creation a read session for table {}, parameters: "
@@ -203,7 +245,7 @@ public class ReadSessionCreator {
     if (config.isReadSessionCachingEnabled()
         && getReadSessionCache().asMap().containsKey(createReadSessionRequest)) {
       ReadSession readSession = getReadSessionCache().asMap().get(createReadSessionRequest);
-      log.info("Reusing read session: {}, for table: {}", readSession.getName(), table);
+      log.info("Reusing read session: {}, for table: {}", readSession.getName(), actualTable);
       return new ReadSessionResponse(readSession, actualTable);
     }
     ReadSession readSession = bigQueryReadClient.createReadSession(createReadSessionRequest);
