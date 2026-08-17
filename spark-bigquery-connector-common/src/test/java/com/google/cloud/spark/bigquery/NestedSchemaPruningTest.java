@@ -96,8 +96,7 @@ public class NestedSchemaPruningTest {
   }
 
   @Test
-  public void isNotNullOnStruct_keepsSingleLeaf_bugScenario() {
-    // Mirrors b/534631726: `repository IS NOT NULL` leaves Spark requesting a single leaf.
+  public void singleLeafNestedPruning_producesDottedPath() {
     StructType repository =
         new StructType().add("url", DataTypes.StringType).add("id", DataTypes.LongType);
     StructType full =
@@ -114,100 +113,6 @@ public class NestedSchemaPruningTest {
     assertThat(effectiveRepo.fieldNames()).asList().containsExactly("url");
     assertThat(NestedSchemaPruning.toSelectedFieldPaths(full, effective))
         .containsExactly("url", "repository.url");
-  }
-
-  @Test
-  public void isNotNullOnStruct_readsSingleLeafForEmptyStructRequestedBySpark4() {
-    StructType repository =
-        new StructType().add("url", DataTypes.StringType).add("id", DataTypes.LongType);
-    StructType full =
-        new StructType().add("url", DataTypes.StringType).add("repository", repository);
-    StructType required =
-        new StructType().add("url", DataTypes.StringType).add("repository", new StructType());
-
-    StructType effective = NestedSchemaPruning.computeEffectiveReadSchema(full, required);
-
-    assertThat(effective.fieldNames()).asList().containsExactly("url", "repository").inOrder();
-    StructType effectiveRepository = (StructType) effective.apply("repository").dataType();
-    assertThat(effectiveRepository.fieldNames()).asList().containsExactly("url");
-    assertThat(NestedSchemaPruning.toSelectedFieldPaths(full, effective))
-        .containsExactly("url", "repository.url")
-        .inOrder();
-  }
-
-  @Test
-  public void emptySingleChildStruct_selectsDottedCarrier() {
-    StructType repository = new StructType().add("url", DataTypes.StringType);
-    StructType full = new StructType().add("repository", repository);
-    StructType required = new StructType().add("repository", new StructType());
-
-    StructType effective = NestedSchemaPruning.computeEffectiveReadSchema(full, required);
-
-    assertThat(effective).isEqualTo(full);
-    assertThat(NestedSchemaPruning.toSelectedFieldPaths(full, effective))
-        .containsExactly("repository.url");
-  }
-
-  @Test
-  public void emptyStructCarrier_descendsThroughNestedStructs() {
-    StructType owner =
-        new StructType().add("login", DataTypes.StringType).add("id", DataTypes.LongType);
-    StructType repository =
-        new StructType().add("owner", owner).add("description", DataTypes.StringType);
-    StructType full = new StructType().add("repository", repository);
-    StructType required = new StructType().add("repository", new StructType());
-
-    StructType effective = NestedSchemaPruning.computeEffectiveReadSchema(full, required);
-
-    StructType effectiveRepository = (StructType) effective.apply("repository").dataType();
-    StructType effectiveOwner = (StructType) effectiveRepository.apply("owner").dataType();
-    assertThat(effectiveRepository.fieldNames()).asList().containsExactly("owner");
-    assertThat(effectiveOwner.fieldNames()).asList().containsExactly("login");
-    assertThat(NestedSchemaPruning.toSelectedFieldPaths(full, effective))
-        .containsExactly("repository.owner.login");
-  }
-
-  @Test
-  public void emptyStructCarrier_keepsArrayWhole() {
-    StructType element =
-        new StructType().add("name", DataTypes.StringType).add("id", DataTypes.LongType);
-    StructType repository =
-        new StructType()
-            .add("contributors", DataTypes.createArrayType(element))
-            .add("url", DataTypes.StringType);
-    StructType full = new StructType().add("repository", repository);
-    StructType required = new StructType().add("repository", new StructType());
-
-    StructType effective = NestedSchemaPruning.computeEffectiveReadSchema(full, required);
-
-    StructType effectiveRepository = (StructType) effective.apply("repository").dataType();
-    assertThat(effectiveRepository.apply("contributors").dataType())
-        .isEqualTo(DataTypes.createArrayType(element));
-    assertThat(NestedSchemaPruning.toSelectedFieldPaths(full, effective))
-        .containsExactly("repository.contributors");
-  }
-
-  @Test
-  public void emptyStructCarrier_keepsMapWhole() {
-    StructType value =
-        new StructType().add("name", DataTypes.StringType).add("id", DataTypes.LongType);
-    StructType repository =
-        new StructType()
-            .add(
-                "labels",
-                DataTypes.createMapType(DataTypes.StringType, value, /* valueContainsNull= */ true))
-            .add("url", DataTypes.StringType);
-    StructType full = new StructType().add("repository", repository);
-    StructType required = new StructType().add("repository", new StructType());
-
-    StructType effective = NestedSchemaPruning.computeEffectiveReadSchema(full, required);
-
-    StructType effectiveRepository = (StructType) effective.apply("repository").dataType();
-    assertThat(effectiveRepository.apply("labels").dataType())
-        .isEqualTo(
-            DataTypes.createMapType(DataTypes.StringType, value, /* valueContainsNull= */ true));
-    assertThat(NestedSchemaPruning.toSelectedFieldPaths(full, effective))
-        .containsExactly("repository.labels");
   }
 
   @Test

@@ -415,8 +415,8 @@ public class ReadSessionCreatorTest {
         ImmutableList.of("repository.url", "repository.owner.login", "url"),
         Optional.empty());
 
-    // View-materialization SQL only understands top-level column names; dotted paths would break
-    // it (e.g. SELECT repository.url returns a scalar named "url"). b/534631726.
+    // Materialize top-level structs; selecting repository.url here would instead produce a scalar
+    // named "url", so the Storage API path repository.url would no longer match. b/534631726.
     @SuppressWarnings("unchecked")
     ArgumentCaptor<ImmutableList<String>> columnsCaptor =
         ArgumentCaptor.forClass(ImmutableList.class);

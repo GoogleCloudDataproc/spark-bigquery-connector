@@ -46,7 +46,6 @@ import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import org.apache.spark.sql.DataFrameReader;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -419,18 +418,6 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     return result;
   }
 
-  protected static DataFrameReader githubNestedReader(
-      SparkSession spark, Map<String, String> parameters) {
-    DataFrameReader reader =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data:samples.github_nested");
-    return parameters.containsKey("dataFormat")
-        ? reader.option("readDataFormat", parameters.get("dataFormat"))
-        : reader;
-  }
-
   @SuppressWarnings("resource")
   protected static JsonObject readNestedStructProjectionWithFilterApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
@@ -442,7 +429,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
             .newSession();
-    Dataset<Row> df = githubNestedReader(spark, parameters).load();
+    Dataset<Row> df =
+        spark.read().format("bigquery").load("bigquery-public-data:samples.github_nested");
 
     List<Row> rows = df.select("url").where("repository is not null").collectAsList();
     JsonObject result = new JsonObject();
@@ -744,7 +732,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
         IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
             .getOrCreate()
             .newSession();
-    Dataset<Row> githubNestedDF = githubNestedReader(spark, parameters).load();
+    Dataset<Row> githubNestedDF =
+        spark.read().format("bigquery").load("bigquery-public-data:samples.github_nested");
     List<Row> repositoryUrlRows =
         githubNestedDF
             .filter(

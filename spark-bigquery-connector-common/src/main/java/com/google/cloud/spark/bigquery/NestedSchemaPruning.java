@@ -38,10 +38,6 @@ import org.apache.spark.sql.types.StructType;
  * connector will actually read (so {@code readSchema()} matches BigQuery's wire output) and the
  * dotted {@code selected_fields} paths that make BigQuery return exactly that schema.
  *
- * <p>When Spark only needs a struct's nullability, Spark 4 may request an empty {@code struct<>}.
- * BigQuery cannot return a parent validity vector with a matching childless Arrow schema, so the
- * connector reads one deterministic leaf from that struct as a carrier for the parent's validity.
- *
  * <p>Pruning is applied inside {@link StructType} only. {@code ARRAY<STRUCT>} (repeated records),
  * {@code MAP} and scalar fields are kept whole, because the BigQuery Storage Read API cannot
  * reliably sub-select fields within repeated records; Spark applies any remaining pruning for those
@@ -86,11 +82,10 @@ public final class NestedSchemaPruning {
     if (fullType instanceof StructType && requiredType instanceof StructType) {
       StructType prunedChildren =
           computeEffectiveReadSchema((StructType) fullType, (StructType) requiredType);
-      if (prunedChildren.isEmpty() && !((StructType) fullType).isEmpty()) {
-        // Spark 4 uses struct<> when a predicate only needs the parent's nullability. Read one real
-        // leaf so BigQuery's Arrow schema and record batches agree while retaining the parent
-        // validity bitmap needed by IS NULL / IS NOT NULL.
-        prunedChildren = firstLeafSchema((StructType) fullType);
+      // Defensive: never emit an empty struct (which would drop the field from selected_fields and
+      // desync readSchema from the wire). Fall back to the full struct definition.
+      if (prunedChildren.isEmpty()) {
+        return fullField;
       }
       return new StructField(
           fullField.name(), prunedChildren, fullField.nullable(), fullField.metadata());
@@ -99,26 +94,9 @@ public final class NestedSchemaPruning {
     return fullField;
   }
 
-  private static StructType firstLeafSchema(StructType fullSchema) {
-    if (fullSchema.isEmpty()) {
-      return fullSchema;
-    }
-    StructField firstField = fullSchema.fields()[0];
-    DataType firstType = firstField.dataType();
-    if (firstType instanceof StructType && !((StructType) firstType).isEmpty()) {
-      firstField =
-          new StructField(
-              firstField.name(),
-              firstLeafSchema((StructType) firstType),
-              firstField.nullable(),
-              firstField.metadata());
-    }
-    return new StructType().add(firstField);
-  }
-
   /**
    * Converts an effective read schema into BigQuery {@code selected_fields}, keeping unchanged
-   * multi-child structs selected as a whole and using dotted paths for pruned or one-child structs.
+   * structs selected as a whole and using dotted paths only where Spark actually pruned children.
    *
    * @param fullSchema the schema before Spark's column pruning
    * @param effectiveSchema the schema after Spark's column pruning
@@ -156,22 +134,10 @@ public final class NestedSchemaPruning {
       StructField fullField = fullSchema.apply(effectiveField.name());
       DataType fullType = fullField.dataType();
       DataType effectiveType = effectiveField.dataType();
-      if (fullType instanceof StructType && effectiveType instanceof StructType) {
-        StructType fullStruct = (StructType) fullType;
-        StructType effectiveStruct = (StructType) effectiveType;
-        if (effectiveStruct.isEmpty()) {
-          // A genuinely empty source struct has no leaf that can carry its validity.
-          paths.add(path);
-        } else if (fullStruct.equals(effectiveStruct) && effectiveStruct.fields().length != 1) {
-          paths.add(path);
-        } else {
-          // A one-child struct is selected using its dotted child path. This is equivalent to
-          // selecting the parent, and ensures an empty-struct carrier is still requested as a leaf
-          // when it happens to be the struct's only child.
-          collectComparedPaths(fullStruct, effectiveStruct, path, paths);
-        }
-      } else if (fullType.equals(effectiveType) || !(effectiveType instanceof StructType)) {
+      if (fullType.equals(effectiveType) || !(effectiveType instanceof StructType)) {
         paths.add(path);
+      } else if (fullType instanceof StructType) {
+        collectComparedPaths((StructType) fullType, (StructType) effectiveType, path, paths);
       } else {
         collectFieldPaths(effectiveField, path, paths);
       }

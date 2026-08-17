@@ -93,8 +93,8 @@ public class ReadSessionCreator {
     Instant sessionPrepStartTime = Instant.now();
     TableInfo tableDetails = bigQueryClient.getTable(table);
     // selectedFields may contain dotted nested paths (e.g. "repository.url") used for Storage Read
-    // API projection. View materialization SQL only understands top-level column names, so derive
-    // those here before generating the SELECT. b/534631726.
+    // API projection. Materialize the top-level structs so those same paths still match the
+    // materialized table's schema. b/534631726.
     ImmutableList<String> topLevelSelectedFields =
         selectedFields.stream()
             .map(

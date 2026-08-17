@@ -104,6 +104,7 @@ public class BigQueryDataSourceReaderContext {
   private final String applicationId;
   private final StructType fullSchema;
   private Optional<StructType> schema;
+  private Optional<StructType> userProvidedSchema;
   private final Set<Filter> pushedFilters = new HashSet<>();
   private Filter[] allFilters = new Filter[] {};
   private Map<String, StructField> fields;
@@ -150,8 +151,10 @@ public class BigQueryDataSourceReaderContext {
     this.fullSchema = schema.orElse(convertedSchema);
     if (schema.isPresent()) {
       this.schema = schema;
+      this.userProvidedSchema = schema;
     } else {
       this.schema = Optional.of(convertedSchema);
+      this.userProvidedSchema = Optional.empty();
     }
     // We want to keep the key order
     this.fields = new LinkedHashMap<>();
@@ -200,7 +203,7 @@ public class BigQueryDataSourceReaderContext {
                     stream.getName(),
                     readSessionCreatorConfig.toReadRowsHelperOptions(),
                     createConverter(
-                        selectedFields, readSessionResponse.get(), Optional.of(readSchema()))));
+                        selectedFields, readSessionResponse.get(), userProvidedSchema)));
   }
 
   public Optional<String> getCombinedFilter() {
@@ -257,12 +260,7 @@ public class BigQueryDataSourceReaderContext {
     }
 
     ImmutableList<String> partitionSelectedFields = tempSelectedFields;
-    // Use the effective (nested-pruned) read schema so the Arrow reader's expected struct fields
-    // match exactly what BigQuery returns on the wire. The original schema supplied by Spark is not
-    // pruned, so relying on it here would make the reader expect sub-fields BigQuery omitted and
-    // crash with UnsupportedOperationException (b/534631726). readSchema() reflects the pruning
-    // applied in pruneColumns.
-    Optional<StructType> arrowSchema = Optional.of(readSchema());
+    Optional<StructType> arrowSchema = Optional.of(userProvidedSchema.orElse(readSchema()));
     plannedInputPartitionContexts =
         Streams.stream(
                 Iterables.partition(
@@ -295,7 +293,7 @@ public class BigQueryDataSourceReaderContext {
   private ReadRowsResponseToInternalRowIteratorConverter createConverter(
       ImmutableList<String> selectedFields,
       ReadSessionResponse readSessionResponse,
-      Optional<StructType> effectiveSchema) {
+      Optional<StructType> userProvidedSchema) {
     ReadRowsResponseToInternalRowIteratorConverter converter;
     DataFormat format = readSessionCreatorConfig.getReadDataFormat();
     if (format == DataFormat.AVRO) {
@@ -325,7 +323,7 @@ public class BigQueryDataSourceReaderContext {
           schema,
           selectedFields,
           readSessionResponse.getReadSession().getAvroSchema().getSchema(),
-          effectiveSchema,
+          userProvidedSchema,
           /* bigQueryStorageReadRowTracer */ Optional.empty(),
           SchemaConvertersConfiguration.from(options),
           readSessionCreatorConfig.getResponseCompressionCodec());
@@ -468,6 +466,10 @@ public class BigQueryDataSourceReaderContext {
     // projects those in-engine.
     this.schema =
         this.schema.map(
+            prevSchema ->
+                NestedSchemaPruning.computeEffectiveReadSchema(prevSchema, requiredSchema));
+    this.userProvidedSchema =
+        this.userProvidedSchema.map(
             prevSchema ->
                 NestedSchemaPruning.computeEffectiveReadSchema(prevSchema, requiredSchema));
   }

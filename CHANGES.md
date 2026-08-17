@@ -10,6 +10,8 @@
   STRUCT column with a filter Spark cannot push down (e.g. `struct_col IS NOT
   NULL`). The DataSource V2 reader now honors Spark's nested schema pruning and
   pushes matching nested `selected_fields` to the BigQuery Storage Read API.
+* PR #1512: Kept reader-owned Arrow vectors open between reusable columnar
+  batches on Spark 4.
 
 ## 0.44.2 - 2026-05-20
 

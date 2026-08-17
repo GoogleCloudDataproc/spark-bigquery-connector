@@ -18,8 +18,10 @@ package com.google.cloud.spark.bigquery.v2.context;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.cloud.bigquery.connector.common.ArrowUtil;
+import com.google.cloud.spark.bigquery.ArrowSchemaConverter;
 import com.google.common.collect.ImmutableList;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorLoader;
@@ -97,6 +99,52 @@ public class ArrowColumnBatchPartitionReaderContextTest {
       StructVector loadedStruct = (StructVector) targetRoot.getVector("struct_col");
       IntVector loadedInt = (IntVector) loadedStruct.getChild("int_val");
       assertThat(loadedInt.get(0)).isEqualTo(42);
+    }
+  }
+
+  @Test
+  public void testCloseIfFreeablePreservesStructVectorsForNextBatch() throws Exception {
+    Field intChildField =
+        new Field("int_val", FieldType.nullable(Types.MinorType.BIGINT.getType()), null);
+    Field structField =
+        new Field(
+            "struct_col",
+            FieldType.nullable(ArrowType.Struct.INSTANCE),
+            ImmutableList.of(intChildField));
+    Schema schema = new Schema(ImmutableList.of(structField));
+
+    try (ArrowRecordBatch firstBatch = createRecordBatch(schema, 42);
+        ArrowRecordBatch secondBatch = createRecordBatch(schema, 84);
+        VectorSchemaRoot targetRoot = VectorSchemaRoot.create(schema, allocator)) {
+      ArrowColumnBatchPartitionReaderContext.ensureStructVectorsHaveChildren(targetRoot);
+      VectorLoader loader = new VectorLoader(targetRoot);
+      loader.load(firstBatch);
+
+      StructVector structVector = (StructVector) targetRoot.getVector("struct_col");
+      ArrowSchemaConverter converter =
+          ArrowSchemaConverter.newArrowSchemaConverter(structVector, /* userProvidedField= */ null);
+      assertThat(((BigIntVector) structVector.getChild("int_val")).get(0)).isEqualTo(42);
+
+      converter.closeIfFreeable();
+
+      assertThat(structVector.getChildrenFromFields()).hasSize(1);
+      loader.load(secondBatch);
+      assertThat(((BigIntVector) structVector.getChild("int_val")).get(0)).isEqualTo(84);
+    }
+  }
+
+  private ArrowRecordBatch createRecordBatch(Schema schema, int value) {
+    try (VectorSchemaRoot sourceRoot = VectorSchemaRoot.create(schema, allocator)) {
+      StructVector structVector = (StructVector) sourceRoot.getVector("struct_col");
+      BigIntVector intVector =
+          structVector.addOrGet(
+              "int_val", FieldType.nullable(Types.MinorType.BIGINT.getType()), BigIntVector.class);
+      structVector.allocateNew();
+      structVector.setIndexDefined(0);
+      intVector.set(0, value);
+      structVector.setValueCount(1);
+      sourceRoot.setRowCount(1);
+      return new VectorUnloader(sourceRoot).getRecordBatch();
     }
   }
 }

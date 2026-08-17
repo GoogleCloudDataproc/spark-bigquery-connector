@@ -60,6 +60,17 @@ public abstract class ArrowSchemaConverter extends ColumnVector {
     vector().close();
   }
 
+  /**
+   * Keeps reader-owned Arrow vectors alive between batches.
+   *
+   * <p>Spark 4 calls this method after consuming every {@code ColumnarBatch}. The BigQuery reader
+   * reuses the same vectors for subsequent batches and closes them when the partition reader is
+   * closed, so an intermediate close would clear nested vectors before the next batch is loaded.
+   * This method intentionally omits {@code @Override} so the source remains compatible with Spark
+   * versions whose {@code ColumnVector} does not define it.
+   */
+  public void closeIfFreeable() {}
+
   @Override
   public boolean getBoolean(int rowId) {
     throw new UnsupportedOperationException();
