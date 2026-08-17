@@ -385,6 +385,23 @@ public class SparkBigQueryConfig
     config.partitionRangeEnd = getOption(options, "partitionRangeEnd").transform(Long::parseLong);
     config.partitionRangeInterval =
         getOption(options, "partitionRangeInterval").transform(Long::parseLong);
+    config.partitionField = getOption(options, "partitionField");
+    boolean hasAnyPartitionRangeOption =
+        config.partitionRangeStart.isPresent()
+            || config.partitionRangeEnd.isPresent()
+            || config.partitionRangeInterval.isPresent();
+    boolean hasAllPartitionRangeOptions =
+        config.partitionRangeStart.isPresent()
+            && config.partitionRangeEnd.isPresent()
+            && config.partitionRangeInterval.isPresent();
+    Preconditions.checkArgument(
+        !hasAnyPartitionRangeOption || hasAllPartitionRangeOptions,
+        "partitionRangeStart, partitionRangeEnd, and partitionRangeInterval must be configured "
+            + "together");
+    Preconditions.checkArgument(
+        !hasAnyPartitionRangeOption || config.partitionField.isPresent(),
+        "partitionField must be configured together with partitionRangeStart, partitionRangeEnd, "
+            + "and partitionRangeInterval");
     if (overrideTableId.isPresent()) {
       config.tableId = overrideTableId.get();
     } else {
@@ -530,7 +547,6 @@ public class SparkBigQueryConfig
     config.combinePushedDownFilters =
         getAnyBooleanOption(globalOptions, options, "combinePushedDownFilters", true);
 
-    config.partitionField = getOption(options, "partitionField");
     config.partitionExpirationMs =
         getOption(options, "partitionExpirationMs").transform(Long::valueOf).orNull();
     config.partitionRequireFilter =

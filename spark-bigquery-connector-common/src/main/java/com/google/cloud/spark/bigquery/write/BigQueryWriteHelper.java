@@ -27,6 +27,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.DestinationValidationOptions;
 import com.google.cloud.bigquery.connector.common.JobOperation;
 import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
 import com.google.cloud.spark.bigquery.SchemaConverters;
@@ -141,10 +142,8 @@ public class BigQueryWriteHelper {
         temporaryTableId =
             Optional.of(
                 bigQueryClient
-                    .createTempTableAfterCheckingSchema(
-                        config.getTableId(),
-                        tableSchema,
-                        config.getEnableModeCheckForSchemaFields())
+                    .createTempTableAfterValidatingDestination(
+                        tableSchema, DestinationValidationOptions.from(config))
                     .getTableId());
         loadDataToBigQuery(/* applyDestinationTableLayoutOptions= */ false);
         Job queryJob =

@@ -1710,7 +1710,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   @Test
-  public void testOverwriteDynamicPartitionWithRetainedPartitionOptions() {
+  public void testOverwriteDynamicPartitionWithRetainedTimePartitionOptions() {
     assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
     String orderId = "order_id";
     String orderDateTime = "order_date_time";
@@ -1769,6 +1769,159 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(rows.get(1).getLong(rows.get(1).fieldIndex(orderId))).isEqualTo(3);
     assertThat(rows.get(1).getTimestamp(rows.get(1).fieldIndex(orderDateTime)))
         .isEqualTo(Timestamp.valueOf("2025-01-01 10:30:00"));
+  }
+
+  @Test
+  public void testOverwriteDynamicPartitionRejectsMismatchedTimePartitionOptions() {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    String orderId = "order_id";
+    String orderDateTime = "order_date_time";
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+
+    StructType schema =
+        structType(
+            StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
+            StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty()));
+    Dataset<Row> initialData =
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create(1, Timestamp.valueOf("2025-01-01 10:00:00")),
+                RowFactory.create(2, Timestamp.valueOf("2025-01-02 11:00:00"))),
+            schema);
+    Dataset<Row> replacementData =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create(3, Timestamp.valueOf("2025-01-01 10:30:00"))), schema);
+
+    initialData
+        .write()
+        .format("bigquery")
+        .mode(SaveMode.Overwrite)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("writeMethod", writeMethod.toString())
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("createDisposition", JobInfo.CreateDisposition.CREATE_IF_NEEDED.toString())
+        .option("partitionField", orderDateTime)
+        .option("partitionType", TimePartitioning.Type.DAY.toString())
+        .option(
+            "spark.sql.sources.partitionOverwriteMode", PartitionOverwriteMode.DYNAMIC.toString())
+        .save();
+
+    Exception exception =
+        assertThrows(
+            Exception.class,
+            () ->
+                replacementData
+                    .write()
+                    .format("bigquery")
+                    .mode(SaveMode.Overwrite)
+                    .option("dataset", testDataset.toString())
+                    .option("table", testTable)
+                    .option("writeMethod", writeMethod.toString())
+                    .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+                    .option(
+                        "createDisposition", JobInfo.CreateDisposition.CREATE_IF_NEEDED.toString())
+                    .option("partitionField", orderDateTime)
+                    .option("partitionType", TimePartitioning.Type.HOUR.toString())
+                    .option(
+                        "spark.sql.sources.partitionOverwriteMode",
+                        PartitionOverwriteMode.DYNAMIC.toString())
+                    .save());
+
+    boolean foundLayoutMismatch = false;
+    for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+      if (cause instanceof IllegalArgumentException
+          && cause
+              .getMessage()
+              .contains(
+                  "requested partitionType=HOUR, but the existing destination has "
+                      + "partitionType=DAY")) {
+        foundLayoutMismatch = true;
+        break;
+      }
+    }
+    assertThat(foundLayoutMismatch).isTrue();
+
+    Dataset<Row> result =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    List<Row> rows = result.collectAsList();
+    rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
+    assertThat(rows).hasSize(2);
+    assertThat(rows.get(0).getLong(rows.get(0).fieldIndex(orderId))).isEqualTo(1);
+    assertThat(rows.get(1).getLong(rows.get(1).fieldIndex(orderId))).isEqualTo(2);
+  }
+
+  @Test
+  public void testOverwriteDynamicPartitionWithRetainedRangeAndClusteringOptions() {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    String rangeKey = "range_key";
+    String clusterKey = "cluster_key";
+
+    StructType schema =
+        structType(
+            StructField.apply(rangeKey, DataTypes.IntegerType, true, Metadata.empty()),
+            StructField.apply(clusterKey, DataTypes.StringType, true, Metadata.empty()));
+    Dataset<Row> initialData =
+        spark.createDataFrame(
+            Arrays.asList(
+                RowFactory.create(1, "one"),
+                RowFactory.create(12, "twelve"),
+                RowFactory.create(25, "twenty-five")),
+            schema);
+    Dataset<Row> replacementData =
+        spark.createDataFrame(Arrays.asList(RowFactory.create(5, "five")), schema);
+
+    for (Dataset<Row> df : Arrays.asList(initialData, replacementData)) {
+      df.write()
+          .format("bigquery")
+          .mode(SaveMode.Overwrite)
+          .option("dataset", testDataset.toString())
+          .option("table", testTable)
+          .option("writeMethod", writeMethod.toString())
+          .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+          .option("createDisposition", JobInfo.CreateDisposition.CREATE_IF_NEEDED.toString())
+          .option("partitionField", rangeKey)
+          .option("partitionRangeStart", "0")
+          .option("partitionRangeEnd", "100")
+          .option("partitionRangeInterval", "10")
+          .option("partitionRequireFilter", "true")
+          .option("clusteredFields", clusterKey)
+          .option(
+              "spark.sql.sources.partitionOverwriteMode", PartitionOverwriteMode.DYNAMIC.toString())
+          .save();
+    }
+
+    Table destinationTable = bq.getTable(testDataset.toString(), testTable);
+    StandardTableDefinition tableDefinition = destinationTable.getDefinition();
+    assertThat(tableDefinition.getRangePartitioning().getField()).isEqualTo(rangeKey);
+    assertThat(tableDefinition.getRangePartitioning().getRange())
+        .isEqualTo(
+            RangePartitioning.Range.newBuilder()
+                .setStart(0L)
+                .setEnd(100L)
+                .setInterval(10L)
+                .build());
+    assertThat(tableDefinition.getClustering().getFields()).containsExactly(clusterKey);
+    assertThat(destinationTable.getRequirePartitionFilter()).isTrue();
+
+    Dataset<Row> result =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .load();
+    List<Row> rows = result.collectAsList();
+    rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(rangeKey))));
+    assertThat(rows).hasSize(3);
+    assertThat(rows.get(0).getLong(rows.get(0).fieldIndex(rangeKey))).isEqualTo(5);
+    assertThat(rows.get(1).getLong(rows.get(1).fieldIndex(rangeKey))).isEqualTo(12);
+    assertThat(rows.get(2).getLong(rows.get(2).fieldIndex(rangeKey))).isEqualTo(25);
   }
 
   @Test

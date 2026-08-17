@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.DestinationValidationOptions;
 import com.google.cloud.bigquery.connector.common.JobOperation;
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
@@ -182,8 +183,8 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
         temporaryTableId =
             Optional.of(
                 bigQueryClient
-                    .createTempTableAfterCheckingSchema(
-                        config.getTableId(), schema, config.getEnableModeCheckForSchemaFields())
+                    .createTempTableAfterValidatingDestination(
+                        schema, DestinationValidationOptions.from(config))
                     .getTableId());
         loadDataToBigQuery(sourceUris, schema, /* applyDestinationTableLayoutOptions= */ false);
         Job queryJob =

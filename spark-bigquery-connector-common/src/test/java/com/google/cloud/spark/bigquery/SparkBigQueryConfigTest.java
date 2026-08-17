@@ -280,6 +280,73 @@ public class SparkBigQueryConfigTest {
   }
 
   @Test
+  public void testConfigFromOptions_incompleteRangePartitioning() {
+    ImmutableList<ImmutableMap<String, String>> incompleteRangeOptions =
+        ImmutableList.of(
+            ImmutableMap.of("partitionRangeStart", "1"),
+            ImmutableMap.of("partitionRangeEnd", "20"),
+            ImmutableMap.of("partitionRangeInterval", "2"),
+            ImmutableMap.of("partitionRangeStart", "1", "partitionRangeEnd", "20"),
+            ImmutableMap.of("partitionRangeStart", "1", "partitionRangeInterval", "2"),
+            ImmutableMap.of("partitionRangeEnd", "20", "partitionRangeInterval", "2"));
+
+    for (ImmutableMap<String, String> rangeOptions : incompleteRangeOptions) {
+      Map<String, String> options = new HashMap<>(defaultOptions);
+      options.putAll(rangeOptions);
+
+      IllegalArgumentException exception =
+          assertThrows(
+              IllegalArgumentException.class,
+              () ->
+                  SparkBigQueryConfig.from(
+                      options,
+                      defaultGlobalOptions,
+                      new Configuration(),
+                      ImmutableMap.of(),
+                      DEFAULT_PARALLELISM,
+                      new SQLConf(),
+                      SPARK_VERSION,
+                      Optional.empty(), /* tableIsMandatory */
+                      true));
+
+      assertThat(exception)
+          .hasMessageThat()
+          .contains(
+              "partitionRangeStart, partitionRangeEnd, and partitionRangeInterval must be "
+                  + "configured together");
+    }
+  }
+
+  @Test
+  public void testConfigFromOptions_rangePartitioningRequiresField() {
+    Map<String, String> options = new HashMap<>(defaultOptions);
+    options.put("partitionRangeStart", "1");
+    options.put("partitionRangeEnd", "20");
+    options.put("partitionRangeInterval", "2");
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                SparkBigQueryConfig.from(
+                    options,
+                    defaultGlobalOptions,
+                    new Configuration(),
+                    ImmutableMap.of(),
+                    DEFAULT_PARALLELISM,
+                    new SQLConf(),
+                    SPARK_VERSION,
+                    Optional.empty(), /* tableIsMandatory */
+                    true));
+
+    assertThat(exception)
+        .hasMessageThat()
+        .contains(
+            "partitionField must be configured together with partitionRangeStart, "
+                + "partitionRangeEnd, and partitionRangeInterval");
+  }
+
+  @Test
   public void testCacheExpirationSetToZero() {
     Configuration hadoopConfiguration = new Configuration();
     DataSourceOptions options =

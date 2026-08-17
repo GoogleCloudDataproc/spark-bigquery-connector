@@ -957,9 +957,10 @@ word-break:break-word
   <tr>
      <td><code>spark.sql.sources.partitionOverwriteMode</code>
      </td>
-     <td>Config to specify the overwrite mode on write when the table is range/time partitioned.
-         Currently supportd two modes : <code>STATIC</code> and <code>DYNAMIC</code>. In <code>STATIC</code> mode,
+     <td>Config to specify the overwrite mode on write when the table is range or field-based time partitioned.
+         Currently supports two modes: <code>STATIC</code> and <code>DYNAMIC</code>. In <code>STATIC</code> mode,
          the entire table is overwritten. In <code>DYNAMIC</code> mode, the data is overwritten by partitions of the existing table.
+         Ingestion-time partitioned tables are not supported in <code>DYNAMIC</code> mode.
          The default value is <code>STATIC</code>.
          <br/> (Optional)
      </td>
