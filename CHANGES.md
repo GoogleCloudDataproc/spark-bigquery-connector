@@ -22,7 +22,8 @@
 * PR #1567: `count()` and SQL `COUNT(*)` on a read with `snapshotTimeMillis` now count the table's
   rows as of the snapshot time, like the rows the read returns. Based on PR #1307, thanks
   @tom-s-powell !
-* Issue #1514: Fixed indirect dynamic overwrite when partition options are retained after table creation.
+* Issue #1514: Fixed indirect dynamic overwrite for field-partitioned tables when matching layout
+  options are retained after table creation.
 
 ## 0.46.1 - 2026-11-04
 
