@@ -560,6 +560,14 @@ public class BigQueryClient {
         destinationTable != null,
         "Dynamic overwrite destination table %s no longer exists",
         fullTableName(destinationTableId));
+    TableDefinition destinationDefinition = destinationTable.getDefinition();
+    if (destinationDefinition instanceof StandardTableDefinition) {
+      StandardTableDefinition standardDefinition = (StandardTableDefinition) destinationDefinition;
+      if (standardDefinition.getTimePartitioning() == null
+          && standardDefinition.getRangePartitioning() == null) {
+        return overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
+      }
+    }
     return overwriteDestinationWithTemporaryDynamicPartitons(temporaryTableId, destinationTable);
   }
 

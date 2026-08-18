@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.RangePartitioning;
@@ -301,6 +302,24 @@ public class BigQueryClientTest {
     assertThat(exception).hasMessageThat().contains("is unpartitioned");
     verify(client).getTable(TABLE_ID);
     verify(client, never()).overwriteDestinationWithTemporary(temporaryTableId, TABLE_ID);
+  }
+
+  @Test
+  public void dynamicOverwrite_directWriteFallsBackForUnpartitionedDestination() {
+    TableId temporaryTableId = TableId.of("project", "dataset", "temporary");
+    Job overwriteJob = mock(Job.class);
+    BigQueryClient client = mock(BigQueryClient.class, CALLS_REAL_METHODS);
+    doReturn(tableInfo(null, null, ImmutableList.of())).when(client).getTable(TABLE_ID);
+    doReturn(overwriteJob)
+        .when(client)
+        .overwriteDestinationWithTemporary(temporaryTableId, TABLE_ID);
+
+    Job result =
+        client.overwriteDestinationWithTemporaryDynamicPartitons(temporaryTableId, TABLE_ID);
+
+    assertThat(result).isSameInstanceAs(overwriteJob);
+    verify(client).getTable(TABLE_ID);
+    verify(client).overwriteDestinationWithTemporary(temporaryTableId, TABLE_ID);
   }
 
   @Test
