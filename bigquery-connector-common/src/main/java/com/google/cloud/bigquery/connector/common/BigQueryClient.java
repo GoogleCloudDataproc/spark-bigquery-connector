@@ -1286,13 +1286,18 @@ public class BigQueryClient {
   private void applyRangePartitionRequireFilterAfterLoad(
       TableId destinationTableId, boolean requirePartitionFilter) {
     TableInfo destinationTable = getTable(destinationTableId);
+    String errorMessage =
+        String.format(
+            "Cannot set partitionRequireFilter because destination table %s is not range-partitioned",
+            fullTableName(destinationTableId));
+    if (destinationTable == null) {
+      throw new IllegalStateException(errorMessage);
+    }
+    TableDefinition destinationDefinition = destinationTable.getDefinition();
     Preconditions.checkState(
-        destinationTable != null
-            && destinationTable.getDefinition() instanceof StandardTableDefinition
-            && ((StandardTableDefinition) destinationTable.getDefinition()).getRangePartitioning()
-                != null,
-        "Cannot set partitionRequireFilter because destination table %s is not range-partitioned",
-        fullTableName(destinationTableId));
+        destinationDefinition instanceof StandardTableDefinition
+            && ((StandardTableDefinition) destinationDefinition).getRangePartitioning() != null,
+        errorMessage);
 
     if (requirePartitionFilter
         != Boolean.TRUE.equals(destinationTable.getRequirePartitionFilter())) {
