@@ -26,7 +26,9 @@ import com.google.cloud.NoCredentials;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
@@ -160,6 +162,24 @@ public class BigQueryClientTest {
         destination,
         optionsWithEffectivePartitionType(
             "event_ts", null, TimePartitioning.Type.HOUR, null, null, null));
+  }
+
+  @Test
+  public void configureDestinationTablePartitioning_emitsOnlyRangePartitioningForRangeOptions() {
+    LoadDataOptions options =
+        loadDataOptions(
+            "range_key", null, TimePartitioning.Type.DAY, range(0, 100, 10), null, true);
+    LoadJobConfiguration.Builder builder =
+        LoadJobConfiguration.newBuilder(
+            TABLE_ID, ImmutableList.of("gs://bucket/data.parquet"), FormatOptions.parquet());
+
+    BigQueryClient.configureDestinationTablePartitioning(options, builder);
+
+    LoadJobConfiguration configuration = builder.build();
+    assertThat(configuration.getRangePartitioning()).isNotNull();
+    assertThat(configuration.getRangePartitioning().getField()).isEqualTo("range_key");
+    assertThat(configuration.getRangePartitioning().getRange()).isEqualTo(range(0, 100, 10));
+    assertThat(configuration.getTimePartitioning()).isNull();
   }
 
   @Test
@@ -340,6 +360,25 @@ public class BigQueryClientTest {
       Long partitionExpirationMs,
       Boolean partitionRequireFilter,
       String... clusteredFields) {
+    return DestinationValidationOptions.from(
+        loadDataOptions(
+            partitionField,
+            partitionType,
+            effectivePartitionType,
+            partitionRange,
+            partitionExpirationMs,
+            partitionRequireFilter,
+            clusteredFields));
+  }
+
+  private static LoadDataOptions loadDataOptions(
+      String partitionField,
+      TimePartitioning.Type partitionType,
+      TimePartitioning.Type effectivePartitionType,
+      RangePartitioning.Range partitionRange,
+      Long partitionExpirationMs,
+      Boolean partitionRequireFilter,
+      String... clusteredFields) {
     LoadDataOptions options = mock(LoadDataOptions.class);
     when(options.getTableId()).thenReturn(TABLE_ID);
     when(options.getPartitionField()).thenReturn(Optional.ofNullable(partitionField));
@@ -358,7 +397,7 @@ public class BigQueryClientTest {
             clusteredFields.length == 0
                 ? Optional.empty()
                 : Optional.of(ImmutableList.copyOf(clusteredFields)));
-    return DestinationValidationOptions.from(options);
+    return options;
   }
 
   private static void assertLayoutMismatch(
