@@ -61,6 +61,20 @@ public class BigQueryClientTest {
   }
 
   @Test
+  public void validateDestinationTableLayout_preservesCustomEffectivePartitionType() {
+    TableInfo destination =
+        tableInfo(
+            TimePartitioning.newBuilder(TimePartitioning.Type.HOUR).setField("event_ts").build(),
+            null,
+            ImmutableList.of());
+
+    BigQueryClient.validateDestinationTableLayout(
+        destination,
+        optionsWithEffectivePartitionType(
+            "event_ts", null, TimePartitioning.Type.HOUR, null, null, null));
+  }
+
+  @Test
   public void validateDestinationTableLayout_acceptsOmittedLayoutOptions() {
     TableInfo destination =
         tableInfo(
@@ -218,10 +232,31 @@ public class BigQueryClientTest {
       Long partitionExpirationMs,
       Boolean partitionRequireFilter,
       String... clusteredFields) {
+    TimePartitioning.Type effectivePartitionType =
+        partitionType == null ? TimePartitioning.Type.DAY : partitionType;
+    return optionsWithEffectivePartitionType(
+        partitionField,
+        partitionType,
+        effectivePartitionType,
+        partitionRange,
+        partitionExpirationMs,
+        partitionRequireFilter,
+        clusteredFields);
+  }
+
+  private static DestinationValidationOptions optionsWithEffectivePartitionType(
+      String partitionField,
+      TimePartitioning.Type partitionType,
+      TimePartitioning.Type effectivePartitionType,
+      RangePartitioning.Range partitionRange,
+      Long partitionExpirationMs,
+      Boolean partitionRequireFilter,
+      String... clusteredFields) {
     LoadDataOptions options = mock(LoadDataOptions.class);
     when(options.getTableId()).thenReturn(TABLE_ID);
     when(options.getPartitionField()).thenReturn(Optional.ofNullable(partitionField));
     when(options.getPartitionType()).thenReturn(Optional.ofNullable(partitionType));
+    when(options.getPartitionTypeOrDefault()).thenReturn(effectivePartitionType);
     when(options.getPartitionRange()).thenReturn(Optional.ofNullable(partitionRange));
     when(options.getPartitionExpirationMs())
         .thenReturn(

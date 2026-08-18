@@ -30,7 +30,8 @@ public final class DestinationValidationOptions {
   private final TableId destinationTableId;
   private final boolean enableModeCheckForSchemaFields;
   private final Optional<String> partitionField;
-  private final Optional<TimePartitioning.Type> partitionType;
+  private final Optional<TimePartitioning.Type> explicitPartitionType;
+  private final TimePartitioning.Type effectivePartitionType;
   private final Optional<RangePartitioning.Range> partitionRange;
   private final OptionalLong partitionExpirationMs;
   private final Optional<Boolean> partitionRequireFilter;
@@ -44,6 +45,7 @@ public final class DestinationValidationOptions {
         options.getEnableModeCheckForSchemaFields(),
         options.getPartitionField(),
         options.getPartitionType(),
+        options.getPartitionTypeOrDefault(),
         options.getPartitionRange(),
         options.getPartitionExpirationMs(),
         options.getPartitionRequireFilter(),
@@ -54,7 +56,8 @@ public final class DestinationValidationOptions {
       TableId destinationTableId,
       boolean enableModeCheckForSchemaFields,
       Optional<String> partitionField,
-      Optional<TimePartitioning.Type> partitionType,
+      Optional<TimePartitioning.Type> explicitPartitionType,
+      TimePartitioning.Type effectivePartitionType,
       Optional<RangePartitioning.Range> partitionRange,
       OptionalLong partitionExpirationMs,
       Optional<Boolean> partitionRequireFilter,
@@ -62,7 +65,10 @@ public final class DestinationValidationOptions {
     this.destinationTableId = Objects.requireNonNull(destinationTableId, "destinationTableId");
     this.enableModeCheckForSchemaFields = enableModeCheckForSchemaFields;
     this.partitionField = Objects.requireNonNull(partitionField, "partitionField");
-    this.partitionType = Objects.requireNonNull(partitionType, "partitionType");
+    this.explicitPartitionType =
+        Objects.requireNonNull(explicitPartitionType, "explicitPartitionType");
+    this.effectivePartitionType =
+        Objects.requireNonNull(effectivePartitionType, "effectivePartitionType");
     this.partitionRange = Objects.requireNonNull(partitionRange, "partitionRange");
     this.partitionExpirationMs =
         Objects.requireNonNull(partitionExpirationMs, "partitionExpirationMs");
@@ -85,11 +91,11 @@ public final class DestinationValidationOptions {
   }
 
   public Optional<TimePartitioning.Type> getPartitionType() {
-    return partitionType;
+    return explicitPartitionType;
   }
 
   public TimePartitioning.Type getPartitionTypeOrDefault() {
-    return partitionType.orElse(TimePartitioning.Type.DAY);
+    return effectivePartitionType;
   }
 
   public Optional<RangePartitioning.Range> getPartitionRange() {
