@@ -21,33 +21,33 @@ import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 
 public class SparkBigQueryJUnitRunner {
-    public static void main(String[] args) throws Exception {
-        if (args.length == 0) {
-            System.err.println("Usage: SparkBigQueryJUnitRunner <TestClass> [<TestMethod>]");
-            System.exit(1);
-        }
-
-        String className = args[0];
-        Class<?> testClass = Class.forName(className);
-
-        Result result;
-        if (args.length > 1) {
-            String methodName = args[1];
-            Request request = Request.method(testClass, methodName);
-            result = new JUnitCore().run(request);
-        } else {
-            result = JUnitCore.runClasses(testClass);
-        }
-
-        for (Failure failure : result.getFailures()) {
-            System.err.println(failure.toString());
-            if (failure.getException() != null) {
-                failure.getException().printStackTrace();
-            }
-        }
-
-        if (!result.wasSuccessful()) {
-            System.exit(1);
-        }
+  public static void main(String[] args) throws Exception {
+    if (args.length == 0) {
+      System.err.println("Usage: SparkBigQueryJUnitRunner <TestClass> [<TestMethod>]");
+      System.exit(1);
     }
+
+    String className = args[0];
+    Class<?> testClass = Class.forName(className);
+
+    Result result;
+    if (args.length > 1) {
+      String methodName = args[1];
+      Request request = Request.method(testClass, methodName);
+      result = new JUnitCore().run(request);
+    } else {
+      result = JUnitCore.runClasses(testClass);
+    }
+
+    for (Failure failure : result.getFailures()) {
+      System.err.println(failure.toString());
+      if (failure.getException() != null) {
+        failure.getException().printStackTrace();
+      }
+    }
+
+    if (!result.wasSuccessful()) {
+      System.exit(1);
+    }
+  }
 }
