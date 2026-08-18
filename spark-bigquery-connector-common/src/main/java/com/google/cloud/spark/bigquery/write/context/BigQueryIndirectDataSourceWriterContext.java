@@ -24,7 +24,6 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
-import com.google.cloud.bigquery.connector.common.DestinationValidationOptions;
 import com.google.cloud.bigquery.connector.common.JobOperation;
 import com.google.cloud.spark.bigquery.AvroSchemaConverter;
 import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
@@ -180,16 +179,15 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
           && config.getPartitionOverwriteModeValue() == PartitionOverwriteMode.DYNAMIC
           && bigQueryClient.tableExists(config.getTableId())
           && bigQueryClient.isTablePartitioned(config.getTableId())) {
-        DestinationValidationOptions validationOptions = DestinationValidationOptions.from(config);
         temporaryTableId =
             Optional.of(
                 bigQueryClient
-                    .createTempTableAfterValidatingDestination(schema, validationOptions)
+                    .createTempTableAfterValidatingDestination(schema, config)
                     .getTableId());
         loadDataToBigQuery(sourceUris, schema, /* applyDestinationTableLayoutOptions= */ false);
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
-                temporaryTableId.get(), validationOptions);
+                temporaryTableId.get(), config);
         bigQueryClient.waitForJob(queryJob, JobOperation.DYNAMIC_PARTITION_OVERWRITE);
       } else {
         loadDataToBigQuery(sourceUris, schema, /* applyDestinationTableLayoutOptions= */ true);

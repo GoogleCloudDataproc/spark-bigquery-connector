@@ -48,6 +48,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.DestinationValidationOptions;
 import com.google.cloud.bigquery.connector.common.MaterializationConfiguration;
 import com.google.cloud.bigquery.connector.common.QueryParameterHelper;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
@@ -91,6 +92,7 @@ public class SparkBigQueryConfig
     implements BigQueryConfig,
         BigQueryClient.CreateTableOptions,
         BigQueryClient.LoadDataOptions,
+        DestinationValidationOptions,
         Serializable {
 
   private static final long serialVersionUID = 728392817473829L;

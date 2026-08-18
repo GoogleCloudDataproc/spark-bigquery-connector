@@ -274,7 +274,7 @@ public class BigQueryClient {
 
   public TableInfo createTempTableAfterValidatingDestination(
       Schema schema, DestinationValidationOptions options) throws IllegalArgumentException {
-    TableInfo destinationTable = getTable(options.getDestinationTableId());
+    TableInfo destinationTable = getTable(options.getTableId());
     validateDestinationSchema(
         destinationTable, schema, options.getEnableModeCheckForSchemaFields());
     validateDestinationTableLayout(destinationTable, options);
@@ -306,23 +306,9 @@ public class BigQueryClient {
                 + schemaWritableResult.makeMessage()));
   }
 
-  static void validateDestinationTableLayout(
+  static StandardTableDefinition validateDestinationTableLayout(
       TableInfo destinationTable, DestinationValidationOptions requestedOptions) {
-    TableDefinition destinationDefinition = destinationTable.getDefinition();
-    Preconditions.checkArgument(
-        destinationDefinition instanceof StandardTableDefinition,
-        "Dynamic overwrite requires a standard destination table, but %s is %s",
-        fullTableName(destinationTable.getTableId()),
-        destinationDefinition.getType());
-
-    StandardTableDefinition standardDefinition = (StandardTableDefinition) destinationDefinition;
-    TimePartitioning destinationTimePartitioning = standardDefinition.getTimePartitioning();
-
-    Preconditions.checkArgument(
-        destinationTimePartitioning == null || destinationTimePartitioning.getField() != null,
-        "Indirect dynamic overwrite does not support ingestion-time partitioned destination "
-            + "table %s",
-        fullTableName(destinationTable.getTableId()));
+    StandardTableDefinition standardDefinition = getDynamicOverwriteDefinition(destinationTable);
 
     Optional<String> requestedPartitionField = requestedOptions.getPartitionField();
     Optional<RangePartitioning.Range> requestedPartitionRange =
@@ -344,19 +330,15 @@ public class BigQueryClient {
 
     validatePartitionRequireFilter(destinationTable, standardDefinition, requestedOptions);
     validateClustering(standardDefinition, requestedOptions);
+    return standardDefinition;
   }
 
   private static void validateRangePartitioning(
       StandardTableDefinition destinationDefinition,
       Optional<String> requestedPartitionField,
       RangePartitioning.Range requestedPartitionRange) {
-    TimePartitioning destinationTimePartitioning = destinationDefinition.getTimePartitioning();
     RangePartitioning destinationRangePartitioning = destinationDefinition.getRangePartitioning();
-    checkLayoutOption(
-        destinationRangePartitioning != null,
-        "partitioning type",
-        "range",
-        getPartitioningType(destinationTimePartitioning, destinationRangePartitioning));
+    checkLayoutOption(destinationRangePartitioning != null, "partitioning", "range", "time");
     String requestedField = requestedPartitionField.orElse(null);
     checkLayoutOption(
         identifiersEqual(requestedField, destinationRangePartitioning.getField()),
@@ -374,12 +356,7 @@ public class BigQueryClient {
       StandardTableDefinition destinationDefinition,
       DestinationValidationOptions requestedOptions) {
     TimePartitioning destinationTimePartitioning = destinationDefinition.getTimePartitioning();
-    RangePartitioning destinationRangePartitioning = destinationDefinition.getRangePartitioning();
-    checkLayoutOption(
-        destinationTimePartitioning != null,
-        "partitioning type",
-        "time",
-        getPartitioningType(destinationTimePartitioning, destinationRangePartitioning));
+    checkLayoutOption(destinationTimePartitioning != null, "partitioning", "time", "range");
 
     Optional<String> requestedPartitionField = requestedOptions.getPartitionField();
     if (requestedPartitionField.isPresent() || requestedOptions.getPartitionType().isPresent()) {
@@ -468,15 +445,29 @@ public class BigQueryClient {
     return true;
   }
 
-  private static String getPartitioningType(
-      TimePartitioning timePartitioning, RangePartitioning rangePartitioning) {
-    if (timePartitioning != null) {
-      return "time";
-    }
-    if (rangePartitioning != null) {
-      return "range";
-    }
-    return "none";
+  private static StandardTableDefinition getDynamicOverwriteDefinition(TableInfo destinationTable) {
+    TableDefinition destinationDefinition = destinationTable.getDefinition();
+    Preconditions.checkArgument(
+        destinationDefinition instanceof StandardTableDefinition,
+        "Dynamic overwrite requires a standard destination table, but %s is %s",
+        fullTableName(destinationTable.getTableId()),
+        destinationDefinition.getType());
+    StandardTableDefinition standardDefinition = (StandardTableDefinition) destinationDefinition;
+    TimePartitioning timePartitioning = standardDefinition.getTimePartitioning();
+    RangePartitioning rangePartitioning = standardDefinition.getRangePartitioning();
+    Preconditions.checkArgument(
+        timePartitioning == null || rangePartitioning == null,
+        "Dynamic overwrite destination table %s cannot have both time and range partitioning",
+        fullTableName(destinationTable.getTableId()));
+    Preconditions.checkArgument(
+        timePartitioning != null || rangePartitioning != null,
+        "Dynamic overwrite requires a partitioned destination table, but %s is unpartitioned",
+        fullTableName(destinationTable.getTableId()));
+    Preconditions.checkArgument(
+        timePartitioning == null || timePartitioning.getField() != null,
+        "Dynamic overwrite does not support ingestion-time partitioned destination table %s",
+        fullTableName(destinationTable.getTableId()));
+    return standardDefinition;
   }
 
   private static void checkLayoutOption(
@@ -568,51 +559,41 @@ public class BigQueryClient {
         return overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
       }
     }
-    return overwriteDestinationWithTemporaryDynamicPartitons(temporaryTableId, destinationTable);
+    StandardTableDefinition standardDefinition = getDynamicOverwriteDefinition(destinationTable);
+    return overwriteDestinationWithTemporaryDynamicPartitons(
+        temporaryTableId, destinationTable, standardDefinition);
   }
 
   public Job overwriteDestinationWithTemporaryDynamicPartitons(
-      TableId temporaryTableId, DestinationValidationOptions validationOptions) {
-    TableInfo destinationTable = getTable(validationOptions.getDestinationTableId());
+      TableId temporaryTableId, DestinationValidationOptions requestedOptions) {
+    TableInfo destinationTable = getTable(requestedOptions.getTableId());
     Preconditions.checkArgument(
         destinationTable != null,
         "Dynamic overwrite destination table %s no longer exists",
-        fullTableName(validationOptions.getDestinationTableId()));
-    validateDestinationTableLayout(destinationTable, validationOptions);
-    return overwriteDestinationWithTemporaryDynamicPartitons(temporaryTableId, destinationTable);
+        fullTableName(requestedOptions.getTableId()));
+    StandardTableDefinition destinationDefinition =
+        validateDestinationTableLayout(destinationTable, requestedOptions);
+    return overwriteDestinationWithTemporaryDynamicPartitons(
+        temporaryTableId, destinationTable, destinationDefinition);
   }
 
   private Job overwriteDestinationWithTemporaryDynamicPartitons(
-      TableId temporaryTableId, TableInfo destinationTable) {
-    TableDefinition destinationDefinition = destinationTable.getDefinition();
-    Preconditions.checkArgument(
-        destinationDefinition instanceof StandardTableDefinition,
-        "Dynamic overwrite requires a standard destination table, but %s is %s",
-        fullTableName(destinationTable.getTableId()),
-        destinationDefinition.getType());
-
+      TableId temporaryTableId,
+      TableInfo destinationTable,
+      StandardTableDefinition destinationDefinition) {
     String destinationTableName = fullTableName(destinationTable.getTableId());
     String temporaryTableName = fullTableName(temporaryTableId);
-    StandardTableDefinition sdt = (StandardTableDefinition) destinationDefinition;
     String sqlQuery;
-    TimePartitioning timePartitioning = sdt.getTimePartitioning();
+    TimePartitioning timePartitioning = destinationDefinition.getTimePartitioning();
     if (timePartitioning != null) {
-      Preconditions.checkArgument(
-          timePartitioning.getField() != null,
-          "Dynamic overwrite does not support ingestion-time partitioned destination table %s",
-          destinationTableName);
       sqlQuery =
           getQueryForTimePartitionedTable(
-              destinationTableName, temporaryTableName, sdt, timePartitioning);
+              destinationTableName, temporaryTableName, destinationDefinition, timePartitioning);
     } else {
-      RangePartitioning rangePartitioning = sdt.getRangePartitioning();
-      Preconditions.checkArgument(
-          rangePartitioning != null,
-          "Dynamic overwrite requires a partitioned destination table, but %s is unpartitioned",
-          destinationTableName);
+      RangePartitioning rangePartitioning = destinationDefinition.getRangePartitioning();
       sqlQuery =
           getQueryForRangePartitionedTable(
-              destinationTableName, temporaryTableName, sdt, rangePartitioning);
+              destinationTableName, temporaryTableName, destinationDefinition, rangePartitioning);
     }
 
     QueryJobConfiguration queryConfig =
