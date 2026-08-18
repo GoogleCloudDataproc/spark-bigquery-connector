@@ -87,7 +87,21 @@ public class BigQueryClientTest {
             .build();
 
     BigQueryClient.validateDestinationTableLayout(
-        destination, options("range_key", null, range(0, 100, 10), null, true, "cluster_key"));
+        destination, options("RANGE_KEY", null, range(0, 100, 10), null, true, "CLUSTER_KEY"));
+  }
+
+  @Test
+  public void validateDestinationTableLayout_acceptsCaseInsensitiveTimeAndClusteringFields() {
+    TableInfo destination =
+        tableInfo(
+            TimePartitioning.newBuilder(TimePartitioning.Type.HOUR).setField("event_ts").build(),
+            null,
+            ImmutableList.of("cluster_key", "range_key"));
+
+    BigQueryClient.validateDestinationTableLayout(
+        destination,
+        options(
+            "EVENT_TS", TimePartitioning.Type.HOUR, null, null, null, "CLUSTER_KEY", "RANGE_KEY"));
   }
 
   @Test
