@@ -1137,27 +1137,8 @@ public class BigQueryClient {
 
     options.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
 
-    if (applyDestinationTableLayoutOptions
-        && (options.getPartitionField().isPresent() || options.getPartitionType().isPresent())) {
-      TimePartitioning.Builder timePartitionBuilder =
-          TimePartitioning.newBuilder(options.getPartitionTypeOrDefault());
-      options.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
-      options
-          .getPartitionRequireFilter()
-          .ifPresent(timePartitionBuilder::setRequirePartitionFilter);
-      options.getPartitionField().ifPresent(timePartitionBuilder::setField);
-      jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
-    }
-    if (applyDestinationTableLayoutOptions
-        && options.getPartitionField().isPresent()
-        && options.getPartitionRange().isPresent()) {
-      RangePartitioning.Builder rangePartitionBuilder = RangePartitioning.newBuilder();
-      options.getPartitionField().ifPresent(rangePartitionBuilder::setField);
-      options.getPartitionRange().ifPresent(rangePartitionBuilder::setRange);
-      jobConfiguration.setRangePartitioning(rangePartitionBuilder.build());
-    }
-
     if (applyDestinationTableLayoutOptions) {
+      configureDestinationTablePartitioning(options, jobConfiguration);
       options
           .getClusteredFields()
           .ifPresent(
@@ -1202,6 +1183,14 @@ public class BigQueryClient {
                 finishedJob.getStatus().getError().getMessage()),
             finishedJob.getStatus().getError());
       } else {
+        // requirePartitionFilter is a table-level property for range-partitioned tables. The load
+        // API exposes it only through TimePartitioning, which must not accompany RangePartitioning.
+        if (applyDestinationTableLayoutOptions
+            && options.getPartitionRange().isPresent()
+            && options.getPartitionRequireFilter().isPresent()) {
+          applyRangePartitionRequireFilterAfterLoad(
+              destinationTable, options.getPartitionRequireFilter().get());
+        }
         log.info(
             "Done loading to {}. jobId: {}",
             BigQueryUtil.friendlyTableName(options.getTableId()),
@@ -1236,6 +1225,56 @@ public class BigQueryClient {
               "Failed to load the data into BigQuery, JobId for debug purposes is [%s:%s.%s]",
               jobId.getProject(), jobId.getLocation(), jobId.getJob()));
       throw new BigQueryException(0, "Problem loading data into BigQuery", e);
+    }
+  }
+
+  static void configureDestinationTablePartitioning(
+      LoadDataOptions options, LoadJobConfiguration.Builder jobConfiguration) {
+    Optional<RangePartitioning.Range> partitionRange = options.getPartitionRange();
+    if (partitionRange.isPresent()) {
+      Preconditions.checkArgument(
+          !options.getPartitionType().isPresent()
+              && !options.getPartitionExpirationMs().isPresent(),
+          "Range partitioning options cannot be combined with time partitioning options");
+      String partitionField =
+          options
+              .getPartitionField()
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "partitionField must be configured with range partitioning options"));
+      jobConfiguration.setRangePartitioning(
+          RangePartitioning.newBuilder()
+              .setField(partitionField)
+              .setRange(partitionRange.get())
+              .build());
+    } else if (options.getPartitionField().isPresent() || options.getPartitionType().isPresent()) {
+      TimePartitioning.Builder timePartitionBuilder =
+          TimePartitioning.newBuilder(options.getPartitionTypeOrDefault());
+      options.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
+      options
+          .getPartitionRequireFilter()
+          .ifPresent(timePartitionBuilder::setRequirePartitionFilter);
+      options.getPartitionField().ifPresent(timePartitionBuilder::setField);
+      jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
+    }
+  }
+
+  private void applyRangePartitionRequireFilterAfterLoad(
+      TableId destinationTableId, boolean requirePartitionFilter) {
+    TableInfo destinationTable = getTable(destinationTableId);
+    Preconditions.checkState(
+        destinationTable != null
+            && destinationTable.getDefinition() instanceof StandardTableDefinition
+            && ((StandardTableDefinition) destinationTable.getDefinition()).getRangePartitioning()
+                != null,
+        "Cannot set partitionRequireFilter because destination table %s is not range-partitioned",
+        fullTableName(destinationTableId));
+
+    if (requirePartitionFilter
+        != Boolean.TRUE.equals(destinationTable.getRequirePartitionFilter())) {
+      update(
+          destinationTable.toBuilder().setRequirePartitionFilter(requirePartitionFilter).build());
     }
   }
 
