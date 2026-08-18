@@ -99,6 +99,72 @@ public class BigQueryClientTest {
   }
 
   @Test
+  public void rangePartitionRequireFilter_rejectsExistingMismatchBeforeLoad() {
+    TableInfo destination =
+        tableInfo(
+            null,
+            RangePartitioning.newBuilder()
+                .setField("range_key")
+                .setRange(range(0, 100, 10))
+                .build(),
+            ImmutableList.of());
+    LoadDataOptions options =
+        loadDataOptions(
+            "range_key", null, TimePartitioning.Type.DAY, range(0, 100, 10), null, true);
+    BigQueryClient client = mock(BigQueryClient.class, CALLS_REAL_METHODS);
+    doReturn(destination).when(client).getTable(TABLE_ID);
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> client.validateRangePartitionRequireFilterBeforeLoad(options, TABLE_ID, true));
+
+    assertThat(exception).hasMessageThat().contains("partitionRequireFilter=true");
+    verify(client).getTable(TABLE_ID);
+  }
+
+  @Test
+  public void rangePartitionRequireFilter_doesNotUpdateExistingMatchingTableAfterLoad() {
+    TableInfo destination =
+        tableInfo(
+                null,
+                RangePartitioning.newBuilder()
+                    .setField("range_key")
+                    .setRange(range(0, 100, 10))
+                    .build(),
+                ImmutableList.of())
+            .toBuilder()
+            .setRequirePartitionFilter(true)
+            .build();
+    LoadDataOptions options =
+        loadDataOptions(
+            "range_key", null, TimePartitioning.Type.DAY, range(0, 100, 10), null, true);
+    BigQueryClient client = mock(BigQueryClient.class, CALLS_REAL_METHODS);
+    doReturn(destination).when(client).getTable(TABLE_ID);
+
+    Optional<Boolean> valueToApplyAfterLoad =
+        client.validateRangePartitionRequireFilterBeforeLoad(options, TABLE_ID, true);
+
+    assertThat(valueToApplyAfterLoad).isEmpty();
+    verify(client).getTable(TABLE_ID);
+  }
+
+  @Test
+  public void rangePartitionRequireFilter_updatesTableCreatedByLoad() {
+    LoadDataOptions options =
+        loadDataOptions(
+            "range_key", null, TimePartitioning.Type.DAY, range(0, 100, 10), null, true);
+    BigQueryClient client = mock(BigQueryClient.class, CALLS_REAL_METHODS);
+    doReturn(null).when(client).getTable(TABLE_ID);
+
+    Optional<Boolean> valueToApplyAfterLoad =
+        client.validateRangePartitionRequireFilterBeforeLoad(options, TABLE_ID, true);
+
+    assertThat(valueToApplyAfterLoad).hasValue(true);
+    verify(client).getTable(TABLE_ID);
+  }
+
+  @Test
   public void validateDestinationTableLayout_acceptsOmittedLayoutOptions() {
     TableInfo destination =
         tableInfo(

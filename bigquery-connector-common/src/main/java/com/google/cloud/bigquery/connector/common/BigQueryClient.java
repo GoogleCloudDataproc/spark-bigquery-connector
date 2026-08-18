@@ -1145,6 +1145,10 @@ public class BigQueryClient {
       Optional<Schema> schema,
       TableId destinationTable,
       boolean applyDestinationTableLayoutOptions) {
+    Optional<Boolean> rangePartitionRequireFilterToApplyAfterLoad =
+        validateRangePartitionRequireFilterBeforeLoad(
+            options, destinationTable, applyDestinationTableLayoutOptions);
+
     LoadJobConfiguration.Builder jobConfiguration =
         jobConfigurationFactory
             .createLoadJobConfigurationBuilder(destinationTable, sourceUris, formatOptions)
@@ -1208,12 +1212,10 @@ public class BigQueryClient {
       } else {
         // requirePartitionFilter is a table-level property for range-partitioned tables. The load
         // API exposes it only through TimePartitioning, which must not accompany RangePartitioning.
-        if (applyDestinationTableLayoutOptions
-            && options.getPartitionRange().isPresent()
-            && options.getPartitionRequireFilter().isPresent()) {
-          applyRangePartitionRequireFilterAfterLoad(
-              destinationTable, options.getPartitionRequireFilter().get());
-        }
+        rangePartitionRequireFilterToApplyAfterLoad.ifPresent(
+            requirePartitionFilter ->
+                applyRangePartitionRequireFilterAfterLoad(
+                    destinationTable, requirePartitionFilter));
         log.info(
             "Done loading to {}. jobId: {}",
             BigQueryUtil.friendlyTableName(options.getTableId()),
@@ -1249,6 +1251,40 @@ public class BigQueryClient {
               jobId.getProject(), jobId.getLocation(), jobId.getJob()));
       throw new BigQueryException(0, "Problem loading data into BigQuery", e);
     }
+  }
+
+  Optional<Boolean> validateRangePartitionRequireFilterBeforeLoad(
+      LoadDataOptions options,
+      TableId destinationTableId,
+      boolean applyDestinationTableLayoutOptions) {
+    if (!applyDestinationTableLayoutOptions
+        || !options.getPartitionRange().isPresent()
+        || !options.getPartitionRequireFilter().isPresent()) {
+      return Optional.empty();
+    }
+
+    boolean requestedRequirePartitionFilter = options.getPartitionRequireFilter().get();
+    TableInfo existingDestinationTable = getTable(destinationTableId);
+    if (existingDestinationTable == null) {
+      return Optional.of(requestedRequirePartitionFilter);
+    }
+
+    TableDefinition destinationDefinition = existingDestinationTable.getDefinition();
+    Preconditions.checkArgument(
+        destinationDefinition instanceof StandardTableDefinition
+            && ((StandardTableDefinition) destinationDefinition).getRangePartitioning() != null,
+        "Cannot set partitionRequireFilter because existing destination table %s is not "
+            + "range-partitioned",
+        fullTableName(destinationTableId));
+    boolean existingRequirePartitionFilter =
+        Boolean.TRUE.equals(existingDestinationTable.getRequirePartitionFilter());
+    Preconditions.checkArgument(
+        requestedRequirePartitionFilter == existingRequirePartitionFilter,
+        "Destination table layout is incompatible: requested partitionRequireFilter=%s, but the "
+            + "existing destination has partitionRequireFilter=%s",
+        requestedRequirePartitionFilter,
+        existingRequirePartitionFilter);
+    return Optional.empty();
   }
 
   static void configureDestinationTablePartitioning(
