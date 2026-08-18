@@ -322,6 +322,10 @@ public class BigQueryClientTest {
         options("event_ts", TimePartitioning.Type.HOUR, null, null, null),
         "partitionType");
     assertLayoutMismatch(
+        timeDestination,
+        options(null, TimePartitioning.Type.DAY, null, null, null),
+        "partitionField");
+    assertLayoutMismatch(
         timeDestination, options(null, null, null, 172_800_000L, null), "partitionExpirationMs");
     assertLayoutMismatch(
         timeDestination, options(null, null, null, null, true), "partitionRequireFilter");
@@ -334,9 +338,7 @@ public class BigQueryClientTest {
         options("range_key", null, range(0, 100, 20), null, null),
         "partitionRange");
     assertLayoutMismatch(
-        timeDestination,
-        options("range_key", null, range(0, 100, 10), null, null),
-        "partitioning type");
+        timeDestination, options("range_key", null, range(0, 100, 10), null, null), "partitioning");
   }
 
   @Test
@@ -354,6 +356,20 @@ public class BigQueryClientTest {
         destination,
         options("range_key", TimePartitioning.Type.DAY, range(0, 100, 10), null, null),
         "range partitioning options cannot be combined with time partitioning options");
+  }
+
+  @Test
+  public void validateDestinationTableLayout_rejectsBothTimeAndRangePartitioning() {
+    TableInfo destination =
+        tableInfo(
+            TimePartitioning.newBuilder(TimePartitioning.Type.DAY).setField("event_ts").build(),
+            RangePartitioning.newBuilder()
+                .setField("range_key")
+                .setRange(range(0, 100, 10))
+                .build(),
+            ImmutableList.of());
+
+    assertLayoutMismatch(destination, emptyOptions(), "both time and range partitioning");
   }
 
   @Test
@@ -489,18 +505,17 @@ public class BigQueryClientTest {
       Long partitionExpirationMs,
       Boolean partitionRequireFilter,
       String... clusteredFields) {
-    return DestinationValidationOptions.from(
-        loadDataOptions(
-            partitionField,
-            partitionType,
-            effectivePartitionType,
-            partitionRange,
-            partitionExpirationMs,
-            partitionRequireFilter,
-            clusteredFields));
+    return loadDataOptions(
+        partitionField,
+        partitionType,
+        effectivePartitionType,
+        partitionRange,
+        partitionExpirationMs,
+        partitionRequireFilter,
+        clusteredFields);
   }
 
-  private static LoadDataOptions loadDataOptions(
+  private static TestOptions loadDataOptions(
       String partitionField,
       TimePartitioning.Type partitionType,
       TimePartitioning.Type effectivePartitionType,
@@ -508,7 +523,7 @@ public class BigQueryClientTest {
       Long partitionExpirationMs,
       Boolean partitionRequireFilter,
       String... clusteredFields) {
-    LoadDataOptions options = mock(LoadDataOptions.class);
+    TestOptions options = mock(TestOptions.class);
     when(options.getTableId()).thenReturn(TABLE_ID);
     when(options.getPartitionField()).thenReturn(Optional.ofNullable(partitionField));
     when(options.getPartitionType()).thenReturn(Optional.ofNullable(partitionType));
@@ -528,6 +543,8 @@ public class BigQueryClientTest {
                 : Optional.of(ImmutableList.copyOf(clusteredFields)));
     return options;
   }
+
+  private interface TestOptions extends LoadDataOptions, DestinationValidationOptions {}
 
   private static void assertLayoutMismatch(
       TableInfo destination, DestinationValidationOptions options, String expectedMessage) {

@@ -18,99 +18,28 @@ package com.google.cloud.bigquery.connector.common;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
-import com.google.cloud.bigquery.connector.common.BigQueryClient.LoadDataOptions;
 import com.google.common.collect.ImmutableList;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 
-/** The destination metadata that must be validated before a dynamic overwrite. */
-public final class DestinationValidationOptions {
+/** The requested destination layout options validated before a dynamic overwrite. */
+public interface DestinationValidationOptions {
 
-  private final TableId destinationTableId;
-  private final boolean enableModeCheckForSchemaFields;
-  private final Optional<String> partitionField;
-  private final Optional<TimePartitioning.Type> explicitPartitionType;
-  private final TimePartitioning.Type effectivePartitionType;
-  private final Optional<RangePartitioning.Range> partitionRange;
-  private final OptionalLong partitionExpirationMs;
-  private final Optional<Boolean> partitionRequireFilter;
-  private final Optional<ImmutableList<String>> clusteredFields;
+  TableId getTableId();
 
-  /** Creates an immutable validation snapshot from the relevant load options. */
-  public static DestinationValidationOptions from(LoadDataOptions options) {
-    Objects.requireNonNull(options, "options");
-    return new DestinationValidationOptions(
-        options.getTableId(),
-        options.getEnableModeCheckForSchemaFields(),
-        options.getPartitionField(),
-        options.getPartitionType(),
-        options.getPartitionTypeOrDefault(),
-        options.getPartitionRange(),
-        options.getPartitionExpirationMs(),
-        options.getPartitionRequireFilter(),
-        options.getClusteredFields());
-  }
+  boolean getEnableModeCheckForSchemaFields();
 
-  private DestinationValidationOptions(
-      TableId destinationTableId,
-      boolean enableModeCheckForSchemaFields,
-      Optional<String> partitionField,
-      Optional<TimePartitioning.Type> explicitPartitionType,
-      TimePartitioning.Type effectivePartitionType,
-      Optional<RangePartitioning.Range> partitionRange,
-      OptionalLong partitionExpirationMs,
-      Optional<Boolean> partitionRequireFilter,
-      Optional<ImmutableList<String>> clusteredFields) {
-    this.destinationTableId = Objects.requireNonNull(destinationTableId, "destinationTableId");
-    this.enableModeCheckForSchemaFields = enableModeCheckForSchemaFields;
-    this.partitionField = Objects.requireNonNull(partitionField, "partitionField");
-    this.explicitPartitionType =
-        Objects.requireNonNull(explicitPartitionType, "explicitPartitionType");
-    this.effectivePartitionType =
-        Objects.requireNonNull(effectivePartitionType, "effectivePartitionType");
-    this.partitionRange = Objects.requireNonNull(partitionRange, "partitionRange");
-    this.partitionExpirationMs =
-        Objects.requireNonNull(partitionExpirationMs, "partitionExpirationMs");
-    this.partitionRequireFilter =
-        Objects.requireNonNull(partitionRequireFilter, "partitionRequireFilter");
-    this.clusteredFields =
-        Objects.requireNonNull(clusteredFields, "clusteredFields").map(ImmutableList::copyOf);
-  }
+  Optional<String> getPartitionField();
 
-  public TableId getDestinationTableId() {
-    return destinationTableId;
-  }
+  Optional<TimePartitioning.Type> getPartitionType();
 
-  public boolean getEnableModeCheckForSchemaFields() {
-    return enableModeCheckForSchemaFields;
-  }
+  TimePartitioning.Type getPartitionTypeOrDefault();
 
-  public Optional<String> getPartitionField() {
-    return partitionField;
-  }
+  Optional<RangePartitioning.Range> getPartitionRange();
 
-  public Optional<TimePartitioning.Type> getPartitionType() {
-    return explicitPartitionType;
-  }
+  OptionalLong getPartitionExpirationMs();
 
-  public TimePartitioning.Type getPartitionTypeOrDefault() {
-    return effectivePartitionType;
-  }
+  Optional<Boolean> getPartitionRequireFilter();
 
-  public Optional<RangePartitioning.Range> getPartitionRange() {
-    return partitionRange;
-  }
-
-  public OptionalLong getPartitionExpirationMs() {
-    return partitionExpirationMs;
-  }
-
-  public Optional<Boolean> getPartitionRequireFilter() {
-    return partitionRequireFilter;
-  }
-
-  public Optional<ImmutableList<String>> getClusteredFields() {
-    return clusteredFields;
-  }
+  Optional<ImmutableList<String>> getClusteredFields();
 }
