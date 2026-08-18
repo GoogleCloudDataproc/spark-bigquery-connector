@@ -367,7 +367,7 @@ public class BigQueryClient {
         getPartitioningType(destinationTimePartitioning, destinationRangePartitioning));
     String requestedField = requestedPartitionField.orElse(null);
     checkLayoutOption(
-        Objects.equals(requestedField, destinationRangePartitioning.getField()),
+        identifiersEqual(requestedField, destinationRangePartitioning.getField()),
         "partitionField",
         requestedField,
         destinationRangePartitioning.getField());
@@ -393,7 +393,7 @@ public class BigQueryClient {
     if (requestedPartitionField.isPresent() || requestedOptions.getPartitionType().isPresent()) {
       String requestedField = requestedPartitionField.orElse(null);
       checkLayoutOption(
-          Objects.equals(requestedField, destinationTimePartitioning.getField()),
+          identifiersEqual(requestedField, destinationTimePartitioning.getField()),
           "partitionField",
           requestedField,
           destinationTimePartitioning.getField());
@@ -453,11 +453,27 @@ public class BigQueryClient {
                       ? Collections.emptyList()
                       : destinationClustering.getFields();
               checkLayoutOption(
-                  clusteredFields.equals(destinationClusteredFields),
+                  identifierListsEqual(clusteredFields, destinationClusteredFields),
                   "clusteredFields",
                   clusteredFields,
                   destinationClusteredFields);
             });
+  }
+
+  private static boolean identifiersEqual(String first, String second) {
+    return first == null ? second == null : second != null && first.equalsIgnoreCase(second);
+  }
+
+  private static boolean identifierListsEqual(List<String> first, List<String> second) {
+    if (first.size() != second.size()) {
+      return false;
+    }
+    for (int index = 0; index < first.size(); index++) {
+      if (!identifiersEqual(first.get(index), second.get(index))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private static String getPartitioningType(
