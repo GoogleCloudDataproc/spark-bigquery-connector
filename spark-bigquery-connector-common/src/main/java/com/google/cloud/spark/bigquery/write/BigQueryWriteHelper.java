@@ -139,16 +139,16 @@ public class BigQueryWriteHelper {
           && config.getPartitionOverwriteModeValue() == PartitionOverwriteMode.DYNAMIC
           && bigQueryClient.tableExists(config.getTableId())
           && bigQueryClient.isTablePartitioned(config.getTableId())) {
+        DestinationValidationOptions validationOptions = DestinationValidationOptions.from(config);
         temporaryTableId =
             Optional.of(
                 bigQueryClient
-                    .createTempTableAfterValidatingDestination(
-                        tableSchema, DestinationValidationOptions.from(config))
+                    .createTempTableAfterValidatingDestination(tableSchema, validationOptions)
                     .getTableId());
         loadDataToBigQuery(/* applyDestinationTableLayoutOptions= */ false);
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
-                temporaryTableId.get(), config.getTableId());
+                temporaryTableId.get(), validationOptions);
         bigQueryClient.waitForJob(queryJob, JobOperation.DYNAMIC_PARTITION_OVERWRITE);
       } else {
         loadDataToBigQuery(/* applyDestinationTableLayoutOptions= */ true);

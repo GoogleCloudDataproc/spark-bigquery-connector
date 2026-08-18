@@ -17,7 +17,11 @@ package com.google.cloud.bigquery.connector.common;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.bigquery.Clustering;
@@ -213,6 +217,46 @@ public class BigQueryClientTest {
     assertThat(exception)
         .hasMessageThat()
         .contains("does not support ingestion-time partitioned destination table");
+  }
+
+  @Test
+  public void dynamicOverwrite_failsClosedWhenDestinationIsNoLongerPartitioned() {
+    TableId temporaryTableId = TableId.of("project", "dataset", "temporary");
+    BigQueryClient client = mock(BigQueryClient.class, CALLS_REAL_METHODS);
+    doReturn(tableInfo(null, null, ImmutableList.of())).when(client).getTable(TABLE_ID);
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                client.overwriteDestinationWithTemporaryDynamicPartitons(
+                    temporaryTableId, emptyOptions()));
+
+    assertThat(exception).hasMessageThat().contains("is unpartitioned");
+    verify(client).getTable(TABLE_ID);
+    verify(client, never()).overwriteDestinationWithTemporary(temporaryTableId, TABLE_ID);
+  }
+
+  @Test
+  public void dynamicOverwrite_revalidatesDestinationLayout() {
+    TableInfo destination =
+        tableInfo(
+            TimePartitioning.newBuilder(TimePartitioning.Type.DAY).setField("event_ts").build(),
+            null,
+            ImmutableList.of());
+    BigQueryClient client = mock(BigQueryClient.class, CALLS_REAL_METHODS);
+    doReturn(destination).when(client).getTable(TABLE_ID);
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                client.overwriteDestinationWithTemporaryDynamicPartitons(
+                    TableId.of("project", "dataset", "temporary"),
+                    options("event_ts", TimePartitioning.Type.HOUR, null, null, null)));
+
+    assertThat(exception).hasMessageThat().contains("partitionType");
+    verify(client).getTable(TABLE_ID);
   }
 
   private static TableInfo tableInfo(

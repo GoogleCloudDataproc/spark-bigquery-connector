@@ -555,41 +555,64 @@ public class BigQueryClient {
    */
   public Job overwriteDestinationWithTemporaryDynamicPartitons(
       TableId temporaryTableId, TableId destinationTableId) {
+    TableInfo destinationTable = getTable(destinationTableId);
+    Preconditions.checkArgument(
+        destinationTable != null,
+        "Dynamic overwrite destination table %s no longer exists",
+        fullTableName(destinationTableId));
+    return overwriteDestinationWithTemporaryDynamicPartitons(temporaryTableId, destinationTable);
+  }
 
-    TableDefinition destinationDefinition = getTable(destinationTableId).getDefinition();
-    String sqlQuery = null;
-    if (destinationDefinition instanceof StandardTableDefinition) {
-      String destinationTableName = fullTableName(destinationTableId);
-      String temporaryTableName = fullTableName(temporaryTableId);
-      StandardTableDefinition sdt = (StandardTableDefinition) destinationDefinition;
+  public Job overwriteDestinationWithTemporaryDynamicPartitons(
+      TableId temporaryTableId, DestinationValidationOptions validationOptions) {
+    TableInfo destinationTable = getTable(validationOptions.getDestinationTableId());
+    Preconditions.checkArgument(
+        destinationTable != null,
+        "Dynamic overwrite destination table %s no longer exists",
+        fullTableName(validationOptions.getDestinationTableId()));
+    validateDestinationTableLayout(destinationTable, validationOptions);
+    return overwriteDestinationWithTemporaryDynamicPartitons(temporaryTableId, destinationTable);
+  }
 
-      TimePartitioning timePartitioning = sdt.getTimePartitioning();
-      if (timePartitioning != null) {
-        sqlQuery =
-            getQueryForTimePartitionedTable(
-                destinationTableName, temporaryTableName, sdt, timePartitioning);
-      } else {
-        RangePartitioning rangePartitioning = sdt.getRangePartitioning();
-        if (rangePartitioning != null) {
-          sqlQuery =
-              getQueryForRangePartitionedTable(
-                  destinationTableName, temporaryTableName, sdt, rangePartitioning);
-        }
-      }
+  private Job overwriteDestinationWithTemporaryDynamicPartitons(
+      TableId temporaryTableId, TableInfo destinationTable) {
+    TableDefinition destinationDefinition = destinationTable.getDefinition();
+    Preconditions.checkArgument(
+        destinationDefinition instanceof StandardTableDefinition,
+        "Dynamic overwrite requires a standard destination table, but %s is %s",
+        fullTableName(destinationTable.getTableId()),
+        destinationDefinition.getType());
 
-      if (sqlQuery != null) {
-        QueryJobConfiguration queryConfig =
-            jobConfigurationFactory
-                .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
-                .setUseLegacySql(false)
-                .build();
-
-        return create(JobInfo.newBuilder(queryConfig).build());
-      }
+    String destinationTableName = fullTableName(destinationTable.getTableId());
+    String temporaryTableName = fullTableName(temporaryTableId);
+    StandardTableDefinition sdt = (StandardTableDefinition) destinationDefinition;
+    String sqlQuery;
+    TimePartitioning timePartitioning = sdt.getTimePartitioning();
+    if (timePartitioning != null) {
+      Preconditions.checkArgument(
+          timePartitioning.getField() != null,
+          "Dynamic overwrite does not support ingestion-time partitioned destination table %s",
+          destinationTableName);
+      sqlQuery =
+          getQueryForTimePartitionedTable(
+              destinationTableName, temporaryTableName, sdt, timePartitioning);
+    } else {
+      RangePartitioning rangePartitioning = sdt.getRangePartitioning();
+      Preconditions.checkArgument(
+          rangePartitioning != null,
+          "Dynamic overwrite requires a partitioned destination table, but %s is unpartitioned",
+          destinationTableName);
+      sqlQuery =
+          getQueryForRangePartitionedTable(
+              destinationTableName, temporaryTableName, sdt, rangePartitioning);
     }
 
-    // no partitioning default to statndard overwrite
-    return overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
+    QueryJobConfiguration queryConfig =
+        jobConfigurationFactory
+            .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
+            .setUseLegacySql(false)
+            .build();
+    return create(JobInfo.newBuilder(queryConfig).build());
   }
 
   /**

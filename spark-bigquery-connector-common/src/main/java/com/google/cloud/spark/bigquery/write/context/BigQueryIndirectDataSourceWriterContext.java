@@ -180,16 +180,16 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
           && config.getPartitionOverwriteModeValue() == PartitionOverwriteMode.DYNAMIC
           && bigQueryClient.tableExists(config.getTableId())
           && bigQueryClient.isTablePartitioned(config.getTableId())) {
+        DestinationValidationOptions validationOptions = DestinationValidationOptions.from(config);
         temporaryTableId =
             Optional.of(
                 bigQueryClient
-                    .createTempTableAfterValidatingDestination(
-                        schema, DestinationValidationOptions.from(config))
+                    .createTempTableAfterValidatingDestination(schema, validationOptions)
                     .getTableId());
         loadDataToBigQuery(sourceUris, schema, /* applyDestinationTableLayoutOptions= */ false);
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
-                temporaryTableId.get(), config.getTableId());
+                temporaryTableId.get(), validationOptions);
         bigQueryClient.waitForJob(queryJob, JobOperation.DYNAMIC_PARTITION_OVERWRITE);
       } else {
         loadDataToBigQuery(sourceUris, schema, /* applyDestinationTableLayoutOptions= */ true);
