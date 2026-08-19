@@ -20,6 +20,7 @@ import static com.google.cloud.spark.bigquery.ProtobufUtils.toProtoSchema;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
@@ -27,6 +28,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.ComparisonResult;
+import com.google.cloud.bigquery.connector.common.JobOperation;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsRequest;
 import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
@@ -35,15 +37,20 @@ import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.metrics.SparkBigQueryConnectorMetricsUtils;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.Locale;
+import java.util.stream.Collectors;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +91,43 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
   private WritingMode writingMode = WritingMode.ALL_ELSE;
   private final SparkContext sparkContext;
 
+  private static StructType normalizeCdcColumns(StructType schema) {
+    boolean hasCdc = Arrays.stream(schema.fields()).anyMatch(SparkBigQueryUtil::isCdcPseudoColumn);
+    if (!hasCdc) {
+      return schema;
+    }
+    StructField[] fields =
+        Arrays.stream(schema.fields())
+            .map(
+                f -> {
+                  String nameUpper = f.name().toUpperCase(Locale.ENGLISH);
+                  if (SparkBigQueryUtil.isCdcPseudoColumn(f)) {
+                    return new StructField(nameUpper, f.dataType(), f.nullable(), f.metadata());
+                  }
+                  return f;
+                })
+            .toArray(StructField[]::new);
+    return new StructType(fields);
+  }
+
+  private boolean hasCdcColumns(Schema bigQuerySchema) {
+    return bigQuerySchema.getFields().stream().anyMatch(BigQueryUtil::isCdcPseudoColumn);
+  }
+
+  private boolean hasPrimaryKey(TableInfo tableInfo) {
+    if (tableInfo == null || !(tableInfo.getDefinition() instanceof StandardTableDefinition)) {
+      return false;
+    }
+    try {
+      StandardTableDefinition stdDef = (StandardTableDefinition) tableInfo.getDefinition();
+      return stdDef.getTableConstraints() != null
+          && stdDef.getTableConstraints().getPrimaryKey() != null;
+    } catch (NoSuchMethodError | Exception e) {
+      // Fallback if google-cloud-bigquery version doesn't support getTableConstraints or throws
+    }
+    return true; // Default to true if unable to check
+  }
+
   public BigQueryDirectDataSourceWriterContext(
       BigQueryClient bigQueryClient,
       BigQueryClientFactory bigQueryWriteClientFactory,
@@ -106,7 +150,7 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     this.writeClientFactory = bigQueryWriteClientFactory;
     this.destinationTableId = destinationTableId;
     this.writeUUID = writeUUID;
-    this.sparkSchema = sparkSchema;
+    this.sparkSchema = normalizeCdcColumns(sparkSchema);
     this.bigqueryDataWriterHelperRetrySettings = bigqueryDataWriterHelperRetrySettings;
     this.traceId = traceId;
     this.enableModeCheckForSchemaFields = enableModeCheckForSchemaFields;
@@ -116,9 +160,34 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     this.writeAtLeastOnce = writeAtLeastOnce;
     this.sparkContext = sparkContext;
     Schema bigQuerySchema =
-        SchemaConverters.from(this.schemaConvertersConfiguration).toBigQuerySchema(sparkSchema);
+        SchemaConverters.from(this.schemaConvertersConfiguration)
+            .toBigQuerySchema(this.sparkSchema);
+    if (hasCdcColumns(bigQuerySchema)) {
+      StructField changeTypeField =
+          Arrays.stream(this.sparkSchema.fields())
+              .filter(f -> f.name().equals("_CHANGE_TYPE"))
+              .findFirst()
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "CDC writes require the _CHANGE_TYPE column to be present in the schema."));
+      if (!changeTypeField.dataType().equals(DataTypes.StringType)) {
+        throw new IllegalArgumentException("CDC _CHANGE_TYPE column must be of type String");
+      }
+      if (saveMode != SaveMode.Append) {
+        throw new IllegalArgumentException("CDC can only be used with SaveMode.Append");
+      }
+      if (!writeAtLeastOnce) {
+        throw new IllegalArgumentException(
+            "CDC is only supported when writeMethod is DIRECT and writeAtLeastOnce is true.");
+      }
+      if (destinationTableId.getTable().contains("$")) {
+        throw new IllegalArgumentException(
+            "CDC cannot be used with a partition decorator ($). Write to the base table.");
+      }
+    }
     try {
-      this.protoSchema = toProtoSchema(sparkSchema);
+      this.protoSchema = toProtoSchema(this.sparkSchema);
     } catch (IllegalArgumentException e) {
       throw new BigQueryConnectorException.InvalidSchemaException(
           "Could not convert Spark schema to protobuf descriptor", e);
@@ -153,9 +222,17 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
     if (bigQueryClient.tableExists(destinationTableId)) {
       TableInfo destinationTable = bigQueryClient.getTable(destinationTableId);
       Schema tableSchema = destinationTable.getDefinition().getSchema();
+      Schema sourceSchemaForValidation = bigQuerySchema;
+      if (hasCdcColumns(bigQuerySchema)) {
+        sourceSchemaForValidation =
+            Schema.of(
+                bigQuerySchema.getFields().stream()
+                    .filter(f -> !BigQueryUtil.isCdcPseudoColumn(f))
+                    .collect(Collectors.toList()));
+      }
       ComparisonResult schemaWritableResult =
           BigQueryUtil.schemaWritable(
-              bigQuerySchema, // sourceSchema
+              sourceSchemaForValidation, // sourceSchema
               tableSchema, // destinationSchema
               false, // regardFieldOrder
               enableModeCheckForSchemaFields);
@@ -164,9 +241,18 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
           new BigQueryConnectorException.InvalidSchemaException(
               "Destination table's schema is not compatible with dataframe's schema. "
                   + schemaWritableResult.makeMessage()));
+      if (hasCdcColumns(bigQuerySchema)) {
+        if (!hasPrimaryKey(destinationTable)) {
+          throw new IllegalArgumentException("CDC requires a primary key on the destination table");
+        }
+      }
       switch (saveMode) {
         case Append:
           if (writeAtLeastOnce) {
+            if (hasCdcColumns(bigQuerySchema)) {
+              writingMode = WritingMode.ALL_ELSE;
+              return new BigQueryTable(destinationTable.getTableId(), false);
+            }
             writingMode = WritingMode.APPEND_AT_LEAST_ONCE;
             return new BigQueryTable(
                 bigQueryClient.createTempTable(destinationTableId, tableSchema).getTableId(), true);
@@ -184,6 +270,9 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
       }
       return new BigQueryTable(destinationTable.getTableId(), false);
     } else {
+      if (hasCdcColumns(bigQuerySchema)) {
+        throw new IllegalArgumentException("CDC can only be written to an existing table");
+      }
       return new BigQueryTable(
           bigQueryClient
               .createTable(
@@ -255,11 +344,9 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
           batchCommitWriteStreamsResponse.getCommitTime());
     }
 
-    if (writingMode.equals(WritingMode.APPEND_AT_LEAST_ONCE)
-        || writingMode.equals(WritingMode.OVERWRITE)) {
-      long startTime = System.currentTimeMillis();
+    if (writingMode == WritingMode.APPEND_AT_LEAST_ONCE || writingMode == WritingMode.OVERWRITE) {
       Job queryJob =
-          (writingMode.equals(WritingMode.OVERWRITE))
+          (writingMode == WritingMode.OVERWRITE)
               ? overwriteMode == PartitionOverwriteMode.STATIC
                   ? bigQueryClient.overwriteDestinationWithTemporary(
                       tableToWrite.getTableId(), destinationTableId)
@@ -267,12 +354,11 @@ public class BigQueryDirectDataSourceWriterContext implements DataSourceWriterCo
                       tableToWrite.getTableId(), destinationTableId)
               : bigQueryClient.appendDestinationWithTemporary(
                   tableToWrite.getTableId(), destinationTableId);
-      bigQueryClient.waitForJob(queryJob);
-      long duration = System.currentTimeMillis() - startTime;
-      logger.info(
-          "Copied temporary table to destination in {}ms. JobId: {}",
-          duration,
-          queryJob.getJobId().getJob());
+      bigQueryClient.waitForJob(
+          queryJob,
+          writingMode == WritingMode.OVERWRITE
+              ? JobOperation.OVERWRITE_TRANSACTION
+              : JobOperation.APPEND_TRANSACTION);
       Preconditions.checkState(
           bigQueryClient.deleteTable(tableToWrite.getTableId()),
           new BigQueryConnectorException(

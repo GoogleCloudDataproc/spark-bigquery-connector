@@ -33,11 +33,16 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.unsafe.types.UTF8String;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BigQueryDirectDataWriterContext implements DataWriterContext<InternalRow> {
+  private static final UTF8String UPSERT = UTF8String.fromString("UPSERT");
+  private static final UTF8String DELETE = UTF8String.fromString("DELETE");
+
   final Logger logger = LoggerFactory.getLogger(BigQueryDirectDataWriterContext.class);
 
   private final int partitionId;
@@ -48,6 +53,7 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
   private final Descriptors.Descriptor schemaDescriptor;
   private final Map<Integer, ProtobufSchemaFieldCacheEntry> fieldIndexToEntryMap;
   private final DynamicMessage.Builder messageBuilder;
+  private final int changeTypeFieldIndex;
 
   /**
    * A helper object to assist the BigQueryDataWriter with all the writing: essentially does all the
@@ -80,6 +86,18 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
     this.fieldIndexToEntryMap = new HashMap<>();
     this.messageBuilder = DynamicMessage.newBuilder(this.schemaDescriptor);
 
+    int changeTypeIdx = -1;
+    for (int i = 0; i < sparkSchema.fields().length; i++) {
+      if (sparkSchema.fields()[i].name().equalsIgnoreCase("_CHANGE_TYPE")) {
+        if (!sparkSchema.fields()[i].dataType().equals(DataTypes.StringType)) {
+          throw new IllegalArgumentException("CDC _CHANGE_TYPE column must be of type String");
+        }
+        changeTypeIdx = i;
+        break;
+      }
+    }
+    this.changeTypeFieldIndex = changeTypeIdx;
+
     this.writerHelper =
         new BigQueryDirectDataWriterHelper(
             writeClientFactory,
@@ -93,6 +111,21 @@ public class BigQueryDirectDataWriterContext implements DataWriterContext<Intern
 
   @Override
   public void write(InternalRow record) throws IOException {
+    if (changeTypeFieldIndex != -1) {
+      Object changeTypeVal = record.get(changeTypeFieldIndex, DataTypes.StringType);
+      if (changeTypeVal != null) {
+        UTF8String changeTypeUtf8 =
+            changeTypeVal instanceof UTF8String
+                ? (UTF8String) changeTypeVal
+                : UTF8String.fromString(changeTypeVal.toString());
+        if (!changeTypeUtf8.equals(UPSERT) && !changeTypeUtf8.equals(DELETE)) {
+          throw new IllegalArgumentException(
+              "CDC _CHANGE_TYPE must be UPSERT or DELETE, but got: " + changeTypeUtf8);
+        }
+      } else {
+        throw new IllegalArgumentException("CDC _CHANGE_TYPE cannot be null");
+      }
+    }
     ByteString message =
         buildSingleRowMessage(
                 sparkSchema,

@@ -27,6 +27,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.JobOperation;
 import com.google.cloud.spark.bigquery.PartitionOverwriteMode;
 import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
@@ -146,16 +147,10 @@ public class BigQueryWriteHelper {
                         config.getEnableModeCheckForSchemaFields())
                     .getTableId());
         loadDataToBigQuery();
-        long startTime = System.currentTimeMillis();
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
                 temporaryTableId.get(), config.getTableId());
-        bigQueryClient.waitForJob(queryJob);
-        long duration = System.currentTimeMillis() - startTime;
-        logger.info(
-            "Overwrote destination with temporary dynamic partitions in {}ms. JobId: {}",
-            duration,
-            queryJob.getJobId().getJob());
+        bigQueryClient.waitForJob(queryJob, JobOperation.DYNAMIC_PARTITION_OVERWRITE);
       } else {
         loadDataToBigQuery();
       }

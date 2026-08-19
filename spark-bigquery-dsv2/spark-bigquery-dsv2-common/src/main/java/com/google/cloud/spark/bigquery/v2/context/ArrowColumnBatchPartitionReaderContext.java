@@ -45,10 +45,14 @@ import java.util.stream.Collectors;
 import org.apache.arrow.compression.CommonsCompressionFactory;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.AutoCloseables;
+import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorLoader;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.complex.ListVector;
+import org.apache.arrow.vector.complex.StructVector;
 import org.apache.arrow.vector.ipc.ArrowReader;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -58,6 +62,49 @@ import org.apache.spark.sql.vectorized.ColumnarBatch;
 public class ArrowColumnBatchPartitionReaderContext
     implements InputPartitionReaderContext<ColumnarBatch> {
   private static final long maxAllocation = 500 * 1024 * 1024;
+
+  static void ensureStructVectorsHaveChildren(VectorSchemaRoot root) {
+    if (root == null || root.getSchema() == null) {
+      return;
+    }
+    List<Field> fields = root.getSchema().getFields();
+    List<FieldVector> vectors = root.getFieldVectors();
+    ensureStructVectorsHaveChildren(fields, vectors);
+  }
+
+  static void ensureStructVectorsHaveChildren(List<Field> fields, List<FieldVector> vectors) {
+    if (fields == null || vectors == null) {
+      return;
+    }
+    int count = Math.min(fields.size(), vectors.size());
+    for (int i = 0; i < count; i++) {
+      ensureStructVectorsHaveChildren(fields.get(i), vectors.get(i));
+    }
+  }
+
+  static void ensureStructVectorsHaveChildren(Field field, FieldVector vector) {
+    if (field == null || vector == null) {
+      return;
+    }
+    if (vector instanceof StructVector) {
+      StructVector structVector = (StructVector) vector;
+      if (structVector.getChildrenFromFields().isEmpty()) {
+        List<Field> children = field.getChildren();
+        if (children != null && !children.isEmpty()) {
+          structVector.initializeChildrenFromFields(children);
+        }
+      }
+      List<Field> childFields = field.getChildren();
+      List<FieldVector> childVectors = structVector.getChildrenFromFields();
+      ensureStructVectorsHaveChildren(childFields, childVectors);
+    } else if (vector instanceof ListVector) {
+      ListVector listVector = (ListVector) vector;
+      FieldVector dataVector = listVector.getDataVector();
+      if (dataVector != null && field.getChildren() != null && !field.getChildren().isEmpty()) {
+        ensureStructVectorsHaveChildren(field.getChildren().get(0), dataVector);
+      }
+    }
+  }
 
   interface ArrowReaderAdapter extends AutoCloseable {
     boolean loadNextBatch() throws IOException;
@@ -70,6 +117,10 @@ public class ArrowColumnBatchPartitionReaderContext
 
     SimpleAdapter(ArrowReader reader) {
       this.reader = reader;
+      try {
+        ensureStructVectorsHaveChildren(reader.getVectorSchemaRoot());
+      } catch (IOException ignored) {
+      }
     }
 
     @Override
@@ -121,6 +172,13 @@ public class ArrowColumnBatchPartitionReaderContext
           allocator.newChildAllocator("ParallelReaderAllocator", 0, maxAllocation);
       root = VectorSchemaRoot.create(schema, readerAllocator);
       closeables.add(root);
+      ensureStructVectorsHaveChildren(root);
+      for (ArrowReader reader : readers) {
+        try {
+          ensureStructVectorsHaveChildren(reader.getVectorSchemaRoot());
+        } catch (IOException ignored) {
+        }
+      }
       loader = new VectorLoader(root);
       this.reader = new ParallelArrowReader(readers, executor, loader, tracer);
       closeables.add(0, reader);

@@ -52,7 +52,7 @@
                 <configuration>
                   <!-- Tell Jacoco where to look for the data file -->
                   <dataFileIncludes>
-                    <dataFileInclude>${reactor.project.basedir}/**/jacoco.exec</dataFileInclude>
+                    <dataFileInclude>**/jacoco.exec</dataFileInclude>
                   </dataFileIncludes>
                 </configuration>
               </execution>
@@ -65,7 +65,7 @@
                 <configuration>
                   <!-- Tell Jacoco where to look for the data file -->
                   <dataFileIncludes>
-                    <dataFileInclude>${reactor.project.basedir}/**/jacoco-it.exec</dataFileInclude>
+                    <dataFileInclude>**/jacoco-it.exec</dataFileInclude>
                   </dataFileIncludes>
                   <outputDirectory>${project.reporting.outputDirectory}/jacoco-it-aggregate</outputDirectory>
                 </configuration>

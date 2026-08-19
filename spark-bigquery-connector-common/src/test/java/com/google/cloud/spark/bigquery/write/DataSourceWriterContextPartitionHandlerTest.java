@@ -25,14 +25,21 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.SerializableGrpcStatusException;
+import com.google.cloud.bigquery.storage.v1.Exceptions.AppendSerializationError;
 import com.google.cloud.spark.bigquery.write.context.DataWriterContext;
 import com.google.cloud.spark.bigquery.write.context.DataWriterContextFactory;
 import com.google.cloud.spark.bigquery.write.context.WriterCommitMessageContext;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Streams;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -93,5 +100,37 @@ public class DataSourceWriterContextPartitionHandlerTest {
         Streams.stream(resultIterator).collect(Collectors.toList());
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getError().isPresent()).isTrue();
+  }
+
+  @Test
+  public void testAppendSerializationErrorIsSerializableWithRowDetails() throws Exception {
+    String rowError = "partition date is outside the allowed bounds";
+    AppendSerializationError appendSerializationError =
+        new AppendSerializationError(
+            io.grpc.Status.Code.INVALID_ARGUMENT.value(),
+            "Errors found while processing rows",
+            "projects/test/datasets/test/tables/test/streams/test",
+            ImmutableMap.of(0, rowError));
+    BigQueryConnectorException connectorException =
+        new BigQueryConnectorException(
+            "Execution Exception while retrieving AppendRowsResponse",
+            new ExecutionException(appendSerializationError));
+    DataWriterContext dataWriterContext = mock(DataWriterContext.class);
+    when(dataWriterContext.commit()).thenThrow(connectorException);
+    DataWriterContextFactory dataWriterContextFactory = mock(DataWriterContextFactory.class);
+    when(dataWriterContextFactory.createDataWriterContext(any(Integer.class), anyLong(), anyLong()))
+        .thenReturn(dataWriterContext);
+    DataSourceWriterContextPartitionHandler handler =
+        new DataSourceWriterContextPartitionHandler(dataWriterContextFactory, EPOCH);
+
+    Iterator<WriterCommitMessageContext> resultIterator =
+        handler.call(0, Collections.<Row>emptyList().iterator());
+    WriterCommitMessageContext result = BigQueryUtil.verifySerialization(resultIterator.next());
+
+    verify(dataWriterContext).abort();
+    assertThat(resultIterator.hasNext()).isFalse();
+    assertThat(result.getError().isPresent()).isTrue();
+    assertThat(result.getError().get()).isInstanceOf(SerializableGrpcStatusException.class);
+    assertThat(result.getError().get().getMessage()).contains(rowError);
   }
 }

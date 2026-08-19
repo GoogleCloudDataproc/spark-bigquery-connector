@@ -15,85 +15,24 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import static com.google.common.truth.Truth.assertThat;
-
-import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation;
+import com.google.cloud.spark.bigquery.DataSourceVersion;
 import java.util.Arrays;
 import java.util.Collection;
-import org.junit.Test;
+import org.apache.spark.sql.types.DataTypes;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class DataSourceV1ReadByFormatIntegrationTest extends ReadByFormatIntegrationTestBase {
 
-  @Parameterized.Parameters(name = "{0}")
-  public static Collection<Object[]> formats() {
-    return Arrays.asList(new Object[][] {{"AVRO"}, {"ARROW"}});
+  @Parameterized.Parameters
+  public static Collection<String> data() {
+    return Arrays.asList("AVRO", "ARROW");
   }
 
-  public DataSourceV1ReadByFormatIntegrationTest(String format) {
-    super(format);
-  }
-
-  @Test
-  public void testOptimizedCountStarWithFilter() {
-    DirectBigQueryRelation.emptyRowRDDsCreated = 0;
-    long oldMethodCount =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("optimizedEmptyProjection", "false")
-            .option("readDataFormat", dataFormat)
-            .load()
-            .select("corpus_date")
-            .where("corpus_date > 0")
-            .count();
-
-    assertThat(DirectBigQueryRelation.emptyRowRDDsCreated).isEqualTo(0);
-
-    long optimizedCount =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("readDataFormat", dataFormat)
-            .load()
-            .where("corpus_date > 0")
-            .count();
-
-    assertThat(optimizedCount).isEqualTo(oldMethodCount);
-    assertThat(DirectBigQueryRelation.emptyRowRDDsCreated).isEqualTo(1);
-  }
-
-  @Test
-  public void testOptimizedCountStar() {
-    DirectBigQueryRelation.emptyRowRDDsCreated = 0;
-    long oldMethodCount =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("optimizedEmptyProjection", "false")
-            .option("readDataFormat", dataFormat)
-            .load()
-            .select("corpus_date")
-            .count();
-
-    assertThat(DirectBigQueryRelation.emptyRowRDDsCreated).isEqualTo(0);
-
-    long optimizedCount =
-        spark
-            .read()
-            .format("bigquery")
-            .option("table", "bigquery-public-data.samples.shakespeare")
-            .option("readDataFormat", dataFormat)
-            .load()
-            .count();
-
-    assertThat(optimizedCount).isEqualTo(oldMethodCount);
-    assertThat(DirectBigQueryRelation.emptyRowRDDsCreated).isEqualTo(1);
+  public DataSourceV1ReadByFormatIntegrationTest(String dataFormat) {
+    super(dataFormat, /* userProvidedSchemaAllowed */ false, DataTypes.TimestampNTZType);
+    this.dataSourceVersion = DataSourceVersion.V1;
   }
 
   // additional tests are from the super-class

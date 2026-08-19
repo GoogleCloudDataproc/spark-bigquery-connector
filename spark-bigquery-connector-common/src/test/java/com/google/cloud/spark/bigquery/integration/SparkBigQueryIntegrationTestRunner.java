@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google Inc. All Rights Reserved.
+ * Copyright 2026 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,14 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-public class DataSourceV1ReadIntegrationTest extends ReadIntegrationTestBase {
-  // all tests are inherited from the super-class
+import com.google.gson.JsonObject;
+import java.util.Map;
+
+public interface SparkBigQueryIntegrationTestRunner {
+  JsonObject run(
+      SparkBigQueryIntegrationTestApp app,
+      String testDataset,
+      String testTable,
+      Map<String, String> parameters)
+      throws Exception;
 }
