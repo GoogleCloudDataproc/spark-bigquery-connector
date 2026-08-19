@@ -21,8 +21,6 @@ import com.google.cloud.biglake.v1.IcebergCatalog;
 import com.google.cloud.biglake.v1.IcebergCatalogServiceClient;
 import com.google.cloud.biglake.v1.IcebergCatalogServiceSettings;
 import com.google.cloud.biglake.v1.ProjectName;
-import com.google.cloud.bigquery.biglake.v1alpha1.MetastoreServiceClient;
-import com.google.cloud.bigquery.biglake.v1alpha1.MetastoreServiceSettings;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
@@ -37,10 +35,20 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class LakehouseIntegrationTestBase {
-  private static final String LOCATION = "US";
+  // BigQuery query interop for BigLake Lakehouse Iceberg tables (referencing a
+  // catalog.namespace.table as a 4-part BigQuery name and running DML/reads on
+  // it) relies on the router's IRC table-name parsing. That parsing is resolved
+  // for a concrete single region via the fleet-wide launch, but is not yet
+  // resolved for multi-region locations such as "US" (tracked in b/524657483).
+  // The test therefore runs in a single region by default; override with
+  // BIGQUERY_LAKEHOUSE_TEST_LOCATION if needed.
+  private static final String LOCATION =
+      Optional.ofNullable(System.getenv("BIGQUERY_LAKEHOUSE_TEST_LOCATION")).orElse("us-central1");
 
   Storage storage = StorageOptions.newBuilder().build().getService();
   String catalogName;
+  String namespace;
+  String testTable;
 
   @Before
   public void createCatalog() throws Exception {
@@ -58,27 +66,47 @@ public class LakehouseIntegrationTestBase {
                   .build(),
               catalogName);
       assertThat(icebergCatalog).isNotNull();
-    } finally {
-      // no-op
     }
   }
 
   @After
   public void cleanup() throws Exception {
-    try (MetastoreServiceClient metastoreServiceClient = createMetastoreServiceClient()) {
+    // createCatalog() was skipped (feature not enabled) or failed before creating
+    // anything; nothing to clean up.
+    if (catalogName == null) {
+      return;
+    }
+    // Best-effort cleanup: never throw from teardown so we do not mask the real
+    // test result. Drop the table/namespace via the Iceberg REST catalog (the same
+    // path used to create them), then delete the backing GCS bucket.
+    if (namespace != null) {
+      try (SparkSession spark = createSparkSessionWithLakehouseCatalog("cleanup", catalogName)) {
+        if (testTable != null) {
+          spark.sql(String.format("DROP TABLE IF EXISTS %s.%s", namespace, testTable));
+        }
+        spark.sql(String.format("DROP NAMESPACE IF EXISTS %s", namespace));
+      } catch (Exception e) {
+        System.err.println("Lakehouse test cleanup: failed to drop table/namespace: " + e);
+      }
+    }
+    try {
       storage.list(catalogName).iterateAll().forEach(Blob::delete);
       storage.delete(catalogName);
-      metastoreServiceClient.deleteCatalog(
-          String.format("projects/%s/catalogs/%s", TestConstants.PROJECT_ID, catalogName));
-    } finally {
-      // no-op
+    } catch (Exception e) {
+      System.err.println("Lakehouse test cleanup: failed to delete GCS bucket: " + e);
     }
+    // TODO(b/524657483): delete the Iceberg catalog itself. The pinned
+    // google-cloud-biglake (v1 IcebergCatalogServiceClient) exposes no catalog
+    // delete method, and the public BigLake v1 REST surface only offers IAM
+    // methods at the catalog level, so the (now empty) catalog resource is left
+    // behind. Delete via `gcloud biglake iceberg catalogs delete`, or bump
+    // google-cloud-biglake to a version that provides deleteIcebergCatalog().
   }
 
   @Test
   public void testReadFromIcebergCatalog() throws Exception {
-    String namespace = String.format("sbc_%x", System.nanoTime());
-    String testTable = String.format("shakespeare_%x", System.nanoTime());
+    namespace = String.format("sbc_%x", System.nanoTime());
+    testTable = String.format("shakespeare_%x", System.nanoTime());
     Dataset<Row> df;
     try (SparkSession spark =
         createSparkSessionWithLakehouseCatalog("testReadFromIcebergCatalog", catalogName)) {
@@ -89,10 +117,15 @@ public class LakehouseIntegrationTestBase {
                   + "USING ICEBERG "
                   + "TBLPROPERTIES ('gcp.biglake.bigquery-dml.enabled' = true)",
               namespace, testTable));
+      // Seed the table with deterministic rows via BigQuery DML. The rows are
+      // inlined (rather than read from a public dataset) so the query has no
+      // cross-location source dependency and can run in a single region.
       IntegrationTestUtils.runQueryInLocation(
           LOCATION,
-          "INSERT INTO `%s`.`%s`.`%s`.`%s` (word, word_count, corpus, corpus_date) "
-              + "SELECT word, word_count, corpus, corpus_date FROM `bigquery-public-data.samples.shakespeare`;",
+          "INSERT INTO `%s`.`%s`.`%s`.`%s` (word, word_count, corpus, corpus_date) VALUES "
+              + "('spark', 10, 'sonnets', 0), "
+              + "('bigquery', 20, 'sonnets', 0), "
+              + "('iceberg', 30, 'sonnets', 0);",
           TestConstants.PROJECT_ID,
           catalogName,
           namespace,
@@ -103,10 +136,11 @@ public class LakehouseIntegrationTestBase {
               .format("bigquery")
               .load(
                   String.format(
-                      "%s.%s.%s.%s", TestConstants.PROJECT_ID, "lakehouse", namespace, testTable));
+                      "%s.%s.%s.%s", TestConstants.PROJECT_ID, catalogName, namespace, testTable));
 
-      List<Row> result = df.where("word='spark'").collectAsList();
-      assertThat(result).hasSize(9);
+      assertThat(df.count()).isEqualTo(3L);
+      List<Row> result = df.where("word = 'spark'").collectAsList();
+      assertThat(result).hasSize(1);
     }
   }
 
@@ -159,17 +193,5 @@ public class LakehouseIntegrationTestBase {
       settingsBuilder.setEndpoint(customEndpoint);
     }
     return IcebergCatalogServiceClient.create(settingsBuilder.build());
-  }
-
-  private static MetastoreServiceClient createMetastoreServiceClient() throws Exception {
-    String customEndpoint = System.getenv("BIGLAKE_API_ENDPOINT");
-    MetastoreServiceSettings.Builder settingsBuilder = MetastoreServiceSettings.newBuilder();
-    if (customEndpoint != null && !customEndpoint.trim().isEmpty()) {
-      if (customEndpoint.startsWith("https://")) {
-        settingsBuilder = MetastoreServiceSettings.newHttpJsonBuilder();
-      }
-      settingsBuilder.setEndpoint(customEndpoint);
-    }
-    return MetastoreServiceClient.create(settingsBuilder.build());
   }
 }
