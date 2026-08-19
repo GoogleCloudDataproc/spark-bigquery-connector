@@ -2,8 +2,17 @@
 
 ## Next
 
-* BigQuery API has been upgraded to version 2.66.0
-* BigQuery Storage API has been upgraded to version 3.28.0
+* BigQuery API has been upgraded to version 2.69.0
+* BigQuery Storage API has been upgraded to version 3.30.0
+* GAX has been upgraded to version 2.82.0
+* gRPC has been upgraded to version 1.83.1
+* Guava has been upgraded to version 33.6.0-jre
+* Netty has been upgraded to version 4.2.17.Final
+* Protocol Buffers has been upgraded to version 4.35.1
+* PR #1494: Added Support for Change Data Capture (CDC)
+* Issue #1501: Preserved detailed row errors from failed direct writes
+* Issue #1503: Corrected the documented billing project option to `parentProject`.
+* PR #1510: Handle Arrow StructVectors with 0 child vectors in ArrowColumnBatchPartitionReaderContext
 
 ## 0.44.2 - 2026-05-20
 
