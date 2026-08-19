@@ -112,9 +112,12 @@ public class BigQueryUtil {
   private static final String SOURCE_ALIAS =
       "__source_" + UUID.randomUUID().toString().replace("-", "");
 
-  private static final String PROJECT_PATTERN = "\\S+";
-  // The TableId dataset may be `catalog.namespace`
-  private static final String DATASET_PATTERN = "\\w+(?:\\.\\w+)?";
+  private static final String PROJECT_ID_PATTERN = "[^\\s.:]+";
+  private static final String DOMAIN_SCOPED_PROJECT_PATTERN = "[^\\s:]+:[^\\s.:]+";
+  private static final String PROJECT_PATTERN =
+      format("(?:%s|%s)", DOMAIN_SCOPED_PROJECT_PATTERN, PROJECT_ID_PATTERN);
+  private static final String DATASET_PATTERN = "\\w+";
+  private static final String LAKEHOUSE_COMPONENT_PATTERN = "[\\w-]+";
   // Allow any character except ':' and '.', which are used as delimiters in qualified names.
   // These confuse the qualified table parsing.
   private static final String TABLE_PATTERN = "[^.:]+";
@@ -125,12 +128,34 @@ public class BigQueryUtil {
   /**
    * Regex for an optionally fully qualified table.
    *
-   * <p>Must match 'project.dataset.table' OR the legacy 'project:dataset.table' OR 'dataset.table'
-   * OR 'table'.
+   * <p>Matches {@code project.dataset.table}, the legacy {@code project:dataset.table}, {@code
+   * dataset.table}, or {@code table}. The project may be domain-scoped, for example {@code
+   * example.com:project.dataset.table}.
    */
   private static final Pattern QUALIFIED_TABLE_REGEX =
       Pattern.compile(
-          format("^(((%s)[:.])?(%s)\\.)?(%s)$$", PROJECT_PATTERN, DATASET_PATTERN, TABLE_PATTERN));
+          format(
+              "^(?:(?:(?<project>%s)[:.])?(?<dataset>%s)\\.)?(?<table>%s)$$",
+              PROJECT_PATTERN, DATASET_PATTERN, TABLE_PATTERN));
+
+  /**
+   * Regex for a fully qualified Iceberg REST catalog table in project-catalog-namespace-table
+   * (PCNT) notation.
+   *
+   * <p>Both {@code project.catalog.namespace.table} and the legacy {@code
+   * project:catalog.namespace.table} separators are supported. A domain-scoped project can use
+   * either separator after the project, for example {@code
+   * example.com:project.catalog.namespace.table} or {@code
+   * example.com:project:catalog.namespace.table}.
+   */
+  private static final Pattern PROJECT_CATALOG_NAMESPACE_TABLE_REGEX =
+      Pattern.compile(
+          format(
+              "^(?<project>%s)[:.](?<catalog>%s)\\.(?<namespace>%s)\\.(?<table>%s)$$",
+              PROJECT_PATTERN,
+              LAKEHOUSE_COMPONENT_PATTERN,
+              LAKEHOUSE_COMPONENT_PATTERN,
+              TABLE_PATTERN));
 
   // Based on
   // https://cloud.google.com/bigquery/docs/reference/storage/rpc/google.cloud.bigquery.storage.v1#google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions
@@ -388,35 +413,26 @@ public class BigQueryUtil {
       effectiveTable = effectiveTable.substring(1, effectiveTable.length() - 1);
     }
 
-    Matcher matcher = QUALIFIED_TABLE_REGEX.matcher(effectiveTable);
-    if (!matcher.matches()) {
-      throw new IllegalArgumentException(
-          format("Invalid Table ID '%s'. Must match '%s'", rawTable, QUALIFIED_TABLE_REGEX));
-    }
-    String table = matcher.group(5);
-    Optional<String> parsedDataset = Optional.ofNullable(matcher.group(4));
-    Optional<String> parsedProject = Optional.ofNullable(matcher.group(3));
-
-    if (parsedProject.isPresent() && parsedDataset.isPresent()) {
-      String projectStr = parsedProject.get();
-      int dotIndex = -1;
-      if (projectStr.contains(":")) {
-        int colonIndex = projectStr.indexOf(":");
-        dotIndex = projectStr.indexOf(".", colonIndex);
-      } else {
-        dotIndex = projectStr.indexOf(".");
+    Matcher pcntMatcher = PROJECT_CATALOG_NAMESPACE_TABLE_REGEX.matcher(effectiveTable);
+    String table;
+    Optional<String> parsedDataset;
+    Optional<String> parsedProject;
+    if (pcntMatcher.matches()) {
+      parsedProject = Optional.of(pcntMatcher.group("project"));
+      parsedDataset =
+          Optional.of(pcntMatcher.group("catalog") + "." + pcntMatcher.group("namespace"));
+      table = pcntMatcher.group("table");
+    } else {
+      Matcher qualifiedTableMatcher = QUALIFIED_TABLE_REGEX.matcher(effectiveTable);
+      if (!qualifiedTableMatcher.matches()) {
+        throw new IllegalArgumentException(
+            format(
+                "Invalid Table ID '%s'. Must match '%s' or '%s'",
+                rawTable, QUALIFIED_TABLE_REGEX, PROJECT_CATALOG_NAMESPACE_TABLE_REGEX));
       }
-
-      if (dotIndex != -1) {
-        parsedProject = Optional.of(projectStr.substring(0, dotIndex));
-        String newDataset = projectStr.substring(dotIndex + 1) + "." + parsedDataset.get();
-        // The dataset part should not have more than one dot (i.e. catalog.namespace)
-        if (newDataset.indexOf(".") != newDataset.lastIndexOf(".")) {
-          throw new IllegalArgumentException(
-              format("Invalid Table ID '%s'. Must match '%s'", rawTable, QUALIFIED_TABLE_REGEX));
-        }
-        parsedDataset = Optional.of(newDataset);
-      }
+      parsedProject = Optional.ofNullable(qualifiedTableMatcher.group("project"));
+      parsedDataset = Optional.ofNullable(qualifiedTableMatcher.group("dataset"));
+      table = qualifiedTableMatcher.group("table");
     }
 
     String tableAndPartition =

@@ -13,6 +13,7 @@
   <version>${revision}-preview</version>
   <name>Connector code for BigQuery DataSource v2 for Spark 4.1</name>
   <properties>
+    <iceberg.version>1.11.0</iceberg.version>
     <maven.compiler.release>17</maven.compiler.release>
     <scala.binary.version>2.13</scala.binary.version>
     <spark.minor.version>4.1</spark.minor.version>
@@ -49,12 +50,6 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>spark-4.0-bigquery-lib</artifactId>
       <version>${project.parent.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.iceberg</groupId>
-      <artifactId>iceberg-spark-runtime-4.0_${scala.binary.version}</artifactId>
-      <version>${iceberg.version}</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>

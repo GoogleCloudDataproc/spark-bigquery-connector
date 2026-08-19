@@ -113,8 +113,8 @@ public class BigQueryUtilTest {
 
   @Test
   public void testParseFullyQualifiedLegacyTable() {
-    TableId tableId = BigQueryUtil.parseTableId("test.org:test-project.test_dataset.test_table");
-    assertThat(tableId).isEqualTo(TABLE_ID);
+    TableId tableId = BigQueryUtil.parseTableId("test-project:test_dataset.test_table");
+    assertThat(tableId).isEqualTo(TableId.of("test-project", "test_dataset", "test_table"));
   }
 
   @Test
@@ -220,6 +220,18 @@ public class BigQueryUtilTest {
   }
 
   @Test
+  public void testProjectCatalogNamespaceTableNotation_legacyColon() {
+    TableId tableId = BigQueryUtil.parseTableId("project:catalog.namespace.table");
+    assertThat(tableId).isEqualTo(TableId.of("project", "catalog.namespace", "table"));
+  }
+
+  @Test
+  public void testProjectCatalogNamespaceTableNotation_hyphenatedIdentifiers() {
+    TableId tableId = BigQueryUtil.parseTableId("my-project.my-catalog.my-namespace.my-table");
+    assertThat(tableId).isEqualTo(TableId.of("my-project", "my-catalog.my-namespace", "my-table"));
+  }
+
+  @Test
   public void testProjectCatalogNamespaceTableNotation_independent() {
     TableId tableId =
         BigQueryUtil.parseTableId(
@@ -238,6 +250,13 @@ public class BigQueryUtilTest {
   @Test
   public void testProjectCatalogNamespaceTableNotation_with_org_and_catalog() {
     TableId tableId = BigQueryUtil.parseTableId("test.org:test-project.catalog.namespace.table");
+    assertThat(tableId)
+        .isEqualTo(TableId.of("test.org:test-project", "catalog.namespace", "table"));
+  }
+
+  @Test
+  public void testProjectCatalogNamespaceTableNotation_with_org_and_legacyColon() {
+    TableId tableId = BigQueryUtil.parseTableId("test.org:test-project:catalog.namespace.table");
     assertThat(tableId)
         .isEqualTo(TableId.of("test.org:test-project", "catalog.namespace", "table"));
   }
