@@ -447,6 +447,10 @@
                     <excludes>
                         <exclude>**/*AcceptanceTest.java</exclude>
                         <exclude>**/*IntegrationTest.java</exclude>
+                        <exclude>org/junit/**</exclude>
+                        <exclude>junit/**</exclude>
+                        <exclude>org/hamcrest/**</exclude>
+                        <exclude>com/google/common/**</exclude>
                     </excludes>
                     <jdkToolchain>
                         <version>${toolchain.jdk.version}</version>
