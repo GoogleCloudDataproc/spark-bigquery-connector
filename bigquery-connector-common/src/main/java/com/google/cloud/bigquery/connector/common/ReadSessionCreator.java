@@ -107,7 +107,7 @@ public class ReadSessionCreator {
             ? String.valueOf(config.getSnapshotTimeMillis().getAsLong())
             : "None");
 
-    String tablePath = toTablePath(actualTable.getTableId());
+    String tablePath = actualTable.getTableId().getIAMResourceName();
     CreateReadSessionRequest request =
         config
             .getRequestEncodedBase()
@@ -237,12 +237,6 @@ public class ReadSessionCreator {
     }
 
     return new ReadSessionResponse(readSession, actualTable);
-  }
-
-  static String toTablePath(TableId tableId) {
-    return format(
-        "projects/%s/datasets/%s/tables/%s",
-        tableId.getProject(), tableId.getDataset(), tableId.getTable());
   }
 
   public TableInfo getActualTable(
