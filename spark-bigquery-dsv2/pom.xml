@@ -30,5 +30,7 @@
     <module>spark-4.0-bigquery</module>
     <module>spark-4.1-bigquery-lib</module>
     <module>spark-4.1-bigquery</module>
+    <module>spark-4.2-bigquery-lib</module>
+    <module>spark-4.2-bigquery</module>
   </modules>
 </project>

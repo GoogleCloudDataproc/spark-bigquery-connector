@@ -63,6 +63,7 @@ The latest version of the connector is publicly available in the following links
 
 | version    | Link                                                                                                                                                                                                                   |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Spark 4.2  | `gs://spark-lib/bigquery/spark-4.2-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-4.2-bigquery-${next-release-tag}-preview.jar))                        |
 | Spark 4.1  | `gs://spark-lib/bigquery/spark-4.1-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-4.1-bigquery-${next-release-tag}-preview.jar))                        |
 | Spark 4.0  | `gs://spark-lib/bigquery/spark-4.0-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-4.0-bigquery-${next-release-tag}.jar))                                        |
 | Spark 3.5  | `gs://spark-lib/bigquery/spark-3.5-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.5-bigquery-${next-release-tag}.jar))                                        |
@@ -81,23 +82,25 @@ Source V1; choose the artifact matching your Spark installation's Scala binary
 version as outlined below.
 
 ### Connector to Spark Compatibility Matrix
-| Connector \ Spark                     | 2.3     | 2.4     | 3.0     | 3.1     | 3.2     | 3.3     | 3.4     | 3.5     | 4.0     | 4.1     |
-|---------------------------------------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|
-| spark-4.1-bigquery                    |         |         |         |         |         |         |         |         |         | &check; |
-| spark-4.0-bigquery                    |         |         |         |         |         |         |         |         | &check; |         |
-| spark-3.5-bigquery                    |         |         |         |         |         |         |         | &check; |         |         |
-| spark-3.4-bigquery                    |         |         |         |         |         |         | &check; | &check; |         |         |
-| spark-3.3-bigquery                    |         |         |         |         |         | &check; | &check; | &check; |         |         |
-| spark-3.2-bigquery                    |         |         |         |         | &check; | &check; | &check; | &check; |         |         |
-| spark-3.1-bigquery                    |         |         |         | &check; | &check; | &check; | &check; | &check; |         |         |
-| spark-2.4-bigquery                    |         | &check; |         |         |         |         |         |         |         |         |
-| spark-bigquery-with-dependencies_2.13 |         |         |         |         | &check; | &check; | &check; | &check; |         |         |
-| spark-bigquery-with-dependencies_2.12 |         | &check; | &check; | &check; | &check; | &check; | &check; | &check; |         |         |
-| spark-bigquery-with-dependencies_2.11 | &check; | &check; |         |         |         |         |         |         |         |         |
+| Connector \ Spark                     | 2.3     | 2.4     | 3.0     | 3.1     | 3.2     | 3.3     | 3.4     | 3.5     | 4.0     | 4.1     | 4.2     |
+|---------------------------------------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|
+| spark-4.2-bigquery                    |         |         |         |         |         |         |         |         |         |         | &check; |
+| spark-4.1-bigquery                    |         |         |         |         |         |         |         |         |         | &check; |         |
+| spark-4.0-bigquery                    |         |         |         |         |         |         |         |         | &check; |         |         |
+| spark-3.5-bigquery                    |         |         |         |         |         |         |         | &check; |         |         |         |
+| spark-3.4-bigquery                    |         |         |         |         |         |         | &check; | &check; |         |         |         |
+| spark-3.3-bigquery                    |         |         |         |         |         | &check; | &check; | &check; |         |         |         |
+| spark-3.2-bigquery                    |         |         |         |         | &check; | &check; | &check; | &check; |         |         |         |
+| spark-3.1-bigquery                    |         |         |         | &check; | &check; | &check; | &check; | &check; |         |         |         |
+| spark-2.4-bigquery                    |         | &check; |         |         |         |         |         |         |         |         |         |
+| spark-bigquery-with-dependencies_2.13 |         |         |         |         | &check; | &check; | &check; | &check; |         |         |         |
+| spark-bigquery-with-dependencies_2.12 |         | &check; | &check; | &check; | &check; | &check; | &check; | &check; |         |         |         |
+| spark-bigquery-with-dependencies_2.11 | &check; | &check; |         |         |         |         |         |         |         |         |         |
 
 ### Connector to Dataproc Image Compatibility Matrix
 | Connector \ Dataproc Image            | 1.3     | 1.4     | 1.5     | 2.0     | 2.1     | 2.2     | 3.0     | Serverless<br>Runtime 1.0 | Serverless<br>Runtime 2.0 | Serverless<br>Runtime 2.1 | Serverless<br>Runtime 2.2 | Serverless<br>Runtime 3.0 |
 |---------------------------------------|---------|---------|---------|---------|---------|---------|---------|-------------------------|-------------------------|-------------------------|-------------------------|-------------------------|
+| spark-4.2-bigquery                    |         |         |         |         |         |         |         |                         |                         |                         |                         |                         |
 | spark-4.1-bigquery                    |         |         |         |         |         |         | &check; |                         |                         |                         |                         |                         |
 | spark-4.0-bigquery                    |         |         |         |         |         |         |         |                         |                         |                         |                         | &check;                 |
 | spark-3.5-bigquery                    |         |         |         |         |         | &check; |         |                         |                         |                         | &check;                 |                         |
@@ -125,6 +128,7 @@ repository. It can be used using the `--packages` option or the
 
 | version    | Connector Artifact                                                                 |
 |------------|------------------------------------------------------------------------------------|
+| Spark 4.2  | `com.google.cloud.spark:spark-4.2-bigquery:${next-release-tag}-preview`            |
 | Spark 4.1  | `com.google.cloud.spark:spark-4.1-bigquery:${next-release-tag}-preview`            |
 | Spark 4.0  | `com.google.cloud.spark:spark-4.0-bigquery:${next-release-tag}`                    |
 | Spark 3.5  | `com.google.cloud.spark:spark-3.5-bigquery:${next-release-tag}`                    |
