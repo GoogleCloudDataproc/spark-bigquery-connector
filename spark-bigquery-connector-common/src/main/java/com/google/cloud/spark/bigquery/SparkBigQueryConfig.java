@@ -48,6 +48,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryCredentialsSupplier;
 import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.DestinationValidationOptions;
 import com.google.cloud.bigquery.connector.common.MaterializationConfiguration;
 import com.google.cloud.bigquery.connector.common.QueryParameterHelper;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
@@ -91,6 +92,7 @@ public class SparkBigQueryConfig
     implements BigQueryConfig,
         BigQueryClient.CreateTableOptions,
         BigQueryClient.LoadDataOptions,
+        DestinationValidationOptions,
         Serializable {
 
   private static final long serialVersionUID = 728392817473829L;
@@ -385,6 +387,23 @@ public class SparkBigQueryConfig
     config.partitionRangeEnd = getOption(options, "partitionRangeEnd").transform(Long::parseLong);
     config.partitionRangeInterval =
         getOption(options, "partitionRangeInterval").transform(Long::parseLong);
+    config.partitionField = getOption(options, "partitionField");
+    boolean hasAnyPartitionRangeOption =
+        config.partitionRangeStart.isPresent()
+            || config.partitionRangeEnd.isPresent()
+            || config.partitionRangeInterval.isPresent();
+    boolean hasAllPartitionRangeOptions =
+        config.partitionRangeStart.isPresent()
+            && config.partitionRangeEnd.isPresent()
+            && config.partitionRangeInterval.isPresent();
+    Preconditions.checkArgument(
+        !hasAnyPartitionRangeOption || hasAllPartitionRangeOptions,
+        "partitionRangeStart, partitionRangeEnd, and partitionRangeInterval must be configured "
+            + "together");
+    Preconditions.checkArgument(
+        !hasAnyPartitionRangeOption || config.partitionField.isPresent(),
+        "partitionField must be configured together with partitionRangeStart, partitionRangeEnd, "
+            + "and partitionRangeInterval");
     if (overrideTableId.isPresent()) {
       config.tableId = overrideTableId.get();
     } else {
@@ -530,7 +549,6 @@ public class SparkBigQueryConfig
     config.combinePushedDownFilters =
         getAnyBooleanOption(globalOptions, options, "combinePushedDownFilters", true);
 
-    config.partitionField = getOption(options, "partitionField");
     config.partitionExpirationMs =
         getOption(options, "partitionExpirationMs").transform(Long::valueOf).orNull();
     config.partitionRequireFilter =

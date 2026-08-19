@@ -82,6 +82,7 @@ import org.apache.spark.ml.feature.VectorAssembler;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.ml.linalg.Vector;
 import org.apache.spark.package$;
+import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
@@ -1227,6 +1228,7 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(readDF.count()).isEqualTo(3);
     Table bqTable = bq.getTable(TableId.of(testDataset.toString(), testTable + "_range"));
     assertThat(bqTable).isNotNull();
+    assertThat(bqTable.getRequirePartitionFilter()).isTrue();
     assertTrue(bqTable.getDefinition() instanceof StandardTableDefinition);
     StandardTableDefinition bqTableDef = bqTable.getDefinition();
     assertThat(bqTableDef.getRangePartitioning()).isNotNull();
@@ -1682,16 +1684,24 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
   protected Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(
       Dataset<Row> df, boolean isPartitioned) {
-    df.write()
-        .format("bigquery")
-        .mode(SaveMode.Overwrite)
-        .option("dataset", testDataset.toString())
-        .option("table", testTable)
-        .option("writeMethod", writeMethod.toString())
-        .option(
-            "spark.sql.sources.partitionOverwriteMode", PartitionOverwriteMode.DYNAMIC.toString())
-        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-        .save();
+    return writeAndLoadDatasetOverwriteDynamicPartition(df, isPartitioned, Collections.emptyMap());
+  }
+
+  protected Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(
+      Dataset<Row> df, boolean isPartitioned, Map<String, String> writeOptions) {
+    DataFrameWriter<Row> writer =
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Overwrite)
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .option("writeMethod", writeMethod.toString())
+            .option(
+                "spark.sql.sources.partitionOverwriteMode",
+                PartitionOverwriteMode.DYNAMIC.toString())
+            .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET);
+    writeOptions.forEach(writer::option);
+    writer.save();
 
     if (isPartitioned) {
       IntegrationTestUtils.runQuery(
@@ -1730,7 +1740,17 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderDateTime, DataTypes.TimestampType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
+    Dataset<Row> result =
+        writeAndLoadDatasetOverwriteDynamicPartition(
+            df,
+            true,
+            ImmutableMap.of(
+                "partitionField",
+                orderDateTime,
+                "partitionType",
+                TimePartitioning.Type.HOUR.toString(),
+                "partitionRequireFilter",
+                "true"));
     assertThat(result.count()).isEqualTo(3);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));
@@ -2220,7 +2240,8 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (%s INTEGER, %s INTEGER) "
-                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) OPTIONS (require_partition_filter = true)"
+                + "PARTITION BY RANGE_BUCKET(order_id, GENERATE_ARRAY(1, 100, 10)) "
+                + "CLUSTER BY order_count OPTIONS (require_partition_filter = true) "
                 + "AS SELECT * FROM UNNEST([(1, 1000), "
                 + "(8, 1005), ( 21, 1010), (83, 1020)])",
             testDataset, testTable, orderId, orderCount));
@@ -2236,7 +2257,18 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
                 StructField.apply(orderId, DataTypes.IntegerType, true, Metadata.empty()),
                 StructField.apply(orderCount, DataTypes.IntegerType, true, Metadata.empty())));
 
-    Dataset<Row> result = writeAndLoadDatasetOverwriteDynamicPartition(df, true);
+    Dataset<Row> result =
+        writeAndLoadDatasetOverwriteDynamicPartition(
+            df,
+            true,
+            ImmutableMap.<String, String>builder()
+                .put("partitionField", orderId)
+                .put("partitionRangeStart", "1")
+                .put("partitionRangeEnd", "100")
+                .put("partitionRangeInterval", "10")
+                .put("partitionRequireFilter", "true")
+                .put("clusteredFields", orderCount)
+                .build());
     assertThat(result.count()).isEqualTo(5);
     List<Row> rows = result.collectAsList();
     rows.sort(Comparator.comparing(row -> row.getLong(row.fieldIndex(orderId))));

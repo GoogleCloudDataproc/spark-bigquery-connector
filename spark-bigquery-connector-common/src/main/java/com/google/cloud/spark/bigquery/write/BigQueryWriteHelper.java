@@ -141,18 +141,15 @@ public class BigQueryWriteHelper {
         temporaryTableId =
             Optional.of(
                 bigQueryClient
-                    .createTempTableAfterCheckingSchema(
-                        config.getTableId(),
-                        tableSchema,
-                        config.getEnableModeCheckForSchemaFields())
+                    .createTempTableAfterValidatingDestination(tableSchema, config)
                     .getTableId());
-        loadDataToBigQuery();
+        loadDataToBigQuery(/* applyDestinationTableLayoutOptions= */ false);
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
-                temporaryTableId.get(), config.getTableId());
+                temporaryTableId.get(), config);
         bigQueryClient.waitForJob(queryJob, JobOperation.DYNAMIC_PARTITION_OVERWRITE);
       } else {
-        loadDataToBigQuery();
+        loadDataToBigQuery(/* applyDestinationTableLayoutOptions= */ true);
       }
       updateMetadataIfNeeded();
     } catch (Exception e) {
@@ -162,7 +159,7 @@ public class BigQueryWriteHelper {
     }
   }
 
-  void loadDataToBigQuery() throws IOException {
+  void loadDataToBigQuery(boolean applyDestinationTableLayoutOptions) throws IOException {
     FileSystem fs = gcsPath.getFileSystem(conf);
     FormatOptions formatOptions = config.getIntermediateFormat().getFormatOptions();
     String suffix = "." + formatOptions.getType().toLowerCase();
@@ -184,7 +181,8 @@ public class BigQueryWriteHelper {
             formatOptions,
             writeDisposition,
             Optional.of(tableSchema),
-            destinationTableId);
+            destinationTableId,
+            applyDestinationTableLayoutOptions);
 
     long currentTimeMillis = System.currentTimeMillis();
     SparkBigQueryConnectorMetricsUtils.postWriteSessionMetrics(

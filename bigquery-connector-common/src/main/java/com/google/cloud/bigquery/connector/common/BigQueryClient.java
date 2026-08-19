@@ -65,6 +65,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -271,10 +272,26 @@ public class BigQueryClient {
     return tempTable;
   }
 
+  public TableInfo createTempTableAfterValidatingDestination(
+      Schema schema, DestinationValidationOptions options) throws IllegalArgumentException {
+    TableInfo destinationTable = getTable(options.getTableId());
+    validateDestinationSchema(
+        destinationTable, schema, options.getEnableModeCheckForSchemaFields());
+    validateDestinationTableLayout(destinationTable, options);
+    return createTempTable(destinationTable.getTableId(), schema);
+  }
+
   public TableInfo createTempTableAfterCheckingSchema(
       TableId destinationTableId, Schema schema, boolean enableModeCheckForSchemaFields)
       throws IllegalArgumentException {
     TableInfo destinationTable = getTable(destinationTableId);
+    validateDestinationSchema(destinationTable, schema, enableModeCheckForSchemaFields);
+    return createTempTable(destinationTableId, schema);
+  }
+
+  private void validateDestinationSchema(
+      TableInfo destinationTable, Schema schema, boolean enableModeCheckForSchemaFields)
+      throws IllegalArgumentException {
     Schema tableSchema = destinationTable.getDefinition().getSchema();
     ComparisonResult schemaWritableResult =
         BigQueryUtil.schemaWritable(
@@ -287,7 +304,182 @@ public class BigQueryClient {
         new BigQueryConnectorException.InvalidSchemaException(
             "Destination table's schema is not compatible with dataframe's schema. "
                 + schemaWritableResult.makeMessage()));
-    return createTempTable(destinationTableId, schema);
+  }
+
+  static StandardTableDefinition validateDestinationTableLayout(
+      TableInfo destinationTable, DestinationValidationOptions requestedOptions) {
+    StandardTableDefinition standardDefinition = getDynamicOverwriteDefinition(destinationTable);
+
+    Optional<String> requestedPartitionField = requestedOptions.getPartitionField();
+    Optional<RangePartitioning.Range> requestedPartitionRange =
+        requestedOptions.getPartitionRange();
+    boolean hasTimeSpecificOptions =
+        requestedOptions.getPartitionType().isPresent()
+            || requestedOptions.getPartitionExpirationMs().isPresent();
+    Preconditions.checkArgument(
+        !requestedPartitionRange.isPresent() || !hasTimeSpecificOptions,
+        "Destination table layout is incompatible with dynamic overwrite: range partitioning "
+            + "options cannot be combined with time partitioning options");
+
+    if (requestedPartitionRange.isPresent()) {
+      validateRangePartitioning(
+          standardDefinition, requestedPartitionField, requestedPartitionRange.get());
+    } else if (requestedPartitionField.isPresent() || hasTimeSpecificOptions) {
+      validateTimePartitioning(standardDefinition, requestedOptions);
+    }
+
+    validatePartitionRequireFilter(destinationTable, standardDefinition, requestedOptions);
+    validateClustering(standardDefinition, requestedOptions);
+    return standardDefinition;
+  }
+
+  private static void validateRangePartitioning(
+      StandardTableDefinition destinationDefinition,
+      Optional<String> requestedPartitionField,
+      RangePartitioning.Range requestedPartitionRange) {
+    RangePartitioning destinationRangePartitioning = destinationDefinition.getRangePartitioning();
+    checkLayoutOption(destinationRangePartitioning != null, "partitioning", "range", "time");
+    String requestedField = requestedPartitionField.orElse(null);
+    checkLayoutOption(
+        identifiersEqual(requestedField, destinationRangePartitioning.getField()),
+        "partitionField",
+        requestedField,
+        destinationRangePartitioning.getField());
+    checkLayoutOption(
+        Objects.equals(requestedPartitionRange, destinationRangePartitioning.getRange()),
+        "partitionRange",
+        requestedPartitionRange,
+        destinationRangePartitioning.getRange());
+  }
+
+  private static void validateTimePartitioning(
+      StandardTableDefinition destinationDefinition,
+      DestinationValidationOptions requestedOptions) {
+    TimePartitioning destinationTimePartitioning = destinationDefinition.getTimePartitioning();
+    checkLayoutOption(destinationTimePartitioning != null, "partitioning", "time", "range");
+
+    Optional<String> requestedPartitionField = requestedOptions.getPartitionField();
+    if (requestedPartitionField.isPresent() || requestedOptions.getPartitionType().isPresent()) {
+      String requestedField = requestedPartitionField.orElse(null);
+      checkLayoutOption(
+          identifiersEqual(requestedField, destinationTimePartitioning.getField()),
+          "partitionField",
+          requestedField,
+          destinationTimePartitioning.getField());
+
+      TimePartitioning.Type requestedPartitionType = requestedOptions.getPartitionTypeOrDefault();
+      checkLayoutOption(
+          requestedPartitionType == destinationTimePartitioning.getType(),
+          "partitionType",
+          requestedPartitionType,
+          destinationTimePartitioning.getType());
+    }
+
+    requestedOptions
+        .getPartitionExpirationMs()
+        .ifPresent(
+            expirationMs ->
+                checkLayoutOption(
+                    Objects.equals(expirationMs, destinationTimePartitioning.getExpirationMs()),
+                    "partitionExpirationMs",
+                    expirationMs,
+                    destinationTimePartitioning.getExpirationMs()));
+  }
+
+  private static void validatePartitionRequireFilter(
+      TableInfo destinationTable,
+      StandardTableDefinition destinationDefinition,
+      DestinationValidationOptions requestedOptions) {
+    requestedOptions
+        .getPartitionRequireFilter()
+        .ifPresent(
+            requirePartitionFilter -> {
+              Boolean destinationRequirePartitionFilter =
+                  destinationTable.getRequirePartitionFilter();
+              if (destinationRequirePartitionFilter == null
+                  && destinationDefinition.getTimePartitioning() != null) {
+                destinationRequirePartitionFilter =
+                    destinationDefinition.getTimePartitioning().getRequirePartitionFilter();
+              }
+              checkLayoutOption(
+                  requirePartitionFilter == Boolean.TRUE.equals(destinationRequirePartitionFilter),
+                  "partitionRequireFilter",
+                  requirePartitionFilter,
+                  Boolean.TRUE.equals(destinationRequirePartitionFilter));
+            });
+  }
+
+  private static void validateClustering(
+      StandardTableDefinition destinationDefinition,
+      DestinationValidationOptions requestedOptions) {
+    requestedOptions
+        .getClusteredFields()
+        .ifPresent(
+            clusteredFields -> {
+              Clustering destinationClustering = destinationDefinition.getClustering();
+              List<String> destinationClusteredFields =
+                  destinationClustering == null
+                      ? Collections.emptyList()
+                      : destinationClustering.getFields();
+              checkLayoutOption(
+                  identifierListsEqual(clusteredFields, destinationClusteredFields),
+                  "clusteredFields",
+                  clusteredFields,
+                  destinationClusteredFields);
+            });
+  }
+
+  private static boolean identifiersEqual(String first, String second) {
+    return first == null ? second == null : second != null && first.equalsIgnoreCase(second);
+  }
+
+  private static boolean identifierListsEqual(List<String> first, List<String> second) {
+    if (first.size() != second.size()) {
+      return false;
+    }
+    for (int index = 0; index < first.size(); index++) {
+      if (!identifiersEqual(first.get(index), second.get(index))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static StandardTableDefinition getDynamicOverwriteDefinition(TableInfo destinationTable) {
+    TableDefinition destinationDefinition = destinationTable.getDefinition();
+    Preconditions.checkArgument(
+        destinationDefinition instanceof StandardTableDefinition,
+        "Dynamic overwrite requires a standard destination table, but %s is %s",
+        fullTableName(destinationTable.getTableId()),
+        destinationDefinition.getType());
+    StandardTableDefinition standardDefinition = (StandardTableDefinition) destinationDefinition;
+    TimePartitioning timePartitioning = standardDefinition.getTimePartitioning();
+    RangePartitioning rangePartitioning = standardDefinition.getRangePartitioning();
+    Preconditions.checkArgument(
+        timePartitioning == null || rangePartitioning == null,
+        "Dynamic overwrite destination table %s cannot have both time and range partitioning",
+        fullTableName(destinationTable.getTableId()));
+    Preconditions.checkArgument(
+        timePartitioning != null || rangePartitioning != null,
+        "Dynamic overwrite requires a partitioned destination table, but %s is unpartitioned",
+        fullTableName(destinationTable.getTableId()));
+    Preconditions.checkArgument(
+        timePartitioning == null || timePartitioning.getField() != null,
+        "Dynamic overwrite does not support ingestion-time partitioned destination table %s",
+        fullTableName(destinationTable.getTableId()));
+    return standardDefinition;
+  }
+
+  private static void checkLayoutOption(
+      boolean compatible, String option, Object requestedValue, Object destinationValue) {
+    Preconditions.checkArgument(
+        compatible,
+        "Destination table layout is incompatible with dynamic overwrite: requested %s=%s, "
+            + "but the existing destination has %s=%s",
+        option,
+        requestedValue,
+        option,
+        destinationValue);
   }
 
   public TableId createTempTableId(TableId destinationTableId) {
@@ -354,41 +546,62 @@ public class BigQueryClient {
    */
   public Job overwriteDestinationWithTemporaryDynamicPartitons(
       TableId temporaryTableId, TableId destinationTableId) {
-
-    TableDefinition destinationDefinition = getTable(destinationTableId).getDefinition();
-    String sqlQuery = null;
+    TableInfo destinationTable = getTable(destinationTableId);
+    Preconditions.checkArgument(
+        destinationTable != null,
+        "Dynamic overwrite destination table %s no longer exists",
+        fullTableName(destinationTableId));
+    TableDefinition destinationDefinition = destinationTable.getDefinition();
     if (destinationDefinition instanceof StandardTableDefinition) {
-      String destinationTableName = fullTableName(destinationTableId);
-      String temporaryTableName = fullTableName(temporaryTableId);
-      StandardTableDefinition sdt = (StandardTableDefinition) destinationDefinition;
-
-      TimePartitioning timePartitioning = sdt.getTimePartitioning();
-      if (timePartitioning != null) {
-        sqlQuery =
-            getQueryForTimePartitionedTable(
-                destinationTableName, temporaryTableName, sdt, timePartitioning);
-      } else {
-        RangePartitioning rangePartitioning = sdt.getRangePartitioning();
-        if (rangePartitioning != null) {
-          sqlQuery =
-              getQueryForRangePartitionedTable(
-                  destinationTableName, temporaryTableName, sdt, rangePartitioning);
-        }
-      }
-
-      if (sqlQuery != null) {
-        QueryJobConfiguration queryConfig =
-            jobConfigurationFactory
-                .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
-                .setUseLegacySql(false)
-                .build();
-
-        return create(JobInfo.newBuilder(queryConfig).build());
+      StandardTableDefinition standardDefinition = (StandardTableDefinition) destinationDefinition;
+      if (standardDefinition.getTimePartitioning() == null
+          && standardDefinition.getRangePartitioning() == null) {
+        return overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
       }
     }
+    StandardTableDefinition standardDefinition = getDynamicOverwriteDefinition(destinationTable);
+    return overwriteDestinationWithTemporaryDynamicPartitons(
+        temporaryTableId, destinationTable, standardDefinition);
+  }
 
-    // no partitioning default to statndard overwrite
-    return overwriteDestinationWithTemporary(temporaryTableId, destinationTableId);
+  public Job overwriteDestinationWithTemporaryDynamicPartitons(
+      TableId temporaryTableId, DestinationValidationOptions requestedOptions) {
+    TableInfo destinationTable = getTable(requestedOptions.getTableId());
+    Preconditions.checkArgument(
+        destinationTable != null,
+        "Dynamic overwrite destination table %s no longer exists",
+        fullTableName(requestedOptions.getTableId()));
+    StandardTableDefinition destinationDefinition =
+        validateDestinationTableLayout(destinationTable, requestedOptions);
+    return overwriteDestinationWithTemporaryDynamicPartitons(
+        temporaryTableId, destinationTable, destinationDefinition);
+  }
+
+  private Job overwriteDestinationWithTemporaryDynamicPartitons(
+      TableId temporaryTableId,
+      TableInfo destinationTable,
+      StandardTableDefinition destinationDefinition) {
+    String destinationTableName = fullTableName(destinationTable.getTableId());
+    String temporaryTableName = fullTableName(temporaryTableId);
+    String sqlQuery;
+    TimePartitioning timePartitioning = destinationDefinition.getTimePartitioning();
+    if (timePartitioning != null) {
+      sqlQuery =
+          getQueryForTimePartitionedTable(
+              destinationTableName, temporaryTableName, destinationDefinition, timePartitioning);
+    } else {
+      RangePartitioning rangePartitioning = destinationDefinition.getRangePartitioning();
+      sqlQuery =
+          getQueryForRangePartitionedTable(
+              destinationTableName, temporaryTableName, destinationDefinition, rangePartitioning);
+    }
+
+    QueryJobConfiguration queryConfig =
+        jobConfigurationFactory
+            .createQueryJobConfigurationBuilder(sqlQuery, Collections.emptyMap())
+            .setUseLegacySql(false)
+            .build();
+    return create(JobInfo.newBuilder(queryConfig).build());
   }
 
   /**
@@ -909,6 +1122,22 @@ public class BigQueryClient {
       JobInfo.WriteDisposition writeDisposition,
       Optional<Schema> schema,
       TableId destinationTable) {
+    return loadDataIntoTable(
+        options, sourceUris, formatOptions, writeDisposition, schema, destinationTable, true);
+  }
+
+  public JobStatistics.LoadStatistics loadDataIntoTable(
+      LoadDataOptions options,
+      List<String> sourceUris,
+      FormatOptions formatOptions,
+      JobInfo.WriteDisposition writeDisposition,
+      Optional<Schema> schema,
+      TableId destinationTable,
+      boolean applyDestinationTableLayoutOptions) {
+    Optional<Boolean> rangePartitionRequireFilterToApplyAfterLoad =
+        validateRangePartitionRequireFilterBeforeLoad(
+            options, destinationTable, applyDestinationTableLayoutOptions);
+
     LoadJobConfiguration.Builder jobConfiguration =
         jobConfigurationFactory
             .createLoadJobConfigurationBuilder(destinationTable, sourceUris, formatOptions)
@@ -924,30 +1153,16 @@ public class BigQueryClient {
 
     options.getCreateDisposition().ifPresent(jobConfiguration::setCreateDisposition);
 
-    if (options.getPartitionField().isPresent() || options.getPartitionType().isPresent()) {
-      TimePartitioning.Builder timePartitionBuilder =
-          TimePartitioning.newBuilder(options.getPartitionTypeOrDefault());
-      options.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
+    if (applyDestinationTableLayoutOptions) {
+      configureDestinationTablePartitioning(options, jobConfiguration);
       options
-          .getPartitionRequireFilter()
-          .ifPresent(timePartitionBuilder::setRequirePartitionFilter);
-      options.getPartitionField().ifPresent(timePartitionBuilder::setField);
-      jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
+          .getClusteredFields()
+          .ifPresent(
+              clusteredFields -> {
+                Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
+                jobConfiguration.setClustering(clustering);
+              });
     }
-    if (options.getPartitionField().isPresent() && options.getPartitionRange().isPresent()) {
-      RangePartitioning.Builder rangePartitionBuilder = RangePartitioning.newBuilder();
-      options.getPartitionField().ifPresent(rangePartitionBuilder::setField);
-      options.getPartitionRange().ifPresent(rangePartitionBuilder::setRange);
-      jobConfiguration.setRangePartitioning(rangePartitionBuilder.build());
-    }
-
-    options
-        .getClusteredFields()
-        .ifPresent(
-            clusteredFields -> {
-              Clustering clustering = Clustering.newBuilder().setFields(clusteredFields).build();
-              jobConfiguration.setClustering(clustering);
-            });
 
     if (options.isUseAvroLogicalTypes()) {
       jobConfiguration.setUseAvroLogicalTypes(true);
@@ -984,6 +1199,12 @@ public class BigQueryClient {
                 finishedJob.getStatus().getError().getMessage()),
             finishedJob.getStatus().getError());
       } else {
+        // requirePartitionFilter is a table-level property for range-partitioned tables. The load
+        // API exposes it only through TimePartitioning, which must not accompany RangePartitioning.
+        rangePartitionRequireFilterToApplyAfterLoad.ifPresent(
+            requirePartitionFilter ->
+                applyRangePartitionRequireFilterAfterLoad(
+                    destinationTable, requirePartitionFilter));
         log.info(
             "Done loading to {}. jobId: {}",
             BigQueryUtil.friendlyTableName(options.getTableId()),
@@ -1018,6 +1239,95 @@ public class BigQueryClient {
               "Failed to load the data into BigQuery, JobId for debug purposes is [%s:%s.%s]",
               jobId.getProject(), jobId.getLocation(), jobId.getJob()));
       throw new BigQueryException(0, "Problem loading data into BigQuery", e);
+    }
+  }
+
+  Optional<Boolean> validateRangePartitionRequireFilterBeforeLoad(
+      LoadDataOptions options,
+      TableId destinationTableId,
+      boolean applyDestinationTableLayoutOptions) {
+    if (!applyDestinationTableLayoutOptions
+        || !options.getPartitionRange().isPresent()
+        || !options.getPartitionRequireFilter().isPresent()) {
+      return Optional.empty();
+    }
+
+    boolean requestedRequirePartitionFilter = options.getPartitionRequireFilter().get();
+    TableInfo existingDestinationTable = getTable(destinationTableId);
+    if (existingDestinationTable == null) {
+      return Optional.of(requestedRequirePartitionFilter);
+    }
+
+    TableDefinition destinationDefinition = existingDestinationTable.getDefinition();
+    Preconditions.checkArgument(
+        destinationDefinition instanceof StandardTableDefinition
+            && ((StandardTableDefinition) destinationDefinition).getRangePartitioning() != null,
+        "Cannot set partitionRequireFilter because existing destination table %s is not "
+            + "range-partitioned",
+        fullTableName(destinationTableId));
+    boolean existingRequirePartitionFilter =
+        Boolean.TRUE.equals(existingDestinationTable.getRequirePartitionFilter());
+    Preconditions.checkArgument(
+        requestedRequirePartitionFilter == existingRequirePartitionFilter,
+        "Destination table layout is incompatible: requested partitionRequireFilter=%s, but the "
+            + "existing destination has partitionRequireFilter=%s",
+        requestedRequirePartitionFilter,
+        existingRequirePartitionFilter);
+    return Optional.empty();
+  }
+
+  static void configureDestinationTablePartitioning(
+      LoadDataOptions options, LoadJobConfiguration.Builder jobConfiguration) {
+    Optional<RangePartitioning.Range> partitionRange = options.getPartitionRange();
+    if (partitionRange.isPresent()) {
+      Preconditions.checkArgument(
+          !options.getPartitionType().isPresent()
+              && !options.getPartitionExpirationMs().isPresent(),
+          "Range partitioning options cannot be combined with time partitioning options");
+      String partitionField =
+          options
+              .getPartitionField()
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "partitionField must be configured with range partitioning options"));
+      jobConfiguration.setRangePartitioning(
+          RangePartitioning.newBuilder()
+              .setField(partitionField)
+              .setRange(partitionRange.get())
+              .build());
+    } else if (options.getPartitionField().isPresent() || options.getPartitionType().isPresent()) {
+      TimePartitioning.Builder timePartitionBuilder =
+          TimePartitioning.newBuilder(options.getPartitionTypeOrDefault());
+      options.getPartitionExpirationMs().ifPresent(timePartitionBuilder::setExpirationMs);
+      options
+          .getPartitionRequireFilter()
+          .ifPresent(timePartitionBuilder::setRequirePartitionFilter);
+      options.getPartitionField().ifPresent(timePartitionBuilder::setField);
+      jobConfiguration.setTimePartitioning(timePartitionBuilder.build());
+    }
+  }
+
+  private void applyRangePartitionRequireFilterAfterLoad(
+      TableId destinationTableId, boolean requirePartitionFilter) {
+    TableInfo destinationTable = getTable(destinationTableId);
+    String errorMessage =
+        String.format(
+            "Cannot set partitionRequireFilter because destination table %s is not range-partitioned",
+            fullTableName(destinationTableId));
+    if (destinationTable == null) {
+      throw new IllegalStateException(errorMessage);
+    }
+    TableDefinition destinationDefinition = destinationTable.getDefinition();
+    Preconditions.checkState(
+        destinationDefinition instanceof StandardTableDefinition
+            && ((StandardTableDefinition) destinationDefinition).getRangePartitioning() != null,
+        errorMessage);
+
+    if (requirePartitionFilter
+        != Boolean.TRUE.equals(destinationTable.getRequirePartitionFilter())) {
+      update(
+          destinationTable.toBuilder().setRequirePartitionFilter(requirePartitionFilter).build());
     }
   }
 

@@ -182,16 +182,15 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
         temporaryTableId =
             Optional.of(
                 bigQueryClient
-                    .createTempTableAfterCheckingSchema(
-                        config.getTableId(), schema, config.getEnableModeCheckForSchemaFields())
+                    .createTempTableAfterValidatingDestination(schema, config)
                     .getTableId());
-        loadDataToBigQuery(sourceUris, schema);
+        loadDataToBigQuery(sourceUris, schema, /* applyDestinationTableLayoutOptions= */ false);
         Job queryJob =
             bigQueryClient.overwriteDestinationWithTemporaryDynamicPartitons(
-                temporaryTableId.get(), config.getTableId());
+                temporaryTableId.get(), config);
         bigQueryClient.waitForJob(queryJob, JobOperation.DYNAMIC_PARTITION_OVERWRITE);
       } else {
-        loadDataToBigQuery(sourceUris, schema);
+        loadDataToBigQuery(sourceUris, schema, /* applyDestinationTableLayoutOptions= */ true);
       }
       if (writeDisposition == JobInfo.WriteDisposition.WRITE_TRUNCATE) {
         updateMetadataIfNeeded();
@@ -203,7 +202,9 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
     }
   }
 
-  void loadDataToBigQuery(List<String> sourceUris, Schema schema) throws IOException {
+  void loadDataToBigQuery(
+      List<String> sourceUris, Schema schema, boolean applyDestinationTableLayoutOptions)
+      throws IOException {
     // Solving Issue #248
     List<String> optimizedSourceUris = SparkBigQueryUtil.optimizeLoadUriListForSpark(sourceUris);
     TableId destinationTableId = temporaryTableId.orElse(config.getTableId());
@@ -214,7 +215,8 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
             FormatOptions.avro(),
             writeDisposition,
             Optional.of(schema),
-            destinationTableId);
+            destinationTableId,
+            applyDestinationTableLayoutOptions);
 
     long currentTimeMillis = System.currentTimeMillis();
     SparkBigQueryConnectorMetricsUtils.postWriteSessionMetrics(
