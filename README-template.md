@@ -63,7 +63,7 @@ The latest version of the connector is publicly available in the following links
 
 | version    | Link                                                                                                                                                                                                                   |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Spark 4.1  | `gs://spark-lib/bigquery/spark-4.1-bigquery-${next-release-tag}-preview.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-4.1-bigquery-${next-release-tag}-preview.jar))                        |
+| Spark 4.1  | `gs://spark-lib/bigquery/spark-4.1-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-4.1-bigquery-${next-release-tag}.jar))                        |
 | Spark 4.0  | `gs://spark-lib/bigquery/spark-4.0-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-4.0-bigquery-${next-release-tag}.jar))                                        |
 | Spark 3.5  | `gs://spark-lib/bigquery/spark-3.5-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.5-bigquery-${next-release-tag}.jar))                                        |
 | Spark 3.4  | `gs://spark-lib/bigquery/spark-3.4-bigquery-${next-release-tag}.jar`([HTTP link](https://storage.googleapis.com/spark-lib/bigquery/spark-3.4-bigquery-${next-release-tag}.jar))                                        |
@@ -125,7 +125,7 @@ repository. It can be used using the `--packages` option or the
 
 | version    | Connector Artifact                                                                 |
 |------------|------------------------------------------------------------------------------------|
-| Spark 4.1  | `com.google.cloud.spark:spark-4.1-bigquery:${next-release-tag}-preview`            |
+| Spark 4.1  | `com.google.cloud.spark:spark-4.1-bigquery:${next-release-tag}`            |
 | Spark 4.0  | `com.google.cloud.spark:spark-4.0-bigquery:${next-release-tag}`                    |
 | Spark 3.5  | `com.google.cloud.spark:spark-3.5-bigquery:${next-release-tag}`                    |
 | Spark 3.4  | `com.google.cloud.spark:spark-3.4-bigquery:${next-release-tag}`                    |
