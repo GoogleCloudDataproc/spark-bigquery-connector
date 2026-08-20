@@ -10,7 +10,7 @@
   </parent>
 
   <artifactId>spark-4.1-bigquery-lib</artifactId>
-  <version>${revision}-preview</version>
+  <version>${revision}</version>
   <name>Connector code for BigQuery DataSource v2 for Spark 4.1</name>
   <properties>
     <iceberg.version>1.11.0</iceberg.version>

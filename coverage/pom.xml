@@ -244,7 +244,7 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-4.1-bigquery</artifactId>
-          <version>${project.version}-preview</version>
+          <version>${project.version}</version>
         </dependency>
       </dependencies>
     </profile>
@@ -505,12 +505,12 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-4.1-bigquery-lib</artifactId>
-          <version>${project.version}-preview</version>
+          <version>${project.version}</version>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-4.1-bigquery</artifactId>
-          <version>${project.version}-preview</version>
+          <version>${project.version}</version>
         </dependency>
       </dependencies>
     </profile>
