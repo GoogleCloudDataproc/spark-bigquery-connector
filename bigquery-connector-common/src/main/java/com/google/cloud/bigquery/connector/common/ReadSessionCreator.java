@@ -92,7 +92,19 @@ public class ReadSessionCreator {
       TableId table, ImmutableList<String> selectedFields, Optional<String> filter) {
     Instant sessionPrepStartTime = Instant.now();
     TableInfo tableDetails = bigQueryClient.getTable(table);
-    TableInfo actualTable = getActualTable(tableDetails, selectedFields, filter);
+    // selectedFields may contain dotted nested paths (e.g. "repository.url") used for Storage Read
+    // API projection. Materialize the top-level structs so those same paths still match the
+    // materialized table's schema. b/534631726.
+    ImmutableList<String> topLevelSelectedFields =
+        selectedFields.stream()
+            .map(
+                field -> {
+                  int index = field.indexOf('.');
+                  return index == -1 ? field : field.substring(0, index);
+                })
+            .distinct()
+            .collect(ImmutableList.toImmutableList());
+    TableInfo actualTable = getActualTable(tableDetails, topLevelSelectedFields, filter);
 
     BigQueryReadClient bigQueryReadClient = bigQueryReadClientFactory.getBigQueryReadClient();
     log.info(

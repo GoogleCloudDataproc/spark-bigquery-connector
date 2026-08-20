@@ -419,6 +419,27 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   }
 
   @SuppressWarnings("resource")
+  protected static JsonObject readNestedStructProjectionWithFilterApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
+    Dataset<Row> df =
+        spark.read().format("bigquery").load("bigquery-public-data:samples.github_nested");
+
+    List<Row> rows = df.select("url").where("repository is not null").collectAsList();
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("rowCount", rows.size());
+    return result;
+  }
+
+  @SuppressWarnings("resource")
   protected static JsonObject readMaterializedViewApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "WITH_MATERIALIZATION");
@@ -1191,6 +1212,18 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
             ReadIntegrationTestBase::readUnhandledFilterStructApp, "", "", ImmutableMap.of());
     assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(result.get("rowCount").getAsInt()).isEqualTo(85);
+  }
+
+  @Test
+  public void testNestedStructProjectionWithFilter() throws Exception {
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readNestedStructProjectionWithFilterApp,
+            "",
+            "",
+            ImmutableMap.of());
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("rowCount").getAsInt()).isGreaterThan(0);
   }
 
   @Test
