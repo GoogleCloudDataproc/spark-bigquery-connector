@@ -13,7 +13,7 @@
   pushes matching nested `selected_fields` to the BigQuery Storage Read API.
 * PR #1512: Kept reader-owned Arrow vectors open between reusable columnar
   batches on Spark 4.
-* * BigQuery API has been upgraded to version 2.69.0
+* BigQuery API has been upgraded to version 2.69.0
 * BigQuery Storage API has been upgraded to version 3.30.0
 * GAX has been upgraded to version 2.82.0
 * gRPC has been upgraded to version 1.83.1
