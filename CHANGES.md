@@ -2,17 +2,25 @@
 
 ## Next
 
-* BigQuery API has been upgraded to version 2.68.0
+* `spark-4.1-bigquery` is generally available!
+* Issue #1501: Preserved detailed row errors from failed direct writes
+* Issue #1503: Corrected the documented billing project option to `parentProject`.
+* PR #1494: Added Support for Change Data Capture (CDC)
+* PR #1510: Handle Arrow StructVectors with 0 child vectors in ArrowColumnBatchPartitionReaderContext
+* PR #1512: Fixed a schema-resolution error on Spark 3.5 when reading a nested
+  STRUCT column with a filter Spark cannot push down (e.g. `struct_col IS NOT
+  NULL`). The DataSource V2 reader now honors Spark's nested schema pruning and
+  pushes matching nested `selected_fields` to the BigQuery Storage Read API.
+* PR #1512: Kept reader-owned Arrow vectors open between reusable columnar
+  batches on Spark 4.
+* BigQuery API has been upgraded to version 2.69.0
 * BigQuery Storage API has been upgraded to version 3.30.0
 * GAX has been upgraded to version 2.82.0
 * gRPC has been upgraded to version 1.83.1
 * Guava has been upgraded to version 33.6.0-jre
 * Netty has been upgraded to version 4.2.17.Final
 * Protocol Buffers has been upgraded to version 4.35.1
-* PR #1494: Added Support for Change Data Capture (CDC)
-* Issue #1501: Preserved detailed row errors from failed direct writes
-* Issue #1503: Corrected the documented billing project option to `parentProject`.
-* PR #1510: Handle Arrow StructVectors with 0 child vectors in ArrowColumnBatchPartitionReaderContext
+
 
 ## 0.44.2 - 2026-05-20
 
@@ -20,6 +28,14 @@
 * Issue #1476: Fixed BigQuery MERGE statement ambiguity on overwrite when table columns are named `target` or `source`.
 * PR #1479: Fixing NotSerializableException thrown on the executors
 * PR #1488: Added timing and Job ID logging to write path operations
+* BigQuery API has been upgraded to version 2.65.0
+* BigQuery Storage API has been upgraded to version 3.27.0
+* GAX has been upgraded to version 2.79.0
+* gRPC has been upgraded to version 1.81.0
+* Guava has been upgraded to version 33.6.0-jre
+* Netty has been upgraded to version 4.2.12.Final
+* Protocol Buffers has been upgraded to version 4.34.1
+* Avro has been upgraded to version 1.11.5
 
 ## 0.44.1 - 2026-03-25
 * BigQuery API has been upgraded to version 2.60.0
