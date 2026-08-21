@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.45.0 - 2026-08-21
 
 * `spark-4.1-bigquery` is generally available!
 * Issue #1501: Preserved detailed row errors from failed direct writes
