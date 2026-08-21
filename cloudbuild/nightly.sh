@@ -91,8 +91,8 @@ case $STEP in
     gsutil cp "${M2REPO}/com/google/cloud/spark/spark-4.0-bigquery/${BUILD_REVISION}/spark-4.0-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
     gsutil cp "gs://${BUCKET}/spark-4.0-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-4.0-bigquery-nightly-snapshot.jar"
 
-    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-4.1-bigquery/${BUILD_REVISION}-preview/spark-4.1-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}"
-    gsutil cp "gs://${BUCKET}/spark-4.1-bigquery-${BUILD_REVISION}-preview.jar" "gs://${BUCKET}/spark-4.1-bigquery-nightly-snapshot.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-4.1-bigquery/${BUILD_REVISION}/spark-4.1-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-4.1-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-4.1-bigquery-nightly-snapshot.jar"
 
     gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-metrics/${BUILD_REVISION}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}"
     gsutil cp "gs://${BUCKET}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-metrics-nightly-snapshot.jar"
