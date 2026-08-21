@@ -63,7 +63,11 @@ public class AcceptanceTestUtils {
   private static Predicate<Path> prefixSuffixChecker(final String prefix, final String suffix) {
     return path -> {
       String name = path.toFile().getName();
-      return name.startsWith(prefix) && name.endsWith(suffix) && name.indexOf("-javadoc") == -1;
+      return name.startsWith(prefix)
+          && name.endsWith(suffix)
+          && !name.contains("-javadoc")
+          && !name.contains("-tests")
+          && !name.contains("-sources");
     };
   }
 

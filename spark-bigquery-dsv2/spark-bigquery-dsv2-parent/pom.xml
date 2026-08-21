@@ -122,7 +122,37 @@
               <classesDirectory>${basedir}/src/build/javadoc</classesDirectory>
             </configuration>
           </execution>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>unpack-test-dependencies</id>
+            <phase>process-test-classes</phase>
+            <goals>
+              <goal>unpack-dependencies</goal>
+            </goals>
+            <configuration>
+              <includeScope>test</includeScope>
+              <outputDirectory>${project.build.testOutputDirectory}</outputDirectory>
+              <includeGroupIds>junit,org.hamcrest,com.google.truth</includeGroupIds>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <configuration>
+          <shadeTestJar>true</shadeTestJar>
+        </configuration>
       </plugin>
     </plugins>
   </build>

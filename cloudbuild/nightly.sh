@@ -97,6 +97,14 @@ case $STEP in
     gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-metrics/${BUILD_REVISION}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}"
     gsutil cp "gs://${BUCKET}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-metrics-nightly-snapshot.jar"
 
+    # Upload the newly created integration tests shaded jars for specific Spark versions
+    for spark_ver in 3.1 3.2 3.3 3.4 3.5 4.0 4.1; do
+      jar_path="${M2REPO}/com/google/cloud/spark/spark-${spark_ver}-bigquery/${BUILD_REVISION}/spark-${spark_ver}-bigquery-${BUILD_REVISION}-tests.jar"
+      if [ -f "$jar_path" ]; then
+        gsutil cp "$jar_path" "gs://dataproc-integration-test-input/spark-bigquery-integration-test/spark-${spark_ver}-bigquery-latest-tests.jar"
+      fi
+    done
+
     exit
     ;;
 
