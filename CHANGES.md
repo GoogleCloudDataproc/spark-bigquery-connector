@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.45.0 - 2026-08-21
 
 * `spark-4.1-bigquery` is generally available!
