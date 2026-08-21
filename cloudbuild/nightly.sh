@@ -67,48 +67,48 @@ case $STEP in
     readonly BUILD_REVISION="$(cat /workspace/revision.txt)"
 
     # Upload nightly artifacts to the snapshot bucket and mark nightly snapshot
-    gcloud storage cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-with-dependencies_2.12/${BUILD_REVISION}/spark-bigquery-with-dependencies_2.12-${BUILD_REVISION}.jar" "gs://${BUCKET}"
-    gcloud storage cp "gs://${BUCKET}/spark-bigquery-with-dependencies_2.12-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-with-dependencies_2.12/${BUILD_REVISION}/spark-bigquery-with-dependencies_2.12-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-bigquery-with-dependencies_2.12-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-with-dependencies_2.12-nightly-snapshot.jar"
 
-    gcloud storage cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-with-dependencies_2.13/${BUILD_REVISION}/spark-bigquery-with-dependencies_2.13-${BUILD_REVISION}.jar" "gs://${BUCKET}"
-    gcloud storage cp "gs://${BUCKET}/spark-bigquery-with-dependencies_2.13-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-with-dependencies_2.13-nightly-snapshot.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-with-dependencies_2.13/${BUILD_REVISION}/spark-bigquery-with-dependencies_2.13-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-bigquery-with-dependencies_2.13-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-with-dependencies_2.13-nightly-snapshot.jar"
 
-    gcloud storage cp "${M2REPO}/com/google/cloud/spark/spark-3.1-bigquery/${BUILD_REVISION}/spark-3.1-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
-    gcloud storage cp "gs://${BUCKET}/spark-3.1-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.1-bigquery-nightly-snapshot.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-3.1-bigquery/${BUILD_REVISION}/spark-3.1-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-3.1-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.1-bigquery-nightly-snapshot.jar"
 
-    gcloud storage cp "${M2REPO}/com/google/cloud/spark/spark-3.2-bigquery/${BUILD_REVISION}/spark-3.2-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
-    gcloud storage cp "gs://${BUCKET}/spark-3.2-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.2-bigquery-nightly-snapshot.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-3.2-bigquery/${BUILD_REVISION}/spark-3.2-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-3.2-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.2-bigquery-nightly-snapshot.jar"
 
-    gcloud storage cp "${M2REPO}/com/google/cloud/spark/spark-3.3-bigquery/${BUILD_REVISION}/spark-3.3-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
-    gcloud storage cp "gs://${BUCKET}/spark-3.3-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.3-bigquery-nightly-snapshot.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-3.3-bigquery/${BUILD_REVISION}/spark-3.3-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-3.3-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.3-bigquery-nightly-snapshot.jar"
 
-    gcloud storage cp "${M2REPO}/com/google/cloud/spark/spark-3.4-bigquery/${BUILD_REVISION}/spark-3.4-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
-    gcloud storage cp "gs://${BUCKET}/spark-3.4-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.4-bigquery-nightly-snapshot.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-3.4-bigquery/${BUILD_REVISION}/spark-3.4-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-3.4-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.4-bigquery-nightly-snapshot.jar"
 
-    gcloud storage cp "${M2REPO}/com/google/cloud/spark/spark-3.5-bigquery/${BUILD_REVISION}/spark-3.5-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
-    gcloud storage cp "gs://${BUCKET}/spark-3.5-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.5-bigquery-nightly-snapshot.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-3.5-bigquery/${BUILD_REVISION}/spark-3.5-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-3.5-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-3.5-bigquery-nightly-snapshot.jar"
 
-    gcloud storage cp "${M2REPO}/com/google/cloud/spark/spark-4.0-bigquery/${BUILD_REVISION}/spark-4.0-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
-    gcloud storage cp "gs://${BUCKET}/spark-4.0-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-4.0-bigquery-nightly-snapshot.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-4.0-bigquery/${BUILD_REVISION}/spark-4.0-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-4.0-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-4.0-bigquery-nightly-snapshot.jar"
 
     gsutil cp "${M2REPO}/com/google/cloud/spark/spark-4.1-bigquery/${BUILD_REVISION}/spark-4.1-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}"
     gsutil cp "gs://${BUCKET}/spark-4.1-bigquery-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-4.1-bigquery-nightly-snapshot.jar"
 
-    gcloud storage cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-metrics/${BUILD_REVISION}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}"
-    gcloud storage cp "gs://${BUCKET}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-metrics-nightly-snapshot.jar"
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-metrics/${BUILD_REVISION}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-metrics-nightly-snapshot.jar"
 
     # Upload the newly created integration tests shaded jars for specific Spark versions
     for spark_ver in 3.1 3.2 3.3 3.4 3.5 4.0; do
       jar_path="${M2REPO}/com/google/cloud/spark/spark-${spark_ver}-bigquery/${BUILD_REVISION}/spark-${spark_ver}-bigquery-${BUILD_REVISION}-tests.jar"
       if [ -f "$jar_path" ]; then
-        gcloud storage cp "$jar_path" "gs://dataproc-integration-test-input/spark-bigquery-integration-test/spark-${spark_ver}-bigquery-latest-tests.jar"
+        gsutil cp "$jar_path" "gs://dataproc-integration-test-input/spark-bigquery-integration-test/spark-${spark_ver}-bigquery-latest-tests.jar"
       fi
     done
 
     # Handle Spark 4.1 which has a -preview suffix in its version
     jar_path_41="${M2REPO}/com/google/cloud/spark/spark-4.1-bigquery/${BUILD_REVISION}-preview/spark-4.1-bigquery-${BUILD_REVISION}-preview-tests.jar"
     if [ -f "$jar_path_41" ]; then
-      gcloud storage cp "$jar_path_41" "gs://dataproc-integration-test-input/spark-bigquery-integration-test/spark-4.1-bigquery-latest-tests.jar"
+      gsutil cp "$jar_path_41" "gs://dataproc-integration-test-input/spark-bigquery-integration-test/spark-4.1-bigquery-latest-tests.jar"
     fi
 
     exit
