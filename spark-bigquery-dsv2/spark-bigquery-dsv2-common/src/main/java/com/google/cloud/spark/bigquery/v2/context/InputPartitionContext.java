@@ -16,10 +16,15 @@
 package com.google.cloud.spark.bigquery.v2.context;
 
 import java.io.Serializable;
+import java.util.OptionalLong;
 
 public interface InputPartitionContext<T> extends Serializable {
 
   InputPartitionReaderContext<T> createPartitionReaderContext();
 
   boolean supportColumnarReads();
+
+  default OptionalLong getEstimatedBytesScanned() {
+    return OptionalLong.empty();
+  }
 }

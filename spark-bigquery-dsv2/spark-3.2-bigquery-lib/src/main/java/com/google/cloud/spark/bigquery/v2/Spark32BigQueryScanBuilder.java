@@ -74,7 +74,8 @@ public class Spark32BigQueryScanBuilder extends Spark31BigQueryScanBuilder
       new SparkBigQueryScanTimeMetric(),
       new SparkBigQueryParseTimeMetric(),
       new SparkBigQueryTimeInSparkMetric(),
-      new SparkBigQueryNumberOfReadStreamsMetric()
+      new SparkBigQueryNumberOfReadStreamsMetric(),
+      new SparkBigQueryEstimatedBytesScannedMetric()
     };
   }
 
