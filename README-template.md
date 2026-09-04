@@ -1429,7 +1429,7 @@ word-break:break-word
 
 `bqEstimatedBytesScanned` is a BigQuery Storage Read Session estimate, not the exact `scanned_bytes` value from BigQuery audit logs or a billing guarantee. Spark aggregates the repeated per-task estimate using the maximum, so partitions, retries, and speculative attempts do not multiply it. The metric is not emitted for optimized empty-projection/count reads because they do not create a Read Session.
 
-**Note:** To use the metrics in the Spark UI page, you need to make sure the `spark-bigquery-metrics-${next-release-tag}.jar` is the class path before starting the history-server and the connector version is `spark-3.2` or above.
+**Note:** To use the metrics in the Spark UI page, you need to make sure the matching `spark-bigquery-metrics-${next-release-tag}.jar` is on the class path before starting the history-server and the connector version is `spark-3.2` or above.
 
 ## FAQ
 

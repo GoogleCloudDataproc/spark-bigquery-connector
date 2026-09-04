@@ -17,12 +17,12 @@ public class Spark32BigQueryPartitionReader<T> extends BigQueryPartitionReader {
   private InputPartitionReaderContext<T> context;
   private final OptionalLong estimatedBytesScanned;
 
-  public Spark32BigQueryPartitionReader(InputPartitionReaderContext context) {
+  public Spark32BigQueryPartitionReader(InputPartitionReaderContext<T> context) {
     this(context, OptionalLong.empty());
   }
 
   public Spark32BigQueryPartitionReader(
-      InputPartitionReaderContext context, OptionalLong estimatedBytesScanned) {
+      InputPartitionReaderContext<T> context, OptionalLong estimatedBytesScanned) {
     super(context);
     this.context = context;
     this.estimatedBytesScanned = estimatedBytesScanned;
