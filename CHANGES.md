@@ -2,6 +2,10 @@
 
 ## Next
 
+* PR #1522: Reading a table that does not exist with the DataSource V2 connector now fails
+  with `Table <name> not found` instead of an `[INTERNAL_ERROR]` NullPointerException,
+  matching the DataSource V1 behavior.
+
 ## 0.45.0 - 2026-08-21
 
 * `spark-4.1-bigquery` is generally available!

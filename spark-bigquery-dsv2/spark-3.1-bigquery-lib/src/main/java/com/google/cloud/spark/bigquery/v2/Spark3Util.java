@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery.v2;
 
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.UserAgentProvider;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.InjectorBuilder;
@@ -53,16 +54,21 @@ public class Spark3Util {
     SparkBigQueryConnectorMetricsUtils.postConnectorVersion(
         sparkContext, userAgentProvider.getConnectorInfo());
     Supplier<StructType> schemaSupplier =
-        () -> {
-          if (sparkProvidedSchema != null) {
-            return sparkProvidedSchema;
-          }
-          Schema schemaFromTable = bigQueryClient.getReadTableSchema(config.toReadTableOptions());
-          return schemaFromTable != null
-              ? SchemaConverters.from(SchemaConvertersConfiguration.from(config))
-                  .toSpark(schemaFromTable)
-              : null;
-        };
+        () -> getSchemaOrThrow(bigQueryClient, config, sparkProvidedSchema);
     return bigQueryTableCreator.create(injector, schemaSupplier);
+  }
+
+  static StructType getSchemaOrThrow(
+      BigQueryClient bigQueryClient, SparkBigQueryConfig config, StructType sparkProvidedSchema) {
+    if (sparkProvidedSchema != null) {
+      return sparkProvidedSchema;
+    }
+    Schema schemaFromTable = bigQueryClient.getReadTableSchema(config.toReadTableOptions());
+    if (schemaFromTable == null) {
+      throw new TableNotFoundException(
+          "Table " + BigQueryUtil.friendlyTableName(config.getTableId()) + " not found");
+    }
+    return SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+        .toSpark(schemaFromTable);
   }
 }
