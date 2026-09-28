@@ -589,7 +589,6 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
 
     String expectedTypeName = parameters.get("ntzTypeName");
-    String format = parameters.get("dataFormat");
 
     @SuppressWarnings("resource")
     SparkSession spark =
@@ -599,7 +598,13 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
     try {
       BigQuery bigQuery = IntegrationTestUtils.getBigquery();
-      LocalDateTime dateTime = LocalDateTime.of(2023, 9, 18, 14, 30, 15, 234 * 1_000_000);
+      List<LocalDateTime> expectedDateTimes =
+          Arrays.asList(
+              LocalDateTime.of(1969, 12, 31, 23, 59, 59, 123_456_000),
+              LocalDateTime.of(1970, 1, 1, 0, 0, 0),
+              LocalDateTime.of(2023, 9, 18, 14, 30, 15, 234 * 1_000_000),
+              LocalDateTime.of(2024, 1, 2, 3, 4, 5, 123_456_000),
+              LocalDateTime.of(2026, 3, 19, 5, 0, 0));
       bigQuery.create(
           TableInfo.newBuilder(
                   TableId.of(testDataset, testTable),
@@ -607,29 +612,52 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
                       Schema.of(Field.of("foo", LegacySQLTypeName.DATETIME))))
               .build());
 
+      String valuesSql =
+          expectedDateTimes.stream()
+              .map(dt -> String.format("('%s')", dt))
+              .collect(Collectors.joining(", "));
       IntegrationTestUtils.runQuery(
-          String.format("INSERT INTO %s.%s (foo) VALUES ('%s')", testDataset, testTable, dateTime));
+          String.format("INSERT INTO %s.%s (foo) VALUES %s", testDataset, testTable, valuesSql));
 
-      Dataset<Row> df =
+      Dataset<Row> avroDf =
           spark
               .read()
               .format("bigquery")
               .option("dataset", testDataset)
               .option("table", testTable)
-              .option("readDataFormat", format)
-              .load();
+              .option("readDataFormat", "AVRO")
+              .load()
+              .orderBy("foo");
 
-      StructType schema = df.schema();
-      boolean typeCorrect = schema.apply("foo").dataType().typeName().equals(expectedTypeName);
+      Dataset<Row> arrowDf =
+          spark
+              .read()
+              .format("bigquery")
+              .option("dataset", testDataset)
+              .option("table", testTable)
+              .option("readDataFormat", "ARROW")
+              .load()
+              .orderBy("foo");
 
-      Row row = df.head();
-      LocalDateTime val = (LocalDateTime) row.get(0);
-      boolean dateTimeMatches = dateTime.equals(val);
+      StructType avroSchema = avroDf.schema();
+      StructType arrowSchema = arrowDf.schema();
+      boolean typeCorrect =
+          avroSchema.apply("foo").dataType().typeName().equals(expectedTypeName)
+              && avroSchema.equals(arrowSchema);
+
+      List<Row> avroRows = avroDf.collectAsList();
+      List<Row> arrowRows = arrowDf.collectAsList();
+      boolean dataframesEqual = avroRows.equals(arrowRows);
+
+      List<LocalDateTime> actualDateTimes =
+          avroRows.stream().map(row -> (LocalDateTime) row.get(0)).collect(Collectors.toList());
+      boolean dateTimeMatches = expectedDateTimes.equals(actualDateTimes);
 
       JsonObject result = new JsonObject();
       result.addProperty("status", "success");
       result.addProperty("typeCorrect", typeCorrect);
       result.addProperty("dateTimeMatches", dateTimeMatches);
+      result.addProperty("dataframesEqual", dataframesEqual);
       return result;
     } finally {
     }
@@ -643,12 +671,12 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
             ReadByFormatIntegrationTestBase::readTimestampNTZApp,
             testDataset.toString(),
             testTable,
-            ImmutableMap.of(
-                "ntzTypeName", timeStampNTZType.get().typeName(), "dataFormat", dataFormat));
+            ImmutableMap.of("ntzTypeName", timeStampNTZType.get().typeName()));
 
     assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(result.get("typeCorrect").getAsBoolean()).isTrue();
     assertThat(result.get("dateTimeMatches").getAsBoolean()).isTrue();
+    assertThat(result.get("dataframesEqual").getAsBoolean()).isTrue();
   }
 
   // =========================================================================

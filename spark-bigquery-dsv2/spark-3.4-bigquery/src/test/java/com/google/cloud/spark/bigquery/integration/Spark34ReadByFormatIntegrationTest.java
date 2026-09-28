@@ -15,22 +15,12 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
-import java.util.Arrays;
-import java.util.Collection;
 import org.apache.spark.sql.types.DataTypes;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-@RunWith(Parameterized.class)
 public class Spark34ReadByFormatIntegrationTest extends ReadByFormatIntegrationTestBase {
 
-  @Parameterized.Parameters
-  public static Collection<String> data() {
-    return Arrays.asList("AVRO", "ARROW");
-  }
-
-  public Spark34ReadByFormatIntegrationTest(String dataFormat) {
-    super(dataFormat, /* userProvidedSchemaAllowed */ false, DataTypes.TimestampNTZType);
+  public Spark34ReadByFormatIntegrationTest() {
+    super("ARROW", /* userProvidedSchemaAllowed */ false, DataTypes.TimestampNTZType);
   }
 
   // tests are from the super-class

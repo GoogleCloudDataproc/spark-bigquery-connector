@@ -31,7 +31,7 @@ import org.apache.spark.sql.types.DataTypes;
 
 public class TimestampNTZTypeConverter implements TypeConverter<Long> {
 
-  private static final DateTimeFormatter BQ_AVRO_DATETIME =
+  private static final DateTimeFormatter BIGQUERY_AVRO_DATETIME_FORMATTER =
       new DateTimeFormatterBuilder()
           .append(DateTimeFormatter.ISO_LOCAL_DATE)
           .optionalStart()
@@ -41,7 +41,7 @@ public class TimestampNTZTypeConverter implements TypeConverter<Long> {
           .appendLiteral(' ')
           .optionalEnd()
           .append(DateTimeFormatter.ISO_LOCAL_TIME)
-          .toFormatter(Locale.ROOT);
+          .toFormatter(Locale.ENGLISH);
 
   @Override
   public DataType toSparkType(LegacySQLTypeName bigQueryType) {
@@ -97,7 +97,7 @@ public class TimestampNTZTypeConverter implements TypeConverter<Long> {
   public Long avroToSparkValue(Object avroValue) {
     CharSequence text =
         avroValue instanceof CharSequence ? (CharSequence) avroValue : avroValue.toString();
-    LocalDateTime localDateTime = LocalDateTime.parse(text, BQ_AVRO_DATETIME);
+    LocalDateTime localDateTime = LocalDateTime.parse(text, BIGQUERY_AVRO_DATETIME_FORMATTER);
     return SparkBigQueryUtil.sparkTimestampToBigQuery(localDateTime.toInstant(ZoneOffset.UTC));
   }
 }
