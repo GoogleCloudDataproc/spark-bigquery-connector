@@ -16,10 +16,12 @@
 package com.google.cloud.spark.bigquery.acceptance;
 
 import com.google.common.base.Preconditions;
+import java.util.Optional;
 
 public class AcceptanceTestConstants {
 
-  public static final String REGION = "us-west1";
+  public static final String REGION =
+      System.getenv().getOrDefault("GOOGLE_CLOUD_REGION", "us-west1");
   public static final String DATAPROC_ENDPOINT = REGION + "-dataproc.googleapis.com:443";
   public static final String PROJECT_ID =
       Preconditions.checkNotNull(
@@ -29,6 +31,8 @@ public class AcceptanceTestConstants {
       Preconditions.checkNotNull(
           System.getenv("SERVERLESS_NETWORK_URI"),
           "Please set the 'SERVERLESS_NETWORK_URI' environment variable");
+  public static final Optional<String> DATAPROC_CLUSTER =
+      Optional.ofNullable(System.getenv("DATAPROC_CLUSTER"));
   public static final String CONNECTOR_JAR_DIRECTORY = "target";
 
   public static final String MIN_BIG_NUMERIC = "-0.34992332820282019728792003956564819968";
