@@ -113,7 +113,6 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   private static final String LARGE_TABLE = "bigquery-public-data.samples.natality";
   private static final String LARGE_TABLE_FIELD = "is_male";
   private static final long LARGE_TABLE_NUM_ROWS = 33271914L;
-  private static final String NON_EXISTENT_TABLE = "non-existent.non-existent.non-existent";
   private static final String ALL_TYPES_TABLE_NAME = "all_types";
 
   protected StructType allTypesTableSchema;
@@ -339,7 +338,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     result.addProperty("status", "success");
 
     if ("NON_EXISTENT".equals(scenario)) {
-      spark.read().format("bigquery").option("table", NON_EXISTENT_TABLE).load();
+      spark.read().format("bigquery").option("table", testTable).load();
     } else if ("USER_DEFINED".equals(scenario)) {
       StructType expectedSchema =
           new StructType(
@@ -1184,16 +1183,20 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
 
   @Test
   public void testNonExistentSchema() {
-    assertThrows(
-        "Trying to read a non existing table should throw an exception",
-        RuntimeException.class,
-        () -> {
-          testRunner.run(
-              ReadIntegrationTestBase::readSchemaMetadataApp,
-              "",
-              "",
-              ImmutableMap.of("scenario", "NON_EXISTENT"));
-        });
+    // Use a valid, unused table ID so the read reaches the BigQuery metadata lookup.
+    String nonExistentTable = PROJECT_ID + "." + testDataset + "." + testTable;
+    RuntimeException exception =
+        assertThrows(
+            "Trying to read a non existing table should throw an exception",
+            RuntimeException.class,
+            () -> {
+              testRunner.run(
+                  ReadIntegrationTestBase::readSchemaMetadataApp,
+                  testDataset.toString(),
+                  nonExistentTable,
+                  ImmutableMap.of("scenario", "NON_EXISTENT"));
+            });
+    assertThat(exception).hasMessageThat().contains("Table " + nonExistentTable + " not found");
   }
 
   @Test(timeout = 10_000) // 10 seconds
