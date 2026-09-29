@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.gson.JsonObject;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -614,7 +615,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
       String valuesSql =
           expectedDateTimes.stream()
-              .map(dt -> String.format("('%s')", dt))
+              .map(dt -> String.format("('%s')", dt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)))
               .collect(Collectors.joining(", "));
       IntegrationTestUtils.runQuery(
           String.format("INSERT INTO %s.%s (foo) VALUES %s", testDataset, testTable, valuesSql));
