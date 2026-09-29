@@ -161,6 +161,20 @@ public class SchemaConverters {
   }
 
   Object convertByBigQueryType(Field bqField, Object value, StructField userProvidedField) {
+    Optional<TypeConverter> typeConverter =
+        SparkBigQueryUtil.getTypeConverterStream()
+            .filter(tc -> tc.supportsBigQueryType(bqField.getType()))
+            .filter(
+                tc ->
+                    userProvidedField == null || tc.supportsSparkType(userProvidedField.dataType()))
+            .findFirst();
+    if (typeConverter.isPresent()) {
+      Object converted = typeConverter.get().avroToSparkValue(value);
+      if (converted != null) {
+        return converted;
+      }
+    }
+
     if (LegacySQLTypeName.INTEGER.equals(bqField.getType())) {
       if (userProvidedField != null) {
         DataType userProvidedType = userProvidedField.dataType();
