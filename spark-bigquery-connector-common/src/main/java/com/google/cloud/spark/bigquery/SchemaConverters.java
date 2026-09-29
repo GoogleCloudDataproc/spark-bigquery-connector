@@ -16,7 +16,6 @@
 package com.google.cloud.spark.bigquery;
 
 import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
@@ -521,14 +520,12 @@ public class SchemaConverters {
       fieldType = LegacySQLTypeName.RECORD;
       subFields =
           FieldList.of(
-              buildMapTypeField(
-                  "key", mapType.keyType(), sparkField.metadata(), Mode.REQUIRED, depth),
-              buildMapTypeField(
-                  "value",
-                  mapType.valueType(),
-                  sparkField.metadata(),
-                  mapType.valueContainsNull() ? Mode.NULLABLE : Mode.REQUIRED,
-                  depth));
+              this.createBigQueryColumn(
+                  new StructField("key", mapType.keyType(), false, Metadata.empty()), depth + 1),
+              this.createBigQueryColumn(
+                  new StructField(
+                      "value", mapType.valueType(), mapType.valueContainsNull(), Metadata.empty()),
+                  depth + 1));
     } else if (sparkType instanceof DecimalType) {
       DecimalType decimalType = (DecimalType) sparkType;
       int leftOfDotDigits = decimalType.precision() - decimalType.scale();
@@ -583,17 +580,6 @@ public class SchemaConverters {
     }
     // no description, so the field marker determines the result
     return marker;
-  }
-
-  private Field buildMapTypeField(
-      String fieldName, DataType sparkType, Metadata metadata, Mode fieldMode, int depth) {
-    LegacySQLTypeName sqlType = toBigQueryType(sparkType, metadata);
-    if (sqlType == LegacySQLTypeName.RECORD) {
-      FieldList subFields = sparkToBigQueryFields((StructType) sparkType, depth + 1);
-      return createBigQueryFieldBuilder(fieldName, sqlType, fieldMode, subFields).build();
-    } else {
-      return createBigQueryFieldBuilder(fieldName, sqlType, fieldMode, null).build();
-    }
   }
 
   @VisibleForTesting
