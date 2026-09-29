@@ -95,9 +95,8 @@ public class TimestampNTZTypeConverter implements TypeConverter<Long> {
 
   @Override
   public Long avroToSparkValue(Object avroValue) {
-    CharSequence text =
-        avroValue instanceof CharSequence ? (CharSequence) avroValue : avroValue.toString();
-    LocalDateTime localDateTime = LocalDateTime.parse(text, BIGQUERY_AVRO_DATETIME_FORMATTER);
+    LocalDateTime localDateTime =
+        LocalDateTime.parse(avroValue.toString(), BIGQUERY_AVRO_DATETIME_FORMATTER);
     return SparkBigQueryUtil.sparkTimestampToBigQuery(localDateTime.toInstant(ZoneOffset.UTC));
   }
 }
