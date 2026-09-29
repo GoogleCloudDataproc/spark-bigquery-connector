@@ -31,6 +31,10 @@ class MetricUtils {
     return bytesToString(Arrays.stream(taskMetrics).sum());
   }
 
+  static String formatMaxSizeMetric(long[] taskMetrics) {
+    return bytesToString(Arrays.stream(taskMetrics).max().orElse(0));
+  }
+
   static String formatSumMetrics(long[] taskMetrics) {
     return NUMBER_FORMAT_US.format(Arrays.stream(taskMetrics).sum());
   }

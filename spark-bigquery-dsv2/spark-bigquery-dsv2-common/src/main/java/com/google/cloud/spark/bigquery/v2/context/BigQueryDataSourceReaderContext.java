@@ -202,8 +202,8 @@ public class BigQueryDataSourceReaderContext {
                     bigQueryReadClientFactory,
                     stream.getName(),
                     readSessionCreatorConfig.toReadRowsHelperOptions(),
-                    createConverter(
-                        selectedFields, readSessionResponse.get(), userProvidedSchema)));
+                    createConverter(selectedFields, readSessionResponse.get(), userProvidedSchema),
+                    readSession.getEstimatedTotalBytesScanned()));
   }
 
   public Optional<String> getCombinedFilter() {
