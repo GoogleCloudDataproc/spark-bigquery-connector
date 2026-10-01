@@ -19,9 +19,9 @@ import org.apache.spark.sql.catalyst.InternalRow;
 
 public class EmptyProjectionInputPartitionContext implements InputPartitionContext<InternalRow> {
 
-  final int partitionSize;
+  final long partitionSize;
 
-  public EmptyProjectionInputPartitionContext(int partitionSize) {
+  public EmptyProjectionInputPartitionContext(long partitionSize) {
     this.partitionSize = partitionSize;
   }
 

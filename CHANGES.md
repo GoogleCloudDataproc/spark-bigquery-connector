@@ -6,6 +6,10 @@
   with `Table <name> not found` instead of an `[INTERNAL_ERROR]` NullPointerException,
   matching the DataSource V1 behavior.
 
+* Issue #1525: Fixed `count()` returning an incorrect value on DataSource
+  V2 reads when the optimized empty projection path splits more than
+  `Integer.MAX_VALUE` rows into a single partition.
+
 ## 0.45.0 - 2026-08-21
 
 * `spark-4.1-bigquery` is generally available!
