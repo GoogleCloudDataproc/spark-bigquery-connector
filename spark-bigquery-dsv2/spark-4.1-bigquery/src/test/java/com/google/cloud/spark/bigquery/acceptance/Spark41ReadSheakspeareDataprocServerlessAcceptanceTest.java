@@ -17,7 +17,7 @@ package com.google.cloud.spark.bigquery.acceptance;
 
 import org.junit.Ignore;
 
-@Ignore("Waiting for the serverless spark 4.0 runtime")
+@Ignore("Waiting for the serverless spark 4.1 runtime")
 public class Spark41ReadSheakspeareDataprocServerlessAcceptanceTest
     extends ReadSheakspeareDataprocServerlessAcceptanceTestBase {
 

@@ -103,7 +103,7 @@ public class Spark31BigQueryTable implements Table, SupportsRead, SupportsWrite 
 
   @Override
   public WriteBuilder newWriteBuilder(LogicalWriteInfo info) {
-    // SaveMode is not provided by spark 3, it is handled by the DataFrameWriter
+    // SaveMode is not provided by spark 3+, it is handled by the DataFrameWriter
     // The case where mode == SaveMode.Ignore is handled by Spark, so we can assume we can get the
     // context
     return new BigQueryWriteBuilder(injector, info, SaveMode.Append);

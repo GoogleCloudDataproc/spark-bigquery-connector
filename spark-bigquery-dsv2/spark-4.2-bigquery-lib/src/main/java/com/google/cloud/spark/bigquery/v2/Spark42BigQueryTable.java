@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Google Inc. All Rights Reserved.
+ * Copyright 2026 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ public class Spark42BigQueryTable extends Spark41BigQueryTable {
 
   @Override
   public WriteBuilder newWriteBuilder(LogicalWriteInfo info) {
-    // SaveMode is not provided by spark 3, it is handled by the DataFrameWriter
+    // SaveMode is not provided by spark 3+, it is handled by the DataFrameWriter
     // The case where mode == SaveMode.Ignore is handled by Spark, so we can assume we can get the
     // context
     return new Spark42BigQueryWriteBuilder(injector, info, SaveMode.Append);
