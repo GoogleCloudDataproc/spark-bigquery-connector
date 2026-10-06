@@ -69,8 +69,9 @@ DSv2 (Java) connectors under `spark-bigquery-dsv2/`:
   `spark-bigquery-metrics` — shared infrastructure.
 * `spark-3.1-bigquery`, `spark-3.2-bigquery`, `spark-3.3-bigquery`,
   `spark-3.4-bigquery`, `spark-3.5-bigquery`, `spark-4.0-bigquery`,
-  `spark-4.1-bigquery` — the per-Spark-version connector jars, each backed by
-  a `*-bigquery-lib` module reused by the next-version connector.
+  `spark-4.1-bigquery`, `spark-4.2-bigquery` — the per-Spark-version connector
+  jars, each backed by a `*-bigquery-lib` module reused by the next-version
+  connector.
 
 Pushdown variants under `spark-bigquery-pushdown/` add query pushdown support
 per Spark+Scala combination. They are built separately and are **not** driven
@@ -94,7 +95,7 @@ to scope the build. The profiles defined in the root POM are:
 * `dsv1_2.12`, `dsv1_2.13` — one supported Scala variant of the DSv1
   connector.
 * `dsv2_3.1`, `dsv2_3.2`, `dsv2_3.3`, `dsv2_3.4`, `dsv2_3.5`, `dsv2_4.0`,
-  `dsv2_4.1` — one Spark version of the DSv2 connector.
+  `dsv2_4.1`, `dsv2_4.2` — one Spark version of the DSv2 connector.
 * `dsv1`, `dsv2`, `all` — aggregates for the whole DSv1 / DSv2 / both worlds.
 * `coverage` — adds the `coverage/` aggregator for Jacoco reports.
 * `dsv1_2.11`, `dsv2_2.4` — legacy profiles retained in the build but omitted
@@ -114,19 +115,19 @@ artifacts are produced.
 ### JDK requirements
 
 Most connector artifacts are compiled to Java 8 bytecode
-(`maven.compiler.release=8`). The Spark 4.0 and 4.1 artifacts override this
+(`maven.compiler.release=8`). The Spark 4.0, 4.1, and 4.2 artifacts override this
 setting and compile to Java 17 bytecode. At runtime, the JDK you need depends
 on which Spark version your connector targets:
 
 * Connectors for Spark 3.1 – 3.5: Java 8 supported (Java 11 / 17 also work
   where the underlying Spark distribution supports them).
-* Connectors for Spark 4.0 / 4.1: **Java 17 required**, matching Spark 4.x's
+* Connectors for Spark 4.0 / 4.1 / 4.2: **Java 17 required**, matching Spark 4.x's
   own JDK requirement.
 
 The CI test matrix uses both JDKs:
 
 * **Java 17** — initial install, all unit tests, and integration tests for
-  Spark 3.3, 3.4, 3.5, 4.0, and 4.1.
+  Spark 3.3, 3.4, 3.5, 4.0, 4.1, and 4.2.
 * **Java 8** — integration tests for `dsv1_2.12`, `dsv1_2.13`, `dsv2_3.1`,
   and `dsv2_3.2`.
 

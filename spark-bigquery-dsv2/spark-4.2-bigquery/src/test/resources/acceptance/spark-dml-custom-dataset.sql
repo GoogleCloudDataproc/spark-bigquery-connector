@@ -1,0 +1,5 @@
+CREATE DATABASE ${DATASET};
+
+CREATE TABLE ${DATASET}.${TABLE} (id int, data string);
+
+INSERT INTO ${DATASET}.${TABLE} VALUES (1, 'one');

@@ -2,6 +2,8 @@
 
 ## Next
 
+* Added new connector, `spark-4.2-bigquery` aimed to be used in Spark 4.2. Like Spark 4.2, this connector requires at
+  least Java 17 runtime.
 * PR #1522: Reading a table that does not exist with the DataSource V2 connector now fails
   with `Table <name> not found` instead of an `[INTERNAL_ERROR]` NullPointerException,
   matching the DataSource V1 behavior.
