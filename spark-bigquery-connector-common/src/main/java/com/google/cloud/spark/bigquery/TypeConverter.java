@@ -31,4 +31,13 @@ public interface TypeConverter<T> {
   boolean supportsSparkType(DataType sparkType);
 
   T sparkToProtoValue(Object sparkValue);
+
+  /**
+   * Converts a BigQuery Storage Read API Avro datum into the Spark internal value matching {@link
+   * #toSparkType}. Returning {@code null} means "no opinion": the caller keeps its existing
+   * decoding.
+   */
+  default T avroToSparkValue(Object avroValue) {
+    return null;
+  }
 }

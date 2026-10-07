@@ -5,6 +5,8 @@
 * PR #1522: Reading a table that does not exist with the DataSource V2 connector now fails
   with `Table <name> not found` instead of an `[INTERNAL_ERROR]` NullPointerException,
   matching the DataSource V1 behavior.
+* Issue #1520: Fixed ClassCastException when reading BigQuery DATETIME columns with
+  `readDataFormat=AVRO` on Spark 3.4+.
 
 * Issue #1525: Fixed `count()` returning an incorrect value on DataSource
   V2 reads when the optimized empty projection path splits more than
