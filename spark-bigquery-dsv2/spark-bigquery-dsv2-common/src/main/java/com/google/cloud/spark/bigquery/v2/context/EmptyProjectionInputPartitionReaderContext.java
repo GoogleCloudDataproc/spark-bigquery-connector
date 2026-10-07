@@ -23,10 +23,10 @@ import org.apache.spark.sql.catalyst.InternalRow;
 class EmptyProjectionInputPartitionReaderContext
     implements InputPartitionReaderContext<InternalRow> {
 
-  final int partitionSize;
-  int currentIndex;
+  final long partitionSize;
+  long currentIndex;
 
-  EmptyProjectionInputPartitionReaderContext(int partitionSize) {
+  EmptyProjectionInputPartitionReaderContext(long partitionSize) {
     this.partitionSize = partitionSize;
     this.currentIndex = 0;
   }

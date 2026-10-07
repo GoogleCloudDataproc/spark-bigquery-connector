@@ -364,12 +364,12 @@ public class BigQueryDataSourceReaderContext {
     long rowCount = bigQueryClient.calculateTableSize(tableId, filter);
     logger.info("Used optimized BQ count(*) path. Count: " + rowCount);
     int partitionsCount = readSessionCreatorConfig.getDefaultParallelism();
-    int partitionSize = (int) (rowCount / partitionsCount);
+    long partitionSize = rowCount / partitionsCount;
     InputPartitionContext<InternalRow>[] partitions =
         IntStream.range(0, partitionsCount)
             .mapToObj(ignored -> new EmptyProjectionInputPartitionContext(partitionSize))
             .toArray(EmptyProjectionInputPartitionContext[]::new);
-    int firstPartitionSize = partitionSize + (int) (rowCount % partitionsCount);
+    long firstPartitionSize = partitionSize + rowCount % partitionsCount;
     partitions[0] = new EmptyProjectionInputPartitionContext(firstPartitionSize);
     return Stream.of(partitions);
   }
