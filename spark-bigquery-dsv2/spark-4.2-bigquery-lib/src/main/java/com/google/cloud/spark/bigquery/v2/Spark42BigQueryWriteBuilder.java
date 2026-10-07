@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Google Inc. All Rights Reserved.
+ * Copyright 2026 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,22 +16,15 @@
 package com.google.cloud.spark.bigquery.v2;
 
 import com.google.inject.Injector;
-import java.util.function.Supplier;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.connector.write.LogicalWriteInfo;
-import org.apache.spark.sql.connector.write.WriteBuilder;
-import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.connector.write.V1Write;
+import org.apache.spark.sql.connector.write.Write;
 
-public class Spark40BigQueryTable extends Spark35BigQueryTable {
-  public Spark40BigQueryTable(Injector injector, Supplier<StructType> schemaSupplier) {
-    super(injector, schemaSupplier);
-  }
+public class Spark42BigQueryWriteBuilder extends Spark41BigQueryWriteBuilder
+    implements Write, V1Write {
 
-  @Override
-  public WriteBuilder newWriteBuilder(LogicalWriteInfo info) {
-    // SaveMode is not provided by spark 3+, it is handled by the DataFrameWriter
-    // The case where mode == SaveMode.Ignore is handled by Spark, so we can assume we can get the
-    // context
-    return new Spark40BigQueryWriteBuilder(injector, info, SaveMode.Append);
+  public Spark42BigQueryWriteBuilder(Injector injector, LogicalWriteInfo info, SaveMode mode) {
+    super(injector, info, mode);
   }
 }

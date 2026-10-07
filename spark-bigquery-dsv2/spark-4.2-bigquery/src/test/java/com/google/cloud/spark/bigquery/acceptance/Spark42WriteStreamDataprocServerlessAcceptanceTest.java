@@ -1,5 +1,5 @@
 /*
- * Copyright 3.03 Google LLC
+ * Copyright 2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,12 @@ package com.google.cloud.spark.bigquery.acceptance;
 
 import org.junit.Ignore;
 
-@Ignore("Waiting for the serverless spark 4.1 runtime")
-public class Spark41ReadSheakspeareDataprocServerlessAcceptanceTest
-    extends ReadSheakspeareDataprocServerlessAcceptanceTestBase {
+@Ignore("Waiting for the serverless spark 4.2 runtime, no stream support yet")
+public class Spark42WriteStreamDataprocServerlessAcceptanceTest
+    extends WriteStreamDataprocServerlessAcceptanceTestBase {
 
-  public Spark41ReadSheakspeareDataprocServerlessAcceptanceTest() {
-    super("spark-4.1-bigquery", "3.0");
+  public Spark42WriteStreamDataprocServerlessAcceptanceTest() {
+    super("spark-4.2-bigquery", "3.0");
   }
 
   // tests from superclass

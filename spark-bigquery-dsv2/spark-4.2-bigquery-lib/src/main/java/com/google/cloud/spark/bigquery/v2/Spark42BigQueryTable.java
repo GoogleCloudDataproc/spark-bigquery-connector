@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Google Inc. All Rights Reserved.
+ * Copyright 2026 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ import org.apache.spark.sql.connector.write.LogicalWriteInfo;
 import org.apache.spark.sql.connector.write.WriteBuilder;
 import org.apache.spark.sql.types.StructType;
 
-public class Spark40BigQueryTable extends Spark35BigQueryTable {
-  public Spark40BigQueryTable(Injector injector, Supplier<StructType> schemaSupplier) {
+public class Spark42BigQueryTable extends Spark41BigQueryTable {
+  public Spark42BigQueryTable(Injector injector, Supplier<StructType> schemaSupplier) {
     super(injector, schemaSupplier);
   }
 
@@ -32,6 +32,6 @@ public class Spark40BigQueryTable extends Spark35BigQueryTable {
     // SaveMode is not provided by spark 3+, it is handled by the DataFrameWriter
     // The case where mode == SaveMode.Ignore is handled by Spark, so we can assume we can get the
     // context
-    return new Spark40BigQueryWriteBuilder(injector, info, SaveMode.Append);
+    return new Spark42BigQueryWriteBuilder(injector, info, SaveMode.Append);
   }
 }

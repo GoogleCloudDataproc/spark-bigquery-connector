@@ -1,5 +1,5 @@
 /*
- * Copyright 3.03 Google LLC
+ * Copyright 2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.cloud.spark.bigquery.acceptance;
+package com.google.cloud.spark.bigquery.integration;
 
-import org.junit.Ignore;
+import org.apache.spark.sql.types.DataTypes;
 
-@Ignore("Waiting for the serverless spark 4.1 runtime")
-public class Spark41ReadSheakspeareDataprocServerlessAcceptanceTest
-    extends ReadSheakspeareDataprocServerlessAcceptanceTestBase {
+public class Spark42ReadByFormatIntegrationTest extends ReadByFormatIntegrationTestBase {
 
-  public Spark41ReadSheakspeareDataprocServerlessAcceptanceTest() {
-    super("spark-4.1-bigquery", "3.0");
+  public Spark42ReadByFormatIntegrationTest() {
+    super("ARROW", /* userProvidedSchemaAllowed */ false, DataTypes.TimestampNTZType);
   }
 
-  // tests from superclass
-
+  // tests are from the super-class
 }
