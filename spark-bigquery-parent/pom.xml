@@ -466,6 +466,10 @@
                     <excludes>
                         <exclude>**/*AcceptanceTest.java</exclude>
                         <exclude>**/*IntegrationTest.java</exclude>
+                        <exclude>org/junit/**</exclude>
+                        <exclude>junit/**</exclude>
+                        <exclude>org/hamcrest/**</exclude>
+                        <exclude>com/google/common/**</exclude>
                     </excludes>
                     <jdkToolchain>
                         <version>${toolchain.jdk.version}</version>
@@ -785,6 +789,12 @@
                                 <exclude>META-INF/maven/**</exclude>
                                 <exclude>META-INF/versions/**</exclude>
                                 <exclude>**/*.proto</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>com.google.cloud.spark:spark-*-bigquery-lib</artifact>
+                            <excludes>
+                                <exclude>META-INF/services/org.apache.spark.sql.sources.DataSourceRegister</exclude>
                             </excludes>
                         </filter>
                     </filters>
