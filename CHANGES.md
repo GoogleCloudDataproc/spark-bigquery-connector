@@ -13,6 +13,15 @@
 * Issue #1525: Fixed `count()` returning an incorrect value on DataSource
   V2 reads when the optimized empty projection path splits more than
   `Integer.MAX_VALUE` rows into a single partition.
+* BigQuery API has been upgraded to version 2.73.0
+* BigQuery Storage API has been upgraded to version 3.35.0
+* GAX has been upgraded to version 2.87.0
+* gRPC has been upgraded to version 1.84.0
+* Guava has been upgraded to version 33.7.2-jre
+* Netty has been upgraded to version 4.2.18.Final
+* Protocol Buffers has been upgraded to version 4.36.2
+* google-api-client has been upgraded to version 2.9.1
+* Arrow has been upgraded to version 19.0.0 (for Spark 4.x)
 
 ## 0.45.0 - 2026-08-21
 

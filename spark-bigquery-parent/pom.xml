@@ -44,24 +44,24 @@
         <avro.version>1.11.5</avro.version>
         <!-- arrow 18.0.0 removed the support for java 8 -->
         <arrow.version>17.0.0</arrow.version>
-        <arrow.spark4.version>18.3.0</arrow.spark4.version>
-        <gax.version>2.82.0</gax.version>
-        <google-api-client.version>2.9.0</google-api-client.version>
-        <google-auth.version>1.49.0</google-auth.version>
-        <google-cloud-biglake.version>0.80.0</google-cloud-biglake.version>
-        <google-cloud-bigquery.version>2.69.0</google-cloud-bigquery.version>
-        <google-cloud-bigquerystorage.version>3.30.0</google-cloud-bigquerystorage.version>
-        <google-cloud-core.version>2.72.0</google-cloud-core.version>
-        <google-cloud-dataproc.version>4.91.0</google-cloud-dataproc.version>
-        <google-cloud-storage.version>2.70.0</google-cloud-storage.version>
+        <arrow.spark4.version>19.0.0</arrow.spark4.version>
+        <gax.version>2.87.0</gax.version>
+        <google-api-client.version>2.9.1</google-api-client.version>
+        <google-auth.version>1.54.0</google-auth.version>
+        <google-cloud-biglake.version>0.87.0</google-cloud-biglake.version>
+        <google-cloud-bigquery.version>2.73.0</google-cloud-bigquery.version>
+        <google-cloud-bigquerystorage.version>3.35.0</google-cloud-bigquerystorage.version>
+        <google-cloud-core.version>2.77.0</google-cloud-core.version>
+        <google-cloud-dataproc.version>4.96.0</google-cloud-dataproc.version>
+        <google-cloud-storage.version>2.75.0</google-cloud-storage.version>
         <google-truth.version>1.4.5</google-truth.version>
-        <grpc.version>1.83.1</grpc.version>
-        <guava.version>33.6.0-jre</guava.version>
+        <grpc.version>1.84.0</grpc.version>
+        <guava.version>33.7.2-jre</guava.version>
         <jackson.version>2.22.3</jackson.version>
-        <netty.version>4.2.17.Final</netty.version>
+        <netty.version>4.2.18.Final</netty.version>
         <openlineage-spark.version>1.46.0</openlineage-spark.version>
         <paranamer.version>2.8.3</paranamer.version>
-        <protobuf.version>4.35.1</protobuf.version>
+        <protobuf.version>4.36.2</protobuf.version>
         <deploy.skip>true</deploy.skip>
         <nexus.remote.skip>false</nexus.remote.skip>
         <shade.skip>true</shade.skip>
@@ -319,7 +319,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.20.0</version>
+                <version>3.21.0</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
