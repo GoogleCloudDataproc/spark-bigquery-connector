@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.sql.types.DataTypes;
 import org.junit.Before;
 
@@ -29,6 +30,18 @@ public class Spark42IndirectWriteIntegrationTest extends WriteIntegrationTestBas
   public void setParquetLoadBehaviour() {
     // TODO: make this the default value
     spark.conf().set("enableListInference", "true");
+
+    // Spark 4.2 upgrades Apache Hadoop to 3.5.0, whose core-default.xml sets fs.gs.impl to
+    // org.apache.hadoop.fs.gs.GoogleHadoopFileSystem and uses byte-unit suffixes (e.g. "64m")
+    // that are incompatible with the gcs-connector test dependency.
+    Configuration hadoopConf = spark.sparkContext().hadoopConfiguration();
+    hadoopConf.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem");
+    hadoopConf.set(
+        "fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS");
+    hadoopConf.set("fs.gs.block.size", "67108864");
+    hadoopConf.set("fs.gs.outputstream.buffer.size", "8388608");
+    hadoopConf.set("fs.gs.inputstream.inplace.seek.limit", "8388608");
+    hadoopConf.set("fs.gs.inputstream.min.range.request.size", "2097152");
   }
 
   // tests from superclass
