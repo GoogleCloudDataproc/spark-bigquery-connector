@@ -33,7 +33,10 @@ public class Spark42IndirectWriteIntegrationTest extends WriteIntegrationTestBas
 
     // Spark 4.2 upgrades Apache Hadoop to 3.5.0, whose core-default.xml sets fs.gs.impl to
     // org.apache.hadoop.fs.gs.GoogleHadoopFileSystem and uses byte-unit suffixes (e.g. "64m")
-    // that are incompatible with the gcs-connector test dependency.
+    // that are incompatible with the gcs-connector test dependency. Additionally, Spark 4.2 calls
+    // committer.setupJob(job) in FileFormatWriter before setting spark.sql.sources.writeJobUUID,
+    // which causes Hadoop's default ManifestCommitter for gs:// to fail with a NullPointerException
+    // on job.getJobID() when writing Avro intermediate files.
     Configuration hadoopConf = spark.sparkContext().hadoopConfiguration();
     hadoopConf.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem");
     hadoopConf.set(
@@ -42,6 +45,9 @@ public class Spark42IndirectWriteIntegrationTest extends WriteIntegrationTestBas
     hadoopConf.set("fs.gs.outputstream.buffer.size", "8388608");
     hadoopConf.set("fs.gs.inputstream.inplace.seek.limit", "8388608");
     hadoopConf.set("fs.gs.inputstream.min.range.request.size", "2097152");
+    hadoopConf.set(
+        "mapreduce.outputcommitter.factory.scheme.gs",
+        "org.apache.hadoop.mapreduce.lib.output.FileOutputCommitterFactory");
   }
 
   // tests from superclass
