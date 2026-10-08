@@ -86,11 +86,6 @@
     </properties>
     <dependencyManagement>
         <dependencies>
-            <!-- Pin google-cloud-core to 2.72.0. bigquery 2.69.0 (needed for the BigLakeConfiguration
-                 @Nullable fix) transitively pulls core 2.73.0, which references
-                 com.google.api.gax.httpjson.HttpJsonConscryptUtils (absent in gax 2.82.0) and would
-                 force gax 2.83.0 + conscrypt 2.6.0. Holding core at 2.72.0 keeps the whole train
-                 coherent with gax 2.82.0 / conscrypt 2.5.2. -->
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-core-bom</artifactId>
@@ -346,7 +341,6 @@
                 <groupId>org.jspecify</groupId>
                 <artifactId>jspecify</artifactId>
                 <version>1.0.0</version>
-                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -468,6 +462,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <!-- Exclude org.jspecify:jspecify from the test runtime classpath and disable
+                         ByteBuddy generic type annotation parsing because @NullMarked targets
+                         ElementType.MODULE (Java 9+), which triggers JDK-7183985
+                         (ArrayStoreException: EnumConstantNotPresentExceptionProxy) when reflected
+                         by Guice or Mockito/ByteBuddy on Java 8. -->
                     <argLine>-Dnet.bytebuddy.raw=true ${argLine}</argLine>
                     <excludes>
                         <exclude>**/*AcceptanceTest.java</exclude>
@@ -794,6 +793,11 @@
                                 <exclude>META-INF/maven/**</exclude>
                                 <exclude>META-INF/versions/**</exclude>
                                 <exclude>**/*.proto</exclude>
+                                <!-- Exclude JSpecify NullMarked and NullUnmarked annotations (which target
+                                     ElementType.MODULE added in Java 9 and trigger JDK-7183985 when Guice
+                                     reflects on them in Java 8), while keeping Nullable and NonNull bundled. -->
+                                <exclude>org/jspecify/annotations/NullMarked.class</exclude>
+                                <exclude>org/jspecify/annotations/NullUnmarked.class</exclude>
                             </excludes>
                         </filter>
                     </filters>
