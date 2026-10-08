@@ -44,24 +44,24 @@
         <avro.version>1.11.5</avro.version>
         <!-- arrow 18.0.0 removed the support for java 8 -->
         <arrow.version>17.0.0</arrow.version>
-        <arrow.spark4.version>18.3.0</arrow.spark4.version>
-        <gax.version>2.82.0</gax.version>
-        <google-api-client.version>2.9.0</google-api-client.version>
-        <google-auth.version>1.49.0</google-auth.version>
-        <google-cloud-biglake.version>0.80.0</google-cloud-biglake.version>
-        <google-cloud-bigquery.version>2.69.0</google-cloud-bigquery.version>
-        <google-cloud-bigquerystorage.version>3.30.0</google-cloud-bigquerystorage.version>
-        <google-cloud-core.version>2.72.0</google-cloud-core.version>
-        <google-cloud-dataproc.version>4.91.0</google-cloud-dataproc.version>
-        <google-cloud-storage.version>2.70.0</google-cloud-storage.version>
+        <arrow.spark4.version>19.0.0</arrow.spark4.version>
+        <gax.version>2.87.0</gax.version>
+        <google-api-client.version>2.9.1</google-api-client.version>
+        <google-auth.version>1.54.0</google-auth.version>
+        <google-cloud-biglake.version>0.87.0</google-cloud-biglake.version>
+        <google-cloud-bigquery.version>2.73.0</google-cloud-bigquery.version>
+        <google-cloud-bigquerystorage.version>3.35.0</google-cloud-bigquerystorage.version>
+        <google-cloud-core.version>2.77.0</google-cloud-core.version>
+        <google-cloud-dataproc.version>4.96.0</google-cloud-dataproc.version>
+        <google-cloud-storage.version>2.75.0</google-cloud-storage.version>
         <google-truth.version>1.4.5</google-truth.version>
-        <grpc.version>1.83.1</grpc.version>
-        <guava.version>33.6.0-jre</guava.version>
+        <grpc.version>1.84.0</grpc.version>
+        <guava.version>33.7.2-jre</guava.version>
         <jackson.version>2.22.3</jackson.version>
-        <netty.version>4.2.17.Final</netty.version>
+        <netty.version>4.2.18.Final</netty.version>
         <openlineage-spark.version>1.46.0</openlineage-spark.version>
         <paranamer.version>2.8.3</paranamer.version>
-        <protobuf.version>4.35.1</protobuf.version>
+        <protobuf.version>4.36.2</protobuf.version>
         <deploy.skip>true</deploy.skip>
         <nexus.remote.skip>false</nexus.remote.skip>
         <shade.skip>true</shade.skip>
@@ -86,11 +86,6 @@
     </properties>
     <dependencyManagement>
         <dependencies>
-            <!-- Pin google-cloud-core to 2.72.0. bigquery 2.69.0 (needed for the BigLakeConfiguration
-                 @Nullable fix) transitively pulls core 2.73.0, which references
-                 com.google.api.gax.httpjson.HttpJsonConscryptUtils (absent in gax 2.82.0) and would
-                 force gax 2.83.0 + conscrypt 2.6.0. Holding core at 2.72.0 keeps the whole train
-                 coherent with gax 2.82.0 / conscrypt 2.5.2. -->
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-core-bom</artifactId>
@@ -319,7 +314,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.20.0</version>
+                <version>3.21.0</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
@@ -341,6 +336,11 @@
                 <groupId>org.json</groupId>
                 <artifactId>json</artifactId>
                 <version>20231013</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jspecify</groupId>
+                <artifactId>jspecify</artifactId>
+                <version>1.0.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -378,7 +378,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.14</version>
+                    <version>0.8.15</version>
                     <executions>
                         <execution>
                             <goals>
@@ -390,57 +390,57 @@
                 <plugin>
                     <groupId>com.github.spotbugs</groupId>
                     <artifactId>spotbugs-maven-plugin</artifactId>
-                    <version>4.8.3.0</version>
+                    <version>4.10.4.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>3.3.1</version>
+                    <version>3.6.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-enforcer-plugin</artifactId>
-                    <version>3.4.1</version>
+                    <version>3.6.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>3.5.3</version>
+                    <version>3.6.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.3.0</version>
+                    <version>3.5.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-pmd-plugin</artifactId>
-                    <version>3.21.2</version>
+                    <version>3.28.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
-                    <version>3.3.1</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.6.1</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.5.3</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>build-helper-maven-plugin</artifactId>
                     <version>3.5.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>3.6.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.6.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>build-helper-maven-plugin</artifactId>
+                    <version>3.6.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-deploy-plugin</artifactId>
-                    <version>3.1.1</version>
+                    <version>3.2.0</version>
                     <configuration>
                         <skip>${deploy.skip}</skip>
                     </configuration>
@@ -451,7 +451,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.14.0</version>
+                <version>3.16.0</version>
                 <configuration>
                     <jdkToolchain>
                         <version>${toolchain.jdk.version}</version>
@@ -462,7 +462,14 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>${argLine}</argLine>
+                    <!-- Exclude org.jspecify:jspecify from the test runtime classpath and disable
+                         ByteBuddy generic type annotation parsing because @NullMarked targets
+                         ElementType.MODULE (Java 9+), which triggers JDK-7183985
+                         (ArrayStoreException: EnumConstantNotPresentExceptionProxy) when reflected
+                         by Guice or Mockito/ByteBuddy on Java 8. The openlineage-spark fat jars are
+                         excluded as well, as they bundle unshaded copies of the JSpecify annotations
+                         and are only needed by the OpenLineage integration tests. -->
+                    <argLine>-Dnet.bytebuddy.raw=true ${argLine}</argLine>
                     <excludes>
                         <exclude>**/*AcceptanceTest.java</exclude>
                         <exclude>**/*IntegrationTest.java</exclude>
@@ -470,6 +477,11 @@
                     <jdkToolchain>
                         <version>${toolchain.jdk.version}</version>
                     </jdkToolchain>
+                    <classpathDependencyExcludes>
+                        <classpathDependencyExclude>org.jspecify:jspecify</classpathDependencyExclude>
+                        <classpathDependencyExclude>io.openlineage:openlineage-spark_2.12</classpathDependencyExclude>
+                        <classpathDependencyExclude>io.openlineage:openlineage-spark_2.13</classpathDependencyExclude>
+                    </classpathDependencyExcludes>
                     <skip>${skipUnitTests}</skip>
                 </configuration>
             </plugin>
@@ -600,7 +612,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
-                <version>1.5.0</version>
+                <version>1.8.0</version>
                 <configuration>
                     <updatePomFile>true</updatePomFile>
                     <flattenMode>resolveCiFriendliesOnly</flattenMode>
@@ -785,6 +797,11 @@
                                 <exclude>META-INF/maven/**</exclude>
                                 <exclude>META-INF/versions/**</exclude>
                                 <exclude>**/*.proto</exclude>
+                                <!-- Exclude JSpecify NullMarked and NullUnmarked annotations (which target
+                                     ElementType.MODULE added in Java 9 and trigger JDK-7183985 when Guice
+                                     reflects on them in Java 8), while keeping Nullable and NonNull bundled. -->
+                                <exclude>org/jspecify/annotations/NullMarked.class</exclude>
+                                <exclude>org/jspecify/annotations/NullUnmarked.class</exclude>
                             </excludes>
                         </filter>
                     </filters>
@@ -801,7 +818,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-toolchains-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>3.3.0</version>
                 <executions>
                     <execution>
                         <goals>
@@ -813,7 +830,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>3.6.4</version>
                 <executions>
                     <execution>
                         <id>verify-shaded-artifact</id>
@@ -836,7 +853,7 @@
             <extension>
             <groupId>com.google.cloud.artifactregistry</groupId>
             <artifactId>artifactregistry-maven-wagon</artifactId>
-            <version>2.2.0</version>
+            <version>2.2.5</version>
             </extension>
         </extensions>
     </build>
@@ -862,7 +879,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <configuration>
-                            <argLine>${argLine} @{failsafeArgLine}</argLine>
+                            <argLine>-Dnet.bytebuddy.raw=true ${argLine} @{failsafeArgLine}</argLine>
                             <forkCount>7</forkCount>
                             <reuseForks>false</reuseForks>
                             <includes>
@@ -871,6 +888,9 @@
                             <jdkToolchain>
                                 <version>${toolchain.jdk.version}</version>
                             </jdkToolchain>
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExclude>org.jspecify:jspecify</classpathDependencyExclude>
+                            </classpathDependencyExcludes>
                         </configuration>
                         <executions>
                             <execution>
@@ -1039,7 +1059,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>3.3.1</version>
+                        <version>3.4.0</version>
                         <configuration>
                             <forceCreation>true</forceCreation>
                         </configuration>
@@ -1055,7 +1075,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>3.11.2</version>
+                        <version>3.12.0</version>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>
