@@ -33,6 +33,7 @@ import com.google.protobuf.ByteString;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.stream.Collectors;
 import org.apache.spark.SparkEnv;
 import org.apache.spark.TaskContext;
@@ -53,6 +54,7 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
   private final SparkBigQueryReadSessionMetrics sparkBigQueryReadSessionMetrics;
   private final ResponseCompressionCodec responseCompressionCodec;
   private final boolean enableTimestampRebase;
+  private final long estimatedBytesScanned;
 
   public ArrowInputPartitionContext(
       BigQueryClientFactory bigQueryReadClientFactory,
@@ -94,6 +96,8 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
     this.selectedFields = selectedFields;
     this.serializedArrowSchema =
         readSessionResponse.getReadSession().getArrowSchema().getSerializedSchema();
+    this.estimatedBytesScanned =
+        readSessionResponse.getReadSession().getEstimatedTotalBytesScanned();
     this.tracerFactory = tracerFactory;
     this.userProvidedSchema = fromJavaUtil(userProvidedSchema);
     this.sparkBigQueryReadSessionMetrics = sparkBigQueryReadSessionMetrics;
@@ -141,5 +145,10 @@ public class ArrowInputPartitionContext implements InputPartitionContext<Columna
   @Override
   public boolean supportColumnarReads() {
     return true;
+  }
+
+  @Override
+  public OptionalLong getEstimatedBytesScanned() {
+    return OptionalLong.of(estimatedBytesScanned);
   }
 }

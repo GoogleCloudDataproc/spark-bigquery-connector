@@ -3,6 +3,10 @@ package com.google.cloud.spark.bigquery.v2.customMetrics;
 public class SparkBigQueryCustomMetricConstants {
   public static final String BIG_QUERY_BYTES_READ_METRIC_NAME = "bqBytesRead";
   static final String BIG_QUERY_BYTES_READ_METRIC_DESCRIPTION = "number of BQ bytes read";
+  public static final String BIG_QUERY_ESTIMATED_BYTES_SCANNED_METRIC_NAME =
+      "bqEstimatedBytesScanned";
+  static final String BIG_QUERY_ESTIMATED_BYTES_SCANNED_METRIC_DESCRIPTION =
+      "estimated logical bytes scanned by BigQuery Storage API";
   public static final String BIG_QUERY_ROWS_READ_METRIC_NAME = "bqRowsRead";
   static final String BIG_QUERY_ROWS_READ_METRIC_DESCRIPTION = "number of BQ rows read";
   public static final String BIG_QUERY_SCAN_TIME_METRIC_NAME = "bqScanTime";
