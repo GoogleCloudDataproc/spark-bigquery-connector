@@ -430,7 +430,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.5.3</version>
+                    <version>3.6.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -466,7 +466,9 @@
                          ByteBuddy generic type annotation parsing because @NullMarked targets
                          ElementType.MODULE (Java 9+), which triggers JDK-7183985
                          (ArrayStoreException: EnumConstantNotPresentExceptionProxy) when reflected
-                         by Guice or Mockito/ByteBuddy on Java 8. -->
+                         by Guice or Mockito/ByteBuddy on Java 8. The openlineage-spark fat jars are
+                         excluded as well, as they bundle unshaded copies of the JSpecify annotations
+                         and are only needed by the OpenLineage integration tests. -->
                     <argLine>-Dnet.bytebuddy.raw=true ${argLine}</argLine>
                     <excludes>
                         <exclude>**/*AcceptanceTest.java</exclude>
@@ -477,6 +479,8 @@
                     </jdkToolchain>
                     <classpathDependencyExcludes>
                         <classpathDependencyExclude>org.jspecify:jspecify</classpathDependencyExclude>
+                        <classpathDependencyExclude>io.openlineage:openlineage-spark_2.12</classpathDependencyExclude>
+                        <classpathDependencyExclude>io.openlineage:openlineage-spark_2.13</classpathDependencyExclude>
                     </classpathDependencyExcludes>
                     <skip>${skipUnitTests}</skip>
                 </configuration>
