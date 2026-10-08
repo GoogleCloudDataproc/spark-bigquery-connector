@@ -4,9 +4,9 @@
 
 * `spark-4.1-bigquery` is generally available! Like Spark 4.2, this connector requires at
   least Java 17 runtime.
-* :warning: Starting the next connector version, 0.47.0, the DataSource V1 connectors 
+* :warning: Starting the next connector version, 0.47.0, the DataSource V1 connectors
   (a.k.a spark-bigquery-with-dependencies) will not be released as part of the regular
-  connector release. 
+  connector release.
 * Issue #1520: Fixed ClassCastException when reading BigQuery DATETIME columns with
   `readDataFormat=AVRO` on Spark 3.4+.
 * Issue #1525: Fixed `count()` returning an incorrect value on DataSource
