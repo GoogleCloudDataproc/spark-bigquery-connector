@@ -2,17 +2,19 @@
 
 ## Next
 
-* Added new connector, `spark-4.2-bigquery` aimed to be used in Spark 4.2. Like Spark 4.2, this connector requires at
+* `spark-4.2-bigquery` is generally available! Like Spark 4.2, this connector requires at
   least Java 17 runtime.
+* :warning: Starting the next connector version, 0.47.0, the DataSource V1 connectors
+  (a.k.a spark-bigquery-with-dependencies) will not be released as part of the regular
+  connector release.
+* Issue #1520: Fixed ClassCastException when reading BigQuery DATETIME columns with
+  `readDataFormat=AVRO` on Spark 3.4+.
+* Issue #1525: Fixed `count()` returning an incorrect value on DataSource
+  V2 reads when the optimized empty projection path splits more than
+  `Integer.MAX_VALUE` rows into a single partition. Thanks @AntinPhillips !
 * PR #1522: Reading a table that does not exist with the DataSource V2 connector now fails
   with `Table <name> not found` instead of an `[INTERNAL_ERROR]` NullPointerException,
   matching the DataSource V1 behavior.
-* Issue #1520: Fixed ClassCastException when reading BigQuery DATETIME columns with
-  `readDataFormat=AVRO` on Spark 3.4+.
-
-* Issue #1525: Fixed `count()` returning an incorrect value on DataSource
-  V2 reads when the optimized empty projection path splits more than
-  `Integer.MAX_VALUE` rows into a single partition.
 
 ## 0.45.0 - 2026-08-21
 
