@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.46.0 - 2026-10-08
 
 * `spark-4.2-bigquery` is generally available! Like Spark 4.2, this connector requires at
