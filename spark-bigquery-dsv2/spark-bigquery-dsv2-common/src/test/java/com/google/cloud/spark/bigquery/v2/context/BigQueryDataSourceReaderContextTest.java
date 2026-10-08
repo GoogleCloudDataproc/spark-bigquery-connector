@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.v2.context;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -23,6 +24,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
@@ -30,6 +33,8 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
+import com.google.cloud.bigquery.connector.common.BigQueryErrorCode;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import java.util.List;
@@ -78,6 +83,49 @@ public class BigQueryDataSourceReaderContextTest {
 
     verify(bigQueryClient)
         .calculateTableSize(eq(TABLE_INFO.getTableId()), eq(Optional.empty()), eq(true));
+  }
+
+  @Test
+  public void testEmptyProjectionAccessDeniedThrowsActionableError() {
+    String message = "User does not have bigquery.jobs.create permission in project p.";
+    BigQueryException accessDenied =
+        new BigQueryException(403, message, new BigQueryError("accessDenied", "global", message));
+    BigQueryClient bigQueryClient = mock(BigQueryClient.class);
+    when(bigQueryClient.calculateTableSize(any(TableId.class), any(), anyBoolean()))
+        .thenThrow(accessDenied);
+    when(bigQueryClient.getProjectId()).thenReturn("parent-project");
+
+    BigQueryDataSourceReaderContext ctx =
+        createEmptyProjectionContext(bigQueryClient, mock(SparkBigQueryConfig.class));
+    BigQueryConnectorException e =
+        assertThrows(
+            BigQueryConnectorException.class,
+            () -> ctx.planInputPartitionContexts().collect(Collectors.toList()));
+
+    assertThat(e.getErrorCode()).isEqualTo(BigQueryErrorCode.BIGQUERY_FAILED_TO_EXECUTE_QUERY);
+    assertThat(e).hasMessageThat().contains("bigquery.jobs.create");
+    assertThat(e).hasMessageThat().contains("project parent-project");
+    assertThat(e).hasMessageThat().contains("allowStaleCountFromMetadata");
+    assertThat(e).hasMessageThat().doesNotContain("optimizedEmptyProjection");
+    assertThat(e).hasCauseThat().isSameInstanceAs(accessDenied);
+  }
+
+  @Test
+  public void testEmptyProjectionOtherErrorsArePropagated() {
+    BigQueryException quotaExceeded =
+        new BigQueryException(403, "quota", new BigQueryError("quotaExceeded", "global", "quota"));
+    BigQueryClient bigQueryClient = mock(BigQueryClient.class);
+    when(bigQueryClient.calculateTableSize(any(TableId.class), any(), anyBoolean()))
+        .thenThrow(quotaExceeded);
+
+    BigQueryDataSourceReaderContext ctx =
+        createEmptyProjectionContext(bigQueryClient, mock(SparkBigQueryConfig.class));
+    BigQueryException e =
+        assertThrows(
+            BigQueryException.class,
+            () -> ctx.planInputPartitionContexts().collect(Collectors.toList()));
+
+    assertThat(e).isSameInstanceAs(quotaExceeded);
   }
 
   private static BigQueryDataSourceReaderContext createEmptyProjectionContext(

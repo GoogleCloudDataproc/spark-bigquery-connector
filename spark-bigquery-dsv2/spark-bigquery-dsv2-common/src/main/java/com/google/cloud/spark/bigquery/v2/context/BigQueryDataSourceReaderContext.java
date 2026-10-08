@@ -22,6 +22,8 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
+import com.google.cloud.bigquery.connector.common.BigQueryErrorCode;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.LazyInitializationSupplier;
@@ -361,8 +363,27 @@ public class BigQueryDataSourceReaderContext {
 
   Stream<InputPartitionContext<InternalRow>> createEmptyProjectionPartitions() {
     Optional<String> filter = getCombinedFilter();
-    long rowCount =
-        bigQueryClient.calculateTableSize(tableId, filter, options.isAllowStaleCountFromMetadata());
+    long rowCount;
+    try {
+      rowCount =
+          bigQueryClient.calculateTableSize(
+              tableId, filter, options.isAllowStaleCountFromMetadata());
+    } catch (RuntimeException e) {
+      if (BigQueryUtil.isAccessDenied(e)) {
+        throw new BigQueryConnectorException(
+            BigQueryErrorCode.BIGQUERY_FAILED_TO_EXECUTE_QUERY,
+            String.format(
+                "Access denied while running the query job used by the optimized empty"
+                    + " projection (e.g. count()) on table %s. This optimization requires the"
+                    + " bigquery.jobs.create permission in project %s. Either grant this"
+                    + " permission, or set the allowStaleCountFromMetadata option to true to use"
+                    + " the possibly stale row count from the table metadata (only applies to"
+                    + " native tables read without filters).",
+                getFullTableName(), bigQueryClient.getProjectId()),
+            e);
+      }
+      throw e;
+    }
     logger.info("Used optimized BQ count(*) path. Count: " + rowCount);
     int partitionsCount = readSessionCreatorConfig.getDefaultParallelism();
     long partitionSize = rowCount / partitionsCount;

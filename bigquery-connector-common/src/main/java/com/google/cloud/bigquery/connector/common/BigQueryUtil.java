@@ -196,6 +196,9 @@ public class BigQueryUtil {
    * permission. Quota and rate limit errors, which also use HTTP 403, are not matched.
    */
   public static boolean isAccessDenied(Throwable cause) {
+    if (cause == null) {
+      return false;
+    }
     return getCausalChain(cause).stream().anyMatch(BigQueryUtil::isAccessDeniedError);
   }
 
