@@ -127,6 +127,7 @@ public class BigQueryUtilTest {
                     400, "invalid", new BigQueryError("invalidQuery", "global", "invalid"))))
         .isFalse();
     assertThat(BigQueryUtil.isAccessDenied(new RuntimeException("other"))).isFalse();
+    assertThat(BigQueryUtil.isAccessDenied(null)).isFalse();
   }
 
   @Test
