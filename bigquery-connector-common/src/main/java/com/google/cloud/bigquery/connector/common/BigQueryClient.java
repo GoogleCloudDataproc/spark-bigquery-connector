@@ -665,10 +665,41 @@ public class BigQueryClient {
   }
 
   public long calculateTableSize(TableId tableId, Optional<String> filter) {
-    return calculateTableSize(getTable(tableId), filter);
+    return calculateTableSize(tableId, filter, false);
+  }
+
+  public long calculateTableSize(
+      TableId tableId, Optional<String> filter, boolean allowStaleCountFromMetadata) {
+    return calculateTableSize(getTable(tableId), filter, allowStaleCountFromMetadata);
   }
 
   public long calculateTableSize(TableInfo tableInfo, Optional<String> filter) {
+    return calculateTableSize(tableInfo, filter, false);
+  }
+
+  /**
+   * Calculates the number of rows in the table matching the optional filter.
+   *
+   * @param tableInfo the table
+   * @param filter optional row filter
+   * @param allowStaleCountFromMetadata if true, the number of rows of an unfiltered BigQuery native
+   *     table is taken from the table metadata instead of running a {@code COUNT(*)} query job.
+   *     This avoids the need for the {@code bigquery.jobs.create} permission, but the value may not
+   *     yet include recently streamed rows.
+   * @return the number of rows
+   */
+  public long calculateTableSize(
+      TableInfo tableInfo, Optional<String> filter, boolean allowStaleCountFromMetadata) {
+    if (allowStaleCountFromMetadata && !filter.isPresent() && isBigQueryNativeTable(tableInfo)) {
+      Long numRows = ((StandardTableDefinition) tableInfo.getDefinition()).getNumRows();
+      if (numRows != null) {
+        log.debug(
+            "Using the possibly stale row count from the metadata of table {}: {}",
+            fullTableName(tableInfo.getTableId()),
+            numRows);
+        return numRows;
+      }
+    }
     TableDefinition.Type type = tableInfo.getDefinition().getType();
     if ((type == TableDefinition.Type.EXTERNAL || type == TableDefinition.Type.TABLE)
         && !filter.isPresent()) {

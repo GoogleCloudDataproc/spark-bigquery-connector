@@ -115,6 +115,8 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getLoadSchemaUpdateOptions()).isEqualTo(ImmutableList.of());
     assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
     assertThat(config.isUseAvroLogicalTypes()).isFalse();
+    assertThat(config.isOptimizedEmptyProjection()).isTrue();
+    assertThat(config.isAllowStaleCountFromMetadata()).isFalse();
     assertThat(config.getDecimalTargetTypes()).isEmpty();
     assertThat(config.getBigQueryClientConnectTimeout()).isEqualTo(60 * 1000);
     assertThat(config.getBigQueryClientReadTimeout()).isEqualTo(60 * 1000);
@@ -157,6 +159,7 @@ public class SparkBigQueryConfigTest {
                 .put("materializationExpirationTimeInMinutes", "100")
                 .put("readDataFormat", "ARROW")
                 .put("optimizedEmptyProjection", "false")
+                .put("allowStaleCountFromMetadata", "true")
                 .put("createDisposition", "CREATE_NEVER")
                 .put("temporaryGcsBucket", "some_bucket")
                 .put("intermediateFormat", "ORC")
@@ -224,6 +227,8 @@ public class SparkBigQueryConfigTest {
                 JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION));
     assertThat(config.getMaxReadRowsRetries()).isEqualTo(3);
     assertThat(config.isUseAvroLogicalTypes()).isTrue();
+    assertThat(config.isOptimizedEmptyProjection()).isFalse();
+    assertThat(config.isAllowStaleCountFromMetadata()).isTrue();
     assertThat(config.getDecimalTargetTypes()).isEqualTo(ImmutableList.of("NUMERIC", "BIGNUMERIC"));
     assertThat(config.getBigQueryClientConnectTimeout()).isEqualTo(10000);
     assertThat(config.getBigQueryClientReadTimeout()).isEqualTo(20000);

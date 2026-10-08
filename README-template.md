@@ -572,11 +572,30 @@ word-break:break-word
    <td><code>optimizedEmptyProjection</code>
    </td>
    <td>The connector uses an optimized empty projection (select without any
-       columns) logic, used for <code>count()</code> execution. This logic takes
-       the data directly from the table metadata or performs a much efficient
-       `SELECT COUNT(*) WHERE...` in case there is a filter. You can cancel the
-       use of this logic by setting this option to <code>false</code>.
+       columns) logic, used for <code>count()</code> execution. This logic runs a
+       `SELECT COUNT(*)` query job (with a `WHERE` clause in case there is a
+       filter) instead of reading the table rows, and therefore requires the
+       <code>bigquery.jobs.create</code> permission in the parent project. If
+       this permission cannot be granted, either set
+       <code>allowStaleCountFromMetadata</code> to <code>true</code>, or set
+       this option to <code>false</code>, in which case the rows are read through
+       the BigQuery Storage Read API. Notice this may be considerably slower for
+       large tables.
        <br/>(Optional, defaults to <code>true</code>)
+   </td>
+   <td>Read</td>
+  </tr>
+  <tr valign="top">
+   <td><code>allowStaleCountFromMetadata</code>
+   </td>
+   <td>If set to <code>true</code>, the optimized empty projection logic uses the
+       row count from the table metadata instead of running a
+       `SELECT COUNT(*)` query job, so the <code>bigquery.jobs.create</code>
+       permission is not required. This only applies to native tables read
+       without filters; for filtered reads, views, queries and external tables
+       the query job still runs. Notice the metadata row count is eventually
+       consistent and may not include recently streamed rows.
+       <br/>(Optional, defaults to <code>false</code>)
    </td>
    <td>Read</td>
   </tr>
