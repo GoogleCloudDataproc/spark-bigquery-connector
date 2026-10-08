@@ -2,7 +2,7 @@
 
 ## Next
 
-* `spark-4.1-bigquery` is generally available! Like Spark 4.2, this connector requires at
+* `spark-4.2-bigquery` is generally available! Like Spark 4.2, this connector requires at
   least Java 17 runtime.
 * :warning: Starting the next connector version, 0.47.0, the DataSource V1 connectors
   (a.k.a spark-bigquery-with-dependencies) will not be released as part of the regular
