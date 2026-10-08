@@ -106,6 +106,30 @@ public class BigQueryUtilTest {
   }
 
   @Test
+  public void testIsAccessDenied() {
+    String message = "User does not have bigquery.jobs.create permission in project p.";
+    BigQueryException accessDenied =
+        new BigQueryException(403, message, new BigQueryError("accessDenied", "global", message));
+    assertThat(BigQueryUtil.isAccessDenied(accessDenied)).isTrue();
+    assertThat(BigQueryUtil.isAccessDenied(new RuntimeException("wrapper", accessDenied))).isTrue();
+  }
+
+  @Test
+  public void testIsAccessDeniedFalseForOtherErrors() {
+    assertThat(
+            BigQueryUtil.isAccessDenied(
+                new BigQueryException(
+                    403, "quota", new BigQueryError("quotaExceeded", "global", "quota"))))
+        .isFalse();
+    assertThat(
+            BigQueryUtil.isAccessDenied(
+                new BigQueryException(
+                    400, "invalid", new BigQueryError("invalidQuery", "global", "invalid"))))
+        .isFalse();
+    assertThat(BigQueryUtil.isAccessDenied(new RuntimeException("other"))).isFalse();
+  }
+
+  @Test
   public void testParseFullyQualifiedTable() {
     TableId tableId = BigQueryUtil.parseTableId(FULLY_QUALIFIED_TABLE);
     assertThat(tableId).isEqualTo(TABLE_ID);
