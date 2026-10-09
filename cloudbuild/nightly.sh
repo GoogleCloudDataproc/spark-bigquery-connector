@@ -53,9 +53,10 @@ case $STEP in
     unset MAVEN_OPTS
     export JAVA_HOME=${JAVA17_HOME}
     $MVN -Dfailsafe.rerunFailingTestsCount=2 failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0,dsv2_4.1,dsv2_4.2
-    # Run acceptance tests
+    # Run acceptance tests. Same transient-error reruns as integration tests. Note that a rerun
+    # of a Dataproc cluster test re-runs its @BeforeClass, i.e. creates a fresh cluster.
     export JAVA_HOME=${JAVA17_HOME}
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0,dsv2_4.1,dsv2_4.2
+    $MVN -Dfailsafe.rerunFailingTestsCount=2 failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0,dsv2_4.1,dsv2_4.2
     # Upload test coverage report to Codecov
     bash <(curl -s https://codecov.io/bash) -K -F "nightly"
 
