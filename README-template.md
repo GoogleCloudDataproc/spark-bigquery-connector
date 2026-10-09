@@ -594,7 +594,9 @@ word-break:break-word
        permission is not required. This only applies to native tables read
        without filters; for filtered reads, views, queries and external tables
        the query job still runs. Notice the metadata row count is eventually
-       consistent and may not include recently streamed rows.
+       consistent and may not include rows recently written through the
+       Storage Write API (including this connector's <code>direct</code> write
+       method) or the legacy streaming API.
        <br/>(Optional, defaults to <code>false</code>)
    </td>
    <td>Read</td>
