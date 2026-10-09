@@ -685,7 +685,8 @@ public class BigQueryClient {
    * @param allowStaleCountFromMetadata if true, the number of rows of an unfiltered BigQuery native
    *     table is taken from the table metadata instead of running a {@code COUNT(*)} query job.
    *     This avoids the need for the {@code bigquery.jobs.create} permission, but the value may not
-   *     yet include recently streamed rows.
+   *     yet include rows recently written through the Storage Write API or the legacy streaming
+   *     API.
    * @return the number of rows
    */
   public long calculateTableSize(
