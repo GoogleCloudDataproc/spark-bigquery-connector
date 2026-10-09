@@ -31,6 +31,14 @@ public class AcceptanceTestConstants {
           "Please set the 'SERVERLESS_NETWORK_URI' environment variable");
   public static final String CONNECTOR_JAR_DIRECTORY = "target";
 
+  // Acceptance tests run the connector remotely on Dataproc, so the failsafe system property
+  // used for integration tests doesn't reach it; pass it as a Spark property instead. Raises the
+  // BigQuery client retry attempts from the default 10 to 20 to ride out transient backend
+  // errors (e.g. 503 backendError). Test-only: user-facing defaults are unchanged.
+  public static final String HTTP_MAX_RETRY_SPARK_PROPERTY =
+      "spark.datasource.bigquery.httpMaxRetry";
+  public static final String HTTP_MAX_RETRY_VALUE = "20";
+
   public static final String MIN_BIG_NUMERIC = "-0.34992332820282019728792003956564819968";
 
   public static final String MAX_BIG_NUMERIC = "0.34992332820282019728792003956564819967";
