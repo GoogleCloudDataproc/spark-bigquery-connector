@@ -47,10 +47,12 @@ case $STEP in
     #coverage report
     export JAVA_HOME=${JAVA17_HOME}
     $MVN -T 1C test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0,dsv2_4.1,dsv2_4.2
-    # Run integration tests
+    # Run integration tests. They hit the live BigQuery API and occasionally fail on transient
+    # backend errors, so rerun failing tests up to 2 times; tests that pass on rerun are
+    # reported as "flaky" in the failsafe summary instead of failing the build.
     unset MAVEN_OPTS
     export JAVA_HOME=${JAVA17_HOME}
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0,dsv2_4.1,dsv2_4.2
+    $MVN -Dfailsafe.rerunFailingTestsCount=2 failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0,dsv2_4.1,dsv2_4.2
     # Run acceptance tests
     export JAVA_HOME=${JAVA17_HOME}
     $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,acceptance,dsv1_2.12,dsv1_2.13,dsv2_3.1,dsv2_3.2,dsv2_3.3,dsv2_3.4,dsv2_3.5,dsv2_4.0,dsv2_4.1,dsv2_4.2
