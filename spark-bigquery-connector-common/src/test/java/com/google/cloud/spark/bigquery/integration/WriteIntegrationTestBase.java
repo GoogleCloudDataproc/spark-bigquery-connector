@@ -1680,6 +1680,59 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     assertThat(head.get(head.fieldIndex("timestamp1"))).isEqualTo(timestamp1);
   }
 
+  // Issue #1528: overwriting an existing table with a DataFrame whose columns are in a different
+  // order than the table schema must map the values by column name, not by position.
+  private void testOverwriteExistingTableWithDifferentColumnOrder_Internal(
+      PartitionOverwriteMode partitionOverwriteMode) throws InterruptedException {
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (a STRING, b STRING, c STRING) "
+                + "AS SELECT 'old_a' AS a, 'old_b' AS b, 'old_c' AS c",
+            testDataset, testTable));
+
+    // Same column names and types as the table, but in the order (c, a, b)
+    Dataset<Row> df =
+        spark.createDataFrame(
+            Arrays.asList(RowFactory.create("value_c", "value_a", "value_b")),
+            structType(
+                StructField.apply("c", DataTypes.StringType, true, Metadata.empty()),
+                StructField.apply("a", DataTypes.StringType, true, Metadata.empty()),
+                StructField.apply("b", DataTypes.StringType, true, Metadata.empty())));
+
+    df.write()
+        .format("bigquery")
+        .mode(SaveMode.Overwrite)
+        .option("dataset", testDataset.toString())
+        .option("table", testTable)
+        .option("writeMethod", writeMethod.toString())
+        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("spark.sql.sources.partitionOverwriteMode", partitionOverwriteMode.toString())
+        .save();
+
+    TableResult result =
+        bq.query(
+            QueryJobConfiguration.of(
+                String.format("SELECT a, b, c FROM `%s.%s`", testDataset, testTable)));
+    List<FieldValueList> rows = Streams.stream(result.iterateAll()).collect(Collectors.toList());
+    assertThat(rows).hasSize(1);
+    FieldValueList row = rows.get(0);
+    assertThat(row.get("a").getStringValue()).isEqualTo("value_a");
+    assertThat(row.get("b").getStringValue()).isEqualTo("value_b");
+    assertThat(row.get("c").getStringValue()).isEqualTo("value_c");
+  }
+
+  @Test
+  public void testOverwriteExistingTableWithDifferentColumnOrder_StaticOverwriteMode()
+      throws InterruptedException {
+    testOverwriteExistingTableWithDifferentColumnOrder_Internal(PartitionOverwriteMode.STATIC);
+  }
+
+  @Test
+  public void testOverwriteExistingTableWithDifferentColumnOrder_DynamicOverwriteMode()
+      throws InterruptedException {
+    testOverwriteExistingTableWithDifferentColumnOrder_Internal(PartitionOverwriteMode.DYNAMIC);
+  }
+
   protected Dataset<Row> writeAndLoadDatasetOverwriteDynamicPartition(
       Dataset<Row> df, boolean isPartitioned) {
     df.write()
