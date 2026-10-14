@@ -868,6 +868,15 @@
                             <includes>
                                 <include>**/*IntegrationTest.java</include>
                             </includes>
+                            <systemPropertyVariables>
+                                <!-- Integration tests share a CI project with many concurrent JVMs and
+                                     occasionally hit transient BigQuery backend errors (e.g. 503
+                                     backendError). Raise the BigQuery client retry attempts from the
+                                     default 10 to 20 (~90s of backoff instead of ~40s). Spark copies
+                                     spark.* system properties into every SparkConf, so this applies to
+                                     all test sessions. Test-only: user-facing defaults are unchanged. -->
+                                <spark.datasource.bigquery.httpMaxRetry>20</spark.datasource.bigquery.httpMaxRetry>
+                            </systemPropertyVariables>
                             <jdkToolchain>
                                 <version>${toolchain.jdk.version}</version>
                             </jdkToolchain>

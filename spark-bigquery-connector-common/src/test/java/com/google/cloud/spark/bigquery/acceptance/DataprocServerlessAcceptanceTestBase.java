@@ -118,7 +118,10 @@ public class DataprocServerlessAcceptanceTestBase {
             .setRuntimeConfig(
                 RuntimeConfig.newBuilder()
                     .setVersion(s8sImageVersion)
-                    .putProperties("dataproc.sparkBqConnector.uri", connectorJarUri))
+                    .putProperties("dataproc.sparkBqConnector.uri", connectorJarUri)
+                    .putProperties(
+                        AcceptanceTestConstants.HTTP_MAX_RETRY_SPARK_PROPERTY,
+                        AcceptanceTestConstants.HTTP_MAX_RETRY_VALUE))
             .setEnvironmentConfig(
                 EnvironmentConfig.newBuilder()
                     .setExecutionConfig(

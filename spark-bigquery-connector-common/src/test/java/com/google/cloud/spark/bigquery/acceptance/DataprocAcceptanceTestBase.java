@@ -172,6 +172,9 @@ public class DataprocAcceptanceTestBase {
                 .setSoftwareConfig(
                     SoftwareConfig.newBuilder()
                         .setImageVersion(dataprocImageVersion)
+                        .putProperties(
+                            "spark:" + AcceptanceTestConstants.HTTP_MAX_RETRY_SPARK_PROPERTY,
+                            AcceptanceTestConstants.HTTP_MAX_RETRY_VALUE)
                         .putAllProperties(properties)))
         .build();
   }

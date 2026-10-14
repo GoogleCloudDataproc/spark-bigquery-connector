@@ -28,6 +28,10 @@ unset MAVEN_OPTS
 readonly BUILD_OPTS='-Xss1g -Xmx20g -XX:MaxMetaspaceSize=10g -XX:ReservedCodeCacheSize=2g -Dsun.zip.disableMemoryMapping=true -DtrimStackTrace=false'
 readonly MVN_NT="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository"
 readonly MVN="${MVN_NT} -t toolchains.xml"
+# Integration tests hit the live BigQuery API and occasionally fail on transient backend
+# errors. Rerun failing tests up to 2 times; tests that pass on rerun are reported as
+# "flaky" in the failsafe summary instead of failing the build.
+readonly IT_OPTS="-Dfailsafe.rerunFailingTestsCount=2"
 readonly STEP=$1
 
 cd /workspace
@@ -57,55 +61,55 @@ case $STEP in
   # Run integration tests
   integrationtest-2.12)
     export JAVA_HOME=${JAVA8_HOME}
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12
+    $MVN ${IT_OPTS} failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12
     ;;
 
   # Run integration tests
   integrationtest-2.13)
     export JAVA_HOME=${JAVA8_HOME}
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.13
+    $MVN ${IT_OPTS} failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.13
     ;;
 
   # Run integration tests
   integrationtest-3.1)
     export JAVA_HOME=${JAVA8_HOME}
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.1
+    $MVN ${IT_OPTS} failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.1
     ;;
 
   # Run integration tests
   integrationtest-3.2)
     export JAVA_HOME=${JAVA8_HOME}
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.2
+    $MVN ${IT_OPTS} failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.2
     ;;
 
   # Run integration tests
   integrationtest-3.3)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.3
+    $MVN ${IT_OPTS} failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.3
     ;;
 
   # Run integration tests
   integrationtest-3.4)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.4
+    $MVN ${IT_OPTS} failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.4
     ;;
 
   # Run integration tests
   integrationtest-3.5)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.5
+    $MVN ${IT_OPTS} failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.5
     ;;
 
   # Run integration tests
   integrationtest-4.0)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_4.0
+    $MVN ${IT_OPTS} failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_4.0
     ;;
 
   # Run integration tests
   integrationtest-4.1)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_4.1
+    $MVN ${IT_OPTS} failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_4.1
     ;;
 
   # Run integration tests
   integrationtest-4.2)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_4.2
+    $MVN ${IT_OPTS} failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_4.2
     ;;
 
   upload-it-to-codecov)
