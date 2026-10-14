@@ -2,6 +2,11 @@
 
 ## Next
 
+* Improved table statistics for BigLake managed tables (BigQuery tables for Apache Iceberg)
+  on DataSource V2 reads: when the physical file size is not available, the table size is
+  now estimated from the row count and the projected row size. This allows Spark to plan
+  broadcast joins and Dynamic Partition Pruning for these tables.
+
 ## 0.46.0 - 2026-10-08
 
 * `spark-4.2-bigquery` is generally available! Like Spark 4.2, this connector requires at

@@ -45,6 +45,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
+import com.google.common.math.LongMath;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -514,8 +515,16 @@ public class BigQueryDataSourceReaderContext {
       final long originalRowSize = getRowSize(fields.values());
       final long projectedRowSize =
           schema.map(schema -> getRowSize(Arrays.asList(schema.fields()))).orElse(originalRowSize);
-      final long tableProjectedSizeInBytes =
+      long estimatedProjectedSizeInBytes =
           (tablePhysicalSizeInBytes * projectedRowSize) / originalRowSize;
+      if (estimatedProjectedSizeInBytes == 0 && isBigLakeManagedTable && tableRowCount > 0) {
+        // When the read session provides no physical file size, estimate the size from the row
+        // count and the projected row size, similar to how Spark estimates the size of a
+        // projection. A size estimate lets Spark plan broadcast joins and Dynamic Partition
+        // Pruning for the table.
+        estimatedProjectedSizeInBytes = LongMath.saturatedMultiply(tableRowCount, projectedRowSize);
+      }
+      final long tableProjectedSizeInBytes = estimatedProjectedSizeInBytes;
       final OptionalLong sizeInBytes =
           (tableProjectedSizeInBytes == 0)
               ? OptionalLong.empty()
