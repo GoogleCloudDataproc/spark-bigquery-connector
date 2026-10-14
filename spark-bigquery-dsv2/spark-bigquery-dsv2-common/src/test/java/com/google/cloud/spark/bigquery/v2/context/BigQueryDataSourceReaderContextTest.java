@@ -39,6 +39,7 @@ import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.stub.EnhancedBigQueryReadStub;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -243,6 +244,49 @@ public class BigQueryDataSourceReaderContextTest {
 
     assertThat(statistics.sizeInBytes()).isEqualTo(OptionalLong.empty());
     assertThat(statistics.numRows()).isEqualTo(OptionalLong.empty());
+  }
+
+  /**
+   * For very large physical file sizes, the size is scaled by the projected row size without the
+   * intermediate value exceeding the range of a long.
+   */
+  @Test
+  public void testBigLakeManagedTableStatisticsLargePhysicalFileSizeWithProjection()
+      throws Exception {
+    long physicalFileSize = Long.MAX_VALUE / 2;
+    BigQueryDataSourceReaderContext ctx =
+        createContextWithReadSession(
+            BIGLAKE_MANAGED_TABLE,
+            ReadSession.newBuilder()
+                .setEstimatedTotalPhysicalFileSize(physicalFileSize)
+                .setEstimatedRowCount(1_000L)
+                .build());
+    ctx.pruneColumns(new StructType().add("date_sk", DataTypes.LongType));
+
+    StatisticsContext statistics = ctx.estimateStatistics();
+
+    long expectedSize =
+        BigInteger.valueOf(physicalFileSize)
+            .multiply(BigInteger.valueOf(ONE_INT64_COLUMN_ROW_SIZE))
+            .divide(BigInteger.valueOf(TWO_INT64_COLUMNS_ROW_SIZE))
+            .longValueExact();
+    assertThat(statistics.sizeInBytes()).isEqualTo(OptionalLong.of(expectedSize));
+  }
+
+  /** scaleSaturated() computes value * numerator / denominator exactly, rounded down. */
+  @Test
+  public void testScaleSaturated() {
+    assertThat(BigQueryDataSourceReaderContext.scaleSaturated(5_000L, 24L, 24L)).isEqualTo(5_000L);
+    assertThat(BigQueryDataSourceReaderContext.scaleSaturated(3_000L, 16L, 24L)).isEqualTo(2_000L);
+    assertThat(BigQueryDataSourceReaderContext.scaleSaturated(7L, 1L, 3L)).isEqualTo(2L);
+    assertThat(BigQueryDataSourceReaderContext.scaleSaturated(0L, 16L, 24L)).isEqualTo(0L);
+  }
+
+  /** scaleSaturated() saturates at Long.MAX_VALUE when the result exceeds the range of a long. */
+  @Test
+  public void testScaleSaturatedSaturatesOnOverflow() {
+    assertThat(BigQueryDataSourceReaderContext.scaleSaturated(Long.MAX_VALUE / 2, 3L, 1L))
+        .isEqualTo(Long.MAX_VALUE);
   }
 
   /**

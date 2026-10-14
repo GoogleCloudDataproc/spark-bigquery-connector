@@ -516,7 +516,7 @@ public class BigQueryDataSourceReaderContext {
       final long projectedRowSize =
           schema.map(schema -> getRowSize(Arrays.asList(schema.fields()))).orElse(originalRowSize);
       long estimatedProjectedSizeInBytes =
-          (tablePhysicalSizeInBytes * projectedRowSize) / originalRowSize;
+          scaleSaturated(tablePhysicalSizeInBytes, projectedRowSize, originalRowSize);
       if (estimatedProjectedSizeInBytes == 0 && isBigLakeManagedTable && tableRowCount > 0) {
         // When the read session provides no physical file size, estimate the size from the row
         // count and the projected row size, similar to how Spark estimates the size of a
@@ -574,6 +574,20 @@ public class BigQueryDataSourceReaderContext {
     asyncReadSessionExecutor.submit(() -> readSessionResponse.get());
     asyncReadSessionExecutor.shutdown();
     isBuilt = true;
+  }
+
+  /**
+   * Returns {@code value * numerator / denominator}, rounded down, saturating at {@link
+   * Long#MAX_VALUE} instead of overflowing. Splitting {@code value} into quotient and remainder by
+   * {@code denominator} keeps intermediate values no larger than the result when {@code numerator
+   * <= denominator}.
+   */
+  static long scaleSaturated(long value, long numerator, long denominator) {
+    long quotient = value / denominator;
+    long remainder = value % denominator;
+    return LongMath.saturatedAdd(
+        LongMath.saturatedMultiply(quotient, numerator),
+        LongMath.saturatedMultiply(remainder, numerator) / denominator);
   }
 
   /**
