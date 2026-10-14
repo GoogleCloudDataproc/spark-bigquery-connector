@@ -273,7 +273,61 @@ public class BigQueryDataSourceReaderContextTest {
     assertThat(statistics.sizeInBytes()).isEqualTo(OptionalLong.of(expectedSize));
   }
 
-  /** scaleSaturated() computes value * numerator / denominator exactly, rounded down. */
+  /**
+   * A negative physical file size is treated as unavailable, so the row-count estimate applies to
+   * BigLake managed tables.
+   */
+  @Test
+  public void testBigLakeManagedTableStatisticsNegativePhysicalFileSize() throws Exception {
+    BigQueryDataSourceReaderContext ctx =
+        createContextWithReadSession(
+            BIGLAKE_MANAGED_TABLE,
+            ReadSession.newBuilder()
+                .setEstimatedTotalPhysicalFileSize(-1L)
+                .setEstimatedRowCount(1_000L)
+                .build());
+
+    StatisticsContext statistics = ctx.estimateStatistics();
+
+    assertThat(statistics.sizeInBytes())
+        .isEqualTo(OptionalLong.of(1_000L * TWO_INT64_COLUMNS_ROW_SIZE));
+    assertThat(statistics.numRows()).isEqualTo(OptionalLong.of(1_000L));
+  }
+
+  /** A negative row count is treated as unavailable for both the size and the row count. */
+  @Test
+  public void testBigLakeManagedTableStatisticsNegativeRowCount() throws Exception {
+    BigQueryDataSourceReaderContext ctx =
+        createContextWithReadSession(
+            BIGLAKE_MANAGED_TABLE,
+            ReadSession.newBuilder()
+                .setEstimatedTotalPhysicalFileSize(0L)
+                .setEstimatedRowCount(-1L)
+                .build());
+
+    StatisticsContext statistics = ctx.estimateStatistics();
+
+    assertThat(statistics.sizeInBytes()).isEqualTo(OptionalLong.empty());
+    assertThat(statistics.numRows()).isEqualTo(OptionalLong.empty());
+  }
+
+  /** For external tables, a negative physical file size results in no size estimate. */
+  @Test
+  public void testExternalTableStatisticsNegativePhysicalFileSize() throws Exception {
+    BigQueryDataSourceReaderContext ctx =
+        createContextWithReadSession(
+            EXTERNAL_TABLE,
+            ReadSession.newBuilder()
+                .setEstimatedTotalPhysicalFileSize(-1L)
+                .setEstimatedRowCount(1_000L)
+                .build());
+
+    StatisticsContext statistics = ctx.estimateStatistics();
+
+    assertThat(statistics.sizeInBytes()).isEqualTo(OptionalLong.empty());
+  }
+
+  /** scaleSaturated() computes value * numerator / denominator exactly, rounded toward zero. */
   @Test
   public void testScaleSaturated() {
     assertThat(BigQueryDataSourceReaderContext.scaleSaturated(5_000L, 24L, 24L)).isEqualTo(5_000L);
@@ -282,11 +336,25 @@ public class BigQueryDataSourceReaderContextTest {
     assertThat(BigQueryDataSourceReaderContext.scaleSaturated(0L, 16L, 24L)).isEqualTo(0L);
   }
 
-  /** scaleSaturated() saturates at Long.MAX_VALUE when the result exceeds the range of a long. */
+  /**
+   * scaleSaturated() returns the exact result when it fits in a long, even if value * numerator
+   * does not.
+   */
+  @Test
+  public void testScaleSaturatedLargeIntermediateProduct() {
+    assertThat(
+            BigQueryDataSourceReaderContext.scaleSaturated(
+                3_500_000_000L, 3_000_000_000L, 4_000_000_000L))
+        .isEqualTo(2_625_000_000L);
+  }
+
+  /** scaleSaturated() saturates when the result exceeds the range of a long. */
   @Test
   public void testScaleSaturatedSaturatesOnOverflow() {
     assertThat(BigQueryDataSourceReaderContext.scaleSaturated(Long.MAX_VALUE / 2, 3L, 1L))
         .isEqualTo(Long.MAX_VALUE);
+    assertThat(BigQueryDataSourceReaderContext.scaleSaturated(Long.MIN_VALUE / 2, 3L, 1L))
+        .isEqualTo(Long.MIN_VALUE);
   }
 
   /**
