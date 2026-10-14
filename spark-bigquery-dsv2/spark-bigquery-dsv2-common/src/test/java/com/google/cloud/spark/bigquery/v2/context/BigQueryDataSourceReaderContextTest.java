@@ -70,12 +70,12 @@ public class BigQueryDataSourceReaderContextTest {
   }
 
   @Test
-  public void testEmptyProjectionPassesAllowStaleCountFromMetadata() {
+  public void testEmptyProjectionPassesUseMetadataStaleRowCountIfPossible() {
     BigQueryClient bigQueryClient = mock(BigQueryClient.class);
     when(bigQueryClient.calculateTableSize(any(TableId.class), any(), anyBoolean()))
         .thenReturn(10L);
     SparkBigQueryConfig options = mock(SparkBigQueryConfig.class);
-    when(options.isAllowStaleCountFromMetadata()).thenReturn(true);
+    when(options.isUseMetadataStaleRowCountIfPossible()).thenReturn(true);
 
     createEmptyProjectionContext(bigQueryClient, options)
         .planInputPartitionContexts()
@@ -105,7 +105,7 @@ public class BigQueryDataSourceReaderContextTest {
     assertThat(e.getErrorCode()).isEqualTo(BigQueryErrorCode.BIGQUERY_FAILED_TO_EXECUTE_QUERY);
     assertThat(e).hasMessageThat().contains("bigquery.jobs.create");
     assertThat(e).hasMessageThat().contains("project parent-project");
-    assertThat(e).hasMessageThat().contains("allowStaleCountFromMetadata");
+    assertThat(e).hasMessageThat().contains("useMetadataStaleRowCountIfPossible");
     assertThat(e).hasMessageThat().doesNotContain("optimizedEmptyProjection");
     assertThat(e).hasCauseThat().isSameInstanceAs(accessDenied);
   }

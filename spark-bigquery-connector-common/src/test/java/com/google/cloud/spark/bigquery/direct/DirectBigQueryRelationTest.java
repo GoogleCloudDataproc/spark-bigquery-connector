@@ -142,7 +142,7 @@ public class DirectBigQueryRelationTest {
     assertThat(thrown).hasMessageThat().contains("bigquery.jobs.create");
     assertThat(thrown).hasMessageThat().contains("project " + PARENT_PROJECT);
     assertThat(thrown).hasMessageThat().contains("optimizedEmptyProjection");
-    assertThat(thrown).hasMessageThat().contains("allowStaleCountFromMetadata");
+    assertThat(thrown).hasMessageThat().contains("useMetadataStaleRowCountIfPossible");
     assertThat(thrown).hasCauseThat().isSameInstanceAs(accessDenied);
     verify(createReadSessionCall, never()).call(any());
   }
@@ -176,8 +176,8 @@ public class DirectBigQueryRelationTest {
   }
 
   @Test
-  public void testEmptyProjectionPassesAllowStaleCountFromMetadata() {
-    when(options.isAllowStaleCountFromMetadata()).thenReturn(true);
+  public void testEmptyProjectionPassesUseMetadataStaleRowCountIfPossible() {
+    when(options.isUseMetadataStaleRowCountIfPossible()).thenReturn(true);
     when(bigQueryClient.calculateTableSize(any(TableInfo.class), any(), anyBoolean()))
         .thenReturn(5L);
 

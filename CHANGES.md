@@ -6,7 +6,7 @@
   `isEmpty()` and similar) runs a `SELECT COUNT(*)` query job, which requires the
   `bigquery.jobs.create` permission. When that permission is missing, the connector
   now fails with an error explaining the requirement and the available alternatives.
-  Added the `allowStaleCountFromMetadata` option (default `false`) which, for
+  Added the `useMetadataStaleRowCountIfPossible` option (default `false`) which, for
   unfiltered reads of native tables, uses the table metadata row count instead of
   running a query job.
 

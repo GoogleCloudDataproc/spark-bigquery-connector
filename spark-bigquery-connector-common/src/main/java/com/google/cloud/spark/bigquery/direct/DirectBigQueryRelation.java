@@ -142,7 +142,7 @@ public class DirectBigQueryRelation extends BigQueryRelation
                   "Access denied while running the query job used by the optimized empty"
                       + " projection (e.g. count()) on table %s. This optimization requires the"
                       + " bigquery.jobs.create permission in project %s. Either grant this"
-                      + " permission, set the allowStaleCountFromMetadata option to true to use"
+                      + " permission, set the useMetadataStaleRowCountIfPossible option to true to use"
                       + " the possibly stale row count from the table metadata (only applies to"
                       + " native tables read without filters), or set the optimizedEmptyProjection"
                       + " option to false to read the rows through the BigQuery Storage Read API"
@@ -209,7 +209,7 @@ public class DirectBigQueryRelation extends BigQueryRelation
         (filter.length() == 0) ? Optional.empty() : Optional.of(filter);
     long numberOfRows =
         bigQueryClient.calculateTableSize(
-            tableInfo, optionalFilter, options.isAllowStaleCountFromMetadata());
+            tableInfo, optionalFilter, options.isUseMetadataStaleRowCountIfPossible());
 
     Function1<Object, InternalRow> objectToInternalRowConverter =
         new ObjectToInternalRowConverter();

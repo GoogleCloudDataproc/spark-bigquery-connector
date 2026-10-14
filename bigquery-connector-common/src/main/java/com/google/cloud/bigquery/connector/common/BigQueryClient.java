@@ -669,8 +669,8 @@ public class BigQueryClient {
   }
 
   public long calculateTableSize(
-      TableId tableId, Optional<String> filter, boolean allowStaleCountFromMetadata) {
-    return calculateTableSize(getTable(tableId), filter, allowStaleCountFromMetadata);
+      TableId tableId, Optional<String> filter, boolean useMetadataStaleRowCountIfPossible) {
+    return calculateTableSize(getTable(tableId), filter, useMetadataStaleRowCountIfPossible);
   }
 
   public long calculateTableSize(TableInfo tableInfo, Optional<String> filter) {
@@ -682,16 +682,18 @@ public class BigQueryClient {
    *
    * @param tableInfo the table
    * @param filter optional row filter
-   * @param allowStaleCountFromMetadata if true, the number of rows of an unfiltered BigQuery native
-   *     table is taken from the table metadata instead of running a {@code COUNT(*)} query job.
-   *     This avoids the need for the {@code bigquery.jobs.create} permission, but the value may not
-   *     yet include rows recently written through the Storage Write API or the legacy streaming
-   *     API.
+   * @param useMetadataStaleRowCountIfPossible if true, the number of rows of an unfiltered BigQuery
+   *     native table is taken from the table metadata instead of running a {@code COUNT(*)} query
+   *     job. This avoids the need for the {@code bigquery.jobs.create} permission, but the value
+   *     may not yet include rows recently written through the Storage Write API or the legacy
+   *     streaming API.
    * @return the number of rows
    */
   public long calculateTableSize(
-      TableInfo tableInfo, Optional<String> filter, boolean allowStaleCountFromMetadata) {
-    if (allowStaleCountFromMetadata && !filter.isPresent() && isBigQueryNativeTable(tableInfo)) {
+      TableInfo tableInfo, Optional<String> filter, boolean useMetadataStaleRowCountIfPossible) {
+    if (useMetadataStaleRowCountIfPossible
+        && !filter.isPresent()
+        && isBigQueryNativeTable(tableInfo)) {
       Long numRows = ((StandardTableDefinition) tableInfo.getDefinition()).getNumRows();
       if (numRows != null) {
         log.debug(
