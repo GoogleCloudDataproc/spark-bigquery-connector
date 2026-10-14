@@ -45,6 +45,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
+import com.google.common.math.LongMath;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -514,10 +516,21 @@ public class BigQueryDataSourceReaderContext {
       final long originalRowSize = getRowSize(fields.values());
       final long projectedRowSize =
           schema.map(schema -> getRowSize(Arrays.asList(schema.fields()))).orElse(originalRowSize);
-      final long tableProjectedSizeInBytes =
-          (tablePhysicalSizeInBytes * projectedRowSize) / originalRowSize;
+      // Non-positive estimates from the read session are treated as unavailable.
+      long estimatedProjectedSizeInBytes =
+          tablePhysicalSizeInBytes > 0
+              ? scaleSaturated(tablePhysicalSizeInBytes, projectedRowSize, originalRowSize)
+              : 0;
+      if (estimatedProjectedSizeInBytes <= 0 && isBigLakeManagedTable && tableRowCount > 0) {
+        // When the read session provides no physical file size, estimate the size from the row
+        // count and the projected row size, similar to how Spark estimates the size of a
+        // projection. A size estimate lets Spark plan broadcast joins and Dynamic Partition
+        // Pruning for the table.
+        estimatedProjectedSizeInBytes = LongMath.saturatedMultiply(tableRowCount, projectedRowSize);
+      }
+      final long tableProjectedSizeInBytes = estimatedProjectedSizeInBytes;
       final OptionalLong sizeInBytes =
-          (tableProjectedSizeInBytes == 0)
+          (tableProjectedSizeInBytes <= 0)
               ? OptionalLong.empty()
               : OptionalLong.of(tableProjectedSizeInBytes);
 
@@ -531,7 +544,9 @@ public class BigQueryDataSourceReaderContext {
             @Override
             public OptionalLong numRows() {
               // Number of rows are only available for BigLake Managed tables.
-              return isBigLakeManagedTable ? OptionalLong.of(tableRowCount) : OptionalLong.empty();
+              return isBigLakeManagedTable && tableRowCount >= 0
+                  ? OptionalLong.of(tableRowCount)
+                  : OptionalLong.empty();
             }
           };
       return tableStatisticsContext;
@@ -565,6 +580,22 @@ public class BigQueryDataSourceReaderContext {
     asyncReadSessionExecutor.submit(() -> readSessionResponse.get());
     asyncReadSessionExecutor.shutdown();
     isBuilt = true;
+  }
+
+  /**
+   * Returns {@code value * numerator / denominator}, rounded toward zero. The computation uses
+   * arbitrary precision, and the result saturates at {@link Long#MAX_VALUE} or {@link
+   * Long#MIN_VALUE} if it does not fit in a long.
+   */
+  static long scaleSaturated(long value, long numerator, long denominator) {
+    BigInteger result =
+        BigInteger.valueOf(value)
+            .multiply(BigInteger.valueOf(numerator))
+            .divide(BigInteger.valueOf(denominator));
+    if (result.bitLength() < Long.SIZE) {
+      return result.longValue();
+    }
+    return result.signum() > 0 ? Long.MAX_VALUE : Long.MIN_VALUE;
   }
 
   /**
