@@ -24,10 +24,5 @@ public class Spark42ReadIntegrationTest extends ReadIntegrationTestBase {
     super(/* userProvidedSchemaAllowed */ false, DataTypes.TimestampNTZType);
   }
 
-  @Override
-  protected boolean supportsRuntimeFiltering() {
-    return true;
-  }
-
   // tests are from the super-class
 }

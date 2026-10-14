@@ -39,10 +39,8 @@ import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
 import com.google.cloud.bigquery.storage.v1.stub.EnhancedBigQueryReadStub;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
-import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.stream.Collectors;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
@@ -141,8 +139,8 @@ public class BigQueryDataSourceReaderContextTest {
     StatisticsContext statistics = ctx.estimateStatistics();
 
     // 5_000 bytes (the physical size), not 1_000 rows * 24 bytes (the row-count estimate).
-    assertThat(statistics.sizeInBytes()).isEqualTo(OptionalLong.of(5_000L));
-    assertThat(statistics.numRows()).isEqualTo(OptionalLong.of(1_000L));
+    assertThat(statistics.sizeInBytes()).hasValue(5_000L);
+    assertThat(statistics.numRows()).hasValue(1_000L);
   }
 
   /**
@@ -161,9 +159,8 @@ public class BigQueryDataSourceReaderContextTest {
 
     StatisticsContext statistics = ctx.estimateStatistics();
 
-    assertThat(statistics.sizeInBytes())
-        .isEqualTo(OptionalLong.of(1_000L * TWO_INT64_COLUMNS_ROW_SIZE));
-    assertThat(statistics.numRows()).isEqualTo(OptionalLong.of(1_000L));
+    assertThat(statistics.sizeInBytes()).hasValue(1_000L * TWO_INT64_COLUMNS_ROW_SIZE);
+    assertThat(statistics.numRows()).hasValue(1_000L);
   }
 
   /**
@@ -184,8 +181,7 @@ public class BigQueryDataSourceReaderContextTest {
 
     StatisticsContext statistics = ctx.estimateStatistics();
 
-    assertThat(statistics.sizeInBytes())
-        .isEqualTo(OptionalLong.of(1_000L * ONE_INT64_COLUMN_ROW_SIZE));
+    assertThat(statistics.sizeInBytes()).hasValue(1_000L * ONE_INT64_COLUMN_ROW_SIZE);
   }
 
   /**
@@ -204,7 +200,7 @@ public class BigQueryDataSourceReaderContextTest {
 
     StatisticsContext statistics = ctx.estimateStatistics();
 
-    assertThat(statistics.sizeInBytes()).isEqualTo(OptionalLong.of(Long.MAX_VALUE));
+    assertThat(statistics.sizeInBytes()).hasValue(Long.MAX_VALUE);
   }
 
   /**
@@ -223,7 +219,7 @@ public class BigQueryDataSourceReaderContextTest {
 
     StatisticsContext statistics = ctx.estimateStatistics();
 
-    assertThat(statistics.sizeInBytes()).isEqualTo(OptionalLong.empty());
+    assertThat(statistics.sizeInBytes()).isEmpty();
   }
 
   /**
@@ -242,8 +238,8 @@ public class BigQueryDataSourceReaderContextTest {
 
     StatisticsContext statistics = ctx.estimateStatistics();
 
-    assertThat(statistics.sizeInBytes()).isEqualTo(OptionalLong.empty());
-    assertThat(statistics.numRows()).isEqualTo(OptionalLong.empty());
+    assertThat(statistics.sizeInBytes()).isEmpty();
+    assertThat(statistics.numRows()).isEmpty();
   }
 
   /**
@@ -253,24 +249,20 @@ public class BigQueryDataSourceReaderContextTest {
   @Test
   public void testBigLakeManagedTableStatisticsLargePhysicalFileSizeWithProjection()
       throws Exception {
-    long physicalFileSize = Long.MAX_VALUE / 2;
+    // physicalFileSize * ONE_INT64_COLUMN_ROW_SIZE (3e18 * 16) exceeds Long.MAX_VALUE, while the
+    // expected result (3e18 * 16 / 24 = 2e18) fits in a long.
     BigQueryDataSourceReaderContext ctx =
         createContextWithReadSession(
             BIGLAKE_MANAGED_TABLE,
             ReadSession.newBuilder()
-                .setEstimatedTotalPhysicalFileSize(physicalFileSize)
+                .setEstimatedTotalPhysicalFileSize(3_000_000_000_000_000_000L)
                 .setEstimatedRowCount(1_000L)
                 .build());
     ctx.pruneColumns(new StructType().add("date_sk", DataTypes.LongType));
 
     StatisticsContext statistics = ctx.estimateStatistics();
 
-    long expectedSize =
-        BigInteger.valueOf(physicalFileSize)
-            .multiply(BigInteger.valueOf(ONE_INT64_COLUMN_ROW_SIZE))
-            .divide(BigInteger.valueOf(TWO_INT64_COLUMNS_ROW_SIZE))
-            .longValueExact();
-    assertThat(statistics.sizeInBytes()).isEqualTo(OptionalLong.of(expectedSize));
+    assertThat(statistics.sizeInBytes()).hasValue(2_000_000_000_000_000_000L);
   }
 
   /**
@@ -289,9 +281,8 @@ public class BigQueryDataSourceReaderContextTest {
 
     StatisticsContext statistics = ctx.estimateStatistics();
 
-    assertThat(statistics.sizeInBytes())
-        .isEqualTo(OptionalLong.of(1_000L * TWO_INT64_COLUMNS_ROW_SIZE));
-    assertThat(statistics.numRows()).isEqualTo(OptionalLong.of(1_000L));
+    assertThat(statistics.sizeInBytes()).hasValue(1_000L * TWO_INT64_COLUMNS_ROW_SIZE);
+    assertThat(statistics.numRows()).hasValue(1_000L);
   }
 
   /** A negative row count is treated as unavailable for both the size and the row count. */
@@ -307,8 +298,8 @@ public class BigQueryDataSourceReaderContextTest {
 
     StatisticsContext statistics = ctx.estimateStatistics();
 
-    assertThat(statistics.sizeInBytes()).isEqualTo(OptionalLong.empty());
-    assertThat(statistics.numRows()).isEqualTo(OptionalLong.empty());
+    assertThat(statistics.sizeInBytes()).isEmpty();
+    assertThat(statistics.numRows()).isEmpty();
   }
 
   /** For external tables, a negative physical file size results in no size estimate. */
@@ -324,7 +315,7 @@ public class BigQueryDataSourceReaderContextTest {
 
     StatisticsContext statistics = ctx.estimateStatistics();
 
-    assertThat(statistics.sizeInBytes()).isEqualTo(OptionalLong.empty());
+    assertThat(statistics.sizeInBytes()).isEmpty();
   }
 
   /** scaleSaturated() computes value * numerator / denominator exactly, rounded toward zero. */

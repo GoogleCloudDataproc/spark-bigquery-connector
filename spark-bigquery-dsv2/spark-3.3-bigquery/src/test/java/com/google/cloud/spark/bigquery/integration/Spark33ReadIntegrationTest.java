@@ -20,10 +20,5 @@ public class Spark33ReadIntegrationTest extends ReadIntegrationTestBase {
     super(/* userProvidedSchemaAllowed */ false);
   }
 
-  @Override
-  protected boolean supportsRuntimeFiltering() {
-    return true;
-  }
-
   // tests are from the super-class
 }

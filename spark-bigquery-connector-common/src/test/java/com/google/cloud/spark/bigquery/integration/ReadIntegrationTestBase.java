@@ -167,11 +167,11 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
 
   /**
    * Whether the connector under test implements Spark's {@code SupportsRuntimeFiltering}, which
-   * Dynamic Partition Pruning uses. Subclasses for the Spark 3.2+ DataSource V2 connectors override
-   * this to return true.
+   * Dynamic Partition Pruning uses. Subclasses for connectors that don't implement it (DataSource
+   * V1, Spark 2.4 and Spark 3.1) override this to return false.
    */
   protected boolean supportsRuntimeFiltering() {
-    return false;
+    return true;
   }
 
   private void intializeSchema(Optional<DataType> timeStampNTZType) {
