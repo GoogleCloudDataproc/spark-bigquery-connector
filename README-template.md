@@ -577,7 +577,7 @@ word-break:break-word
        filter) instead of reading the table rows, and therefore requires the
        <code>bigquery.jobs.create</code> permission in the parent project. If
        this permission cannot be granted, either set
-       <code>allowStaleCountFromMetadata</code> to <code>true</code>, or set
+       <code>useMetadataStaleRowCountIfPossible</code> to <code>true</code>, or set
        this option to <code>false</code>, in which case the rows are read through
        the BigQuery Storage Read API. Notice this may be considerably slower for
        large tables.
@@ -586,7 +586,7 @@ word-break:break-word
    <td>Read</td>
   </tr>
   <tr valign="top">
-   <td><code>allowStaleCountFromMetadata</code>
+   <td><code>useMetadataStaleRowCountIfPossible</code>
    </td>
    <td>If set to <code>true</code>, the optimized empty projection logic uses the
        row count from the table metadata instead of running a
