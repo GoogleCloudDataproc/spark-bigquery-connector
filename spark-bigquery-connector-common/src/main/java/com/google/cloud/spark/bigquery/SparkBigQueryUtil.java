@@ -379,6 +379,11 @@ public class SparkBigQueryUtil {
 
   private static void collectStringFieldsLoadedIntoTypesWithoutStringConversion(
       String prefix, FieldList wantedFields, FieldList existingFields, List<String> result) {
+    // Field names are matched exactly, like in BigQueryUtil.adjustField, which builds the load job
+    // schema. When the names differ only in case, the load schema keeps the wanted STRING type
+    // rather than the table's column type, so the load job doesn't hit the conversion this method
+    // checks for (it fails with a type change error on append, and replaces the column on
+    // overwrite).
     Map<String, Field> existingFieldsMap =
         existingFields.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
     for (Field field : wantedFields) {
