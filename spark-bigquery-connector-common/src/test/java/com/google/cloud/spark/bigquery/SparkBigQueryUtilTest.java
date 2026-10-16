@@ -18,7 +18,10 @@ package com.google.cloud.spark.bigquery;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
+import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
@@ -173,5 +176,58 @@ public class SparkBigQueryUtilTest {
     assertThat(
             SparkBigQueryUtil.sparkTimestampToBigQuery(Instant.parse("2016-05-08T00:00:01.010Z")))
         .isEqualTo(1462665601010000L);
+  }
+
+  @Test
+  public void testVerifyIndirectWriteSchemaCompatibility_stringToDateTimeAndTime() {
+    Schema wanted =
+        Schema.of(
+            Field.of("name", LegacySQLTypeName.STRING),
+            Field.of("dt", LegacySQLTypeName.STRING),
+            Field.of("t", LegacySQLTypeName.STRING));
+    Schema existing =
+        Schema.of(
+            Field.of("name", LegacySQLTypeName.STRING),
+            Field.of("dt", LegacySQLTypeName.DATETIME),
+            Field.of("t", LegacySQLTypeName.TIME));
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> SparkBigQueryUtil.verifyIndirectWriteSchemaCompatibility(wanted, existing));
+    assertThat(e).hasMessageThat().contains("dt (DATETIME), t (TIME)");
+    assertThat(e).hasMessageThat().contains("writeMethod=direct");
+    assertThat(e).hasMessageThat().doesNotContain("name");
+  }
+
+  @Test
+  public void testVerifyIndirectWriteSchemaCompatibility_nestedStringToDateTime() {
+    Schema wanted =
+        Schema.of(
+            Field.of("rec", LegacySQLTypeName.RECORD, Field.of("dt", LegacySQLTypeName.STRING)));
+    Schema existing =
+        Schema.of(
+            Field.of("rec", LegacySQLTypeName.RECORD, Field.of("dt", LegacySQLTypeName.DATETIME)));
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> SparkBigQueryUtil.verifyIndirectWriteSchemaCompatibility(wanted, existing));
+    assertThat(e).hasMessageThat().contains("rec.dt (DATETIME)");
+  }
+
+  @Test
+  public void testVerifyIndirectWriteSchemaCompatibility_compatibleSchemas() {
+    Schema wanted =
+        Schema.of(
+            Field.of("name", LegacySQLTypeName.STRING),
+            Field.of("dt", LegacySQLTypeName.DATETIME),
+            Field.of("ts", LegacySQLTypeName.TIMESTAMP),
+            Field.of("new_column", LegacySQLTypeName.STRING));
+    Schema existing =
+        Schema.of(
+            Field.of("name", LegacySQLTypeName.STRING),
+            Field.of("dt", LegacySQLTypeName.DATETIME),
+            Field.of("ts", LegacySQLTypeName.TIMESTAMP));
+    SparkBigQueryUtil.verifyIndirectWriteSchemaCompatibility(wanted, existing);
+    SparkBigQueryUtil.verifyIndirectWriteSchemaCompatibility(wanted, null);
   }
 }
