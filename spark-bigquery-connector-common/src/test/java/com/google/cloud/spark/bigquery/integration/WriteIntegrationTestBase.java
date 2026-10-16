@@ -16,6 +16,7 @@
 package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
@@ -50,6 +51,7 @@ import com.google.cloud.spark.bigquery.integration.model.Link;
 import com.google.cloud.spark.bigquery.integration.model.Person;
 import com.google.cloud.spark.bigquery.integration.model.RangeData;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import com.google.inject.ProvisionException;
@@ -1542,7 +1544,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   private void testWriteStringToTimeField_internal(SaveMode saveMode) {
-    // not supported for indirect writes
+    // The Storage Write API used by the direct write method converts strings into TIME values.
+    // BigQuery load jobs used by the indirect write method don't, see
+    // testIndirectWriteStringToDateTimeAndTimeFields_internal.
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     IntegrationTestUtils.runQuery(
         String.format(
@@ -1588,7 +1592,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   private void testWriteStringToDateTimeField_internal(SaveMode saveMode) {
-    // not supported for indirect writes
+    // The Storage Write API used by the direct write method converts strings into DATETIME
+    // values. BigQuery load jobs used by the indirect write method don't, see
+    // testIndirectWriteStringToDateTimeAndTimeFields_internal.
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
     IntegrationTestUtils.runQuery(
         String.format(
@@ -1637,6 +1643,73 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   @Test
   public void testWriteStringToDateTimeField_AppendSaveMode() {
     testWriteStringToDateTimeField_internal(SaveMode.Append);
+  }
+
+  private void testIndirectWriteStringToDateTimeAndTimeFields_internal(SaveMode saveMode)
+      throws InterruptedException {
+    // The indirect write method loads the intermediate files with the existing table's column
+    // types, and BigQuery load jobs don't convert strings into DATETIME or TIME columns with any
+    // intermediate format, so the connector rejects the write before writing any data and the
+    // existing rows are kept.
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    String[][] typesAndValues = {
+      {"DATETIME", "0001-01-01 01:22:24.999888"},
+      {"TIME", "10:00:00"},
+    };
+    for (String format : new String[] {"parquet", "avro", "orc"}) {
+      for (String[] typeAndValue : typesAndValues) {
+        String type = typeAndValue[0];
+        String table = testTable + "_" + format + "_" + type.toLowerCase();
+        IntegrationTestUtils.runQuery(
+            String.format(
+                "CREATE TABLE `%s.%s` (name STRING, value1 %s)", testDataset, table, type));
+        IntegrationTestUtils.runQuery(
+            String.format(
+                "INSERT INTO `%s.%s` (name, value1) VALUES ('existing', NULL)",
+                testDataset, table));
+        Dataset<Row> df =
+            spark.createDataFrame(
+                Arrays.asList(RowFactory.create("abc", typeAndValue[1])),
+                structType(
+                    StructField.apply("name", DataTypes.StringType, true, Metadata.empty()),
+                    StructField.apply("value1", DataTypes.StringType, true, Metadata.empty())));
+
+        Exception e =
+            assertThrows(
+                Exception.class,
+                () ->
+                    df.write()
+                        .format("bigquery")
+                        .mode(saveMode)
+                        .option("dataset", testDataset.toString())
+                        .option("table", table)
+                        .option("writeMethod", writeMethod.toString())
+                        .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+                        .option("intermediateFormat", format)
+                        .save());
+        assertWithMessage("format=%s, type=%s", format, type)
+            .that(
+                Throwables.getCausalChain(e).stream()
+                    .anyMatch(
+                        cause ->
+                            cause instanceof IllegalArgumentException
+                                && cause.getMessage().contains("value1 (" + type + ")")))
+            .isTrue();
+        assertThat(testTableNumberOfRows(table)).isEqualTo(1);
+      }
+    }
+  }
+
+  @Test
+  public void testIndirectWriteStringToDateTimeAndTimeFields_OverwriteSaveMode()
+      throws InterruptedException {
+    testIndirectWriteStringToDateTimeAndTimeFields_internal(SaveMode.Overwrite);
+  }
+
+  @Test
+  public void testIndirectWriteStringToDateTimeAndTimeFields_AppendSaveMode()
+      throws InterruptedException {
+    testIndirectWriteStringToDateTimeAndTimeFields_internal(SaveMode.Append);
   }
 
   @Test
