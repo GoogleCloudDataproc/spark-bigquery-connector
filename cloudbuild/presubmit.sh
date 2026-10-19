@@ -28,11 +28,14 @@ unset MAVEN_OPTS
 readonly BUILD_OPTS='-Xss1g -Xmx20g -XX:MaxMetaspaceSize=10g -XX:ReservedCodeCacheSize=2g -Dsun.zip.disableMemoryMapping=true -DtrimStackTrace=false'
 readonly MVN_NT="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository"
 readonly MVN="${MVN_NT} -t toolchains.xml"
+readonly STEP=$1
 # Integration tests hit the live BigQuery API and occasionally fail on transient backend
 # errors. Rerun failing tests up to 2 times; tests that pass on rerun are reported as
 # "flaky" in the failsafe summary instead of failing the build.
-readonly IT_OPTS="-Dfailsafe.rerunFailingTestsCount=2"
-readonly STEP=$1
+# Integration test steps that run concurrently share /workspace and run failsafe on the same
+# modules. Failsafe deletes its temporary directory (target/surefire by default) when a run
+# completes, so each step uses its own directory to avoid removing it from under another step.
+readonly IT_OPTS="-Dfailsafe.rerunFailingTestsCount=2 -DtempDir=surefire-${STEP}"
 
 cd /workspace
 
