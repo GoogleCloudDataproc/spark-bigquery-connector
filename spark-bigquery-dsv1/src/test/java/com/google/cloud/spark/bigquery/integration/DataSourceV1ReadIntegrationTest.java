@@ -16,5 +16,10 @@
 package com.google.cloud.spark.bigquery.integration;
 
 public class DataSourceV1ReadIntegrationTest extends ReadIntegrationTestBase {
+  @Override
+  protected boolean supportsRuntimeFiltering() {
+    return false;
+  }
+
   // all tests are inherited from the super-class
 }

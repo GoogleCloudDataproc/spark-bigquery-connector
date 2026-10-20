@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.cloud.spark.bigquery.integration.TestConstants.ALL_TYPES_TABLE_SCHEMA;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
@@ -43,6 +44,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -115,6 +118,24 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   private static final long LARGE_TABLE_NUM_ROWS = 33271914L;
   private static final String ALL_TYPES_TABLE_NAME = "all_types";
 
+  // Dynamic Partition Pruning test data: a fact table with DPP_NUM_FACT_ROWS rows spread evenly
+  // over DPP_NUM_DATES dates, and a dimension table mapping each date to a year
+  // (DPP_DATES_PER_YEAR dates per year). Filtering the dimension on one year selects
+  // DPP_DATES_PER_YEAR dates.
+  private static final Pattern CONNECTION_RESOURCE_NAME =
+      Pattern.compile("projects/([^/]+)/locations/([^/]+)/connections/([^/]+)");
+  private static final int DPP_NUM_DATES = 100;
+  private static final int DPP_DATES_PER_YEAR = 10;
+  private static final int DPP_NUM_FACT_ROWS = 1000;
+  private static final int DPP_FILTERED_YEAR = 2003;
+  private static final long DPP_EXPECTED_JOIN_ROWS =
+      (long) DPP_NUM_FACT_ROWS / DPP_NUM_DATES * DPP_DATES_PER_YEAR;
+
+  private enum TableKind {
+    NATIVE,
+    BIGLAKE_MANAGED
+  }
+
   protected StructType allTypesTableSchema;
 
   protected final boolean userProvidedSchemaAllowed;
@@ -142,6 +163,15 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     this.userProvidedSchemaAllowed = userProvidedSchemaAllowed;
     this.timeStampNTZType = timeStampNTZType;
     intializeSchema(timeStampNTZType);
+  }
+
+  /**
+   * Whether the connector under test implements Spark's {@code SupportsRuntimeFiltering}, which
+   * Dynamic Partition Pruning uses. Subclasses for connectors that don't implement it (DataSource
+   * V1, Spark 2.4 and Spark 3.1) override this to return false.
+   */
+  protected boolean supportsRuntimeFiltering() {
+    return true;
   }
 
   private void intializeSchema(Optional<DataType> timeStampNTZType) {
@@ -908,6 +938,63 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     return result;
   }
 
+  /**
+   * Joins a fact table with a filtered dimension table and reports whether Spark planned Dynamic
+   * Partition Pruning (DPP) on the fact scan.
+   *
+   * <p>With the default {@code
+   * spark.sql.optimizer.dynamicPartitionPruning.reuseBroadcastOnly=true}, Spark applies the DPP
+   * filter when the dimension side is broadcast, i.e. when the connector reports a dimension size
+   * below {@code spark.sql.autoBroadcastJoinThreshold}. In that case the fact scan's runtime
+   * filters contain a {@code dynamicpruningexpression} other than {@code
+   * dynamicpruningexpression(true)}. The executed plan is returned for inspection.
+   */
+  @SuppressWarnings("resource")
+  protected static JsonObject readDynamicPartitionPruningJoinApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("ReadIntegrationTestApp")
+            .getOrCreate()
+            .newSession();
+    // Pin the settings DPP depends on. AQE is disabled so that the executed plan is final before
+    // the query runs.
+    spark.conf().set("spark.sql.adaptive.enabled", "false");
+    spark.conf().set("spark.sql.optimizer.dynamicPartitionPruning.enabled", "true");
+    spark.conf().set("spark.sql.optimizer.dynamicPartitionPruning.reuseBroadcastOnly", "true");
+    spark.conf().set("spark.sql.autoBroadcastJoinThreshold", String.valueOf(10L * 1024 * 1024));
+
+    Dataset<Row> fact =
+        spark.read().format("bigquery").load(testDataset + "." + parameters.get("factTable"));
+    Dataset<Row> filteredDim =
+        spark
+            .read()
+            .format("bigquery")
+            .load(testDataset + "." + parameters.get("dimTable"))
+            .where("year = " + DPP_FILTERED_YEAR);
+    Dataset<Row> joined = fact.join(filteredDim, "date_sk").select("id");
+
+    String executedPlan = joined.queryExecution().executedPlan().toString();
+    long rowCount = joined.collectAsList().size();
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("rowCount", rowCount);
+    result.addProperty(
+        "dimSizeInBytes",
+        filteredDim.queryExecution().optimizedPlan().stats().sizeInBytes().toString());
+    result.addProperty("executedPlan", executedPlan);
+    result.addProperty("broadcastJoin", executedPlan.contains("BroadcastHashJoin"));
+    result.addProperty(
+        "dynamicPruningApplied",
+        executedPlan.contains("dynamicpruningexpression(")
+            && !executedPlan.contains("dynamicpruningexpression(true)"));
+    return result;
+  }
+
   @SuppressWarnings("resource")
   protected static JsonObject readExecuteCommandApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
@@ -1604,6 +1691,139 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     assertThat(result.get("rowCount").getAsInt()).isEqualTo(2);
     assertThat(result.get("firstId").getAsLong()).isEqualTo(101L);
     assertThat(result.get("secondId").getAsLong()).isEqualTo(102L);
+  }
+
+  @Test
+  public void testDynamicPartitionPruningWithNativeTables() throws Exception {
+    runDynamicPartitionPruningTest(TableKind.NATIVE, TableKind.NATIVE);
+  }
+
+  /**
+   * Covers the size estimate of a BigLake managed dimension table, which Spark uses to decide
+   * whether to broadcast it. When no physical file size is available, the connector estimates the
+   * size from the row count.
+   */
+  @Test
+  public void testDynamicPartitionPruningWithBigLakeManagedDimensionTable() throws Exception {
+    runDynamicPartitionPruningTest(TableKind.NATIVE, TableKind.BIGLAKE_MANAGED);
+  }
+
+  @Test
+  public void testDynamicPartitionPruningWithBigLakeManagedTables() throws Exception {
+    runDynamicPartitionPruningTest(TableKind.BIGLAKE_MANAGED, TableKind.BIGLAKE_MANAGED);
+  }
+
+  private void runDynamicPartitionPruningTest(TableKind factKind, TableKind dimKind)
+      throws Exception {
+    assumeTrue("requires SupportsRuntimeFiltering", supportsRuntimeFiltering());
+    String factTable = testTable + "_fact";
+    String dimTable = testTable + "_dim";
+    List<String> bigLakeManagedTables = new ArrayList<>();
+    try {
+      createDynamicPartitionPruningFactTable(factTable, factKind, bigLakeManagedTables);
+      createDynamicPartitionPruningDimensionTable(dimTable, dimKind, bigLakeManagedTables);
+
+      JsonObject result =
+          testRunner.run(
+              ReadIntegrationTestBase::readDynamicPartitionPruningJoinApp,
+              testDataset.toString(),
+              testTable,
+              ImmutableMap.of("factTable", factTable, "dimTable", dimTable));
+
+      String diagnostics =
+          String.format(
+              "fact=%s, dim=%s, dimSizeInBytes=%s, executedPlan:%n%s",
+              factKind,
+              dimKind,
+              result.get("dimSizeInBytes").getAsString(),
+              result.get("executedPlan").getAsString());
+      assertWithMessage(diagnostics).that(result.get("status").getAsString()).isEqualTo("success");
+      assertWithMessage(diagnostics)
+          .that(result.get("rowCount").getAsLong())
+          .isEqualTo(DPP_EXPECTED_JOIN_ROWS);
+      assertWithMessage("Expected a broadcast hash join. " + diagnostics)
+          .that(result.get("broadcastJoin").getAsBoolean())
+          .isTrue();
+      assertWithMessage(
+              "Expected a dynamic partition pruning filter on the fact scan. " + diagnostics)
+          .that(result.get("dynamicPruningApplied").getAsBoolean())
+          .isTrue();
+    } finally {
+      // BigLake managed tables are dropped here, before cleanGcsObjects() removes their storage.
+      for (String table : bigLakeManagedTables) {
+        IntegrationTestUtils.runQuery(
+            String.format("DROP TABLE IF EXISTS `%s.%s`", testDataset, table));
+      }
+    }
+  }
+
+  private void createDynamicPartitionPruningFactTable(
+      String table, TableKind kind, List<String> bigLakeManagedTables) {
+    String columns = "id INT64, date_sk INT64";
+    if (kind == TableKind.NATIVE) {
+      IntegrationTestUtils.runQuery(
+          String.format(
+              "CREATE TABLE `%s.%s` (%s) "
+                  + "PARTITION BY RANGE_BUCKET(date_sk, GENERATE_ARRAY(1, %d, 1))",
+              testDataset, table, columns, DPP_NUM_DATES + 1));
+    } else {
+      // BigLake managed tables are clustered rather than partitioned; the connector also applies
+      // runtime filters on clustering columns.
+      createBigLakeManagedTable(table, columns, "date_sk", bigLakeManagedTables);
+    }
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "INSERT INTO `%s.%s` (id, date_sk) "
+                + "SELECT id, MOD(id, %d) + 1 FROM UNNEST(GENERATE_ARRAY(1, %d)) AS id",
+            testDataset, table, DPP_NUM_DATES, DPP_NUM_FACT_ROWS));
+  }
+
+  private void createDynamicPartitionPruningDimensionTable(
+      String table, TableKind kind, List<String> bigLakeManagedTables) {
+    String columns = "date_sk INT64, year INT64";
+    if (kind == TableKind.NATIVE) {
+      IntegrationTestUtils.runQuery(
+          String.format("CREATE TABLE `%s.%s` (%s)", testDataset, table, columns));
+    } else {
+      createBigLakeManagedTable(table, columns, "date_sk", bigLakeManagedTables);
+    }
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "INSERT INTO `%s.%s` (date_sk, year) "
+                + "SELECT date_sk, 2000 + DIV(date_sk - 1, %d) "
+                + "FROM UNNEST(GENERATE_ARRAY(1, %d)) AS date_sk",
+            testDataset, table, DPP_DATES_PER_YEAR, DPP_NUM_DATES));
+  }
+
+  private void createBigLakeManagedTable(
+      String table, String columns, String clusteringColumn, List<String> bigLakeManagedTables) {
+    String storageUri =
+        String.format("gs://%s/%s/%s", TestConstants.TEMPORARY_GCS_BUCKET, testTable, table);
+    gcsObjectsToClean.add(storageUri);
+    bigLakeManagedTables.add(table);
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (%s) CLUSTER BY %s WITH CONNECTION `%s` "
+                + "OPTIONS (file_format = 'PARQUET', table_format = 'ICEBERG', "
+                + "storage_uri = '%s')",
+            testDataset,
+            table,
+            columns,
+            clusteringColumn,
+            toDdlConnectionId(TestConstants.BIGLAKE_CONNECTION_ID),
+            storageUri));
+  }
+
+  /**
+   * Converts a connection resource name ({@code projects/p/locations/l/connections/c}) to the
+   * {@code p.l.c} form expected by the {@code WITH CONNECTION} DDL clause.
+   */
+  private static String toDdlConnectionId(String connectionId) {
+    Matcher matcher = CONNECTION_RESOURCE_NAME.matcher(connectionId);
+    if (matcher.matches()) {
+      return String.format("%s.%s.%s", matcher.group(1), matcher.group(2), matcher.group(3));
+    }
+    return connectionId;
   }
 
   @Test
