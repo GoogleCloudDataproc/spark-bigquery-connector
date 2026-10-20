@@ -4,10 +4,10 @@
 
 * Issue #1451: With the indirect write method, writing Spark string columns to existing
   BigQuery DATETIME or TIME columns now fails before any data is written, with an error
-  message suggesting `writeMethod=direct` or a matching Spark type. Previously the BigQuery
-  load job rejected the intermediate files after all the data was written to GCS. The README
-  now also documents that reading DATETIME as TimestampNTZ requires the Spark specific
-  connectors (`spark-3.4-bigquery` and above).
+  message suggesting TimestampNTZType values for DATETIME columns or `writeMethod=direct`.
+  Previously the BigQuery load job rejected the intermediate files after all the data was
+  written to GCS. The README now also documents that reading DATETIME as TimestampNTZ
+  requires the Spark specific connectors (`spark-3.4-bigquery` and above).
 
 ## 0.46.0 - 2026-10-08
 

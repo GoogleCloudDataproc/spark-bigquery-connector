@@ -369,10 +369,10 @@ public class SparkBigQueryUtil {
           String.format(
               "Cannot write string columns to existing BigQuery DATETIME or TIME columns with the"
                   + " indirect write method, as BigQuery load jobs do not convert strings to these"
-                  + " types: %s. Use writeMethod=direct, which accepts strings in the canonical"
-                  + " DATETIME and TIME formats, or convert the columns to matching Spark types"
-                  + " before writing (for example, TimestampNTZType for DATETIME with the Spark"
-                  + " 3.4+ specific connectors).",
+                  + " types: %s. For DATETIME columns, write TimestampNTZType values instead"
+                  + " (supported by the Spark 3.4+ specific connectors). Otherwise, use"
+                  + " writeMethod=direct, which accepts strings in the canonical DATETIME and TIME"
+                  + " formats.",
               String.join(", ", incompatibleFields)));
     }
   }

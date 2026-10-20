@@ -1178,7 +1178,7 @@ With the exception of `DATETIME` and `TIME` all BigQuery data types directed map
     <p>
     Spark string can be written to an existing BQ DATETIME column provided it is in the <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#canonical_format_for_datetime_literals">format for BQ DATETIME literals</a>. This requires the direct write method (<code>writeMethod=direct</code>); BigQuery load jobs, used by the indirect write method, do not convert strings into DATETIME columns, so the connector rejects such indirect writes before writing any data.
     <p>
-    * For Spark 3.4+, BQ DATETIME is read as Spark's TimestampNTZ type i.e. java LocalDateTime. This requires the Spark specific connectors (<code>spark-3.4-bigquery</code> and above); the <code>spark-bigquery-with-dependencies</code> connectors read DATETIME as StringType.
+    * For Spark 3.4+, BQ DATETIME is read as Spark's TimestampNTZ type i.e. java LocalDateTime. This requires the Spark specific connectors (<code>spark-3.4-bigquery</code> and above); the <code>spark-bigquery-with-dependencies</code> connectors read DATETIME as StringType. With the Spark specific connectors, TimestampNTZ values are written to BQ DATETIME columns with both the direct and indirect write methods.
    </td>
   </tr>
   <tr valign="top">
