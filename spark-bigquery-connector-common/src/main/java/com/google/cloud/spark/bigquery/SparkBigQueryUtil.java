@@ -18,7 +18,11 @@ package com.google.cloud.spark.bigquery;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.DEFAULT_FALLBACK;
 import static com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil.getOptionFromMultipleParams;
 
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryConfigurationUtil;
@@ -35,6 +39,7 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -43,6 +48,8 @@ import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.validation.constraints.NotNull;
 import org.apache.hadoop.conf.Configuration;
@@ -69,6 +76,11 @@ public class SparkBigQueryUtil {
   static final String CONNECTOR_VERSION = BUILD_PROPERTIES.getProperty("connector.version");
 
   private static final ImmutableSet<TypeConverter> typeConverters;
+
+  // BigQuery column types that load jobs don't populate from string values in the source files.
+  private static final ImmutableSet<LegacySQLTypeName>
+      TYPES_WITHOUT_STRING_CONVERSION_IN_LOAD_JOBS =
+          ImmutableSet.of(LegacySQLTypeName.DATETIME, LegacySQLTypeName.TIME);
 
   static {
     ServiceLoader<TypeConverter> serviceLoader = ServiceLoader.load(TypeConverter.class);
@@ -329,5 +341,65 @@ public class SparkBigQueryUtil {
 
   public static boolean isCdcPseudoColumn(StructField field) {
     return BigQueryUtil.CDC_PSEUDO_COLUMNS.contains(field.name().toUpperCase(Locale.ENGLISH));
+  }
+
+  /**
+   * Verifies that data with the given schema can be loaded into the existing table by the indirect
+   * write method. The load job is configured with the existing table's column types (see {@link
+   * BigQueryUtil#adjustSchemaIfNeeded}), and BigQuery load jobs don't convert string values from
+   * the intermediate files (Parquet, Avro or ORC) into DATETIME or TIME columns. Checking this
+   * before the intermediate files are written avoids writing all the data to GCS for a load job
+   * that would fail.
+   *
+   * @param wantedSchema the BigQuery schema converted from the Spark schema of the data
+   * @param existingTableSchema the schema of the existing destination table
+   * @throws IllegalArgumentException if a STRING field would be loaded into a DATETIME or TIME
+   *     column
+   */
+  public static void verifyIndirectWriteSchemaCompatibility(
+      Schema wantedSchema, Schema existingTableSchema) {
+    if (existingTableSchema == null) {
+      return;
+    }
+    List<String> incompatibleFields = new ArrayList<>();
+    collectStringFieldsLoadedIntoTypesWithoutStringConversion(
+        "", wantedSchema.getFields(), existingTableSchema.getFields(), incompatibleFields);
+    if (!incompatibleFields.isEmpty()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Cannot write string columns to existing BigQuery DATETIME or TIME columns with the"
+                  + " indirect write method, as BigQuery load jobs do not convert strings to these"
+                  + " types: %s. For DATETIME columns, write TimestampNTZType values instead"
+                  + " (supported by the Spark 3.4+ specific connectors). Otherwise, use"
+                  + " writeMethod=direct, which accepts strings in the canonical DATETIME and TIME"
+                  + " formats.",
+              String.join(", ", incompatibleFields)));
+    }
+  }
+
+  private static void collectStringFieldsLoadedIntoTypesWithoutStringConversion(
+      String prefix, FieldList wantedFields, FieldList existingFields, List<String> result) {
+    // Field names are matched exactly, like in BigQueryUtil.adjustField, which builds the load job
+    // schema. When the names differ only in case, the load schema keeps the wanted STRING type
+    // rather than the table's column type, so the load job doesn't hit the conversion this method
+    // checks for (it fails with a type change error on append, and replaces the column on
+    // overwrite).
+    Map<String, Field> existingFieldsMap =
+        existingFields.stream().collect(Collectors.toMap(Field::getName, Function.identity()));
+    for (Field field : wantedFields) {
+      Field existingField = existingFieldsMap.get(field.getName());
+      if (existingField == null) {
+        continue;
+      }
+      String fieldName = prefix + field.getName();
+      if (LegacySQLTypeName.STRING.equals(field.getType())
+          && TYPES_WITHOUT_STRING_CONVERSION_IN_LOAD_JOBS.contains(existingField.getType())) {
+        result.add(String.format("%s (%s)", fieldName, existingField.getType()));
+      } else if (LegacySQLTypeName.RECORD.equals(field.getType())
+          && LegacySQLTypeName.RECORD.equals(existingField.getType())) {
+        collectStringFieldsLoadedIntoTypesWithoutStringConversion(
+            fieldName + ".", field.getSubFields(), existingField.getSubFields(), result);
+      }
+    }
   }
 }
