@@ -25,12 +25,17 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeThat;
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.Job;
+import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
@@ -45,6 +50,7 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig.WriteMethod;
+import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
 import com.google.cloud.spark.bigquery.integration.model.Data;
 import com.google.cloud.spark.bigquery.integration.model.Friend;
 import com.google.cloud.spark.bigquery.integration.model.Link;
@@ -1710,6 +1716,76 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testIndirectWriteStringToDateTimeAndTimeFields_AppendSaveMode()
       throws InterruptedException {
     testIndirectWriteStringToDateTimeAndTimeFields_internal(SaveMode.Append);
+  }
+
+  @Test
+  public void testLoadJobRejectsStringsForDateTimeAndTimeColumns() throws Exception {
+    // The connector rejects indirect writes of string columns to existing DATETIME or TIME columns
+    // before writing any data (see SparkBigQueryUtil.verifyIndirectWriteSchemaCompatibility), as
+    // BigQuery load jobs don't convert strings into these types. This test runs such load jobs
+    // directly, bypassing the connector, so that it fails if BigQuery starts accepting them, in
+    // which case that check should be revisited.
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    String[][] typesAndValues = {
+      {"DATETIME", "0001-01-01 01:22:24.999888"},
+      {"TIME", "10:00:00"},
+    };
+    ImmutableMap<String, FormatOptions> formats =
+        ImmutableMap.of(
+            "parquet", FormatOptions.parquet(),
+            "avro", FormatOptions.avro(),
+            "orc", FormatOptions.orc());
+    for (String[] typeAndValue : typesAndValues) {
+      String type = typeAndValue[0];
+      Dataset<Row> df =
+          spark.createDataFrame(
+              Arrays.asList(RowFactory.create("abc", typeAndValue[1])),
+              structType(
+                  StructField.apply("name", DataTypes.StringType, true, Metadata.empty()),
+                  StructField.apply("value1", DataTypes.StringType, true, Metadata.empty())));
+      for (Map.Entry<String, FormatOptions> format : formats.entrySet()) {
+        String table = testTable + "_" + format.getKey() + "_" + type.toLowerCase();
+        IntegrationTestUtils.runQuery(
+            String.format(
+                "CREATE TABLE `%s.%s` (name STRING, value1 %s)", testDataset, table, type));
+        String gcsPath = String.format("gs://%s/%s", TestConstants.TEMPORARY_GCS_BUCKET, table);
+        try {
+          df.coalesce(1).write().format(format.getKey()).save(gcsPath);
+          // Same schema as the connector uses for the load job: the existing table's column types.
+          LoadJobConfiguration loadJobConfiguration =
+              LoadJobConfiguration.newBuilder(
+                      TableId.of(testDataset.toString(), table),
+                      gcsPath + "/part-*",
+                      format.getValue())
+                  .setSchema(
+                      Schema.of(
+                          Field.of("name", LegacySQLTypeName.STRING),
+                          Field.of("value1", LegacySQLTypeName.valueOf(type))))
+                  .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+                  .setUseAvroLogicalTypes(true)
+                  .build();
+          // waitFor() throws when the job fails. Only errors about invalid input count as the load
+          // job rejecting the data ("invalid" for Parquet and ORC, "invalidQuery" for Avro's schema
+          // check), so that unrelated failures (e.g. permissions) aren't mistaken for it.
+          String errorReason;
+          try {
+            Job job = bq.create(JobInfo.of(loadJobConfiguration)).waitFor();
+            errorReason =
+                job.getStatus().getError() == null ? null : job.getStatus().getError().getReason();
+          } catch (BigQueryException e) {
+            errorReason = e.getReason();
+          }
+          assertWithMessage(
+                  "Unexpected outcome of a BigQuery load job with strings for a %s column with"
+                      + " format %s",
+                  type, format.getKey())
+              .that(errorReason)
+              .isAnyOf("invalid", "invalidQuery");
+        } finally {
+          AcceptanceTestUtils.deleteGcsDir(gcsPath);
+        }
+      }
+    }
   }
 
   @Test
