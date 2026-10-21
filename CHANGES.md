@@ -2,6 +2,14 @@
 
 ## Next
 
+* Issue #1352: Since 0.41.1, the optimized empty projection path (used by `count()`,
+  `isEmpty()` and similar) runs a `SELECT COUNT(*)` query job, which requires the
+  `bigquery.jobs.create` permission. When that permission is missing, the connector
+  now fails with an error explaining the requirement and the available alternatives.
+  Added the `useMetadataStaleRowCountIfPossible` option (default `false`) which, for
+  unfiltered reads of native tables, uses the table metadata row count instead of
+  running a query job.
+
 ## 0.46.0 - 2026-10-08
 
 * `spark-4.2-bigquery` is generally available! Like Spark 4.2, this connector requires at
