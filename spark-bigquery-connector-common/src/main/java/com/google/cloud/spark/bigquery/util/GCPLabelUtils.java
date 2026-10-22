@@ -1,0 +1,247 @@
+package com.google.cloud.spark.bigquery.util;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableMap;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.util.EntityUtils;
+
+/** Util to extract values from GCP environment */
+public class GCPLabelUtils {
+
+  private static final String BASE_URI = "http://metadata.google.internal/computeMetadata/v1";
+  public static final String PROJECT_ID_ENDPOINT = "/project/project-id";
+  public static final String BATCH_ID_ENDPOINT = "/instance/attributes/dataproc-batch-id";
+  public static final String BATCH_UUID_ENDPOINT = "/instance/attributes/dataproc-batch-uuid";
+  public static final String SESSION_ID_ENDPOINT = "/instance/attributes/dataproc-session-id";
+  public static final String SESSION_UUID_ENDPOINT = "/instance/attributes/dataproc-session-uuid";
+  public static final String CLUSTER_UUID_ENDPOINT = "/instance/attributes/dataproc-cluster-uuid";
+  public static final String DATAPROC_REGION_ENDPOINT = "/instance/attributes/dataproc-region";
+  private static final String DATAPROC_CLASSPATH = "/usr/local/share/google/dataproc/lib";
+  public static final String SPARK_YARN_TAGS = "spark.yarn.tags";
+  public static final String SPARK_DRIVER_HOST = "spark.driver.host";
+  public static final String SPARK_APP_ID = "spark.app.id";
+  public static final String SPARK_APP_NAME = "spark.app.name";
+  public static final String GOOGLE_METADATA_API = "google.metadata.api.base-url";
+  public static final String SPARK_MASTER = "spark.master";
+  private static final String JOB_ID_PREFIX = "dataproc_job_";
+  private static final String JOB_UUID_PREFIX = "dataproc_uuid_";
+  private static final String METADATA_FLAVOUR = "Metadata-Flavor";
+  private static final String GOOGLE = "Google";
+  private static final String SPARK_DIST_CLASSPATH = "SPARK_DIST_CLASSPATH";
+
+  private static Optional<Supplier<Map<String, String>>> sparkLabelsSupplier = Optional.empty();
+
+  private static CloseableHttpClient createHttpClient() {
+    RequestConfig requestConfig =
+        RequestConfig.custom()
+            .setConnectTimeout(1000)
+            .setSocketTimeout(1000)
+            .setConnectionRequestTimeout(100) // from pool
+            .build();
+    PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+    connectionManager.setDefaultMaxPerRoute(20);
+    connectionManager.setMaxTotal(200);
+    return HttpClients.custom()
+        .setDefaultRequestConfig(requestConfig)
+        .setConnectionManager(connectionManager)
+        .build();
+  }
+
+  static boolean isDataprocRuntime() {
+    String sparkDistClasspath = System.getenv(SPARK_DIST_CLASSPATH);
+    return (sparkDistClasspath != null && sparkDistClasspath.contains(DATAPROC_CLASSPATH));
+  }
+
+  public static Map<String, String> getSparkLabels(ImmutableMap<String, String> conf) {
+    if (!sparkLabelsSupplier.isPresent()) {
+      sparkLabelsSupplier = Optional.of(Suppliers.memoize(() -> computeSparkLabels(conf)));
+    }
+    return sparkLabelsSupplier.get().get();
+  }
+
+  @VisibleForTesting
+  static void resetSparkLabelsCache() {
+    sparkLabelsSupplier = Optional.empty();
+  }
+
+  private static Map<String, String> computeSparkLabels(ImmutableMap<String, String> conf) {
+    Map<String, String> sparkLabels = new HashMap<>();
+    getSparkAppId(conf).ifPresent(p -> sparkLabels.put("app-id", p));
+    getSparkAppName(conf).ifPresent(p -> sparkLabels.put("app-name", p));
+    if (isDataprocRuntime()) {
+      sparkLabels.putAll(getGCPLabels(conf));
+    }
+    return sparkLabels;
+  }
+
+  static Map<String, String> getGCPLabels(ImmutableMap<String, String> conf) {
+    try (CloseableHttpClient httpClient = createHttpClient()) {
+      Map<String, String> gcpLabels = getResourceLabels(conf, httpClient);
+      getGCPProjectId(conf, httpClient).ifPresent(p -> gcpLabels.put("project-id", p));
+      getDataprocRegion(conf, httpClient).ifPresent(p -> gcpLabels.put("region", p));
+      return gcpLabels;
+    } catch (IOException e) {
+      // If client creation or closing fails, return empty map
+      return new HashMap<>();
+    }
+  }
+
+  private static Map<String, String> getResourceLabels(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    Map<String, String> resourceLabels = new HashMap<>();
+    if ("yarn".equals(conf.getOrDefault(SPARK_MASTER, ""))) {
+      getClusterName(conf).ifPresent(p -> resourceLabels.put("cluster-name", p));
+      getClusterUUID(conf, httpClient).ifPresent(p -> resourceLabels.put("cluster-uuid", p));
+      getDataprocJobID(conf).ifPresent(p -> resourceLabels.put("job-id", p));
+      getDataprocJobUUID(conf).ifPresent(p -> resourceLabels.put("job-uuid", p));
+      resourceLabels.put("job-type", "dataproc_job");
+      return resourceLabels;
+    }
+    Optional<String> dataprocBatchID = getDataprocBatchID(conf, httpClient);
+    if (dataprocBatchID.isPresent()) {
+      dataprocBatchID.ifPresent(p -> resourceLabels.put("spark-batch-id", p));
+      getDataprocBatchUUID(conf, httpClient)
+          .ifPresent(p -> resourceLabels.put("spark-batch-uuid", p));
+      resourceLabels.put("job-type", "batch");
+      return resourceLabels;
+    }
+    Optional<String> dataprocSessionID = getDataprocSessionID(conf, httpClient);
+    if (dataprocSessionID.isPresent()) {
+      dataprocSessionID.ifPresent(p -> resourceLabels.put("spark-session-id", p));
+      getDataprocSessionUUID(conf, httpClient)
+          .ifPresent(p -> resourceLabels.put("spark-session-uuid", p));
+      resourceLabels.put("job-type", "session");
+      return resourceLabels;
+    }
+    return resourceLabels;
+  }
+
+  private static Optional<String> getDriverHost(ImmutableMap<String, String> conf) {
+    return Optional.ofNullable(conf.get(SPARK_DRIVER_HOST));
+  }
+
+  @VisibleForTesting
+  static Optional<String> getClusterName(ImmutableMap<String, String> conf) {
+    return getDriverHost(conf)
+        .map(host -> host.split("\\.")[0])
+        .map(s -> s.contains("-") ? s.substring(0, s.lastIndexOf("-")) : s);
+  }
+
+  @VisibleForTesting
+  static Optional<String> getDataprocRegion(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(DATAPROC_REGION_ENDPOINT, conf, httpClient);
+  }
+
+  @VisibleForTesting
+  static Optional<String> getDataprocJobID(ImmutableMap<String, String> conf) {
+    return getPropertyFromYarnTag(conf, JOB_ID_PREFIX);
+  }
+
+  @VisibleForTesting
+  static Optional<String> getDataprocJobUUID(ImmutableMap<String, String> conf) {
+    return getPropertyFromYarnTag(conf, JOB_UUID_PREFIX);
+  }
+
+  @VisibleForTesting
+  static Optional<String> getDataprocBatchID(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(BATCH_ID_ENDPOINT, conf, httpClient);
+  }
+
+  @VisibleForTesting
+  static Optional<String> getDataprocBatchUUID(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(BATCH_UUID_ENDPOINT, conf, httpClient);
+  }
+
+  @VisibleForTesting
+  static Optional<String> getDataprocSessionID(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(SESSION_ID_ENDPOINT, conf, httpClient);
+  }
+
+  @VisibleForTesting
+  private static Optional<String> getDataprocSessionUUID(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(SESSION_UUID_ENDPOINT, conf, httpClient);
+  }
+
+  @VisibleForTesting
+  static Optional<String> getGCPProjectId(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(PROJECT_ID_ENDPOINT, conf, httpClient)
+        .map(b -> b.substring(b.lastIndexOf('/') + 1));
+  }
+
+  @VisibleForTesting
+  static Optional<String> getSparkAppId(ImmutableMap<String, String> conf) {
+    return Optional.ofNullable(conf.get(SPARK_APP_ID));
+  }
+
+  @VisibleForTesting
+  static Optional<String> getSparkAppName(ImmutableMap<String, String> conf) {
+    return Optional.ofNullable(conf.get(SPARK_APP_NAME));
+  }
+
+  @VisibleForTesting
+  static Optional<String> getClusterUUID(
+      ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    return fetchGCPMetadata(CLUSTER_UUID_ENDPOINT, conf, httpClient);
+  }
+
+  @VisibleForTesting
+  static Optional<String> getPropertyFromYarnTag(
+      ImmutableMap<String, String> conf, String tagPrefix) {
+    return Optional.ofNullable(conf.get(SPARK_YARN_TAGS))
+        .flatMap(
+            tags ->
+                Arrays.stream(tags.split(","))
+                    .filter(tag -> tag.startsWith(tagPrefix))
+                    .findFirst()
+                    .map(tag -> tag.substring(tagPrefix.length())));
+  }
+
+  private static Optional<String> fetchGCPMetadata(
+      String httpEndpoint, ImmutableMap<String, String> conf, CloseableHttpClient httpClient) {
+    String baseUri = conf.getOrDefault(GOOGLE_METADATA_API, BASE_URI);
+    String httpURI = baseUri + httpEndpoint;
+    HttpGet httpGet = new HttpGet(httpURI);
+    httpGet.addHeader(METADATA_FLAVOUR, GOOGLE);
+    try {
+      ResponseHandler<Optional<String>> handler =
+          response -> {
+            handleError(response);
+            return Optional.of(EntityUtils.toString(response.getEntity(), UTF_8));
+          };
+      return httpClient.execute(httpGet, handler);
+    } catch (IOException e) {
+      return Optional.empty();
+    }
+  }
+
+  private static void handleError(HttpResponse response) throws IOException {
+    int statusCode = response.getStatusLine().getStatusCode();
+    if (statusCode < 400 || statusCode >= 600) {
+      return;
+    }
+    String body =
+        response.getEntity() != null ? EntityUtils.toString(response.getEntity(), UTF_8) : "";
+    throw new IOException(String.format("code: %d, response: %s", statusCode, body));
+  }
+}
