@@ -61,7 +61,6 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
-        <module>spark-bigquery-dsv1</module>
         <module>spark-bigquery-dsv2</module>
       </modules>
     </profile>
