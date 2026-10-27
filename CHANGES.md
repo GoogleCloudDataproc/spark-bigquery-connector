@@ -7,6 +7,10 @@
 * CVE-2026-110879: Jackson was upgraded to version 2.22.4
 * JSON was upgraded to version 20260814
 * OpenLineage was upgraded to version 1.55.0
+* The BigQuery REST client used by `BigQueryClient.getRestTable()` now uses the same HTTP
+  transport as the BigQuery client, so it validates TLS against the JVM default truststore and
+  honors the connector's proxy settings.
+* google-api-client was upgraded to version 2.9.2
 
 ## 0.46.0 - 2026-10-08
 
