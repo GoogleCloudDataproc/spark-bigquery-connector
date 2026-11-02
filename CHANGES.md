@@ -2,6 +2,15 @@
 
 ## Next
 
+* :warning: The DataSource V1 connectors (`spark-bigquery-with-dependencies_2.12` and
+  `spark-bigquery-with-dependencies_2.13`) are no longer released. The 0.46.x versions are the
+  last releases of these connectors. Please migrate to the connector matching your Spark version,
+  as listed in the
+  [compatibility matrix](https://github.com/GoogleCloudDataproc/spark-bigquery-connector#connector-to-spark-compatibility-matrix).
+* README: Split the Dataproc compatibility matrix into separate matrices for cluster images and
+  serverless runtimes, listing the currently supported versions, and moved the connectors that are
+  no longer released to a dedicated section.
+
 ## 0.46.0 - 2026-10-08
 
 * `spark-4.2-bigquery` is generally available! Like Spark 4.2, this connector requires at
@@ -39,7 +48,6 @@
 * Netty has been upgraded to version 4.2.17.Final
 * Protocol Buffers has been upgraded to version 4.35.1
 
-
 ## 0.44.2 - 2026-05-20
 
 * Issue #1389: Fixed Timestamp Conversion from Julian to Gregorian conversion
@@ -56,6 +64,7 @@
 * Avro has been upgraded to version 1.11.5
 
 ## 0.44.1 - 2026-03-25
+
 * BigQuery API has been upgraded to version 2.60.0
 * BigQuery Storage API has been upgraded to version 3.22.1
 * GAX has been upgraded to version 2.75.0
@@ -66,6 +75,7 @@
 * google-api-client has been upgraded to version 2.9.0
 
 ## 0.44.0 - 2026-02-11
+
 * Added new connector, `spark-4.1-bigquery` aimed to be used in Spark 4.1. Like Spark 4.1, this connector requires at
   least Java 17 runtime. It is currently in preview mode.
 * `spark-4.0-bigquery` is generally available!
@@ -74,10 +84,12 @@
 * PR #1434: Support per-catalog configuration for project and location for BigQueryCatalog.
 
 ## 0.43.1 - 2025-10-22
+
 * Issue #1417: Fixed ClassCastException in AWS federated identity
 * PR #1432: Fixing packaging issue with the spark-4.0-bigquery connector.
 
 ## 0.43.0 - 2025-10-17
+
 * Added new connector, `spark-4.0-bigquery` aimed to be used in Spark 4.0. Like Spark 4.0, this connector requires at
   least Java 17 runtime. It is currently in preview mode.
 * PR #1367: Query Pushdown is no longer supported.
@@ -97,6 +109,7 @@
 * gRPC has been upgraded to version 1.74.0
 
 ## 0.42.2 - 2025-05-16
+
 * PR #1347: Get lineage out of query. Thanks @ddebowczyk92
 * PR #1349: Add parameterized query support
 * BigQuery API has been upgraded to version 2.48.1
@@ -105,11 +118,13 @@
 * gRPC has been upgraded to version 1.71.0
 
 ## 0.42.1 - 2025-03-17
+
 * CVE-2025-24970, CVE-2025-25193: Upgrading netty to version 4.1.119.Final
 * PR #1284: Making BigQueryClientFactory Kryo serializable. Thanks @tom-s-powell !
 * PR #1345: `materializationDataset` is no longer needed to read from views or queries.
 
 ## 0.42.0 - 2025-02-06
+
 * PR #1333: Initial implementation of a BigQuery backed Spark Catalog
 * PR #1335: Adding indirect write GCS cleanup logs
 * BigQuery API has been upgraded to version 2.47.0
@@ -119,6 +134,7 @@
 * Guava has been upgraded to version 33.4.0-jre
 
 ## 0.41.1 - 2024-12-20
+
 * Issue #1290: Stopped using metadata for optimized count path
 * Issue #1317: Improving OpenLineage 1.24.0+ compatibility
 * PR #1311: Improve read session expired error message
@@ -154,7 +170,6 @@
 * GAX has been upgraded to version 2.51.0
 * gRPC has been upgraded to version 1.65.1
 * Netty has been upgraded to version 4.1.112.Final
-
 
 ## 0.39.1 - 2024-06-24
 
@@ -201,7 +216,6 @@
 * gRPC has been upgraded to version 1.62.2
 * Netty has been upgraded to version 4.1.107.Final
 * Protocol Buffers has been upgraded to version 3.25.3
-
 
 ## 0.36.1 - 2024-01-31
 
@@ -414,6 +428,7 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * PR #668: Using spark default parallelism as default.
 
 ## 0.25.0 - 2022-05-31
+
 * Issue #593: Allow users to disable cache when loading data via SQL query,
   by setting `cacheExpirationTimeInMinutes=0`
 * PR #613: Added field level schema checks. This can be disabled by setting
@@ -431,16 +446,19 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * Netty has been upgraded to version 4.1.75.Final
 
 ## 0.24.2 - 2022-04-05
+
 * PR #580: Fixed shaded artifacts version flattening, the version appears
   correctly in the released POM
 * PR #583: netty-tcnative is taken from the Netty BOM
 * PR #584: CVE-2020-36518 - Upgraded jackson
 
 ## 0.24.1 - 2022-03-29
+
 * PR #576: Fixed error running on Datapoc clusters where conscrypt is disabled
   (the property`dataproc.conscrypt.provider.enable` set to `false`)
 
 ## 0.24.0 - 2022-03-23
+
 * Issue #530: Treating Field.mode==null as Nullable
 * PR #518: Cache expiration time can be configured now.
 * PR #561: Added support for adding trace ID to the BigQuery reads and writes.
@@ -456,6 +474,7 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * Netty has been upgraded to version 4.1.73.Final
 
 ## 0.23.2 - 2022-01-19
+
 * PR #521: Added Arrow compression options to the
   spark-bigquery-with-dependencies_2.* connectors
 * PR #526: Added the option to use parent project for the metadata/jobs API as
@@ -466,9 +485,11 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * Netty has been upgraded to version 4.1.70.Final
 
 ## 0.23.1 - 2021-12-08
+
 * Issue #501: Fixed using avro as an intermediate type for writing.
 
 ## 0.23.0 - 2021-12-06
+
 * New connector: A Java only connector implementing the Spark 2.4 APIs
 * PR #469: Added support for the BigQuery Storage Write API, allowing faster
   writes (Spark 2.4 connector only)
@@ -479,6 +500,7 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * gRPC has been upgraded to version 1.41.0
 
 ## 0.22.2 - 2021-09-22
+
 * Issue #446: BigNumeric values are properly written to BigQuery
 * Issue #452: Adding the option to clean BigQueryClient.destinationTableCache
 * BigQuery API has been upgraded to version 2.1.12
@@ -486,14 +508,17 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * gRPC has been upgraded to version 1.40.0
 
 ## 0.22.1 - 2021-09-08
+
 * Issue #444: allowing unpartitioned clustered table
 
 ## 0.22.0 - 2021-06-22
+
 * PR #404: Added support for BigNumeric
 * PR #430: Added HTTP and gRPC proxy support
 * Issue #273: Resolved the streaming write issue for spark 3.x
 
 ## 0.21.1 - 2021-06-22
+
 * PR #413: Pushing all filters to BigQuery Storage API
 * Issue #412: Supporting WITH queries
 * Issue #409: Allowing all whitespaces after the select
@@ -502,6 +527,7 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * PR #417: Added back column projection to DSv2
 
 ## 0.21.0 - 2021-06-01
+
 * Issue #354: users can query a view with different columns in select() and filter()
 * Issue #367: Struct column order is fixed
 * Issue #383: Fixed table metadata update when writing to a partitioned table
@@ -515,6 +541,7 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * Netty has been upgraded to version 4.1.65.Final
 
 ## 0.20.0 - 2021-03-29
+
 * PR #375: Added support for pseudo column support - time partitioned table now supoort the _PARTITIONTIME and _PARTITIONDATE fields
 * Issue# 190: Writing data to BigQuery properly populate the field description
 * Issue #265: Fixed nested conjunctions/disjunctions when using the AVRO read format
@@ -522,6 +549,7 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * Arrow has been upgraded to version 4.0.0
 
 ## 0.19.1 - 2021-03-01
+
 * PR #324 - Restoring version 0.18.1 dependencies due to networking issues
 * BigQuery API has been upgraded to version 1.123.2
 * BigQuery Storage API has been upgraded to version 1.6.0
@@ -529,6 +557,7 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * Netty has been upgraded to version 4.1.51.Final
 
 ## 0.19.0 - 2021-02-24
+
 * Issue #247: Allowing to load results of any arbitrary SELECT query from BigQuery.
 * Issue #310: Allowing to configure the expiration time of materialized data.
 * PR #283: Implemented Datasource v2 write support.
@@ -539,11 +568,13 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * Netty has been upgraded to version 4.1.52.Final
 
 ## 0.18.1 - 2021-01-21
+
 * Issue #248: Reducing the size of the URI list when writing to BigQuery. This allows larger DataFrames (>10,000 partitions) to be safely written.
 * Issue #296: Removed redundant packaged slf4j-api.
 * PR #276: Added the option to enable `useAvroLogicalTypes` option When writing data to BigQuery.
 
 ## 0.18.0 - 2020-11-12
+
 * Issue #226: Adding support for HOUR, MONTH, DAY TimePartitions
 * Issue #260: Increasing connection timeout to the BigQuery service, and
   configuring the request retry settings.
@@ -558,13 +589,16 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * netty-tcnative has been upgraded to version 4.1.34.Final
 
 ## 0.17.3 - 2020-10-06
+
 * PR #242, #243: Fixed Spark 3 compatibility, added Spark 3 acceptance test
 * Issue #249: Fixing credentials creation from key
 
 ## 0.17.2 - 2020-09-10
+
 * PR #239: Ensuring that the BigQuery client will have the proper project id
 
 ## 0.17.1 - 2020-08-06
+
 * Issue #216: removed redundant ALPN dependency
 * Issue #219: Fixed the LessThanOrEqual filter SQL compilation in the DataSource v2 implmentation
 * Issue #221: Fixed ProtobufUtilsTest.java with newer BigQuery dependencies
@@ -573,6 +607,7 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * BigQuery Storage API has been upgraded to version 1.3.1
 
 ## 0.17.0 - 2020-07-15
+
 * PR #201: [Structured streaming write](http://spark.apache.org/docs/2.4.5/structured-streaming-programming-guide.html#starting-streaming-queries)
   is now supported (thanks @varundhussa)
 * PR #202: Users now has the option to keep the data on GCS after writing to BigQuery (thanks @leoneuwald)
@@ -585,9 +620,11 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * Netty has been upgraded to version 4.1.48.Final (Fixing issue #200)
 
 ## 0.16.1 - 2020-06-11
+
 * PR #186: Fixed SparkBigQueryConnectorUserAgentProvider initialization bug
 
 ## 0.16.0 - 2020-06-09
+
 **Please don't use this version, use 0.16.1 instead**
 
 * PR #180: Apache Arrow is now the default read format. Based on our benchmarking, Arrow provides read
@@ -606,16 +643,19 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * Guava has been upgraded to version 29.0-jre
 
 ## 0.15.1-beta - 2020-04-27
+
 * PR #158: Users can now add the `spark.datasource.bigquery` prefix to the configuration options in order to support Spark's `--conf` command line flag
 * PR #160: View materialization is performed only on action, fixing a bug where view materialization was done too early
 
 ## 0.15.0-beta - 2020-04-20
+
 * PR #150: Reading `DataFrame`s should be quicker, especially in interactive usage such in notebooks
 * PR #154: Upgraded to the BigQuery Storage v1 API
 * PR #146: Authentication can be done using [AccessToken](https://cloud.google.com/sdk/gcloud/reference/auth/application-default/print-access-token)
   on top of Credentials file, Credentials, and the `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
 
 ## 0.14.0-beta - 2020-03-31
+
 * Issue #96: Added Arrow as a supported format for reading from BigQuery
 * Issue #130 Adding the field description to the schema metadata
 * Issue #124: Fixing null values in ArrayType
@@ -624,14 +664,15 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * Upgrade version of google-cloud-bigquery library to 1.110.0
 * Upgrade version of google-cloud-bigquerystorage library to 0.126.0-beta
 
-
 ## 0.13.1-beta - 2020-02-14
+
 * The BigQuery Storage API was reverted to v1beta1. The v1beta2 API has not been
   fully integrated with custom IAM roles, which can cause issues to customers using
   those. The v1beta1 doesn't have this problem. Once the integration is complete,
   the API will be upgraded again.
 
 ## 0.13.0-beta - 2020-02-12
+
 **Please don't use this version, use 0.13.1-beta instead**
 
 * Moved to use BigQuery Storage API v1beta2
@@ -643,12 +684,14 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
   to BigQuery.
 
 ## 0.12.0-beta - 2020-01-29
+
 * Issue #72: Moved the shaded jar name from classifier to a new artifact name
 * Issues #73, #87: Added better logging to help understand which columns and filters
   are asked by spark, and which are passed down to BigQuery
 * Issue #107: The connector will now alert when is is used with the wrong scala version
 
 ## 0.11.0-beta - 2019-12-18
+
 * Upgrade version of google-cloud-bigquery library to 1.102.0
 * Upgrade version of google-cloud-bigquerystorage library to 0.120.0-beta
 * Issue #6: Do not initialize bigquery options by default
@@ -656,12 +699,14 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * Issue #97: Added support for GEOGRAPHY type
 
 ## 0.10.0-beta - 2019-11-14
+
 * Added preliminary support for reading from BigQuery views (Issue #21)
 * Writing to BigQuery now white-listing the intermediate files instead
   of black listing the _SUCCESS files (PR #75)
 * Added count() tip to the README
 
 ## 0.9.2-beta - 2019-11-11
+
 * Upgrade version of google-cloud-bigquery library to 1.99.0
 * Upgrade version of google-cloud-bigquerystorage library to 0.117.0-beta
 * Upgrade version of grpc-netty-shaded library to 1.24.1
@@ -671,6 +716,7 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * Added Java Example
 
 ## 0.9.1-beta - 2019-10-11
+
 * A NPE in the shutdown hook has occurred in case the delete had succeeded
   in the first time. This had no impact on the actual logic, just on the log.
   The method now verifies the path exists before trying to delete it, and
@@ -679,6 +725,7 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
   regression caused by relying of shaded scalalogging
 
 ## 0.9.0-beta - 2019-10-08
+
 * Added write support
 * Switch requested partitions from SparkContext.defaultParallelism to one
   partition per 400MB. This should work better with balanced sharding and
@@ -689,9 +736,11 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
 * Upgrade version of grpc-netty-shaded library to 1.23.0
 
 ## 0.8.1-beta - 2019-09-12
+
 * Added a shaded version
 
 ## 0.8.0-beta - 2019-07-22
+
 * Upgrade version of google-cloud-bigquery library to 1.82.0
 * Upgrade version of google-cloud-bigquerystorage library to 0.98.0-beta
 * Upgrade version of grpc-netty-shaded library to 1.22.1
@@ -703,11 +752,13 @@ PR #904: Fixing premature client closing in certain cases, which causes Rejected
   StringContains etc.)
 
 ## 0.7.0-beta - 2019-06-26
+
 * Switch to using the BALANCED sharding strategy, which balances work between
   streams on the server-side, leading to a more uniform distribution of rows
   between partitions
 
 ## 0.6.0-beta - 2019-06-25
+
 * Support specifying credentials through configurations
 
 ## 0.5.1-beta - 2019-04-26

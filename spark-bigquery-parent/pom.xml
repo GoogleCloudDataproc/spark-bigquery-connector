@@ -564,13 +564,28 @@
                     <formats>
                         <format>
                             <includes>
-                                <include>*.md</include>
+                                <include>README.md</include>
                                 <include>.gitignore</include>
                             </includes>
                             <trimTrailingWhitespace/>
                             <endWithNewline/>
                         </format>
                     </formats>
+                    <markdown>
+                        <includes>
+                            <include>*.md</include>
+                        </includes>
+                        <!-- README.md is generated from README-template.md at
+                             release time, by replacing the version placeholder
+                             with the released version, which changes the width
+                             of its tables. -->
+                        <excludes>
+                            <exclude>README.md</exclude>
+                        </excludes>
+                        <flexmark/>
+                        <trimTrailingWhitespace/>
+                        <endWithNewline/>
+                    </markdown>
                     <java>
                         <toggleOffOn>
                             <off>fmt:off</off>
