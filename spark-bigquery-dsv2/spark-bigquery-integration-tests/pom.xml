@@ -1,0 +1,214 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.google.cloud.spark</groupId>
+    <artifactId>spark-bigquery-dsv2-parent</artifactId>
+    <version>${revision}</version>
+    <relativePath>../spark-bigquery-dsv2-parent</relativePath>
+  </parent>
+
+  <!--
+    Packages the integration tests of all Spark variants as a single jar that runs inside a Spark
+    job on a Dataproc image or Serverless runtime, against the connector bundled in that runtime.
+    Each dsv2_X.Y profile (the same profiles that select the connector modules in the reactor) adds
+    its variant's tests (the SparkXY* classes) to the jar, so build it with all the dsv2_X.Y
+    profiles below active, as the nightly and release builds do. The tests shared by all variants
+    are packaged once. Submit the jar as a Spark job (Dataproc job or Serverless batch) with main
+    class com.google.cloud.spark.bigquery.integration.RuntimeTestRunner (from the
+    spark-bigquery-connector-common tests), and the test class names of the runtime's Spark
+    variant as the job arguments.
+
+    How each jar binds to the bundled connector:
+    - The connector itself is a `provided` dependency, so neither its classes nor its (shaded)
+      dependency tree are packaged. At runtime they come from the runtime's connector jar.
+    - The shade plugin configuration is inherited from spark-bigquery-parent, so the test classes
+      are relocated with exactly the connector's rules (com.google.cloud.spark.bigquery.repackaged)
+      and resolve to the connector's relocated classes.
+    - Spark, Scala and Hadoop are `provided` by the runtime.
+    This module has no sources, so the Spark, Scala and JDK versions of each variant don't matter
+    here: only the variants' test jars and connectors are. A variant's tests are only loaded when
+    they're run, so the Spark 4 tests, compiled for Java 17, don't affect runtimes on older JDKs.
+  -->
+  <artifactId>spark-bigquery-integration-tests</artifactId>
+  <version>${revision}</version>
+  <name>Spark BigQuery connector integration tests for Dataproc runtimes</name>
+  <properties>
+    <scala.binary.version>2.13</scala.binary.version>
+    <shade.skip>false</shade.skip>
+  </properties>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>spark-bigquery-dsv2-common</artifactId>
+      <version>${project.parent.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- The tests shared by all variants. Exclusions keep the connector's own dependencies out. -->
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>spark-bigquery-connector-common</artifactId>
+      <version>${project.parent.version}</version>
+      <type>test-jar</type>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>bigquery-connector-common</artifactId>
+      <version>${project.parent.version}</version>
+      <type>test-jar</type>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <!-- Test libraries used by the tests, test scope in the parent poms. Only the artifacts listed
+         in the shade plugin's artifactSet below are packaged; everything else they depend on (gax,
+         auth, http-client, Guava, netty, ...) is already bundled in the connector. Versions come
+         from the connector's own dependency management, so they always match the connector. -->
+    <dependency>
+      <!-- Used by the BigLake tests' setup (AcceptanceTestUtils), over HTTP. -->
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-storage</artifactId>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.truth</groupId>
+      <artifactId>truth</artifactId>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <!-- The connector's shading check doesn't apply: these jars intentionally contain JUnit. -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+      <!-- Package only the tests and the test-only libraries, so that the tests bind to the
+           connector's classes at runtime. The relocation rules are inherited from the parent, and
+           the shaded jar replaces the (empty) main jar. Each variant's test jar is only a
+           dependency when its dsv2_X.Y profile is active. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <configuration>
+          <createDependencyReducedPom>false</createDependencyReducedPom>
+          <artifactSet>
+            <includes>
+              <include>com.google.cloud.spark:spark-bigquery-connector-common:test-jar:tests</include>
+              <include>com.google.cloud.spark:bigquery-connector-common:test-jar:tests</include>
+              <include>com.google.cloud.spark:spark-3.5-bigquery:test-jar:tests</include>
+              <include>com.google.cloud.spark:spark-4.0-bigquery:test-jar:tests</include>
+              <include>com.google.cloud.spark:spark-4.1-bigquery:test-jar:tests</include>
+              <include>junit:junit</include>
+              <include>org.hamcrest:hamcrest-core</include>
+              <include>com.google.truth:truth</include>
+              <include>org.ow2.asm:asm</include>
+              <include>com.google.cloud:google-cloud-storage</include>
+              <include>com.google.apis:google-api-services-storage</include>
+              <include>com.google.api.grpc:proto-google-cloud-storage-v2</include>
+              <include>com.google.http-client:google-http-client-jackson2</include>
+            </includes>
+          </artifactSet>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  <profiles>
+    <profile>
+      <id>dsv2_3.5</id>
+      <dependencies>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.5-bigquery</artifactId>
+          <version>${project.version}</version>
+          <scope>provided</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-3.5-bigquery</artifactId>
+          <version>${project.version}</version>
+          <type>test-jar</type>
+          <exclusions>
+            <exclusion>
+              <groupId>*</groupId>
+              <artifactId>*</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>dsv2_4.0</id>
+      <dependencies>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-4.0-bigquery</artifactId>
+          <version>${project.version}</version>
+          <scope>provided</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-4.0-bigquery</artifactId>
+          <version>${project.version}</version>
+          <type>test-jar</type>
+          <exclusions>
+            <exclusion>
+              <groupId>*</groupId>
+              <artifactId>*</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>dsv2_4.1</id>
+      <dependencies>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-4.1-bigquery</artifactId>
+          <version>${project.version}</version>
+          <scope>provided</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-4.1-bigquery</artifactId>
+          <version>${project.version}</version>
+          <type>test-jar</type>
+          <exclusions>
+            <exclusion>
+              <groupId>*</groupId>
+              <artifactId>*</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
+</project>
