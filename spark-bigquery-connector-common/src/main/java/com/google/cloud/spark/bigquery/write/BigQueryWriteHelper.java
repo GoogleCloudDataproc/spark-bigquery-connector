@@ -99,10 +99,12 @@ public class BigQueryWriteHelper {
         SchemaConverters.from(SchemaConvertersConfiguration.from(config))
             .toBigQuerySchema(data.schema());
     if (tableInfo.isPresent()) {
+      Schema existingTableSchema = tableInfo.get().getDefinition().getSchema();
+      SparkBigQueryUtil.verifyIndirectWriteSchemaCompatibility(schema, existingTableSchema);
       schema =
           BigQueryUtil.adjustSchemaIfNeeded(
               schema,
-              tableInfo.get().getDefinition().getSchema(),
+              existingTableSchema,
               config
                   .getLoadSchemaUpdateOptions()
                   .contains(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION));

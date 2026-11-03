@@ -151,6 +151,13 @@ public class BigQueryIndirectDataSourceWriterContext implements DataSourceWriter
   @Override
   public void setTableInfo(TableInfo tableInfo) {
     this.tableInfo = Optional.ofNullable(tableInfo);
+    // Called when the writer context is created, before any data is written to GCS.
+    this.tableInfo.ifPresent(
+        table ->
+            SparkBigQueryUtil.verifyIndirectWriteSchemaCompatibility(
+                SchemaConverters.from(SchemaConvertersConfiguration.from(config))
+                    .toBigQuerySchema(sparkSchema),
+                table.getDefinition().getSchema()));
   }
 
   private void commitMessages(WriterCommitMessageContext[] messages, long epochId) {

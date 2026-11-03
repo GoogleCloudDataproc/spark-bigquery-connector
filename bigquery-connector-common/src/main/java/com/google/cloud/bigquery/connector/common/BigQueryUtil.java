@@ -885,6 +885,10 @@ public class BigQueryUtil {
   /**
    * Adjusts the wanted schema to properly match the schema of an existing table.
    *
+   * <p>Fields that exist in the table take the table's column type, so a load job using the
+   * adjusted schema expects the source files to contain values that BigQuery can load into those
+   * column types.
+   *
    * @param wantedSchema
    * @param existingTableSchema
    * @return the adjusted schema
