@@ -229,6 +229,7 @@ public class SparkBigQueryConfig
   com.google.common.base.Optional<ImmutableList<String>> clusteredFields = empty();
   com.google.common.base.Optional<JobInfo.CreateDisposition> createDisposition = empty();
   boolean optimizedEmptyProjection = true;
+  boolean useMetadataStaleRowCountIfPossible = false;
   boolean useAvroLogicalTypes = false;
   List<String> decimalTargetTypes = Collections.emptyList();
   List<JobInfo.SchemaUpdateOption> loadSchemaUpdateOptions = Collections.emptyList();
@@ -545,6 +546,8 @@ public class SparkBigQueryConfig
 
     config.optimizedEmptyProjection =
         getAnyBooleanOption(globalOptions, options, "optimizedEmptyProjection", true);
+    config.useMetadataStaleRowCountIfPossible =
+        getAnyBooleanOption(globalOptions, options, "useMetadataStaleRowCountIfPossible", false);
 
     boolean allowFieldAddition =
         getAnyBooleanOption(globalOptions, options, "allowFieldAddition", false);
@@ -1082,6 +1085,10 @@ public class SparkBigQueryConfig
 
   public boolean isOptimizedEmptyProjection() {
     return optimizedEmptyProjection;
+  }
+
+  public boolean isUseMetadataStaleRowCountIfPossible() {
+    return useMetadataStaleRowCountIfPossible;
   }
 
   public ImmutableList<JobInfo.SchemaUpdateOption> getLoadSchemaUpdateOptions() {

@@ -190,6 +190,27 @@ public class BigQueryUtil {
     return false;
   }
 
+  /**
+   * Checks whether the given exception, or any of its causes, is a BigQuery "Access Denied" error
+   * (HTTP 403 with reason {@code accessDenied}), such as a missing {@code bigquery.jobs.create}
+   * permission. Quota and rate limit errors, which also use HTTP 403, are not matched.
+   */
+  public static boolean isAccessDenied(Throwable cause) {
+    if (cause == null) {
+      return false;
+    }
+    return getCausalChain(cause).stream().anyMatch(BigQueryUtil::isAccessDeniedError);
+  }
+
+  static boolean isAccessDeniedError(Throwable t) {
+    if (t instanceof BigQueryException) {
+      BigQueryException bigQueryException = (BigQueryException) t;
+      return bigQueryException.getCode() == 403
+          && "accessDenied".equals(bigQueryException.getReason());
+    }
+    return false;
+  }
+
   public static Throwable makeSerializable(Throwable t) {
     if (t == null) {
       return null;
