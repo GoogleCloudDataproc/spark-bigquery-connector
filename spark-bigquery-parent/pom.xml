@@ -56,10 +56,10 @@
         <google-cloud-storage.version>2.70.0</google-cloud-storage.version>
         <google-truth.version>1.4.5</google-truth.version>
         <grpc.version>1.83.1</grpc.version>
-        <guava.version>33.7.1-jre</guava.version>
-        <jackson.version>2.22.3</jackson.version>
-        <netty.version>4.2.17.Final</netty.version>
-        <openlineage-spark.version>1.46.0</openlineage-spark.version>
+        <guava.version>33.7.2-jre</guava.version>
+        <jackson.version>2.22.4</jackson.version>
+        <netty.version>4.2.19.Final</netty.version>
+        <openlineage-spark.version>1.55.0</openlineage-spark.version>
         <paranamer.version>2.8.3</paranamer.version>
         <protobuf.version>4.35.1</protobuf.version>
         <deploy.skip>true</deploy.skip>
@@ -340,7 +340,7 @@
             <dependency>
                 <groupId>org.json</groupId>
                 <artifactId>json</artifactId>
-                <version>20231013</version>
+                <version>20260814</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
