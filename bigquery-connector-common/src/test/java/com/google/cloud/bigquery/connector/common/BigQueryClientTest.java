@@ -52,6 +52,18 @@ public class BigQueryClientTest {
   }
 
   @Test
+  public void testRestTransportWithHttpTransportOptionsWithoutFactory() {
+    BigQueryOptions options =
+        BigQueryOptions.newBuilder()
+            .setProjectId("test-project")
+            .setCredentials(NoCredentials.getInstance())
+            .setTransportOptions(HttpTransportOptions.newBuilder().setConnectTimeout(1000).build())
+            .build();
+
+    assertThat(BigQueryClient.createRestTransport(options)).isInstanceOf(NetHttpTransport.class);
+  }
+
+  @Test
   public void testRestClientUsesBigQueryTransport() {
     HttpTransport transport = new NetHttpTransport();
     BigQueryOptions options =
