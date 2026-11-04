@@ -20,13 +20,16 @@ import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryFo
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.getQueryForTimePartitionedTable;
 import static com.google.cloud.bigquery.connector.common.BigQueryUtil.isBigQueryNativeTable;
 
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.bigquery.Bigquery;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.cloud.RetryOption;
+import com.google.cloud.TransportOptions;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
@@ -51,6 +54,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.http.BaseHttpServiceException;
+import com.google.cloud.http.HttpTransportOptions;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableList;
@@ -58,7 +62,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -118,27 +121,32 @@ public class BigQueryClient {
   }
 
   static Bigquery createRestClient(BigQuery bigQuery) {
-    try {
-      // Initialize client that will be used to send requests. This client only needs to be created
-      // once, and can be reused for multiple requests
-      HttpCredentialsAdapter httpCredentialsAdapter =
-          new HttpCredentialsAdapter(bigQuery.getOptions().getCredentials());
-      Bigquery.Builder client =
-          new Bigquery.Builder(
-                  GoogleNetHttpTransport.newTrustedTransport(),
-                  GsonFactory.getDefaultInstance(),
-                  httpRequest -> {
-                    httpCredentialsAdapter.initialize(httpRequest);
-                    httpRequest.setThrowExceptionOnExecuteError(false);
-                  })
-              .setApplicationName(bigQuery.getOptions().getUserAgent());
-      return client.build();
-    } catch (GeneralSecurityException gse) {
-      throw new BigQueryConnectorException(
-          "Failed to create new trusted transport for BigQuery REST client", gse);
-    } catch (IOException ioe) {
-      throw new UncheckedIOException(ioe);
+    // Initialize client that will be used to send requests. This client only needs to be created
+    // once, and can be reused for multiple requests
+    HttpCredentialsAdapter httpCredentialsAdapter =
+        new HttpCredentialsAdapter(bigQuery.getOptions().getCredentials());
+    Bigquery.Builder client =
+        new Bigquery.Builder(
+                createRestTransport(bigQuery.getOptions()),
+                GsonFactory.getDefaultInstance(),
+                httpRequest -> {
+                  httpCredentialsAdapter.initialize(httpRequest);
+                  httpRequest.setThrowExceptionOnExecuteError(false);
+                })
+            .setApplicationName(bigQuery.getOptions().getUserAgent());
+    return client.build();
+  }
+
+  /**
+   * Returns the HTTP transport of the BigQuery client, so that the REST client shares its proxy
+   * settings and validates TLS against the JVM default truststore.
+   */
+  static HttpTransport createRestTransport(BigQueryOptions options) {
+    TransportOptions transportOptions = options.getTransportOptions();
+    if (transportOptions instanceof HttpTransportOptions) {
+      return ((HttpTransportOptions) transportOptions).getHttpTransportFactory().create();
     }
+    return new NetHttpTransport();
   }
 
   public static synchronized void runCleanupJobs() {
